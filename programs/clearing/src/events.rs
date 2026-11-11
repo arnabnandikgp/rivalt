@@ -27,13 +27,15 @@ pub struct AccountCashSnapshot {
     pub margin: Address,
     pub portfolio: Address,
     pub owner: Address,
-    pub subaccount_index: u16,
-    pub id: u16,
+    pub subaccount_index: u32,
+    pub id: u64,
     pub mode: u8,
     pub isolated_market_index: u8,
     pub role: u8,
     pub cash: u64,
     pub state_version: u64,
+    pub lifecycle: u8,
+    pub activation_generation: u64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
@@ -61,7 +63,7 @@ pub struct AccountCustodyChanged {
     pub kind: u8,
     pub actor: Address,
     pub subject: Address,
-    pub index: u16,
+    pub index: u32,
     pub amount: u64,
     pub members: Vec<AccountCashSnapshot>,
     pub ledgers: Vec<MarketLedgerSnapshot>,
@@ -81,7 +83,9 @@ pub struct AccountCustodyChanged {
     pub config_epoch: u64,
     pub allocated_vault: Option<u64>,
     pub membership_version: Option<u64>,
-    pub member_count: Option<u16>,
+    pub member_count: Option<u64>,
+    pub registered_count: Option<u64>,
+    pub next_member_id: Option<u64>,
     pub actual_vault: Option<u64>,
 }
 
@@ -92,8 +96,8 @@ pub struct MarginAccountSnapshot {
     pub venue: Address,
     pub portfolio: Address,
     pub owner: Address,
-    pub subaccount_index: u16,
-    pub id: u16,
+    pub subaccount_index: u32,
+    pub id: u64,
     pub mode: u8,
     pub isolated_market_index: u8,
     pub role: u8,
@@ -106,6 +110,8 @@ pub struct MarginAccountSnapshot {
     pub delegate_epoch: u64,
     pub reserved: u64,
     pub book: crate::state::OrderBook,
+    pub lifecycle: u8,
+    pub activation_generation: u64,
     pub bump: u8,
 }
 
@@ -131,6 +137,8 @@ impl From<&crate::state::accounts::MarginAccount> for MarginAccountSnapshot {
             delegate_epoch: state.delegate_epoch,
             reserved: state.reserved,
             book: state.book,
+            lifecycle: state.lifecycle,
+            activation_generation: state.activation_generation,
             bump: state.bump,
         }
     }
@@ -304,12 +312,13 @@ pub struct BackingSnapshot {
     pub funding_bounds: [[i128; 2]; 2],
     pub source_deadlines: [i64; 2],
     pub required_market_mask: u8,
-    pub count: u16,
-    pub next: u16,
+    pub count: u64,
+    pub next: u64,
     pub cash: u64,
     pub lots: [i128; 2],
     pub claim_sum: i128,
     pub complete: bool,
+    pub membership: crate::state::accounts::MembershipState,
     pub bump: u8,
 }
 
@@ -332,6 +341,7 @@ impl From<&crate::state::accounts::SettlementCertificate> for BackingSnapshot {
             lots: state.lots,
             claim_sum: state.claim_sum,
             complete: state.complete,
+            membership: state.membership.clone(),
             bump: state.bump,
         }
     }
@@ -365,7 +375,7 @@ pub struct AccountResolutionFrozen {
     pub stage: u8,
     pub trigger: Address,
     pub emergency: bool,
-    pub count: u16,
+    pub count: u64,
     pub registry_hash: [u8; 32],
     pub safety_epoch: u64,
     pub terms_epoch: u64,
@@ -390,7 +400,7 @@ pub struct AccountResolutionValued {
     pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
-    pub id: u16,
+    pub id: u64,
     pub member: Address,
     pub cash: u64,
     pub lots: [i64; 2],
@@ -446,7 +456,7 @@ pub struct AccountResolutionPlanned {
     pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
-    pub id: u16,
+    pub id: u64,
     pub member: Address,
     pub flow_floors: [u64; 2],
     pub cash_floor: u64,
@@ -478,7 +488,7 @@ pub struct AccountResolutionApplied {
     pub venue: Address,
     pub slot: u64,
     pub epoch: u64,
-    pub id: u16,
+    pub id: u64,
     pub member: Address,
     pub flows: [u64; 2],
     pub cash_before: u64,
@@ -538,8 +548,8 @@ pub struct AccountRetirementProgress {
     pub slot: u64,
     pub safety_epoch: u64,
     pub membership_version: u64,
-    pub count: u16,
-    pub next: u16,
+    pub count: u64,
+    pub next: u64,
     pub cash: u64,
     pub complete: bool,
 }
@@ -550,7 +560,7 @@ pub struct AccountsRetired {
     pub slot: u64,
     pub safety_epoch: u64,
     pub terms_epoch: u64,
-    pub count: u16,
+    pub count: u64,
     pub total_cash: u64,
     pub allocated_vault: u64,
     pub actual_vault: u64,
@@ -628,4 +638,26 @@ pub struct SettlementMarginApplied {
     pub lots: [i64; 2],
     pub flows: [u64; 2],
     pub state: MarginAccountSnapshot,
+}
+
+/// Explicit identity/eligibility change. Monetary balances remain owned by the
+/// normal financial events; refunded SOL is rent, never collateral or insurance.
+#[event]
+pub struct MarginMembershipChanged {
+    pub venue: Address,
+    pub slot: u64,
+    pub margin: Address,
+    pub portfolio: Address,
+    pub owner: Address,
+    pub id: u64,
+    pub lifecycle: u8,
+    pub activation_generation: u64,
+    pub nonce: u64,
+    pub state_version: u64,
+    pub delegate_epoch: u64,
+    pub membership_epoch: u64,
+    pub registered_count: u64,
+    pub financial_count: u64,
+    pub next_id: u64,
+    pub refunded_lamports: u64,
 }

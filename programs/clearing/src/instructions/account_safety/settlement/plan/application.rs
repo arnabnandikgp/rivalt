@@ -19,7 +19,9 @@ pub(super) fn original_margin(
     require!(
         root.venue == header.venue
             && u64::from(root.id) == frozen.id
-            && frozen.activation_generation == 1
+            && root.lifecycle == MEMBER_FINANCIAL
+            && frozen.activation_generation > 0
+            && root.activation_generation == frozen.activation_generation
             && root.revision == frozen.original_revision
             && root.cash == frozen.cash
             && root.positions.map(|position| position.lots) == frozen.lots
@@ -78,6 +80,9 @@ pub(super) fn reconciled_margin(
     require!(
         root.venue == header.venue
             && u64::from(root.id) == frozen.id
+            && root.lifecycle == MEMBER_FINANCIAL
+            && frozen.activation_generation > 0
+            && root.activation_generation == frozen.activation_generation
             && frozen.original_revision.checked_add(1) == Some(root.revision)
             && root.cash == final_cash
             && root.reserved == 0
@@ -121,13 +126,15 @@ mod tests {
             ..Default::default()
         };
         let mut root = MarginAccount {
-            schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             revision: 7,
             venue: header.venue,
             id: 0,
             mode: if isolated { MODE_ISOLATED } else { MODE_CROSS },
             isolated_market_index: if isolated { 0 } else { CROSS_MARKET_SENTINEL },
-            subaccount_index: u16::from(isolated),
+            subaccount_index: u32::from(isolated),
             cash: 1,
             delegate_epoch: 4,
             nonce: 12,

@@ -23,8 +23,8 @@ pub use settlement::*;
 pub use settlement_plan::*;
 pub use settlement_rates::*;
 
-pub const SCHEMA_VERSION: u16 = 8;
-pub const PROFILE_VERSION: u16 = 4;
+pub const SCHEMA_VERSION: u16 = 9;
+pub const PROFILE_VERSION: u16 = 5;
 pub use crate::state::identity::{MARKET_COUNT, MAX_MEMBERS};
 pub const RESOLUTION_PAGE_ROWS: usize = 2;
 pub const WIDE_LIMBS: usize = 96;

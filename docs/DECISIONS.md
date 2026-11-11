@@ -5,6 +5,43 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D101 — canonical live membership and retirement wire (12 November 2026)
+
+P55A2 uses D93's fresh schema 9 / local profile 5 for the fixed registry header,
+u64 member IDs, u32 portfolio/child seeds and explicit Registered/Financial/Retired
+roots. The membership epoch changes only on Financial entry/exit. Empty identity
+creation/retirement changes discovery revisions and counts but cannot invalidate a
+financial commitment. Financial roots stay indexed until an owner explicitly exits
+with zero cash, quantities, claims (including fractions), reserves, active orders,
+protections and delegate authority. An owned maker binding still blocks exit until
+P57 supplies maker retirement. Reentry increments activation generation and replay
+counters without resetting order IDs or position history.
+
+A root retires to a permanent 135-byte `MarginTombstone` at the same PDA. The owner
+who paid root creation receives only the rent above the retained tombstone minimum.
+The journal's sole root-kind transition is MarginAccount (5) to MarginTombstone
+(26), preserving the predecessor revision and incrementing it once. Consumers must
+accept that change only with the `retire_margin` instruction and matching lifecycle
+payload; it is not a general account-kind relabelling rule. Empty exits remain
+possible after terminal venue retirement; activation and registration do not.
+
+This deliberately replaces the P54/D97 frozen **mirror** with the live Financial
+index. The complete snapshot binds venue, canonical index root, financial count and
+membership epoch; each row records the actual activation generation. D100's funded
+workspace is locked at freeze, retagged only from completed older epochs and
+unlocked only after complete financial reconciliation. The seven old fixed-cohort
+solver instructions, their inline wide work/page accounts and two mirror-creation
+instructions are removed from the new dispatch/IDL. Historical journal kinds 11/12
+stay reserved. The exact native reference arithmetic remains available for checks;
+there is no callable fixed-size fallback for a larger live registry.
+
+The successor's local financial-admission gate remains 64 until P56B's populated
+acceptance; registration, stable IDs and traversal have no corresponding 64-root
+ceiling. This is an explicit temporary qualification gate, not a newly chosen
+permanent protocol cap. Default/devnet remain disabled. P55A2 is unfinished until
+minimum client/indexer migration and fresh signed RPC/WS/PostgreSQL acceptance pass;
+these source changes do not promote an artifact or relabel P54 evidence.
+
 ## D100 — pre-funded reusable recovery workspace (12 November 2026)
 
 P55A2 implements D93's requirement that recovery storage be funded before financial

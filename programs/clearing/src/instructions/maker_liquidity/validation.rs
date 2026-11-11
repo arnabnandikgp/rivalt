@@ -4,13 +4,13 @@ use crate::{ProgramData, UpgradeableProgramAddress};
 pub(crate) fn execution_base(venue: &Venue, safety: &VenueSafety, market: &Market) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && venue.schema_version == 8
-            && venue.profile_version == 4
+            && venue.schema_version == crate::state::accounts::SCHEMA_VERSION
+            && venue.profile_version == crate::state::accounts::PROFILE_VERSION
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && safety.schema_version == 8
+            && safety.schema_version == crate::state::accounts::SCHEMA_VERSION
             && matches!(safety.mode, CUSTODY | ACTIVE)
-            && market.schema_version == 8
+            && market.schema_version == crate::state::accounts::SCHEMA_VERSION
             && market.index < 2,
         ClearingError::Profile
     );
@@ -46,13 +46,13 @@ pub(crate) fn custody_only(venue: &Venue, safety: &VenueSafety, market: &Market)
 pub(crate) fn custody_base(venue: &Venue, safety: &VenueSafety, market: &Market) -> Result<()> {
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && venue.schema_version == 8
-            && venue.profile_version == 4
+            && venue.schema_version == crate::state::accounts::SCHEMA_VERSION
+            && venue.profile_version == crate::state::accounts::PROFILE_VERSION
             && venue.market_count == 2
             && venue.insurance_fee_share_bps == 2500
-            && safety.schema_version == 8
+            && safety.schema_version == crate::state::accounts::SCHEMA_VERSION
             && safety.mode == CUSTODY
-            && market.schema_version == 8
+            && market.schema_version == crate::state::accounts::SCHEMA_VERSION
             && market.index < 2
             && market.funding_index_scaled == 0
             && market.gross_lots == 0
@@ -64,7 +64,7 @@ pub(crate) fn custody_base(venue: &Venue, safety: &VenueSafety, market: &Market)
 
 pub(crate) fn capital_identity(capital: &MarginAccount, market: &Market) -> Result<()> {
     require!(
-        capital.schema_version == 8
+        capital.schema_version == crate::state::accounts::SCHEMA_VERSION
             && capital.venue == market.venue
             && capital.mode == MODE_ISOLATED
             && capital.role == ROLE_MAKER
@@ -171,7 +171,7 @@ pub(crate) fn authenticated_control(
     require!(!accounts.safety.paused, ClearingError::Paused);
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 8
+        accounts.registration.schema_version == crate::state::accounts::SCHEMA_VERSION
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.depth_epoch > 0

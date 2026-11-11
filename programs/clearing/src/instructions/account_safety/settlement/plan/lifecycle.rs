@@ -540,6 +540,8 @@ pub fn complete_plan(
         &accounts.plan,
         revision,
     )?;
+    let unlocked = accounts.source.storage.model().unlock(accounts.prepared.epoch)
+        .map_err(|_| ClearingError::Resolution)?;
     let source = &mut *accounts.source;
     complete(
         &accounts.prepared,
@@ -547,6 +549,7 @@ pub fn complete_plan(
         &mut source.resolution,
         &mut source.safety,
     )?;
+    accounts.source.storage.commit(unlocked)?;
     accounts.plan.last_progress_slot = Clock::get()?.slot;
     emit_progress(
         &accounts.source.frozen(),

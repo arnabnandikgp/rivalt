@@ -244,7 +244,9 @@ mod event_tests {
     #[test]
     fn borrowed_liquidation_is_exactly_the_owned_event_wire() {
         let target = MarginAccount {
-            schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             cash: 17,
             nonce: 9,
             positions: [
@@ -259,13 +261,15 @@ mod event_tests {
             ..Default::default()
         };
         let receiver = MarginAccount {
-            schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             cash: 21,
             id: 1,
             ..Default::default()
         };
         let market = Market {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             reference_price: 20_000,
             funding_index_scaled: -17,
             ..Default::default()

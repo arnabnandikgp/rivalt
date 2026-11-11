@@ -14,8 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
+  getU64Decoder,
+  getU64Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -36,7 +36,6 @@ import {
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
-  getNonNullResolvedInstructionInput,
   type InstructionAccountInput,
   type InstructionAccountInputAddress,
   type InstructionSignerInput,
@@ -44,33 +43,32 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import {
-  findCustodyPda,
   findEventAuthorityPda,
-  findPagePda,
-  findResolutionPda,
+  findVenueRegistryPda,
   findVenueSafetyPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
-export const INITIALIZE_ACCOUNT_RESOLUTION_PAGE_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([140, 24, 112, 109, 122, 218, 84, 200]);
+export const RETIRE_MARGIN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  238, 226, 35, 87, 92, 76, 136, 41,
+]);
 
-export function getInitializeAccountResolutionPageDiscriminatorBytes(): ReadonlyUint8Array {
+export function getRetireMarginDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    INITIALIZE_ACCOUNT_RESOLUTION_PAGE_DISCRIMINATOR,
+    RETIRE_MARGIN_DISCRIMINATOR,
   );
 }
 
-export type InitializeAccountResolutionPageInstruction<
+export type RetireMarginInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
-  TAccountPayer extends string | AccountMeta<string> = string,
+  TAccountOwner extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
-  TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
-  TAccountResolution extends string | AccountMeta<string> = string,
-  TAccountPage extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
+  TAccountRegistry extends string | AccountMeta<string> = string,
+  TAccountPortfolio extends string | AccountMeta<string> = string,
+  TAccountMargin extends string | AccountMeta<string> = string,
+  TAccountMembers extends string | AccountMeta<string> = string,
+  TAccountBinding extends string | AccountMeta<string> = string,
   TAccountEventAuthority extends string | AccountMeta<string> = string,
   TAccountProgram extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -78,28 +76,31 @@ export type InitializeAccountResolutionPageInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountPayer extends string
-        ? WritableSignerAccount<TAccountPayer> &
-            AccountSignerMeta<TAccountPayer>
-        : TAccountPayer,
+      TAccountOwner extends string
+        ? WritableSignerAccount<TAccountOwner> &
+            AccountSignerMeta<TAccountOwner>
+        : TAccountOwner,
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
-      TAccountCustody extends string
-        ? ReadonlyAccount<TAccountCustody>
-        : TAccountCustody,
       TAccountSafety extends string
         ? ReadonlyAccount<TAccountSafety>
         : TAccountSafety,
-      TAccountResolution extends string
-        ? WritableAccount<TAccountResolution>
-        : TAccountResolution,
-      TAccountPage extends string
-        ? WritableAccount<TAccountPage>
-        : TAccountPage,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
+      TAccountRegistry extends string
+        ? WritableAccount<TAccountRegistry>
+        : TAccountRegistry,
+      TAccountPortfolio extends string
+        ? WritableAccount<TAccountPortfolio>
+        : TAccountPortfolio,
+      TAccountMargin extends string
+        ? WritableAccount<TAccountMargin>
+        : TAccountMargin,
+      TAccountMembers extends string
+        ? WritableAccount<TAccountMembers>
+        : TAccountMembers,
+      TAccountBinding extends string
+        ? ReadonlyAccount<TAccountBinding>
+        : TAccountBinding,
       TAccountEventAuthority extends string
         ? ReadonlyAccount<TAccountEventAuthority>
         : TAccountEventAuthority,
@@ -110,92 +111,102 @@ export type InitializeAccountResolutionPageInstruction<
     ]
   >;
 
-export type InitializeAccountResolutionPageInstructionData = {
+export type RetireMarginInstructionData = {
   discriminator: ReadonlyUint8Array;
-  pageIndex: number;
+  revision: bigint;
+  safetyEpoch: bigint;
 };
 
-export type InitializeAccountResolutionPageInstructionDataArgs = {
-  pageIndex: number;
+export type RetireMarginInstructionDataArgs = {
+  revision: number | bigint;
+  safetyEpoch: number | bigint;
 };
 
-export function getInitializeAccountResolutionPageInstructionDataEncoder(): FixedSizeEncoder<InitializeAccountResolutionPageInstructionDataArgs> {
+export function getRetireMarginInstructionDataEncoder(): FixedSizeEncoder<RetireMarginInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["pageIndex", getU16Encoder()],
+      ["revision", getU64Encoder()],
+      ["safetyEpoch", getU64Encoder()],
     ]),
-    (value) => ({
-      ...value,
-      discriminator: INITIALIZE_ACCOUNT_RESOLUTION_PAGE_DISCRIMINATOR,
-    }),
+    (value) => ({ ...value, discriminator: RETIRE_MARGIN_DISCRIMINATOR }),
   );
 }
 
-export function getInitializeAccountResolutionPageInstructionDataDecoder(): FixedSizeDecoder<InitializeAccountResolutionPageInstructionData> {
+export function getRetireMarginInstructionDataDecoder(): FixedSizeDecoder<RetireMarginInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["pageIndex", getU16Decoder()],
+    ["revision", getU64Decoder()],
+    ["safetyEpoch", getU64Decoder()],
   ]);
 }
 
-export function getInitializeAccountResolutionPageInstructionDataCodec(): FixedSizeCodec<
-  InitializeAccountResolutionPageInstructionDataArgs,
-  InitializeAccountResolutionPageInstructionData
+export function getRetireMarginInstructionDataCodec(): FixedSizeCodec<
+  RetireMarginInstructionDataArgs,
+  RetireMarginInstructionData
 > {
   return combineCodec(
-    getInitializeAccountResolutionPageInstructionDataEncoder(),
-    getInitializeAccountResolutionPageInstructionDataDecoder(),
+    getRetireMarginInstructionDataEncoder(),
+    getRetireMarginInstructionDataDecoder(),
   );
 }
 
-export type InitializeAccountResolutionPageAsyncInput<
-  TAccountPayer extends InstructionSignerInput = InstructionSignerInput,
+export type RetireMarginAsyncInput<
+  TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
-  TAccountPage extends InstructionAccountInput = InstructionAccountInput,
-  TAccountSystemProgram extends InstructionAccountInput =
-    InstructionAccountInput,
+  TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPortfolio extends InstructionAccountInput = InstructionAccountInput,
+  TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput = InstructionAccountInput,
+  TAccountBinding extends InstructionAccountInput = InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  payer: TAccountPayer;
+  owner: TAccountOwner;
   venue: TAccountVenue;
-  custody?: TAccountCustody;
   safety?: TAccountSafety;
-  resolution?: TAccountResolution;
-  page?: TAccountPage;
-  systemProgram?: TAccountSystemProgram;
+  registry?: TAccountRegistry;
+  portfolio: TAccountPortfolio;
+  /**
+   * CHECK: handler authenticates MarginAccount owner/PDA/exact layout and
+   * rewrites its same address to MarginTombstone; no typed root writeback.
+   */
+  margin: TAccountMargin;
+  members: TAccountMembers;
+  /** CHECK: canonical binding must have no owned data before terminal retirement. */
+  binding: TAccountBinding;
   /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority?: TAccountEventAuthority;
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
-  pageIndex: InitializeAccountResolutionPageInstructionDataArgs["pageIndex"];
+  revision: RetireMarginInstructionDataArgs["revision"];
+  safetyEpoch: RetireMarginInstructionDataArgs["safetyEpoch"];
 };
 
-export async function getInitializeAccountResolutionPageInstructionAsync<
-  TAccountPayer extends InstructionSignerInput,
+export async function getRetireMarginInstructionAsync<
+  TAccountOwner extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountResolution extends InstructionAccountInput,
-  TAccountPage extends InstructionAccountInput,
-  TAccountSystemProgram extends InstructionAccountInput,
+  TAccountRegistry extends InstructionAccountInput,
+  TAccountPortfolio extends InstructionAccountInput,
+  TAccountMargin extends InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput,
+  TAccountBinding extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
-  input: InitializeAccountResolutionPageAsyncInput<
-    TAccountPayer,
+  input: RetireMarginAsyncInput<
+    TAccountOwner,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
-    TAccountResolution,
-    TAccountPage,
-    TAccountSystemProgram,
+    TAccountRegistry,
+    TAccountPortfolio,
+    TAccountMargin,
+    TAccountMembers,
+    TAccountBinding,
     TAccountEventAuthority,
     TAccountProgram
   >,
@@ -203,35 +214,39 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
   },
 ): Promise<
-  InitializeAccountResolutionPageInstruction<
+  RetireMarginInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
-      TAccountPayer,
-      InstructionAccountInputAddress<TAccountPayer>
+      TAccountOwner,
+      InstructionAccountInputAddress<TAccountOwner>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountResolution,
-      InstructionAccountInputAddress<TAccountResolution>
+      TAccountRegistry,
+      InstructionAccountInputAddress<TAccountRegistry>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountPage,
-      InstructionAccountInputAddress<TAccountPage>
+      TAccountPortfolio,
+      InstructionAccountInputAddress<TAccountPortfolio>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountSystemProgram,
-      InstructionAccountInputAddress<TAccountSystemProgram>
+      TAccountMargin,
+      InstructionAccountInputAddress<TAccountMargin>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountBinding,
+      InstructionAccountInputAddress<TAccountBinding>
     >,
     ResolvedInstructionAccountMeta<
       TAccountEventAuthority,
@@ -256,22 +271,27 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    payer: { value: input.payer ?? null, isSigner: true, isWritable: true },
+    owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    resolution: {
-      value: input.resolution ?? null,
+    registry: {
+      value: input.registry ?? null,
       isSigner: false,
       isWritable: true,
     },
-    page: { value: input.page ?? null, isSigner: false, isWritable: true },
-    systemProgram: {
-      value: input.systemProgram ?? null,
+    portfolio: {
+      value: input.portfolio ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
+    margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
+    members: {
+      value: input.members ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
+    binding: {
+      value: input.binding ?? null,
       isSigner: false,
       isWritable: false,
     },
@@ -295,17 +315,6 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.custody.value) {
-    accounts.custody.value = await findCustodyPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.safety.value) {
     accounts.safety.value = await findVenueSafetyPda(
       {
@@ -317,8 +326,8 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.resolution.value) {
-    accounts.resolution.value = await findResolutionPda(
+  if (!accounts.registry.value) {
+    accounts.registry.value = await findVenueRegistryPda(
       {
         venue: getAddressFromResolvedInstructionAccount(
           "venue",
@@ -327,25 +336,6 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
       },
       { programAddress },
     );
-  }
-  if (!accounts.page.value) {
-    accounts.page.value = await findPagePda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-        pageIndex: getNonNullResolvedInstructionInput(
-          "pageIndex",
-          args.pageIndex,
-        ),
-      },
-      { programAddress },
-    );
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
   if (!accounts.eventAuthority.value) {
     accounts.eventAuthority.value = await findEventAuthorityPda({
@@ -355,49 +345,54 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
 
   return Object.freeze({
     accounts: [
-      getAccountMeta("payer", accounts.payer),
+      getAccountMeta("owner", accounts.owner),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("resolution", accounts.resolution),
-      getAccountMeta("page", accounts.page),
-      getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("registry", accounts.registry),
+      getAccountMeta("portfolio", accounts.portfolio),
+      getAccountMeta("margin", accounts.margin),
+      getAccountMeta("members", accounts.members),
+      getAccountMeta("binding", accounts.binding),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
     ],
-    data: getInitializeAccountResolutionPageInstructionDataEncoder().encode(
-      args as InitializeAccountResolutionPageInstructionDataArgs,
+    data: getRetireMarginInstructionDataEncoder().encode(
+      args as RetireMarginInstructionDataArgs,
     ),
     programAddress,
-  } as InitializeAccountResolutionPageInstruction<
+  } as RetireMarginInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
-      TAccountPayer,
-      InstructionAccountInputAddress<TAccountPayer>
+      TAccountOwner,
+      InstructionAccountInputAddress<TAccountOwner>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountResolution,
-      InstructionAccountInputAddress<TAccountResolution>
+      TAccountRegistry,
+      InstructionAccountInputAddress<TAccountRegistry>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountPage,
-      InstructionAccountInputAddress<TAccountPage>
+      TAccountPortfolio,
+      InstructionAccountInputAddress<TAccountPortfolio>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountSystemProgram,
-      InstructionAccountInputAddress<TAccountSystemProgram>
+      TAccountMargin,
+      InstructionAccountInputAddress<TAccountMargin>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountBinding,
+      InstructionAccountInputAddress<TAccountBinding>
     >,
     ResolvedInstructionAccountMeta<
       TAccountEventAuthority,
@@ -410,88 +405,101 @@ export async function getInitializeAccountResolutionPageInstructionAsync<
   >);
 }
 
-export type InitializeAccountResolutionPageInput<
-  TAccountPayer extends InstructionSignerInput = InstructionSignerInput,
+export type RetireMarginInput<
+  TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
-  TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
-  TAccountPage extends InstructionAccountInput = InstructionAccountInput,
-  TAccountSystemProgram extends InstructionAccountInput =
-    InstructionAccountInput,
+  TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPortfolio extends InstructionAccountInput = InstructionAccountInput,
+  TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput = InstructionAccountInput,
+  TAccountBinding extends InstructionAccountInput = InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  payer: TAccountPayer;
+  owner: TAccountOwner;
   venue: TAccountVenue;
-  custody: TAccountCustody;
   safety: TAccountSafety;
-  resolution: TAccountResolution;
-  page: TAccountPage;
-  systemProgram?: TAccountSystemProgram;
+  registry: TAccountRegistry;
+  portfolio: TAccountPortfolio;
+  /**
+   * CHECK: handler authenticates MarginAccount owner/PDA/exact layout and
+   * rewrites its same address to MarginTombstone; no typed root writeback.
+   */
+  margin: TAccountMargin;
+  members: TAccountMembers;
+  /** CHECK: canonical binding must have no owned data before terminal retirement. */
+  binding: TAccountBinding;
   /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
-  pageIndex: InitializeAccountResolutionPageInstructionDataArgs["pageIndex"];
+  revision: RetireMarginInstructionDataArgs["revision"];
+  safetyEpoch: RetireMarginInstructionDataArgs["safetyEpoch"];
 };
 
-export function getInitializeAccountResolutionPageInstruction<
-  TAccountPayer extends InstructionSignerInput,
+export function getRetireMarginInstruction<
+  TAccountOwner extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
-  TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
-  TAccountResolution extends InstructionAccountInput,
-  TAccountPage extends InstructionAccountInput,
-  TAccountSystemProgram extends InstructionAccountInput,
+  TAccountRegistry extends InstructionAccountInput,
+  TAccountPortfolio extends InstructionAccountInput,
+  TAccountMargin extends InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput,
+  TAccountBinding extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
-  input: InitializeAccountResolutionPageInput<
-    TAccountPayer,
+  input: RetireMarginInput<
+    TAccountOwner,
     TAccountVenue,
-    TAccountCustody,
     TAccountSafety,
-    TAccountResolution,
-    TAccountPage,
-    TAccountSystemProgram,
+    TAccountRegistry,
+    TAccountPortfolio,
+    TAccountMargin,
+    TAccountMembers,
+    TAccountBinding,
     TAccountEventAuthority,
     TAccountProgram
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
   },
-): InitializeAccountResolutionPageInstruction<
+): RetireMarginInstruction<
   TProgramAddress,
   ResolvedInstructionAccountMeta<
-    TAccountPayer,
-    InstructionAccountInputAddress<TAccountPayer>
+    TAccountOwner,
+    InstructionAccountInputAddress<TAccountOwner>
   >,
   ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountCustody,
-    InstructionAccountInputAddress<TAccountCustody>
-  >,
-  ResolvedInstructionAccountMeta<
     TAccountSafety,
     InstructionAccountInputAddress<TAccountSafety>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountResolution,
-    InstructionAccountInputAddress<TAccountResolution>
+    TAccountRegistry,
+    InstructionAccountInputAddress<TAccountRegistry>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountPage,
-    InstructionAccountInputAddress<TAccountPage>
+    TAccountPortfolio,
+    InstructionAccountInputAddress<TAccountPortfolio>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountSystemProgram,
-    InstructionAccountInputAddress<TAccountSystemProgram>
+    TAccountMargin,
+    InstructionAccountInputAddress<TAccountMargin>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountMembers,
+    InstructionAccountInputAddress<TAccountMembers>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountBinding,
+    InstructionAccountInputAddress<TAccountBinding>
   >,
   ResolvedInstructionAccountMeta<
     TAccountEventAuthority,
@@ -515,22 +523,27 @@ export function getInitializeAccountResolutionPageInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    payer: { value: input.payer ?? null, isSigner: true, isWritable: true },
+    owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
-    custody: {
-      value: input.custody ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
-    resolution: {
-      value: input.resolution ?? null,
+    registry: {
+      value: input.registry ?? null,
       isSigner: false,
       isWritable: true,
     },
-    page: { value: input.page ?? null, isSigner: false, isWritable: true },
-    systemProgram: {
-      value: input.systemProgram ?? null,
+    portfolio: {
+      value: input.portfolio ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
+    margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
+    members: {
+      value: input.members ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
+    binding: {
+      value: input.binding ?? null,
       isSigner: false,
       isWritable: false,
     },
@@ -553,57 +566,56 @@ export function getInitializeAccountResolutionPageInstruction<
   // Original args.
   const args = { ...input };
 
-  // Resolve default values.
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-
   return Object.freeze({
     accounts: [
-      getAccountMeta("payer", accounts.payer),
+      getAccountMeta("owner", accounts.owner),
       getAccountMeta("venue", accounts.venue),
-      getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
-      getAccountMeta("resolution", accounts.resolution),
-      getAccountMeta("page", accounts.page),
-      getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("registry", accounts.registry),
+      getAccountMeta("portfolio", accounts.portfolio),
+      getAccountMeta("margin", accounts.margin),
+      getAccountMeta("members", accounts.members),
+      getAccountMeta("binding", accounts.binding),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
     ],
-    data: getInitializeAccountResolutionPageInstructionDataEncoder().encode(
-      args as InitializeAccountResolutionPageInstructionDataArgs,
+    data: getRetireMarginInstructionDataEncoder().encode(
+      args as RetireMarginInstructionDataArgs,
     ),
     programAddress,
-  } as InitializeAccountResolutionPageInstruction<
+  } as RetireMarginInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
-      TAccountPayer,
-      InstructionAccountInputAddress<TAccountPayer>
+      TAccountOwner,
+      InstructionAccountInputAddress<TAccountOwner>
     >,
     ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCustody,
-      InstructionAccountInputAddress<TAccountCustody>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSafety,
       InstructionAccountInputAddress<TAccountSafety>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountResolution,
-      InstructionAccountInputAddress<TAccountResolution>
+      TAccountRegistry,
+      InstructionAccountInputAddress<TAccountRegistry>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountPage,
-      InstructionAccountInputAddress<TAccountPage>
+      TAccountPortfolio,
+      InstructionAccountInputAddress<TAccountPortfolio>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountSystemProgram,
-      InstructionAccountInputAddress<TAccountSystemProgram>
+      TAccountMargin,
+      InstructionAccountInputAddress<TAccountMargin>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountBinding,
+      InstructionAccountInputAddress<TAccountBinding>
     >,
     ResolvedInstructionAccountMeta<
       TAccountEventAuthority,
@@ -616,41 +628,47 @@ export function getInitializeAccountResolutionPageInstruction<
   >);
 }
 
-export type ParsedInitializeAccountResolutionPageInstruction<
+export type ParsedRetireMarginInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    payer: TAccountMetas[0];
+    owner: TAccountMetas[0];
     venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    resolution: TAccountMetas[4];
-    page: TAccountMetas[5];
-    systemProgram: TAccountMetas[6];
+    safety: TAccountMetas[2];
+    registry: TAccountMetas[3];
+    portfolio: TAccountMetas[4];
+    /**
+     * CHECK: handler authenticates MarginAccount owner/PDA/exact layout and
+     * rewrites its same address to MarginTombstone; no typed root writeback.
+     */
+    margin: TAccountMetas[5];
+    members: TAccountMetas[6];
+    /** CHECK: canonical binding must have no owned data before terminal retirement. */
+    binding: TAccountMetas[7];
     /** CHECK: Only the event authority can invoke self-CPI */
-    eventAuthority: TAccountMetas[7];
+    eventAuthority: TAccountMetas[8];
     /** CHECK: Kept for v1-compatible account ordering and IDL shape */
-    program: TAccountMetas[8];
+    program: TAccountMetas[9];
   };
-  data: InitializeAccountResolutionPageInstructionData;
+  data: RetireMarginInstructionData;
 };
 
-export function parseInitializeAccountResolutionPageInstruction<
+export function parseRetireMarginInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedInitializeAccountResolutionPageInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+): ParsedRetireMarginInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 10) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 10,
       },
     );
   }
@@ -663,18 +681,17 @@ export function parseInitializeAccountResolutionPageInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      payer: getNextAccount(),
+      owner: getNextAccount(),
       venue: getNextAccount(),
-      custody: getNextAccount(),
       safety: getNextAccount(),
-      resolution: getNextAccount(),
-      page: getNextAccount(),
-      systemProgram: getNextAccount(),
+      registry: getNextAccount(),
+      portfolio: getNextAccount(),
+      margin: getNextAccount(),
+      members: getNextAccount(),
+      binding: getNextAccount(),
       eventAuthority: getNextAccount(),
       program: getNextAccount(),
     },
-    data: getInitializeAccountResolutionPageInstructionDataDecoder().decode(
-      instruction.data,
-    ),
+    data: getRetireMarginInstructionDataDecoder().decode(instruction.data),
   };
 }

@@ -45,7 +45,6 @@ import {
   findEventAuthorityPda,
   findResolutionPda,
   findVenueSafetyPda,
-  findWorkPda,
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
@@ -65,7 +64,6 @@ export type InitializeAccountResolutionInstruction<
   TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountResolution extends string | AccountMeta<string> = string,
-  TAccountWork extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TAccountEventAuthority extends string | AccountMeta<string> = string,
@@ -91,9 +89,6 @@ export type InitializeAccountResolutionInstruction<
       TAccountResolution extends string
         ? WritableAccount<TAccountResolution>
         : TAccountResolution,
-      TAccountWork extends string
-        ? WritableAccount<TAccountWork>
-        : TAccountWork,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -145,7 +140,6 @@ export type InitializeAccountResolutionAsyncInput<
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
-  TAccountWork extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
@@ -157,7 +151,6 @@ export type InitializeAccountResolutionAsyncInput<
   custody?: TAccountCustody;
   safety?: TAccountSafety;
   resolution?: TAccountResolution;
-  work?: TAccountWork;
   systemProgram?: TAccountSystemProgram;
   /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority?: TAccountEventAuthority;
@@ -171,7 +164,6 @@ export async function getInitializeAccountResolutionInstructionAsync<
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
-  TAccountWork extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
@@ -183,7 +175,6 @@ export async function getInitializeAccountResolutionInstructionAsync<
     TAccountCustody,
     TAccountSafety,
     TAccountResolution,
-    TAccountWork,
     TAccountSystemProgram,
     TAccountEventAuthority,
     TAccountProgram
@@ -213,10 +204,6 @@ export async function getInitializeAccountResolutionInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountResolution,
       InstructionAccountInputAddress<TAccountResolution>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountWork,
-      InstructionAccountInputAddress<TAccountWork>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
@@ -258,7 +245,6 @@ export async function getInitializeAccountResolutionInstructionAsync<
       isSigner: false,
       isWritable: true,
     },
-    work: { value: input.work ?? null, isSigner: false, isWritable: true },
     systemProgram: {
       value: input.systemProgram ?? null,
       isSigner: false,
@@ -314,17 +300,6 @@ export async function getInitializeAccountResolutionInstructionAsync<
       { programAddress },
     );
   }
-  if (!accounts.work.value) {
-    accounts.work.value = await findWorkPda(
-      {
-        venue: getAddressFromResolvedInstructionAccount(
-          "venue",
-          accounts.venue.value,
-        ),
-      },
-      { programAddress },
-    );
-  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -342,7 +317,6 @@ export async function getInitializeAccountResolutionInstructionAsync<
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("resolution", accounts.resolution),
-      getAccountMeta("work", accounts.work),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
@@ -372,10 +346,6 @@ export async function getInitializeAccountResolutionInstructionAsync<
       InstructionAccountInputAddress<TAccountResolution>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountWork,
-      InstructionAccountInputAddress<TAccountWork>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
     >,
@@ -396,7 +366,6 @@ export type InitializeAccountResolutionInput<
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
-  TAccountWork extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
@@ -408,7 +377,6 @@ export type InitializeAccountResolutionInput<
   custody: TAccountCustody;
   safety: TAccountSafety;
   resolution: TAccountResolution;
-  work: TAccountWork;
   systemProgram?: TAccountSystemProgram;
   /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
@@ -422,7 +390,6 @@ export function getInitializeAccountResolutionInstruction<
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
-  TAccountWork extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
@@ -434,7 +401,6 @@ export function getInitializeAccountResolutionInstruction<
     TAccountCustody,
     TAccountSafety,
     TAccountResolution,
-    TAccountWork,
     TAccountSystemProgram,
     TAccountEventAuthority,
     TAccountProgram
@@ -463,10 +429,6 @@ export function getInitializeAccountResolutionInstruction<
   ResolvedInstructionAccountMeta<
     TAccountResolution,
     InstructionAccountInputAddress<TAccountResolution>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountWork,
-    InstructionAccountInputAddress<TAccountWork>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSystemProgram,
@@ -507,7 +469,6 @@ export function getInitializeAccountResolutionInstruction<
       isSigner: false,
       isWritable: true,
     },
-    work: { value: input.work ?? null, isSigner: false, isWritable: true },
     systemProgram: {
       value: input.systemProgram ?? null,
       isSigner: false,
@@ -542,7 +503,6 @@ export function getInitializeAccountResolutionInstruction<
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("resolution", accounts.resolution),
-      getAccountMeta("work", accounts.work),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
@@ -572,10 +532,6 @@ export function getInitializeAccountResolutionInstruction<
       InstructionAccountInputAddress<TAccountResolution>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountWork,
-      InstructionAccountInputAddress<TAccountWork>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
     >,
@@ -601,12 +557,11 @@ export type ParsedInitializeAccountResolutionInstruction<
     custody: TAccountMetas[2];
     safety: TAccountMetas[3];
     resolution: TAccountMetas[4];
-    work: TAccountMetas[5];
-    systemProgram: TAccountMetas[6];
+    systemProgram: TAccountMetas[5];
     /** CHECK: Only the event authority can invoke self-CPI */
-    eventAuthority: TAccountMetas[7];
+    eventAuthority: TAccountMetas[6];
     /** CHECK: Kept for v1-compatible account ordering and IDL shape */
-    program: TAccountMetas[8];
+    program: TAccountMetas[7];
   };
   data: InitializeAccountResolutionInstructionData;
 };
@@ -619,12 +574,12 @@ export function parseInitializeAccountResolutionInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitializeAccountResolutionInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 8) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 8,
       },
     );
   }
@@ -642,7 +597,6 @@ export function parseInitializeAccountResolutionInstruction<
       custody: getNextAccount(),
       safety: getNextAccount(),
       resolution: getNextAccount(),
-      work: getNextAccount(),
       systemProgram: getNextAccount(),
       eventAuthority: getNextAccount(),
       program: getNextAccount(),

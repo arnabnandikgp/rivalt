@@ -17,14 +17,14 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -46,117 +46,113 @@ import {
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
 } from "@solana/kit";
-import {
-  getResolutionRowDecoder,
-  getResolutionRowEncoder,
-  type ResolutionRow,
-  type ResolutionRowArgs,
-} from "../types/index.js";
 
-export const RESOLUTION_PAGE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [57, 63, 171, 238, 101, 11, 188, 123],
-);
+export const MARGIN_TOMBSTONE_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([98, 196, 26, 190, 143, 35, 68, 70]);
 
-export function getResolutionPageDiscriminatorBytes(): ReadonlyUint8Array {
+export function getMarginTombstoneDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    RESOLUTION_PAGE_DISCRIMINATOR,
+    MARGIN_TOMBSTONE_DISCRIMINATOR,
   );
 }
 
-export type ResolutionPage = {
+export type MarginTombstone = {
   discriminator: ReadonlyUint8Array;
   schemaVersion: number;
-  /** Scoped journal revision; never a financial signing or risk parameter. */
   revision: bigint;
   venue: Address;
-  epoch: bigint;
-  pageIndex: number;
-  rowCount: number;
-  rows: Array<ResolutionRow>;
+  portfolio: Address;
+  owner: Address;
+  child: number;
+  id: bigint;
+  activationGeneration: bigint;
   bump: number;
 };
 
-export type ResolutionPageArgs = {
+export type MarginTombstoneArgs = {
   schemaVersion: number;
-  /** Scoped journal revision; never a financial signing or risk parameter. */
   revision: number | bigint;
   venue: Address | HasAddress;
-  epoch: number | bigint;
-  pageIndex: number;
-  rowCount: number;
-  rows: Array<ResolutionRowArgs>;
+  portfolio: Address | HasAddress;
+  owner: Address | HasAddress;
+  child: number;
+  id: number | bigint;
+  activationGeneration: number | bigint;
   bump: number;
 };
 
-/** Gets the encoder for {@link ResolutionPageArgs} account data. */
-export function getResolutionPageEncoder(): FixedSizeEncoder<ResolutionPageArgs> {
+/** Gets the encoder for {@link MarginTombstoneArgs} account data. */
+export function getMarginTombstoneEncoder(): FixedSizeEncoder<MarginTombstoneArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
       ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
-      ["epoch", getU64Encoder()],
-      ["pageIndex", getU16Encoder()],
-      ["rowCount", getU8Encoder()],
-      ["rows", getArrayEncoder(getResolutionRowEncoder(), { size: 2 })],
+      ["portfolio", getAddressEncoder()],
+      ["owner", getAddressEncoder()],
+      ["child", getU32Encoder()],
+      ["id", getU64Encoder()],
+      ["activationGeneration", getU64Encoder()],
       ["bump", getU8Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: RESOLUTION_PAGE_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: MARGIN_TOMBSTONE_DISCRIMINATOR }),
   );
 }
 
-/** Gets the decoder for {@link ResolutionPage} account data. */
-export function getResolutionPageDecoder(): FixedSizeDecoder<ResolutionPage> {
+/** Gets the decoder for {@link MarginTombstone} account data. */
+export function getMarginTombstoneDecoder(): FixedSizeDecoder<MarginTombstone> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
     ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
-    ["epoch", getU64Decoder()],
-    ["pageIndex", getU16Decoder()],
-    ["rowCount", getU8Decoder()],
-    ["rows", getArrayDecoder(getResolutionRowDecoder(), { size: 2 })],
+    ["portfolio", getAddressDecoder()],
+    ["owner", getAddressDecoder()],
+    ["child", getU32Decoder()],
+    ["id", getU64Decoder()],
+    ["activationGeneration", getU64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }
 
-/** Gets the codec for {@link ResolutionPage} account data. */
-export function getResolutionPageCodec(): FixedSizeCodec<
-  ResolutionPageArgs,
-  ResolutionPage
+/** Gets the codec for {@link MarginTombstone} account data. */
+export function getMarginTombstoneCodec(): FixedSizeCodec<
+  MarginTombstoneArgs,
+  MarginTombstone
 > {
-  return combineCodec(getResolutionPageEncoder(), getResolutionPageDecoder());
+  return combineCodec(getMarginTombstoneEncoder(), getMarginTombstoneDecoder());
 }
 
-export function decodeResolutionPage<TAddress extends string = string>(
+export function decodeMarginTombstone<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress>,
-): Account<ResolutionPage, TAddress>;
-export function decodeResolutionPage<TAddress extends string = string>(
+): Account<MarginTombstone, TAddress>;
+export function decodeMarginTombstone<TAddress extends string = string>(
   encodedAccount: MaybeEncodedAccount<TAddress>,
-): MaybeAccount<ResolutionPage, TAddress>;
-export function decodeResolutionPage<TAddress extends string = string>(
+): MaybeAccount<MarginTombstone, TAddress>;
+export function decodeMarginTombstone<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
-): Account<ResolutionPage, TAddress> | MaybeAccount<ResolutionPage, TAddress> {
+):
+  Account<MarginTombstone, TAddress> | MaybeAccount<MarginTombstone, TAddress> {
   return decodeAccount(
     encodedAccount as MaybeEncodedAccount<TAddress>,
-    getResolutionPageDecoder(),
+    getMarginTombstoneDecoder(),
   );
 }
 
-export async function fetchResolutionPage<TAddress extends string = string>(
+export async function fetchMarginTombstone<TAddress extends string = string>(
   rpc:
     | Parameters<typeof fetchEncodedAccount>[0]
     | ClientWithRpc<GetAccountInfoApi>,
   address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
-): Promise<Account<ResolutionPage, TAddress>> {
-  const maybeAccount = await fetchMaybeResolutionPage(rpc, address, config);
+): Promise<Account<MarginTombstone, TAddress>> {
+  const maybeAccount = await fetchMaybeMarginTombstone(rpc, address, config);
   assertAccountExists(maybeAccount);
   return maybeAccount;
 }
 
-export async function fetchMaybeResolutionPage<
+export async function fetchMaybeMarginTombstone<
   TAddress extends string = string,
 >(
   rpc:
@@ -164,23 +160,23 @@ export async function fetchMaybeResolutionPage<
     | ClientWithRpc<GetAccountInfoApi>,
   address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
-): Promise<MaybeAccount<ResolutionPage, TAddress>> {
+): Promise<MaybeAccount<MarginTombstone, TAddress>> {
   const maybeAccount = await fetchEncodedAccount(
     "rpc" in rpc ? rpc.rpc : rpc,
     typeof address === "string" ? address : address.address,
     config,
   );
-  return decodeResolutionPage(maybeAccount);
+  return decodeMarginTombstone(maybeAccount);
 }
 
-export async function fetchAllResolutionPage(
+export async function fetchAllMarginTombstone(
   rpc:
     | Parameters<typeof fetchEncodedAccounts>[0]
     | ClientWithRpc<GetMultipleAccountsApi>,
   addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
-): Promise<Account<ResolutionPage>[]> {
-  const maybeAccounts = await fetchAllMaybeResolutionPage(
+): Promise<Account<MarginTombstone>[]> {
+  const maybeAccounts = await fetchAllMaybeMarginTombstone(
     rpc,
     addresses,
     config,
@@ -189,23 +185,23 @@ export async function fetchAllResolutionPage(
   return maybeAccounts;
 }
 
-export async function fetchAllMaybeResolutionPage(
+export async function fetchAllMaybeMarginTombstone(
   rpc:
     | Parameters<typeof fetchEncodedAccounts>[0]
     | ClientWithRpc<GetMultipleAccountsApi>,
   addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
-): Promise<MaybeAccount<ResolutionPage>[]> {
+): Promise<MaybeAccount<MarginTombstone>[]> {
   const maybeAccounts = await fetchEncodedAccounts(
     "rpc" in rpc ? rpc.rpc : rpc,
     addresses.map((a) => (typeof a === "string" ? a : a.address)),
     config,
   );
   return maybeAccounts.map((maybeAccount) =>
-    decodeResolutionPage(maybeAccount),
+    decodeMarginTombstone(maybeAccount),
   );
 }
 
-export function getResolutionPageSize(): number {
-  return 3408;
+export function getMarginTombstoneSize(): number {
+  return 135;
 }

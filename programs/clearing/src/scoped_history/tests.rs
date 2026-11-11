@@ -56,7 +56,7 @@ fn with_margin(
 fn declared_read_stays_read_when_message_promotes_key_to_writable() {
     with_margin(
         MarginAccount {
-            schema_version: 8,
+            schema_version: SCHEMA_VERSION,
             revision: 19,
             cash: 100,
             ..Default::default()
@@ -83,7 +83,7 @@ fn creation_and_noop_writer_advance_once_after_the_handler() {
         let mut scope = Scope::new();
         scope.account(account, Access::Create).unwrap();
         assert_eq!(account.revision, 0);
-        account.schema_version = 8;
+        account.schema_version = SCHEMA_VERSION;
         account.cash = 17; // initializer's effect
         scope.cursor = Some(0);
         scope.account(account, Access::Create).unwrap();
@@ -150,7 +150,7 @@ fn duplicate_missing_reset_wrong_schema_and_exhaustion_fail_closed() {
 fn remaining_root_preserves_manual_financial_write_then_advances_header() {
     let key = Address::new_unique();
     let mut root = MarginAccount {
-        schema_version: 8,
+        schema_version: SCHEMA_VERSION,
         revision: 11,
         cash: 100,
         ..Default::default()
@@ -202,7 +202,7 @@ fn remaining_root_preserves_manual_financial_write_then_advances_header() {
 #[test]
 fn envelope_has_literal_field_offsets_and_bounded_entity_count() {
     let event = AccountTransition {
-        schema_version: 8,
+        schema_version: SCHEMA_VERSION,
         venue: Address::new_from_array([7; 32]),
         domain: [9; 32],
         slot: 42,
@@ -222,7 +222,7 @@ fn envelope_has_literal_field_offsets_and_bounded_entity_count() {
     };
     let bytes = event.data();
     assert_eq!(bytes.len(), 190); // 100 + one 41-byte read + one 49-byte write
-    assert_eq!(&bytes[8..10], &[8, 0]);
+    assert_eq!(&bytes[8..10], &[9, 0]);
     assert_eq!(&bytes[10..42], &[7; 32]);
     assert_eq!(&bytes[42..74], &[9; 32]);
     assert_eq!(&bytes[74..82], &42u64.to_le_bytes());
@@ -258,7 +258,7 @@ fn envelope_has_literal_field_offsets_and_bounded_entity_count() {
 }
 
 #[test]
-fn all_seventeen_account_headers_bind_kind_schema_revision_and_canonical_discriminator() {
+fn canonical_account_headers_bind_kind_schema_revision_and_canonical_discriminator() {
     fn check<
         T: Revisioned
             + SchemaWrite<anchor_lang::BorshConfig, Src = T>
@@ -283,24 +283,22 @@ fn all_seventeen_account_headers_bind_kind_schema_revision_and_canonical_discrim
         assert_eq!(value.revision(), 0x0807_0605_0403_0201);
         let mut actual = Vec::new();
         crate::wire::write_discriminated(&value, &mut actual).unwrap();
-        assert_eq!(&actual[8..18], &[8, 0, 1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(&actual[8..18], &[9, 0, 1, 2, 3, 4, 5, 6, 7, 8]);
         bytes[..8].copy_from_slice(&[0; 8]);
         assert!(T::try_deserialize(&mut bytes.as_slice()).is_err());
     }
     check::<Venue>("Venue", 0, 329);
     check::<Custody>("Custody", 1, 59);
     check::<VenueSafety>("VenueSafety", 2, 85);
-    check::<VenueRegistry>("VenueRegistry", 3, 2113);
-    check::<Portfolio>("Portfolio", 4, 87);
-    check::<MarginAccount>("MarginAccount", 5, 978);
+    check::<VenueRegistry>("VenueRegistry", 3, 115);
+    check::<Portfolio>("Portfolio", 4, 91);
+    check::<MarginAccount>("MarginAccount", 5, 995);
     check::<Market>("Market", 6, 455);
     check::<MarketLedger>("MarketLedger", 7, 125);
     check::<CapitalBinding>("CapitalBinding", 8, 114);
-    check::<SettlementCertificate>("SettlementCertificate", 9, 234);
-    check::<Resolution>("Resolution", 10, 3652);
-    check::<ResolutionPage>("ResolutionPage", 11, 3408);
-    check::<ResolutionWork>("ResolutionWork", 12, 7926);
-    check::<RetirementCertificate>("RetirementCertificate", 13, 80);
+    check::<SettlementCertificate>("SettlementCertificate", 9, 790);
+    check::<Resolution>("Resolution", 10, 572);
+    check::<RetirementCertificate>("RetirementCertificate", 13, 636);
     check::<LiquidityRegistry>("LiquidityRegistry", 14, 181);
     check::<MakerRegistration>("MakerRegistration", 15, 341);
     check::<FundingPublisher>("FundingPublisher", 16, 148);
@@ -318,7 +316,7 @@ fn borrowed_footer_matches_owned_vectors_at_all_supported_sizes() {
         let mut writes = Vec::new();
         for index in 0..count {
             let account = Address::new_from_array([index as u8; 32]);
-            let kind = (index % 17) as u8;
+            let kind = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 16][index % 15];
             let revision = index as u64 + 1;
             let access = if index % 3 == 0 {
                 Access::Write
@@ -373,8 +371,8 @@ fn successor_schema_is_kind_bound_and_raw_page_writes_advance_once() {
         assert!(Scope::new().visit(key, kind, 8, 1, Access::Read).is_err());
         assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_ok());
     }
-    assert!(Scope::new().visit(key, 5, 9, 1, Access::Read).is_err());
-    assert!(Scope::new().visit(key, 24, 9, 1, Access::Read).is_err());
+    assert!(Scope::new().visit(key, 5, 8, 1, Access::Read).is_err());
+    for kind in [11, 12, 27] { assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_err()); }
     let page = SettlementLimbPage {
         schema_version: 9,
         revision: 11,
@@ -427,7 +425,7 @@ fn rate_work_creation_and_read_use_the_successor_schema_mapping() {
         1
     );
     assert!(Scope::new()
-        .visit(key, kind, SCHEMA_VERSION, 1, Access::Read)
+        .visit(key, kind, 8, 1, Access::Read)
         .is_err());
     assert!(Scope::new()
         .visit(key, u8::MAX, 0, 0, Access::Create)
@@ -455,6 +453,38 @@ fn conserving_plan_creation_and_read_use_append_only_kind_23() {
         1
     );
     assert!(Scope::new()
-        .visit(key, kind, SCHEMA_VERSION, 1, Access::Read)
+        .visit(key, kind, 8, 1, Access::Read)
         .is_err());
+}
+
+#[test]
+fn permanent_tombstone_keeps_predecessor_revision_and_has_one_narrow_kind_transition() {
+    use crate::test_support::TestAccount;
+    let key = Address::new_unique();
+    let root = MarginAccount { schema_version: SCHEMA_VERSION, revision: 77, lifecycle: MEMBER_REGISTERED,
+        activation_generation: 9, ..Default::default() };
+    let mut root_bytes = Vec::new(); crate::wire::write_discriminated(&root, &mut root_bytes).unwrap();
+    let mut before = TestAccount::new(key, crate::ID, &root_bytes, true, false);
+    let tombstone = MarginTombstone { schema_version: SCHEMA_VERSION, revision: 77, activation_generation: 9,
+        ..Default::default() };
+    let mut tombstone_bytes = Vec::new(); crate::wire::write_discriminated(&tombstone, &mut tombstone_bytes).unwrap();
+    for mutation in 0..7 {
+        let mut scope = Scope::new(); scope.retire_margin(&mut before.view()).unwrap();
+        let mut candidate = tombstone_bytes.clone();
+        let (mut address, mut owner, mut writable) = (key,crate::ID,true);
+        match mutation { 0=>{},1=>candidate[10..18].copy_from_slice(&1u64.to_le_bytes()),
+            2=>candidate[8]=8,3=>candidate[..8].copy_from_slice(MarginAccount::DISCRIMINATOR),
+            4=>address=Address::new_unique(),5=>owner=anchor_lang::system_program::ID,6=>writable=false,_=>unreachable!() }
+        let mut after = TestAccount::new(address,owner,&candidate,writable,false);
+        scope.cursor=Some(0);
+        let result=scope.retire_margin(&mut after.view());
+        if mutation == 0 {
+            result.unwrap();
+            let event=owned(&scope.finish(Address::default(),[0;32],[0;8],1,42).unwrap());
+            assert_eq!(event.writes,vec![ScopedWrite {account:key,kind:26,before:77,after:78}]);
+            assert_eq!(&after.view().try_borrow().unwrap()[10..18],&78u64.to_le_bytes());
+        } else { assert!(result.is_err(),"mutation {mutation}"); }
+    }
+    let mut tombstone = TestAccount::new(key,crate::ID,&tombstone_bytes,true,false);
+    assert!(Scope::new().retire_margin(&mut tombstone.view()).is_err());
 }

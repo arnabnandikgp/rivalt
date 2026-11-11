@@ -75,6 +75,8 @@ export type ActivateLiquidityInstruction<
   TAccountEventAuthority extends string | AccountMeta<string> = string,
   TAccountProgram extends string | AccountMeta<string> = string,
   TAccountResolution extends string | AccountMeta<string> = string,
+  TAccountRegistry extends string | AccountMeta<string> = string,
+  TAccountStorage extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -113,6 +115,12 @@ export type ActivateLiquidityInstruction<
       TAccountResolution extends string
         ? ReadonlyAccount<TAccountResolution>
         : TAccountResolution,
+      TAccountRegistry extends string
+        ? ReadonlyAccount<TAccountRegistry>
+        : TAccountRegistry,
+      TAccountStorage extends string
+        ? ReadonlyAccount<TAccountStorage>
+        : TAccountStorage,
       ...TRemainingAccounts,
     ]
   >;
@@ -160,6 +168,8 @@ export type ActivateLiquidityAsyncInput<
     InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
+  TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput = InstructionAccountInput,
 > = {
   authority: TAccountAuthority;
   venue: TAccountVenue;
@@ -175,6 +185,8 @@ export type ActivateLiquidityAsyncInput<
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   resolution: TAccountResolution;
+  registry: TAccountRegistry;
+  storage: TAccountStorage;
 };
 
 export async function getActivateLiquidityInstructionAsync<
@@ -190,6 +202,8 @@ export async function getActivateLiquidityInstructionAsync<
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
+  TAccountRegistry extends InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: ActivateLiquidityAsyncInput<
@@ -204,7 +218,9 @@ export async function getActivateLiquidityInstructionAsync<
     TAccountVault,
     TAccountEventAuthority,
     TAccountProgram,
-    TAccountResolution
+    TAccountResolution,
+    TAccountRegistry,
+    TAccountStorage
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
@@ -259,6 +275,14 @@ export async function getActivateLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountResolution,
       InstructionAccountInputAddress<TAccountResolution>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountRegistry,
+      InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >
   >
 > {
@@ -312,6 +336,16 @@ export async function getActivateLiquidityInstructionAsync<
     },
     resolution: {
       value: input.resolution ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    registry: {
+      value: input.registry ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    storage: {
+      value: input.storage ?? null,
       isSigner: false,
       isWritable: false,
     },
@@ -419,6 +453,8 @@ export async function getActivateLiquidityInstructionAsync<
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
       getAccountMeta("resolution", accounts.resolution),
+      getAccountMeta("registry", accounts.registry),
+      getAccountMeta("storage", accounts.storage),
     ],
     data: getActivateLiquidityInstructionDataEncoder().encode({}),
     programAddress,
@@ -471,6 +507,14 @@ export async function getActivateLiquidityInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountResolution,
       InstructionAccountInputAddress<TAccountResolution>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountRegistry,
+      InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >
   >);
 }
@@ -489,6 +533,8 @@ export type ActivateLiquidityInput<
     InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
+  TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput = InstructionAccountInput,
 > = {
   authority: TAccountAuthority;
   venue: TAccountVenue;
@@ -504,6 +550,8 @@ export type ActivateLiquidityInput<
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
   resolution: TAccountResolution;
+  registry: TAccountRegistry;
+  storage: TAccountStorage;
 };
 
 export function getActivateLiquidityInstruction<
@@ -519,6 +567,8 @@ export function getActivateLiquidityInstruction<
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
+  TAccountRegistry extends InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput,
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: ActivateLiquidityInput<
@@ -533,7 +583,9 @@ export function getActivateLiquidityInstruction<
     TAccountVault,
     TAccountEventAuthority,
     TAccountProgram,
-    TAccountResolution
+    TAccountResolution,
+    TAccountRegistry,
+    TAccountStorage
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
@@ -587,6 +639,14 @@ export function getActivateLiquidityInstruction<
   ResolvedInstructionAccountMeta<
     TAccountResolution,
     InstructionAccountInputAddress<TAccountResolution>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountRegistry,
+    InstructionAccountInputAddress<TAccountRegistry>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountStorage,
+    InstructionAccountInputAddress<TAccountStorage>
   >
 > {
   // Program address.
@@ -642,6 +702,16 @@ export function getActivateLiquidityInstruction<
       isSigner: false,
       isWritable: false,
     },
+    registry: {
+      value: input.registry ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    storage: {
+      value: input.storage ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -662,6 +732,8 @@ export function getActivateLiquidityInstruction<
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
       getAccountMeta("resolution", accounts.resolution),
+      getAccountMeta("registry", accounts.registry),
+      getAccountMeta("storage", accounts.storage),
     ],
     data: getActivateLiquidityInstructionDataEncoder().encode({}),
     programAddress,
@@ -714,6 +786,14 @@ export function getActivateLiquidityInstruction<
     ResolvedInstructionAccountMeta<
       TAccountResolution,
       InstructionAccountInputAddress<TAccountResolution>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountRegistry,
+      InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >
   >);
 }
@@ -738,6 +818,8 @@ export type ParsedActivateLiquidityInstruction<
     /** CHECK: Kept for v1-compatible account ordering and IDL shape */
     program: TAccountMetas[10];
     resolution: TAccountMetas[11];
+    registry: TAccountMetas[12];
+    storage: TAccountMetas[13];
   };
   data: ActivateLiquidityInstructionData;
 };
@@ -750,12 +832,12 @@ export function parseActivateLiquidityInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedActivateLiquidityInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 12) {
+  if (instruction.accounts.length < 14) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 12,
+        expectedAccountMetas: 14,
       },
     );
   }
@@ -780,6 +862,8 @@ export function parseActivateLiquidityInstruction<
       eventAuthority: getNextAccount(),
       program: getNextAccount(),
       resolution: getNextAccount(),
+      registry: getNextAccount(),
+      storage: getNextAccount(),
     },
     data: getActivateLiquidityInstructionDataDecoder().decode(instruction.data),
   };

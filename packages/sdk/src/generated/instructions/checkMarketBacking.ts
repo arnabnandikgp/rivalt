@@ -10,12 +10,14 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
+  getU64Decoder,
+  getU64Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -102,16 +104,21 @@ export type CheckMarketBackingInstruction<
 
 export type CheckMarketBackingInstructionData = {
   discriminator: ReadonlyUint8Array;
-  start: number;
+  revision: bigint;
+  restart: boolean;
 };
 
-export type CheckMarketBackingInstructionDataArgs = { start: number };
+export type CheckMarketBackingInstructionDataArgs = {
+  revision: number | bigint;
+  restart: boolean;
+};
 
 export function getCheckMarketBackingInstructionDataEncoder(): FixedSizeEncoder<CheckMarketBackingInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["start", getU16Encoder()],
+      ["revision", getU64Encoder()],
+      ["restart", getBooleanEncoder()],
     ]),
     (value) => ({
       ...value,
@@ -123,7 +130,8 @@ export function getCheckMarketBackingInstructionDataEncoder(): FixedSizeEncoder<
 export function getCheckMarketBackingInstructionDataDecoder(): FixedSizeDecoder<CheckMarketBackingInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["start", getU16Decoder()],
+    ["revision", getU64Decoder()],
+    ["restart", getBooleanDecoder()],
   ]);
 }
 
@@ -160,7 +168,8 @@ export type CheckMarketBackingAsyncInput<
   eventAuthority?: TAccountEventAuthority;
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
-  start: CheckMarketBackingInstructionDataArgs["start"];
+  revision: CheckMarketBackingInstructionDataArgs["revision"];
+  restart: CheckMarketBackingInstructionDataArgs["restart"];
 };
 
 export async function getCheckMarketBackingInstructionAsync<
@@ -408,7 +417,8 @@ export type CheckMarketBackingInput<
   eventAuthority: TAccountEventAuthority;
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
-  start: CheckMarketBackingInstructionDataArgs["start"];
+  revision: CheckMarketBackingInstructionDataArgs["revision"];
+  restart: CheckMarketBackingInstructionDataArgs["restart"];
 };
 
 export function getCheckMarketBackingInstruction<

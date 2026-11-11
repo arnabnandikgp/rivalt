@@ -29,8 +29,6 @@ import {
   getI64Encoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -65,7 +63,7 @@ export type AccountResolutionFrozenEvent = {
   stage: number;
   trigger: Address;
   emergency: boolean;
-  count: number;
+  count: bigint;
   registryHash: ReadonlyUint8Array;
   safetyEpoch: bigint;
   termsEpoch: bigint;
@@ -92,7 +90,7 @@ export type AccountResolutionFrozenEventArgs = {
   stage: number;
   trigger: Address | HasAddress;
   emergency: boolean;
-  count: number;
+  count: number | bigint;
   registryHash: ReadonlyUint8Array;
   safetyEpoch: number | bigint;
   termsEpoch: number | bigint;
@@ -122,7 +120,7 @@ export function getAccountResolutionFrozenEventEncoder(): FixedSizeEncoder<Accou
       ["stage", getU8Encoder()],
       ["trigger", getAddressEncoder()],
       ["emergency", getBooleanEncoder()],
-      ["count", getU16Encoder()],
+      ["count", getU64Encoder()],
       ["registryHash", fixEncoderSize(getBytesEncoder(), 32)],
       ["safetyEpoch", getU64Encoder()],
       ["termsEpoch", getU64Encoder()],
@@ -155,7 +153,7 @@ export function getAccountResolutionFrozenEventDecoder(): FixedSizeDecoder<Accou
       ["stage", getU8Decoder()],
       ["trigger", getAddressDecoder()],
       ["emergency", getBooleanDecoder()],
-      ["count", getU16Decoder()],
+      ["count", getU64Decoder()],
       ["registryHash", fixDecoderSize(getBytesDecoder(), 32)],
       ["safetyEpoch", getU64Decoder()],
       ["termsEpoch", getU64Decoder()],

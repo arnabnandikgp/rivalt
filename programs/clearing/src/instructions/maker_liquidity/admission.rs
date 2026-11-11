@@ -129,7 +129,7 @@ mod tests {
     fn environment() -> (MarginAccount, Market) {
         let venue = Address::new_unique();
         let capital = MarginAccount {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             venue,
             owner: Address::new_unique(),
             subaccount_index: 1,

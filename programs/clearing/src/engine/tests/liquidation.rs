@@ -285,8 +285,10 @@ fn market(index: u8) -> Market {
         ..Default::default()
     }
 }
-fn root(id: u16, cash: u64) -> MarginAccount {
+fn root(id: u64, cash: u64) -> MarginAccount {
     MarginAccount {
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
         schema_version: SCHEMA_VERSION,
         subaccount_index: 1,
         id,

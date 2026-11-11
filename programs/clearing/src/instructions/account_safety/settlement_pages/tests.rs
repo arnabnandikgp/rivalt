@@ -8,7 +8,6 @@ fn page(venue: Address, register: u32, index: u64, words: u16) -> (Address, Vec<
         &[
             b"resolution-limbs",
             venue.as_ref(),
-            &19u64.to_le_bytes(),
             &register.to_le_bytes(),
             &index.to_le_bytes(),
         ],

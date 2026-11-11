@@ -14,7 +14,7 @@ fn exclusive_adoption_exactly_once_application_and_reconciliation_preserve_atom_
         let mut source = Resolution {
             revision: 41,
             stage: crate::instructions::account_safety::resolution::VALUE,
-            count: count as u16,
+            count: count as u64,
             ..Default::default()
         };
         assert!(adopt(&header, &rates, &mut plan, &mut source, 0).is_err());
@@ -53,10 +53,12 @@ fn exclusive_adoption_exactly_once_application_and_reconciliation_preserve_atom_
         for ordinal in 0..count {
             let frozen = &rows[ordinal as usize];
             let mut original = MarginAccount {
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
                 schema_version: SCHEMA_VERSION,
                 revision: 7,
                 venue: header.venue,
-                id: ordinal as u16,
+                id: ordinal as u64,
                 mode: MODE_CROSS,
                 isolated_market_index: CROSS_MARKET_SENTINEL,
                 delegate_epoch: 1,
@@ -147,7 +149,7 @@ fn exclusive_adoption_exactly_once_application_and_reconciliation_preserve_atom_
         complete(&header, &mut plan, &mut source, &mut safety).unwrap();
         assert_eq!(
             (source.stage, source.cursor, source.cash_applied),
-            (11, count as u16, 1)
+            (11, count as u64, 1)
         );
         assert_eq!(
             (safety.mode, safety.paused, safety.epoch),

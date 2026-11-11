@@ -20,7 +20,6 @@ import {
   SolanaError,
   transformEncoder,
   type AccountMeta,
-  type AccountSignerMeta,
   type Address,
   type FixedSizeCodec,
   type FixedSizeDecoder,
@@ -31,14 +30,12 @@ import {
   type ReadonlyAccount,
   type ReadonlyUint8Array,
   type WritableAccount,
-  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   getAddressFromResolvedInstructionAccount,
   type InstructionAccountInput,
   type InstructionAccountInputAddress,
-  type InstructionSignerInput,
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
@@ -50,6 +47,7 @@ import {
   findEthPda,
   findEventAuthorityPda,
   findResolutionPda,
+  findStoragePda,
   findVenueRegistryPda,
   findVenueSafetyPda,
   findVenueVaultPda,
@@ -67,11 +65,11 @@ export function getInitializeSettlementPlanDiscriminatorBytes(): ReadonlyUint8Ar
 
 export type InitializeSettlementPlanInstruction<
   TProgram extends string = typeof CLEARING_PROGRAM_ADDRESS,
-  TAccountPayer extends string | AccountMeta<string> = string,
   TAccountVenue extends string | AccountMeta<string> = string,
   TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountRegistry extends string | AccountMeta<string> = string,
+  TAccountStorage extends string | AccountMeta<string> = string,
   TAccountResolution extends string | AccountMeta<string> = string,
   TAccountBtc extends string | AccountMeta<string> = string,
   TAccountEth extends string | AccountMeta<string> = string,
@@ -90,10 +88,6 @@ export type InitializeSettlementPlanInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountPayer extends string
-        ? WritableSignerAccount<TAccountPayer> &
-            AccountSignerMeta<TAccountPayer>
-        : TAccountPayer,
       TAccountVenue extends string
         ? ReadonlyAccount<TAccountVenue>
         : TAccountVenue,
@@ -106,6 +100,9 @@ export type InitializeSettlementPlanInstruction<
       TAccountRegistry extends string
         ? ReadonlyAccount<TAccountRegistry>
         : TAccountRegistry,
+      TAccountStorage extends string
+        ? ReadonlyAccount<TAccountStorage>
+        : TAccountStorage,
       TAccountResolution extends string
         ? ReadonlyAccount<TAccountResolution>
         : TAccountResolution,
@@ -182,11 +179,11 @@ export function getInitializeSettlementPlanInstructionDataCodec(): FixedSizeCode
 }
 
 export type InitializeSettlementPlanAsyncInput<
-  TAccountPayer extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
@@ -202,11 +199,11 @@ export type InitializeSettlementPlanAsyncInput<
     InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  payer: TAccountPayer;
   venue: TAccountVenue;
   custody?: TAccountCustody;
   safety?: TAccountSafety;
   registry?: TAccountRegistry;
+  storage?: TAccountStorage;
   resolution?: TAccountResolution;
   btc?: TAccountBtc;
   eth?: TAccountEth;
@@ -225,11 +222,11 @@ export type InitializeSettlementPlanAsyncInput<
 };
 
 export async function getInitializeSettlementPlanInstructionAsync<
-  TAccountPayer extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
@@ -245,11 +242,11 @@ export async function getInitializeSettlementPlanInstructionAsync<
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: InitializeSettlementPlanAsyncInput<
-    TAccountPayer,
     TAccountVenue,
     TAccountCustody,
     TAccountSafety,
     TAccountRegistry,
+    TAccountStorage,
     TAccountResolution,
     TAccountBtc,
     TAccountEth,
@@ -270,10 +267,6 @@ export async function getInitializeSettlementPlanInstructionAsync<
   InitializeSettlementPlanInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
-      TAccountPayer,
-      InstructionAccountInputAddress<TAccountPayer>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
     >,
@@ -288,6 +281,10 @@ export async function getInitializeSettlementPlanInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountRegistry,
       InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountResolution,
@@ -352,7 +349,6 @@ export async function getInitializeSettlementPlanInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    payer: { value: input.payer ?? null, isSigner: true, isWritable: true },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
     custody: {
       value: input.custody ?? null,
@@ -362,6 +358,11 @@ export async function getInitializeSettlementPlanInstructionAsync<
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     registry: {
       value: input.registry ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    storage: {
+      value: input.storage ?? null,
       isSigner: false,
       isWritable: false,
     },
@@ -439,6 +440,17 @@ export async function getInitializeSettlementPlanInstructionAsync<
   }
   if (!accounts.registry.value) {
     accounts.registry.value = await findVenueRegistryPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.storage.value) {
+    accounts.storage.value = await findStoragePda(
       {
         venue: getAddressFromResolvedInstructionAccount(
           "venue",
@@ -526,11 +538,11 @@ export async function getInitializeSettlementPlanInstructionAsync<
 
   return Object.freeze({
     accounts: [
-      getAccountMeta("payer", accounts.payer),
       getAccountMeta("venue", accounts.venue),
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("registry", accounts.registry),
+      getAccountMeta("storage", accounts.storage),
       getAccountMeta("resolution", accounts.resolution),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
@@ -551,10 +563,6 @@ export async function getInitializeSettlementPlanInstructionAsync<
   } as InitializeSettlementPlanInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
-      TAccountPayer,
-      InstructionAccountInputAddress<TAccountPayer>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
     >,
@@ -569,6 +577,10 @@ export async function getInitializeSettlementPlanInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountRegistry,
       InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountResolution,
@@ -622,11 +634,11 @@ export async function getInitializeSettlementPlanInstructionAsync<
 }
 
 export type InitializeSettlementPlanInput<
-  TAccountPayer extends InstructionSignerInput = InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput = InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
@@ -642,11 +654,11 @@ export type InitializeSettlementPlanInput<
     InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  payer: TAccountPayer;
   venue: TAccountVenue;
   custody: TAccountCustody;
   safety: TAccountSafety;
   registry: TAccountRegistry;
+  storage: TAccountStorage;
   resolution: TAccountResolution;
   btc: TAccountBtc;
   eth: TAccountEth;
@@ -665,11 +677,11 @@ export type InitializeSettlementPlanInput<
 };
 
 export function getInitializeSettlementPlanInstruction<
-  TAccountPayer extends InstructionSignerInput,
   TAccountVenue extends InstructionAccountInput,
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
@@ -685,11 +697,11 @@ export function getInitializeSettlementPlanInstruction<
   TProgramAddress extends Address = typeof CLEARING_PROGRAM_ADDRESS,
 >(
   input: InitializeSettlementPlanInput<
-    TAccountPayer,
     TAccountVenue,
     TAccountCustody,
     TAccountSafety,
     TAccountRegistry,
+    TAccountStorage,
     TAccountResolution,
     TAccountBtc,
     TAccountEth,
@@ -709,10 +721,6 @@ export function getInitializeSettlementPlanInstruction<
 ): InitializeSettlementPlanInstruction<
   TProgramAddress,
   ResolvedInstructionAccountMeta<
-    TAccountPayer,
-    InstructionAccountInputAddress<TAccountPayer>
-  >,
-  ResolvedInstructionAccountMeta<
     TAccountVenue,
     InstructionAccountInputAddress<TAccountVenue>
   >,
@@ -727,6 +735,10 @@ export function getInitializeSettlementPlanInstruction<
   ResolvedInstructionAccountMeta<
     TAccountRegistry,
     InstructionAccountInputAddress<TAccountRegistry>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountStorage,
+    InstructionAccountInputAddress<TAccountStorage>
   >,
   ResolvedInstructionAccountMeta<
     TAccountResolution,
@@ -790,7 +802,6 @@ export function getInitializeSettlementPlanInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    payer: { value: input.payer ?? null, isSigner: true, isWritable: true },
     venue: { value: input.venue ?? null, isSigner: false, isWritable: false },
     custody: {
       value: input.custody ?? null,
@@ -800,6 +811,11 @@ export function getInitializeSettlementPlanInstruction<
     safety: { value: input.safety ?? null, isSigner: false, isWritable: false },
     registry: {
       value: input.registry ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    storage: {
+      value: input.storage ?? null,
       isSigner: false,
       isWritable: false,
     },
@@ -860,11 +876,11 @@ export function getInitializeSettlementPlanInstruction<
 
   return Object.freeze({
     accounts: [
-      getAccountMeta("payer", accounts.payer),
       getAccountMeta("venue", accounts.venue),
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("registry", accounts.registry),
+      getAccountMeta("storage", accounts.storage),
       getAccountMeta("resolution", accounts.resolution),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
@@ -885,10 +901,6 @@ export function getInitializeSettlementPlanInstruction<
   } as InitializeSettlementPlanInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
-      TAccountPayer,
-      InstructionAccountInputAddress<TAccountPayer>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountVenue,
       InstructionAccountInputAddress<TAccountVenue>
     >,
@@ -903,6 +915,10 @@ export function getInitializeSettlementPlanInstruction<
     ResolvedInstructionAccountMeta<
       TAccountRegistry,
       InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountResolution,
@@ -961,11 +977,11 @@ export type ParsedInitializeSettlementPlanInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    payer: TAccountMetas[0];
-    venue: TAccountMetas[1];
-    custody: TAccountMetas[2];
-    safety: TAccountMetas[3];
-    registry: TAccountMetas[4];
+    venue: TAccountMetas[0];
+    custody: TAccountMetas[1];
+    safety: TAccountMetas[2];
+    registry: TAccountMetas[3];
+    storage: TAccountMetas[4];
     resolution: TAccountMetas[5];
     btc: TAccountMetas[6];
     eth: TAccountMetas[7];
@@ -1010,11 +1026,11 @@ export function parseInitializeSettlementPlanInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      payer: getNextAccount(),
       venue: getNextAccount(),
       custody: getNextAccount(),
       safety: getNextAccount(),
       registry: getNextAccount(),
+      storage: getNextAccount(),
       resolution: getNextAccount(),
       btc: getNextAccount(),
       eth: getNextAccount(),

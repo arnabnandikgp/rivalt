@@ -27,6 +27,8 @@ pub(crate) fn commit_root(root: &mut MarginAccount, candidate: &MarginAccount) -
             && candidate.mode == root.mode
             && candidate.isolated_market_index == root.isolated_market_index
             && candidate.role == root.role
+            && candidate.lifecycle == root.lifecycle
+            && candidate.activation_generation == root.activation_generation
             && candidate.bump == root.bump,
         ClearingError::Profile
     );

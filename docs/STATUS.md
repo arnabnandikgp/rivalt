@@ -683,10 +683,19 @@ first probe's conformance-name error is fixed; raw failed/successful evidence st
 under `.local/scalable-settlement/`. The owned Surfpool stopped normally. This is
 storage provisioning only: no 128-root financial admission or PostgreSQL/default
 acceptance is claimed, and no selected artifact changed.
-Canonical schema-9 roots, registration/Financial/retirement transitions, live-index
-freeze/default and minimum SDK/indexer consumers still require implementation and
-acceptance. Next exact action: connect canonical schema-9 membership and root
-lifecycle to the pre-funded workspace and complete paged default controller.
+The in-progress P55A2 source now implements canonical schema-9 roots and fixed
+registry, registration pages, explicit Financial entry/exit, permanent retirement,
+complete live-index scans and reusable default storage. Clearing and both maker
+crates compile; focused native membership, financial, settlement/layout and journal
+checks pass in the working tree. These are not clean-pin integrated acceptance.
+D101 records the fresh wire/domain and retirement of the old fixed-cohort solver.
+Generated IDL/SDK outputs have been rebuilt; minimum SDK/indexer/service consumers
+still need migration, and typecheck currently reports those expected API/layout
+incompatibilities. Terminal workspace cleanup, fresh SBF, signed lifecycle/race/
+default checks and PostgreSQL reconciliation remain outstanding. No new PR or
+artifact promotion is claimed. No user decision/access blocker is known.
+Next exact action: finish canonical consumer migration and terminal cleanup, then
+qualify the complete P55A2 lifecycle on fresh signed deployed programs.
 
 ## Deployment and operational limits
 

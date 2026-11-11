@@ -47,6 +47,7 @@ import {
   findEthPda,
   findEventAuthorityPda,
   findResolutionPda,
+  findStoragePda,
   findVenueRegistryPda,
   findVenueSafetyPda,
   findVenueVaultPda,
@@ -68,6 +69,7 @@ export type PrepareSettlementRateScratchInstruction<
   TAccountCustody extends string | AccountMeta<string> = string,
   TAccountSafety extends string | AccountMeta<string> = string,
   TAccountRegistry extends string | AccountMeta<string> = string,
+  TAccountStorage extends string | AccountMeta<string> = string,
   TAccountResolution extends string | AccountMeta<string> = string,
   TAccountBtc extends string | AccountMeta<string> = string,
   TAccountEth extends string | AccountMeta<string> = string,
@@ -96,6 +98,9 @@ export type PrepareSettlementRateScratchInstruction<
       TAccountRegistry extends string
         ? ReadonlyAccount<TAccountRegistry>
         : TAccountRegistry,
+      TAccountStorage extends string
+        ? ReadonlyAccount<TAccountStorage>
+        : TAccountStorage,
       TAccountResolution extends string
         ? ReadonlyAccount<TAccountResolution>
         : TAccountResolution,
@@ -177,6 +182,7 @@ export type PrepareSettlementRateScratchAsyncInput<
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
@@ -194,6 +200,7 @@ export type PrepareSettlementRateScratchAsyncInput<
   custody?: TAccountCustody;
   safety?: TAccountSafety;
   registry?: TAccountRegistry;
+  storage?: TAccountStorage;
   resolution?: TAccountResolution;
   btc?: TAccountBtc;
   eth?: TAccountEth;
@@ -216,6 +223,7 @@ export async function getPrepareSettlementRateScratchInstructionAsync<
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
@@ -234,6 +242,7 @@ export async function getPrepareSettlementRateScratchInstructionAsync<
     TAccountCustody,
     TAccountSafety,
     TAccountRegistry,
+    TAccountStorage,
     TAccountResolution,
     TAccountBtc,
     TAccountEth,
@@ -267,6 +276,10 @@ export async function getPrepareSettlementRateScratchInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountRegistry,
       InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountResolution,
@@ -339,6 +352,11 @@ export async function getPrepareSettlementRateScratchInstructionAsync<
       isSigner: false,
       isWritable: false,
     },
+    storage: {
+      value: input.storage ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
     resolution: {
       value: input.resolution ?? null,
       isSigner: false,
@@ -408,6 +426,17 @@ export async function getPrepareSettlementRateScratchInstructionAsync<
   }
   if (!accounts.registry.value) {
     accounts.registry.value = await findVenueRegistryPda(
+      {
+        venue: getAddressFromResolvedInstructionAccount(
+          "venue",
+          accounts.venue.value,
+        ),
+      },
+      { programAddress },
+    );
+  }
+  if (!accounts.storage.value) {
+    accounts.storage.value = await findStoragePda(
       {
         venue: getAddressFromResolvedInstructionAccount(
           "venue",
@@ -495,6 +524,7 @@ export async function getPrepareSettlementRateScratchInstructionAsync<
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("registry", accounts.registry),
+      getAccountMeta("storage", accounts.storage),
       getAccountMeta("resolution", accounts.resolution),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
@@ -528,6 +558,10 @@ export async function getPrepareSettlementRateScratchInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountRegistry,
       InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountResolution,
@@ -581,6 +615,7 @@ export type PrepareSettlementRateScratchInput<
   TAccountCustody extends InstructionAccountInput = InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput = InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountEth extends InstructionAccountInput = InstructionAccountInput,
@@ -598,6 +633,7 @@ export type PrepareSettlementRateScratchInput<
   custody: TAccountCustody;
   safety: TAccountSafety;
   registry: TAccountRegistry;
+  storage: TAccountStorage;
   resolution: TAccountResolution;
   btc: TAccountBtc;
   eth: TAccountEth;
@@ -620,6 +656,7 @@ export function getPrepareSettlementRateScratchInstruction<
   TAccountCustody extends InstructionAccountInput,
   TAccountSafety extends InstructionAccountInput,
   TAccountRegistry extends InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
   TAccountBtc extends InstructionAccountInput,
   TAccountEth extends InstructionAccountInput,
@@ -638,6 +675,7 @@ export function getPrepareSettlementRateScratchInstruction<
     TAccountCustody,
     TAccountSafety,
     TAccountRegistry,
+    TAccountStorage,
     TAccountResolution,
     TAccountBtc,
     TAccountEth,
@@ -670,6 +708,10 @@ export function getPrepareSettlementRateScratchInstruction<
   ResolvedInstructionAccountMeta<
     TAccountRegistry,
     InstructionAccountInputAddress<TAccountRegistry>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountStorage,
+    InstructionAccountInputAddress<TAccountStorage>
   >,
   ResolvedInstructionAccountMeta<
     TAccountResolution,
@@ -741,6 +783,11 @@ export function getPrepareSettlementRateScratchInstruction<
       isSigner: false,
       isWritable: false,
     },
+    storage: {
+      value: input.storage ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
     resolution: {
       value: input.resolution ?? null,
       isSigner: false,
@@ -791,6 +838,7 @@ export function getPrepareSettlementRateScratchInstruction<
       getAccountMeta("custody", accounts.custody),
       getAccountMeta("safety", accounts.safety),
       getAccountMeta("registry", accounts.registry),
+      getAccountMeta("storage", accounts.storage),
       getAccountMeta("resolution", accounts.resolution),
       getAccountMeta("btc", accounts.btc),
       getAccountMeta("eth", accounts.eth),
@@ -824,6 +872,10 @@ export function getPrepareSettlementRateScratchInstruction<
     ResolvedInstructionAccountMeta<
       TAccountRegistry,
       InstructionAccountInputAddress<TAccountRegistry>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountResolution,
@@ -882,19 +934,20 @@ export type ParsedPrepareSettlementRateScratchInstruction<
     custody: TAccountMetas[1];
     safety: TAccountMetas[2];
     registry: TAccountMetas[3];
-    resolution: TAccountMetas[4];
-    btc: TAccountMetas[5];
-    eth: TAccountMetas[6];
-    btcLedger: TAccountMetas[7];
-    ethLedger: TAccountMetas[8];
-    vault: TAccountMetas[9];
-    prepared: TAccountMetas[10];
-    rates: TAccountMetas[11];
-    page: TAccountMetas[12];
+    storage: TAccountMetas[4];
+    resolution: TAccountMetas[5];
+    btc: TAccountMetas[6];
+    eth: TAccountMetas[7];
+    btcLedger: TAccountMetas[8];
+    ethLedger: TAccountMetas[9];
+    vault: TAccountMetas[10];
+    prepared: TAccountMetas[11];
+    rates: TAccountMetas[12];
+    page: TAccountMetas[13];
     /** CHECK: Only the event authority can invoke self-CPI */
-    eventAuthority: TAccountMetas[13];
+    eventAuthority: TAccountMetas[14];
     /** CHECK: Kept for v1-compatible account ordering and IDL shape */
-    program: TAccountMetas[14];
+    program: TAccountMetas[15];
   };
   data: PrepareSettlementRateScratchInstructionData;
 };
@@ -907,12 +960,12 @@ export function parsePrepareSettlementRateScratchInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedPrepareSettlementRateScratchInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 15) {
+  if (instruction.accounts.length < 16) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 15,
+        expectedAccountMetas: 16,
       },
     );
   }
@@ -929,6 +982,7 @@ export function parsePrepareSettlementRateScratchInstruction<
       custody: getNextAccount(),
       safety: getNextAccount(),
       registry: getNextAccount(),
+      storage: getNextAccount(),
       resolution: getNextAccount(),
       btc: getNextAccount(),
       eth: getNextAccount(),

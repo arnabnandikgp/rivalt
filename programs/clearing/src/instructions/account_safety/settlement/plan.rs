@@ -309,6 +309,7 @@ pub fn initialize_plan(ctx: &mut Context<InitializeSettlementPlan>, _epoch: u64)
     accounts.source.frozen().matches(&accounts.prepared)?;
     let (_, spent) = verified_rates(&accounts.prepared, &accounts.rates)?;
     exact(Layout::new(accounts.prepared.count))?;
+    super::workspace::reset_plan(&mut accounts.plan, &accounts.source.storage, accounts.prepared.epoch)?;
     let plan = &mut accounts.plan;
     plan.schema_version = SETTLEMENT_SCHEMA;
     plan.venue = accounts.prepared.venue;
@@ -317,7 +318,6 @@ pub fn initialize_plan(ctx: &mut Context<InitializeSettlementPlan>, _epoch: u64)
     plan.rates_attempt = accounts.rates.attempt;
     plan.insurance_spent = spent;
     plan.original_cash_remaining = totals(&accounts.prepared)?;
-    plan.bump = ctx.bumps.plan;
     Ok(())
 }
 pub fn initialize_plan_page(
@@ -345,6 +345,7 @@ pub fn initialize_plan_page(
         start < capacity && accounts.plan.stage <= PLAN_CIRCULATE,
         ClearingError::Resolution
     );
+    super::workspace::reset_limbs(&mut accounts.page, &accounts.source.storage, accounts.prepared.epoch)?;
     let page = &mut accounts.page;
     page.schema_version = SETTLEMENT_SCHEMA;
     page.venue = accounts.prepared.venue;
@@ -353,7 +354,6 @@ pub fn initialize_plan_page(
     page.register = register;
     page.page_index = page_index;
     page.word_count = (capacity - start).min(PAGE_WORDS) as u16;
-    page.bump = ctx.bumps.page;
     Ok(())
 }
 

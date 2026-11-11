@@ -11,6 +11,8 @@ pub struct PreparedSourceIdentity {
     pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(seeds=[b"registry-v3",venue.address().as_ref()],bump=registry.bump,has_one=venue)]
     pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(seeds=[b"recovery-storage",venue.address().as_ref()],bump=storage.bump,has_one=venue)]
+    pub storage: Box<BorshAccount<RecoveryStorage>>,
     #[account(seeds=[b"resolution-v3",venue.address().as_ref()],bump=resolution.bump,has_one=venue)]
     pub resolution: Box<BorshAccount<Resolution>>,
     #[account(seeds=[b"market-v3",venue.address().as_ref(),&[0]],bump=btc.bump,has_one=venue,
@@ -37,6 +39,7 @@ impl PreparedSourceIdentity {
             custody: &self.custody,
             safety: &self.safety,
             registry: &self.registry,
+            storage: &self.storage,
             source: &self.resolution,
             markets: [&self.btc, &self.eth],
             ledgers: [&self.btc_ledger, &self.eth_ledger],
@@ -48,56 +51,24 @@ impl PreparedSourceIdentity {
 #[derive(Accounts)]
 #[instruction(epoch:u64)]
 pub struct InitializePreparedSettlement {
-    #[account(mut)]
-    pub payer: Signer,
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(init,payer=payer,space=8+PreparedSettlement::INIT_SPACE,
-        seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump)]
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
     pub system_program: Program<System>,
 }
-#[event_cpi]
-#[derive(Accounts)]
-#[instruction(epoch:u64,level:u8)]
-pub struct InitializePreparedIndexNode {
-    #[account(mut)]
-    pub payer: Signer,
-    pub source: Nested<PreparedSourceIdentity>,
-    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
-        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
-    pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(init,payer=payer,space=8+MemberIndexNode::INIT_SPACE,
-        seeds=[b"member-index",source.venue.address().as_ref(),&[level],&0u64.to_le_bytes()],bump)]
-    pub node: Box<BorshAccount<MemberIndexNode>>,
-    pub system_program: Program<System>,
-}
-#[event_cpi]
-#[derive(Accounts)]
-#[instruction(epoch:u64)]
-pub struct InitializePreparedMembers {
-    #[account(mut)]
-    pub payer: Signer,
-    pub source: Nested<PreparedSourceIdentity>,
-    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
-        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
-    pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(init,payer=payer,space=8+MemberPage::INIT_SPACE,
-        seeds=[b"member-page",source.venue.address().as_ref(),&0u64.to_le_bytes()],bump)]
-    pub page: Box<BorshAccount<MemberPage>>,
-    pub system_program: Program<System>,
-}
+
+
 #[event_cpi]
 #[derive(Accounts)]
 #[instruction(epoch:u64,page_index:u64)]
 pub struct InitializeFrozenMarginPage {
-    #[account(mut)]
-    pub payer: Signer,
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(init,payer=payer,space=8+FrozenMarginPage::INIT_SPACE,
-        seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page_index.to_le_bytes()],bump)]
+    #[account(mut,seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page_index.to_le_bytes()],bump=page.bump,
+        constraint=page.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<FrozenMarginPage>>,
     pub system_program: Program<System>,
 }
@@ -106,7 +77,7 @@ pub struct InitializeFrozenMarginPage {
 #[instruction(epoch:u64)]
 pub struct AdvancePreparedMembership {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
     /// CHECK: stage-derived MemberIndexNode/MemberPage discriminator, owner,
@@ -118,7 +89,7 @@ pub struct AdvancePreparedMembership {
 #[instruction(epoch:u64)]
 pub struct ValuePreparedMember {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
     #[account(seeds=[b"member-page",source.venue.address().as_ref(),&members.page_index.to_le_bytes()],bump=members.bump,
@@ -127,7 +98,7 @@ pub struct ValuePreparedMember {
     #[account(seeds=[b"margin-v3",margin.portfolio.as_ref(),&margin.subaccount_index.to_le_bytes()],bump=margin.bump,
         constraint=margin.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub margin: Box<BorshAccount<MarginAccount>>,
-    #[account(mut,seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
+    #[account(mut,seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page.page_index.to_le_bytes()],bump=page.bump,
         constraint=page.venue == *source.venue.address() && page.epoch == epoch @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<FrozenMarginPage>>,
 }
@@ -136,14 +107,12 @@ pub struct ValuePreparedMember {
 #[derive(Accounts)]
 #[instruction(epoch:u64,register:u32,page_index:u64)]
 pub struct InitializeSettlementLimbPage {
-    #[account(mut)]
-    pub payer: Signer,
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(init,payer=payer,space=8+SettlementLimbPage::INIT_SPACE,
-        seeds=[b"resolution-limbs",source.venue.address().as_ref(),&epoch.to_le_bytes(),&register.to_le_bytes(),&page_index.to_le_bytes()],bump)]
+    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&register.to_le_bytes(),&page_index.to_le_bytes()],bump=page.bump,
+        constraint=page.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<SettlementLimbPage>>,
     pub system_program: Program<System>,
 }
@@ -153,10 +122,10 @@ pub struct InitializeSettlementLimbPage {
 #[instruction(epoch:u64)]
 pub struct AcceptDenominatorRow {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page.page_index.to_le_bytes()],bump=page.bump,
         constraint=page.venue == *source.venue.address() && page.epoch == epoch @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<FrozenMarginPage>>,
 }
@@ -166,7 +135,7 @@ pub struct AcceptDenominatorRow {
 #[instruction(epoch:u64)]
 pub struct ContinueSettlementDenominator {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
     // Remaining accounts are exactly the stage-derived sorted limb-page plan.
@@ -176,14 +145,12 @@ pub struct ContinueSettlementDenominator {
 #[derive(Accounts)]
 #[instruction(epoch:u64)]
 pub struct InitializeSettlementRates {
-    #[account(mut)]
-    pub payer: Signer,
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(init,payer=payer,space=8+SettlementRates::INIT_SPACE,
-        seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump)]
+    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
+        constraint=rates.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
     pub system_program: Program<System>,
 }
@@ -193,10 +160,10 @@ pub struct InitializeSettlementRates {
 #[instruction(epoch:u64)]
 pub struct ManageSettlementProposal {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
     pub actor: Signer,
@@ -207,13 +174,13 @@ pub struct ManageSettlementProposal {
 #[instruction(epoch:u64)]
 pub struct UploadSettlementRate {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page.register.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
+    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&page.register.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
         constraint=page.venue == *source.venue.address() && page.epoch == epoch @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<SettlementLimbPage>>,
     pub proposer: Signer,
@@ -224,13 +191,13 @@ pub struct UploadSettlementRate {
 #[instruction(epoch:u64)]
 pub struct PrepareRateScratch {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page.register.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
+    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&page.register.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
         constraint=page.venue == *source.venue.address() && page.epoch == epoch @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<SettlementLimbPage>>,
 }
@@ -240,13 +207,13 @@ pub struct PrepareRateScratch {
 #[instruction(epoch:u64)]
 pub struct AcceptSettlementRateRow {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page.page_index.to_le_bytes()],bump=page.bump,
         constraint=page.venue == *source.venue.address() && page.epoch == epoch @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<FrozenMarginPage>>,
 }
@@ -256,10 +223,10 @@ pub struct AcceptSettlementRateRow {
 #[instruction(epoch:u64)]
 pub struct ContinueSettlementRates {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
 }
@@ -268,17 +235,15 @@ pub struct ContinueSettlementRates {
 #[derive(Accounts)]
 #[instruction(epoch:u64)]
 pub struct InitializeSettlementPlan {
-    #[account(mut)]
-    pub payer: Signer,
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(init,payer=payer,space=8+SettlementPlan::INIT_SPACE,
-        seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump)]
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
+        constraint=plan.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
     pub system_program: Program<System>,
 }
@@ -287,20 +252,18 @@ pub struct InitializeSettlementPlan {
 #[derive(Accounts)]
 #[instruction(epoch:u64,register:u32,page_index:u64)]
 pub struct InitializeSettlementPlanPage {
-    #[account(mut)]
-    pub payer: Signer,
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
-    #[account(init,payer=payer,space=8+SettlementLimbPage::INIT_SPACE,
-        seeds=[b"resolution-limbs",source.venue.address().as_ref(),&epoch.to_le_bytes(),&register.to_le_bytes(),&page_index.to_le_bytes()],bump)]
+    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&register.to_le_bytes(),&page_index.to_le_bytes()],bump=page.bump,
+        constraint=page.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<SettlementLimbPage>>,
     pub system_program: Program<System>,
 }
@@ -310,16 +273,16 @@ pub struct InitializeSettlementPlanPage {
 #[instruction(epoch:u64)]
 pub struct AcceptSettlementPlanRow {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
-    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page.page_index.to_le_bytes()],bump=page.bump,
         constraint=page.venue == *source.venue.address() && page.epoch == epoch @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<FrozenMarginPage>>,
     pub actor: Signer,
@@ -330,13 +293,13 @@ pub struct AcceptSettlementPlanRow {
 #[instruction(epoch:u64)]
 pub struct ManageSettlementPlan {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
     pub actor: Signer,
@@ -347,13 +310,13 @@ pub struct ManageSettlementPlan {
 #[instruction(epoch:u64)]
 pub struct ContinueSettlementPlan {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
 }
@@ -368,6 +331,8 @@ pub struct AdoptionSourceIdentity {
     pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(seeds=[b"registry-v3",venue.address().as_ref()],bump=registry.bump,has_one=venue)]
     pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(seeds=[b"recovery-storage",venue.address().as_ref()],bump=storage.bump,has_one=venue)]
+    pub storage: Box<BorshAccount<RecoveryStorage>>,
     #[account(mut,seeds=[b"resolution-v3",venue.address().as_ref()],bump=resolution.bump,has_one=venue)]
     pub resolution: Box<BorshAccount<Resolution>>,
     #[account(seeds=[b"market-v3",venue.address().as_ref(),&[0]],bump=btc.bump,has_one=venue,
@@ -394,6 +359,7 @@ impl AdoptionSourceIdentity {
             custody: &self.custody,
             safety: &self.safety,
             registry: &self.registry,
+            storage: &self.storage,
             source: &self.resolution,
             markets: [&self.btc, &self.eth],
             ledgers: [&self.btc_ledger, &self.eth_ledger],
@@ -407,13 +373,13 @@ impl AdoptionSourceIdentity {
 #[instruction(epoch:u64)]
 pub struct AdoptSettlementPlan {
     pub source: Nested<AdoptionSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
 }
@@ -428,6 +394,8 @@ pub struct ApplicationSourceIdentity {
     pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(seeds=[b"registry-v3",venue.address().as_ref()],bump=registry.bump,has_one=venue)]
     pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(seeds=[b"recovery-storage",venue.address().as_ref()],bump=storage.bump,has_one=venue)]
+    pub storage: Box<BorshAccount<RecoveryStorage>>,
     #[account(seeds=[b"resolution-v3",venue.address().as_ref()],bump=resolution.bump,has_one=venue)]
     pub resolution: Box<BorshAccount<Resolution>>,
     #[account(mut,seeds=[b"market-v3",venue.address().as_ref(),&[0]],bump=btc.bump,has_one=venue,
@@ -454,6 +422,7 @@ impl ApplicationSourceIdentity {
             custody: &self.custody,
             safety: &self.safety,
             registry: &self.registry,
+            storage: &self.storage,
             source: &self.resolution,
             markets: [&self.btc, &self.eth],
             ledgers: [&self.btc_ledger, &self.eth_ledger],
@@ -467,22 +436,22 @@ impl ApplicationSourceIdentity {
 #[instruction(epoch:u64)]
 pub struct ApplySettlementMargin {
     pub source: Nested<ApplicationSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
-    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page.page_index.to_le_bytes()],bump=page.bump,
         constraint=page.venue == *source.venue.address() && page.epoch == epoch @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<FrozenMarginPage>>,
     #[account(mut,seeds=[b"margin-v3",margin.portfolio.as_ref(),&margin.subaccount_index.to_le_bytes()],bump=margin.bump,
         constraint=margin.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub margin: Box<BorshAccount<MarginAccount>>,
-    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&epoch.to_le_bytes(),&64u32.to_le_bytes(),&flow_page.page_index.to_le_bytes()],bump=flow_page.bump,
+    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&64u32.to_le_bytes(),&flow_page.page_index.to_le_bytes()],bump=flow_page.bump,
         constraint=flow_page.venue == *source.venue.address() && flow_page.epoch == epoch @ ClearingError::Resolution)]
     pub flow_page: Box<BorshAccount<SettlementLimbPage>>,
 }
@@ -497,6 +466,8 @@ pub struct DistributionSourceIdentity {
     pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(seeds=[b"registry-v3",venue.address().as_ref()],bump=registry.bump,has_one=venue)]
     pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(seeds=[b"recovery-storage",venue.address().as_ref()],bump=storage.bump,has_one=venue)]
+    pub storage: Box<BorshAccount<RecoveryStorage>>,
     #[account(seeds=[b"resolution-v3",venue.address().as_ref()],bump=resolution.bump,has_one=venue)]
     pub resolution: Box<BorshAccount<Resolution>>,
     #[account(seeds=[b"market-v3",venue.address().as_ref(),&[0]],bump=btc.bump,has_one=venue,
@@ -523,6 +494,7 @@ impl DistributionSourceIdentity {
             custody: &self.custody,
             safety: &self.safety,
             registry: &self.registry,
+            storage: &self.storage,
             source: &self.resolution,
             markets: [&self.btc, &self.eth],
             ledgers: [&self.btc_ledger, &self.eth_ledger],
@@ -536,13 +508,13 @@ impl DistributionSourceIdentity {
 #[instruction(epoch:u64)]
 pub struct CompleteSettlementApplication {
     pub source: Nested<DistributionSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
 }
@@ -552,22 +524,22 @@ pub struct CompleteSettlementApplication {
 #[instruction(epoch:u64)]
 pub struct ReconcileSettlementMargin {
     pub source: Nested<PreparedSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
-    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&epoch.to_le_bytes(),&page.page_index.to_le_bytes()],bump=page.bump,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page.page_index.to_le_bytes()],bump=page.bump,
         constraint=page.venue == *source.venue.address() && page.epoch == epoch @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<FrozenMarginPage>>,
     #[account(seeds=[b"margin-v3",margin.portfolio.as_ref(),&margin.subaccount_index.to_le_bytes()],bump=margin.bump,
         constraint=margin.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub margin: Box<BorshAccount<MarginAccount>>,
-    #[account(seeds=[b"resolution-limbs",source.venue.address().as_ref(),&epoch.to_le_bytes(),&64u32.to_le_bytes(),&flow_page.page_index.to_le_bytes()],bump=flow_page.bump,
+    #[account(seeds=[b"resolution-limbs",source.venue.address().as_ref(),&64u32.to_le_bytes(),&flow_page.page_index.to_le_bytes()],bump=flow_page.bump,
         constraint=flow_page.venue == *source.venue.address() && flow_page.epoch == epoch @ ClearingError::Resolution)]
     pub flow_page: Box<BorshAccount<SettlementLimbPage>>,
 }
@@ -582,6 +554,8 @@ pub struct CompletionSourceIdentity {
     pub safety: Box<BorshAccount<VenueSafety>>,
     #[account(seeds=[b"registry-v3",venue.address().as_ref()],bump=registry.bump,has_one=venue)]
     pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(mut,seeds=[b"recovery-storage",venue.address().as_ref()],bump=storage.bump,has_one=venue)]
+    pub storage: Box<BorshAccount<RecoveryStorage>>,
     #[account(mut,seeds=[b"resolution-v3",venue.address().as_ref()],bump=resolution.bump,has_one=venue)]
     pub resolution: Box<BorshAccount<Resolution>>,
     #[account(seeds=[b"market-v3",venue.address().as_ref(),&[0]],bump=btc.bump,has_one=venue,
@@ -608,6 +582,7 @@ impl CompletionSourceIdentity {
             custody: &self.custody,
             safety: &self.safety,
             registry: &self.registry,
+            storage: &self.storage,
             source: &self.resolution,
             markets: [&self.btc, &self.eth],
             ledgers: [&self.btc_ledger, &self.eth_ledger],
@@ -621,13 +596,13 @@ impl CompletionSourceIdentity {
 #[instruction(epoch:u64)]
 pub struct CompleteSettlementPlan {
     pub source: Nested<CompletionSourceIdentity>,
-    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=prepared.bump,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=rates.bump,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
         constraint=rates.venue == *source.venue.address() && rates.epoch == epoch @ ClearingError::Resolution)]
     pub rates: Box<BorshAccount<SettlementRates>>,
-    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref(),&epoch.to_le_bytes()],bump=plan.bump,
+    #[account(mut,seeds=[b"settlement-plan",source.venue.address().as_ref()],bump=plan.bump,
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
 }

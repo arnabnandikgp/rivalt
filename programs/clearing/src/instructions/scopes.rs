@@ -27,6 +27,26 @@ macro_rules! context {
     };
 }
 
+impl ScopedContext for FundMemberPage {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.created_raw::<crate::state::accounts::MemberPage>(&mut self.allocation.account().clone())?;
+        scope.account(&mut self.receipt, Access::Create)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+impl ScopedContext for FundMemberIndex {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.created_raw::<crate::state::accounts::MemberIndexNode>(&mut self.allocation.account().clone())?;
+        scope.account(&mut self.receipt, Access::Create)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
 context!(InitializeRecoveryStorage, venue, event_authority;
 [venue: Read, safety: Read, storage: Create]; []);
 context!(ConfigureRecoveryStorage, venue, event_authority;
@@ -97,26 +117,13 @@ context!(ActivateAccounts, qualification.venue, qualification.event_authority;
     qualification.btc_ledger: Read,
     qualification.eth_ledger: Read,
     resolution: Read,
+    registry: Read,
+    storage: Read,
 ];
 [
 ]);
 
-context!(AdvanceAccountResolution, identity.venue, event_authority;
-[
-    identity.venue: Write,
-    identity.custody: Write,
-    identity.safety: Write,
-    identity.btc: Write,
-    identity.eth: Write,
-    identity.btc_ledger: Write,
-    identity.eth_ledger: Write,
-    registry: Read,
-    resolution: Write,
-    work: Write,
-    page: Write,
-];
-[
-]);
+
 
 context!(AllocateMarketFees, identity.venue, event_authority;
 [
@@ -240,8 +247,9 @@ context!(FreezeAccounts, identity.venue, event_authority;
     identity.eth_ledger: Write,
     registry: Read,
     resolution: Write,
-    work: Write,
     target: Read,
+    members: Read,
+    storage: Write,
 ];
 [
 ]);
@@ -262,21 +270,11 @@ context!(InitializeAccountResolution, venue, event_authority;
     custody: Read,
     safety: Read,
     resolution: Create,
-    work: Create,
 ];
 [
 ]);
 
-context!(InitializeAccountResolutionPage, venue, event_authority;
-[
-    venue: Read,
-    custody: Read,
-    safety: Read,
-    resolution: Write,
-    page: Create,
-];
-[
-]);
+
 
 context!(InitializeAccountRetirement, venue, event_authority;
 [
@@ -398,21 +396,7 @@ context!(PauseVenue, venue, event_authority;
 [
 ]);
 
-context!(ProposeAccountResolution, identity.venue, event_authority;
-[
-    identity.venue: Write,
-    identity.custody: Write,
-    identity.safety: Write,
-    identity.btc: Write,
-    identity.eth: Write,
-    identity.btc_ledger: Write,
-    identity.eth_ledger: Write,
-    registry: Read,
-    resolution: Write,
-    work: Write,
-];
-[
-]);
+
 
 context!(PublishFundingReport, venue, event_authority;
 [
@@ -471,6 +455,7 @@ context!(RegisterMargin, venue, event_authority;
     registry: Write,
     portfolio: Write,
     margin: Create,
+    members: Write,
 ];
 [
 ]);
@@ -602,46 +587,19 @@ context!(InitializePreparedSettlement, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
-    source.resolution: Read,
-    source.btc: Read,
-    source.eth: Read,
-    source.btc_ledger: Read,
-    source.eth_ledger: Read,
-    prepared: Create,
-];
-[]);
-
-context!(InitializePreparedIndexNode, source.venue, event_authority;
-[
-    source.venue: Read,
-    source.custody: Read,
-    source.safety: Read,
-    source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
     source.btc_ledger: Read,
     source.eth_ledger: Read,
     prepared: Write,
-    node: Create,
 ];
 []);
 
-context!(InitializePreparedMembers, source.venue, event_authority;
-[
-    source.venue: Read,
-    source.custody: Read,
-    source.safety: Read,
-    source.registry: Read,
-    source.resolution: Read,
-    source.btc: Read,
-    source.eth: Read,
-    source.btc_ledger: Read,
-    source.eth_ledger: Read,
-    prepared: Write,
-    page: Create,
-];
-[]);
+
+
+
 
 context!(InitializeFrozenMarginPage, source.venue, event_authority;
 [
@@ -649,13 +607,14 @@ context!(InitializeFrozenMarginPage, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
     source.btc_ledger: Read,
     source.eth_ledger: Read,
     prepared: Read,
-    page: Create,
+    page: Write,
 ];
 []);
 
@@ -665,6 +624,7 @@ context!(ValuePreparedMember, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -683,6 +643,7 @@ impl ScopedContext for AdvancePreparedMembership {
         scope.account(&mut self.source.custody, Access::Read)?;
         scope.account(&mut self.source.safety, Access::Read)?;
         scope.account(&mut self.source.registry, Access::Read)?;
+        scope.account(&mut self.source.storage, Access::Read)?;
         scope.account(&mut self.source.resolution, Access::Read)?;
         scope.account(&mut self.source.btc, Access::Read)?;
         scope.account(&mut self.source.eth, Access::Read)?;
@@ -718,13 +679,14 @@ context!(InitializeSettlementLimbPage, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
     source.btc_ledger: Read,
     source.eth_ledger: Read,
     prepared: Read,
-    page: Create,
+    page: Write,
 ];
 []);
 
@@ -734,6 +696,7 @@ context!(AcceptDenominatorRow, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -750,6 +713,7 @@ context!(ContinueSettlementDenominator, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -765,13 +729,14 @@ context!(InitializeSettlementRates, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
     source.btc_ledger: Read,
     source.eth_ledger: Read,
     prepared: Read,
-    rates: Create,
+    rates: Write,
 ];
 []);
 
@@ -781,6 +746,7 @@ context!(ManageSettlementProposal, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -797,6 +763,7 @@ context!(UploadSettlementRate, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -814,6 +781,7 @@ context!(PrepareRateScratch, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -831,6 +799,7 @@ context!(AcceptSettlementRateRow, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -848,6 +817,7 @@ context!(ContinueSettlementRates, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -864,6 +834,7 @@ context!(InitializeSettlementPlan, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -871,7 +842,7 @@ context!(InitializeSettlementPlan, source.venue, event_authority;
     source.eth_ledger: Read,
     prepared: Read,
     rates: Read,
-    plan: Create,
+    plan: Write,
 ];
 []);
 
@@ -881,6 +852,7 @@ context!(InitializeSettlementPlanPage, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -889,7 +861,7 @@ context!(InitializeSettlementPlanPage, source.venue, event_authority;
     prepared: Read,
     rates: Read,
     plan: Read,
-    page: Create,
+    page: Write,
 ];
 []);
 
@@ -899,6 +871,7 @@ context!(AcceptSettlementPlanRow, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -917,6 +890,7 @@ context!(ManageSettlementPlan, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -934,6 +908,7 @@ context!(ContinueSettlementPlan, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -951,6 +926,7 @@ context!(AdoptSettlementPlan, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Write,
     source.btc: Read,
     source.eth: Read,
@@ -968,6 +944,7 @@ context!(ApplySettlementMargin, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Write,
     source.eth: Write,
@@ -988,6 +965,7 @@ context!(CompleteSettlementApplication, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -1005,6 +983,7 @@ context!(ReconcileSettlementMargin, source.venue, event_authority;
     source.custody: Read,
     source.safety: Read,
     source.registry: Read,
+    source.storage: Read,
     source.resolution: Read,
     source.btc: Read,
     source.eth: Read,
@@ -1025,6 +1004,7 @@ context!(CompleteSettlementPlan, source.venue, event_authority;
     source.custody: Read,
     source.safety: Write,
     source.registry: Read,
+    source.storage: Write,
     source.resolution: Write,
     source.btc: Read,
     source.eth: Read,
@@ -1035,3 +1015,18 @@ context!(CompleteSettlementPlan, source.venue, event_authority;
     plan: Write,
 ];
 []);
+
+context!(ChangeMarginMembership, venue, event_authority;
+[venue: Read, safety: Read, registry: Write, portfolio: Read, margin: Write, members: Write, storage: Read]; []);
+impl ScopedContext for RetireMargin {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.account(&mut self.registry, Access::Write)?;
+        scope.account(&mut self.portfolio, Access::Write)?;
+        scope.retire_margin(&mut self.margin.account().clone())?;
+        scope.account(&mut self.members, Access::Write)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}

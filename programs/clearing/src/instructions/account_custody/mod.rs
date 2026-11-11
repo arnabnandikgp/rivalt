@@ -96,29 +96,11 @@ pub(crate) fn reconciled(
 }
 
 fn empty_financial_state(margin: &MarginAccount) -> Result<()> {
-    let mut book = Vec::with_capacity(crate::state::OrderBook::INIT_SPACE);
-    crate::wire::write(&margin.book, &mut book)?;
-    require!(
-        margin.schema_version == SCHEMA_VERSION
-            && valid_identity(
-                0,
-                margin.subaccount_index,
-                margin.mode,
-                margin.isolated_market_index,
-                margin.role
-            )
-            && margin.nonce == 0
-            && margin.reserved == 0
-            && margin.delegate == Address::default()
-            && margin.delegate_expiry_slot == 0
-            && margin.delegate_epoch == 1
-            && margin.positions.iter().all(|position| position.lots == 0
-                && position.virtual_scaled == 0
-                && position.funding_checkpoint_scaled == 0
-                && position.generation == 0)
-            && book.iter().all(|byte| *byte == 0),
-        ClearingError::Profile
-    );
+    // Activation/reentry advances replay counters. Historical nonces, order IDs
+    // and funding checkpoints do not make an otherwise liability-free root busy.
+    liability_free(margin)?;
+    require!(margin.delegate == Address::default() && margin.delegate_expiry_slot == 0
+        && margin.book.protections.iter().all(|entry| entry.protection.remaining == 0), ClearingError::Profile);
     Ok(())
 }
 
@@ -160,6 +142,8 @@ fn member(account: &BorshAccount<MarginAccount>) -> AccountCashSnapshot {
         role: account.role,
         cash: account.cash,
         state_version: account.state_version,
+        lifecycle: account.lifecycle,
+        activation_generation: account.activation_generation,
     }
 }
 
@@ -184,7 +168,7 @@ fn event(
     kind: u8,
     actor: Address,
     subject: Address,
-    index: u16,
+    index: u32,
     amount: u64,
     actual_vault: Option<u64>,
     members: Vec<AccountCashSnapshot>,
@@ -220,8 +204,10 @@ fn event(
         terms_epoch: venue.terms_epoch,
         config_epoch: venue.config_epoch,
         allocated_vault: custody.map(|value| value.allocated_vault),
-        membership_version: registry.map(|value| value.membership_version),
-        member_count: registry.map(|value| value.count),
+        membership_version: registry.map(|value| value.membership_epoch),
+        member_count: registry.map(|value| value.financial_count),
+        registered_count: registry.map(|value| value.registered_count),
+        next_member_id: registry.map(|value| value.next_id),
         actual_vault,
     })
 }
@@ -245,7 +231,7 @@ pub fn initialize_liquidity(
         fee_authority,
         reserve_authority,
         reserve_destination_owner,
-        4,
+        PROFILE_VERSION,
     )
 }
 
@@ -339,7 +325,8 @@ pub fn initialize_registry(
     **ctx.accounts.registry = VenueRegistry {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.address().to_owned(),
-        membership_version: 1,
+        membership_epoch: 1,
+        live_index: super::account_membership::members::index_root(ctx.accounts.venue.address()),
         bump: ctx.bumps.registry,
         ..Default::default()
     };
@@ -418,7 +405,7 @@ pub fn initialize_market(
             1,
             ctx.accounts.authority.address().to_owned(),
             ctx.accounts.market.address().to_owned(),
-            u16::from(index),
+            u32::from(index),
             0,
             None,
             vec![],
@@ -433,7 +420,7 @@ pub fn initialize_market(
 pub fn create_portfolio(
     ctx: &mut Context<CreatePortfolio>,
     events: &mut crate::event_cpi::Payloads,
-    index: u16,
+    index: u32,
 ) -> Result<()> {
     let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
@@ -452,7 +439,7 @@ pub fn create_portfolio(
         venue: ctx.accounts.venue.address().to_owned(),
         owner: ctx.accounts.owner.address().to_owned(),
         index,
-        children: 0,
+        active_children: 0,
         bump: ctx.bumps.portfolio,
     };
     events.emit(
@@ -478,7 +465,7 @@ pub fn create_portfolio(
 pub fn register(
     ctx: &mut Context<RegisterMargin>,
     events: &mut crate::event_cpi::Payloads,
-    subaccount_index: u16,
+    subaccount_index: u32,
     mode: u8,
     isolated_market_index: u8,
     role: u8,
@@ -503,29 +490,22 @@ pub fn register(
             ),
         ClearingError::Profile
     );
-    let child_mask = 1u16
-        .checked_shl(u32::from(subaccount_index))
-        .ok_or(ClearingError::Profile)?;
-    require!(
-        ctx.accounts.portfolio.children & child_mask == 0,
-        ClearingError::Profile
-    );
+    super::account_membership::members::registry(&ctx.accounts.registry)?;
     let registry = &mut ctx.accounts.registry;
-    require!(
-        usize::from(registry.count) == registry.members.len(),
-        ClearingError::Profile
-    );
-    require!(
-        registry.members.len() < MAX_MEMBERS,
-        ClearingError::Capacity
-    );
+    let id = registry.next_id;
+    let next_id = id.checked_add(1).ok_or(ClearingError::Capacity)?;
+    let registered = registry.registered_count.checked_add(1).ok_or(ClearingError::Arithmetic)?;
+    let children = ctx.accounts.portfolio.active_children.checked_add(1).ok_or(ClearingError::Arithmetic)?;
+    super::account_membership::members::vacant(&ctx.accounts.members, registry, id)?;
     **ctx.accounts.margin = MarginAccount {
         schema_version: SCHEMA_VERSION,
         venue: ctx.accounts.venue.address().to_owned(),
         portfolio: ctx.accounts.portfolio.address().to_owned(),
         owner: ctx.accounts.owner.address().to_owned(),
         subaccount_index,
-        id: registry.count,
+        id,
+        lifecycle: MEMBER_REGISTERED,
+        activation_generation: 0,
         mode,
         isolated_market_index,
         role,
@@ -533,12 +513,16 @@ pub fn register(
         bump: ctx.bumps.margin,
         ..Default::default()
     };
-    ctx.accounts.portfolio.children |= child_mask;
-    registry
-        .members
-        .push(ctx.accounts.margin.address().to_owned());
-    registry.count += 1;
-    increment(&mut registry.membership_version)?;
+    let page = &mut ctx.accounts.members;
+    let slot = (id % 64) as usize;
+    page.members.entries[slot] = MemberEntry { root: *ctx.accounts.margin.address(),
+        lifecycle: MEMBER_REGISTERED, activation_generation: 0 };
+    page.allocated_mask |= 1u64 << slot;
+    ctx.accounts.portfolio.active_children = children;
+    registry.next_id = next_id;
+    registry.registered_count = registered;
+    // This empty identity has no claim on money or recovery. Financial scan
+    // epochs remain valid across its creation and retirement.
     events.emit(
         &(event(
             &ctx.accounts.venue,
@@ -806,7 +790,7 @@ pub fn classify_surplus(
             8,
             ctx.accounts.reserve_authority.address().to_owned(),
             ctx.accounts.venue.markets[usize::from(market_index)],
-            u16::from(market_index),
+            u32::from(market_index),
             amount,
             Some(ctx.accounts.vault.amount()),
             vec![],
@@ -872,7 +856,7 @@ pub fn seed_insurance(
             9,
             ctx.accounts.donor.address().to_owned(),
             ctx.accounts.venue.markets[usize::from(market_index)],
-            u16::from(market_index),
+            u32::from(market_index),
             amount,
             Some(ctx.accounts.vault.amount()),
             vec![],

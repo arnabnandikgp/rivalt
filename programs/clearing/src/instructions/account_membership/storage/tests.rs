@@ -14,8 +14,8 @@ fn allocation(venue: Address, kind: Allocation, epoch: u64) -> (TestAccount, Tes
             b"prepared-settlement".as_slice(),
             vec![],
             PreparedSettlement::DISCRIMINATOR,
-            1463,
-            1462,
+            1460,
+            1459,
         ),
         Allocation::Rates => (
             b"settlement-rates".as_slice(),
@@ -140,7 +140,7 @@ fn forged_shape_payer_epoch_rent_and_receipt_cannot_earn_capacity() {
     let original_receipt = original_receipt.view();
     let bytes = original.try_borrow().unwrap().to_vec();
     let receipt_bytes = original_receipt.try_borrow().unwrap().to_vec();
-    for offset in [0, 8, 10, 18, 50, 1462] {
+    for offset in [0, 8, 10, 18, 50, 1459] {
         let mut corrupt = bytes.clone();
         if offset == 10 {
             corrupt[10..18].fill(0);

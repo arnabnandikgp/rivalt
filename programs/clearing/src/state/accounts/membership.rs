@@ -57,3 +57,26 @@ pub struct MemberIndexNode {
     pub counts: [u64; 16],
     pub bump: u8,
 }
+
+/// Permanent same-address terminal identity; never accepted as a MarginAccount.
+#[account(borsh)]
+#[derive(InitSpace, Default)]
+pub struct MarginTombstone {
+    pub schema_version: u16,
+    pub revision: u64,
+    pub venue: Address,
+    pub portfolio: Address,
+    pub owner: Address,
+    pub child: u32,
+    pub id: u64,
+    pub activation_generation: u64,
+    pub bump: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace, IdlType)]
+pub struct MembershipState {
+    pub checkpoint: [u8; 544],
+}
+impl Default for MembershipState {
+    fn default() -> Self { Self { checkpoint: [0; 544] } }
+}

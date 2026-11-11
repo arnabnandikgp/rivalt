@@ -17,8 +17,6 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -33,12 +31,12 @@ import {
   type Account,
   type Address,
   type ClientWithRpc,
-  type Codec,
-  type Decoder,
   type EncodedAccount,
-  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type GetAccountInfoApi,
   type GetMultipleAccountsApi,
   type HasAddress,
@@ -63,9 +61,12 @@ export type VenueRegistry = {
   /** Scoped journal revision; never a financial signing or risk parameter. */
   revision: bigint;
   venue: Address;
-  membershipVersion: bigint;
-  count: number;
-  members: Array<Address>;
+  /** Changes only when Financial membership changes, never empty registration. */
+  membershipEpoch: bigint;
+  nextId: bigint;
+  registeredCount: bigint;
+  financialCount: bigint;
+  liveIndex: Address;
   bump: number;
 };
 
@@ -74,23 +75,28 @@ export type VenueRegistryArgs = {
   /** Scoped journal revision; never a financial signing or risk parameter. */
   revision: number | bigint;
   venue: Address | HasAddress;
-  membershipVersion: number | bigint;
-  count: number;
-  members: Array<Address | HasAddress>;
+  /** Changes only when Financial membership changes, never empty registration. */
+  membershipEpoch: number | bigint;
+  nextId: number | bigint;
+  registeredCount: number | bigint;
+  financialCount: number | bigint;
+  liveIndex: Address | HasAddress;
   bump: number;
 };
 
 /** Gets the encoder for {@link VenueRegistryArgs} account data. */
-export function getVenueRegistryEncoder(): Encoder<VenueRegistryArgs> {
+export function getVenueRegistryEncoder(): FixedSizeEncoder<VenueRegistryArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["schemaVersion", getU16Encoder()],
       ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
-      ["membershipVersion", getU64Encoder()],
-      ["count", getU16Encoder()],
-      ["members", getArrayEncoder(getAddressEncoder())],
+      ["membershipEpoch", getU64Encoder()],
+      ["nextId", getU64Encoder()],
+      ["registeredCount", getU64Encoder()],
+      ["financialCount", getU64Encoder()],
+      ["liveIndex", getAddressEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: VENUE_REGISTRY_DISCRIMINATOR }),
@@ -98,21 +104,23 @@ export function getVenueRegistryEncoder(): Encoder<VenueRegistryArgs> {
 }
 
 /** Gets the decoder for {@link VenueRegistry} account data. */
-export function getVenueRegistryDecoder(): Decoder<VenueRegistry> {
+export function getVenueRegistryDecoder(): FixedSizeDecoder<VenueRegistry> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["schemaVersion", getU16Decoder()],
     ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
-    ["membershipVersion", getU64Decoder()],
-    ["count", getU16Decoder()],
-    ["members", getArrayDecoder(getAddressDecoder())],
+    ["membershipEpoch", getU64Decoder()],
+    ["nextId", getU64Decoder()],
+    ["registeredCount", getU64Decoder()],
+    ["financialCount", getU64Decoder()],
+    ["liveIndex", getAddressDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
 
 /** Gets the codec for {@link VenueRegistry} account data. */
-export function getVenueRegistryCodec(): Codec<
+export function getVenueRegistryCodec(): FixedSizeCodec<
   VenueRegistryArgs,
   VenueRegistry
 > {
@@ -190,4 +198,8 @@ export async function fetchAllMaybeVenueRegistry(
     config,
   );
   return maybeAccounts.map((maybeAccount) => decodeVenueRegistry(maybeAccount));
+}
+
+export function getVenueRegistrySize(): number {
+  return 115;
 }

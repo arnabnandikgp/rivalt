@@ -23,29 +23,22 @@ fn exact_contract_sizes_and_roundtrips() {
     wire(Venue::default(), 329);
     wire(Custody::default(), 59);
     wire(VenueSafety::default(), 85);
-    wire(RetirementCertificate::default(), 80);
+    wire(RetirementCertificate::default(), 636);
     assert_ne!(
         RetirementCertificate::DISCRIMINATOR,
         SettlementCertificate::DISCRIMINATOR
     );
-    wire(
-        VenueRegistry {
-            members: vec![Address::default(); 64],
-            ..Default::default()
-        },
-        2113,
-    );
-    wire(Portfolio::default(), 87);
-    wire(MarginAccount::default(), 978);
+    wire(VenueRegistry::default(), 115);
+    wire(Portfolio::default(), 91);
+    wire(MarginAccount::default(), 995);
     wire(Market::default(), 455);
     wire(MarketLedger::default(), 125);
     wire(CapitalBinding::default(), 114);
-    wire(SettlementCertificate::default(), 234);
-    wire(ResolutionPage::default(), 3408);
-    wire(Resolution::default(), 3652);
-    wire(ResolutionWork::default(), 7926);
+    wire(SettlementCertificate::default(), 790);
+    wire(Resolution::default(), 572);
     wire(RecoveryStorage::default(), 99);
     wire(StorageFunding::default(), 123);
+    wire(MarginTombstone::default(), 135);
 }
 
 #[test]
@@ -64,7 +57,7 @@ fn no_old_account_discriminator_or_seed_is_reinterpreted() {
         let venue = find_program_address(&[b"venue-v3", &domain], &crate::ID).0;
         let old = find_program_address(&[b"group-v2", &domain], &crate::ID).0;
         assert_ne!(venue, old);
-        for portfolio_index in 0u16..4 {
+        for portfolio_index in 0u32..4 {
             let portfolio = find_program_address(
                 &[
                     b"portfolio-v3",
@@ -75,7 +68,7 @@ fn no_old_account_discriminator_or_seed_is_reinterpreted() {
                 &crate::ID,
             )
             .0;
-            for child_index in 0u16..9 {
+            for child_index in 0u32..9 {
                 let child = find_program_address(
                     &[b"margin-v3", portfolio.as_ref(), &child_index.to_le_bytes()],
                     &crate::ID,
@@ -109,17 +102,14 @@ fn fractional_positions_and_wide_numerators_preserve_every_byte() {
     let mut bytes = Vec::new();
     crate::wire::write_discriminated(&margin, &mut bytes).unwrap();
     assert_eq!(
-        i128::from_le_bytes(bytes[137..153].try_into().unwrap()),
+        i128::from_le_bytes(bytes[145..161].try_into().unwrap()),
         -300_000_001
     );
     assert_eq!(
-        i128::from_le_bytes(bytes[185..201].try_into().unwrap()),
+        i128::from_le_bytes(bytes[193..209].try_into().unwrap()),
         400_000_001
     );
     bytes[..8].copy_from_slice(&[143, 117, 33, 76, 190, 108, 140, 149]);
     assert!(MarginAccount::try_deserialize(&mut bytes.as_slice()).is_err());
-    let mut page = ResolutionPage::default();
-    page.rows[1].exact_flow_numerators[1].limbs[95] = u64::MAX;
-    page.rows[1].exact_flow_numerators[1].limbs[0] = 1;
-    wire(page, 3408);
+
 }

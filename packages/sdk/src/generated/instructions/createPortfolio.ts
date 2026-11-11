@@ -14,8 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -116,7 +116,7 @@ export function getCreatePortfolioInstructionDataEncoder(): FixedSizeEncoder<Cre
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["index", getU16Encoder()],
+      ["index", getU32Encoder()],
     ]),
     (value) => ({ ...value, discriminator: CREATE_PORTFOLIO_DISCRIMINATOR }),
   );
@@ -125,7 +125,7 @@ export function getCreatePortfolioInstructionDataEncoder(): FixedSizeEncoder<Cre
 export function getCreatePortfolioInstructionDataDecoder(): FixedSizeDecoder<CreatePortfolioInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["index", getU16Decoder()],
+    ["index", getU32Decoder()],
   ]);
 }
 

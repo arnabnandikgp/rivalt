@@ -7,7 +7,7 @@ use anchor_lang::{
 };
 use financial_core::clearing::scalable::recovery_storage::Allocation;
 
-fn available(venue: &Venue, safety: &VenueSafety) -> Result<()> {
+pub(super) fn available(venue: &Venue, safety: &VenueSafety) -> Result<()> {
     require!(
         TRADING_IMPLEMENTED
             && venue.schema_version == SCHEMA_VERSION
@@ -97,30 +97,6 @@ pub fn fund(
         ClearingError::Resolution
     );
     let (discriminator, size, bump_offset) = storage::allocation_shape(expected);
-    let rent = Rent::get()?;
-    let allocation = &mut ctx.accounts.allocation;
-    require!(
-        allocation.account().owner() == &system_program::ID
-            && allocation.account().data_len() == 0
-            && !allocation.account().executable()
-            && !allocation.account().is_signer(),
-        ClearingError::Resolution
-    );
-    let contribution = rent
-        .try_minimum_balance(size)?
-        .saturating_sub(allocation.account().lamports());
-    if contribution > 0 {
-        system_program::transfer(
-            CpiContext::new(
-                ctx.accounts.system_program.address(),
-                Transfer {
-                    from: ctx.accounts.payer.try_to_cpi_handle_mut()?,
-                    to: allocation.try_to_cpi_handle_mut()?,
-                },
-            ),
-            contribution,
-        )?;
-    }
     let register_bytes = register.to_le_bytes();
     let page_bytes = page.to_le_bytes();
     let bump_bytes = [bump];
@@ -131,25 +107,9 @@ pub fn fund(
         storage::page_seed(kind, &page_bytes),
         &bump_bytes,
     ];
-    system_program::allocate(
-        CpiContext::new_with_signer(
-            ctx.accounts.system_program.address(),
-            Allocate {
-                account_to_allocate: allocation.try_to_cpi_handle_mut()?,
-            },
-            &[&seeds],
-        ),
-        size as u64,
-    )?;
-    system_program::assign(
-        CpiContext::new_with_signer(
-            ctx.accounts.system_program.address(),
-            Assign {
-                account_to_assign: allocation.try_to_cpi_handle_mut()?,
-            },
-            &[&seeds],
-        ),
-        &crate::ID,
+    let allocation = &mut ctx.accounts.allocation;
+    let contribution = allocate(
+        &mut ctx.accounts.payer, allocation, ctx.accounts.system_program.address(), &seeds, size,
     )?;
     {
         let mut view = allocation.account().clone();
@@ -206,4 +166,30 @@ pub fn verify(
         &Rent::get()?,
     )?;
     accounts.storage.commit(next)
+}
+
+/// Allocate one canonical PDA without confusing preexisting donations with the
+/// actual payer top-up. The caller authenticates its address and seed tuple.
+pub(super) fn allocate(
+    payer: &mut Signer, allocation: &mut UncheckedAccount, system: &Address,
+    seeds: &[&[u8]], size: usize,
+) -> Result<u64> {
+    require!(allocation.account().owner() == &system_program::ID
+        && allocation.account().data_len() == 0
+        && !allocation.account().executable() && !allocation.account().is_signer(),
+        ClearingError::Resolution);
+    let contribution = Rent::get()?.try_minimum_balance(size)?
+        .saturating_sub(allocation.account().lamports());
+    if contribution > 0 {
+        system_program::transfer(CpiContext::new(system, Transfer {
+            from: payer.try_to_cpi_handle_mut()?, to: allocation.try_to_cpi_handle_mut()?,
+        }), contribution)?;
+    }
+    system_program::allocate(CpiContext::new_with_signer(system, Allocate {
+        account_to_allocate: allocation.try_to_cpi_handle_mut()?,
+    }, &[seeds]), size as u64)?;
+    system_program::assign(CpiContext::new_with_signer(system, Assign {
+        account_to_assign: allocation.try_to_cpi_handle_mut()?,
+    }, &[seeds]), &crate::ID)?;
+    Ok(contribution)
 }

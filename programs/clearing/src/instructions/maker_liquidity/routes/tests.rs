@@ -14,7 +14,7 @@ fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -42,7 +42,9 @@ fn markets() -> [Market; 2] {
 }
 fn trader(cash: u64) -> MarginAccount {
     MarginAccount {
-        schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Address::new_from_array([1; 32]),
@@ -53,7 +55,7 @@ fn trader(cash: u64) -> MarginAccount {
 }
 fn makers() -> [MarginAccount; 2] {
     [1u8, 2].map(|id| MarginAccount {
-        id: u16::from(id),
+        id: u64::from(id),
         mode: MODE_ISOLATED,
         isolated_market_index: 0,
         subaccount_index: 1,
@@ -253,7 +255,7 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
     crate::wire::write(&order, &mut bytes).unwrap();
     assert_eq!(bytes.len() + 8, 172);
     let mut registration = MakerRegistration {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 0,
         venue: Address::default(),
         market: Address::default(),
@@ -404,7 +406,7 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
     assert_eq!(root.book.orders[0].order.notional, 120_008);
     assert_eq!(root.book.orders[0].order.fee_charged, 25);
     let mut ledger = MarketLedger {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         ..Default::default()
     };
     trading::split_fee(&mut ledger, 13).unwrap();
@@ -429,7 +431,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
     let roots = [trader(100_000), makers()[0].clone(), makers()[1].clone()];
     let makers = [0u8, 1].map(|instance| {
         let mut value = crate::wire::read::<MakerRegistration>(&[0; 333]).unwrap();
-        value.schema_version = 8;
+        value.schema_version = crate::state::accounts::SCHEMA_VERSION;
         value.instance = instance;
         value.capital = Address::new_from_array([instance + 21; 32]);
         value.buy_consumed = 11 + u64::from(instance);

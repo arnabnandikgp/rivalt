@@ -21,8 +21,6 @@ import {
   getHiddenPrefixEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   type Address,
@@ -47,8 +45,8 @@ export type AccountRetirementProgressEvent = {
   slot: bigint;
   safetyEpoch: bigint;
   membershipVersion: bigint;
-  count: number;
-  next: number;
+  count: bigint;
+  next: bigint;
   cash: bigint;
   complete: boolean;
 };
@@ -58,8 +56,8 @@ export type AccountRetirementProgressEventArgs = {
   slot: number | bigint;
   safetyEpoch: number | bigint;
   membershipVersion: number | bigint;
-  count: number;
-  next: number;
+  count: number | bigint;
+  next: number | bigint;
   cash: number | bigint;
   complete: boolean;
 };
@@ -72,8 +70,8 @@ export function getAccountRetirementProgressEventEncoder(): FixedSizeEncoder<Acc
       ["slot", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
       ["membershipVersion", getU64Encoder()],
-      ["count", getU16Encoder()],
-      ["next", getU16Encoder()],
+      ["count", getU64Encoder()],
+      ["next", getU64Encoder()],
       ["cash", getU64Encoder()],
       ["complete", getBooleanEncoder()],
     ]),
@@ -89,8 +87,8 @@ export function getAccountRetirementProgressEventDecoder(): FixedSizeDecoder<Acc
       ["slot", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
       ["membershipVersion", getU64Decoder()],
-      ["count", getU16Decoder()],
-      ["next", getU16Decoder()],
+      ["count", getU64Decoder()],
+      ["next", getU64Decoder()],
       ["cash", getU64Decoder()],
       ["complete", getBooleanDecoder()],
     ]),

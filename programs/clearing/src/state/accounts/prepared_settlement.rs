@@ -42,9 +42,6 @@ pub struct PreparedSettlement {
     pub fees: [u64; 2],
     pub gross: [u64; 2],
     pub stage: u8,
-    /// Qualification bridge only: immutable copies of the existing <=64 roots.
-    pub index_initialized: u16,
-    pub member_page_initialized: bool,
     pub state: PreparationState,
     pub bump: u8,
 }
