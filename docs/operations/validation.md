@@ -2,6 +2,15 @@
 
 ## Persisted scratch foundation (P54B, incomplete)
 
+The current D97 controller adds source binding, actual margin valuation, complete
+ancestor closure and bounded public denominator steps. Native source/margin vectors,
+schema-specific scoped revisions and the literal ABI extension are implemented.
+A development linked SBF build has no oversized stack diagnostics; that dirty-tree
+build is not a pinned acceptance artifact. Signed prefix/replay/resource checks,
+rate proposals/reset and full P54B acceptance remain pending. The selected ordinary
+runtime is unchanged. These checks will use a fresh existing-size frozen cohort;
+P55/P56 still own live lifecycle and expanded population qualification.
+
 Clean **`a7adbaf7c1bee16cbc47c304e830f11c393ed507`**, restacked above P54A's
 compiler-guard fix, passes five focused Python tests: 774 exact comparisons plus
 1,338 arithmetic, 462 LCM and 305 collection vectors. The native adapter enforces

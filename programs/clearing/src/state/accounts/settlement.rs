@@ -1,5 +1,5 @@
-//! Reserved successor scratch account. No current instruction initializes or
-//! consumes it yet; schema-8 financial activation is unchanged.
+//! Reserved successor scratch account. The P54B verifier initializes/consumes
+//! it; schema-8 financial activation is unchanged.
 use anchor_lang::prelude::*;
 
 pub const SETTLEMENT_SCHEMA: u16 = 9;

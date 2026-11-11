@@ -7,6 +7,7 @@ use anchor_lang::prelude::*;
 pub mod resolution;
 pub mod risk;
 pub(crate) mod settlement_pages;
+pub mod settlement;
 pub(crate) mod settlement_membership;
 
 fn candidate_profile(identity: &account_cash::AccountFinancialIdentity) -> Result<()> {

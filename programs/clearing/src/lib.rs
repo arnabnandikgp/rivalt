@@ -62,6 +62,125 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn initialize_prepared_settlement(
+        ctx: &mut Context<InitializePreparedSettlement>,
+        epoch: u64,
+        source_revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [142, 95, 113, 145, 69, 54, 206, 110],
+            false,
+            |ctx, _events| account_safety::settlement::initialize(ctx, epoch, source_revision),
+        )
+    }
+    pub fn initialize_prepared_index_node(
+        ctx: &mut Context<InitializePreparedIndexNode>,
+        epoch: u64,
+        level: u8,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [117, 16, 8, 101, 140, 193, 196, 138],
+            false,
+            |ctx, _events| account_safety::settlement::initialize_node(ctx, epoch, level, revision),
+        )
+    }
+    pub fn initialize_prepared_members(
+        ctx: &mut Context<InitializePreparedMembers>,
+        epoch: u64,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [173, 221, 142, 20, 24, 134, 194, 65],
+            false,
+            |ctx, _events| account_safety::settlement::initialize_members(ctx, epoch, revision),
+        )
+    }
+    pub fn initialize_frozen_margin_page(
+        ctx: &mut Context<InitializeFrozenMarginPage>,
+        epoch: u64,
+        page_index: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [94, 60, 255, 32, 23, 190, 156, 212],
+            false,
+            |ctx, _events| account_safety::settlement::initialize_rows(ctx, epoch, page_index),
+        )
+    }
+    pub fn advance_prepared_membership(
+        ctx: &mut Context<AdvancePreparedMembership>,
+        epoch: u64,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [195, 174, 1, 137, 171, 6, 115, 191],
+            false,
+            |ctx, _events| account_safety::settlement::advance_membership(ctx, epoch, revision),
+        )
+    }
+    pub fn value_prepared_member(
+        ctx: &mut Context<ValuePreparedMember>,
+        epoch: u64,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [0, 175, 17, 162, 157, 181, 195, 149],
+            false,
+            |ctx, _events| account_safety::settlement::value(ctx, epoch, revision),
+        )
+    }
+    pub fn initialize_settlement_limb_page(
+        ctx: &mut Context<InitializeSettlementLimbPage>,
+        epoch: u64,
+        register: u32,
+        page_index: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [120, 231, 48, 106, 72, 76, 87, 115],
+            false,
+            |ctx, _events| {
+                account_safety::settlement::initialize_limb_page(ctx, epoch, register, page_index)
+            },
+        )
+    }
+    pub fn accept_denominator_row(
+        ctx: &mut Context<AcceptDenominatorRow>,
+        epoch: u64,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [242, 184, 176, 46, 187, 169, 157, 208],
+            false,
+            |ctx, _events| account_safety::settlement::accept_denominator_row(ctx, epoch, revision),
+        )
+    }
+    pub fn continue_settlement_denominator(
+        ctx: &mut Context<ContinueSettlementDenominator>,
+        epoch: u64,
+        revision: u64,
+        steps: u16,
+        revisions: [u64; 3],
+    ) -> Result<()> {
+        let plan = account_safety::settlement::denominator_plan(&ctx.accounts.prepared)?;
+        scoped_history::run_pages(
+            ctx,
+            [160, 108, 231, 235, 16, 93, 96, 125],
+            plan,
+            |ctx, _events| {
+                account_safety::settlement::continue_denominator(
+                    ctx, epoch, revision, steps, revisions,
+                )
+            },
+        )
+    }
     pub fn activate_liquidity(ctx: &mut Context<ActivateAccounts>) -> Result<()> {
         scoped_history::run(
             ctx,

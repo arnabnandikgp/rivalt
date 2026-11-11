@@ -1,6 +1,6 @@
-//! Successor scratch-page adapter, not an instruction or payout path. The future
-//! frozen controller must derive the plan and versions from its authenticated
-//! work state; caller-supplied cursors/versions cannot be trusted as progress.
+//! Successor scratch-page adapter. The controller derives its plan/epoch/attempt
+//! from authenticated work. Caller revisions are optimistic replay guards,
+//! never historical proof. This adapter grants no payout authority.
 use crate::{
     state::accounts::{SettlementLimbPage, LIMB_PAGE_BYTES, LIMB_WORDS_OFFSET, SETTLEMENT_SCHEMA},
     ClearingError,
@@ -123,7 +123,8 @@ impl<'a> PageWindow<'a> {
 
     /// Advance each changed scratch page once per successful invocation. The
     /// owning handler must commit this and its work checkpoint atomically; do
-    /// not invoke after a failing step. No current handler calls this adapter.
+    /// not invoke after a failing step. Scoped public handlers do not call this
+    /// method: their invocation wrapper owns revision advancement instead.
     pub(crate) fn commit(self) -> Result<()> {
         for (index, account) in self.accounts.iter_mut().enumerate() {
             if self.dirty[index] {

@@ -547,3 +547,166 @@ context!(WithdrawRetiredReserve, identity.venue, event_authority;
 ];
 [
 ]);
+
+context!(InitializePreparedSettlement, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Create,
+];
+[]);
+
+context!(InitializePreparedIndexNode, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+    node: Create,
+];
+[]);
+
+context!(InitializePreparedMembers, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+    page: Create,
+];
+[]);
+
+context!(InitializeFrozenMarginPage, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    page: Create,
+];
+[]);
+
+context!(ValuePreparedMember, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+    members: Read,
+    margin: Read,
+    page: Write,
+];
+[]);
+
+impl ScopedContext for AdvancePreparedMembership {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.source.venue, Access::Read)?;
+        scope.account(&mut self.source.custody, Access::Read)?;
+        scope.account(&mut self.source.safety, Access::Read)?;
+        scope.account(&mut self.source.registry, Access::Read)?;
+        scope.account(&mut self.source.resolution, Access::Read)?;
+        scope.account(&mut self.source.btc, Access::Read)?;
+        scope.account(&mut self.source.eth, Access::Read)?;
+        scope.account(&mut self.source.btc_ledger, Access::Read)?;
+        scope.account(&mut self.source.eth_ledger, Access::Read)?;
+        scope.account(&mut self.prepared, Access::Write)?;
+        // Use the actual immutable discriminator on both visits: the handler
+        // advances its cursor, so its next request may have a different kind.
+        let mut account = self.index.account().clone();
+        let bytes = account.try_borrow()?;
+        require!(bytes.len() >= 8, crate::ClearingError::Profile);
+        let mut discriminator = [0u8; 8];
+        discriminator.copy_from_slice(&bytes[..8]);
+        drop(bytes);
+        if discriminator == *crate::state::accounts::MemberIndexNode::DISCRIMINATOR {
+            scope.raw::<crate::state::accounts::MemberIndexNode>(&mut account, Access::Read)?;
+        } else {
+            scope.raw::<crate::state::accounts::MemberPage>(&mut account, Access::Read)?;
+        }
+        Ok(())
+    }
+    fn venue(&self) -> (Address, [u8; 32]) {
+        (*self.source.venue.address(), self.source.venue.domain)
+    }
+    fn event_authority(&self) -> AccountView {
+        self.event_authority.account().clone()
+    }
+}
+
+context!(InitializeSettlementLimbPage, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    page: Create,
+];
+[]);
+
+context!(AcceptDenominatorRow, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+    page: Read,
+];
+[]);
+
+context!(ContinueSettlementDenominator, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+];
+[]);

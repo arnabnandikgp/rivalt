@@ -5,6 +5,35 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D97 — verification-only frozen-source bridge (11 November 2026)
+
+P54B initially authenticates the existing schema-8/profile-4 frozen cohort while
+writing separate schema-9 verification records. This resolves the phase dependency:
+P55 owns the live paged membership lifecycle and P56 owns expanded activation, so
+P54B cannot claim a larger live cohort merely by constructing index fixtures.
+The bridge binds the real frozen resolution epoch/revision, complete registry hash,
+safety/terms/configuration, prices/funding, gross OI and custody/market buckets.
+It accepts only the source's Value stage at cursor zero. Advancing the existing
+resolution invalidates successor progress; the existing recovery path remains usable.
+
+Program-created index records mirror every registered source root, including flat
+roots, in stable ID order. Immutable non-reused schema-8 IDs map to activation
+generation 1. This is one mirror per fresh local qualification venue; it is not a
+new live membership authority or general migration. P55 replaces the bridge with
+its frozen live index and explicit lifecycle. No margin, vault, ledger, fee or
+insurance balance is writable through these verification contexts. No new method
+permits payout/Apply, trading expansion, devnet or default-profile activation.
+
+Prepared work and row/limb pages use append-only scoped event kinds 17–21 with
+schema 9; existing kinds retain schema 8. A bounded limb continuation derives its
+exact read/write plan from the program-owned checkpoint and retains that plan for
+both scope visits. Supplied page revisions are optimistic replay guards, never
+proof of completed arithmetic. The scope advances each declared writer once;
+standalone native dirty-page commit is not called by these public handlers.
+The literal extension is checked separately before comparing the entire retained
+ABI with the immutable D90 baseline. Signed and resource acceptance remains a
+required P54B gate, alongside rate proposal/reset verification.
+
 ## D96 — bounded scratch steps for scalable exact settlement (11 November 2026)
 
 P54A implements the selected P51B G2 arithmetic as operations over caller-owned

@@ -1,5 +1,5 @@
 //! Reserved read interfaces for the schema-9 financial index. P55 owns lifecycle
-//! mutation and storage funding; no current instruction creates these accounts.
+//! mutation and storage funding; P54B creates a verification-only frozen-source mirror (D97).
 use anchor_lang::prelude::*;
 
 pub const MEMBER_PAGE_ENTRIES: usize = 64;

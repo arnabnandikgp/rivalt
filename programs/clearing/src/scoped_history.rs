@@ -47,6 +47,16 @@ revisioned! {
     8 => CapitalBinding, 9 => SettlementCertificate, 10 => Resolution,
     11 => ResolutionPage, 12 => ResolutionWork, 13 => RetirementCertificate,
     14 => LiquidityRegistry, 15 => MakerRegistration, 16 => FundingPublisher,
+    17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
+    20 => MemberPage, 21 => SettlementLimbPage,
+}
+
+fn schema_for_kind(kind: u8) -> Result<u16> {
+    match kind {
+        0..=16 => Ok(SCHEMA_VERSION),
+        17..=21 => Ok(SETTLEMENT_SCHEMA),
+        _ => Err(ClearingError::Profile.into()),
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -92,7 +102,7 @@ impl Scope {
                     && entry.kind == kind
                     && entry.access == access
                     && entry.revision == revision
-                    && schema == SCHEMA_VERSION,
+                    && schema == schema_for_kind(kind)?,
                 ClearingError::Profile
             );
             self.cursor = Some(cursor + 1);
@@ -105,7 +115,7 @@ impl Scope {
             }
         } else {
             require!(
-                self.entries.len() < MAX_ENTITIES && kind <= 16,
+                self.entries.len() < MAX_ENTITIES && kind <= 21,
                 ClearingError::Profile
             );
             require!(
@@ -116,7 +126,7 @@ impl Scope {
                 if access == Access::Create {
                     schema == 0 && revision == 0
                 } else {
-                    schema == SCHEMA_VERSION && revision > 0
+                    schema == schema_for_kind(kind)? && revision > 0
                 },
                 ClearingError::Profile
             );
@@ -152,6 +162,37 @@ impl Scope {
         Ok(())
     }
 
+    /// A statically named owned record read directly by a bounded adapter. Its
+    /// identity/stage PDA is checked by the handler; kind/schema/layout and
+    /// invocation-local access/revision are checked here on both visits.
+    pub(crate) fn raw<T: Revisioned + Discriminator + Space>(
+        &mut self,
+        account: &mut AccountView,
+        access: Access,
+    ) -> Result<()> {
+        require!(
+            access != Access::Create
+                && account.owner() == &crate::ID
+                && !account.executable()
+                && !account.is_signer()
+                && (access == Access::Read || account.is_writable()),
+            ClearingError::Profile
+        );
+        let bytes = account.try_borrow()?;
+        require!(
+            bytes.len() == 8 + T::INIT_SPACE && bytes[..8] == *T::DISCRIMINATOR,
+            ClearingError::Profile
+        );
+        let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
+        let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
+        drop(bytes);
+        let next = self.visit(*account.address(), T::KIND, schema, revision, access)?;
+        if self.cursor.is_some() && access != Access::Read {
+            account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
+        }
+        Ok(())
+    }
+
     fn remaining(&mut self, accounts: &mut [AccountView], writable: bool) -> Result<()> {
         // All currently supported remaining accounts are canonical cohort roots.
         // The handler validates their venue/PDA/member order and stage authority.
@@ -182,6 +223,28 @@ impl Scope {
             if self.cursor.is_some() && writable {
                 account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
             }
+        }
+        Ok(())
+    }
+
+    fn limb_pages(
+        &mut self,
+        accounts: &mut [AccountView],
+        plan: financial_core::clearing::scalable::pages::PagePlan,
+    ) -> Result<()> {
+        require!(
+            accounts.len() == plan.requests().len(),
+            ClearingError::Resolution
+        );
+        for (account, request) in accounts.iter_mut().zip(plan.requests()) {
+            self.raw::<SettlementLimbPage>(
+                account,
+                if request.writable {
+                    Access::Write
+                } else {
+                    Access::Read
+                },
+            )?;
         }
         Ok(())
     }
@@ -318,18 +381,58 @@ pub(crate) fn run<'context, T: ScopedContext>(
     remaining_writable: bool,
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
+    run_with_remaining(
+        context,
+        instruction,
+        Remaining::Roots(remaining_writable),
+        handler,
+    )
+}
+
+/// The plan is derived from authenticated work before the handler and retained
+/// unchanged for both scope visits. A caller cannot choose its access privileges.
+pub(crate) fn run_pages<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    plan: financial_core::clearing::scalable::pages::PagePlan,
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::Limbs(plan), handler)
+}
+
+#[derive(Clone, Copy)]
+enum Remaining {
+    Roots(bool),
+    Limbs(financial_core::clearing::scalable::pages::PagePlan),
+}
+impl Remaining {
+    fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
+        match self {
+            Self::Roots(writable) => scope.remaining(accounts, writable),
+            Self::Limbs(plan) => scope.limb_pages(accounts, plan),
+        }
+    }
+}
+
+#[inline(never)]
+fn run_with_remaining<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    access: Remaining,
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
     profile_cu!("scope-enter");
     let mut scope = Scope::new();
     context.accounts.visit(&mut scope)?;
     let mut remaining = context.remaining_accounts()?;
-    scope.remaining(&mut remaining, remaining_writable)?;
+    access.visit(&mut scope, &mut remaining)?;
     let mut payloads = event_cpi::Payloads::default();
     profile_cu!("handler-enter");
     handler(context, &mut payloads)?;
     profile_cu!("handler-exit");
     scope.cursor = Some(0);
     context.accounts.visit(&mut scope)?;
-    scope.remaining(&mut remaining, remaining_writable)?;
+    access.visit(&mut scope, &mut remaining)?;
     let (venue, domain) = context.accounts.venue();
     let event = scope.finish(
         venue,

@@ -201,3 +201,45 @@ pub use maker_liquidity::RegisterLiquidity;
 pub use maker_liquidity::SealLiquidity;
 
 mod scopes;
+
+// Authenticated successor verification; no payout or trading authority.
+pub(crate) use account_safety::settlement::__client_accounts_acceptdenominatorrow;
+pub(crate) use account_safety::settlement::__client_accounts_advancepreparedmembership;
+pub(crate) use account_safety::settlement::__client_accounts_continuesettlementdenominator;
+pub(crate) use account_safety::settlement::__client_accounts_initializefrozenmarginpage;
+pub(crate) use account_safety::settlement::__client_accounts_initializepreparedindexnode;
+pub(crate) use account_safety::settlement::__client_accounts_initializepreparedmembers;
+pub(crate) use account_safety::settlement::__client_accounts_initializepreparedsettlement;
+pub(crate) use account_safety::settlement::__client_accounts_initializesettlementlimbpage;
+pub(crate) use account_safety::settlement::__client_accounts_preparedsourceidentity;
+pub(crate) use account_safety::settlement::__client_accounts_valuepreparedmember;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_acceptdenominatorrow;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_advancepreparedmembership;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_continuesettlementdenominator;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_initializefrozenmarginpage;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_initializepreparedindexnode;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_initializepreparedmembers;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_initializepreparedsettlement;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_initializesettlementlimbpage;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_preparedsourceidentity;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_valuepreparedmember;
+pub use account_safety::settlement::AcceptDenominatorRow;
+pub use account_safety::settlement::AdvancePreparedMembership;
+pub use account_safety::settlement::ContinueSettlementDenominator;
+pub use account_safety::settlement::InitializeFrozenMarginPage;
+pub use account_safety::settlement::InitializePreparedIndexNode;
+pub use account_safety::settlement::InitializePreparedMembers;
+pub use account_safety::settlement::InitializePreparedSettlement;
+pub use account_safety::settlement::InitializeSettlementLimbPage;
+pub use account_safety::settlement::PreparedSourceIdentity;
+pub use account_safety::settlement::ValuePreparedMember;

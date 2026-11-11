@@ -11,6 +11,7 @@ import json
 import subprocess
 
 from wire_contract import PROGRAMS, BASELINE, program_contract, source_domains
+from settlement_wire_contract import strip_additions, DOMAINS
 
 PREDECESSOR = 'c0bc3aaa3825896fcafbc879fe104362da61c21d'
 
@@ -127,15 +128,18 @@ def check_domains():
                     'account:MakerPriceV4': 'account:MakerPrice',
                     'global:control_curve_v4': 'global:control_curve',
                     'global:quote_v4': 'global:quote_curve'}
-    expected['rust_byte_literals'] = sorted(replacements.get(item, item)
-                                            for item in expected['rust_byte_literals'])
+    expected['rust_byte_literals'] = sorted(set(replacements.get(item, item)
+                                            for item in expected['rust_byte_literals']) | set(DOMAINS))
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
 def check(directory):
     check_domains()
     for program in PROGRAMS:
-        actual, expected = comparable(json.loads((directory / f'{program}.json').read_text()), expected_idl(program))
+        actual = json.loads((directory / f'{program}.json').read_text())
+        if program == 'clearing':
+            actual = strip_additions(actual)
+        actual, expected = comparable(actual, expected_idl(program))
         assert program_contract(actual) == program_contract(expected), (program, program_contract(actual), program_contract(expected))
     print(f'RC2 ABI matches D90 canonical identifiers against immutable {PREDECESSOR}')
 

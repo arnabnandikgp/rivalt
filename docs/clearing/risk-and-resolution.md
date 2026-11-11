@@ -211,9 +211,10 @@ The program's `PageWindow` adapter now authenticates the reserved
 directly: exact discriminator/size/owner, venue, epoch, attempt, revision, register,
 page index, addressable word count and PDA. It reads/writes individual words without
 copying the 2 KiB payload. A batch must stop before an unavailable next page; missing
-words never become implicit zeros. Only dirty pages advance revision, once per
-invocation. Writable revision exhaustion rejects before writes. The eventual
-handler must derive the plan/bindings from authenticated work and commit the work
+words never become implicit zeros. Public continuations advance each declared write-page revision once through scoped
+history; the standalone native adapter commits dirty pages only. These two owners
+are never both called. Writable revision exhaustion rejects before writes. The
+handler derives the plan/bindings from authenticated work and commits the work
 checkpoint and page revisions in the same successful transaction.
 
 These codecs validate syntax and internal scalar consistency, **not historical
@@ -221,10 +222,11 @@ execution**. Decode only authenticated program-owned work; a caller's cursor is
 never proof of completed work. Native account-loader tests do not establish a
 signed chain transition. The bounded membership traversal and canonical account readers now follow the
 [reserved index contract](accounts.md#successor-membership-reads-p54b-inactive).
-Frozen-epoch/source/root authentication, the owning controller, rate/proposal reset,
-bounded normalization and actual signed resource
-acceptance remain unfinished. No public handler initializes or consumes these
-reserved accounts yet; current schema-8 financial accounts, selected binaries and
+D97 now implements source/root binding and public valuation/denominator control
+against the existing actual frozen cohort. The exact bridge, layouts and authority
+limits are in [accounts](accounts.md#prepared-frozen-verification-p54b-inactive-financial-paths).
+Rate/proposal reset, bounded normalization and actual signed resource acceptance
+remain unfinished. Current schema-8 financial accounts, selected binaries and
 enabled capacity are unchanged. This is not acceptance of on-chain settlement.
 
 ### Frozen work, completion and adversarial proposals

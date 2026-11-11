@@ -170,11 +170,51 @@ checkpoint cannot substitute for those locks. Full root role/mode/ID/generation
 and source/funding authentication, public handlers and signed acceptance remain
 unfinished. Existing schema-8 account creation/trading limits are unchanged.
 
+### Prepared frozen verification (P54B, inactive financial paths)
+
+D97 binds the real schema-8 frozen `Resolution`, requiring Value/cursor zero,
+exact source revision and registry hash, and unchanged frozen economic inputs.
+`PreparedSettlement` uses schema 9, **1,463 bytes**, seeds `prepared-settlement`,
+venue and epoch LE-u64. Its common schema/revision/venue prefix ends at byte 50;
+epoch/source/source-revision end at 98; registry revision/membership epoch/hash at
+146; count/safety/terms at 170; configuration/prices/funding at 234; allocated and
+four market-bucket/gross arrays at 306. Stage/index-ready mask/member-page-ready
+end at 310, followed by the 1,152-byte preparation checkpoints and bump.
+`FrozenMarginPage` uses **1,156 bytes**, seeds `frozen-margin-page`, venue, epoch
+LE-u64 and page-index LE-u64. After the common prefix, epoch/index occupy 16 bytes,
+then row-count, eight 136-byte rows and bump. Rows bind stable ID, root address,
+activation generation, original revision, cash, two signed quantities/generations,
+exact i128 claims and collected cash. The fixed eight-row page is an I/O bound.
+
+Initializers are permissionless/rent-funded and read the actual frozen source.
+They cannot accept uploaded claims or caller-selected membership. The bounded
+bridge mirrors the source's complete at-most-64 registered roots into one member
+page and 15 radix nodes; generation is 1 because schema-8 IDs cannot be reused.
+One mirror is created per fresh local qualification venue. Later freezes can use
+the unchanged existing resolution; the paged live lifecycle is P55's separate work.
+
+Valuation derives whole-account claims from the real margin model at frozen
+prices/funding and checks canonical membership, identity and complete conservation.
+Only after all ancestor counts close can denominator work begin. Stage- and
+revision-guarded denominator calls consume frozen rows and perform 1–128 word
+steps with at most three exactly ordered limb pages. Registers 0/1 alternate the
+common denominator; register 2 is scratch and attempt is 0. Missing next pages
+end the current bounded call; they cannot supply implicit zero data. The final
+stage is Proposal, with no implemented path from this controller to Apply.
+
+Scoped history kinds 17–21 are PreparedSettlement, FrozenMarginPage,
+MemberIndexNode, MemberPage and SettlementLimbPage. Their schema is 9; all existing
+financial kinds remain 8. The ABI extension is literal in
+[its checker](../../ops/settlement_wire_contract.py); existing instructions/layouts,
+seeds, discriminators, signing domains and errors are independently retained.
+The selected runtime artifacts and admitted capacity remain unchanged until
+actual acceptance. Generated clients do not establish deployed qualification.
+
 ### Successor limb-page layout (P54B, inactive)
 
 The first concrete scratch type is `SettlementLimbPage`; it is reserved schema 9,
-not a change to schema-8 venue/margin accounts. No public instruction initializes
-or consumes it yet. Fields are Borsh little endian with discriminator
+not a change to schema-8 venue/margin accounts. The verification-only P54B
+controller initializes and consumes it under the D97 frozen-source bridge. Fields are Borsh little endian with discriminator
 `sha256("account:SettlementLimbPage")[0..8]`:
 
 | Byte offset | Field / bytes |
@@ -201,10 +241,10 @@ makes the account writable. Signed accounts/executable accounts are rejected.
 
 The page is temporary arithmetic, never collateral or a claim. Revision overflow
 rejects before a writable window opens. A successful invocation increments each
-changed page once and must atomically persist its controller checkpoint. The future
-controller must own the epoch/attempt, descriptors and expected revisions; passing
-structurally valid bytes or arbitrary keeper versions establishes no progress.
-Allocation/refund ownership, initialization and complete signed/IDL qualification
+declared write page once and atomically persists its controller checkpoint. The
+controller owns the epoch/attempt and descriptors; caller-supplied revisions are
+replay guards only. Structural cursor validity or arbitrary keeper versions cannot
+establish progress. Allocation/refund lifecycle and complete signed qualification
 remain P54/P55 obligations, with financial expansion disabled until P56B.
 
 ### Deployment and phase gates
