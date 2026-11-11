@@ -33,17 +33,30 @@ steps/cohort in these fixtures. Permutation markers are still native test transp
 not authenticated program records. Two additional codec tests and SBF metadata
 compilation pass. Program acceptance remains pending.
 
-The subsequent development controller adds six public entrypoints, a 1,181-byte
+Clean **`c08aa495804a1740e109c7ef24b21f982c1495ed`** adds six public entrypoints, a 1,181-byte
 owned plan and scalar records inside the existing authenticated limb pages. Three
 native controller tests pass: independently derived half-atom tie ownership across
 1/7/128-step restarts, a 65-row physical-page case, duplicate/reversed-order and
 stale/incomplete rate-history rejection, and revision/attempt/64-slot recovery
 boundaries. Each work/row step uses the real PageWindow loader and serialized plan;
-the test transport supplies account bytes, not signed transactions. Two scalar
-codec/layout tests pass. Generated SDK, retained D90 plus literal new ABI and
+the test transport supplies account bytes, not signed transactions. Five physical
+page-adapter, ten scoped-history and two scalar codec/layout tests pass at that
+pin. Generated SDK, retained D90 plus literal new ABI and
 83-entrypoint inventory agree; existing financial access sets are unchanged.
-Clean pin, linked SBF, actual new instruction execution and financial acceptance
-are still pending. No new CU, financial population or deployment claim follows.
+The same clean source links a **2,168,808-byte** SBF with SHA-256
+`08eca403915e5c8a35b68b03d29ab92e2c13a585f754a4f3e6fa9f528a616ed5` and no unsafe
+stack-frame diagnostics. It is separately retained at
+`.local/scalable-settlement/p54c-c08aa49/`, not selected for ordinary runtime.
+Actual new instruction execution and financial acceptance remain pending. No new
+CU, financial population or deployment claim follows.
+
+The extended signed construction harness is prepared with explicit
+`RIVALT_SETTLEMENT_PLAN=1` and that candidate artifact directory. Its native
+`settlement-plan-pages` example transports next-page requests from public RPC
+bytes; it is not an independent financial oracle. The Python Fraction/circulation
+reference independently derives every floor, fractional flag, order and terminal
+atom owner. Signed results are still pending; this harness cannot establish Apply
+or SQL acceptance because neither is implemented yet.
 
 ## Authenticated frozen and rate verification (P54B)
 

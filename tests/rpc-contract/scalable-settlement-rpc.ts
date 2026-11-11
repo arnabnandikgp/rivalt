@@ -6,6 +6,7 @@ import {AccountRole,getAddressEncoder,getProgramDerivedAddress,type Address,type
 import * as sdk from '@rivalt/sdk';
 import {getMintToInstruction} from '@solana-program/token';
 import {qualifySettlementRates} from './scalable-settlement-rates-rpc.js';
+import {qualifySettlementPlan} from './scalable-settlement-plan-rpc.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
@@ -127,15 +128,19 @@ try {
   await reject('completed denominator cannot replay',stale);
   const rateResult=await qualifySettlementRates({h,setup,prepared,epoch:frozen.epoch,rows,rowPages,limbPages,tracked,reject,expectedCommon});
   assert.deepEqual(await readAll(financial),financialBefore,'rate verification and insurance planning never mutate financial ownership');
+  const planResult=process.env.RIVALT_SETTLEMENT_PLAN==='1'?await qualifySettlementPlan({h,setup,prepared,rates:rateResult.rates,
+    epoch:frozen.epoch,rows,rowPages,limbPages,tracked,reject}):undefined;
+  assert.deepEqual(await readAll(financial),financialBefore,'construction never mutates financial ownership');
   await flush();
   const accountKeys=[{name:'settlementRates',key:rateResult.rates},{name:'preparedSettlement',key:prepared},{name:'memberPage',key:memberPage},
-    ...nodes.map(key=>({name:'memberIndexNode',key})),...rowPages.map(key=>({name:'frozenMarginPage',key})),...limbPages.map(key=>({name:'settlementLimbPage',key}))]
+    ...nodes.map(key=>({name:'memberIndexNode',key})),...rowPages.map(key=>({name:'frozenMarginPage',key})),...limbPages.map(key=>({name:'settlementLimbPage',key})),
+    ...(planResult?[{name:'settlementPlan',key:planResult.plan},...planResult.extras.map(key=>({name:'settlementLimbPage',key}))]:[])]
     .map(entry=>({program:sdk.CLEARING_PROGRAM_ADDRESS,...entry}));
   const parity=await conformance.finish(directory,accountKeys,h.read);
   const rent=await Promise.all(accountKeys.map(async entry=>({name:entry.name,key:entry.key,lamports:String((await rpc.call('getAccountInfo',[entry.key,{encoding:'base64',commitment:'finalized'}])).value.lamports)})));
   const result={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     build:JSON.parse(readFileSync(`${process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR}/build-manifest.json`,'utf8')),checks,parity,rent,
-    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,limitations:['source bridge <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
+    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,planResult,limitations:['source bridge <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
   writeFileSync(`${directory}/result.json`,serialize(result));console.log(serialize({checks:checks.length,continuations,rateContinuations:rateResult.continuations,rateEvaluations:rateResult.reference.evaluations.length,common:expectedCommon,parity}));
 }finally{await flush();await ws.close();}

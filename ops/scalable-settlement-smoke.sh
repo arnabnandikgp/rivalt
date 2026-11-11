@@ -11,12 +11,17 @@ from pathlib import Path
 import hashlib,json,os
 folder=Path(os.environ['RIVALT_SETTLEMENT_ARTIFACT_DIR'])
 manifest=json.loads((folder/'build-manifest.json').read_text())
-assert manifest['revision']=='89b6129404ca7914bf5a8ba588079f798e6e4445'
+construction=os.environ.get('RIVALT_SETTLEMENT_PLAN')=='1'
+revision,expected=(('c08aa495804a1740e109c7ef24b21f982c1495ed','08eca403915e5c8a35b68b03d29ab92e2c13a585f754a4f3e6fa9f528a616ed5') if construction else
+                  ('89b6129404ca7914bf5a8ba588079f798e6e4445','0bb44610f6ed17d51582830999fbcd66d1047f47990b0560d073d2ca055a6547'))
+assert manifest['revision']==revision
 assert manifest['trackedDirty'] is False and manifest['scratchSchema']==9
-expected='0bb44610f6ed17d51582830999fbcd66d1047f47990b0560d073d2ca055a6547'
 assert manifest['binaries']['clearing.so']==expected
 assert hashlib.sha256((folder/'clearing.so').read_bytes()).hexdigest()==expected
 PY
+if [[ "${RIVALT_SETTLEMENT_PLAN:-0}" == 1 ]]; then
+  cargo build --locked -p clearing --example settlement-plan-pages --features state-only
+fi
 test "$(surfpool --version)" = 'surfpool 1.7.0'
 export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18951}"
 export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18952}"

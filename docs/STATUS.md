@@ -628,18 +628,21 @@ all 774 native payout cases. Two new codec tests and SBF metadata compilation pa
 this extension is native-only. D99 records exclusive Apply adoption,
 recoverable order attempts and unchanged recovery/economics.
 
-The development controller now binds flows/orders/construction to authenticated
+Clean **`c08aa49`** binds flows/orders/construction to authenticated
 source/rate/page accounts through six new entrypoints. Three native tests cover
 literal half-atom ownership, 1/7/128-step checkpoints, 65-row physical page crossing,
 duplicate/tie-reversal and incomplete/stale binding refusal, and order-reset
 authority/progress boundaries. Scalar codecs, generated SDK, literal ABI and
-83-entrypoint access inventory agree. Clean controller pin and compiled execution
-remain pending; these native checks do not qualify a larger live cohort.
+83-entrypoint access inventory agree. Five page-adapter, ten scoped-history and two
+scalar-codec tests pass at the same pin. The linked SBF is 2,168,808 bytes, with no
+unsafe stack-frame diagnostics; its exact hash and separate candidate path are in
+validation. Signed construction execution remains pending; these native checks do
+not qualify a larger live cohort. The extended RPC harness is ready for that run.
 
 Exactly-once Apply/Reconcile, recovery, token exits and fresh PostgreSQL replay
 remain. No financial writer, selected artifact or admitted population changes.
 No P54C PR is opened and no user decision/access blocker is known. Exact next
-action: validate the compiled controller, implement exclusive adoption and
+action: run signed construction on the pinned candidate, implement exclusive adoption and
 exactly-once application, then qualify recovery and SQL/token exits. P15B/P16B stay Open and
 24-hour endurance Deferred.
 
