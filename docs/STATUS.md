@@ -261,9 +261,9 @@ P54B's first hosted run at `4cd75ab` failed report/client/default-build checks:
 its new ABI additions were missing from one test entrypoint and the generated lock
 inventory, and positive preparation fixtures incorrectly expected success in the
 disabled-default build. Financial arithmetic passed. The focused corrections pass
-locally: 13 ABI tests (including six rejected extension mutations), exact 77-entry
+on clean **`9a223a3`**: 13 ABI tests (including six rejected extension mutations), exact 77-entry
 inventory, five qualified settlement tests and two default tests. No runtime source
-or artifact changes. Clean correction pin and hosted rerun are pending. P54C's
+or artifact changes. Hosted rerun is pending. P54C's
 in-progress per-root flow/order work is preserved on its child branch; it is not
 accepted financial application. No user decision/access blocker is known.
 

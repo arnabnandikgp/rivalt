@@ -129,9 +129,9 @@ negative authority checks on predecessor instructions. The regenerated inventory
 adds exactly 16 instructions without changing any of the 61 retained access sets.
 Qualification-only positive tests now run with their feature; a separate default
 case proves preparation rejects before writing any output. No runtime source,
-IDL, financial gate or accepted SBF artifact changes. A clean correction pin and
-hosted rerun are pending; local focused checks pass (13 ABI cases, five qualified
-settlement cases and two default cases). Broad suites remain delegated to CI.
+IDL, financial gate or accepted SBF artifact changes. Clean correction **`9a223a3`** passes 13 ABI cases, five qualified settlement
+cases, two default cases, exact inventory, D90 extension and evidence-policy
+checks. Hosted rerun is pending; broad suites remain delegated to CI.
 
 ## Scalable native settlement (P54A)
 
