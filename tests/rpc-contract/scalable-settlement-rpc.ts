@@ -51,7 +51,21 @@ try {
       owner,portfolio,margin:receiver,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:2})],[owner]);
     await h.send('P54C fund unrelated healthy receiver cash',[await sdk.getDepositAccountInstructionAsync({...setup.common,
       owner,margin:receiver,quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1n})],[owner]);
-    // Setup already provisions all 32 legacy pages; the ninth root needs no duplicate allocation.
+    const [creditorPortfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,1);
+    await h.send('P54C create cross creditor portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner,portfolio:creditorPortfolio,index:1})],[owner]);
+    const [creditor]=await sdk.deriveMarginAccount(creditorPortfolio,0);
+    await h.send('P54C register cross creditor',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio:creditorPortfolio,
+      margin:creditor,subaccountIndex:0,mode:0,isolatedMarketIndex:255,role:0})],[owner]);
+    await h.send('P54C mint valueless cross creditor funding',[getMintToInstruction({mint:setup.mint.address,
+      token:setup.traderToken.address,mintAuthority:setup.payer,amount:1_000_000n})]);
+    await h.send('P54C deposit cross creditor collateral',[await sdk.getDepositAccountInstructionAsync({...setup.common,owner,margin:creditor,
+      quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1_000_000n})],[owner]);
+    for(const marketIndex of [0,1] as const) {
+      await setup.sample();
+      await h.send('P54C create real cross creditor position',[await route({trader:creditor,actor:owner,marketIndex,side:1,
+        makers:[setup.instances[marketIndex*3+1]],lots:[25n]})],[owner]);
+    }
+    // Setup already provisions all 32 legacy pages; ten roots reuse that storage.
     assert(await h.read(setup.pages[4]));
   }
   setup.sourcePrices.btc=40_000_000_000n;setup.sourcePrices.eth=2_000_000_000n;await setup.fresh();
@@ -66,6 +80,12 @@ try {
   const rows=await Promise.all(roots.map(async key=>{const value=await root(key);return {key,root:value,cash:value.cash,claims:value.positions.map((position,index)=>
     position.lots*frozen.prices[index]*1_000_000_000n+position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled))};}));
   assert(rows.some(row=>row.claims.every(claim=>claim<0n)&&row.cash>0n),'must exercise proportional double debt collection');
+  if(process.env.RIVALT_SETTLEMENT_APPLY==='1') {
+    assert(rows.some(row=>row.root.mode===0&&row.claims.every(claim=>claim>0n)),'actual cross creditor');
+    assert(rows.some(row=>row.root.mode===1&&row.claims.some(claim=>claim<0n)),'actual isolated debtor');
+    assert(rows.some(row=>row.root.mode===1&&row.claims.some(claim=>claim>0n)),'actual isolated creditor');
+    assert(rows.some(row=>row.root.role===2&&row.cash===1n&&row.claims.every(claim=>claim===0n)),'protected healthy receiver');
+  }
   const pda=async(label:string,...suffix:Uint8Array[])=> (await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
     seeds:[Buffer.from(label),getAddressEncoder().encode(setup.venue),...suffix]}))[0];
   const prepared=await pda('prepared-settlement',u64(frozen.epoch));

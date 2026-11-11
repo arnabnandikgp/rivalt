@@ -660,7 +660,10 @@ projection. Its development one-atom/rejection checks and 21 affected existing
 checks pass. Signed recovery, token exits and fresh PostgreSQL replay remain.
 The first application harness stopped at a duplicate legacy-page initialization
 (already provisioned by setup); the fixture now reuses it. No payout was attempted
-in that run. The owned chain/database stopped and captures remain local. The selected artifact and admitted population
+in that run. The owned chain/database stopped and captures remain local.
+Clean `ca26fcf` now passes the full nine-root signed payout/recovery/token path
+and 118-event fresh PostgreSQL replay. One final signed cross-creditor extension
+remains to complete the explicit mode/claim-sign matrix before publication. The selected artifact and admitted population
 are unchanged.
 No P54C PR is opened and no user decision/access blocker is known. Exact next
 action: qualify the application binary and wire exact paged-plan indexer

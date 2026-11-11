@@ -11,8 +11,10 @@ a duplicate test-page allocation; this is a harness failure, not payout evidence
 `.local/scalable-settlement/p54c-efa4595/`. Development checks pass 13 scoped native
 settlement tests (including complete 3-/64-root application), typecheck, generated
 SDK, literal ABI and 13 wire-contract checks; those development test results are
-not a signed deployment. Its five new financial entrypoints have not yet passed
-RPC/WS/token/PostgreSQL acceptance. The selected runtime remains unchanged.
+not a signed deployment. Clean `ca26fcfc817c0b005e5bab0800546c33849e7d2b` passes all five
+new financial entrypoints, nine-root payouts, seven actual token exits, sustained
+source recovery and fresh PostgreSQL replay (118 events / 146 reconciled accounts).
+Cross-creditor signed coverage is being added before final phase publication. The selected runtime remains unchanged.
 
 
 Clean **`51b4a4fd8f5b7cf63790ea5fdaf8df779493e0b9`** passes 10,920 exact per-root flow/retained-cash/
