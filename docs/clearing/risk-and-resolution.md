@@ -180,7 +180,11 @@ and finishes after at most W steps. A writable descriptor permits the multiply
 accumulator read as well as its write. Source aliases may share a read page, but
 an arithmetic output cannot alias an input. Completed cursors reject more work.
 The native test adapter denies any undeclared word access and restores encoded
-bytes at 1/7/128-step boundaries, including every LCM stage.
+bytes at 1/7/128-step boundaries, including every LCM stage. `PagePlan` groups
+these accesses into at most three canonical `(register,page)` requests with merged
+permissions and trusted-capacity checks. Pages contain 256 words (2 KiB payload),
+an I/O size rather than a population limit. Physical PDA/owner validation remains
+the program adapter's responsibility; a page request alone supplies no authority.
 
 These codecs validate syntax and internal scalar consistency, **not historical
 execution**. They must be decoded only from authenticated program-owned work state;

@@ -4,6 +4,7 @@
 pub mod collection;
 pub mod comparison;
 pub mod denominator;
+pub mod pages;
 pub mod wide;
 
 // Native complete-kernel orchestration. These vector-backed schedules supply

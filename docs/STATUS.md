@@ -272,6 +272,11 @@ input, deterministic operation control, proposal reset and actual signed RPC/WS
 rate verification with measured full-context resources. P54C still owns Apply and
 recovery. No access blocker is known. Next exact action: bind the bounded cursor
 formats to authenticated epoch/attempt-owned pages and the frozen-input controller.
+The page-request planner now groups exact word accesses into at most three
+256-word pages and rejects capacity/permission violations; its focused development
+checks pass, but physical account authentication is still unfinished. The pinned
+SBF compiler reports target architecture `sbf`, so the parent P54A native-module
+exclusion guard is being corrected before any successor program build.
 
 ## Integrated quantity work
 

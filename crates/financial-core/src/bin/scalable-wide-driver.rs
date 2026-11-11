@@ -1,4 +1,5 @@
 //! Native independent-test transport only; never a program instruction.
+use financial_core::clearing::scalable::pages::PagePlan;
 use financial_core::clearing::scalable::wide::{required_limbs, Cursor, LimbStorage, Operation};
 use financial_core::clearing::{
     row::Row,
@@ -21,6 +22,11 @@ impl LimbStorage for Memory {
         {
             return Err(Error::Invariant);
         }
+        let accesses = core::array::from_fn(|index| self.allowed.get(index).copied());
+        if !PagePlan::next(accesses, self.registers[0].len() as u64)?.permits(register, limb, false)
+        {
+            return Err(Error::Invariant);
+        }
         self.reads.set(self.reads.get() + 1);
         self.registers
             .get(register as usize)
@@ -33,6 +39,11 @@ impl LimbStorage for Memory {
             .allowed
             .iter()
             .any(|access| access.register == register && access.limb == limb && access.writable)
+        {
+            return Err(Error::Invariant);
+        }
+        let accesses = core::array::from_fn(|index| self.allowed.get(index).copied());
+        if !PagePlan::next(accesses, self.registers[0].len() as u64)?.permits(register, limb, true)
         {
             return Err(Error::Invariant);
         }
