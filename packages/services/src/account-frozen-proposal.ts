@@ -8,8 +8,8 @@ import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposa
 /** Bounded page reads with a final exact-header fence. Frozen rows are immutable
  * until Apply, which is excluded here. A mixed revision/epoch never supplies a
  * rate proposal. The program independently checks every uploaded limb/row. */
-export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:5=5) {
-  assert(expectedProfile===5,'Unsupported frozen proposal profile.');
+export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:6=6) {
+  assert(expectedProfile===6,'Unsupported frozen proposal profile.');
   const before=await readAccountResolution(rpc,venue),header=before.preparedState;
   assert(before.header.epoch===epoch&&before.header.stage===2&&header.epoch===epoch&&header.stage===3&&header.count>0n
     &&header.count===before.header.count&&header.membershipEpoch===before.header.membershipEpoch,'No complete frozen cohort awaiting proposal.');
