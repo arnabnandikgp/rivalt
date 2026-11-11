@@ -17,8 +17,11 @@ build manifests now read actual source schema/profile constants rather than labe
 new binaries as schema 8; this does not bypass the selected runtime hash allowlist.
 Candidate `bbd3398` is rejected by the SBF guard: backing-event construction has
 maximum stack offset 4,192, 96 bytes over the allowed frame. It was not deployed.
-Separate snapshot construction frames are being rebuilt. Exact successful pins and
-signed acceptance will replace this preliminary checkpoint.
+Separate snapshot construction frames fix this at clean
+`bc9f029fa0f541a7407384a0bc7715bcee9c0f08`: all three default and qualification
+programs build without oversized-stack diagnostics. Clearing is 2,374,856 bytes,
+SHA-256 `62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9`.
+Actual signed progress/payment and SQL acceptance remain pending.
 
 ## Maintained backing arithmetic (P55B1)
 

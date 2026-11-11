@@ -774,8 +774,17 @@ rejected: backing-event construction exceeds the 4 KiB frame by 96 bytes (report
 maximum offset 4,192). No rejected binary was deployed or promoted. The fix builds
 optional ledger/root snapshots in a separate frame after allocating the event.
 
-Next exact action: rebuild that event-frame fix, then run maintained-progress/
-payment/rollback and real PostgreSQL acceptance. No user decision is blocking this work.
+The frame fix at clean `bc9f029fa0f541a7407384a0bc7715bcee9c0f08` builds all three
+default and qualification programs without an oversized-stack diagnostic. Candidate
+clearing is 2,374,856 bytes / SHA-256
+`62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9`.
+Artifacts remain isolated at `.local/scalable-settlement/p55b2-frame-fix`; no runtime
+promotion or signed acceptance is claimed. The next harness exercises overlapping
+scan/fill submissions, processed/unprocessed roots, custody changes, final closure
+with payment/rollback, exact wide summary reconstruction and PostgreSQL replay.
+
+Next exact action: run that fresh signed maintained-backing workload, fix any
+observed failures, then extend the remaining hostile/lifecycle/economic cases. No user decision is blocking this work.
 
 ## Deployment and operational limits
 
