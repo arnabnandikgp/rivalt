@@ -241,6 +241,11 @@ CPU measurements and logical word counts cannot substitute for those gates.
 **Deliver:** compiled paged storage, complete authenticated snapshot/value passes,
 resumable denominator/rate work and invalid-proposal reset. Use P51B's successor
 identity interfaces; provisioning helpers do not grant trading or payout authority.
+D97 qualifies public continuations against the actual existing frozen cohort first;
+its one-venue mirror is not P55 live membership or P56 expanded-capacity acceptance.
+D98 specifies bounded reusable proposal storage, complete insurance evaluations and
+permissionless recovery after actual inactivity; rejection/reset never changes
+frozen inputs, financial balances or previously verified clipping rounds.
 
 **Acceptance:** actual signed freeze/valuation/proposal/verification against deployed
 programs; omission, duplicate, reordered/foreign pages, stale epochs, malformed or

@@ -7,9 +7,17 @@ use crate::state::{
 use anchor_lang::prelude::*;
 
 mod layouts;
+mod membership;
+mod prepared_settlement;
 mod resolution;
+mod settlement;
+mod settlement_rates;
 pub use layouts::*;
+pub use membership::*;
+pub use prepared_settlement::*;
 pub use resolution::*;
+pub use settlement::*;
+pub use settlement_rates::*;
 
 pub const SCHEMA_VERSION: u16 = 8;
 pub const PROFILE_VERSION: u16 = 4;

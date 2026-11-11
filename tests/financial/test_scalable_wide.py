@@ -114,6 +114,24 @@ class ScalableWide(unittest.TestCase):
                                       'add|0|1|0|0', 'add|2|0|1|1', f'mul|8|1|1|{1 << 302:x}']):
             self.assertTrue(result.startswith('err:'))
 
+    def test_comparison_bytes_and_bounded_next_accesses(self):
+        rng = Random(540004)
+        commands, expected = [], []
+        for width in (1, 2, 3, 96, 97, 512):
+            pairs = [(0, 0), (1, 0), (0, 1)]
+            for _ in range(20):
+                left, right = (rng.getrandbits(64*width) for _ in range(2))
+                pairs.extend(((left, right), (left, left)))
+            for left, right in pairs:
+                difference = left ^ right
+                steps = width if difference == 0 else width - (difference.bit_length()-1)//64
+                for budget in (1, 7, 128):
+                    commands.append(f'cmp|{width}|{budget}|{left:x}|{right:x}')
+                    expected.append(((left > right) - (left < right), steps))
+        for line, want in zip(self.run_lines(commands), expected):
+            self.assertEqual(tuple(map(int, line.split('|'))), want)
+        print(f'{len(commands)} checkpointed exact comparisons and declared word accesses matched')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -330,3 +330,71 @@ fn bytes<T: SchemaWrite<anchor_lang::BorshConfig, Src = T>>(value: &T) -> Vec<u8
     crate::wire::write(&value, &mut bytes).unwrap();
     bytes
 }
+
+#[test]
+fn successor_schema_is_kind_bound_and_raw_page_writes_advance_once() {
+    let key = Address::new_unique();
+    for kind in 17..=22 {
+        assert!(Scope::new().visit(key, kind, 8, 1, Access::Read).is_err());
+        assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_ok());
+    }
+    assert!(Scope::new().visit(key, 5, 9, 1, Access::Read).is_err());
+    assert!(Scope::new().visit(key, 23, 9, 1, Access::Read).is_err());
+    let page = SettlementLimbPage {
+        schema_version: 9,
+        revision: 11,
+        ..Default::default()
+    };
+    let mut bytes = Vec::new();
+    crate::wire::write_discriminated(&page, &mut bytes).unwrap();
+    let mut backing = crate::test_support::TestAccount::new(key, crate::ID, &bytes, true, false);
+    let mut view = backing.view();
+    let mut read = Scope::new();
+    read.raw::<SettlementLimbPage>(&mut view, Access::Read)
+        .unwrap();
+    read.cursor = Some(0);
+    read.raw::<SettlementLimbPage>(&mut view, Access::Read)
+        .unwrap();
+    assert_eq!(view.try_borrow().unwrap()[10..18], 11u64.to_le_bytes());
+    let mut write = Scope::new();
+    write
+        .raw::<SettlementLimbPage>(&mut view, Access::Write)
+        .unwrap();
+    view.try_borrow_mut().unwrap()[81..89].copy_from_slice(&17u64.to_le_bytes());
+    write.cursor = Some(0);
+    write
+        .raw::<SettlementLimbPage>(&mut view, Access::Write)
+        .unwrap();
+    assert_eq!(view.try_borrow().unwrap()[10..18], 12u64.to_le_bytes());
+    assert_eq!(view.try_borrow().unwrap()[81..89], 17u64.to_le_bytes());
+    assert!(Scope::new()
+        .raw::<MemberPage>(&mut view, Access::Read)
+        .is_err());
+}
+
+#[test]
+fn rate_work_creation_and_read_use_the_successor_schema_mapping() {
+    let kind = <SettlementRates as Revisioned>::KIND;
+    let key = Address::new_unique();
+    let mut scope = Scope::new();
+    assert_eq!(scope.visit(key, kind, 0, 0, Access::Create).unwrap(), 0);
+    scope.cursor = Some(0);
+    assert_eq!(
+        scope
+            .visit(key, kind, SETTLEMENT_SCHEMA, 0, Access::Create)
+            .unwrap(),
+        1
+    );
+    let mut read = Scope::new();
+    assert_eq!(
+        read.visit(key, kind, SETTLEMENT_SCHEMA, 1, Access::Read)
+            .unwrap(),
+        1
+    );
+    assert!(Scope::new()
+        .visit(key, kind, SCHEMA_VERSION, 1, Access::Read)
+        .is_err());
+    assert!(Scope::new()
+        .visit(key, u8::MAX, 0, 0, Access::Create)
+        .is_err());
+}

@@ -3,8 +3,9 @@
 ## Scalable exact resolution candidate (P51B)
 
 This section specifies the selected **native successor kernel**, not the
-implemented schema-8 default path documented below. P54B/P54C must still implement
-and qualify authenticated bounded SBF continuations; P56B owns expanded local activation. See the
+implemented schema-8 default path documented below. P54B now qualifies authenticated
+bounded SBF valuation/rate continuations. P54C still owns conserving rounding and
+application; P56B owns expanded local activation. See the
 [account contract](accounts.md#account-scale-successor-contract-p51b) for membership,
 authority and deployment. No payer, keeper or off-chain solver becomes trusted.
 
@@ -162,6 +163,107 @@ No account/PDA layout, selected artifact, enabled account count or default path
 changes. P54B/P54C own authentication, physical paging, replay/recovery, actual
 signed continuation costs and token effects before P56B can activate any expansion.
 
+### Authenticated paged verification (P54B)
+
+The word, LCM and comparison cursors now have explicit internal checkpoint format
+**1**, distinct from the reserved account schema 9 and current price policy 2.
+Encodings use little-endian integers and zero reserved/unused opcode bytes:
+
+| Cursor | Bytes | Encoded state / structural validation |
+|---|---:|---|
+| Arithmetic | 128 | Operation/flags/column/factor length; width and three register IDs; position/carry; five factor words or small divisor. Check width against trusted allocation, output/source separation, carry domain and exact pending/completed position relationships. |
+| LCM | 224 | Stage, three IDs, used/span/divisor, scan/result lengths and the complete arithmetic checkpoint. Check stage-specific operand bindings, divisor relationships, used+2 span, scan/completion consistency and reserved bytes. |
+| Comparison | 40 | Width, two IDs, remaining high-to-low words and pending/less/equal/greater result. Check range/completion consistency; equal is terminal only after all words. |
+| Normalized magnitude | 192 | Trusted allocation capacity and input used lengths; arithmetic checkpoint and output normalization scan. Source words above used length are virtual zero, never fetched from dirty scratch tails. Output length becomes available only after bounded normalization completes. |
+| Atom division | 384 | Normalized numerator/divisor, two private scratch IDs, exact prefix/quotient/correction count, nested normalized-arithmetic/comparison checkpoints. Quotient is derived on chain, bounded below 2^58, corrected at most twice, and exposed only with a verified remainder strictly below the divisor. |
+| Complete rate evaluation | 960 | Authenticated common denominator, proposed numerator lengths/factor, complete claim totals and current insurance budgets; exact row ordinal, incoming sums, strict slopes, residual/loss identities and derived whole-atom insurance use. Nested arithmetic/comparison/division work follows a program-owned named schedule. |
+| Insurance rounds | 64 | Original and current budget pairs, exact spent atoms, clipped-market mask and completed evaluation count. Each market clips at most once; at most three complete evaluations, ending with integral use. Invalid attempts consume no evaluation. |
+| Cohort denominator | 320 | Frozen count, processed ordinal, last stable ID, used common length, alternating common register and nested LCM checkpoint. Check stage/operand bindings and expose the denominator only after every row. |
+| Membership | 544 | Frozen count, path depth/stage, page mask/count and fifteen radix traversal frames. Check complete subtree counts, canonical child path, processed ordinal and terminal replay. Program-owned nodes/pages and a frozen membership epoch are separate required authority. |
+| Valuation totals | 288 | Frozen count/custody/pool/insurance/fee/gross-OI bindings; processed ordinal/last ID; cash, signed quantities and gross totals; separate unsigned positive/negative claim totals. Check complete conservation before accepting the final row. |
+
+`accesses()` returns the exact next register/word permissions before execution.
+Arithmetic/LCM use at most three descriptors; comparison reads exactly two words
+and finishes after at most W steps. A writable descriptor permits the multiply
+accumulator read as well as its write. Source aliases may share a read page, but
+an arithmetic output cannot alias an input. Completed cursors reject more work.
+The native test adapter denies any undeclared word access and restores encoded
+bytes at 1/7/128-step boundaries, including every LCM stage. `PagePlan` groups
+these accesses into at most three canonical `(register,page)` requests with merged
+permissions and trusted-capacity checks. Pages contain 256 words (2 KiB payload),
+an I/O size rather than a population limit. Physical PDA/owner validation remains
+the program adapter's responsibility; a page request alone supplies no authority.
+
+`SnapshotScan` consumes already-accrued whole-account claims and position lots in
+stable ID order. Each accepted row updates constant-size totals; positive and
+negative claim sums use three words with an explicit <2^151 bound. Completion
+requires exact root cash, zero net lots, frozen gross OI and
+`positive_m = negative_m + pool_m*S`. Insurance and retained fees remain separate
+frozen buckets; they do not enter claim sums. An invalid final row preserves the
+previous scalar prefix. The program must independently authenticate membership,
+role/mode and derive claims from the actual root and frozen prices/funding.
+
+`DenominatorPass` initializes common=1, consumes each frozen ordinal once and
+extends the reduced LCM with the existing bounded word cursor. Registers 0 and 1
+alternate; register 2 is quotient scratch. The keeper cannot choose register IDs
+or operations. Integral rows advance without an unnecessary LCM pass. Used lengths
+exclude dirty unused tails; widening clears the words it will read.
+`normalized::NumberCursor` gives later rate operations the same contract for
+addition/subtraction, bounded-factor multiplication and small division: used lengths
+come from authenticated preceding work, while a missing word inside that length
+is an error. It performs at most three physical word accesses per step and one
+output-normalization read per step. Some zero-tail operations are metadata-only
+steps; they still consume the controller budget. Capacity limits allocation, never
+forces a scan of all allocated words. This is arithmetic infrastructure, not
+proposal authorization or a completed rate verifier.
+`atom_division::AtomDivision` persists exact division for whole-atom insurance and
+later payouts. It reads a bounded normalized prefix, derives the quotient estimate,
+checks the full product, performs at most two downward corrections, and verifies
+`numerator = quotient*denominator + remainder` with `remainder < denominator`.
+Physical work remains at most three words per step, including comparison and
+normalization; no wide local arrays or repeated whole-width quotient search are
+introduced. Input normalized lengths remain authenticated metadata, not uploaded
+proof. No result is exposed during incomplete arithmetic. A result is
+unavailable until all frozen rows complete. Each arithmetic step still accesses at
+most three words, including across physical page boundaries.
+
+The program's `PageWindow` adapter now authenticates the reserved
+[SettlementLimbPage layout](accounts.md#successor-limb-page-layout-p54b-inactive)
+directly: exact discriminator/size/owner, venue, epoch, attempt, revision, register,
+page index, addressable word count and PDA. It reads/writes individual words without
+copying the 2 KiB payload. A batch must stop before an unavailable next page; missing
+words never become implicit zeros. Public continuations advance each declared write-page revision once through scoped
+history; the standalone native adapter commits dirty pages only. These two owners
+are never both called. Writable revision exhaustion rejects before writes. The
+handler derives the plan/bindings from authenticated work and commits the work
+checkpoint and page revisions in the same successful transaction.
+
+These codecs validate syntax and internal scalar consistency, **not historical
+execution**. Decode only authenticated program-owned work; a caller's cursor is
+never proof of completed work. Native account-loader tests do not establish a
+signed chain transition. The bounded membership traversal and canonical account readers now follow the
+[reserved index contract](accounts.md#successor-membership-reads-p54b-inactive).
+D97 now implements source/root binding and public valuation/denominator control
+against the existing actual frozen cohort. The exact bridge, layouts and authority
+limits are in [accounts](accounts.md#prepared-frozen-verification-p54b-inactive-financial-paths).
+The bounded `rate_work::RateWork` schedule now recomputes both rate equations,
+every row's incoming debt payments, strict right slopes/greatestness, market
+residual/creditor-loss equality and exact whole-atom insurance floors. A row uses
+only its own whole-cash collection plus its capped opposite-market recovery;
+it cannot consume sibling cash or exceed its debt. `InsuranceRounds` preserves
+original reserves across rejected proposals and permits each market's fractional
+budget to clip once. These primitives do not authenticate uploaded numerators:
+the owning handler must verify normalized lengths, frozen row order and current
+attempt, then advance rounds only from a complete `RateWork::result()`.
+Per-root final cash and deterministic atom attribution remain P54C work.
+Public upload, rate continuation and proposal/reset handlers now consume these
+owned checkpoints (D98). Numerator normalization follows complete contiguous
+upload with a nonzero final used word; callers cannot upload a cursor or opcode.
+Metadata-only steps use an empty remaining-account plan, which permits no physical
+word. Mathematical rejection is recorded separately from guard failures. Actual
+signed rate/recovery/resource acceptance is recorded in [validation](../operations/validation.md#authenticated-frozen-and-rate-verification-p54b). Current schema-8 financial accounts, selected binaries and
+enabled capacity are unchanged. This is verification-only acceptance, not complete on-chain settlement.
+
 ### Frozen work, completion and adversarial proposals
 
 The successor stages are `Freeze → Value → Denominator → Propose → VerifyRates →
@@ -171,6 +273,10 @@ complete live-index count/root, terms, source prices, both funding endpoints and
 allocated custody/pools. Unvalued pages cannot be omitted, duplicated or reordered;
 the cursor follows authenticated index paths, not an uploader's private list.
 Value checks every root's role/mode, q/claim/cash bounds and complete conservation.
+Advancing to Denominator requires both `SnapshotScan::result()` and terminal
+`MembershipCursor::request() == Request::Done`; consuming the last row alone does not skip the
+remaining ancestor-count checks. Persist a valued row, both cursors and relevant
+page revisions atomically.
 
 Proposal bytes are bounded by the proved count-derived width, tagged by epoch and
 attempt, and never written into arbitrary program-owned accounts. A new attempt

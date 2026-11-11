@@ -1,5 +1,138 @@
 # Validation and measured limits
 
+## Authenticated frozen and rate verification (P54B)
+
+Clean verifier **`22736dc5f870413029394106e5545ff64d6f0dc9`** runs on linked clean
+SBF **`89b6129404ca7914bf5a8ba588079f798e6e4445`**, SHA-256
+`0bb44610f6ed17d51582830999fbcd66d1047f47990b0560d073d2ca055a6547`.
+The program is 1,947,576 bytes. Build output contains no unsafe stack-frame
+diagnostics. The candidate is retained at `.local/scalable-settlement/p54b-89b6129/`
+and is not selected for ordinary runtime.
+
+**479 actual signed RPC/WS outcomes** pass, including **27 intentional atomic
+transaction rejections**. Finalized originals are independently fetched and decoded;
+signature WS outcomes agree. Actual signed deposits, fills, withdrawal, insurance
+contributions and an adverse synthetic price move establish the eight-root frozen
+cohort. No fixture injects a successful financial effect. The successor verifies
+this existing-size frozen source; P55/P56 own live lifecycle and expanded admission.
+
+All **16 new public entrypoints** execute. Complete membership includes ancestor
+count closure; row cash, whole-account accrued/fractional claims, quantities,
+identity/revision and collected cash match independent arithmetic. Five bounded
+denominator calls produce **30,006,000,555,553**, matching independent rational
+reduction. **156 rate continuations** cover an invalid proposal and both valid
+insurance evaluations; **16 completed valid row prefixes** exactly match the
+independent Fraction/branch oracle. Exact market residual/creditor-loss numerators,
+insurance floor and fractional flags agree at each completed evaluation.
+
+Original market insurance is **[2,000,150, 1,000,075]** test atoms. The first
+verified evaluation requires fractional consumption whose floors are
+**[600,771, 300,430]**. Each market clips its planned budget once; the second complete
+evaluation consumes those integral amounts. This changes only verification work:
+all venue/custody/safety/registry/market/ledger/margin/vault and original resolution
+bytes remain identical through valuation, rejection, reset and successful verification.
+No insurance is spent and no cash is paid by this phase.
+
+The signed negative matrix covers stale frozen revision/epoch, wrong index level,
+omitted/duplicated root, stale revision and attempt, missing/foreign/reordered/
+duplicated limb pages, same-transaction continuation rollback, zero factor,
+oversized width/chunk, skipped/duplicated/non-normalized upload, incomplete work,
+completed replay and attempted reset of a verified plan. A correctly encoded but
+wrong rate records Rejected and leaves the original insurance checkpoint unchanged.
+A different signer recovers both an incomplete upload and a completely uploaded,
+stalled verification after actual 64-slot inactivity; early reset rejects. Reordered
+and duplicated-page checks have mandatory execution assertions, rather than being
+silently skipped when the first arithmetic step needs only one page.
+
+| Transaction (complete actual context) | Actual CU | Maximum wire bytes |
+|---|---:|---:|
+| Initialize prepared source | 22,975 | 686 |
+| Initialize count node | 22,792–24,497 | 720 |
+| Initialize complete member page | 26,237 | 719 |
+| Initialize frozen row page | 23,238 | 719 |
+| Initialize denominator/rate limb page | 22,752–23,805 | 723 |
+| Traverse membership / close ancestor | 23,856–28,110 | 685 |
+| Value actual margin root | 35,693–36,713 | 751 |
+| Accept frozen denominator row | 24,199–34,402 | 685 |
+| Continue denominator | 27,265–31,333 | 744 |
+| Initialize rate verification | 23,254 | 711 |
+| Start untrusted rate attempt | 28,195–28,204 | 742 |
+| Upload numerator words | 23,146–23,154 | 756 |
+| Retag scratch for current attempt | 22,316 | 718 |
+| Accept frozen rate row | 35,003–45,618 | 726 |
+| Continue rate arithmetic | 55,654–100,058 | 818 |
+| Reset rejected/stalled proposal | 21,437–21,450 | 790 |
+
+All successful new transactions fit v0's 1,232-byte packet envelope; the oversized
+rejected upload is 1,005 bytes. Existing setup includes its separately supported v1
+publisher/repricing calls. The harness requests 1,000,000 CU, 8 MiB loaded-account
+data and zero priority fee for P54 calls; it requests no heap-frame increase.
+The observed new contexts load at most 19 accounts. Success under the runtime's
+default heap and absence of 4,096-byte stack overflow diagnostics establish this
+fixture's bounded execution; exact peak heap/stack high-water marks are **not**
+instrumented. Native vector orchestration remains excluded from SBF.
+
+Forty-four verification accounts lock **346,603,320 test lamports** of rent,
+including all 25 one-page registers; this excludes ordinary venue provisioning.
+The verification segment, including provisioning/negative/recovery checks, has
+**363 transactions**, **14,813,084 observed CU** and **1,835,000 actual fee lamports**.
+Do not extrapolate these fixture totals to a dense 128-/1,024-account default or
+claim G1 affordability. P54C/P56 must measure full settlement and activation costs.
+
+The isolated legacy and RC2 Anchor conformance clients agree on **461 clearing
+instruction encodings/full metas**, **44 new account records** and **503 clearing
+events**, including setup; maker conformance also passes. The original D90 ABI is
+unchanged after checking the literal new extension. Generated SDK/typecheck,
+five source/layout tests, nine scoped-history tests and two page-plan tests pass
+on the affected source. The first signed candidate (`60f7ec8`) rejected rate-account
+creation because a duplicate scope allowlist stopped at kind 21; the corrected
+source uses the single schema mapping and explicitly tests kind 22. That failure
+and the earlier 471-outcome pass remain retained, not counted as the final matrix.
+
+| Earlier clean native pin (unchanged primitives retained) | Independent acceptance |
+|---|---|
+| `a7adbaf` | 774 exact comparisons; 1,338 arithmetic, 462 LCM, 305 collection vectors; four cursor codecs and page-plan checks |
+| `1bd8e2e` | 120 denominator passes; 256 valuations / 3,637 persisted prefixes; 304 aggregate vectors; 22 rejected cohort/domain inputs; six codecs and four canonical page-loader tests |
+| `6f051bc` | Complete radix traversal through 11 dense/sparse populations / 22,448 entries; two core and three canonical-reader tests, including foreign identities and count/order failures |
+| `999ce4d` | 1,440 normalized integer operations up to 32,768 bits with dirty tails; ten invalid domains and two codec/alias checks |
+| `0ff7c53` | 642 exact atom divisions including three corrected estimates; four invalid domains and checkpoint corruption; normalized regressions retained |
+| `f1cd4a7` | 1,185 complete persisted rate evaluations / every incoming prefix, 74 hostile or non-greatest requests, three checkpoint/order/insurance-clipping tests |
+
+Those primitives restore owned checkpoints at 1/7/128-step boundaries and deny
+undeclared word access; pinned SBF metadata compilation passes. Native population
+or bit-width tests do not constitute signed larger-cohort acceptance.
+
+Reproduce the signed matrix from the verifier pin with:
+
+```sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p54b-89b6129 \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+The launcher checks this exact source/hash independently of admitted maker/oracle
+artifacts, runs an owned offline Surfpool and stops it on completion. Raw originals,
+logs and references stay at
+`.local/scalable-settlement/runs/p54b-rates-final-89b6129/`; native pins keep their
+existing `.local/scalable-settlement/p54b-*/` paths. No raw evidence is tracked.
+
+P54B qualifies verification only. It does **not** qualify Apply/payouts, expanded
+accounts, complete default recovery, PostgreSQL replay, browser, endurance, devnet,
+independent review or production. P54C owns conserving rounding/application and
+actual exits/replay. P15B/P16B remain Open; 24-hour endurance stays Deferred.
+
+P54B publication CI at `4cd75ab` failed three checks: stale generated lock inventory,
+a direct ABI-test call that bypassed extension validation, and four positive
+preparation tests incorrectly run in the disabled-default configuration. The
+arithmetic suite passed. The correction routes both ABI entrypoints through the
+literal extension check, explicitly tests six extension corruptions and retains
+negative authority checks on predecessor instructions. The regenerated inventory
+adds exactly 16 instructions without changing any of the 61 retained access sets.
+Qualification-only positive tests now run with their feature; a separate default
+case proves preparation rejects before writing any output. No runtime source,
+IDL, financial gate or accepted SBF artifact changes. Clean correction **`9a223a3`** passes 13 ABI cases, five qualified settlement
+cases, two default cases, exact inventory, D90 extension and evidence-policy
+checks. Hosted rerun is pending; broad suites remain delegated to CI.
+
 ## Scalable native settlement (P54A)
 
 Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** builds the native

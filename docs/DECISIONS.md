@@ -5,6 +5,73 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D98 — bounded untrusted rate attempts and recoverable verification (11 November 2026)
+
+P54B stores proposal state separately from frozen valuation and financial balances.
+Only the chosen proposer uploads the two canonical numerators; the program owns
+all arithmetic schedules and scratch. Complete-rate equations, greatestness,
+market loss identities and insurance atom division are recomputed from the entire
+frozen cohort. Insurance starts at original reserves, each market may clip once,
+and a final integral evaluation is mandatory within three evaluations. Rejection
+and retry cannot consume reserves or a successful evaluation.
+
+A monotonically increasing attempt tag reuses the same 25 logical registers and
+count-derived page allocation. Registers 0/1 remain the immutable completed common
+denominator; 2 belongs to its old scratch; 3/4 are sequential proposal upload;
+5–24 are bounded evaluation scratch. Retagging an older scratch page grants no
+ability to change a current-attempt word. Normalized metadata excludes dirty tails.
+Only scoped history increments page revisions. New append-only kind 22 identifies
+SettlementRates; all previous discriminators, layouts, domains and errors remain.
+
+Upload ownership prevents different callers from interleaving numerator chunks.
+The proposer can cancel its own incomplete upload; once verification starts,
+permissionless helpers progress the same deterministic plan. Anyone can reset a
+rejected attempt, or an Upload/Verify attempt after **64 slots without actual
+progress**. Upload/row/word operations are finite and no heartbeat endpoint renews
+this window. The 64-slot value is an explicit local liveness policy, not a risk or
+oracle parameter or a guarantee against transaction censorship. Reset retains
+frozen input and successful clipping rounds; verified work cannot reset. No
+timeout accepts an answer, transfers funds or selects a creditor subset.
+
+An authenticated mathematical failure commits a Rejected work status, not a
+financial success. Invalid accounts, missing pages, wrong epoch/attempt/revision
+or malformed upload fail atomically. Financial accounts remain read-only and
+Apply is absent from this controller. Signed/resource qualification is required
+before P54B acceptance; P54C still owns conserving cash/rounding/application,
+P55 live membership, and P56 expanded activation and operational cost gates.
+
+## D97 — verification-only frozen-source bridge (11 November 2026)
+
+P54B initially authenticates the existing schema-8/profile-4 frozen cohort while
+writing separate schema-9 verification records. This resolves the phase dependency:
+P55 owns the live paged membership lifecycle and P56 owns expanded activation, so
+P54B cannot claim a larger live cohort merely by constructing index fixtures.
+The bridge binds the real frozen resolution epoch/revision, complete registry hash,
+safety/terms/configuration, prices/funding, gross OI and custody/market buckets.
+It accepts only the source's Value stage at cursor zero. Advancing the existing
+resolution invalidates successor progress; the existing recovery path remains usable.
+
+Program-created index records mirror every registered source root, including flat
+roots, in stable ID order. Immutable non-reused schema-8 IDs map to activation
+generation 1. This is one mirror per fresh local qualification venue; it is not a
+new live membership authority or general migration. P55 replaces the bridge with
+its frozen live index and explicit lifecycle. No margin, vault, ledger, fee or
+insurance balance is writable through these verification contexts. No new method
+permits payout/Apply, trading expansion, devnet or default-profile activation.
+
+Prepared work and row/limb pages use append-only scoped event kinds 17–21 with
+schema 9; existing kinds retain schema 8. A bounded limb continuation derives its
+exact read/write plan from the program-owned checkpoint and retains that plan for
+both scope visits. Supplied page revisions are optimistic replay guards, never
+proof of completed arithmetic. The scope advances each declared writer once;
+standalone native dirty-page commit is not called by these public handlers.
+The literal extension is checked separately before comparing the entire retained
+ABI with the immutable D90 baseline. Rate arithmetic uses program-owned normalized
+lengths, with explicit virtual-zero tails and bounded output normalization; reuse
+of scratch pages cannot turn stale high words into value or missing live words
+into zero. Signed and resource acceptance remains a
+required P54B gate, alongside rate proposal/reset verification.
+
 ## D96 — bounded scratch steps for scalable exact settlement (11 November 2026)
 
 P54A implements the selected P51B G2 arithmetic as operations over caller-owned
@@ -32,6 +99,28 @@ used-width LCM avoid population-maximum scans for small values, but adversarial
 exact denominators still grow with N. Measured native completion does not establish
 transaction/rent affordability. Expanded financial activation remains at P56B;
 the current 64-member runtime and selected artifacts are unchanged.
+
+P54B adds fixed internal byte checkpoints and exact next-word access descriptors
+for the arithmetic, LCM and comparison cursors. Checkpoint format 1 is separate
+from account schema 9; zero reserved fields and strict scalar bounds reject malformed
+encodings. Only program-owned authenticated work may restore them. Structural
+validity is not proof of execution, and no caller-supplied cursor can authorize
+payout or skipping work. D97/D98 now bind frozen-cohort authentication and atomic
+persistence to the signed verification acceptance recorded in validation.
+The subsequent inactive foundation uses 256-word pages with direct validated word
+access, a complete-row denominator schedule and constant-space valuation totals.
+Its 2,129-byte scratch layout and 320-/288-byte controller checkpoints are recorded
+in the current account/risk contracts. Three-word unsigned claim totals preserve
+the <2^151 aggregate bound; no u128 population sum or early positive/negative
+cancellation replaces it. Native prefix/loader checks do not authenticate frozen
+membership or authorize a payout; D97/D98 public handlers supply that authentication
+and their own signed acceptance. Full payout/application remains P54C work.
+P54B now implements the read side of P51B's reserved financial-index interfaces.
+Its 15 radix levels derive from u64 IDs and 64 entries/page; the fixed 544-byte
+cursor verifies complete count-conserving traversal in stable ID order. Node/page
+loaders authenticate their requested canonical account, while the owning frozen
+epoch must separately prohibit mutation and bind each actual margin root. P55
+still owns membership mutation/provisioning; no account capacity is enabled here.
 
 ## D95 — separate price-policy consolidation from calibration (11 November 2026)
 

@@ -20,7 +20,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
-| P54B–P62 successor implementation | Planned | Authenticated paging, membership and expanded activation follow their existing gates |
+| P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
+| P54C–P62 successor implementation | Planned | Conserving on-chain application, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -52,8 +53,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P54B's authenticated frozen input and rate verification
-above ready #78 in stack #74; leave every PR open.
+Next exact action: publish the P54B CI correction, verify its hosted rerun, then
+resume P54C conserving rounding/application above #79; leave every PR open.
 
 ## Remediation planning
 
@@ -223,7 +224,9 @@ native orchestration modules are absent. This is a compiler-boundary correction,
 not a program build/deployment or changed financial result. Clean guard pin
 **`7aef54f1d6908f9cef0e9186a386ddb79341793b`** also passes the 774 settlement,
 307 rejection and 980 division checks again. The larger native measurements below
-remain at their original pin; CI for the guard update is pending.
+remain at their original pin. Scope/financial/shell CI also pass at `6b8392e` in
+[run 43023501187](https://github.com/arnabnandikgp/rivalt/actions/runs/43023501187);
+client/report correctly skip.
 
 The complete native kernel now checks count-derived aggregate conservation, exact
 rate/greatestness equations, all insurance-clipping evaluations and deterministic
@@ -248,9 +251,57 @@ authenticated continuations and total cost before expanded activation. No SBF,
 RPC/WS/PostgreSQL, browser or external qualification is inferred. P15B/P16B remain
 Open and 24-hour endurance Deferred. No access blocker is known.
 [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78) contains cohesive P54A
-acceptance above #77 in stack #74. Hosted checks are pending; no external review is
-claimed. Next exact action: implement P54B's authenticated frozen input and rate
+acceptance above #77 in stack #74. Scope/financial/shell CI pass at `023574b` in
+[run 43019766671](https://github.com/arnabnandikgp/rivalt/actions/runs/43019766671);
+client/report correctly skip. Automated review is still pending; no external review
+is claimed. Next exact action: implement P54B's authenticated frozen input and rate
 work on its child branch, leaving the stack open.
+
+P54B's first hosted run at `4cd75ab` failed report/client/default-build checks:
+its new ABI additions were missing from one test entrypoint and the generated lock
+inventory, and positive preparation fixtures incorrectly expected success in the
+disabled-default build. Financial arithmetic passed. The focused corrections pass
+on clean **`9a223a3`**: 13 ABI tests (including six rejected extension mutations), exact 77-entry
+inventory, five qualified settlement tests and two default tests. No runtime source
+or artifact changes. Hosted rerun is pending. P54C's
+in-progress per-root flow/order work is preserved on its child branch; it is not
+accepted financial application. No user decision/access blocker is known.
+
+P54B is published ready as [PR #79](https://github.com/arnabnandikgp/rivalt/pull/79),
+above #78 / exact parent `6b8392e` in stack #74. It remains open. D97/D98 implement complete
+source-bound valuation, denominator construction, uploaded rate verification,
+original-budget insurance clipping and permissionless stalled-attempt recovery.
+Six new schema-9 record types and 16 new entrypoints leave existing financial
+accounts read-only. Current schema-8 admission, normal artifacts and default/devnet
+gates remain unchanged; this is not larger-population activation or Apply.
+
+Clean verifier **`22736dc5f870413029394106e5545ff64d6f0dc9`** on clean SBF
+**`89b6129404ca7914bf5a8ba588079f798e6e4445`** passes **479 actual signed RPC/WS
+outcomes**, including 27 intentional atomic transaction rejections. All 16 new
+entrypoints execute; eight actual frozen roots match independent cash/claim totals,
+156 rate continuations complete two insurance evaluations and 16 independent row
+prefixes. Both markets clip fractional planned insurance once, then pass a final
+integral evaluation. Stale epochs, reordered/duplicated/foreign pages, malformed
+uploads, replay, wrong equations and both stalled Upload/Verify recoveries pass.
+Every financial account stays byte-identical. Both Anchor conformance clients
+match 461 clearing instruction encodings/metas, 44 new accounts and 503 events.
+
+Maximum successful new-transaction usage is **100,058 CU / 818 bytes** in this
+fixture. Verification storage locks **346,603,320 test lamports**; the measured
+verification segment uses 363 transactions and 1,835,000 fee lamports. This is a
+small-cohort cost observation, not G1 affordability or production performance.
+The linked SBF is 1,947,576 bytes with no stack diagnostics; calls request no heap
+increase. Exact peak heap/stack usage is not instrumented. Owned Surfpool is stopped.
+Native foundational pins, independent vectors, exact resource table, reproduction
+and the retained initial failure are in
+[validation](operations/validation.md#authenticated-frozen-and-rate-verification-p54b).
+
+Nine focused scoped-history tests cover the corrected kind-22 registration;
+generated SDK/typecheck and literal extension preserve D90. No PostgreSQL replay,
+wallet/browser, payout, larger-population, endurance, devnet or external acceptance
+is claimed here. No access blocker is known. P15B/P16B remain Open and endurance
+Deferred. Hosted checks/review for #79 are not yet claimed. Next exact action:
+begin P54C's conserving flow/round/application work on its child; keep all PRs open.
 
 ## Integrated quantity work
 

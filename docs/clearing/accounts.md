@@ -14,9 +14,10 @@ The bounded two-slot implementation is not a claim of unlimited market support.
 
 ## Account-scale successor contract (P51B)
 
-**Design and native feasibility only.** Schema 8 above remains the implemented
-contract. D93 selects the following candidate for P54–P56; no instruction, layout,
-IDL, enabled account count or current deployment changes in P51B. The
+**Successor contract; financial activation remains disabled.** Schema 8 above
+remains the active implementation. D93 selects the following candidate for P54–P56;
+P51B changed no instruction, layout, IDL, enabled count or deployment. P54B now
+implements the inactive scratch-page layout described below. The
 [resolution candidate](risk-and-resolution.md#scalable-exact-resolution-candidate-p51b)
 and [backing candidate](accounting.md#incremental-backing-candidate-p51b) are required
 dependencies, not optional later repairs after lifting the registration limit.
@@ -77,7 +78,8 @@ freeze sees either the full entry/exit or its unchanged predecessor.
 ### Versioned layout target and storage ownership
 
 Reserve **account schema 9 / local profile 5** for this successor; this reservation
-does not add a decoder or activate it. All new accounts retain canonical name-based
+does not activate it or change existing financial account schemas. The initial
+scratch layout below has its own typed/native decoder. All new accounts retain canonical name-based
 discriminators and ordered little-endian Borsh fields. Common prefix is
 `schema:u16, revision:u64, venue:Pubkey`; sizes include the eight-byte discriminator.
 No version suffix is added to Rust domain type names. The final generated ABI and
@@ -118,12 +120,158 @@ unfunded allocation is a rejected activation, not an unresolvable admitted debt.
 
 Numeric exhaustion rejects without wrap. With N finite financial roots and retained
 per-root claim bound K, use checked totals sufficient for N*K; u128 is not a proof
-for u64 N. A 256-bit aggregate covers that product (less than 2^151); determinant
+for u64 N. P54B uses three u64 words with an explicit <2^151 bound for those totals; determinant
 factors need up to 302 bits, hence five u64 limbs. Work length/index arithmetic is
 also checked. Existing per-root limits, global allocated custody <=10^15 atoms and
 market gross OI stay unchanged. Funding-index rebasing in P58D must preserve each
 economic claim exactly; P60 namespace/order expansion must rerun the relevant
 arithmetic and retirement proofs rather than exploit spare field widths silently.
+
+### Successor membership reads (P54B, inactive)
+
+`MemberIndexNode` and `MemberPage` now implement the reserved 190-/2,699-byte
+read layouts above; no current instruction creates/mutates them. The Borsh wrapper
+around the boxed 64-entry array adds no wire bytes. An entry's 41 bytes are root
+address, lifecycle u8 and activation generation u64. Codes are 0 unallocated,
+1 Registered, 2 Financial and 3 Retired; unallocated entries remain all zero.
+A Financial entry must be allocated, have a nonzero root and generation, and still
+match the actual canonical margin root before valuation. P55 owns registration,
+activation, tombstones, storage funding and complete mutation coverage.
+
+Index-node seeds are `member-index`, venue, level u8, prefix LE-u64 and bump.
+Member-page seeds are `member-page`, venue, page-index LE-u64 and bump. Nodes have
+level at byte 50, prefix at 51, populated mask at 59, 16 u64 child Financial counts
+at 61 and bump at 189. Member pages have index at 50, allocated mask at 58,
+financial mask at 66, 64 entries at 74 and bump at 2,698. Current native loader
+checks match these literal layouts and name-derived discriminators.
+
+A u64 member ID maps to page `id/64` and bit `id%64`. Its 58 page bits require
+15 radix-16 levels, numbered 14 (root) through 0 (parent of member pages). Root
+prefix is zero; a node child is `prefix*16+slot`. At level 0 it is a page index;
+otherwise it is the next node prefix. Counts are Financial roots, not populated
+pages. Bits and nonzero counts must agree, child counts must sum exactly, and
+children outside the u64 ID namespace reject. In particular root slots 4–15 are
+unreachable, and a level-0 child count cannot exceed 64.
+
+The 544-byte internal `MembershipCursor` fixes the next canonical node, page or
+member from the frozen root/count. It retains at most 15 bounded path frames,
+verifies every subtree count on return, consumes financial bits in ascending ID
+order and commits an ordinal only after successful row valuation. Work is one
+bounded node/page/member transition; whole traversal has exactly
+`N + 2*(index_nodes + member_pages)` such requests including terminal observation.
+This is logical work, not measured transactions or CU. No population-sized stack,
+private keeper list or skipped empty-looking financial root is permitted.
+
+The read adapter authenticates program ownership, exact layout, venue, requested
+level/prefix/index and PDA before advancing. **It does not itself freeze data.**
+The owning controller must bind the safety/membership epoch and prohibit index,
+entry and root mutation for that frozen snapshot; checking a count or caller's
+checkpoint cannot substitute for those locks. Full root role/mode/ID/generation
+and source/funding authentication, public handlers and signed acceptance remain
+unfinished. Existing schema-8 account creation/trading limits are unchanged.
+
+### Prepared frozen verification (P54B, inactive financial paths)
+
+D97 binds the real schema-8 frozen `Resolution`, requiring Value/cursor zero,
+exact source revision and registry hash, and unchanged frozen economic inputs.
+`PreparedSettlement` uses schema 9, **1,463 bytes**, seeds `prepared-settlement`,
+venue and epoch LE-u64. Its common schema/revision/venue prefix ends at byte 50;
+epoch/source/source-revision end at 98; registry revision/membership epoch/hash at
+146; count/safety/terms at 170; configuration/prices/funding at 234; allocated and
+four market-bucket/gross arrays at 306. Stage/index-ready mask/member-page-ready
+end at 310, followed by the 1,152-byte preparation checkpoints and bump.
+`FrozenMarginPage` uses **1,156 bytes**, seeds `frozen-margin-page`, venue, epoch
+LE-u64 and page-index LE-u64. After the common prefix, epoch/index occupy 16 bytes,
+then row-count, eight 136-byte rows and bump. Rows bind stable ID, root address,
+activation generation, original revision, cash, two signed quantities/generations,
+exact i128 claims and collected cash. The fixed eight-row page is an I/O bound.
+
+Initializers are permissionless/rent-funded and read the actual frozen source.
+They cannot accept uploaded claims or caller-selected membership. The bounded
+bridge mirrors the source's complete at-most-64 registered roots into one member
+page and 15 radix nodes; generation is 1 because schema-8 IDs cannot be reused.
+One mirror is created per fresh local qualification venue. Later freezes can use
+the unchanged existing resolution; the paged live lifecycle is P55's separate work.
+
+Valuation derives whole-account claims from the real margin model at frozen
+prices/funding and checks canonical membership, identity and complete conservation.
+Only after all ancestor counts close can denominator work begin. Stage- and
+revision-guarded denominator calls consume frozen rows and perform 1–128 word
+steps with at most three exactly ordered limb pages. Registers 0/1 alternate the
+common denominator; register 2 is scratch and attempt is 0. Missing next pages
+end the current bounded call; they cannot supply implicit zero data. The final
+denominator stage is Proposal. `SettlementRates` then controls untrusted upload,
+rate verification and insurance clipping; no path from this controller permits Apply.
+
+`SettlementRates` uses schema 9 and **1,204 bytes**, seeds `settlement-rates`, venue
+and epoch LE-u64. Prefix/epoch end at 58; attempt at 66; stage at 67; proposer at
+99; last progress slot at 107; five-word factor at 147; numerator lengths at 163;
+uploaded word counts at 179; insurance checkpoint at 243; rate checkpoint at 1203;
+then bump. Stages are Await=0, Upload=1, Verify=2, Rejected=3 and Verified=4.
+The original frozen insurance and completed rounds remain separate from attempt
+state. Each new attempt increments a checked u64; page PDA seeds omit attempt so
+retries reuse finite allocation.
+
+Registers 3/4 hold the proposed BTC/ETH numerators. Only the proposal signer may
+upload 1–32 contiguous words, within one page, at the exact next offset. The last
+used word must be nonzero; zero is length zero. Count-derived width and five-word
+factor bounds apply before upload. Registers 5–24 are algorithm-owned scratch;
+any helper may retag an old scratch page for the current attempt exactly once.
+No caller writes denominator registers 0/1 or arbitrary scratch values. Scratch
+tails stay dirty and are excluded by verified normalized lengths.
+
+Every helper may continue a completely uploaded proposal using authenticated
+frozen rows and 1–128 bounded word steps. Arithmetic rejection records Rejected;
+it never spends insurance or consumes an evaluation. A completed fractional round
+updates only the planned budget and returns Await. Verified requires a final
+integral round, with no more than three evaluations. D98 defines reset authority
+and the 64-slot inactivity bound; reset cannot change frozen input or successful
+insurance rounds. Missing/stale/foreign account guards still fail atomically.
+
+Scoped history kinds 17–22 are PreparedSettlement, FrozenMarginPage,
+MemberIndexNode, MemberPage, SettlementLimbPage and SettlementRates. Their schema is 9; all existing
+financial kinds remain 8. The ABI extension is literal in
+[its checker](../../ops/settlement_wire_contract.py); existing instructions/layouts,
+seeds, discriminators, signing domains and errors are independently retained.
+The selected runtime artifacts and admitted capacity remain unchanged until
+actual acceptance. Generated clients do not establish deployed qualification.
+
+### Successor limb-page layout (P54B, inactive)
+
+The first concrete scratch type is `SettlementLimbPage`; it is reserved schema 9,
+not a change to schema-8 venue/margin accounts. The verification-only P54B
+controller initializes and consumes it under the D97 frozen-source bridge. Fields are Borsh little endian with discriminator
+`sha256("account:SettlementLimbPage")[0..8]`:
+
+| Byte offset | Field / bytes |
+|---|---|
+| 0 | Discriminator / 8 |
+| 8 | Schema u16 / 2 |
+| 10 | Internal scratch revision u64 / 8 |
+| 18 | Venue address / 32 |
+| 50 | Resolution epoch u64 / 8 |
+| 58 | Attempt u64 / 8 |
+| 66 | Logical register u32 / 4 |
+| 70 | Page index u64 / 8 |
+| 78 | Addressable word count u16 / 2 |
+| 80 | PDA bump / 1 |
+| 81 | Fixed 256-u64 payload / 2,048 |
+
+Total **2,129 bytes**. PDA seeds are `resolution-limbs`, venue, epoch LE-u64,
+register LE-u32, page-index LE-u64 and bump. Attempt is a fenced reuse tag, not a
+seed that permits unbounded allocation on every proposal. The last page permits
+only `min(256, capacity-page_index*256)` words; its unused payload is inaccessible.
+The loader checks exact ownership, size, header, seeded address and required write
+permission. Read-only requests cannot write even if transaction privilege merging
+makes the account writable. Signed accounts/executable accounts are rejected.
+
+The page is temporary arithmetic, never collateral or a claim. Revision overflow
+rejects before a writable window opens. A successful invocation increments each
+declared write page once and atomically persists its controller checkpoint. The
+controller owns the epoch/attempt and descriptors; caller-supplied revisions are
+replay guards only. Structural cursor validity or arbitrary keeper versions cannot
+establish progress. Allocation/refund lifecycle and complete signed qualification
+remain P54/P55 obligations, with financial expansion disabled until P56B.
 
 ### Deployment and phase gates
 

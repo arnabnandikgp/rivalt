@@ -1,8 +1,17 @@
 //! P54 exact scalable settlement kernel under construction. No runtime authority
 //! or expanded account admission is exposed by these arithmetic primitives.
 //! P54B owns authenticated account pages and persisted continuation fences.
+pub mod atom_division;
+pub mod cohort_denominator;
 pub mod collection;
+pub mod comparison;
 pub mod denominator;
+pub mod insurance_rounds;
+pub mod membership;
+pub mod normalized;
+pub mod pages;
+pub mod rate_work;
+pub mod snapshot;
 pub mod wide;
 
 // Native complete-kernel orchestration. These vector-backed schedules supply
