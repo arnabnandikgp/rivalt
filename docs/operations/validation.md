@@ -1,5 +1,33 @@
 # Validation and measured limits
 
+## Membership foundation (P55A1)
+
+Clean **`b8a19ebf13f32a23461213648de97a8daa4382c0`** passes **38 focused native
+tests**: two index-planner cases, two literal full-width financial identity cases,
+32 affected margin/cross/economic cases and two authenticated program-loader cases.
+The index test independently rebuilds all radix counts after each of 2,054 entry/
+exit transitions across 1,027 sparse members, including IDs above 2^53 and near
+u64 exhaustion. It verifies the complete leaf/root count relation, masks, replay,
+invalid ancestors and unreachable high branches. These are native populations,
+not admitted on-chain accounts.
+
+Literal high-ID financial cases verify fees, whole-account funding, cash exits,
+transfers, duplicate identity rejection and stable-ID atom ties. The authenticated
+adapter uses actual Pinocchio account views and exact PDA bytes, rejecting missing,
+aliased, reordered, foreign, readonly, executable and stale-revision nodes before
+any write. Scoped history retains revision ownership; public lifecycle/authority,
+member-page, safety and recovery-storage integration remain P55A2 work.
+
+The same clean pin links a **2,335,560-byte** clearing SBF, SHA-256
+`f8420651a1e0f2a400226e7349ec992ffeb46462ade6fe0a343eb47c6593f7c1`, without
+oversized-stack diagnostics. This is compilation evidence only, with no signed
+successor lifecycle, CU/latency claim, SQL replay or new selected runtime. The
+candidate is retained at `.local/scalable-settlement/p55a1-b8a19eb/`; raw focused
+logs remain alongside it. The wire contract still matches D90 plus the existing
+approved extensions, and the evidence-policy check passes. The sole development
+loader-test compile error (a missing mutable test binding) was fixed before this
+clean pin. P55A remains unfinished until P55A2's complete signed acceptance.
+
 ## Conserving settlement (P54C)
 
 Clean SBF **`efa45951e01b9586469b48294de24d3f0f5fd02a`** links at

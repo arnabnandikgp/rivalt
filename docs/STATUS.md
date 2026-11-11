@@ -22,7 +22,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
 | P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
-| P55A1 identity/index foundation | In progress | Child of ready #80 / `51393a9`; u64 scalar identities and authenticated fifteen-node index updates; native acceptance underway, no wire/admission change |
+| P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; ready publication above #80 follows; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Planned | Versioned registration, financially active membership, storage funding, retirement and complete frozen-source integration; signed acceptance required |
 | P55B–P62 successor implementation | Planned | Backing, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
@@ -56,8 +56,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P55A paged membership and safe account lifecycle
-above ready #80; leave every PR open.
+Next exact action: publish accepted P55A1, then implement P55A2 on its child;
+leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
 
@@ -649,18 +649,25 @@ decision or access blocker remains for this PR. P15B/P16B remain Open and contin
 24-hour endurance Deferred. Next exact action: begin P55A paged membership and
 safe account lifecycle above #80 under the existing roadmap.
 
-## P55A development
+## P55A foundation and remaining lifecycle
 
-The child of #80 separates u64 scalar financial IDs from the retained reference
-solver's bounded cohort and adds a fifteen-node financial-index update planner.
-Native development checks compare 1,027 sparse members under entry/exit churn
-against independently rebuilt counts, including IDs above 2^53. Literal route,
-funding, withdrawal, transfer, identity-alias and atom-tie cases exercise full-width
-IDs. The program adapter authenticates each writable path node before mutation;
-public lifecycle, storage funding, versioned layouts and actual signed population
-acceptance remain to implement. No capacity or runtime artifact is changed.
-Next exact action: finish the authenticated membership/lifecycle integration and
-its schema-9 deployment contract, then qualify registration, entry/exit and freeze.
+P55A1 branches above #80 / `51393a9`. Clean **`b8a19eb`** passes 38 focused
+native cases and links a 2,335,560-byte clearing SBF without oversized-stack
+diagnostics. It separates u64 scalar financial IDs from bounded reference-cohort
+size, and authenticates all fifteen financial-index path nodes before mutation.
+The independent reconstruction covers 1,027 sparse members / 2,054 entry-exit
+transitions; literal high-ID financial cases retain exact fees, funding, exits and
+atom ties. This is native/compilation acceptance only; current wire IDs, admitted
+population and selected runtime remain unchanged. Exact pin/hash and limitations
+are in [validation](operations/validation.md#membership-foundation-p55a1).
+
+The [roadmap](operations/remediation-plan.md#p55a--membership-and-account-lifecycle)
+now separates this foundation from P55A2's complete on-chain lifecycle and storage
+integration. P55A as a whole is unfinished. P55A2 must implement the canonical
+schema-9 layouts/consumers, Registered/Financial/Retired authority, funded recovery
+storage, complete live-index freeze/default and signed entry/exit/race acceptance.
+No decision/access blocker is known. Next exact action: publish P55A1 above #80,
+then implement P55A2 without waiting for merge; continue through P62's dependencies.
 
 ## Deployment and operational limits
 
