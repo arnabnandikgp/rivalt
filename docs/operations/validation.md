@@ -120,6 +120,19 @@ accounts, complete default recovery, PostgreSQL replay, browser, endurance, devn
 independent review or production. P54C owns conserving rounding/application and
 actual exits/replay. P15B/P16B remain Open; 24-hour endurance stays Deferred.
 
+P54B publication CI at `4cd75ab` failed three checks: stale generated lock inventory,
+a direct ABI-test call that bypassed extension validation, and four positive
+preparation tests incorrectly run in the disabled-default configuration. The
+arithmetic suite passed. The correction routes both ABI entrypoints through the
+literal extension check, explicitly tests six extension corruptions and retains
+negative authority checks on predecessor instructions. The regenerated inventory
+adds exactly 16 instructions without changing any of the 61 retained access sets.
+Qualification-only positive tests now run with their feature; a separate default
+case proves preparation rejects before writing any output. No runtime source,
+IDL, financial gate or accepted SBF artifact changes. A clean correction pin and
+hosted rerun are pending; local focused checks pass (13 ABI cases, five qualified
+settlement cases and two default cases). Broad suites remain delegated to CI.
+
 ## Scalable native settlement (P54A)
 
 Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** builds the native

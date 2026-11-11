@@ -2,11 +2,60 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "31f852557d80fdc860c3b49dbfcd0e489b1a8234745f701ad91a0486883ec650",
+    "clearing": "24112078974ee60ac24e8fcbc238a9a58378f3c77715f1628aff0f8a78b33423",
     "maker_a": "93bd2c26308933be8889930744f5d893d4ed5c13bcb837ffc49156cd63dbd68f",
     "maker_b": "0299ea05e89c51298e4c0acf524bac1e432bb31f287e90da65f30a8deabff25b"
   },
   "instructions": [
+    {
+      "program": "clearing",
+      "name": "accept_denominator_row",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "page",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "accept_settlement_rate_row",
+      "write": [
+        "rates"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "page",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
     {
       "program": "clearing",
       "name": "activate_liquidity",
@@ -49,6 +98,30 @@
       "read": [
         "vault",
         "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "advance_prepared_membership",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "index",
         "event_authority",
         "program"
       ],
@@ -102,6 +175,33 @@
       "optional": [
         "co_signer"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "begin_settlement_rate_proposal",
+      "write": [
+        "rates"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "actor",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": []
     },
     {
       "program": "clearing",
@@ -235,6 +335,53 @@
       "signers": [
         "authority"
       ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "continue_settlement_denominator",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "continue_settlement_rates",
+      "write": [
+        "rates"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
       "optional": []
     },
     {
@@ -522,6 +669,34 @@
     },
     {
       "program": "clearing",
+      "name": "initialize_frozen_margin_page",
+      "write": [
+        "payer",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "initialize_funding_publisher",
       "write": [
         "authority",
@@ -635,6 +810,145 @@
       "read": [
         "venue",
         "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_prepared_index_node",
+      "write": [
+        "payer",
+        "prepared",
+        "node"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_prepared_members",
+      "write": [
+        "payer",
+        "prepared",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_prepared_settlement",
+      "write": [
+        "payer",
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_settlement_limb_page",
+      "write": [
+        "payer",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_settlement_rates",
+      "write": [
+        "payer",
+        "rates"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
         "system_program",
         "event_authority",
         "program"
@@ -815,6 +1129,31 @@
         "eth_ledger",
         "certificate"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "prepare_settlement_rate_scratch",
+      "write": [
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "rates",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
     },
     {
       "program": "clearing",
@@ -1027,6 +1366,33 @@
     },
     {
       "program": "clearing",
+      "name": "reset_settlement_rate_proposal",
+      "write": [
+        "rates"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "actor",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "retire_accounts",
       "write": [
         "venue",
@@ -1191,6 +1557,34 @@
     },
     {
       "program": "clearing",
+      "name": "upload_settlement_rate",
+      "write": [
+        "rates",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "proposer",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "proposer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "value_account_resolution",
       "write": [
         "venue",
@@ -1211,6 +1605,32 @@
         "guard_collateral",
         "primary_eth",
         "guard_eth",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "value_prepared_member",
+      "write": [
+        "prepared",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "members",
+        "margin",
         "event_authority",
         "program"
       ],

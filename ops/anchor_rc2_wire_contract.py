@@ -133,13 +133,18 @@ def check_domains():
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
+def comparable_program(program, actual):
+    """Validate every explicit extension before comparing the retained D90 ABI."""
+    if program == 'clearing':
+        actual = strip_additions(actual)
+    return comparable(actual, expected_idl(program))
+
+
 def check(directory):
     check_domains()
     for program in PROGRAMS:
         actual = json.loads((directory / f'{program}.json').read_text())
-        if program == 'clearing':
-            actual = strip_additions(actual)
-        actual, expected = comparable(actual, expected_idl(program))
+        actual, expected = comparable_program(program, actual)
         assert program_contract(actual) == program_contract(expected), (program, program_contract(actual), program_contract(expected))
     print(f'RC2 ABI matches D90 canonical identifiers against immutable {PREDECESSOR}')
 

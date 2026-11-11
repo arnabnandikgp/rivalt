@@ -207,6 +207,7 @@ impl Fixture {
     }
 }
 
+#[cfg(feature = "liquidity-execution-qualification")]
 #[test]
 fn prepared_source_binds_the_actual_freeze_and_all_economic_buckets() {
     let fixture = Fixture::new();
@@ -249,6 +250,7 @@ fn prepared_source_binds_the_actual_freeze_and_all_economic_buckets() {
     source.matches(&header).unwrap();
 }
 
+#[cfg(feature = "liquidity-execution-qualification")]
 #[test]
 fn actual_margin_model_values_both_markets_preserving_fractional_claims_and_cash() {
     let fixture = Fixture::new();
@@ -298,6 +300,7 @@ fn actual_margin_model_values_both_markets_preserving_fractional_claims_and_cash
     assert_eq!(fixture.roots.map(|root| root.cash), [3, 5, 4]);
 }
 
+#[cfg(feature = "liquidity-execution-qualification")]
 #[test]
 fn valuation_rejects_reorder_identity_generation_and_conservation_without_prefix_mutation() {
     let fixture = Fixture::new();
@@ -361,6 +364,7 @@ fn valuation_rejects_reorder_identity_generation_and_conservation_without_prefix
     assert_eq!(page.row_count, 2);
 }
 
+#[cfg(feature = "liquidity-execution-qualification")]
 #[test]
 fn prepared_and_frozen_row_layout_offsets_are_literal() {
     let fixture = Fixture::new();
@@ -433,4 +437,19 @@ fn rate_proposal_layout_separates_attempt_budget_and_word_progress() {
     assert_eq!(&bytes[171..179], &1u64.to_le_bytes());
     assert_eq!(&bytes[179..243], &rates.state.insurance);
     assert_eq!(&bytes[243..1203], &[0; 960]);
+}
+
+#[cfg(not(feature = "liquidity-execution-qualification"))]
+#[test]
+fn default_build_rejects_frozen_preparation_before_any_state_write() {
+    // The same otherwise-valid source succeeds in the qualification tests.
+    let fixture = Fixture::new();
+    let mut header = PreparedSettlement::default();
+    let mut before = Vec::new();
+    crate::wire::write_discriminated(&header, &mut before).unwrap();
+    assert!(fixture.source().validate().is_err());
+    assert!(fixture.source().initialize(&mut header).is_err());
+    let mut after = Vec::new();
+    crate::wire::write_discriminated(&header, &mut after).unwrap();
+    assert_eq!(after, before);
 }

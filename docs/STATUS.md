@@ -53,7 +53,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P54C above ready #79 in stack #74; leave every PR open.
+Next exact action: publish the P54B CI correction, verify its hosted rerun, then
+resume P54C conserving rounding/application above #79; leave every PR open.
 
 ## Remediation planning
 
@@ -255,6 +256,16 @@ acceptance above #77 in stack #74. Scope/financial/shell CI pass at `023574b` in
 client/report correctly skip. Automated review is still pending; no external review
 is claimed. Next exact action: implement P54B's authenticated frozen input and rate
 work on its child branch, leaving the stack open.
+
+P54B's first hosted run at `4cd75ab` failed report/client/default-build checks:
+its new ABI additions were missing from one test entrypoint and the generated lock
+inventory, and positive preparation fixtures incorrectly expected success in the
+disabled-default build. Financial arithmetic passed. The focused corrections pass
+locally: 13 ABI tests (including six rejected extension mutations), exact 77-entry
+inventory, five qualified settlement tests and two default tests. No runtime source
+or artifact changes. Clean correction pin and hosted rerun are pending. P54C's
+in-progress per-root flow/order work is preserved on its child branch; it is not
+accepted financial application. No user decision/access blocker is known.
 
 P54B is published ready as [PR #79](https://github.com/arnabnandikgp/rivalt/pull/79),
 above #78 / exact parent `6b8392e` in stack #74. It remains open. D97/D98 implement complete

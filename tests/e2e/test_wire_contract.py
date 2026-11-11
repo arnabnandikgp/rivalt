@@ -124,19 +124,36 @@ class WireContractTest(unittest.TestCase):
                 # match only the deliberately enumerated D84 delta from it.
                 self.assertEqual(wire.program_contract(scoped.predecessor_idl(program)),
                                  baseline["contract"]["programs"][program])
-                actual, expected = rc2.comparable(json.loads(Path(f"packages/sdk/idl/{program}.json").read_text()), rc2.expected_idl(program))
+                actual, expected = rc2.comparable_program(program, json.loads(Path(f"packages/sdk/idl/{program}.json").read_text()))
                 self.assertEqual(wire.program_contract(actual), wire.program_contract(expected))
 
     def test_rc2_metadata_exceptions_do_not_hide_unknown_authority_changes(self):
         for mutation in ('privilege', 'seed', 'address', 'order'):
             changed = deepcopy(self.original)
-            account = changed['instructions'][0]['accounts'][0]
+            retained = rc2.expected_idl('clearing')['instructions'][0]['name']
+            instruction = next(item for item in changed['instructions'] if item['name'] == retained)
+            account = instruction['accounts'][0]
             if mutation == 'privilege': account['writable'] = True
             elif mutation == 'seed': account['pda'] = {'seeds': [{'kind': 'const', 'value': [0]}]}
             elif mutation == 'address': account['address'] = '11111111111111111111111111111111'
-            else: changed['instructions'][0]['accounts'].reverse()
+            else: instruction['accounts'].reverse()
             with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
-                rc2.comparable(changed, rc2.expected_idl('clearing'))
+                rc2.comparable_program('clearing', changed)
+
+    def test_settlement_extension_is_checked_before_retained_abi_comparison(self):
+        for mutation in ('privilege', 'signer', 'order', 'argument', 'layout', 'discriminator'):
+            changed = deepcopy(self.original)
+            instruction = next(item for item in changed['instructions']
+                               if item['name'] == 'continue_settlement_rates')
+            if mutation == 'privilege': instruction['accounts'][0]['writable'] = True
+            elif mutation == 'signer': instruction['accounts'][0]['signer'] = True
+            elif mutation == 'order': instruction['accounts'].reverse()
+            elif mutation == 'argument': instruction['args'][0]['type'] = 'u8'
+            elif mutation == 'discriminator': instruction['discriminator'][0] ^= 1
+            else:
+                next(item for item in changed['types'] if item['name'] == 'SettlementRates')['type']['fields'].reverse()
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                rc2.comparable_program('clearing', changed)
 
 
 if __name__ == "__main__":
