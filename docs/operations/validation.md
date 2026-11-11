@@ -1,5 +1,75 @@
 # Validation and measured limits
 
+## Numeric-bound price policy (P53B)
+
+G5 approval on 11 November selects policy 2: reference/trigger 2–909,090 and
+stored limits 1–1,000,000 collateral atoms/lot. Raw asset inputs must be positive
+and checked; the complete risk interval is validated without clipping. Source
+freshness/confidence/agreement/depeg/recovery, fees, margin, numeric arithmetic
+and default/devnet gates remain unchanged. This qualifies the local prototype.
+
+Clean SBF **`afeb7eae419bc66cf1c902932fea79a994fa4dc1`** builds with no unsafe
+stack diagnostic. Qualification clearing is **1,538,848 bytes** (+64 vs P53A),
+SHA-256 `fbd5524190f301a4e82146839fef1a7a3917f9a86e1a871be2e3c9dc509cd1dd`.
+Every other binary, including default clearing, is byte-identical to P53A/P49.
+Generated SDK/policy parity and D90's exact ABI comparison pass; no IDL, account,
+PDA, discriminator, error-number or signed-report change is introduced.
+
+- Clean publisher verifier **`10cadb701a5a41718ad73449559ca25196449065`**:
+  **137 signed RPC/WS outcomes / 21 reports**, 11 intentional rejections. Old
+  fixture cliffs, both new reference edges, Q=3,000,000, extreme confidence,
+  immediate-outside disagreement, stale/depegged sources, complete coverage,
+  zero-cash published depth and authority/replay rollback pass. Legacy/RC2
+  conformance decoding passes. Maximum publisher CU **21,035**, 838 bytes,
+  13 keys; the three-million-lot report uses **21,007 CU**. Budget stays 200k.
+- Clean boundary/journal verifier **`82d2c6a1223e8f88529216362102a8e2f93a37a1`**:
+  **228 signed outcomes**, eight BTC/ETH open/reduce-only-close pairs at
+  2/9,999/100,001/909,090 plus two restart-recovered fills. Stored limit/trigger
+  edges accept, immediately outside terms roll back; actual stale-source deposit,
+  cancellation with full numeric survivor reservation and flat funded exit pass.
+  The actual journal has 225 transactions, eight intentional failures, **176
+  events/outbox records**, zero unresolved jobs. Reconciled publication and fresh
+  PostgreSQL reproduce the complete state and all **176 original event bytes**.
+  Seventy entities/eight roots reconcile 8,000,000 actual/allocated collateral.
+  Independent fees total **848**: BTC 436 (109 insurance/327 fees), ETH 412
+  (103/309), both carries zero. Failed withdrawal CPI has no financial effect.
+- Clean safety verifier **`82d2c6a`**: **290 signed outcomes**, 23 intentional
+  failures. Existing-position TP/SL, reservations, transfer/withdrawal, held
+  whole-account funding, post-fee liquidation, complete-cohort resolution,
+  stale-source terminal exits and recovery/reactivation pass. The independent
+  raw-byte audit verifies eight exact Fraction payouts, two rounding augmentations
+  and ten rejected corruptions. This uses the current eight-root cohort; it does
+  not qualify expanded population or the future scalable solver.
+- Observed boundary-route peak **160,356 CU / 1,014 bytes / 19 keys**; paired-market
+  publisher peak **44,026 CU / 1,192 bytes / 17 keys**. Safety route peak 279,710 CU;
+  safety instruction peak 187,509 CU. These are scoped workloads, not full-book
+  maxima, fresh contention measurements or a new throughput claim.
+- Source checks pass: 23 financial-core and 29 clearing-engine native tests;
+  52 affected SDK/UI cases, including **1,536 independent per-lot exhaustive
+  allocations**; typecheck, generation, exact ABI and evidence checks. Canonical
+  funding uses interval and convex pair search, preserving deterministic ties,
+  two legs and complete coverage without financial admission. At clean `afeb7ea`,
+  1,800 timed searches over 18 bounded scenarios (three makers/eight regions,
+  including Q=3m) peak at **329 distinct quotes**, p95 **0.394 ms**, p99 **0.535 ms**
+  on Apple M3. This measures off-chain CPU, not landed CU or worst-case latency.
+
+The first boundary run at `10cadb7` passed trades/order edges but requested a
+21-second expiry wait from a 20-second watchdog. It is not a completed replay.
+The corrected verifier splits the wait and leaves source age, waiter deadlines
+and publication freshness unchanged. Both attempts and all raw receipts remain
+at existing ignored `.local/price-policy/p53b-*` paths. Accepted candidate files
+are `.local/price-policy/afeb7ea-artifacts`; the selected runtime uses their exact
+hashes. Previous selected files are retained at `.local/price-policy/pre-p53b-current`.
+All owned runtimes stopped; no browser, endurance, external or funded run is claimed.
+P15B/P16B remain Open, 24-hour endurance Deferred and P58's other economic gates open.
+
+Reproduce with the candidate build command, `ops/funding-publisher-smoke.sh`,
+`RIVALT_PRICE_POLICY=1 RIVALT_LIQUIDITY_PROBE=indexer RIVALT_LIQUIDITY_POSTGRES=1 RIVALT_PG_PORT=15454 bash ops/current-runtime-smoke.sh`,
+and `RIVALT_LIQUIDITY_PROBE=safety bash ops/current-runtime-smoke.sh`, using explicit
+fresh run/artifact directories. `node --import tsx tests/performance/funding-search.ts`
+prints the bounded CPU diagnostic. Historical `phaseAcceptance:false` fields
+remain explicit: these scoped P53B constituents do not reopen entire older phases.
+
 ## Shared unchanged price policy (P53A)
 
 Clean SBF source **`213610666d7b1ab3136b5b3f0da25c856ad92d1f`** builds with the pinned
@@ -42,11 +112,13 @@ existing temporary idle-sleep assertion for all finite probes; its original
 partial attempts remain local and are not substituted for the final acceptance.
 
 Evidence: `.local/price-policy/{2136106-artifacts,p53a-publisher,p53a-indexer-awake}`.
-The accepted files are selected in `.local/anchor-rc2/current`; the prior contents
-are retained in `.local/price-policy/pre-p53a-current`. Use a fresh local domain/
+At P53A qualification these files were selected in `.local/anchor-rc2/current`;
+P53B now supersedes that selection. Pre-P53A contents remain retained in
+`.local/price-policy/pre-p53a-current`. Use a fresh local domain/
 database; do not run old journals/originals against a replacement artifact binding.
 No new browser, full-book/load/endurance or external deployment is claimed.
-P53B range calibration remains unapproved/disabled; P15B/P16B remain external.
+P53B has separate approval and signed acceptance above;
+this P53A evidence qualifies only policy 1. P15B/P16B remain external.
 
 Reproduction uses `ops/build-liquidity-execution.sh` with an explicit candidate
 destination, `ops/funding-publisher-smoke.sh`, and

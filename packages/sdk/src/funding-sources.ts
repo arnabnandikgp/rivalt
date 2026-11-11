@@ -30,7 +30,9 @@ export async function fundingReference(market: Market, accounts: LiquidityAccoun
     const confidence = view.getBigUint64(121, true) * (collateral ? 1n : multiplier);
     const published = view.getBigInt64(133, true);
     if (value < (collateral ? policy.MIN_COLLATERAL_USD : policy.MIN_NORMALIZED_ASSET_USD) || value > (collateral ? policy.MAX_COLLATERAL_USD : policy.MAX_NORMALIZED_ASSET_USD)
-      || published <= 0n || published > now + policy.FUTURE_SKEW || now - published > policy.SOURCE_AGE
+      || confidence > 18_446_744_073_709_551_615n
+      || published <= 0n || published > 9_223_372_036_854_775_807n - policy.SOURCE_AGE
+      || published > now + policy.FUTURE_SKEW || now - published > policy.SOURCE_AGE
       || confidence * policy.BASIS_POINTS > value * (collateral ? policy.COLLATERAL_CONFIDENCE_BPS : policy.ASSET_CONFIDENCE_BPS)) return null;
     sources.push({ value, confidence, published });
   }
@@ -38,5 +40,13 @@ export async function fundingReference(market: Market, accounts: LiquidityAccoun
   const difference = reference > guard ? reference - guard : guard - reference;
   if (reference < policy.MIN_REFERENCE_PRICE || reference > policy.MAX_REFERENCE_PRICE || difference * policy.BASIS_POINTS > reference * policy.SOURCE_DIVERGENCE_BPS
     || [sources[1], sources[3]].some(source => source.value < policy.MIN_NORMAL_COLLATERAL_USD || source.value > policy.MAX_NORMAL_COLLATERAL_USD)) return null;
+  for (const index of [0, 2]) {
+    const asset = sources[index], collateral = sources[index + 1];
+    const lower = (asset.value - asset.confidence) * policy.RISK_LOWER_PERCENT
+      / ((collateral.value + collateral.confidence) * policy.PERCENT_DENOMINATOR);
+    const denominator = (collateral.value - collateral.confidence) * policy.PERCENT_DENOMINATOR;
+    const upper = ((asset.value + asset.confidence) * policy.RISK_UPPER_PERCENT + denominator - 1n) / denominator;
+    if (lower < 1n || upper > policy.MAX_PRICE) return null;
+  }
   return reference;
 }

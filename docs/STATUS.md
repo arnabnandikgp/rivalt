@@ -18,7 +18,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
 | P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
-| P53B calibrated ranges | Decision pending — disabled | Literal G5 proposal prepared and user decision requested; exact funding-search and signed acceptance still required |
+| P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54–P62 successor implementation | Planned | Compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -51,8 +51,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: start P54A's exact scalable settlement kernel above ready #76
-while the requested P53B G5 decision remains pending; leave every PR open.
+Next exact action: implement P54A's exact scalable settlement kernel above ready
+#77 in stack #74; leave every PR open.
 
 ## Remediation planning
 
@@ -159,8 +159,8 @@ acceptance: 99 publisher outcomes (12 reports), 120 financial/journal outcomes,
 exact published fresh state and all 72 retained event bytes. Seventy entities/eight
 roots and 8,000,000 allocated/actual vault atoms reconcile; independent fee checks
 pass. Only qualification clearing changes (+896 bytes); makers/defaults/fixtures
-are byte-identical to P49. The accepted candidate is selected in the current local
-artifact directory; prior files are retained. Owned runtimes are stopped.
+are byte-identical to P49. P53A artifacts remain retained; P53B supersedes the local selection below.
+Owned runtimes are stopped.
 
 Typecheck, 59 SDK/UI, 22 financial-core and 29 clearing-engine native checks pass,
 with generation/ABI/document/shell/evidence checks. No broad local regression,
@@ -170,14 +170,43 @@ probe requires fresh published readiness and exact event bytes, with unchanged
 freshness/deadlines and a temporary supervisor-owned idle-sleep inhibitor.
 [Validation](operations/validation.md#shared-unchanged-price-policy-p53a) records
 exact pins, results and limitations. [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76)
-contains acceptance closeout `a24251e`; hosted checks are pending. P53A is not integrated.
+contains acceptance closeout `a24251e`; all five scoped hosted jobs pass at
+`b6fbcb8` in [run 42977315184](https://github.com/arnabnandikgp/rivalt/actions/runs/42977315184).
+CodeRabbit is neutral, not external approval. P53A is not integrated.
 
-P53B's [literal G5 proposal](clearing/risk-and-resolution.md#proposed-p53b-calibration-g5-not-enabled)
-is reviewable and disabled: reference/trigger 2–909,090 and order limit 1–1,000,000
-atoms per lot, unchanged safeguards and numeric envelope. The user decision has
-been requested; no approval is inferred. It requires exact scalable funding search
-and signed acceptance before activation. P54A can proceed independently
-on the unchanged arithmetic proof. P15B/P16B and deferred endurance are unchanged.
+P53B's [numeric-bound policy](clearing/risk-and-resolution.md#approved-p53b-calibration)
+was explicitly approved on 11 November: reference/trigger 2–909,090 and order
+limit 1–1,000,000 atoms/lot. Raw assets are positive/checked and the entire risk
+interval must fit; source safeguards and the arithmetic/economic boundaries stay
+unchanged. P58A's canonical depth search is brought forward without changing impact
+notional or adding maker financial admission. Its public helper now accepts canonical
+curve records rather than arbitrary quote callbacks; full snapshot authentication
+remains the report builder's responsibility.
+
+Clean SBF **`afeb7eae419bc66cf1c902932fea79a994fa4dc1`** builds safely; clearing is
+1,538,848 bytes (+64 vs P53A), every other binary unchanged. Clean publisher
+**`10cadb7`** passes 137 outcomes / 21 reports, including Q=3m and source faults.
+Clean **`82d2c6a`** passes 228 boundary/journal and 290 safety outcomes. Actual BTC/ETH
+edge trades, stored limits/triggers, stale-source deposits/cancels/exits, whole-account
+reservations, TP/SL, liquidation, complete default and recovery pass. Fresh published
+PostgreSQL replay matches all **176 event bytes** and the complete financial state;
+8,000,000 actual/allocated atoms reconcile, with independent aggregate fees **848**.
+The default audit verifies eight Fraction payouts and rejects ten corruptions.
+
+Scoped checks: 23 financial-core, 29 clearing-engine, 52 client/UI cases including
+1,536 independent funding allocations; generation, exact ABI and typecheck pass.
+At clean `afeb7ea`, 1,800 CPU measurements peak at 329 distinct quotes,
+p95 0.394 ms / p99 0.535 ms. Publisher max is 21,035 CU, three-million-lot sample
+21,007 CU; boundary route max 160,356 CU. These are bounded measurements, not full-book,
+worst-case latency or production-throughput claims. [Validation](operations/validation.md#numeric-bound-price-policy-p53b)
+records pins, commands, limitations and the first Clock-wait harness failure.
+
+The accepted candidate is selected locally, with prior artifacts/failed runs retained
+under existing ignored paths. All owned runtimes stopped. No external/funded action,
+new browser or endurance run is claimed. P53B is published as [ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77)
+above #76 in stack #74; all five PRs remain open. Hosted checks are pending.
+P54A follows on the unchanged numeric proof. P15B/P16B remain
+Open, endurance Deferred, and P58's other economic decision gates remain separate.
 
 ## Integrated quantity work
 

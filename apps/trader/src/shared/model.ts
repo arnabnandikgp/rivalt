@@ -38,9 +38,10 @@ export function orderPrice(input: string, marketIndex: 0 | 1, trigger = false) {
   const minimum = trigger ? MIN_TRIGGER_PRICE : MIN_ORDER_PRICE,
     maximum = trigger ? MAX_TRIGGER_PRICE : MAX_ORDER_PRICE;
   if (price < minimum || price > maximum) {
-    const divisor = marketIndex === 0 ? 1n : 10n;
+    const display = (value: bigint) => marketIndex === 0 ? value.toString()
+      : `${value / 10n}${value % 10n ? `.${value % 10n}` : ''}`;
     throw new Error(
-      `${trigger ? 'Trigger' : 'Order limit'} price must be between ${minimum / divisor} and ${maximum / divisor} test USD per unit.`,
+      `${trigger ? 'Trigger' : 'Order limit'} price must be between ${display(minimum)} and ${display(maximum)} test USD per unit.`,
     );
   }
   return price;

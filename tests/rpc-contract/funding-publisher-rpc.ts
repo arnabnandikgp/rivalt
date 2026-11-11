@@ -72,7 +72,7 @@ try {
     await h.send(`P32 publisher rejects ${label}`, [instruction(input, report, signer)], [signer], error);
     assert.deepEqual(await readAll(), before, `${label}: rejected report mutated state`);
   }
-  async function publish(label: string, outcome: number, expected?: { quantity: bigint; bid: bigint; ask: bigint }) {
+  async function publish(label: string, outcome: number, expected?: { quantity: bigint; bid: bigint; ask: bigint; premium?: bigint }) {
     const input = await snapshot(), before = await readAll(makerKeys);
     assert.equal(input.report.outcome, outcome, `${label}: ${input.coverageReason}`);
     if (expected) {
@@ -90,7 +90,7 @@ try {
     if (expected) {
       assert.equal(market.oracle.quantity, expected.quantity);
       assert.equal(market.oracle.bid, expected.bid); assert.equal(market.oracle.ask, expected.ask);
-      assert.equal(market.oracle.premiumScaled, 1_000_000_000n);
+      assert.equal(market.oracle.premiumScaled, expected.premium ?? 1_000_000_000n);
       assert.equal(market.oracle.heldUntil, input.report.validUntilTime);
     } else assert.equal(market.oracle.quantity, 0n);
     observations.push({ label, report: input.report, market, configurationState });
@@ -103,11 +103,17 @@ try {
   await rejected('replayed sequence', first, first.report);
   await fresh(10_000n);
   await publish('600-lot two-maker optimum', 0, sixHundred);
-  // P53A: literal old-policy edges against the actual compiled consumer. A
+  // P53B: old fixture cliffs and approved edges against the compiled consumer. A
   // source failure can report unavailability but cannot forge available depth.
   await fresh(100_000n);
   await publish('upper source/reference edge', 0, { quantity: 60n, bid: 5_999_940n, ask: 6_000_180n });
-  for (const edge of [9_999n, 100_001n]) {
+  await fresh(9_999n);
+  await publish('former lower fixture cliff', 0, { quantity: 601n, bid: 6_008_798n, ask: 6_011_202n });
+  await fresh(100_001n);
+  await publish('former upper fixture cliff', 0, { quantity: 60n, bid: 6_000_000n, ask: 6_000_240n });
+  await fresh(909_090n);
+  await publish('approved upper reference edge', 0, { quantity: 7n, bid: 6_363_623n, ask: 6_363_651n });
+  for (const edge of [1n, 909_091n]) {
     await fresh(edge);
     const input = await snapshot();
     assert.equal(input.report.outcome, 1);
@@ -117,6 +123,48 @@ try {
     await rejected(`available report outside policy ${edge}`, input, forged, sdk.CLEARING_ERROR__ORACLE_POLICY);
     await publish(`source outside policy ${edge}`, 1);
   }
+  const flatRegions = [{ endLots: 3_000_000n, offset: 0n, slope: 0n },
+    ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
+  const flat = { ...shape, skewTick: 0n, longCap: 3_000_000n, shortCap: 3_000_000n,
+    bidCount: 1, askCount: 1, bids: flatRegions, asks: flatRegions };
+  async function reshape(next: typeof shape) {
+    for (const maker of makers) {
+      const config = await maker.state();
+      await h.send('P53B shape signed boundary depth', [sdk.getControlLiquidityInstruction({ ...maker.controlCommon,
+        expectedAuthority: 1n, expectedControl: config.controlEpoch, expectedShape: config.shapeEpoch,
+        action: { __kind: 'Shape', fields: [next] } })], [fixture.owner]);
+    }
+  }
+  await reshape(flat);
+  await fresh(2n);
+  await publish('approved minimum reference and three-million-lot sample', 0,
+    { quantity: 3_000_000n, bid: 6_000_000n, ask: 6_000_000n, premium: 0n });
+  await fresh(2n);
+  const lowTime = await now();
+  await h.send('P53B signed maximum confidence at minimum reference', await Promise.all(sources.map((_, index) =>
+    publishFeed(index, lowTime, { price: index % 2 ? 1_000_000n : 2_000_000n,
+      confidence: index % 2 ? 2_500n : 10_000n }))), authorities);
+  await publish('minimum reference maximum confidence', 0,
+    { quantity: 3_000_000n, bid: 6_000_000n, ask: 6_000_000n, premium: 0n });
+  for (const [label, change] of [
+    ['excess confidence', { price: 2_000_000n, confidence: 10_001n }],
+    ['stale source', { price: 2_000_000n, published: await now() - 21n }],
+  ] as const) {
+    await fresh(2n);
+    await h.send(`P53B signed ${label}`, [await publishFeed(0, await now(), change)], [authorities[0]]);
+    await publish(label, 1);
+  }
+  await fresh(909_090n);
+  await h.send('P53B signed maximum agreeing guard with confidence', [
+    await publishFeed(2, await now(), { price: 918_180_999_999n, confidence: 4_590_904_999n }),
+    await publishFeed(3, await now(), { price: 1_000_000n, confidence: 2_500n }),
+  ], [authorities[1]]);
+  await publish('maximum reference agreeing guard', 0, { quantity: 7n, bid: 6_363_630n, ask: 6_363_630n, premium: 0n });
+  assert.deepEqual([(await marketState()).lower, (await marketState()).upper], [899_999n, 934_336n]);
+  await fresh(909_090n);
+  await h.send('P53B signed guard disagreement', [await publishFeed(2, await now(), { price: 918_181_000_000n })], [authorities[1]]);
+  await publish('guard disagreement immediately outside bound', 1);
+  await reshape(shape);
   await fresh(60_000n);
   const collateralPublicationTime = await now();
   await h.send('signed collateral depeg sources', await Promise.all([1, 3].map(index =>

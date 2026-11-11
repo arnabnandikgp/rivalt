@@ -55,8 +55,8 @@ pub fn bounds(primary: [Price; 2], guard: Option<[Price; 2]>, now: i64) -> Resul
     bounds_at_age(primary, guard, now, SOURCE_AGE)
 }
 /// Successor's explicit test-market units. BTC has 1e6 lots/unit and ETH 1e5.
-/// Normalize value AND confidence before ratio/interval rounding. This keeps
-/// the 1,000–10,000 USD ETH range separate from BTC's 10,000–100,000 USD range.
+/// Normalize value AND confidence before ratio/interval rounding. Admission
+/// uses collateral atoms per lot, not a separate fixture-derived USD range.
 /// Unsupported lot sizes reject; this is not a general market-listing mechanism.
 pub fn market_bounds(
     lots_per_unit: u64,
@@ -140,6 +140,10 @@ fn bounds_at_age(
     } else {
         lower = lower.min(reference * DEGRADED_LOWER_PERCENT / PERCENT_DENOMINATOR);
         upper = upper.max((reference * DEGRADED_UPPER_PERCENT).div_ceil(PERCENT_DENOMINATOR));
+    }
+    // Never clip an adverse interval to fit the arithmetic domain.
+    if lower == 0 || lower > reference || reference > upper || upper > MAX_PRICE {
+        return Err(Error::Bounds);
     }
     Ok(Bounds {
         reference,

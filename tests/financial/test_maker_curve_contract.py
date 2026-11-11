@@ -260,6 +260,12 @@ class AllocationContract(unittest.TestCase):
         self.assertEqual(sum(1 for _ in allocations(self.candidates, 4097)), 12_291)
 
     def test_funding_quantity_rounding_and_signed_truncation(self):
+        # Approved policy-2 edges, independently literal; do not enumerate Q=3m.
+        self.assertEqual(premium(2, 3_000_000, 6_000_000, 6_000_000), 0)
+        self.assertEqual(premium(909_090, 7, 6_363_623, 6_363_651), SCALE)
+        for reference, quantity in [(1, 6_000_000), (909_091, 7)]:
+            with self.assertRaises(ValueError):
+                premium(reference, quantity, reference * quantity, reference * quantity)
         self.assertEqual(premium(10_000, 600, 5_994_000, 6_012_000), 5 * SCALE)
         self.assertEqual(premium(10_000, 600, 5_988_000, 6_006_000), -5 * SCALE)
         self.assertEqual(premium(10_000, 600, 6_000_000, 7_000_000), 50 * SCALE)
