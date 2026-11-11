@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {scopedSchema,settlementDescriptors,reconcileSettlementScratch} from './settlement-reconcile.js';
 import {address,getAddressDecoder,getAddressEncoder,getProgramDerivedAddress,type ReadonlyUint8Array} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
@@ -31,7 +32,7 @@ export async function captureAccountReconciliation(state:AccountState,binding:Pi
       const value=response.value[index];captured.set(key,{slot,value:structuredClone(value)});
       if(key===vault)continue;
       assert(value?.owner===program&&value.data[1]==='base64',`Captured scoped owner ${key}`);
-      const bytes=Buffer.from(value.data[0],'base64');assert(bytes.length>=18&&bytes.readUInt16LE(8)===8,'Captured scoped schema');
+      const bytes=Buffer.from(value.data[0],'base64');assert(bytes.length>=18&&bytes.readUInt16LE(8)===scopedSchema(state.revisions[key].kind),'Captured scoped schema');
       assert(bytes.readBigUInt64LE(10)>=BigInt(state.revisions[key].revision),'Captured finalized revision behind candidate');
       revisions.set(key,bytes.readBigUInt64LE(10));
     }
@@ -87,7 +88,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     [sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,234],[sdk.RESOLUTION_DISCRIMINATOR,3652],
     [sdk.RESOLUTION_PAGE_DISCRIMINATOR,3408],[sdk.RESOLUTION_WORK_DISCRIMINATOR,7926],
     [sdk.RETIREMENT_CERTIFICATE_DISCRIMINATOR,80],[sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,181],
-    [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148]
+    [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148],
+    ...settlementDescriptors
   ] as const;
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
@@ -104,7 +106,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         assert(current?.owner===program&&current.data[1]==='base64',`Scoped owner/encoding ${key}`);
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
         assert(descriptor&&bytes.length===descriptor[1]&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
-        assert.equal(bytes.readUInt16LE(8),8);
+        assert.equal(bytes.readUInt16LE(8),scopedSchema(entity.kind));
         compareReconciliationRevision(bytes.readBigUInt64LE(10),BigInt(entity.revision));
         if(pass)assert.equal(current.data[0],observed.get(key)?.data[0],`Account changed without revision ${key}`);
       }
@@ -129,7 +131,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       const value=sdk.getResolutionPageDecoder().decode(raw(key));
       const [canonical,bump]=await sdk.findResolutionPagePda(venue,value.pageIndex,program);
       assert.equal(key,canonical);assert.equal(value.venue,venue);assert.equal(value.bump,bump);
-    } else throw new Error(`Missing projected entity kind ${entity.kind}`);
+    } else if(entity.kind>=17&&entity.kind<=23)await reconcileSettlementScratch(key,entity.kind,raw(key),state,binding);
+    else throw new Error(`Missing projected entity kind ${entity.kind}`);
   }
   for(const [key,identity] of identities) {
     const actual=identity.decoder.decode(raw(key,identity.discriminator)) as {bump:number;vaultBump?:number};
@@ -145,7 +148,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       assert.deepEqual(header[field],expected[field],`Resolution ${field}`);
     if(expected.stage===9)for(const [field,value] of Object.entries({scannedCash:expected.remainingCash,cashApplied:expected.appliedCash,
       remainingLots:expected.remainingLots,remainingGross:expected.remainingGross,remainingClaims:expected.remainingClaims}))assert.deepEqual(header[field],value,`Partial Apply ${field}`);
-    for(let index=1;index<resolutionKeys.length;index++) {
+    for(let index=1;!state.pagedSettlement&&index<resolutionKeys.length;index++) {
       const page=JSON.parse(json(sdk.getResolutionPageDecoder().decode(raw(resolutionKeys[index],sdk.RESOLUTION_PAGE_DISCRIMINATOR))));
       assert.equal(page.bump,(await sdk.findResolutionPagePda(venue,index-1,program))[1]);assert.equal(page.schemaVersion,8);assert.equal(page.venue,venue);assert.equal(page.pageIndex,index-1);
       for(let within=0;within<2;within++) {

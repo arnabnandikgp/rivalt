@@ -2,6 +2,17 @@
 
 ## Conserving flow and graph primitives (P54C in progress)
 
+The application candidate from clean **`efa45951e01b9586469b48294de24d3f0f5fd02a`**
+links at **2,331,160 bytes**, SHA-256
+`c943fafd89ddd7688e693384acdc650b8284689f1c5822689c38c36998873af0`,
+with no oversized-stack diagnostic. It is retained separately at
+`.local/scalable-settlement/p54c-efa4595/`. Development checks pass 13 scoped native
+settlement tests (including complete 3-/64-root application), typecheck, generated
+SDK, literal ABI and 13 wire-contract checks; those development test results are
+not a signed deployment. Its five new financial entrypoints have not yet passed
+RPC/WS/token/PostgreSQL acceptance. The selected runtime remains unchanged.
+
+
 Clean **`51b4a4fd8f5b7cf63790ea5fdaf8df779493e0b9`** passes 10,920 exact per-root flow/retained-cash/
 floor/fraction/order comparisons against the independent Fraction oracle and
 rejects flow authorization for 137 fractional-insurance evaluations. Maximum

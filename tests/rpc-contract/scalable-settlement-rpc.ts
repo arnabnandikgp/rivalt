@@ -6,6 +6,8 @@ import {AccountRole,getAddressEncoder,getProgramDerivedAddress,type Address,type
 import * as sdk from '@rivalt/sdk';
 import {getMintToInstruction} from '@solana-program/token';
 import {qualifySettlementRates} from './scalable-settlement-rates-rpc.js';
+import {qualifySettlementApplication} from './scalable-settlement-application-rpc.js';
+import {openSettlementJournal} from './scalable-settlement-journal.js';
 import {qualifySettlementPlan} from './scalable-settlement-plan-rpc.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
@@ -19,6 +21,7 @@ const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.
 const u64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const u32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 const gcd=(left:bigint,right:bigint):bigint=>{while(right!==0n)[left,right]=[right,left%right];return left;};
+let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
   const setup=await liquidityExecutionSetup(h,rpc,{verifyRejections:false});
   const {root,guard,route}=executionTestHelpers(h,setup),cross=setup.roots[0],owner=setup.traderOwner;
@@ -35,6 +38,22 @@ try {
   for(const marketIndex of [0,1] as const)await h.send('P54 seed actual market-specific insurance',[
     sdk.getSeedMarketInsuranceInstruction({...setup.common,reserveAuthority:setup.payer,ledger:setup.ledgers[marketIndex],donor:owner,
       donorToken:setup.traderToken.address,quoteMint:setup.mint.address,marketIndex,amount:[2_000_000n,1_000_000n][marketIndex]})],[owner]);
+  if(process.env.RIVALT_SETTLEMENT_APPLY==='1') {
+    const isolated=setup.roots[1];await setup.sample();
+    await h.send('P54C create actual isolated debtor exposure',[await route({trader:isolated,actor:owner,marketIndex:0,side:0,
+      makers:[setup.instances[0]],lots:[50n]})],[owner]);
+    await h.send('P54C isolate debtor cash before adverse prices',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
+      btc:setup.markets[0],eth:setup.markets[1],owner,margin:isolated,quoteMint:setup.mint.address,userToken:setup.traderToken.address,
+      amount:400_000n,guard:await guard(isolated)})],[owner]);
+    const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,0);
+    const [receiver]=await sdk.deriveMarginAccount(portfolio,2);
+    await h.send('P54C register real isolated receiver',[await sdk.getRegisterMarginInstructionAsync({...setup.common,
+      owner,portfolio,margin:receiver,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:2})],[owner]);
+    await h.send('P54C fund unrelated healthy receiver cash',[await sdk.getDepositAccountInstructionAsync({...setup.common,
+      owner,margin:receiver,quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1n})],[owner]);
+    const [page]=await sdk.findResolutionPagePda(setup.venue,4);setup.pages.push(page);
+    await h.send('P54C provision complete legacy bridge page',[sdk.getInitializeAccountResolutionPageInstruction({...setup.safetyCommon,page,pageIndex:4})]);
+  }
   setup.sourcePrices.btc=40_000_000_000n;setup.sourcePrices.eth=2_000_000_000n;await setup.fresh();
   const safety=()=>h.read(setup.safety).then(bytes=>sdk.getVenueSafetyDecoder().decode(bytes!));
   const source=()=>h.read(setup.resolution).then(bytes=>sdk.getResolutionDecoder().decode(bytes!));
@@ -131,6 +150,15 @@ try {
   const planResult=process.env.RIVALT_SETTLEMENT_PLAN==='1'?await qualifySettlementPlan({h,setup,prepared,rates:rateResult.rates,
     epoch:frozen.epoch,rows,rowPages,limbPages,tracked,reject}):undefined;
   assert.deepEqual(await readAll(financial),financialBefore,'construction never mutates financial ownership');
+  let applicationResult,sqlResult;
+  if(process.env.RIVALT_SETTLEMENT_APPLY==='1') {
+    assert(planResult);await flush();
+    journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)));
+    applicationResult=await qualifySettlementApplication({h,setup,prepared,rates:rateResult.rates,plan:planResult.plan,epoch:frozen.epoch,
+      rowPages,rows,expected:planResult.expected,tracked,reject,checkpoint:async name=>{await flush();await journal!.checkpoint(name);}});
+    await flush();sqlResult=await journal.finish();
+  }
+
   await flush();
   const accountKeys=[{name:'settlementRates',key:rateResult.rates},{name:'preparedSettlement',key:prepared},{name:'memberPage',key:memberPage},
     ...nodes.map(key=>({name:'memberIndexNode',key})),...rowPages.map(key=>({name:'frozenMarginPage',key})),...limbPages.map(key=>({name:'settlementLimbPage',key})),
@@ -141,6 +169,6 @@ try {
   const result={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     build:JSON.parse(readFileSync(`${process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR}/build-manifest.json`,'utf8')),checks,parity,rent,
-    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,planResult,limitations:['source bridge <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
+    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,planResult,applicationResult,sqlResult,limitations:applicationResult?['source bridge <=64','no expanded trading','internal makers and synthetic prices','candidate-specific SQL harness; normal runtime allowlist unchanged']:['source bridge <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
   writeFileSync(`${directory}/result.json`,serialize(result));console.log(serialize({checks:checks.length,continuations,rateContinuations:rateResult.continuations,rateEvaluations:rateResult.reference.evaluations.length,common:expectedCommon,parity}));
-}finally{await flush();await ws.close();}
+}finally{await journal?.close();await flush();await ws.close();}

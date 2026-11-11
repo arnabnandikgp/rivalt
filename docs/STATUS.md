@@ -651,11 +651,13 @@ isolated/cross cleanup, monotone order/protection IDs and exhausted counters. SB
 metadata compilation passes. This newer helper work has no public financial entrypoint;
 the signed construction result above remains separate.
 
-The working P54C controller now exposes exclusive adoption, one-root Apply,
+Clean controller **`efa4595`** now exposes exclusive adoption, one-root Apply,
 complete-cohort pool/insurance distribution and full Reconcile/Complete. Development
-native checks cover the controller and protected source binding; no signed financial
-acceptance is claimed yet. Indexer projection/reconciliation, recovery, token exits
-and fresh PostgreSQL replay remain. The selected artifact and admitted population
+native checks cover the controller and protected source binding; its separate
+2,331,160-byte SBF links without oversized-stack diagnostics; no signed financial
+acceptance is claimed yet. The indexer now has explicit scratch-kind/PDA checks and original/applied financial
+projection. Its development one-atom/rejection checks and 21 affected existing
+checks pass. Signed recovery, token exits and fresh PostgreSQL replay remain. The selected artifact and admitted population
 are unchanged.
 No P54C PR is opened and no user decision/access blocker is known. Exact next
 action: qualify the application binary and wire exact paged-plan indexer

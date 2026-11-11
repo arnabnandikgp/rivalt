@@ -117,9 +117,10 @@ it('checks literal envelope widths, revisions, bounded counts, aliases and compl
     (bytes: Buffer) => {bytes.writeBigUInt64LE(0n, 129);},
     (bytes: Buffer) => {bytes.writeUInt32LE(0, 137);},
     (bytes: Buffer) => {bytes.fill(3, 141, 173);},
-    (bytes: Buffer) => {bytes[173] = 17;},
+    (bytes: Buffer) => {bytes[173] = 24;},
     (bytes: Buffer) => {bytes.writeBigUInt64LE(9n, 182);},
   ]) {const bytes = footer(); mutate(bytes); expect(() => decodeTransition(bytes)).toThrow();}
+  for (let kind=17;kind<=23;kind++) {const bytes=footer();bytes[173]=kind;expect(decodeTransition(bytes).writes[0].kind).toBe(kind);}
   expect(() => decodeTransition(footer().subarray(0, -1))).toThrow(/Truncated/);
   expect(() => decodeTransition(Buffer.concat([footer(), Buffer.from([0])]))).toThrow(/Trailing/);
 });

@@ -1,4 +1,5 @@
 import * as sdk from '@rivalt/sdk';
+import {projectSettlement, type PagedSettlement} from './settlement-projection.js';
 import type {Canonical} from './canonical.js';
 import {json} from './events.js';
 import type {RevisionVector} from './scoped-history.js';
@@ -9,7 +10,7 @@ type Fields<T> = Canonical<Omit<T, 'discriminator' | 'bump' | 'vaultBump'>>;
 export type AccountRoot = Fields<sdk.MarginAccount>;
 export type AccountMarket = Fields<sdk.Market>;
 type Row = {member:string; cashBefore:string; lots:string[]; generations:string[]; claimsScaled:string[];
-  collected:string; flows?:string[]; cashAfter?:string; applied?:boolean};
+  collected:string; originalRevision?:string; flows?:string[]; cashAfter?:string; applied?:boolean};
 export type AccountResolution = {
   epoch:string; stage:number; cursor:number; count:number; registryHash:string;
   safetyEpoch:string; termsEpoch:string; configEpochs:string[]; sourceObservations:string[]; sourceDeadlines:string[];
@@ -27,6 +28,7 @@ export type AccountState = {
   backing:Record<string,Fields<sdk.SettlementCertificate>>;
   retirement:Fields<sdk.RetirementCertificate>|null; resolution:AccountResolution|null;
   liquidity?:LiquidityState;
+  pagedSettlement?:PagedSettlement;
 };
 export const emptyAccounts = ():AccountState => ({sequence:'0',revisions:{},venue:null,custody:null,safety:null,membershipVersion:null,
   members:[],portfolios:{},roots:{},markets:{},ledgers:{},backing:{},retirement:null,resolution:null});
@@ -161,7 +163,10 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       root(change.targetState,change.target);root(change.receiverState,change.receiver);
       partialMarkets(change.markets);partialLedgers(change.ledgers);
       equal(safety().epoch,change.safetyEpoch,'liquidation safety');break;
+    case 'SettlementPlanProgress':
+    case 'SettlementMarginApplied':projectSettlement(state,event,root);break;
     case 'AccountResolutionFrozenV3': {
+      delete state.pagedSettlement;
       const previous=state.resolution;
       if(previous && previous.epoch===change.epoch)accountCheck(previous.stage===1&&change.stage===2,'frozen valuation continuation');
       else equal(BigInt(change.epoch),BigInt(safety().resolutionEpoch)+1n,'new resolution epoch');
@@ -263,7 +268,8 @@ export function reconcileAccountLedger(state:AccountState) {
   accountCheck(accountedCash>=0n,'cash conservation');
   accountCheck(ledgers.length===venue.marketCount&&new Set(ledgers.map(value=>value.marketIndex)).size===ledgers.length,'complete market ledgers');
   ledgers.forEach(value=>accountCheck(value.insuranceFeeRemainder>=0&&value.insuranceFeeRemainder<4,'fee carry bound'));
-  const partial=state.resolution?.stage===9?state.resolution:null;
+  const pagedApply=state.resolution?.stage===14&&state.pagedSettlement?.stage===9;
+  const partial=state.resolution?.stage===9||pagedApply?state.resolution:null;
   equal(roots.reduce((sum,root)=>sum+BigInt(root.cash),0n),partial?BigInt(partial.remainingCash)+BigInt(partial.appliedCash):accountedCash,'root cash sum');
   roots.forEach((root,id)=>{
     accountCheck(root.schemaVersion===8&&root.id===id&&root.positions.length===2&&root.book.orders.length===4&&root.book.protections.length===2,'bounded root');
@@ -294,7 +300,7 @@ export function reconcileAccountLedger(state:AccountState) {
   if(safety.mode===2) {
     const current=present(state.resolution,'frozen resolution');
     accountCheck(safety.paused&&current.count===state.members.length,'frozen cohort');
-    if(current.stage<=9) {
+    if(current.stage<=9||pagedApply) {
       equal(accountedCash.toString(),current.cashBefore,'frozen cash bucket');equal(custody.allocatedVault,current.allocatedBefore,'frozen vault');
       for(const ledger of ledgers)equal([ledger.settlement,ledger.insurance,ledger.fees],
         [current.poolsBefore[ledger.marketIndex],current.insuranceBefore[ledger.marketIndex],current.feesBefore[ledger.marketIndex]],'frozen protected buckets');

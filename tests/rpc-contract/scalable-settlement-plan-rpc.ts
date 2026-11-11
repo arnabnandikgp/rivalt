@@ -27,6 +27,7 @@ export async function qualifySettlementPlan(options:{h:CanonicalHarness;
   const common={...setup.safetyCommon,prepared,rates,plan,epoch};
   const state=async()=>sdk.getSettlementPlanDecoder().decode((await h.read(plan))!);
   await h.send('P54C initialize conserving plan',[sdk.getInitializeSettlementPlanInstruction(common)]);
+  if(process.env.RIVALT_SETTLEMENT_APPLY==='1')await reject('incomplete graph cannot be adopted',sdk.getAdoptSettlementPlanInstruction({...common,revision:(await state()).revision}));
   const pageKeys=new Map<string,Address>();limbPages.forEach((key,register)=>pageKeys.set(`${register}:0`,key));
   const extras:Address[]=[];
   const packed=(length:bigint,words:bigint)=>{const records=256n/words,last=length-1n;return last/records*256n+(last%records+1n)*words;};

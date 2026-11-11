@@ -497,3 +497,26 @@ Stop older executors before upgrading. Existing unknown originals start without 
 validity witness; do not invent one or relabel historical expired records as newly
 verified. Such records retain their original provenance and require independent
 receipt reconciliation before a deployment relying on them is qualified.
+
+### Paged settlement journal extension (P54C candidate)
+
+Scoped kinds 17–23 explicitly identify schema-9 PreparedSettlement,
+FrozenMarginPage, MemberIndexNode, MemberPage, SettlementLimbPage, SettlementRates
+and SettlementPlan. The envelope remains schema 8. Each account keeps an exact
+size/discriminator/schema/revision and canonical PDA check; accepting a new kind
+is not permission to accept unknown future kinds or arbitrary scratch addresses.
+
+The two new financial payloads are projected separately from readonly verifier
+work. Adoption snapshots original root facts from complete finalized history.
+Each Apply verifies original claims, cash, lots, monotone counters and actual cash
+conservation, then advances the explicit original/applied split. Stage-14 mixed
+roots are never counted again as the original cash bucket. Distribution preserves
+fees/carry and unused market insurance; terminal/recovery events retain their
+existing meanings. RPC reconciliation additionally checks the adopted plan,
+frozen rows and final applied-flow records against the journal.
+
+The normal runtime executable allowlist remains P53B. The P54C candidate harness
+uses a separate fixed-hash ArtifactVerifier and actual LiquidityStore/PostgreSQL,
+finalized block fetch, scoped decoder and account reconciliation. It does not
+silently promote the new program through public runtime configuration. Signed
+payout/recovery/replay results remain pending in STATUS until observed.

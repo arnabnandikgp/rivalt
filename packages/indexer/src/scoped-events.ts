@@ -44,7 +44,7 @@ export function decodeTransition(bytes: Buffer) {
   const reads: ScopedRead[] = [], writes: ScopedWrite[] = [], entities = new Set<string>();
   const entity = () => {
     const account = key(), kind = take(1)[0];
-    if (kind > 16 || entities.has(account)) throw new Error('Duplicate or invalid scoped entity');
+    if (kind > 23 || entities.has(account)) throw new Error('Duplicate or invalid scoped entity');
     entities.add(account); return {account, kind};
   };
   const readCount = u32();
