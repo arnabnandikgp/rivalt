@@ -2,7 +2,6 @@ import {expect,it} from 'vitest';
 import * as sdk from '@rivalt/sdk';
 import {accountFixture} from '../../sdk/src/account-test-fixture.js';
 import {accountClaimAmount,accountBackingCurrent} from './account-settlement-worker.js';
-import {accountRemainderOrders} from './account-worker-state.js';
 
 const SCALE=1_000_000_000n;
 async function fixture(){const value=await accountFixture();return {...value,snapshot:await sdk.readAccountSnapshot(value.rpc,value.config,[value.margins[0]],'confirmed')};}
@@ -26,8 +25,8 @@ it('pays only the selected funded pool, respects full-account health and preserv
 });
 it('backing stamps follow the selected liability and only required source dependencies',async()=>{
   const {snapshot,empty,margins}=await fixture();
-  const registry:sdk.VenueRegistry={discriminator:sdk.VENUE_REGISTRY_DISCRIMINATOR,schemaVersion:9,revision:1n,venue:snapshot.venue,bump:0,members:margins,count:2,membershipVersion:4n};
-  const proof={...empty(sdk.getSettlementCertificateDecoder()),marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2,
+  const registry:sdk.VenueRegistry={discriminator:sdk.VENUE_REGISTRY_DISCRIMINATOR,schemaVersion:9,revision:1n,venue:snapshot.venue,bump:0,nextId:2n,registeredCount:2n,financialCount:2n,membershipEpoch:4n,liveIndex:(await sdk.deriveMemberIndex(snapshot.venue,14,0n))[0]};
+  const proof={...empty(sdk.getSettlementCertificateDecoder()),marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2n,
     liabilityVersion:1n,requiredMarketMask:0};
   expect(accountBackingCurrent(snapshot,registry,proof)).toBe(true);
   snapshot.ledgerStates[1].liabilityVersion++;snapshot.marketStates[1].observationSequence++;
@@ -35,18 +34,4 @@ it('backing stamps follow the selected liability and only required source depend
   snapshot.ledgerStates[0].liabilityVersion++;expect(accountBackingCurrent(snapshot,registry,proof)).toBe(false);
   snapshot.ledgerStates[0].liabilityVersion--;proof.requiredMarketMask=1;
   expect(accountBackingCurrent(snapshot,registry,proof)).toBe(false);
-});
-it('orders creditor remainders exactly with stable registry ties, including values beyond Number precision',async()=>{
-  const {empty}=await fixture(),denominator=1n<<200n;
-  const rows=Array.from({length:4},()=>empty(sdk.getResolutionPageDecoder()).rows[0]);
-  const remainders=[denominator-1n,denominator-2n,denominator-1n,denominator-1n];
-  for(const [index,row] of rows.entries()) {
-    row.claimsScaled=[index===3?-1n:1n,index===0?0n:1n];row.roundedFlows=[2n,0n];
-    for(const market of [0,1]) {
-      let value=market===0?2n*denominator+remainders[index]:BigInt(index);
-      for(let limb=0;limb<96;limb++){row.exactFlowNumerators[market].limbs[limb]=value&((1n<<64n)-1n);value>>=64n;}
-    }
-  }
-  expect(accountRemainderOrders(rows,denominator)).toEqual([[0,2,1,3],[3,2,1,0]]);
-  rows[0].roundedFlows[0]=1n;expect(()=>accountRemainderOrders(rows,denominator)).toThrow(/remainder/);
 });

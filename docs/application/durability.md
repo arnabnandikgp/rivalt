@@ -545,3 +545,23 @@ silently promote the new program through public runtime configuration. Clean
 `c6e08f9` passes partial-Apply/distributed/recovered reconciliation and byte-identical
 131-event fresh replay; [validation](../operations/validation.md#conserving-settlement-p54c)
 records the exact binary, actual token effects and remaining activation limits.
+
+### Canonical membership migration boundary
+
+The P55A2 schema-9 reader uses a fixed registry/source/workspace batch and bounded
+frozen-row page reads with an exact final revision fence. Rate proposals use the
+reduced LCM and count-derived limb storage; they remain untrusted inputs to full
+on-chain verification. Ordinary backing follows the live membership cursor.
+Liquidation, authenticated freeze, source valuation and recovery remain supported.
+The removed schema-8 fixed-cohort continuation instructions are never submitted:
+automatic default continuation returns `canonical-default-automation-awaiting-p56a`
+until P56A qualifies its durable successor. The signed operator qualification
+harness exercises the implemented paged default path meanwhile. This explicit
+worker gate is neither successful settlement nor a claim of end-to-end service
+readiness.
+
+During partial Apply, `Resolution` remains the frozen source certificate.
+`SettlementPlan` owns partial original cash, applied cash and market movements;
+its checkpoints and applied roots must reconcile separately. Source terminal
+counters change only after complete root/vault reconciliation. Reading partial
+plan progress as if it lived in the source is a decoder/projection error.

@@ -30,7 +30,7 @@ it('persists final backing page and payment as one original with receiver-versio
   checkpoint.writeBigUInt64LE(2n,72);checkpoint.writeBigUInt64LE(2n,80);checkpoint[88]=1;
 
   test.put(certificate,sdk.getSettlementCertificateEncoder().encode({...test.empty(sdk.getSettlementCertificateDecoder()),
-    schemaVersion:9,revision:1n,venue,marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2n,next:2n,liabilityVersion:1n,membership:{checkpoint:[...checkpoint]},bump}));
+    schemaVersion:9,revision:1n,venue,marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2n,next:2n,liabilityVersion:1n,membership:{checkpoint},bump}));
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];
   const runtime={rpc:test.rpc,budget:async()=> 'settlement-budget',pendingBudget:async()=>false,
     discovery:async()=>({state:{members:[margin]}}),

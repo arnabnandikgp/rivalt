@@ -1,66 +1,65 @@
-import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
-import {type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
+import {type Address} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import type {Rpc} from '../../indexer/src/rpc.js';
-import {integer} from '../../indexer/src/rpc.js';
+import {decodeAccountWorker,readAccountResolution} from './account-worker-state.js';
 import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposal.js';
 
-/** Current canonical frozen pages, not projected or retained acceptance data.
- * One final batch includes header/registry/safety and the complete <=32 pages.
- * The service's environment additionally authenticates genesis/anchor/artifacts. */
-export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:4=4) {
-  assert(expectedProfile===4,'Unsupported frozen proposal profile.');
-  const component=(name:Parameters<typeof sdk.deriveVenueComponent>[1])=>sdk.deriveVenueComponent(venue,name);
-  const [[resolution,resolutionBump],[safety,safetyBump],[registry,registryBump]]=await Promise.all([component('resolution'),component('safety'),component('registry')]);
-  const decode=<Value>(account:any,discriminator:ReadonlyUint8Array,decoder:Decoder<Value>&{fixedSize?:number})=>{
-    assert(account?.owner===sdk.CLEARING_PROGRAM_ADDRESS&&account.data?.[1]==='base64','Foreign/missing frozen proposal dependency.');
-    const bytes=Buffer.from(account.data[0],'base64');assert(sdk.hex(bytes.subarray(0,8))===sdk.hex(discriminator),'Wrong frozen proposal schema.');
-    if(decoder.fixedSize!==undefined)assert(bytes.length===decoder.fixedSize,'Wrong frozen proposal account size.');
-    return decoder.decode(bytes);
-  };
-  const discovery=await rpc.call('getAccountInfo',[resolution,{encoding:'base64',commitment:'confirmed'}]);
-  const discovered=decode(discovery.value,sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
-  assert(discovered.schemaVersion===9&&discovered.venue===venue&&discovered.epoch===epoch&&discovered.stage===4&&
-    discovered.count>0&&discovered.count<=64,'No complete frozen cohort awaiting proposal.');
-  const pages=await Promise.all(Array.from({length:Math.ceil(discovered.count/2)},(_,index)=>sdk.findResolutionPagePda(venue,index)));
-  const keys=[venue,safety,registry,resolution,...pages.map(([key])=>key)];
-  const response=await rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'confirmed',minContextSlot:integer(discovery.context.slot)}]);
-  assert(response.value?.length===keys.length&&integer(response.context.slot)>=integer(discovery.context.slot),'Incomplete frozen proposal snapshot.');
-  const venueState=decode(response.value[0],sdk.VENUE_DISCRIMINATOR,sdk.getVenueDecoder());
-  const safetyState=decode(response.value[1],sdk.VENUE_SAFETY_DISCRIMINATOR,sdk.getVenueSafetyDecoder());
-  const registryState=decode(response.value[2],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
-  const header=decode(response.value[3],sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
-  const [canonicalVenue,venueBump]=await sdk.deriveAccountVenue(Uint8Array.from(venueState.domain));
-  assert(canonicalVenue===venue&&venueState.bump===venueBump&&venueState.schemaVersion===9&&venueState.profileVersion===expectedProfile&&
-    venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
-  assert(safetyState.schemaVersion===9&&safetyState.venue===venue&&safetyState.bump===safetyBump&&safetyState.mode===2&&safetyState.paused&&
-    safetyState.resolutionEpoch===epoch&&safetyState.epoch===header.safetyEpoch,'Proposal venue is not in the expected freeze.');
-  assert(header.schemaVersion===9&&header.venue===venue&&header.bump===resolutionBump&&header.epoch===epoch&&header.stage===4&&
-    header.cursor===0&&header.evaluation<3&&header.termsEpoch===venueState.termsEpoch&&header.count===discovered.count,'Frozen proposal stage/epoch changed.');
-  assert(registryState.schemaVersion===9&&registryState.venue===venue&&registryState.bump===registryBump&&registryState.count===header.count&&
-    registryState.members.length===header.count&&new Set(registryState.members).size===header.count&&
-    registryState.members.every(member=>member!=='11111111111111111111111111111111'),'Incomplete or duplicate frozen registry.');
-  const registryHash=createHash('sha256').update(sdk.getVenueRegistryEncoder().encode(registryState).slice(8)).digest();
-  assert(sdk.hex(registryHash)===sdk.hex(header.registryHash),'Frozen registry hash mismatch.');
-  const rows:AccountRateInputs['rows']=[];
-  for(const [index,[,bump]] of pages.entries()) {
-    const page=decode(response.value[4+index],sdk.RESOLUTION_PAGE_DISCRIMINATOR,sdk.getResolutionPageDecoder());
-    const count=Math.min(2,header.count-2*index);
-    assert(page.schemaVersion===9&&page.venue===venue&&page.bump===bump&&page.epoch===epoch&&page.pageIndex===index&&page.rowCount===count,
-      'Incomplete or foreign frozen page.');
-    for(let offset=0;offset<count;offset++) {
-      const row=page.rows[offset];assert(row.member===registryState.members[2*index+offset]&&!row.applied,'Wrong frozen member/order/application state.');
-      const debts=row.claimsScaled.reduce((total,value)=>total+(value<0n?-value:0n),0n)/1_000_000_000n;
-      assert(row.collected===(row.cashBefore<debts?row.cashBefore:debts),'Frozen collection mismatch.');
-      rows.push({cash:row.cashBefore,claims:[row.claimsScaled[0],row.claimsScaled[1]]});
+/** Bounded page reads with a final exact-header fence. Frozen rows are immutable
+ * until Apply, which is excluded here. A mixed revision/epoch never supplies a
+ * rate proposal. The program independently checks every uploaded limb/row. */
+export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:5=5) {
+  assert(expectedProfile===5,'Unsupported frozen proposal profile.');
+  const before=await readAccountResolution(rpc,venue),header=before.preparedState;
+  assert(before.header.epoch===epoch&&before.header.stage===2&&header.epoch===epoch&&header.stage===3&&header.count>0n
+    &&header.count===before.header.count&&header.membershipEpoch===before.header.membershipEpoch,'No complete frozen cohort awaiting proposal.');
+  const venueRaw=await rpc.call('getAccountInfo',[venue,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(before.contextSlot)}]);
+  const venueState=decodeAccountWorker(venueRaw.value,sdk.VENUE_DISCRIMINATOR,sdk.getVenueDecoder());
+  const [canonical,bump]=await sdk.deriveAccountVenue(Uint8Array.from(venueState.domain));
+  assert(canonical===venue&&venueState.bump===bump&&venueState.schemaVersion===9&&venueState.profileVersion===expectedProfile
+    &&venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
+  const pageCount=(header.count+7n)/8n,rows:sdk.FrozenMargin[]=[],pages:Address[]=[];
+  for(let start=0n;start<pageCount;start+=8n) {
+    const keys=await Promise.all(Array.from({length:Number(pageCount-start<8n?pageCount-start:8n)},(_,offset)=>sdk.deriveFrozenMarginPage(venue,start+BigInt(offset))));
+    const response=await rpc.call('getMultipleAccounts',[keys.map(([key])=>key),{encoding:'base64',commitment:'confirmed',minContextSlot:Number(before.contextSlot)}]);
+    assert(response.value?.length===keys.length,'Incomplete frozen page batch.');
+    for(const [offset,[key,pageBump]] of keys.entries()) {
+      const index=start+BigInt(offset),page=decodeAccountWorker(response.value[offset],sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,sdk.getFrozenMarginPageDecoder());
+      const length=Number(header.count-index*8n<8n?header.count-index*8n:8n);
+      assert(page.schemaVersion===9&&page.venue===venue&&page.bump===pageBump&&page.epoch===epoch&&page.pageIndex===index
+        &&page.rowCount===length&&page.revision>0n,'Incomplete or foreign frozen page.');
+      for(const row of page.rows.slice(0,length)) {
+        assert(row.activationGeneration>0n&&row.originalRevision>0n
+          &&row.member!=='11111111111111111111111111111111'&&(!rows.length||rows.at(-1)!.id<row.id),'Wrong frozen member/order/application state.');
+        const debts=row.claims.reduce((total,value)=>total+(value<0n?-value:0n),0n)/1_000_000_000n;
+        assert(row.collected===(row.cash<debts?row.cash:debts),'Frozen collection mismatch.');rows.push(row);
+      }
+      pages.push(key);
     }
   }
-  assert(rows.reduce((total,row)=>total+row.cash,0n)===header.cashBefore&&
-    header.budgets.every((budget,index)=>budget<=header.insuranceBefore[index]),'Frozen cash/insurance mismatch.');
-  for(const market of [0,1])assert(rows.reduce((total,row)=>total+(row.claims[market]>0n?row.claims[market]:0n),0n)===header.positiveScaled[market],
-    'Frozen positive-claim aggregate mismatch.');
-  const proposal=proposeAccountRates({rows,pools:[header.poolsBefore[0],header.poolsBefore[1]],budgets:[header.budgets[0],header.budgets[1]]});
-  assert(header.common.limbs.reduceRight((total,limb)=>(total<<64n)+limb,0n)===proposal.common,'Frozen common denominator mismatch.');
-  return {resolution,header,registry:registryState,pages:pages.map(([key])=>key),proposal,contextSlot:integer(response.context.slot)};
+  assert(new Set(rows.map(row=>row.member)).size===rows.length,'Duplicate frozen roots.');
+  const insurance=Buffer.from(before.ratesState.state.insurance);
+  assert(before.ratesState.epoch===epoch&&insurance.length===64&&insurance[0]===1&&insurance[2]<=3
+    &&insurance.readBigUInt64LE(8)===header.insurance[0]&&insurance.readBigUInt64LE(16)===header.insurance[1],'Foreign insurance checkpoint.');
+  const budgets:[bigint,bigint]=[insurance.readBigUInt64LE(24),insurance.readBigUInt64LE(32)];
+  assert(budgets.every((value,index)=>value<=header.insurance[index]),'Invalid insurance budget.');
+  const input:AccountRateInputs={rows:rows.map(row=>({cash:row.cash,claims:[row.claims[0],row.claims[1]]})),
+    pools:[header.pools[0],header.pools[1]],budgets};
+  assert(input.rows.reduce((sum,row)=>sum+row.cash,0n)===before.header.cashBefore,'Frozen cash aggregate mismatch.');
+  const proposal=proposeAccountRates(input),denominator=Buffer.from(header.state.denominator);
+  assert(denominator[0]===1&&denominator[1]===3,'Incomplete common denominator.');
+  const register=denominator[2],used=denominator.readBigUInt64LE(24);assert(used>0n&&used<=proposal.capacity);
+  const limbs:bigint[]=[];
+  for(let index=0n;index<(used+255n)/256n;index++) {
+    const [key,pageBump]=await sdk.deriveSettlementLimbPage(venue,register,index);
+    const response=await rpc.call('getAccountInfo',[key,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(before.contextSlot)}]);
+    const page=decodeAccountWorker(response.value,sdk.SETTLEMENT_LIMB_PAGE_DISCRIMINATOR,sdk.getSettlementLimbPageDecoder());
+    assert(page.schemaVersion===9&&page.venue===venue&&page.bump===pageBump&&page.epoch===epoch&&page.register===register&&page.pageIndex===index,'Foreign common denominator page.');
+    limbs.push(...page.payload.words.slice(0,Number(used-index*256n<256n?used-index*256n:256n)));
+  }
+  assert(limbs.reduceRight((total,word)=>(total<<64n)+word,0n)===proposal.common,'Frozen common denominator mismatch.');
+  const after=await readAccountResolution(rpc,venue);
+  assert(before.raw.every((bytes:Buffer,index:number)=>bytes.equals(after.raw[index])),'Frozen proposal stage/revision changed; reread.');
+  return {resolution:before.resolution,header:before.header,prepared:header,registry:before.registryState,pages,rows,proposal,
+    contextSlot:after.contextSlot,input};
 }

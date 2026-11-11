@@ -155,8 +155,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     for(const field of ['epoch','stage','cursor','count','registryHash','termsEpoch','configEpochs','sourceObservations','sourceDeadlines','prices','funding','frozenAt',
       'cashBefore','poolsBefore','insuranceBefore','feesBefore','allocatedBefore'] as const)
       assert.deepEqual(header[field],expected[field],`Resolution ${field}`);
-    if(expected.stage===14)for(const [field,value] of Object.entries({scannedCash:expected.remainingCash,cashApplied:expected.appliedCash,
-      remainingLots:expected.remainingLots,remainingGross:expected.remainingGross,remainingClaims:expected.remainingClaims}))assert.deepEqual(header[field],value,`Partial Apply ${field}`);
+    if(expected.stage===14)reconcileFrozenSourceDuringApply(header,expected);
     assert.equal(header.membershipEpoch,expected.membershipEpoch);
     assert.equal(header.liveIndex,(await sdk.deriveMemberIndex(venue,14,0n,program))[0]);
   }
@@ -167,4 +166,16 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   const actual=token.readBigUInt64LE(64),allocated=BigInt(state.custody!.allocatedVault);assert(actual>=allocated,'Vault deficit');
   return {cursor:state.sequence,minSlot:String(minSlot),maxSlot:String(maxSlot),accounts:keys.length,members:state.members.length,
     actualVault:actual.toString(),allocatedVault:allocated.toString(),unallocatedSurplus:(actual-allocated).toString(),resolutionStage:state.resolution?.stage??null};
+}
+
+/** The adopted source remains the freeze certificate until complete settlement.
+ * Partial ownership belongs to SettlementPlan + authenticated applied roots;
+ * reconcileSettlementScratch independently compares every plan cash counter. */
+export function reconcileFrozenSourceDuringApply(header:Record<string,unknown>,expected:NonNullable<AccountState['resolution']>) {
+  const gross=[0n,0n];
+  const rows=Object.values(expected.rows);assert.equal(BigInt(rows.length),BigInt(expected.count),'Complete original cohort');
+  for(const row of rows)for(const market of [0,1]){const lots=BigInt(row.lots[market]);gross[market]+=lots<0n?-lots:lots;}
+  const frozen={scannedCash:'0',cashApplied:'0',remainingLots:['0','0'],remainingGross:gross.map(String),
+    remainingClaims:expected.poolsBefore.map(pool=>(BigInt(pool)*1_000_000_000n).toString())};
+  for(const [field,value] of Object.entries(frozen))assert.deepEqual(header[field],value,`Adopted frozen source ${field}`);
 }

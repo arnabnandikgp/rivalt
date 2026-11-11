@@ -29,7 +29,11 @@ export async function openSettlementJournal(rpc:WireRpc,setup:Awaited<ReturnType
       const prior=await store.snapshot(),current=await history();
       await store.commit(current.blocks,current.invocations,current.head,prior.checkpoint);
       const snapshot=await store.snapshot();
-      const reconciliation=await reconcileAccountSnapshot(snapshot.state,binding,read);
+      const reads:{keys:string[];response:unknown}[]=[];
+      let reconciliation;
+      try {reconciliation=await reconcileAccountSnapshot(snapshot.state,binding,async keys=>{
+        const response=await read(keys);reads.push({keys,response});return response;
+      });} finally {writeFileSync(`${process.env.RIVALT_RUN_DIR}/sql-${name}-snapshot.json`,json({state:snapshot.state,binding,reads}));}
       captures.push({name,state:snapshot.state,reconciliation});
       writeFileSync(`${process.env.RIVALT_RUN_DIR}/application-sql-checkpoints.json`,json(captures));
     } finally {await store.close();store=undefined;}

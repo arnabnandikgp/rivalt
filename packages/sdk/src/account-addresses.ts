@@ -65,3 +65,16 @@ export function deriveMemberPath(venue:Address,id:bigint) {
   memberIndexBytes(id);
   return Promise.all(Array.from({length:15},(_,level)=>deriveMemberIndex(venue,level,(id/64n)>>BigInt(4*(level+1)))));
 }
+
+/** Reusable recovery addresses contain no epoch seed. Every payload/continuation
+ * separately authenticates the locked epoch before these accounts can be used. */
+export function deriveSettlementWorkspace(venue:Address,kind:'prepared'|'rates'|'plan',programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
+  const prefix={prepared:'prepared-settlement',rates:'settlement-rates',plan:'settlement-plan'}[kind];
+  return derive(prefix,[encoder.encode(venue)],programAddress);
+}
+export function deriveFrozenMarginPage(venue:Address,page:bigint,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
+  return derive('frozen-margin-page',[encoder.encode(venue),memberIndexBytes(page)],programAddress);
+}
+export function deriveSettlementLimbPage(venue:Address,register:number,page:bigint,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
+  return derive('resolution-limbs',[encoder.encode(venue),namespaceIndexBytes(register),memberIndexBytes(page)],programAddress);
+}

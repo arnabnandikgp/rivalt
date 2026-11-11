@@ -16,6 +16,8 @@ import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import type {ExpectedInstructionError} from './instruction-errors.js';
 import {denominatorPages} from './settlement-page-plan.js';
 const directory=process.env.RIVALT_RUN_DIR!;
+const runSource={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
+  trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()};
 const serialize=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint'?item.toString():item,2)+'\n';
 const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:label=>label.startsWith('P54')?1_000_000:800_000});
@@ -189,8 +191,7 @@ try {
     .map(entry=>({program:sdk.CLEARING_PROGRAM_ADDRESS,...entry}));
   const parity=await conformance.finish(directory,accountKeys,h.read);
   const rent=await Promise.all(accountKeys.map(async entry=>({name:entry.name,key:entry.key,lamports:String((await rpc.call('getAccountInfo',[entry.key,{encoding:'base64',commitment:'finalized'}])).value.lamports)})));
-  const result={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
-    trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
+  const result={...runSource,endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     build:JSON.parse(readFileSync(`${process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR}/build-manifest.json`,'utf8')),checks,parity,rent,
     count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,planResult,applicationResult,sqlResult,limitations:applicationResult?['temporary Financial admission <=64','no expanded trading','internal makers and synthetic prices','candidate-specific SQL harness; normal runtime allowlist unchanged']:['temporary Financial admission <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
   writeFileSync(`${directory}/result.json`,serialize(result));console.log(serialize({checks:checks.length,continuations,rateContinuations:rateResult.continuations,rateEvaluations:rateResult.reference.evaluations.length,common:expectedCommon,parity}));

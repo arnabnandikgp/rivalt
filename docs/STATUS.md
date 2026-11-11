@@ -729,8 +729,18 @@ in [validation](operations/validation.md#canonical-account-lifecycle-p55a2-inter
 The ordinary backing worker now follows authenticated bounded membership requests
 and atomically pairs final traversal completion with payment; four targeted
 consumer checks pass. Default setup uses actual pre-funded storage and explicit
-Financial entry. Complete-default/RPC/WS/PostgreSQL, remaining service/test
-migration, full typecheck and wire-delta validation are still outstanding. P55A2
+Financial entry. The first canonical complete-default run (`4c8dd27` harness / `583dbcb` SBF)
+reaches the first actual Apply, with independent rate/graph checks passing, then
+fails PostgreSQL partial reconciliation: the indexer compares frozen source fields
+to partial plan counters. The source/plan ownership check is corrected with a
+focused regression; 17 affected rate/projection/reconciliation checks and three
+frozen-reader checks pass. This failed run remains at
+`.local/scalable-settlement/runs/p55a2-default-583dbcb/`; it does not qualify
+complete default. The schema-9 rate reader uses reduced-LCM/count-derived limb
+proposals and revision fences. Automatic default continuation explicitly blocks
+until P56A's durable successor; removed schema-8 instructions cannot be submitted.
+Complete-default/RPC/WS/PostgreSQL, remaining consumer tests/typecheck and wire-delta
+validation are still outstanding. P55A2
 is Active, with no new PR or selected-artifact promotion. No user decision/access
 blocker is known. Next exact action: run the migrated complete-default qualification
 against `583dbcb`, resolve actual failures, then finish required consumers/checks
