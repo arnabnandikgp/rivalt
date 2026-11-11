@@ -5,6 +5,7 @@ pub mod cohort_denominator;
 pub mod collection;
 pub mod comparison;
 pub mod denominator;
+pub mod membership;
 pub mod pages;
 pub mod snapshot;
 pub mod wide;

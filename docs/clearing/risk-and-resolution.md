@@ -174,6 +174,7 @@ Encodings use little-endian integers and zero reserved/unused opcode bytes:
 | LCM | 224 | Stage, three IDs, used/span/divisor, scan/result lengths and the complete arithmetic checkpoint. Check stage-specific operand bindings, divisor relationships, used+2 span, scan/completion consistency and reserved bytes. |
 | Comparison | 40 | Width, two IDs, remaining high-to-low words and pending/less/equal/greater result. Check range/completion consistency; equal is terminal only after all words. |
 | Cohort denominator | 320 | Frozen count, processed ordinal, last stable ID, used common length, alternating common register and nested LCM checkpoint. Check stage/operand bindings and expose the denominator only after every row. |
+| Membership | 544 | Frozen count, path depth/stage, page mask/count and fifteen radix traversal frames. Check complete subtree counts, canonical child path, processed ordinal and terminal replay. Program-owned nodes/pages and a frozen membership epoch are separate required authority. |
 | Valuation totals | 288 | Frozen count/custody/pool/insurance/fee/gross-OI bindings; processed ordinal/last ID; cash, signed quantities and gross totals; separate unsigned positive/negative claim totals. Check complete conservation before accepting the final row. |
 
 `accesses()` returns the exact next register/word permissions before execution.
@@ -218,8 +219,10 @@ checkpoint and page revisions in the same successful transaction.
 These codecs validate syntax and internal scalar consistency, **not historical
 execution**. Decode only authenticated program-owned work; a caller's cursor is
 never proof of completed work. Native account-loader tests do not establish a
-signed chain transition. Frozen membership/source authentication, the owning
-controller, rate/proposal reset, bounded normalization and actual signed resource
+signed chain transition. The bounded membership traversal and canonical account readers now follow the
+[reserved index contract](accounts.md#successor-membership-reads-p54b-inactive).
+Frozen-epoch/source/root authentication, the owning controller, rate/proposal reset,
+bounded normalization and actual signed resource
 acceptance remain unfinished. No public handler initializes or consumes these
 reserved accounts yet; current schema-8 financial accounts, selected binaries and
 enabled capacity are unchanged. This is not acceptance of on-chain settlement.
@@ -233,6 +236,10 @@ complete live-index count/root, terms, source prices, both funding endpoints and
 allocated custody/pools. Unvalued pages cannot be omitted, duplicated or reordered;
 the cursor follows authenticated index paths, not an uploader's private list.
 Value checks every root's role/mode, q/claim/cash bounds and complete conservation.
+Advancing to Denominator requires both `SnapshotScan::result()` and terminal
+`MembershipCursor::request() == Request::Done`; consuming the last row alone does not skip the
+remaining ancestor-count checks. Persist a valued row, both cursors and relevant
+page revisions atomically.
 
 Proposal bytes are bounded by the proved count-derived width, tagged by epoch and
 attempt, and never written into arbitrary program-owned accounts. A new attempt

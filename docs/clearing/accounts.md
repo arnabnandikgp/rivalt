@@ -127,6 +127,49 @@ market gross OI stay unchanged. Funding-index rebasing in P58D must preserve eac
 economic claim exactly; P60 namespace/order expansion must rerun the relevant
 arithmetic and retirement proofs rather than exploit spare field widths silently.
 
+### Successor membership reads (P54B, inactive)
+
+`MemberIndexNode` and `MemberPage` now implement the reserved 190-/2,699-byte
+read layouts above; no current instruction creates/mutates them. The Borsh wrapper
+around the boxed 64-entry array adds no wire bytes. An entry's 41 bytes are root
+address, lifecycle u8 and activation generation u64. Codes are 0 unallocated,
+1 Registered, 2 Financial and 3 Retired; unallocated entries remain all zero.
+A Financial entry must be allocated, have a nonzero root and generation, and still
+match the actual canonical margin root before valuation. P55 owns registration,
+activation, tombstones, storage funding and complete mutation coverage.
+
+Index-node seeds are `member-index`, venue, level u8, prefix LE-u64 and bump.
+Member-page seeds are `member-page`, venue, page-index LE-u64 and bump. Nodes have
+level at byte 50, prefix at 51, populated mask at 59, 16 u64 child Financial counts
+at 61 and bump at 189. Member pages have index at 50, allocated mask at 58,
+financial mask at 66, 64 entries at 74 and bump at 2,698. Current native loader
+checks match these literal layouts and name-derived discriminators.
+
+A u64 member ID maps to page `id/64` and bit `id%64`. Its 58 page bits require
+15 radix-16 levels, numbered 14 (root) through 0 (parent of member pages). Root
+prefix is zero; a node child is `prefix*16+slot`. At level 0 it is a page index;
+otherwise it is the next node prefix. Counts are Financial roots, not populated
+pages. Bits and nonzero counts must agree, child counts must sum exactly, and
+children outside the u64 ID namespace reject. In particular root slots 4–15 are
+unreachable, and a level-0 child count cannot exceed 64.
+
+The 544-byte internal `MembershipCursor` fixes the next canonical node, page or
+member from the frozen root/count. It retains at most 15 bounded path frames,
+verifies every subtree count on return, consumes financial bits in ascending ID
+order and commits an ordinal only after successful row valuation. Work is one
+bounded node/page/member transition; whole traversal has exactly
+`N + 2*(index_nodes + member_pages)` such requests including terminal observation.
+This is logical work, not measured transactions or CU. No population-sized stack,
+private keeper list or skipped empty-looking financial root is permitted.
+
+The read adapter authenticates program ownership, exact layout, venue, requested
+level/prefix/index and PDA before advancing. **It does not itself freeze data.**
+The owning controller must bind the safety/membership epoch and prohibit index,
+entry and root mutation for that frozen snapshot; checking a count or caller's
+checkpoint cannot substitute for those locks. Full root role/mode/ID/generation
+and source/funding authentication, public handlers and signed acceptance remain
+unfinished. Existing schema-8 account creation/trading limits are unchanged.
+
 ### Successor limb-page layout (P54B, inactive)
 
 The first concrete scratch type is `SettlementLimbPage`; it is reserved schema 9,

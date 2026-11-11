@@ -47,6 +47,12 @@ in the current account/risk contracts. Three-word unsigned claim totals preserve
 the <2^151 aggregate bound; no u128 population sum or early positive/negative
 cancellation replaces it. Native prefix/loader checks do not authenticate frozen
 membership or authorize a payout; public handlers and signed acceptance remain open.
+P54B now implements the read side of P51B's reserved financial-index interfaces.
+Its 15 radix levels derive from u64 IDs and 64 entries/page; the fixed 544-byte
+cursor verifies complete count-conserving traversal in stable ID order. Node/page
+loaders authenticate their requested canonical account, while the owning frozen
+epoch must separately prohibit mutation and bind each actual margin root. P55
+still owns membership mutation/provisioning; no account capacity is enabled here.
 
 ## D95 — separate price-policy consolidation from calibration (11 November 2026)
 

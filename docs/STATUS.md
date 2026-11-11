@@ -20,7 +20,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
-| P54B authenticated frozen/rate work | In progress — inactive | Cursor codecs, direct account-page loader and bounded valuation/denominator schedules implemented; frozen membership/controller, rate work and signed acceptance remain |
+| P54B authenticated frozen/rate work | In progress — inactive | Page/index readers and bounded membership/valuation/denominator cursors implemented; frozen-epoch/root binding, rate work and signed acceptance remain |
 | P54C–P62 successor implementation | Planned | Conserving on-chain application, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -277,9 +277,12 @@ artifact or larger-account acceptance is inferred. The cohesive P54B PR awaits i
 actual signed acceptance. Remaining work is frozen complete membership/source
 binding, owning on-chain control, rate/proposal reset and signed RPC/WS verification
 with full-context CU/wire/stack/rent measurements. P54C still owns Apply and recovery.
-No access blocker is known. Next exact action: implement authenticated complete
-financial-index traversal and bind the frozen-input controller to these checked
-valuation and denominator cursors.
+The next local checkpoint implements the bounded complete financial-index
+traversal and canonical index/page/entry readers. Development native tests pass;
+a clean pinned rerun is next. The read interfaces do not yet freeze membership,
+authenticate actual margin-root valuation or provide a public instruction.
+No access blocker is known. Next exact action: pin/verify these membership reads,
+then connect the owning frozen-epoch/root-valuation handler to the checked cursors.
 
 ## Integrated quantity work
 

@@ -7,9 +7,11 @@ use crate::state::{
 use anchor_lang::prelude::*;
 
 mod layouts;
+mod membership;
 mod resolution;
 mod settlement;
 pub use layouts::*;
+pub use membership::*;
 pub use resolution::*;
 pub use settlement::*;
 
