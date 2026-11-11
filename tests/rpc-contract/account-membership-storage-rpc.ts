@@ -47,7 +47,7 @@ try {
   const reject=async(label:string,instruction:Instruction,error=sdk.CLEARING_ERROR__RESOLUTION,signers:typeof payer[]=[])=>{
     const before=await snapshot();await h.send(`P55 reject ${label}`,[instruction],signers,error);assert.deepEqual(await snapshot(),before,label);
   };
-  const lifecycle=await prepareMembershipLifecycle(h,rpc,flush,{...common,custody,vault},mint.address,markets,ledgers,tracked);
+  const lifecycle=await prepareMembershipLifecycle(h,rpc,flush,{...common,custody,vault},mint.address,markets,ledgers,tracked,checks);
   await reject('non-authority growth',sdk.getBeginRecoveryProvisionInstruction({...admin,authority:attacker,capacity:128n,revision:(await state()).revision}),2001,[attacker]);
   await reject('zero capacity',sdk.getBeginRecoveryProvisionInstruction({...admin,capacity:0n,revision:(await state()).revision}));
   await reject('overflow capacity',sdk.getBeginRecoveryProvisionInstruction({...admin,capacity:0xffffffffffffffffn,revision:(await state()).revision}));

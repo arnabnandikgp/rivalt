@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {AccountRole,address,type Address} from '@solana/kit';
+import {address,type Address} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
@@ -30,7 +30,7 @@ export function accountClaimAmount(snapshot:sdk.AccountSnapshot,margin:Address,m
 
 export function accountBackingCurrent(snapshot:sdk.AccountSnapshot,registry:sdk.VenueRegistry,proof:sdk.SettlementCertificate) {
   const selected=proof.marketIndex;
-  if(proof.safetyEpoch!==snapshot.safetyState.epoch||proof.membershipVersion!==registry.membershipVersion||proof.count!==registry.count||
+  if(proof.safetyEpoch!==snapshot.safetyState.epoch||proof.membershipVersion!==registry.membershipEpoch||proof.count!==registry.financialCount||
     proof.liabilityVersion!==snapshot.ledgerStates[selected].liabilityVersion)return false;
   return snapshot.marketStates.every((market,index)=>{
     if(!(proof.requiredMarketMask&(1<<index)))return true;
@@ -69,8 +69,8 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
     const response=await runtime.rpc.call('getMultipleAccounts',[[snapshot.registry,certificate],{encoding:'base64',commitment:'confirmed'}]);
     const registry=decodeAccountWorker(response.value[0],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
     const [,registryBump]=await sdk.deriveVenueComponent(snapshot.venue,'registry');
-    assert(registry.schemaVersion===9&&registry.venue===snapshot.venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
-      registry.members.length===registry.count&&new Set(registry.members).size===registry.count,'Invalid backing registry');
+    assert(registry.schemaVersion===9&&registry.venue===snapshot.venue&&registry.bump===registryBump&&registry.financialCount>0n&&registry.financialCount<=registry.registeredCount&&registry.registeredCount<=registry.nextId&&
+      registry.liveIndex===(await sdk.deriveMemberIndex(snapshot.venue,14,0n))[0],'Invalid backing registry');
     if(!response.value[1]) {
       await runtime.enqueue(`keeper:certificate:${marketIndex}`,[sdk.routeComputeBudget(),
         sdk.getInitializeMarketBackingInstruction({...snapshot,payer:key,certificate,marketIndex})],key,budget,null,true);
@@ -82,17 +82,23 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
     const complete=current&&proof.complete&&proof.next===proof.count;
     try {
       if(!complete) {
-        const start=current&&!proof.complete?proof.next:0,members=registry.members.slice(start,start+2);
-        assert(members.length>0,'Empty backing page');
-        const instruction=sdk.getCheckMarketBackingInstruction({...snapshot,certificate,ledger:snapshot.ledgers[marketIndex],start});
-        const page={...instruction,accounts:[...instruction.accounts,...members.map(address=>({address,role:AccountRole.READONLY}))]};
+        // A relevant observation can invalidate a scan before it has encountered
+        // that market's debtor. Restart under the same rule as the on-chain scan.
+        const restart=!current||proof.observations.some((value,index)=>value!==snapshot.marketStates[index].observationSequence);
+        const request=restart?sdk.initialMembershipRequest(registry.financialCount):
+          sdk.membershipRequest(proof.membership.checkpoint,proof.count);
+        assert(request.kind!=='done','Complete cursor without completed backing');
+        const remaining=await sdk.membershipRequestAccounts(runtime.rpc,snapshot.venue,request);
+        const instruction=sdk.getCheckMarketBackingInstruction({...snapshot,certificate,ledger:snapshot.ledgers[marketIndex],
+          revision:proof.revision,restart});
+        const page={...instruction,accounts:[...instruction.accounts,...remaining]};
         const amount=accountClaimAmount(snapshot,margin,marketIndex,true);
-        const payOnCompletion=start+members.length===registry.count&&amount>0n;
-        // The final page can discover a new debtor-source dependency. Supply both
-        // bounded markets and let clearing authenticate the completed certificate.
+        // Traversal closes its ancestor frames after the final root. The final
+        // root alone is not a complete-cohort proof.
+        const payOnCompletion=!restart&&request.kind==='node'&&request.level===14&&proof.next===proof.count&&amount>0n;
         const payment=payOnCompletion?sdk.getPayAccountGainInstruction({...snapshot,actor:key,margin,certificate,marketIndex,amount,
           ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex)}):undefined;
-        await runtime.enqueue(`keeper:proof:${marketIndex}:${snapshot.ledgerStates[marketIndex].liabilityVersion}:${registry.membershipVersion}:${snapshot.marketStates.map(market=>market.observationSequence).join(':')}:${start}`,
+        await runtime.enqueue(`keeper:proof:${marketIndex}:${snapshot.ledgerStates[marketIndex].liabilityVersion}:${registry.membershipEpoch}:${snapshot.marketStates.map(market=>market.observationSequence).join(':')}:${proof.revision}`,
           [sdk.resolutionComputeBudget(),page,...(payment?[payment]:[])],key,budget,
           payment?{kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()}:null,true);
         return {status:'queued',reason:payment?'atomic-backing-page-and-gain':'complete-market-backing-page'};

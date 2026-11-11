@@ -12,7 +12,7 @@ import type {WireRpc} from './wire.js';
 type Common=Awaited<ReturnType<typeof addresses>>&{venue:Address;safety:Address;storage:Address;custody:Address;vault:Address};
 type Allocation={kind:number;register:number;page:bigint;key:Address;receipt:Address};
 export async function prepareMembershipLifecycle(h:CanonicalHarness,rpc:WireRpc,flush:()=>Promise<void>,common:Common,
-  mint:Address,markets:Address[],ledgers:Address[],tracked:Set<Address>) {
+  mint:Address,markets:Address[],ledgers:Address[],tracked:Set<Address>,checks:Record<string,unknown>[]) {
   const payer=await payerKey(),[registry]=await sdk.deriveVenueComponent(common.venue,'registry');
   const base={...common,registry},admin={...base,authority:payer};
   const parity=new Map<Address,string>();
@@ -126,12 +126,14 @@ export async function prepareMembershipLifecycle(h:CanonicalHarness,rpc:WireRpc,
     await h.send('P55 terminally retire whole venue',[sdk.getRetireAccountsInstruction({...identity,resolution:undefined,safetyEpoch:safetyState.epoch})]);
     let refundTotal=0n;
     for(const item of refundable) {
-      const before=await balances(item.key),instruction=await refund(item);
+      const before=await balances(item.key),payerBefore=await balances(payer.address),instruction=await refund(item);
       await h.send('P55 refund terminal allocation to recorded rent payer',[instruction]);
+      await flush();
       const after=await balances(item.key),tomb=sdk.getStorageTombstoneDecoder().decode((await h.read(item.key))!);
       assert.equal((await h.read(item.key))!.length,72);assert.equal(after,await h.rent(72));
       assert.equal(tomb.originalKind,[17,22,23,18,21][item.kind]);assert.equal(tomb.register,item.register);assert.equal(tomb.pageIndex,item.page);
       assert.equal(sdk.getStorageFundingDecoder().decode((await h.read(item.receipt))!).rentPayer,payer.address);
+      assert.equal(await balances(payer.address)-payerBefore,before-after-BigInt(String(checks.at(-1)!.feeLamports)));
       refundTotal+=before-after;track(item.key,'storageTombstone');
     }
     assert.equal(refundable.length,5);

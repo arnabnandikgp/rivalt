@@ -704,8 +704,16 @@ The fix keeps one market snapshot and places bounded traversal in a separate
 non-inlined call. Clean **`65c14bf`** builds all three qualification SBF programs
 without oversized-stack diagnostics; clearing is 2,335,664 bytes, SHA-256
 `2db51e364f0a8acc2aebe0da9c407a62d95e6b648a035c9954ee0aa86c0d0e01`.
-The signed lifecycle probe now targets that candidate; no signed schema-9 result
-is claimed before the fresh run completes.
+Harness **`eb22de5`** against that candidate passes the exercised registration,
+entry/re-entry, stale-predecessor rejection, real SPL deposit/withdrawal and empty
+retirement assertions, then fails the live-refund negative at simulation: Anchor
+2040 rejects an authority wallet also being the recorded rent payer. This is a
+partial failed run, not lifecycle acceptance. Its 398 fetched transactions remain
+at `.local/scalable-settlement/runs/p55a2-lifecycle-eb22de5/`. The context now
+permits that specific untyped payer overlap, retaining immutable destination and
+all other mutable-account guards; a fresh build/run is required. The SDK bounded
+scan decoder and migrated ordinary backing worker pass four focused consumer
+cases; no progress-under-continuous-activity claim is made.
 
 Service controllers, existing RPC harnesses and remaining consumer tests still
 need migration; full typecheck is not yet green. Signed lifecycle/race/

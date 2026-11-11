@@ -184,7 +184,12 @@ export type RefundRecoveryAllocationAsyncInput<
    */
   allocation: TAccountAllocation;
   receipt?: TAccountReceipt;
-  /** CHECK: lamport credit only, bound to the immutable creation payer. */
+  /**
+   * CHECK: lamport credit only, bound to the immutable creation payer.
+   * SAFETY: authority may also be the recorded payer. Both are untyped views;
+   * only rent_payer writes lamports, after all authority checks. The other
+   * mutable accounts retain duplicate guards and cannot alias this destination.
+   */
   rentPayer: TAccountRentPayer;
   /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority?: TAccountEventAuthority;
@@ -445,7 +450,12 @@ export type RefundRecoveryAllocationInput<
    */
   allocation: TAccountAllocation;
   receipt: TAccountReceipt;
-  /** CHECK: lamport credit only, bound to the immutable creation payer. */
+  /**
+   * CHECK: lamport credit only, bound to the immutable creation payer.
+   * SAFETY: authority may also be the recorded payer. Both are untyped views;
+   * only rent_payer writes lamports, after all authority checks. The other
+   * mutable accounts retain duplicate guards and cannot alias this destination.
+   */
   rentPayer: TAccountRentPayer;
   /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
@@ -654,7 +664,12 @@ export type ParsedRefundRecoveryAllocationInstruction<
      */
     allocation: TAccountMetas[4];
     receipt: TAccountMetas[5];
-    /** CHECK: lamport credit only, bound to the immutable creation payer. */
+    /**
+     * CHECK: lamport credit only, bound to the immutable creation payer.
+     * SAFETY: authority may also be the recorded payer. Both are untyped views;
+     * only rent_payer writes lamports, after all authority checks. The other
+     * mutable accounts retain duplicate guards and cannot alias this destination.
+     */
     rentPayer: TAccountMetas[6];
     /** CHECK: Only the event authority can invoke self-CPI */
     eventAuthority: TAccountMetas[7];

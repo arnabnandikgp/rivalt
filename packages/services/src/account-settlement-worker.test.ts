@@ -21,10 +21,16 @@ it('persists final backing page and payment as one original with receiver-versio
   test.put(ledger,sdk.getMarketLedgerEncoder().encode(ledgerState));
   const keys=await accountWorkerKeys(venue),[,registryBump]=await sdk.deriveVenueComponent(venue,'registry');
   test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:9,revision:1n,venue,
-    membershipVersion:4n,count:2,members:test.margins,bump:registryBump}));
+    membershipEpoch:4n,nextId:2n,registeredCount:2n,financialCount:2n,liveIndex:(await sdk.deriveMemberIndex(venue,14,0n))[0],bump:registryBump}));
   const [certificate,bump]=await sdk.deriveSettlementCertificate(venue,0);
+  // Literal serialized final root-frame visit after two Financial roots. This
+  // continuation closes traversal; member ordinal 2 is not an account ID.
+  const checkpoint=Buffer.alloc(544);checkpoint[0]=1;
+  checkpoint.writeBigUInt64LE(2n,8);checkpoint.writeBigUInt64LE(2n,16);
+  checkpoint.writeBigUInt64LE(2n,72);checkpoint.writeBigUInt64LE(2n,80);checkpoint[88]=1;
+
   test.put(certificate,sdk.getSettlementCertificateEncoder().encode({...test.empty(sdk.getSettlementCertificateDecoder()),
-    schemaVersion:9,revision:1n,venue,marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2,liabilityVersion:1n,bump}));
+    schemaVersion:9,revision:1n,venue,marketIndex:0,safetyEpoch:2n,membershipVersion:4n,count:2n,next:2n,liabilityVersion:1n,membership:{checkpoint:[...checkpoint]},bump}));
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];
   const runtime={rpc:test.rpc,budget:async()=> 'settlement-budget',pendingBudget:async()=>false,
     discovery:async()=>({state:{members:[margin]}}),

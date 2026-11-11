@@ -179,6 +179,9 @@ pub struct RefundRecoveryAllocation {
         has_one=venue,constraint=receipt.allocation == *allocation.address() @ ClearingError::Resolution)]
     pub receipt: Box<BorshAccount<StorageFunding>>,
     /// CHECK: lamport credit only, bound to the immutable creation payer.
-    #[account(mut,address=receipt.rent_payer)]
+    /// SAFETY: authority may also be the recorded payer. Both are untyped views;
+    /// only rent_payer writes lamports, after all authority checks. The other
+    /// mutable accounts retain duplicate guards and cannot alias this destination.
+    #[account(mut,unsafe(dup),address=receipt.rent_payer)]
     pub rent_payer: UncheckedAccount,
 }
