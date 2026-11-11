@@ -55,6 +55,18 @@ databases and unresolved originals with their original executor; do not relabel,
 delete or copy pending financial intents into a new journal. Mixed-format startup
 rejects explicitly. P52 qualification needs no new program build.
 
+### Canonical membership candidate (P55A2)
+
+D100/D101 introduce schema 9 / local profile 5 in source and candidate artifacts.
+This is an incompatible fresh-domain deployment: u64 member IDs, u32 namespace
+seeds, paged membership, reusable rent-backed recovery storage and tombstones.
+P55A2's signed acceptance does not promote `.local/anchor-rc2/current`; that path
+still contains the retained P53B schema-8 artifact set. Current-runtime launchers
+reject that schema mismatch before deployment. Use the explicit candidate probes
+in validation for P55A2; full clients/workers and populated-cohort qualification
+must pass P56 before any new runtime selection. Never reuse an old database,
+account namespace, decoder or unresolved original across this boundary.
+
 ## Running an operator against an explicit deployment
 
 Create a private JSON file (`chmod 600`) containing `schemaVersion: 4`,

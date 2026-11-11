@@ -43,7 +43,7 @@ dependencies, not optional later repairs after lifting the registration limit.
 ### P55A implementation boundary
 
 P55A1's accepted native foundation separates u64 scalar identity from the retained
-small reference-cohort array size. P55A2's in-progress source now implements schema-9
+small reference-cohort array size. P55A2's source implements schema-9
 roots/header/pages, owner-controlled activation/deactivation, permanent same-address
 retirement and pre-funded capacity checks. The selected qualified runtime is still
 schema 8; new source, IDL and clients require fresh-domain acceptance before use.
@@ -61,8 +61,8 @@ cohort solver/mirror entrypoints are deliberately retired (D101). Whole-venue
 retirement and the existing conservative backing scan now traverse the same index;
 P55B still owns maintained backing and progress under concurrent financial changes.
 The scoped journal records the narrowly authorized root-kind transition 5→26 on
-retirement; no other instruction may relabel that root. Native checks are not
-signed lifecycle, SDK or PostgreSQL acceptance.
+retirement; no other instruction may relabel that root. Pinned signed lifecycle, custody, interleaving and complete-default/SQL checks
+are recorded in validation; they do not qualify expanded Financial admission.
 
 ### Identity and membership invariants
 

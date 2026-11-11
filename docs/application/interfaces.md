@@ -3,10 +3,10 @@
 ## Planned account-scale interface (P51B)
 
 The schema-9/profile-5 [account contract](../clearing/accounts.md#account-scale-successor-contract-p51b)
-is now implemented in the in-progress P55A2 source and generated codecs. The
+is implemented in the P55A2 source and generated codecs. The
 selected, qualified artifact remains schema 8; these clients cannot reinterpret
 that deployment. P55A2 has a pinned schema-9 candidate and signed lifecycle/default evidence;
-remaining consumer acceptance and runtime promotion are tracked in STATUS.
+complete UI/worker acceptance and runtime promotion remain P56A/P56B in STATUS.
 P56A owns complete UI and restartable worker integration before expanded financial
 activation. u64 member IDs/cursors are decimal strings
 in JSON and bigint internally; u32 portfolio/child keys have explicit bounds.

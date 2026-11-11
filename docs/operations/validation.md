@@ -1,6 +1,6 @@
 # Validation and measured limits
 
-## Canonical account lifecycle (P55A2 intermediate)
+## Canonical account lifecycle (P55A2)
 
 Clean SBF **`583dbcb53a748db8f2fa21d0594eaaafdd7e5f85`** links without
 oversized-stack diagnostics: clearing 2,335,664 bytes / SHA-256
@@ -43,11 +43,10 @@ Raw results: `.local/scalable-settlement/runs/p55a2-lifecycle-refund-fixed/`.
 The run starts from the committed harness; its final Git metadata reports dirty
 because the separate default/SQL harness was migrated concurrently. The executed
 lifecycle sources were unchanged. This is not a clean whole-repository acceptance
-claim. The owned Surfpool stopped normally. Complete-default/SQL acceptance,
-remaining consumers/typecheck and wire-delta validation are still required before
-P55A2 Review. Runtime selection remains P53B; default/devnet remain disabled.
+claim. The owned Surfpool stopped normally. The subsequent default/SQL, custody, race and wire-delta checks below complete
+the P55A2 boundary. Runtime selection remains P53B; default/devnet remain disabled.
 
-## Canonical complete default (P55A2 intermediate)
+## Canonical complete default (P55A2)
 
 Clean verifier **`1de35c30f4cb96047292ca6d5d45f36cabc7bca2`** against the
 same clean **`583dbcb`** SBF passes **1,538 signed RPC/WS outcomes**, including
@@ -79,6 +78,57 @@ The old fixed-width resource-only `safety-width-svm.ts` and retained-schema-8
 `scoped-safety-projection.ts` runners are retired; retrieve them at immutable
 `7b0ab0716810c6894064cc1a11fc5da27ed54a3a` only for their historical captures.
 Current verification uses paged arithmetic checks and actual signed RPC/WS/SQL.
+
+## Custody and lifecycle interleavings (P55A2)
+
+Clean custody verifier **`e8dfe31b1f169edc3ca520622e8e4fec127821b0`**, against
+SBF **`583dbcb`**, passes **234 signed outcomes / 26 expected rejections** with
+five Financial roots. Actual transfers and SPL exits preserve final cash zero,
+market insurance 7/11 atoms and actual/allocated vault 18 atoms. The separate
+raw-byte Python auditor rejects eight corruptions. Peak CU is 56,019; fees are
+1,425,000 test lamports. Both isolated Anchor clients agree on 228 instructions,
+five accounts and 232 events. The deliberately malformed missing-owner-signer
+instruction is explicitly excluded from builder parity: the IDL builder correctly
+restores the mandatory flag. Its actual signed rejection and rollback are still
+verified. The earlier `7574fde` attempt failed that inapplicable parity comparison;
+raw evidence is retained under `.local/scalable-settlement/runs/p55a2-custody-*`.
+
+Clean race verifier **`061e201881f0396831e40b81f54f318b74a8f569`** with the same
+SBF passes **274 signed outcomes / eight expected rejections**. A prepared entry
+survives unrelated empty registration and a real 50-lot BTC fill. A one-atom cash
+transfer invalidates a prepared exit; cash-bearing exit rejects until an actual
+SPL withdrawal. Reentry advances generation and fences an old retirement. Actual
+bankruptcy freezes all eight remaining Financial roots; previously prepared entry,
+retirement, registration and trade cannot cross that freeze. A rebuilt trade also
+rejects frozen-mode admission. Every hostile case compares full affected bytes.
+
+Signature WS errors match independently fetched finalized outcomes. Both isolated
+Anchor clients match 256 clearing instructions / three accounts / 329 events,
+44/22 maker-A/B instructions and 48/24 maker events. Peak CU is **160,680** (the
+actual fill); Financial entry reaches **57,077 CU / v1 1,232 bytes**, retirement
+25,146 CU and freeze 49,091 CU. Full probe fees are **1,895,000 test lamports**.
+The preceding `d45ff29` run rejected the pre-freeze trade correctly but expected
+Profile instead of the earlier FinancialSequence guard. The corrected run tests
+both the stale guard and newly rebuilt guard. Raw results remain at
+`.local/scalable-settlement/runs/p55a2-races-061e201/`; both start/end trees are clean.
+These are optimistic transaction interleavings, not simultaneous-load/TPS evidence.
+
+All three IDLs and generated SDKs are source-derived, including imported clearing
+layouts in maker IDLs. The D101 ABI regression names the literal delta from
+immutable `7b0ab07` and then reuses the previous D97/D90 guards; no baseline is
+recaptured. Fourteen wire tests, eleven affected conformance/economics tests,
+typecheck and generated-output/instruction-inventory checks pass at `7574fde`.
+The final race-only correction changes no ABI or SBF. Full hosted regression is
+CI's responsibility; no unobserved CI pass is claimed here.
+
+P56A still owns complete wallet/UI discovery, durable paged-default automation and
+migration of the retained trading/safety Python raw-audit adapters. Current-runtime
+commands explicitly reject selected schema-8 artifacts with schema-9 clients.
+This phase does not promote the demo, qualify 128 Financial roots or enable default/
+devnet trading. Reproduce the scoped candidate checks using
+`ops/account-membership-smoke.sh` (lifecycle or `RIVALT_MEMBERSHIP_PROBE=custody`)
+and `ops/scalable-settlement-smoke.sh` (default or
+`RIVALT_SETTLEMENT_PROBE=membership-races`), with the explicit artifact/run paths.
 
 ## Recovery storage provisioning (P55A2 intermediate)
 

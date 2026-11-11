@@ -1,6 +1,6 @@
 # Finalized state and durable execution
 
-## Canonical membership migration (P55A2, in progress)
+## Canonical membership migration (P55A2)
 
 The new source uses immutable journal binding schema 9 and profile 5; transport
 API version 4 and persisted semantic event names remain unchanged. A fresh
@@ -21,7 +21,9 @@ through `refund_recovery_allocation`. Revision ordering includes both predecesso
 and successor kinds, preserving read-before-retire and read-after-retire edges.
 Any other kind change, tombstone recreation or missing predecessor rejects the
 whole transaction. The immutable rent receipt stays separate from financial cash.
-Fresh signed RPC/WS/PostgreSQL acceptance remains outstanding in STATUS.
+Pinned signed lifecycle/default/custody/race checks and fresh PostgreSQL replay
+pass within P55A2's scope; see STATUS/validation. Durable automatic continuation
+and full UI acceptance remain P56A work.
 
 ## Bounded-progress successor contract (P52)
 
