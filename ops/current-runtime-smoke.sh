@@ -3,6 +3,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
+# A long backlog qualification must not suspend its RPC deadlines while the
+# operator is away. This temporary inhibitor ends with this supervisor; it does
+# not alter system settings or keep the display awake.
+if [[ "${RIVALT_LIQUIDITY_PROBE:-}" == indexer-progress ]] && command -v caffeinate >/dev/null; then
+  caffeinate -i -w $$ &
+fi
 # The SDK pins the qualified local artifacts; retained P44/C0 remain separate.
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"

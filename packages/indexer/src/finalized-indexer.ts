@@ -142,7 +142,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
           const commitStarted=performance.now();
           await this.store.commit([block],this.decodeBlock(block,row.binding),next,fence?.blockhash??null);
           this.metrics.peakCommitMs=Math.max(this.metrics.peakCommitMs,performance.now()-commitStarted);
-          this.metrics.chunks++;budget.transactions-=block.transactions.length;fence=next;
+          this.metrics.chunks++;budget.transactions-=Math.max(1,block.transactions.length);fence=next;
         }
       }
     }

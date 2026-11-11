@@ -26,7 +26,8 @@ where scoped read/write dependencies require a different order within that block
 
 `pageSize` bounds requested slot ranges (default 100, allowed 1–1,000). One
 complete block is one SQL commit. `maxRecoveryTransactions` is a per-cycle work
-budget (default 10,000); an indivisible block can exceed the remaining budget.
+budget (default 10,000); empty blocks cost one work unit, and an indivisible
+nonempty block can exceed the remaining budget.
 Reaching the budget saves progress and defers remaining work to the next cycle,
 without rejecting a large backlog. At most eight block bodies and their eight
 independent signature manifests are in flight. Each RPC response is streamed

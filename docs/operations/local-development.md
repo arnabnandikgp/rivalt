@@ -149,6 +149,8 @@ P52 requires a fresh format-3 PostgreSQL journal; retain older journals and pend
 signed originals. Run its scoped signed RPC/WS/PostgreSQL probe with
 `RIVALT_LIQUIDITY_PROBE=indexer-progress RIVALT_LIQUIDITY_POSTGRES=1 RIVALT_PG_PORT=15452 bash ops/current-runtime-smoke.sh`.
 The supervisor starts/stops only its own Surfpool and PostgreSQL processes and
-retains local evidence/data. The fixture deliberately exceeds 10,000 transactions
+retains local evidence/data. On macOS a process-scoped idle-sleep inhibitor keeps
+RPC deadlines from expiring while the operator is away; it ends with the supervisor
+and does not keep the display awake or change power settings. The fixture deliberately exceeds 10,000 transactions
 and 4,096 clearing invocations; this is backlog recovery, not a throughput or
 larger-account claim. `/ready` reports covered and reconciled progress separately.

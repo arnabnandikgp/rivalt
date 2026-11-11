@@ -133,3 +133,23 @@ it('serves only published data and cannot renew freshness with later coverage',a
   expect(()=>publishedSnapshot({...row,synced_at:new Date(Date.now()-10_001)})).toThrow(/unavailable/);
   expect(()=>publishedSnapshot({...row,published_state:null})).toThrow(/unavailable/);
 });
+
+it('charges empty blocks to the work budget without requiring a financial event',async()=>{
+  const test=fixture(2);test.setHead(10);const original=test.rpc.getMockImplementation()!;
+  test.rpc.mockImplementation(async(method,params)=>{
+    const value=await original(method,params);return method==='getBlock'?{...value,signatures:[],transactions:[]}:value;
+  });
+  await test.indexer.cycle();expect(test.durable().checkpoint).toBe('block3');
+  expect(test.store.commit).toHaveBeenCalledTimes(2);expect(test.durable().state.cash).toBe(7);expect(test.indexer.healthy).toBe(false);
+});
+it('commits an oversized complete block atomically even when it exceeds the remaining transaction budget',async()=>{
+  const test=fixture(1),original=test.rpc.getMockImplementation()!;
+  test.rpc.mockImplementation(async(method,params)=>{
+    const value=await original(method,params);if(method!=='getBlock')return value;
+    return {...value,signatures:[...value.signatures,'unrelated'],transactions:[...value.transactions,
+      {meta:{err:null},transaction:{signatures:['unrelated'],message:{accountKeys:[]}}}]};
+  });
+  await test.indexer.cycle();expect(test.store.commit).toHaveBeenCalledTimes(1);
+  expect(test.store.commit.mock.calls[0][0][0].transactions).toHaveLength(2);
+  expect(test.indexer.healthy).toBe(true);expect(test.durable().published_state.cash).toBe(14);
+});
