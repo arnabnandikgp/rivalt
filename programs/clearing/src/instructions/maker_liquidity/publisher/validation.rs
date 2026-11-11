@@ -1,4 +1,5 @@
 use super::*;
+use financial_core::price_policy;
 
 /// Validate signed report identity and time independently of its claimed prices.
 pub(super) fn validate_report(
@@ -71,7 +72,7 @@ pub(super) fn report_impact(
     let bounds = bounds.ok_or(ClearingError::OraclePolicy)?;
     require!(
         bounds.normal
-            && (10_000..=100_000).contains(&bounds.reference)
+            && price_policy::reference_in_policy(bounds.reference)
             && report.reference_price == bounds.reference
             && report.quantity == policy::REFERENCE_NOTIONAL.div_ceil(bounds.reference)
             && report.bid > 0
@@ -83,10 +84,10 @@ pub(super) fn report_impact(
         .checked_mul(bounds.reference)
         .ok_or(ClearingError::Arithmetic)?;
     for gross in [report.bid, report.ask] {
-        let scaled = gross.checked_mul(10).ok_or(ClearingError::Arithmetic)?;
+        let scaled = gross.checked_mul(price_policy::EXECUTION_DENOMINATOR).ok_or(ClearingError::Arithmetic)?;
         require!(
-            scaled >= notional.checked_mul(9).ok_or(ClearingError::Arithmetic)?
-                && scaled <= notional.checked_mul(11).ok_or(ClearingError::Arithmetic)?,
+            scaled >= notional.checked_mul(price_policy::EXECUTION_LOWER_NUMERATOR).ok_or(ClearingError::Arithmetic)?
+                && scaled <= notional.checked_mul(price_policy::EXECUTION_UPPER_NUMERATOR).ok_or(ClearingError::Arithmetic)?,
             ClearingError::OraclePolicy
         );
     }

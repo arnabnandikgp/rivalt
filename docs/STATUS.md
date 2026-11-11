@@ -17,7 +17,9 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
 | P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
-| P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
+| P53A shared price policy | In progress | Canonical Rust definitions and generated SDK/UI consumers preserve accepted ranges; native/client checks pass, fresh compiled/RPC acceptance pending |
+| P53B calibrated ranges | Planned — G5 open | Explicit risk-range proposal and funding-search resource checks precede any widening |
+| P54–P62 successor implementation | Planned | Compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -49,8 +51,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: start P53's coherent price/order policy above ready #75; keep
-the accepted stack open while continuing through the approved dependencies.
+Next exact action: build P53A's unchanged-policy candidate and run focused signed
+price/funding and replay checks before opening its ready PR above #75.
 
 ## Remediation planning
 
@@ -141,6 +143,22 @@ the accepted full run. The owned qualification runtime stopped successfully.
 closeout `1eb86ff` above #73. Hosted checks are pending; no external review is
 claimed. No access blocker is known.
 P15B/P16B remain Open and 24-hour endurance Deferred.
+
+## Price-policy consolidation
+
+P53 is split into P53A consolidation and P53B calibrated-range acceptance (D95).
+P53A names the existing numeric/economic price domains and generates SDK constants
+from Rust. Source normalization, order/trigger checks, maker/routing execution bands,
+funding, liquidation and UI preserve their current values. No new risk range,
+account layout, live parameter authority or deployment is enabled.
+
+At this working revision, typecheck, 59 focused SDK/UI tests, 22 financial-core
+integration tests and 29 actual clearing-engine native tests pass. These include
+literal BTC/ETH source edges, depeg conversion, full-range fallback reservations,
+post-fee liquidation and stored-order behavior. They are not SBF/RPC evidence.
+Fresh compiled acceptance is next; the current qualified P49 artifacts remain
+untouched. P53B's G5 calibration and lower-price funding-search coupling remain
+explicit. P15B/P16B and deferred endurance are unchanged.
 
 ## Integrated quantity work
 

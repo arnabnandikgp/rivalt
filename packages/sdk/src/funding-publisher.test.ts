@@ -91,3 +91,20 @@ it('digest is ordered, domain separated and sensitive to bytes, owners, absence 
   original.get(fixture.market.oracle.sources[0])!.owner = testAddress(95);
   expect(await fundingSnapshotDigest(123n, original)).not.toEqual(digest);
 });
+
+
+it('preserves literal BTC/ETH source edges and distinguishes USD from collateral atoms', async () => {
+  for (const [marketIndex, minimum, maximum] of [[0, 10_000_000_000n, 100_000_000_000n], [1, 1_000_000_000n, 10_000_000_000n]] as const) {
+    for (const [value, expected] of [[minimum - 1n, null], [minimum, 10_000n], [maximum, 100_000n], [maximum + 1n, null]] as const) {
+      const fixture = sources(marketIndex);
+      fixture.raw[0].writeBigInt64LE(value, 113); fixture.raw[2].writeBigInt64LE(value, 113);
+      expect(await fundingReference(fixture.market, fixture.accounts(), 100n)).toBe(expected);
+    }
+    const fixture = sources(marketIndex);
+    // Credible depeg can support reductions on chain, but never a Normal funding report.
+    fixture.raw[1].writeBigInt64LE(900_000n, 113); fixture.raw[3].writeBigInt64LE(900_000n, 113);
+    expect(await fundingReference(fixture.market, fixture.accounts(), 100n)).toBeNull();
+    fixture.market.lotsPerUnit = 10_000n;
+    expect(await fundingReference(fixture.market, fixture.accounts(), 100n)).toBeNull();
+  }
+});

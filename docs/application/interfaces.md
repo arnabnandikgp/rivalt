@@ -153,3 +153,16 @@ and cursor, even when durable history has advanced farther. `/ready` distinguish
 an error-free publication less than ten seconds old and a connected indexer.
 Coverage alone cannot refresh financial facts or worker discovery. Pending original
 execution uses immutable deployment identity independently of this read fence.
+
+
+## Shared price-policy literals
+
+The SDK exports `price-policy.ts`; its constants are generated from the Rust
+financial core by `python3 ops/generate-price-policy.py`. `pnpm generate` and
+`pnpm generate:check` include this step. Financial values are BigInts, serialized
+as decimal strings; policy version and source exponent are integer metadata.
+Funding source decoding/search, maker/routing bands, risk fallback prices and
+trader price entry use these shared definitions. Units and unchanged policy-1
+activation rules live in [risk and resolution](../clearing/risk-and-resolution.md#versioned-price-policy-p53a).
+The generated values describe the pinned program; a client constant grants no
+on-chain authority and cannot expand accepted prices by itself.

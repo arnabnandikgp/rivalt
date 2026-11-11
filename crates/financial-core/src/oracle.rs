@@ -1,16 +1,14 @@
 //! Finite synthetic source/funding profile. Authentication is the adapter's job.
-use super::{Error, Result, MAX_FUNDING, SCALE};
-pub const SOURCE_AGE: i64 = 20;
-pub const DEVNET_SOURCE_AGE: i64 = 30;
-pub const FUTURE_SKEW: i64 = 2;
+pub use super::price_policy::{DEVNET_SOURCE_AGE, FUTURE_SKEW, SOURCE_AGE};
+use super::{price_policy::*, Error, Result, MAX_FUNDING, SCALE};
 pub const SAMPLE_INTERVAL: i64 = 2;
 pub const HOLD: i64 = 6;
 pub const MAX_CATCHUP: i64 = 30;
 pub const RECOVERY: i64 = 6;
 pub const FUNDING_OUTAGE: i64 = 12;
-pub const REFERENCE_NOTIONAL: u64 = 6_000_000;
+pub const REFERENCE_NOTIONAL: u64 = FUNDING_REFERENCE_NOTIONAL;
 pub const PERIOD: i128 = 3_600;
-pub const CAP_BPS: i128 = 50;
+pub const CAP_BPS: i128 = FUNDING_CAP_BPS as i128;
 #[derive(Clone, Copy, Debug)]
 pub struct Price {
     pub value: i64,
@@ -24,17 +22,26 @@ pub fn valid(p: Price, now: i64, collateral: bool) -> bool {
 }
 fn valid_at_age(p: Price, now: i64, collateral: bool, source_age: i64) -> bool {
     let (min, max, confidence) = if collateral {
-        (500_000, 1_500_000, 25)
+        (
+            MIN_COLLATERAL_USD,
+            MAX_COLLATERAL_USD,
+            COLLATERAL_CONFIDENCE_BPS,
+        )
     } else {
-        (10_000_000_000, 100_000_000_000, 50)
+        (
+            MIN_NORMALIZED_ASSET_USD,
+            MAX_NORMALIZED_ASSET_USD,
+            ASSET_CONFIDENCE_BPS,
+        )
     };
-    p.exponent == -6
+    p.exponent == SOURCE_EXPONENT
         && (min..=max).contains(&p.value)
         && p.published > 0
         && p.published <= i64::MAX - source_age
         && p.published <= now.saturating_add(FUTURE_SKEW)
         && now.saturating_sub(p.published) <= source_age
-        && u128::from(p.confidence) * 10_000 <= (p.value as u128) * confidence
+        && u128::from(p.confidence) * u128::from(BASIS_POINTS)
+            <= (p.value as u128) * u128::from(confidence)
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Bounds {
@@ -57,11 +64,7 @@ pub fn market_bounds(
     guard: Option<[Price; 2]>,
     now: i64,
 ) -> Result<Bounds> {
-    let multiplier = match lots_per_unit {
-        1_000_000 => 1,
-        100_000 => 10,
-        _ => return Err(Error::Bounds),
-    };
+    let multiplier = source_multiplier(lots_per_unit).ok_or(Error::Bounds)?;
     let normalize = |mut prices: [Price; 2]| -> Result<[Price; 2]> {
         prices[0].value = prices[0]
             .value
@@ -97,16 +100,19 @@ fn bounds_at_age(
     }
     let ratio = |a: Price, b: Price| -> u64 { (a.value as u128 / b.value as u128) as u64 };
     let reference = ratio(primary[0], primary[1]);
-    if !(10_000..=100_000).contains(&reference) {
+    if !reference_in_policy(reference) {
         return Err(Error::Bounds);
     }
     // Conservative confidence conversion, then an explicit one-percent model envelope.
     let interval = |p: [Price; 2]| -> (u64, u64) {
-        let low = (p[0].value as u128 - u128::from(p[0].confidence)) * 99
+        let low = (p[0].value as u128 - u128::from(p[0].confidence))
+            * u128::from(RISK_LOWER_PERCENT)
             / (p[1].value as u128 + u128::from(p[1].confidence))
-            / 100;
-        let numerator = (p[0].value as u128 + u128::from(p[0].confidence)) * 101;
-        let denominator = (p[1].value as u128 - u128::from(p[1].confidence)) * 100;
+            / u128::from(PERCENT_DENOMINATOR);
+        let numerator =
+            (p[0].value as u128 + u128::from(p[0].confidence)) * u128::from(RISK_UPPER_PERCENT);
+        let denominator =
+            (p[1].value as u128 - u128::from(p[1].confidence)) * u128::from(PERCENT_DENOMINATOR);
         (low as u64, numerator.div_ceil(denominator) as u64)
     };
     let (mut lower, mut upper) = interval(primary);
@@ -120,20 +126,20 @@ fn bounds_at_age(
         valid_at_age(g[0], now, false, source_age) && valid_at_age(g[1], now, true, source_age)
     }) {
         let other = ratio(g[0], g[1]);
-        if reference.abs_diff(other) * 10_000 > reference * 100 {
+        if reference.abs_diff(other) * BASIS_POINTS > reference * SOURCE_DIVERGENCE_BPS {
             return Err(Error::Health);
         }
         let (l, u) = interval(g);
         lower = lower.min(l);
         upper = upper.max(u);
         deadline = deadline.min(g.iter().map(|p| p.published + source_age).min().unwrap());
-        normal = primary[1].value >= 950_000
-            && primary[1].value <= 1_050_000
-            && g[1].value >= 950_000
-            && g[1].value <= 1_050_000;
+        normal = primary[1].value >= MIN_NORMAL_COLLATERAL_USD
+            && primary[1].value <= MAX_NORMAL_COLLATERAL_USD
+            && g[1].value >= MIN_NORMAL_COLLATERAL_USD
+            && g[1].value <= MAX_NORMAL_COLLATERAL_USD;
     } else {
-        lower = lower.min(reference * 97 / 100);
-        upper = upper.max((reference * 103).div_ceil(100));
+        lower = lower.min(reference * DEGRADED_LOWER_PERCENT / PERCENT_DENOMINATOR);
+        upper = upper.max((reference * DEGRADED_UPPER_PERCENT).div_ceil(PERCENT_DENOMINATOR));
     }
     Ok(Bounds {
         reference,
@@ -199,9 +205,9 @@ mod devnet_profile_tests {
 }
 /// Premium in scaled atoms/lot, truncated toward zero once per sample (<1 scaled unit).
 pub fn premium(reference: u64, quantity: u64, bid: u64, ask: u64) -> Result<i128> {
-    if !(10_000..=100_000).contains(&reference)
+    if !reference_in_policy(reference)
         || quantity == 0
-        || quantity > 600
+        || quantity > MAX_FUNDING_SAMPLE_LOTS
         || bid == 0
         || ask < bid
     {
@@ -211,7 +217,7 @@ pub fn premium(reference: u64, quantity: u64, bid: u64, ask: u64) -> Result<i128
         - 2 * i128::from(quantity) * i128::from(reference))
         * SCALE
         / (2 * i128::from(quantity));
-    let cap = i128::from(reference) * SCALE * CAP_BPS / 10_000;
+    let cap = i128::from(reference) * SCALE * CAP_BPS / i128::from(BASIS_POINTS);
     Ok(midpoint.clamp(-cap, cap))
 }
 pub fn endpoint(base: i128, premium: i128, start: i64, end: i64, now: i64) -> Result<i128> {
@@ -220,7 +226,8 @@ pub fn endpoint(base: i128, premium: i128, start: i64, end: i64, now: i64) -> Re
             .checked_sub(start)
             .is_none_or(|n| !(0..=HOLD).contains(&n))
         || now < start
-        || premium.unsigned_abs() > (100_000 * SCALE * CAP_BPS / 10_000) as u128
+        || premium.unsigned_abs()
+            > (i128::from(MAX_REFERENCE_PRICE) * SCALE * CAP_BPS / i128::from(BASIS_POINTS)) as u128
     {
         return Err(Error::Bounds);
     }
@@ -241,8 +248,11 @@ pub fn endpoint(base: i128, premium: i128, start: i64, end: i64, now: i64) -> Re
 
 /// Integer marginal prices whose exact route cross-products remain in band.
 pub fn execution_band(reference: u64) -> Result<(u64, u64)> {
-    if !(10_000..=100_000).contains(&reference) {
+    if !reference_in_policy(reference) {
         return Err(Error::Bounds);
     }
-    Ok(((reference * 9).div_ceil(10), reference * 11 / 10))
+    Ok((
+        (reference * EXECUTION_LOWER_NUMERATOR).div_ceil(EXECUTION_DENOMINATOR),
+        reference * EXECUTION_UPPER_NUMERATOR / EXECUTION_DENOMINATOR,
+    ))
 }

@@ -5,6 +5,7 @@ use crate::engine::{self, account};
 use crate::instructions::account_trading;
 use crate::state::accounts::Market;
 use financial_core::margin::{Margin, Risk};
+use financial_core::price_policy;
 
 pub(crate) struct MakerAdmission<'market> {
     capital: &'market MarginAccount,
@@ -71,16 +72,16 @@ impl<'market> MakerAdmission<'market> {
     /// inputs prepared once. Unhealthy quantities allocate no Anchor errors.
     #[inline(never)]
     pub(crate) fn admits(&self, side: u8, lots: u64, gross: u64) -> bool {
-        let Some(ten_gross) = gross.checked_mul(10) else {
+        let Some(ten_gross) = gross.checked_mul(price_policy::EXECUTION_DENOMINATOR) else {
             return false;
         };
         let Some(reference_notional) = lots.checked_mul(self.market.reference_price) else {
             return false;
         };
-        let Some(low) = reference_notional.checked_mul(9) else {
+        let Some(low) = reference_notional.checked_mul(price_policy::EXECUTION_LOWER_NUMERATOR) else {
             return false;
         };
-        let Some(high) = reference_notional.checked_mul(11) else {
+        let Some(high) = reference_notional.checked_mul(price_policy::EXECUTION_UPPER_NUMERATOR) else {
             return false;
         };
         if side > 1 || self.capital.state_version == u64::MAX || ten_gross < low || ten_gross > high

@@ -1,3 +1,4 @@
+import { BTC_LOTS_PER_UNIT, ETH_LOTS_PER_UNIT, FUNDING_REFERENCE_NOTIONAL } from './price-policy.js';
 import { type Address, type FixedSizeDecoder, type ReadonlyUint8Array } from '@solana/kit';
 import * as clearing from './generated/index.js';
 import { ACCOUNT_CLOCK } from './account-snapshot.js';
@@ -64,7 +65,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
     && venueState.profileVersion === 4 && venueState.marketCount === 2 && venueState.insuranceFeeShareBps === 2500
     && venueState.markets[marketIndex] === market && marketState.schemaVersion === 8 && marketState.venue === venue
     && marketState.index === marketIndex && marketState.bump === marketBump && marketState.crossEligible
-    && marketState.lotsPerUnit === [1_000_000n, 100_000n][marketIndex], 'Invalid funding venue/market identity.');
+    && marketState.lotsPerUnit === [BTC_LOTS_PER_UNIT, ETH_LOTS_PER_UNIT][marketIndex], 'Invalid funding venue/market identity.');
   requireValue(marketState.oracle.sources.every((key, index) => key === discoveredMarket.oracle.sources[index]), 'Source bindings changed during discovery.');
   requireValue(safetyState.schemaVersion === 8 && safetyState.venue === venue && safetyState.bump === safetyBump
     && !safetyState.paused && [0, 1].includes(safetyState.mode), 'Funding publication is suspended.');
@@ -101,7 +102,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
         const unavailable = adapters.find(maker => maker.unavailable !== null);
         if (unavailable) coverageReason = `${unavailable.registrationState.instance}:${unavailable.unavailable}`;
         else {
-          const quantity = (6_000_000n + reference - 1n) / reference;
+          const quantity = (FUNDING_REFERENCE_NOTIONAL + reference - 1n) / reference;
           allocations = { bid: allocateFundingSide(adapters, reference, quantity, 1), ask: allocateFundingSide(adapters, reference, quantity, 0) };
           report.outcome = 3;
           if (allocations.bid && allocations.ask && allocations.ask.gross >= allocations.bid.gross) {

@@ -1,3 +1,4 @@
+import { MAX_PRICE } from './price-policy.js';
 import { address, getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, type Address, type ReadonlyUint8Array } from '@solana/kit';
 import * as clearing from './generated/index.js';
 import * as canonical from './generatedMakerA/index.js';
@@ -170,7 +171,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
     const price = decode(bytes(accounts,priceKey,program),canonical.MAKER_PRICE_DISCRIMINATOR,canonical.getMakerPriceDecoder()).state;
     requireValue(price.schemaVersion === 5 && price.config === configKey && price.bump === priceBump, 'Invalid price account identity.');
     const validUntilSlot = price.updatedSlot + BigInt(shape.ttlSlots), validUntilTime = price.updatedTime + 6n;
-    const validPrice = price.sequence > 0n && price.anchor >= 1n && price.anchor <= 1_000_000n
+    const validPrice = price.sequence > 0n && price.anchor >= 1n && price.anchor <= MAX_PRICE
       && price.controlEpoch === config.controlEpoch && price.updatedTime >= 0n && price.updatedSlot <= snapshot.slot && price.updatedTime <= snapshot.now;
     const unavailable: LiquidityUnavailable | null = registration.quarantined ? 'quarantined'
       : codeHashes.get(program) !== hex(registration.approvedHash) ? 'unapproved-code'

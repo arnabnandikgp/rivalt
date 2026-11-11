@@ -1,3 +1,4 @@
+import { MAX_PRICE } from './price-policy.js';
 import type {ReadonlyUint8Array} from '@solana/kit';
 import type {Market as MarketState, MarginAccount, StoredOrder} from './generated/index.js';
 import type {oracleMode} from './oracle-policy.js';
@@ -71,7 +72,7 @@ export function marginBalanceView(root:Root, markets:Market[], funding:bigint[],
     if (!market) {if ([1,2].includes(stored.order.state)) throw new Error('Foreign order market'); return {remaining:'0',reserve:'0'};}
     const remaining = marginOrderRemaining(root,stored,market,slot), order = stored.order;
     const credible = !['Frozen','NoCredibleBounds'].includes(sources[stored.marketIndex]);
-    const lower = credible ? BigInt(market.lower) : 1n, upper = credible ? BigInt(market.upper) : 1_000_000n;
+    const lower = credible ? BigInt(market.lower) : 1n, upper = credible ? BigInt(market.upper) : MAX_PRICE;
     const loss = max(order.side === 0 ? BigInt(order.limit) - lower : upper - BigInt(order.limit),0n);
     const fees = BigInt(order.feeBudget) - BigInt(order.feeCharged);
     if (fees < 0n) throw new Error('Invalid remaining fee budget');

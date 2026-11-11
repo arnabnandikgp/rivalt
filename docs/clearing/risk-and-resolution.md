@@ -119,6 +119,39 @@ subject to its explicit mutation/validity proof and resource gate. The finite na
 diagnostics are feasibility evidence only; unproved SBF work or ordinary-payment
 liveness remains open, not acceptance supplied by old P16A/P49 results.
 
+## Versioned price policy (P53A)
+
+[`financial-core::price_policy`](../../crates/financial-core/src/price_policy.rs)
+is the canonical literal definition for **price policy 1**, preserving the existing
+profile-4 economic ranges below. Price policy version, account schema 8 and venue
+profile 4 are distinct identifiers; this refactor changes no account bytes, PDA,
+event, signed domain, epoch, error number or instruction interface. `MAX_PRICE`
+(1–1,000,000 quote atoms per lot) is the proved arithmetic domain, not permission
+to accept every source or persistent-order price in that range.
+
+The module names asset USD micro-prices, collateral USD micro-prices, reference/
+order/trigger atoms per market lot, confidence/divergence and execution-band units.
+BTC has 1,000,000 lots per unit, ETH 100,000; normalize asset **value and confidence**
+by 1 and 10 respectively before ratio rounding. Unsupported lot sizes reject. Maker
+curve arithmetic and liquidation retain the full numeric domain; actual admission
+also checks independent current bounds and the 90–110% execution band. Persistent
+orders retain their narrower price/trigger policy and original signed terms.
+
+Policy selection is immutable for this bounded deployment. An updater, publisher,
+keeper or venue authority has no instruction to replace these parameters. Existing
+terms/config epochs still fence their actual supported mutations; no fictitious
+price-policy epoch is inferred. A future approved calibration increments the policy
+version and uses a fresh deployment domain/artifact binding with fresh orders.
+Old orders/originals remain with their old deployment/executor; never rewrite their
+signed limit, revive authority or copy claims. Live parameter changes would require
+a separate concrete transition/epoch contract, not an edit to constants.
+
+P53B owns G5's explicit proposed risk range and actual widened-boundary acceptance.
+The range remains unchanged and no new policy is enabled by P53A. Numeric admission
+proofs, source age/confidence/depeg/recovery, deposit/cancel/eligible exit rules and
+default/devnet gates remain unchanged. Validation separates current source checks
+from qualification of rebuilt binaries.
+
 ## Risk sources and account admission
 
 Risk uses independent index bounds, never maker execution prices or attested impact

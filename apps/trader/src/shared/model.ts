@@ -1,10 +1,10 @@
 import type { Address } from '@solana/kit';
 import type { AccountSnapshot, MarginAccount, OrderTerms, OrderRecord } from '@rivalt/sdk';
-import {MAX_ACTION_LOTS,MAX_CASH_ATOMS} from '@rivalt/sdk';
+import {MAX_ACTION_LOTS,MAX_CASH_ATOMS,MAX_PRICE,BTC_LOTS_PER_UNIT,ETH_LOTS_PER_UNIT,MIN_TRIGGER_PRICE,MAX_TRIGGER_PRICE,MIN_ORDER_PRICE,MAX_ORDER_PRICE} from '@rivalt/sdk';
 import { units } from '../amount.js';
 export const MARKETS = [
-  { name: 'BTC', decimals: 6, lotsPerUnit: 1_000_000n },
-  { name: 'ETH', decimals: 5, lotsPerUnit: 100_000n },
+  { name: 'BTC', decimals: 6, lotsPerUnit: BTC_LOTS_PER_UNIT },
+  { name: 'ETH', decimals: 5, lotsPerUnit: ETH_LOTS_PER_UNIT },
 ] as const;
 export const accountLabel = (
   root: Pick<MarginAccount, 'mode' | 'isolatedMarketIndex' | 'subaccountIndex'>,
@@ -19,7 +19,7 @@ export function parsePrice(input: string, marketIndex: 0 | 1) {
   if (amount % divisor !== 0n)
     throw new Error(`Price must be a multiple of ${marketIndex === 0 ? '1' : '0.1'} test USD.`);
   const price = amount / divisor;
-  if (price < 1n || price > 1_000_000n) throw new Error('Price is outside the test market bounds.');
+  if (price < 1n || price > MAX_PRICE) throw new Error('Price is outside the test market bounds.');
   return price;
 }
 export function parseQuantity(input: string, marketIndex: 0 | 1) {
@@ -35,8 +35,8 @@ export function parseQuantity(input: string, marketIndex: 0 | 1) {
 /** Persistent order bounds differ from an immediate route's all-in cash limit. */
 export function orderPrice(input: string, marketIndex: 0 | 1, trigger = false) {
   const price = parsePrice(input, marketIndex);
-  const minimum = trigger ? 10_000n : 9_000n,
-    maximum = trigger ? 100_000n : 110_000n;
+  const minimum = trigger ? MIN_TRIGGER_PRICE : MIN_ORDER_PRICE,
+    maximum = trigger ? MAX_TRIGGER_PRICE : MAX_ORDER_PRICE;
   if (price < minimum || price > maximum) {
     const divisor = marketIndex === 0 ? 1n : 10n;
     throw new Error(

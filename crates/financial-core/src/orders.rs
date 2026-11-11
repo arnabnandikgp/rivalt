@@ -31,7 +31,7 @@ impl ReservationRate {
         upper: u64,
     ) -> Result<Self> {
         if side > 1
-            || !(9_000..=110_000).contains(&limit)
+            || !price_policy::order_in_policy(limit)
             || fee_left > MAX_CASH
             || lower == 0
             || lower > upper

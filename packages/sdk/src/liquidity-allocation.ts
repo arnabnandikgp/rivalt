@@ -1,3 +1,4 @@
+import { EXECUTION_DENOMINATOR, EXECUTION_LOWER_NUMERATOR, EXECUTION_UPPER_NUMERATOR } from './price-policy.js';
 import type { Address } from '@solana/kit';
 import type { LiquidityAdapter } from './liquidity-adapter.js';
 import { prepareLiquidityMargin, type LiquidityMarginInput } from './liquidity-margin.js';
@@ -83,8 +84,8 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     upper = lastTrue(1n,upper,quantity => read(quantity) !== null);
     const quote = (quantity: bigint) => { const gross = read(quantity);requireValue(gross !== null,'Invalid bounded quote');return gross; };
     const reference = input.markets[marketIndex].referencePrice;
-    const lowerBand = (quantity: bigint) => quote(quantity)*10n >= quantity*reference*9n;
-    const upperBand = (quantity: bigint) => quote(quantity)*10n <= quantity*reference*11n;
+    const lowerBand = (quantity: bigint) => quote(quantity)*EXECUTION_DENOMINATOR >= quantity*reference*EXECUTION_LOWER_NUMERATOR;
+    const upperBand = (quantity: bigint) => quote(quantity)*EXECUTION_DENOMINATOR <= quantity*reference*EXECUTION_UPPER_NUMERATOR;
     const lower = firstTrue(1n,upper,side === 0 ? lowerBand : upperBand);
     upper = lastTrue(1n,upper,side === 0 ? upperBand : lowerBand);
     if (lower > upper) { excluded.push({instance:maker.config.instance,reason:'outside-execution-band'});return null; }

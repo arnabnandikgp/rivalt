@@ -1,3 +1,4 @@
+import { MIN_REFERENCE_PRICE, MAX_REFERENCE_PRICE, MAX_FUNDING_SAMPLE_LOTS, EXECUTION_DENOMINATOR, EXECUTION_LOWER_NUMERATOR, EXECUTION_UPPER_NUMERATOR } from './price-policy.js';
 import type { LiquidityAdapter } from './liquidity-adapter.js';
 import { requireValue } from './wallet-client.js';
 
@@ -7,15 +8,15 @@ export type FundingAllocation = Readonly<{ gross: bigint; quantities: readonly b
  * funding checkpoints, margin projection or taker fees participate in funding. */
 export function allocateFundingSide(makers: readonly Pick<LiquidityAdapter, 'quote'>[], reference: bigint,
   quantity: bigint, side: 0 | 1): FundingAllocation | null {
-  requireValue(makers.length === 3 && reference >= 10_000n && reference <= 100_000n
-    && quantity > 0n && quantity <= 600n && (side === 0 || side === 1), 'Invalid funding allocation domain.');
+  requireValue(makers.length === 3 && reference >= MIN_REFERENCE_PRICE && reference <= MAX_REFERENCE_PRICE
+    && quantity > 0n && quantity <= MAX_FUNDING_SAMPLE_LOTS && (side === 0 || side === 1), 'Invalid funding allocation domain.');
   const count = Number(quantity);
   const prices = makers.map(maker => Array.from({ length: count + 1 }, (_, lots) => {
     if (lots === 0) return 0n;
     try {
       const gross = maker.quote(side, BigInt(lots)).gross;
       const notional = BigInt(lots) * reference;
-      return gross * 10n >= notional * 9n && gross * 10n <= notional * 11n ? gross : 0n;
+      return gross * EXECUTION_DENOMINATOR >= notional * EXECUTION_LOWER_NUMERATOR && gross * EXECUTION_DENOMINATOR <= notional * EXECUTION_UPPER_NUMERATOR ? gross : 0n;
     } catch { return 0n; } // quantity outside the authenticated curve's domain/depth
   }));
   let best: FundingAllocation | null = null;
