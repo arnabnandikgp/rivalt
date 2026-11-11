@@ -114,6 +114,11 @@ and use the earliest actual publication expiry. It must reject mixed/old snapsho
 record source inputs and never re-date cached observations. Default/devnet handlers
 remain gated. New artifacts require fresh affected acceptance; historical results do not qualify a rebuild.
 
+Price/range literals come from the [shared policy](../clearing/risk-and-resolution.md#versioned-price-policy-p53a),
+with generated SDK constants. P53A retains the exact notional, 600-lot sample
+ceiling and reference domain. P53B must measure the quantity/search consequence
+before enabling lower reference prices; economic recalibration belongs to G5.
+
 ## Calculation and causal time
 
 The backend requires all three sealed authenticated makers, even when a valid

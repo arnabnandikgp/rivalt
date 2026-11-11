@@ -96,8 +96,9 @@ update this table and STATUS rather than silently combining unrelated work.
 | P51A | Complete audit-remediation roadmap | Integrated P50 |
 | P51B | Account/settlement contract and executable feasibility | P51A |
 | P52 | Bounded-progress finalized indexer | P51B interface/envelope contract |
-| P53 | Numeric versus market price/order policy | P51B numeric contract |
-| P54A | Scalable exact settlement kernel | P51B/G2, P53 bounds |
+| P53A | Shared versioned price policy, unchanged accepted ranges | P51B numeric contract |
+| P53B | Approved range calibration and boundary qualification | P53A, G5; any funding-search prerequisite measured first |
+| P54A | Scalable exact settlement kernel | P51B/G2, P53A unchanged numeric bounds |
 | P54B | On-chain frozen input and rate verification | P54A |
 | P54C | On-chain rounding, application and recovery | P54B |
 | P55A | Paged membership and safe account lifecycle | P51B identity contract, P54C safety path |
@@ -180,7 +181,22 @@ revision gaps, duplicate-conflicting bytes and false completeness still reject.
 Read readiness cannot be obtained by suppressing reconciliation errors. Keep the
 initialization/genesis/artifact binding and historical signed originals intact.
 
-### P53 — price and order policy
+### P53A–P53B — price and order policy
+
+Refinement (11 November 2026): separate consolidation from G5 calibration. P53A
+centralizes the current literal policy and generates client constants, without
+widening sources, order limits or triggers. It proves existing edge behavior,
+compiled execution and source/client parity. No account/PDA/IDL version changes
+are needed for an unchanged-policy refactor. P53B owns the explicit replacement
+ranges, approval and new-range signed acceptance below. This adds one reviewable
+scope (26 total). P54A may use P53A's unchanged 1–1,000,000 arithmetic domain while
+calibration remains disabled; a later numeric-domain change must rederive its proof.
+
+Lower reference prices increase `ceil(6,000,000/reference)`: current funding search
+enumerates every quantity up to 600. A wider range cannot silently introduce
+millions of publisher quote calls or claim source availability where funding is
+unsupported. P53B must measure this coupling, and bring forward the needed P58A
+search work if its proposed values require it. No impact-notional change is implied.
 
 **Deliver:** one unit-aware, versioned price policy shared by oracle normalization,
 orders/triggers, maker bands, funding, liquidation, SDK and UI. Separate hard proved

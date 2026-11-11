@@ -5,6 +5,29 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D95 — separate price-policy consolidation from calibration (11 November 2026)
+
+P53A centralizes the existing price policy in financial-core and generates SDK
+literals; oracle normalization, stored orders, maker bands, funding, liquidation
+and UI use the same unit-labelled definitions. Numeric capacity remains distinct
+from economic admission. It deliberately supersedes scattered literal ownership,
+not the retained source safeguards, D37's devnet age selection or accepted ranges.
+
+Policy version 1 describes unchanged profile-4 behavior; account schema, epochs,
+signed domains and wire layouts do not change. No live configuration instruction
+or additional writable account is introduced. Parameter changes require explicit
+G5 calibration, a new policy version and fresh deployment/artifact binding, leaving
+old orders and originals under their old executor. Live calibration/migration
+would need its own authority and epoch contract. See the current risk specification.
+
+Split the approved P53 scope into P53A consolidation and P53B calibrated ranges.
+The second remains disabled until literal values, source/order boundary scenarios
+and funding-search cost are accepted: lower reference increases sample Q, and the
+current per-quantity publisher search is not automatically scalable. P54A can
+proceed on the unchanged numeric proof while G5 remains open. This is not approval
+to widen prices or relax source confidence, freshness, depeg or recovery safeguards.
+
+
 ## D94 — bounded covered history and independently reconciled publication (11 November 2026)
 
 P52 implements the authorized remediation roadmap without changing on-chain

@@ -1,3 +1,4 @@
+import { MAX_PRICE } from './price-policy.js';
 import { marginBalanceView, marginOrderRemaining, type MarginFinancialRoot, type MarginFinancialMarket, type MarginSourceMode } from './margin-balance.js';
 import { orderTriggered } from './order-policy.js';
 import type { MarginRouteIntent } from './route-intent.js';
@@ -26,7 +27,7 @@ export function prepareLiquidityMargin(input: LiquidityMarginInput) {
   const market = markets[marketIndex];
   requireValue(markets.every((entry,index) => entry.index === index) && root.positions.length === 2
     && (root.mode === 0 || root.mode === 1 && root.isolatedMarketIndex === marketIndex), 'Margin account cannot trade this market.');
-  requireValue(market.lower >= 1n && market.upper >= market.lower && market.upper <= 1_000_000n
+  requireValue(market.lower >= 1n && market.upper >= market.lower && market.upper <= MAX_PRICE
     && market.referencePrice >= market.lower && market.referencePrice <= market.upper
     && market.grossLots >= 0n && market.grossLots <= 200_000_000n, 'Invalid selected market bounds.');
   requireValue(funding.every(value => abs(value) <= 10n**15n), 'Funding bound exceeded.');
@@ -46,7 +47,7 @@ export function prepareLiquidityMargin(input: LiquidityMarginInput) {
     if (relevant) {
       requireValue(sources[index] === 'Normal' || reduceOnly && sources[index] === 'Degraded',
         'Required liquidity market source unavailable.');
-      requireValue(entry.lower >= 1n && entry.upper >= entry.lower && entry.upper <= 1_000_000n
+      requireValue(entry.lower >= 1n && entry.upper >= entry.lower && entry.upper <= MAX_PRICE
         && entry.referencePrice >= entry.lower && entry.referencePrice <= entry.upper,'Invalid relevant market bounds.');
     }
   }

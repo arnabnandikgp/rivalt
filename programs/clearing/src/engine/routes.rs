@@ -297,10 +297,10 @@ pub(crate) fn candidate_for_version(
                 && quote.authority_epoch == leg.authority_epoch
                 && quote.terms_epoch == intent.terms_epoch
                 && quote.market_config_epoch == intent.config_epoch
-                && u128::from(quote.gross_quote) * 10
-                    >= u128::from(quote.lots) * u128::from(market.reference_price) * 9
-                && u128::from(quote.gross_quote) * 10
-                    <= u128::from(quote.lots) * u128::from(market.reference_price) * 11,
+                && u128::from(quote.gross_quote) * u128::from(math::price_policy::EXECUTION_DENOMINATOR)
+                    >= u128::from(quote.lots) * u128::from(market.reference_price) * u128::from(math::price_policy::EXECUTION_LOWER_NUMERATOR)
+                && u128::from(quote.gross_quote) * u128::from(math::price_policy::EXECUTION_DENOMINATOR)
+                    <= u128::from(quote.lots) * u128::from(market.reference_price) * u128::from(math::price_policy::EXECUTION_UPPER_NUMERATOR),
             ClearingError::RouteLimit
         );
         gross = checked(math::cash_add(gross, quote.gross_quote))?;

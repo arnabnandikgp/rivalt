@@ -198,7 +198,7 @@ fn terms(
         terms.side <= 1
             && terms.lots > filled
             && terms.lots <= math::MAX_LOTS as u64
-            && (9_000..=110_000).contains(&terms.limit)
+            && math::price_policy::order_in_policy(terms.limit)
             && terms.fee_budget <= math::MAX_CASH
             && terms.expiry_slot > slot
             && terms.expiry_slot > terms.start_slot
@@ -206,7 +206,7 @@ fn terms(
             && terms.expiry_slot - slot <= MAX_ORDER_SLOTS
             && terms.trigger <= 2
             && ((terms.trigger == 0 && terms.threshold == 0)
-                || (terms.trigger > 0 && (10_000..=100_000).contains(&terms.threshold))),
+                || (terms.trigger > 0 && math::price_policy::trigger_in_policy(terms.threshold))),
         ClearingError::OrderTerms
     );
     let position = root.positions[market_index];

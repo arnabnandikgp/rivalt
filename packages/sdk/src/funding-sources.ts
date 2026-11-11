@@ -1,3 +1,4 @@
+import * as policy from './price-policy.js';
 import { address, getAddressDecoder, type Address } from '@solana/kit';
 import type { Market } from './generated/index.js';
 import { fromBase64, hex } from './wallet-client.js';
@@ -12,8 +13,8 @@ type Source = { value: bigint; confidence: bigint; published: bigint };
 export async function fundingReference(market: Market, accounts: LiquidityAccountMap, now: bigint): Promise<bigint | null> {
   const discriminator = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('account:Feed'))).slice(0, 8);
   const indexes = market.index === 0 ? [0, 1, 2, 3] : market.index === 1 ? [4, 1, 5, 3] : [];
-  const multiplier = market.lotsPerUnit === 1_000_000n ? 1n : market.lotsPerUnit === 100_000n ? 10n : 0n;
-  if (indexes.length !== 4 || multiplier === 0n) return null;
+  const multiplier = policy.priceSourceMultiplier(market.lotsPerUnit);
+  if (indexes.length !== 4 || multiplier === null) return null;
   const sources: Source[] = [];
   for (const [position, key] of market.oracle.sources.entries()) {
     const account = accounts.get(key as Address);
@@ -24,18 +25,18 @@ export async function fundingReference(market: Market, accounts: LiquidityAccoun
       || getAddressDecoder().decode(raw.slice(80, 112)) !== FIXTURE || raw[112] !== 2) return null;
     const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     const sequence = view.getBigUint64(72, true), collateral = position % 2 === 1;
-    if (sequence === 0n || sequence < market.oracle.sourceSequences[position] || view.getInt32(129, true) !== -6) return null;
+    if (sequence === 0n || sequence < market.oracle.sourceSequences[position] || view.getInt32(129, true) !== policy.SOURCE_EXPONENT) return null;
     const value = view.getBigInt64(113, true) * (collateral ? 1n : multiplier);
     const confidence = view.getBigUint64(121, true) * (collateral ? 1n : multiplier);
     const published = view.getBigInt64(133, true);
-    if (value < (collateral ? 500_000n : 10_000_000_000n) || value > (collateral ? 1_500_000n : 100_000_000_000n)
-      || published <= 0n || published > now + 2n || now - published > 20n
-      || confidence * 10_000n > value * (collateral ? 25n : 50n)) return null;
+    if (value < (collateral ? policy.MIN_COLLATERAL_USD : policy.MIN_NORMALIZED_ASSET_USD) || value > (collateral ? policy.MAX_COLLATERAL_USD : policy.MAX_NORMALIZED_ASSET_USD)
+      || published <= 0n || published > now + policy.FUTURE_SKEW || now - published > policy.SOURCE_AGE
+      || confidence * policy.BASIS_POINTS > value * (collateral ? policy.COLLATERAL_CONFIDENCE_BPS : policy.ASSET_CONFIDENCE_BPS)) return null;
     sources.push({ value, confidence, published });
   }
   const reference = sources[0].value / sources[1].value, guard = sources[2].value / sources[3].value;
   const difference = reference > guard ? reference - guard : guard - reference;
-  if (reference < 10_000n || reference > 100_000n || difference * 10_000n > reference * 100n
-    || [sources[1], sources[3]].some(source => source.value < 950_000n || source.value > 1_050_000n)) return null;
+  if (reference < policy.MIN_REFERENCE_PRICE || reference > policy.MAX_REFERENCE_PRICE || difference * policy.BASIS_POINTS > reference * policy.SOURCE_DIVERGENCE_BPS
+    || [sources[1], sources[3]].some(source => source.value < policy.MIN_NORMAL_COLLATERAL_USD || source.value > policy.MAX_NORMAL_COLLATERAL_USD)) return null;
   return reference;
 }

@@ -27,7 +27,7 @@ Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
 The RC2 toolchain uses `bash ops/install-anchor-rc2.sh`, followed by
-`bash ops/build.sh`. P49 qualifies the expanded-quantity serialized RC2 artifacts
+`bash ops/build.sh`. P53A qualifies the shared-policy serialized RC2 artifacts (same accepted quantities/prices)
 and selects `.local/anchor-rc2/current` for builds, probes and the local demo. Actual files
 must match the SDK's admitted hashes; changing a manifest does not qualify code.
 `RIVALT_ARTIFACT_DIR` may explicitly select another directory containing those
@@ -46,8 +46,8 @@ are relabeled. [STATUS](../STATUS.md) distinguishes qualification and PR integra
 The demo starts workers only after a coherent published finalized provisioning
 journal, waiting across bounded recovery cycles for up to 60 seconds. A completed
 catch-up cycle alone is not readiness.
-It retries typed revision-ahead catch-up for at most 30 seconds; other initial
-projection/reconciliation errors fail startup and preserve the local records.
+Initial projection/reconciliation errors still fail startup and preserve local
+records.
 Six maker updaters and two funding publishers each use a separately funded local
 signer/fee payer, matching service qualification. Their existing restricted
 authorities are assigned through signed provisioning; no shared payer serializes
@@ -156,3 +156,10 @@ RPC deadlines from expiring while the operator is away; it ends with the supervi
 and does not keep the display awake or change power settings. The fixture deliberately exceeds 10,000 transactions
 and 4,096 clearing invocations; this is backlog recovery, not a throughput or
 larger-account claim. `/ready` reports covered and reconciled progress separately.
+
+
+On macOS, finite `ops/current-runtime-smoke.sh` qualification runs hold a temporary
+`caffeinate -i` assertion tied to the supervisor PID. It ends with that run, keeps
+no display awake and changes no persistent system settings. Host suspension can
+otherwise invalidate real freshness/timeout measurements; it is not repaired by
+extending oracle validity or relabelling a timed-out test as successful.

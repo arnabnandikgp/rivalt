@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createFromRoot, bottomUpTransformerVisitor, flattenInstructionDataArgumentsVisitor, isNode, camelCase } from 'codama';
@@ -20,6 +21,7 @@ function snapshot(path: string): Record<string, string> {
       return [file, readFileSync(file, 'utf8')];
     }).sort(([a], [b]) => a.localeCompare(b)));
 }
+execFileSync('python3', ['ops/generate-price-policy.py', ...(process.argv.includes('--check') ? ['--check'] : [])], { stdio: 'inherit' });
 for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generatedMakerA'], ['maker_b', 'generatedMakerB']]) {
   const path = `packages/sdk/src/${folder}`;
   const before = process.argv.includes('--check') ? snapshot(path) : undefined;

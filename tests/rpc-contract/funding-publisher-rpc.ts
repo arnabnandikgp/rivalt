@@ -103,6 +103,25 @@ try {
   await rejected('replayed sequence', first, first.report);
   await fresh(10_000n);
   await publish('600-lot two-maker optimum', 0, sixHundred);
+  // P53A: literal old-policy edges against the actual compiled consumer. A
+  // source failure can report unavailability but cannot forge available depth.
+  await fresh(100_000n);
+  await publish('upper source/reference edge', 0, { quantity: 60n, bid: 5_999_940n, ask: 6_000_180n });
+  for (const edge of [9_999n, 100_001n]) {
+    await fresh(edge);
+    const input = await snapshot();
+    assert.equal(input.report.outcome, 1);
+    const forged = { ...input.report, outcome: 0, referencePrice: edge, quantity: 100n,
+      bid: edge * 100n, ask: edge * 100n, validUntilSlot: input.report.observedSlot + 150n,
+      validUntilTime: input.report.observedTime + 6n };
+    await rejected(`available report outside policy ${edge}`, input, forged, sdk.CLEARING_ERROR__ORACLE_POLICY);
+    await publish(`source outside policy ${edge}`, 1);
+  }
+  await fresh(60_000n);
+  const collateralPublicationTime = await now();
+  await h.send('signed collateral depeg sources', await Promise.all([1, 3].map(index =>
+    publishFeed(index, collateralPublicationTime, { price: 900_000n }))), authorities);
+  await publish('collateral depeg has no Normal funding', 1);
   // Actual SPL withdrawals, not fixture cash mutations. Published liquidity is
   // unchanged by zero funded cash; actual execution admission remains separate.
   for (const maker of makers) {

@@ -7,13 +7,14 @@ pub mod liquidity;
 pub mod margin;
 pub mod oracle;
 pub mod orders;
+pub mod price_policy;
 pub mod route;
 
 pub const SCALE: i128 = 1_000_000_000;
 pub const LOTS_PER_BTC: i64 = 1_000_000;
 pub const MAX_LOTS: i64 = 100_000_000;
 pub const MAX_GROSS_LOTS: u64 = 200_000_000;
-pub const MAX_PRICE: u64 = 1_000_000;
+pub use price_policy::MAX_PRICE;
 pub const MAX_CASH: u64 = 1_000_000_000_000_000;
 pub const MAX_SCALED: i128 = 100_000_000_000_000_000_000_000_000;
 pub const MAX_FUNDING: i128 = 1_000_000_000_000_000;

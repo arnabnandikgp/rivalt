@@ -1,5 +1,60 @@
 # Validation and measured limits
 
+## Shared unchanged price policy (P53A)
+
+Clean SBF source **`213610666d7b1ab3136b5b3f0da25c856ad92d1f`** builds with the pinned
+RC2/platform-tools profile and no unsafe stack-frame diagnostic. Qualification
+clearing is 1,538,784 bytes (+896 versus P49), SHA-256
+`a42f1b0affb774c4c8725656b4ce37cb20d6905494ccef31ad94c86d97afc375`.
+Both maker binaries, default clearing/makers and fixtures are byte-identical to P49.
+Generated IDL/SDK and the pinned wire check have no ABI delta. Numeric policy
+version 1 names existing behavior; accepted prices and financial rules do not change.
+
+- Clean publisher verifier **`55426dc676dc55ae790f9b2b7d3c1ccd5b524728`**: 99 actual
+  signed Surfpool RPC/WS outcomes, 12 reports. Existing source/reference edges,
+  100/600-lot exact depth optima, source values 9,999/100,001, forged available
+  reports, collateral depeg, failed verification, expired coverage and publisher
+  authority/replay reject or degrade as specified. The isolated legacy/RC2 decode
+  checks pass. Single-market publisher transactions peak at 20,939 CU, 838 bytes
+  and 13 loaded keys; requested budget remains 200,000 CU.
+- Clean journal verifier **`e98b0ebf9a9649fec5fc1c5f02be1b8c197bf3af`**: 120 signed
+  outcomes, two actual fills, restart catch-up and reverted-CPI rollback. Fresh
+  PostgreSQL reaches reconciled publication after two pending cycles and matches
+  the complete financial state plus all **72 event-byte records**. The initialization
+  journal contains 117 transactions (four intentional failures), 72 outbox records
+  and zero unresolved jobs. Seventy entities/eight roots reconcile exactly
+  8,000,000 allocated/actual vault atoms. Independent expected fees are 26 atoms:
+  six insurance, 20 retained and carry two; cash plus fees equals vault.
+- Scoped actual route peak: 160,001 CU, 1,006 bytes, 19 keys. The paired-market
+  publisher transaction peaks at 43,814 CU / 1,192 bytes / 17 keys. These are this
+  workload's measurements, not full-book maxima or a new throughput qualification.
+- Source checks: typecheck; 59 affected SDK/UI cases; 22 financial-core and 29
+  clearing-engine native tests; generated-policy/SDK parity, pinned ABI, shell,
+  whitespace, local documentation targets and evidence policy. Literal cases cover
+  both market units, source edges/depeg, full numeric fallback reservations and
+  post-fee liquidation. Broad regression is delegated to applicable CI.
+
+The first journal slice at `55426dc` matched projection only. Tightening the older
+harness to require fresh published readiness exposed a host-sleep timeout at
+`73855fc`: macOS logged 170 seconds of idle sleep. The final supervisor holds the
+existing temporary idle-sleep assertion for all finite probes; its original
+60-second check and ten-second publication freshness are unchanged. Failed and
+partial attempts remain local and are not substituted for the final acceptance.
+
+Evidence: `.local/price-policy/{2136106-artifacts,p53a-publisher,p53a-indexer-awake}`.
+The accepted files are selected in `.local/anchor-rc2/current`; the prior contents
+are retained in `.local/price-policy/pre-p53a-current`. Use a fresh local domain/
+database; do not run old journals/originals against a replacement artifact binding.
+No new browser, full-book/load/endurance or external deployment is claimed.
+P53B range calibration remains unapproved/disabled; P15B/P16B remain external.
+
+Reproduction uses `ops/build-liquidity-execution.sh` with an explicit candidate
+destination, `ops/funding-publisher-smoke.sh`, and
+`RIVALT_LIQUIDITY_PROBE=indexer RIVALT_LIQUIDITY_POSTGRES=1 RIVALT_PG_PORT=15453 bash ops/current-runtime-smoke.sh`
+with explicit fresh run/artifact directories. The publisher and replay summaries
+retain `phaseAcceptance:false` for their historical parent phases: they are scoped
+constituents, not a rerun of all P32/P33 qualification.
+
 ## Bounded-progress indexer (P52)
 
 Clean **`fe1c754e985b56e653b03795af8daf2b8ca59e62`** passes full signed
