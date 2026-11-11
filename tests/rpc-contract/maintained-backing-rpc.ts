@@ -12,6 +12,7 @@ import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {backingStep,financialRoots} from './membership-scan-helper.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
+import {backingBoundaries} from './maintained-backing-boundaries.js';
 import {verifyBackingBuild} from './backing-artifacts.js';
 import {transactionLocks,conflicts} from '../performance/lock-model.js';
 
@@ -119,6 +120,7 @@ try {
     progress.push({marketIndex,steps,mutations,epoch,elapsedMs:performance.now()-started,restarts:1,
       classification:'initial epoch only; ongoing in-region source publication and admitted mutations'});
   }
+  const boundaries=await backingBoundaries({h,rpc,setup,certificates,flush,capture,mutate,reject});
   await flush();
   const independent=JSON.parse(execFileSync('python3',['tests/financial/check_backing_runtime.py',`${directory}/backing-frames.json`],{encoding:'utf8'}));
   const parity=await conformance.finish(directory,[
@@ -137,7 +139,7 @@ try {
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)));
   await journal.checkpoint('maintained-progress');
   const sql=await journal.finish();
-  writeFileSync(`${directory}/result.json`,json({revision,build,checks,parity,independent,progress,resources,sql,
+  writeFileSync(`${directory}/result.json`,json({revision,build,checks,parity,independent,progress,boundaries,resources,sql,
     endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     limitations:['eight actual Financial members; larger population remains P56B','overlapping signed requests, not a saturated throughput or public-network fee claim']}));
 }finally {try{await journal?.close();await flush();}finally{ws.close();}}
