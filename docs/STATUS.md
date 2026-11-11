@@ -16,7 +16,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; 42 focused checks across `7615b45`/`a47cd10`; signed 4,200-invocation backlog generated; fix unrelated-traffic rent fixture and finish SQL/crash acceptance |
+| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; clean `4ad0213` passes 42 checks and signed traffic/original recovery; fix crash-injector callback overload, then finish SQL/replay acceptance |
 | P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -133,7 +133,15 @@ independently fetches all 4,200 successful delegate invocations. Its unrelated S
 transfer fixture then rejects because the new recipient lacks rent-exempt balance;
 10,100 submitted originals are retained and no full-backlog pass is claimed. The
 fixture now funds that recipient and checks its first finalized batch before
-producing the remainder. Full crash/backlog/fresh-replay acceptance remains pending. No P52 PR or phase acceptance is claimed. No access blocker is known;
+producing the remainder. Clean `4ad0213` passes all 42 focused tests and typecheck. Its real run finalizes
+4,200 successful delegate invocations, one deliberate atomic rejection and 10,100
+successful unrelated transfers. Pending-original recovery during stale publication
+also finalizes identical signed bytes. The before-commit SIGKILL check passes; the
+during-commit injector then hangs because its `Pool.connect` wrapper drops the
+callback overload used by its own checkpoint read. PostgreSQL terminates that idle
+transaction after 15 seconds. This is a harness failure, not completed acceptance;
+fix the wrapper and rerun the crash/backlog/live/fresh-replay checks. Raw evidence
+remains in `.local/indexer-progress/4ad0213-20261111-c`. No P52 PR or phase acceptance is claimed. No access blocker is known;
 the local container service was started for the owned qualification runtime.
 
 ## Integrated quantity work

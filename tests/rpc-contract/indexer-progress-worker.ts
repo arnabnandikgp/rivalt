@@ -19,13 +19,16 @@ try {
     // Pause after every SQL write but before COMMIT, proving rollback when the
     // process dies with an actual open PostgreSQL transaction.
     const connect=indexer.store.pool.connect.bind(indexer.store.pool);
-    if(relevant&&mode==='during')indexer.store.pool.connect=(async()=>{
-      const client=await connect(),query=client.query.bind(client);
+    if(relevant&&mode==='during')indexer.store.pool.connect=((callback?:any)=>{
+      // pg.Pool.query uses connect(callback); preserve that overload for the
+      // independent checkpoint read while the writer is paused before COMMIT.
+      if(callback)return connect(callback);
+      return connect().then(client=>{const query=client.query.bind(client);
       client.query=(async(...queryArgs:any[])=>{
         if(queryArgs[0]==='COMMIT')await stop(mode);
         return (query as any)(...queryArgs);
       }) as typeof client.query;
-      return client;
+      return client;});
     }) as typeof indexer.store.pool.connect;
     await commit(...args);
     if(relevant&&mode==='after')await stop(mode);
