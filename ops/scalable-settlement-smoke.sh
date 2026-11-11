@@ -11,9 +11,9 @@ from pathlib import Path
 import hashlib,json,os
 folder=Path(os.environ['RIVALT_SETTLEMENT_ARTIFACT_DIR'])
 manifest=json.loads((folder/'build-manifest.json').read_text())
-assert manifest['revision']=='38fc788e82a21c7920d6eda9a35d0272c1bdf771'
+assert manifest['revision']=='60f7ec8e140dc75873f30fcdf7ce41c58dc65e09'
 assert manifest['trackedDirty'] is False and manifest['scratchSchema']==9
-expected='2f1f90825a429da58ef3fd4691cf869d1507c617264311df340b71c1dc27b9d6'
+expected='c3ebb47d243888bdb38d750309401cf85447b1bf76e6cea38108135198892f27'
 assert manifest['binaries']['clearing.so']==expected
 assert hashlib.sha256((folder/'clearing.so').read_bytes()).hexdigest()==expected
 PY
