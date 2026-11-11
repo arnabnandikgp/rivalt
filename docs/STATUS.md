@@ -20,7 +20,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
-| P54B authenticated frozen/rate work | In progress — inactive | Public frozen-source/root valuation and bounded denominator handlers implemented; rate/proposal work and signed acceptance remain |
+| P54B authenticated frozen/rate work | In progress — inactive | Signed frozen-source valuation/denominator prefix acceptance passes at `ce146e0` / SBF `38fc788`; rate/proposal/reset verification and complete phase acceptance remain |
 | P54C–P62 successor implementation | Planned | Conserving on-chain application, membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -292,10 +292,19 @@ remains bounded; no payout or expanded admission is enabled. Clean **`38fc788e82
 native tests and eight scoped-history tests, generated-client/typecheck/literal ABI
 and evidence checks. Its linked qualification SBF builds without stack diagnostics;
 SHA-256 is `2f1f90825a429da58ef3fd4691cf869d1507c617264311df340b71c1dc27b9d6`.
-This is a pinned candidate, not signed acceptance or normal-runtime admission. Generated additions have a separate literal ABI checker,
-with the retained D90 surface unchanged. No phase PR or new selected artifact is
-claimed. Next exact action: execute the new signed freeze/valuation/denominator prefix probe
-against this pinned candidate, then implement rate proposal/reset work.
+This candidate remains separate from normal-runtime admission. Generated additions have a separate literal ABI checker,
+with the retained D90 surface unchanged. No phase PR or new selected artifact is claimed.
+Clean **`ce146e0695797fe9b40d3cd2a6b7cd86f8146b9e`** executes 194 actual signed
+RPC/WS outcomes on SBF `38fc788`, including all nine new entrypoints. Eight real
+margin roots value to independent funded-cash/fractional-claim totals; five bounded
+arithmetic calls produce the independently reduced common denominator. Replay,
+wrong-order/missing-page and same-transaction rollback checks pass, and every
+financial account stays byte-identical during verification. Both isolated legacy
+and RC2 Anchor clients agree on full instruction metas/data, 21 new account records
+and events. Maximum new-entrypoint CU is 36,639 and packet size is 751 bytes in this
+fixture. Owned Surfpool is stopped. Rate/proposal/reset and full P54B acceptance,
+not a larger-runtime or PostgreSQL claim, remain open. Next exact action: implement
+bounded normalized arithmetic and the authenticated complete-rate verifier.
 
 ## Integrated quantity work
 

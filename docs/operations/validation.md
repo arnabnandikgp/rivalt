@@ -14,15 +14,51 @@ client parity/typecheck, literal ABI, evidence and whitespace checks pass. Its
 linked qualification SBF builds without unsafe stack diagnostics, SHA-256
 `2f1f90825a429da58ef3fd4691cf869d1507c617264311df340b71c1dc27b9d6`.
 Logs and candidate remain at `.local/scalable-settlement/p54b-38fc788/`.
-Signed prefix/replay/resource checks,
-rate proposals/reset and full P54B acceptance remain pending. The selected ordinary
+The signed prefix check below passes; rate proposals/reset and full P54B acceptance
+remain pending. The selected ordinary
 runtime is unchanged. Reproduce this scoped candidate probe with
 `RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p54b-38fc788 bash ops/scalable-settlement-smoke.sh`.
 The launcher checks the exact candidate hash separately from admitted maker/oracle
 artifacts and uses an owned offline Surfpool. It never promotes the candidate to
 normal runtime. The new probe derives a real frozen cohort from signed deposits,
 fills and an adverse synthetic price move; signed continuation acceptance is
-pending until its recorded run succeeds. These checks will use a fresh existing-size frozen cohort;
+recorded below for the completed prefix scope.
+
+Clean verifier **`ce146e0695797fe9b40d3cd2a6b7cd86f8146b9e`**, SBF **`38fc788`**,
+passes **194 actual signed RPC/WS outcomes**, with every finalized original fetched,
+independently decoded and compared byte-for-byte. Signed fills and adverse synthetic
+prices produce a real eight-root freeze; no fixture injects successful financial
+state. All nine new entrypoints execute. Each frozen row's cash, accrued claims,
+quantities, ID/root/revision and collected cash matches independent arithmetic;
+complete totals reconcile. Five arithmetic continuations at budgets 1/7/128 produce
+LCM **30,006,000,277,777**, matching independent BigInt rational reduction.
+
+| New verification transaction | Actual CU | Maximum wire bytes |
+|---|---:|---:|
+| Initialize prepared source | 22,914 | 686 |
+| Initialize count node | 22,727–24,432 | 720 |
+| Initialize complete member page | 26,172 | 719 |
+| Initialize frozen row page | 23,173 | 719 |
+| Initialize limb register page | 23,015 | 723 |
+| Advance membership / close ancestors | 23,794–28,048 | 685 |
+| Value actual root | 35,620–36,639 | 751 |
+| Accept frozen denominator row | 24,121–32,920 | 685 |
+| Continue bounded arithmetic | 27,203–31,267 | 744 |
+
+Eight controller rejection/atomic-failure transactions preserve all tracked bytes:
+stale frozen revision, wrong radix level, replay, omitted/duplicated root, missing
+limb page, a second identical continuation rolling back its first instruction, and
+completed-denominator replay. Existing financial accounts remain byte-identical
+through successful verification too. Legacy and RC2 isolated Anchor clients match
+177 clearing instruction encodings/metas, 21 new account decodings and 236 clearing
+events (including setup); maker parity also passes. New verification accounts lock
+**87,594,440 test lamports** of rent in this fixture, not total venue provisioning.
+The owned Surfpool stops after completion. Evidence stays at
+`.local/scalable-settlement/runs/p54b-ce146e0/`.
+
+This is eight-root valuation/denominator acceptance only. No rate proposal/reset,
+Apply/payout, larger population, PostgreSQL replay, browser, endurance, devnet or
+production qualification is inferred; no new artifact is selected for normal use. These checks will use a fresh existing-size frozen cohort;
 P55/P56 still own live lifecycle and expanded population qualification.
 
 Clean **`a7adbaf7c1bee16cbc47c304e830f11c393ed507`**, restacked above P54A's
