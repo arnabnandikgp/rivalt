@@ -1,5 +1,39 @@
 # Validation and measured limits
 
+## Maintained backing arithmetic (P55B1)
+
+Clean **`1715d20ceda111591bc1e8addbfa95ea4208c9f0`** compiles the actual
+`financial-core::backing` kernel and passes five independent transport checks.
+The Python reference enumerates all 16 corners using the direct unpaid formula,
+without importing production arithmetic or the previous P51B candidate model:
+
+- **1,274** Rust contribution comparisons, including numeric extrema, fractional
+  negatives, isolated/cross roots, gross sibling debt and zero positive-profit credit.
+- **89,720** exact summary/checkpoint-prefix comparisons across both markets and
+  64/128/1,024/10,000 native roots, with processed-root cash damage/repair and
+  unprocessed-root funding changes between scan steps. Every kernel prefix is
+  decoded/restored; this is not a process-crash or account-authentication test.
+- Six literal collection/payment/flat-netting/fill/fee sequences, including pool
+  identity changes and newly bad contributions; nine malformed/underflow cases,
+  thirteen invalid root/region cases and nine held-region boundary cases.
+- A u64::MAX-count **arithmetic diagnostic** exercises positive/negative aggregate
+  carry/borrow beyond u128. This is neither a funded nor authenticated cohort.
+
+Two focused native tests verify immutable failure candidates and checked count
+exhaustion. Fourteen wire-regression tests and `ops/wire_contract.py` pass: no
+Anchor layout/IDL/instruction/PDA/signed-domain change. The source-literal guard
+explicitly adds only the native `RVBACK01` checkpoint tag. `ops/financial.sh`
+includes the new driver/reference for CI; unrelated local suites were not rerun.
+
+Reproduce with pinned environment, `cargo build --locked -p financial-core --bin
+backing-driver`, `python3 tests/financial/test_maintained_backing.py` and
+`cargo test --locked -p financial-core --lib backing::tests`. Logs remain at
+`.local/scalable-settlement/p55b1-*`. The complete mutation map is in accounting.
+No SBF resource/authority claim follows: P55B2 still owes actual atomic hooks,
+complete membership, current source and held-window checks, persisted worker
+restart, concurrent-activity progress, final-page/payment rollback and RPC/WS/SQL
+acceptance. P56B's live-population gate remains unchanged.
+
 ## Canonical account lifecycle (P55A2)
 
 Clean SBF **`583dbcb53a748db8f2fa21d0594eaaafdd7e5f85`** links without

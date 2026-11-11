@@ -24,7 +24,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
-| P55B1 maintained-backing kernel | In progress | Checked conservative-region contributions and bounded population totals; independent implementation comparisons and complete mutation inventory; no runtime change |
+| P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; ready publication above #82 pending; no runtime activation |
 | P55B2–P62 successor implementation | Planned | Atomic maintained backing, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -728,6 +728,28 @@ default gate; both focused build-profile checks pass. The next hosted run is pen
 implement P55B maintained backing against its conservative-region contract. P56A retains full UI,
 durable automatic default and the remaining historical raw-audit adapters; P56B
 retains populated-cohort qualification and runtime promotion.
+
+## Maintained backing handoff
+
+P55B is refined into P55B1's checked arithmetic/mutation contract and P55B2's
+on-chain integration/signed acceptance. Clean **`1715d20ceda111591bc1e8addbfa95ea4208c9f0`**
+passes five independent Python-to-Rust checks: **1,274** complete-corner root
+comparisons, **89,720** exact summary/restoration prefixes across eight market/
+population cases (64/128/1,024/10,000 roots), six literal collection/payment/netting/
+inventory/fee paths, numeric/held-region rejection and 151-bit aggregate cases.
+Two focused native checks verify failure atomicity/count exhaustion. Fourteen
+wire tests and the unchanged program ABI check pass. The source-domain guard
+explicitly recognizes the new native `RVBACK01` checkpoint tag; it is not a PDA,
+Anchor account or signed transaction domain. Raw logs stay under
+`.local/scalable-settlement/p55b1-*`.
+
+The owning accounting contract maps all actual mutation owners to required proof
+maintenance, including cash-only deposit/transfer, fee changes, consumed funding,
+order-only writes, Financial generations and exceptional recovery. Native arithmetic
+does not authenticate membership, accept a source, update a program account or pay
+a claim. No P55B2 integration, SBF/CU/lock result, RPC/WS/SQL progress, larger live
+population or runtime promotion is claimed. P55B1 publication is next, followed
+immediately by P55B2's versioned summary storage and atomic mutation hooks.
 
 ## Deployment and operational limits
 
