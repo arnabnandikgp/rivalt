@@ -4,6 +4,7 @@ pub use crate::engine::routes::OrderAction;
 pub use types::*;
 pub mod account_cash;
 pub mod account_custody;
+pub(crate) mod account_membership;
 pub mod account_safety;
 pub mod account_trading;
 pub mod maker_liquidity;

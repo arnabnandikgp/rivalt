@@ -20,7 +20,7 @@ pub enum Mode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Margin {
-    pub id: u16,
+    pub id: u64,
     pub mode: Mode,
     pub cash: u64,
     pub positions: [Position; MARKETS],
@@ -170,8 +170,7 @@ impl Margin {
     }
 
     pub fn validate(&self) -> Result<()> {
-        if self.id >= MAX_PARTICIPANTS as u16
-            || self.cash > MAX_CASH
+        if self.cash > MAX_CASH
             || self.reserved > MAX_CASH
             || matches!(self.mode, Mode::Isolated(index) if index >= MARKETS)
         {

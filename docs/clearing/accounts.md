@@ -40,6 +40,18 @@ dependencies, not optional later repairs after lifting the registration limit.
 | Services `account-{frozen,rate}-proposal.ts`, `account-settlement-worker.ts` | Untrusted paged proposals, durable continuation/recovery and incremental backing; no whole-cohort transaction or trusted solver | P54/P56A |
 | Indexer `account-{events,projection,reconcile}.ts` and trader UI | Staged completeness, page/tombstone projection and stable-ID pagination; never report partial replay as ready | P52/P56A |
 
+### P55A implementation boundary
+
+The in-progress source separates scalar financial identity from cohort size:
+`Participant` and `Margin` use u64 IDs, while the retained small-cohort reference
+still bounds its array population. Wire margin IDs remain schema-8 u16 until the
+successor layout transition; there is no new registration or financial admission.
+`scalable::membership_update` prepares all fifteen radix count/mask changes before
+any mutation. The program's `account_membership::index` adapter authenticates exact
+node owner/PDA/schema/length/revision and declared write access. Lifecycle handlers
+must additionally authenticate the root, member page, authority, storage coverage
+and unfrozen safety; the adapter alone grants none of those permissions.
+
 ### Identity and membership invariants
 
 `Registered` counts identities; `Financial` counts roots activated for money or
