@@ -170,7 +170,9 @@ probe requires fresh published readiness and exact event bytes, with unchanged
 freshness/deadlines and a temporary supervisor-owned idle-sleep inhibitor.
 [Validation](operations/validation.md#shared-unchanged-price-policy-p53a) records
 exact pins, results and limitations. [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76)
-contains acceptance closeout `a24251e`; hosted checks are pending. P53A is not integrated.
+contains acceptance closeout `a24251e`; all five scoped hosted jobs pass at
+`b6fbcb8` in [run 42977315184](https://github.com/arnabnandikgp/rivalt/actions/runs/42977315184).
+CodeRabbit is neutral, not external approval. P53A is not integrated.
 
 P53B's [literal G5 proposal](clearing/risk-and-resolution.md#approved-p53b-calibration-g5-acceptance-pending)
 was explicitly approved by the user on 11 November: reference/trigger 2–909,090
@@ -182,8 +184,13 @@ unchanged until fresh signed acceptance. Scoped source checks pass: 23 financial
 comparisons. Generated SDK/policy and pinned ABI checks pass. Clean SBF `afeb7ea` built without unsafe stack diagnostics; candidate clearing is
 1,538,848 bytes. The same clean revision measured 1,800 canonical funding searches:
 maximum 329 distinct quotes, p95 0.394 ms / p99 0.535 ms on this Mac. These are
-bounded CPU scenarios, not worst-case latency or landed CU. Signed runtime
-acceptance is next; no completed runtime result is claimed. P54A follows
+bounded CPU scenarios, not worst-case latency or landed CU. Clean signed publisher verifier `10cadb7` passes 137 RPC/WS outcomes and 21 reports,
+including minimum/maximum reference, three-million-lot depth, old cliffs, extreme
+confidence, disagreement, stale/depegged sources and authority/replay rollback.
+The first boundary/replay attempt passed all eight BTC/ETH round trips and order
+boundaries, then its 20-second Clock helper timed out waiting 21 seconds. The
+harness now advances in two bounded waits; the source age/deadline is unchanged.
+Complete journal replay and the affected liquidation/default check remain pending. P54A follows
 P53B on the unchanged arithmetic proof. P15B/P16B and deferred endurance are unchanged.
 
 ## Integrated quantity work

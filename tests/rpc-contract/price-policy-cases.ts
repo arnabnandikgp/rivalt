@@ -75,7 +75,11 @@ export async function pricePolicyCases(h: CanonicalHarness, setup: Awaited<Retur
   assert.equal(orders.length, 2);
   // Let real Clock expire all sources. A deposit and owner cancellation remain
   // reachable; the surviving buy reserves against the whole numeric interval.
-  await setup.waitUntil(await setup.now() + 21n);
+  const expiryStart = await setup.now();
+  // Each existing waiter is bounded at 20 seconds; retain that deadline while
+  // advancing actual Clock past the unchanged 20-second source age.
+  await setup.waitUntil(expiryStart + 11n);
+  await setup.waitUntil(expiryStart + 21n);
   await h.send('P53B actual deposit without sources', [await deposit()], [owner]);
   for (const entry of [...orders].reverse()) {
     await h.send('P53B cancellation without sources', [await manage({ __kind: 'Cancel', id: entry.order.id,
