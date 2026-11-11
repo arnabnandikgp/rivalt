@@ -9,6 +9,7 @@ import {qualifySettlementRates} from './scalable-settlement-rates-rpc.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
+import type {ExpectedInstructionError} from './instruction-errors.js';
 import {denominatorPages} from './settlement-page-plan.js';
 const directory=process.env.RIVALT_RUN_DIR!;
 const serialize=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint'?item.toString():item,2)+'\n';
@@ -57,7 +58,7 @@ try {
   const financial=[setup.venue,setup.custody,setup.safety,setup.registry,setup.vault,...setup.markets,...setup.ledgers,...roots,setup.resolution,setup.work,...setup.pages];
   const readAll=(keys:Address[])=>Promise.all(keys.map(async key=>(await h.read(key))?.toString('base64')??null));
   const financialBefore=await readAll(financial),tracked=[...financial,prepared,memberPage,...nodes,...rowPages,...limbPages];
-  const reject=async(label:string,instruction:Instruction,error=sdk.CLEARING_ERROR__RESOLUTION)=>{
+  const reject=async(label:string,instruction:Instruction,error:ExpectedInstructionError=sdk.CLEARING_ERROR__RESOLUTION)=>{
     const before=await readAll(tracked);await h.send(`P54 reject ${label}`,[instruction],[],error);assert.deepEqual(await readAll(tracked),before,label);
   };
   await reject('stale frozen source revision',sdk.getInitializePreparedSettlementInstruction({...common,sourceRevision:frozen.revision-1n}));

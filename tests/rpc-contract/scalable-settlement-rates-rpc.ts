@@ -6,13 +6,14 @@ import {AccountRole,getAddressEncoder,getProgramDerivedAddress,type Address,type
 import * as sdk from '@rivalt/sdk';
 import type {CanonicalHarness} from './canonical-maker-cases.js';
 import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
+import type {ExpectedInstructionError} from './instruction-errors.js';
 import {ratePages} from './settlement-page-plan.js';
 
 type Evaluation={proposal:string[];budgets:string[];spent:string[];fractional:boolean[];prefixes:string[][];residuals:string[];losses:string[]};
 export async function qualifySettlementRates(options:{h:CanonicalHarness;
   setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>; prepared:Address;epoch:bigint;
   rows:{cash:bigint;claims:bigint[]}[];rowPages:Address[];limbPages:Address[];tracked:Address[];
-  expectedCommon:bigint;reject:(label:string,instruction:Instruction,error?:number)=>Promise<void>}) {
+  expectedCommon:bigint;reject:(label:string,instruction:Instruction,error?:ExpectedInstructionError)=>Promise<void>}) {
   const {h,setup,prepared,epoch,rows,rowPages,limbPages,tracked,reject}=options;
   const header=sdk.getPreparedSettlementDecoder().decode((await h.read(prepared))!);
   const reference=JSON.parse(execFileSync('python3',['tests/financial/settlement_rpc_reference.py'],{
@@ -59,6 +60,8 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
   };
   const first=reference.evaluations[0].proposal.map(BigInt);
   let current=await state();
+  await reject('stale rate epoch',sdk.getBeginSettlementRateProposalInstruction({...common,epoch:epoch+1n,actor:setup.payer,
+    revision:current.revision,factor:factorWords(1n),lengths:[0n,0n]}),'InvalidSeeds');
   await reject('zero rate factor',sdk.getBeginSettlementRateProposalInstruction({...common,actor:setup.payer,revision:current.revision,
     factor:[0n,0n,0n,0n,0n],lengths:[0n,0n]}));
   await reject('oversized rate width',sdk.getBeginSettlementRateProposalInstruction({...common,actor:setup.payer,revision:current.revision,
@@ -74,13 +77,22 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
   await h.send('P54 permissionless stalled upload recovery',[sdk.getResetSettlementRateProposalInstruction({...common,actor:setup.traderOwner,
     revision:current.revision,attempt:stalled})],[setup.traderOwner]);
   assert.equal((await state()).stage,0);
+  // A fully uploaded proposal is also recoverable if every helper disappears.
+  await begin(first);await upload(first);current=await state();assert.equal(current.stage,2);
+  await reject('proposer cannot reset active verification',sdk.getResetSettlementRateProposalInstruction({...common,actor:setup.payer,
+    revision:current.revision,attempt:current.attempt}));
+  const verificationDeadline=Date.now()+20_000;
+  while(await setup.slot()<current.lastProgressSlot+64n){assert(Date.now()<verificationDeadline,'real verification slot progress');await delay(50);}
+  await h.send('P54 permissionless stalled verification recovery',[sdk.getResetSettlementRateProposalInstruction({...common,actor:setup.traderOwner,
+    revision:current.revision,attempt:current.attempt})],[setup.traderOwner]);
+  assert.equal((await state()).stage,0);
   let continuations=0,observedPrefixes=0;
   const magnitude=async(checkpoint:Buffer,register:number)=>{
     const used=Number(checkpoint.readBigUInt64LE(320+register*8));assert(used<=256);
     return (await page(register)).payload.words.slice(0,used).reduceRight((value,word)=>(value<<64n)+word,0n);
   };
   const verify=async(expected?:Evaluation,hostile=false)=>{
-    let processed=0,steps=0;
+    let processed=0,steps=0,checkedPageOrder=false;
     while((await state()).stage===2){
       const current=await state(),checkpoint=Buffer.from(current.state.work);
       if(checkpoint[1]===4){
@@ -103,12 +115,16 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
           await reject('missing rate limb',instruction);
           await reject('foreign rate register',{...full,accounts:[...instruction.accounts,
             ...full.accounts.slice(instruction.accounts.length).map((meta,index)=>index===0?{...meta,address:limbPages[2]}:meta)]});
-          if(requests.length>1)await reject('duplicated rate page',{...full,accounts:[...instruction.accounts,
-            ...full.accounts.slice(instruction.accounts.length).map((meta,index)=>index===1?full.accounts[instruction.accounts.length]:meta)]});
-          const reversed={...full,accounts:[...instruction.accounts,...full.accounts.slice(instruction.accounts.length).reverse()]};
-          if(requests.length>1)await reject('reordered rate limbs',reversed);
           const old=sdk.getContinueSettlementRatesInstruction({...common,revision:current.revision,attempt:stalled,steps:128,revisions});
           await reject('stale attempt cannot reuse work',{...old,accounts:full.accounts});
+        }
+        if(hostile&&!checkedPageOrder&&requests.length>1){
+          // Promote message privileges so the intended identity/order guard,
+          // rather than a preceding readonly guard, proves the rejection.
+          const metas=full.accounts.slice(instruction.accounts.length).map(meta=>({...meta,role:AccountRole.WRITABLE}));
+          await reject('reordered rate limbs',{...full,accounts:[...instruction.accounts,...[...metas].reverse()]});
+          await reject('duplicated rate page',{...full,accounts:[...instruction.accounts,...metas.map((meta,index)=>index===1?metas[0]:meta)]},sdk.CLEARING_ERROR__ALIAS);
+          checkedPageOrder=true;
         }
         await h.send('P54 bounded rate arithmetic',[full]);steps++;continuations++;
       }
@@ -126,6 +142,7 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
       }
       assert(steps<2000,'bounded fixture rate continuations');
     }
+    if(hostile)assert(checkedPageOrder,'mandatory reordered/duplicated page checks executed');
     return state();
   };
   // Correctly encoded but financially wrong rates must be rejected after actual

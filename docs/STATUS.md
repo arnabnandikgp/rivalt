@@ -327,7 +327,14 @@ independent rational reference. The first signed rate run at `7ab291f` / SBF
 allowlist still ending at kind 21; creation rejected atomically with Profile.
 The fix makes kind validation use its single schema mapping and adds a creation/
 read regression for kind 22. The failed run remains retained, not acceptance.
-No P54B PR or runtime promotion is claimed.
+Clean `44cd6c3` on corrected SBF `89b6129` passes 471 signed RPC/WS outcomes,
+156 rate continuations, two insurance evaluations and 16 independent row prefixes.
+All financial bytes remain unchanged; 44 new account records and instruction/event
+bytes agree with both Anchor clients. Inspection found the first-step-only negative
+page-order tests had not executed because that step used one page. The harness now
+requires that coverage, plus explicit stale-epoch and stalled-verification reset.
+Next action is the final signed matrix on the same pinned SBF. No P54B PR or
+runtime promotion is claimed.
 
 ## Integrated quantity work
 
