@@ -308,9 +308,11 @@ now implements 192-byte normalized magnitude continuations. Clean `999ce4d` pass
 1,440 independent integer cases at budgets 1/7/128, ten invalid domains and two
 codec/alias tests, plus pinned SBF metadata and scoped policy/format checks. No
 on-chain rate path uses it yet. Persisted exact atom division is now implemented with a 384-byte checkpoint;
-development vectors pass, with clean acceptance pending. Next exact action: pin
-and qualify atom division, then implement the authenticated complete-rate schedule
-and proposal/reset handlers without exposing Apply.
+clean `0ff7c53` passes 642 independent division cases (including three corrected
+estimates), four invalid domains, its codec test and 1,440 normalized regressions.
+Pinned SBF metadata/format/policy checks pass. No new on-chain consumer or linked
+program is inferred. Next exact action: implement the authenticated complete-rate
+schedule and proposal/reset handlers without exposing Apply.
 
 ## Integrated quantity work
 

@@ -143,6 +143,20 @@ RPC or financial acceptance follows. Logs remain at
 `cargo test --locked -p financial-core --test scalable_normalized` and
 `python3 tests/financial/test_normalized_pages.py`.
 
+Clean **`0ff7c53d8a344ba73cf42546778561887091a403`** passes **642** exact persisted
+atom divisions against Python `divmod`, at 1/7/128-step boundaries. Three cases
+exercise the full-product correction of an overestimated quotient. Inputs cross
+96-/256-word boundaries and reach 32,768-bit divisors; poisoned tails remain
+inaccessible. Four invalid denominator/quotient/budget cases and the 384-byte
+checkpoint's source/scratch/stage/operand corruption checks pass. The affected
+1,440 normalized arithmetic cases and two earlier codec tests also pass. Pinned
+SBF metadata, scoped formatting, shell, whitespace and evidence checks pass.
+Logs remain at `.local/scalable-settlement/p54b-0ff7c53/`; reproduce with
+`cargo test --locked -p financial-core --test scalable_atom_division` and
+`python3 tests/financial/test_paged_atom_division.py` after building the wide driver.
+This is a prerequisite arithmetic schedule, not complete on-chain rate verification
+or insurance/payout acceptance.
+
 ## Scalable native settlement (P54A)
 
 Clean **`47ba74e36c03379560e7ed2eba6392b212c91deb`** builds the native
