@@ -22,7 +22,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
 | P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
-| P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; ready publication above #80 follows; no wire/admission change |
+| P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Planned | Versioned registration, financially active membership, storage funding, retirement and complete frozen-source integration; signed acceptance required |
 | P55B–P62 successor implementation | Planned | Backing, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
@@ -56,7 +56,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: publish accepted P55A1, then implement P55A2 on its child;
+Next exact action: implement P55A2 above ready #81;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -666,8 +666,9 @@ now separates this foundation from P55A2's complete on-chain lifecycle and stora
 integration. P55A as a whole is unfinished. P55A2 must implement the canonical
 schema-9 layouts/consumers, Registered/Financial/Retired authority, funded recovery
 storage, complete live-index freeze/default and signed entry/exit/race acceptance.
-No decision/access blocker is known. Next exact action: publish P55A1 above #80,
-then implement P55A2 without waiting for merge; continue through P62's dependencies.
+P55A1 is ready as #81 above #80 and remains open; hosted CI is pending.
+No decision/access blocker is known. Next exact action: implement P55A2 above #81
+without waiting for merge; continue through P62's dependencies.
 
 ## Deployment and operational limits
 
