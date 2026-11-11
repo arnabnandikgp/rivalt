@@ -715,12 +715,26 @@ all other mutable-account guards; a fresh build/run is required. The SDK bounded
 scan decoder and migrated ordinary backing worker pass four focused consumer
 cases; no progress-under-continuous-activity claim is made.
 
-Service controllers, existing RPC harnesses and remaining consumer tests still
-need migration; full typecheck is not yet green. Signed lifecycle/race/
-default/refund checks and PostgreSQL reconciliation remain outstanding. No new PR
-or artifact promotion is claimed. No user decision/access blocker is known.
-Next exact action: build the canonical SBF candidate, migrate the signed lifecycle
-harness and remaining consumers, then run fresh RPC/WS/PostgreSQL acceptance.
+The corrected SBF **`583dbcb`** and committed lifecycle harness **`0d9c378`**
+now pass **411 signed RPC/WS outcomes / 18 expected rejections**, 71 registrations,
+two Financial roots, stale predecessor/re-entry fences, actual SPL custody exit,
+three root retirements and all five terminal storage refund kinds. Dual Anchor
+conformance covers 407 clearing instructions, 377 accounts and 556 events.
+Entry/exit costs 54,339–56,334 CU and uses v1 at exactly 1,232 wire bytes (v0
+1,274); terminal refunds return 34,391,600 test lamports to the recorded payer.
+The final run metadata is dirty because separate default-harness migration ran
+concurrently; executed lifecycle source did not change. Full limits and pins are
+in [validation](operations/validation.md#canonical-account-lifecycle-p55a2-intermediate).
+
+The ordinary backing worker now follows authenticated bounded membership requests
+and atomically pairs final traversal completion with payment; four targeted
+consumer checks pass. Default setup uses actual pre-funded storage and explicit
+Financial entry. Complete-default/RPC/WS/PostgreSQL, remaining service/test
+migration, full typecheck and wire-delta validation are still outstanding. P55A2
+is Active, with no new PR or selected-artifact promotion. No user decision/access
+blocker is known. Next exact action: run the migrated complete-default qualification
+against `583dbcb`, resolve actual failures, then finish required consumers/checks
+and submit the ready P55A2 PR above #81.
 
 ## Deployment and operational limits
 

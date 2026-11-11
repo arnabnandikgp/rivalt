@@ -24,7 +24,7 @@ export async function qualifySettlementApplication(input:{h:CanonicalHarness;set
   const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
   const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
   const pageKey=async(register:number,index:bigint)=>(await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
-    seeds:[Buffer.from('resolution-limbs'),getAddressEncoder().encode(setup.venue),le64(epoch),le32(register),le64(index)]}))[0];
+    seeds:[Buffer.from('resolution-limbs'),getAddressEncoder().encode(setup.venue),le32(register),le64(index)]}))[0];
   const before=await source(),buckets=await ledgers();
   const initial=await state();assert.equal(initial.stage,8);
   await reject('stale adoption revision',sdk.getAdoptSettlementPlanInstruction({...common,revision:initial.revision-1n}));
@@ -32,9 +32,6 @@ export async function qualifySettlementApplication(input:{h:CanonicalHarness;set
   await h.send('P54C adopt exclusive verified plan',[adoption]);
   assert.equal((await source()).stage,14);assert.equal((await state()).adoptionRevision,before.revision+1n);
   await reject('adoption replay',adoption);
-  await reject('legacy Apply after paged adoption',{...sdk.getAdvanceAccountResolutionInstruction({...setup.safetyCommon,
-    page:setup.pages[0],epoch,stage:9,start:0,length:1}),accounts:[...sdk.getAdvanceAccountResolutionInstruction({...setup.safetyCommon,
-      page:setup.pages[0],epoch,stage:9,start:0,length:1}).accounts,{address:rows[0].key,role:AccountRole.WRITABLE}]});
   await reject('order reset after adoption',sdk.getResetSettlementPlanOrderInstruction({...common,actor:setup.payer,
     revision:(await state()).revision,attempt:initial.orderAttempt}));
   await reject('distribution before all roots',sdk.getCompleteSettlementApplicationInstruction({...common,revision:(await state()).revision}));

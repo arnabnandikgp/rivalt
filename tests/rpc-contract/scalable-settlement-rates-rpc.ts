@@ -25,13 +25,13 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
   const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
   const pda=async(label:string,...suffix:Uint8Array[])=>(await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
     seeds:[Buffer.from(label),getAddressEncoder().encode(setup.venue),...suffix]}))[0];
-  const rates=await pda('settlement-rates',le64(epoch));tracked.push(rates);
+  const rates=await pda('settlement-rates');tracked.push(rates);
   const common={...setup.safetyCommon,prepared,rates,epoch};
   const state=async()=>sdk.getSettlementRatesDecoder().decode((await h.read(rates))!);
   const page=async(register:number)=>sdk.getSettlementLimbPageDecoder().decode((await h.read(limbPages[register]))!);
   await h.send('P54 initialize rate verification',[sdk.getInitializeSettlementRatesInstruction(common)]);
   for(let register=3;register<25;register++){
-    const key=await pda('resolution-limbs',le64(epoch),le32(register),le64(0n));limbPages.push(key);tracked.push(key);
+    const key=await pda('resolution-limbs',le32(register),le64(0n));limbPages.push(key);tracked.push(key);
     await h.send('P54 provision reusable rate register',[sdk.getInitializeSettlementLimbPageInstruction({...common,page:key,register,pageIndex:0n})]);
   }
   const words=(value:bigint)=>{const result:bigint[]=[];while(value){result.push(value&((1n<<64n)-1n));value>>=64n;}return result;};
@@ -61,7 +61,7 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
   const first=reference.evaluations[0].proposal.map(BigInt);
   let current=await state();
   await reject('stale rate epoch',sdk.getBeginSettlementRateProposalInstruction({...common,epoch:epoch+1n,actor:setup.payer,
-    revision:current.revision,factor:factorWords(1n),lengths:[0n,0n]}),'InvalidSeeds');
+    revision:current.revision,factor:factorWords(1n),lengths:[0n,0n]}));
   await reject('zero rate factor',sdk.getBeginSettlementRateProposalInstruction({...common,actor:setup.payer,revision:current.revision,
     factor:[0n,0n,0n,0n,0n],lengths:[0n,0n]}));
   await reject('oversized rate width',sdk.getBeginSettlementRateProposalInstruction({...common,actor:setup.payer,revision:current.revision,

@@ -1,5 +1,52 @@
 # Validation and measured limits
 
+## Canonical account lifecycle (P55A2 intermediate)
+
+Clean SBF **`583dbcb53a748db8f2fa21d0594eaaafdd7e5f85`** links without
+oversized-stack diagnostics: clearing 2,335,664 bytes / SHA-256
+`d48d562762208c50a5566c9ea640e23fbe01bc10729e8cf0e9681544aae68074`.
+The source-derived IDL/SDK has schema 9 / profile 5. The earlier `bfd10e8`
+stack-rejected build is not admitted; the subsequent `65c14bf` signed attempt
+found a legitimate same-wallet authority/rent-payer duplicate constraint. The
+narrow untyped destination exception preserves immutable payer binding and
+other mutable-account duplicate guards. No financial or oracle rule changed.
+
+Lifecycle harness **`0d9c378`**, with that SBF, passes **411 signed RPC/WS
+outcomes**, including **18 expected rejections**. It registers 71 permanent
+identities, exercises IDs 65/66 as two Financial roots, rejects entry before
+complete rent-backed capacity, fences a stale competing predecessor, increments
+re-entry generation, and rejects leaving with cash. Five actual SPL atoms are
+deposited/withdrawn before exit. Three root retirements retain 135-byte markers;
+whole-venue retirement enables five allocation-kind refunds to the immutable
+payer, retaining 72-byte markers. Actual payer balance increases equal refunds
+less independently fetched transaction fees; total refunded is 34,391,600 test
+lamports. Recovery ready capacity becomes zero after the terminal cleanup.
+
+| Transaction | Observed CU | Wire / loaded keys |
+|---|---:|---:|
+| Financial entry/exit | 54,339–56,334 | v1 1,232 bytes / 27 |
+| Empty root retirement | 23,122–24,410 | v0 617 bytes / 12 |
+| Terminal allocation refund | 16,581–17,248 | v0 461 bytes / 9 |
+
+The v0 entry/exit encoding is 1,274 bytes; the canonical v1 encoding is exactly
+1,232, with zero priority bid and no lookup tables. Both isolated Anchor clients
+agree on 407 clearing instructions, 377 final account decodes and 556 events.
+Signature WS and fetched transaction errors match for every outcome. The full
+probe consumes 10,036,949 CU and 2,865,000 base-fee lamports. The 99 recovery
+allocations/receipts cost 1,169,324,560 rent lamports, excluding the header and
+permanent membership storage; capacity is 128 roots, **not** evidence of 128
+Financial participants. Owner/signature separation measures rent refunds without
+confusing them with trader collateral. Shared-index stale-guard acceptance is an
+optimistic race check, not a throughput benchmark.
+
+Raw results: `.local/scalable-settlement/runs/p55a2-lifecycle-refund-fixed/`.
+The run starts from the committed harness; its final Git metadata reports dirty
+because the separate default/SQL harness was migrated concurrently. The executed
+lifecycle sources were unchanged. This is not a clean whole-repository acceptance
+claim. The owned Surfpool stopped normally. Complete-default/SQL acceptance,
+remaining consumers/typecheck and wire-delta validation are still required before
+P55A2 Review. Runtime selection remains P53B; default/devnet remain disabled.
+
 ## Recovery storage provisioning (P55A2 intermediate)
 
 Clean verifier **`81aae9df623bdddff69a73f2ba9f88c80a6fc9bb`** runs

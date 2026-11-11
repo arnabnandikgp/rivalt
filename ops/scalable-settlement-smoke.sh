@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Dedicated P54 verifier probe. This does not admit a candidate to normal runtime.
+# Dedicated canonical membership/default verifier probe. This does not admit a candidate to normal runtime.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
@@ -14,13 +14,15 @@ manifest=json.loads((folder/'build-manifest.json').read_text())
 construction=os.environ.get('RIVALT_SETTLEMENT_PLAN')=='1'
 application=os.environ.get('RIVALT_SETTLEMENT_APPLY')=='1'
 assert not application or construction
-revision,expected=(('c08aa495804a1740e109c7ef24b21f982c1495ed','08eca403915e5c8a35b68b03d29ab92e2c13a585f754a4f3e6fa9f528a616ed5') if construction else
-                  ('89b6129404ca7914bf5a8ba588079f798e6e4445','0bb44610f6ed17d51582830999fbcd66d1047f47990b0560d073d2ca055a6547'))
-if application: revision,expected=('efa45951e01b9586469b48294de24d3f0f5fd02a','c943fafd89ddd7688e693384acdc650b8284689f1c5822689c38c36998873af0')
-assert manifest['revision']==revision
-assert manifest['trackedDirty'] is False and manifest['scratchSchema']==9
-assert manifest['binaries']['clearing.so']==expected
-assert hashlib.sha256((folder/'clearing.so').read_bytes()).hexdigest()==expected
+assert manifest['revision']=='583dbcb53a748db8f2fa21d0594eaaafdd7e5f85'
+assert manifest['trackedDirty'] is False and manifest['accountSchema']==9 and manifest['profileVersion']==5
+expected={
+ 'clearing.so':'d48d562762208c50a5566c9ea640e23fbe01bc10729e8cf0e9681544aae68074',
+ 'maker_a.so':'267a775305e9454eeb2fe3e425a0fc8169fab5fd19da066b4b2d10b9a6a691c8',
+ 'maker_b.so':'6dfc65a4db5951c8f6be36c357a0b20f9d31bd8617c85e141168e1214a3bb344'}
+for name,digest in expected.items():
+ assert manifest['binaries'][name]==digest
+ assert hashlib.sha256((folder/name).read_bytes()).hexdigest()==digest
 PY
 if [[ "${RIVALT_SETTLEMENT_PLAN:-0}" == 1 ]]; then
   cargo build --locked -p clearing --example settlement-plan-pages --features state-only
@@ -52,7 +54,7 @@ done
 for component in clearing maker_a maker_b oracle_fixture; do
   key_name="${component//_/-}"
   artifact="$RIVALT_ARTIFACT_DIR/$component.so"
-  if [[ "$component" == clearing ]]; then artifact="$RIVALT_SETTLEMENT_ARTIFACT_DIR/clearing.so"; fi
+  if [[ "$component" != oracle_fixture ]]; then artifact="$RIVALT_SETTLEMENT_ARTIFACT_DIR/$component.so"; fi
   solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/$component-buffer.json" >/dev/null
   solana program deploy "$artifact" --buffer "$RIVALT_RUN_DIR/$component-buffer.json" \
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
