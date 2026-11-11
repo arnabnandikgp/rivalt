@@ -36,7 +36,7 @@ export function decodeTransition(bytes: Buffer) {
   const u32 = () => take(4).readUInt32LE();
   const u64 = () => take(8).readBigUInt64LE();
   const key = () => addressDecoder.decode(take(32));
-  if (u16() !== 9) throw new Error('Unsupported scoped envelope schema');
+  if (u16() !== 10) throw new Error('Unsupported scoped envelope schema');
   const venue = key(), domain = take(32).toString('hex'), slot = u64(), instruction = take(8).toString('hex');
   const payloadCount = u16();
   if (payloadCount > 4) throw new Error('Scoped payload count exceeds bound');

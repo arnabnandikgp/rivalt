@@ -152,7 +152,7 @@ try {
   // cycle can still be pending; it is not a readiness signal.
   await until(async()=>{await indexer!.cycle();return indexer!.healthy;},Boolean,'finalized provisioning fence',60000);
   const {binding}=await indexer.store.published();
-  publicConfig={version:4,accountSchema:9 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
+  publicConfig={version:4,accountSchema:10 as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
     anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain};
   writeFileSync(RUNTIME+'/deployment.json',json(publicConfig),{mode:0o600});
   writeFileSync(RUNTIME+'/private-config.json',json(config),{mode:0o600});

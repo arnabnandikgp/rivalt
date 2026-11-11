@@ -87,7 +87,7 @@ export type CheckMarketBackingInstruction<
       TAccountBtc extends string ? ReadonlyAccount<TAccountBtc> : TAccountBtc,
       TAccountEth extends string ? ReadonlyAccount<TAccountEth> : TAccountEth,
       TAccountLedger extends string
-        ? ReadonlyAccount<TAccountLedger>
+        ? WritableAccount<TAccountLedger>
         : TAccountLedger,
       TAccountCertificate extends string
         ? WritableAccount<TAccountCertificate>
@@ -261,7 +261,7 @@ export async function getCheckMarketBackingInstructionAsync<
     },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: false },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: false },
-    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: false },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     certificate: {
       value: input.certificate ?? null,
       isSigner: false,
@@ -508,7 +508,7 @@ export function getCheckMarketBackingInstruction<
     },
     btc: { value: input.btc ?? null, isSigner: false, isWritable: false },
     eth: { value: input.eth ?? null, isSigner: false, isWritable: false },
-    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: false },
+    ledger: { value: input.ledger ?? null, isSigner: false, isWritable: true },
     certificate: {
       value: input.certificate ?? null,
       isSigner: false,

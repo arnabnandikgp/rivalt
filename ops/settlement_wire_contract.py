@@ -5,10 +5,12 @@ from copy import deepcopy
 SCALARS = {'u8', 'u16', 'u32', 'u64', 'i64', 'i128', 'u128', 'bool', 'pubkey'}
 
 def kind(label):
+    if label.endswith('?'):
+        return {'option': kind(label[:-1])}
     if label.endswith('*'):
         return {'vec': kind(label[:-1])}
     if '[' in label:
-        name, count = label[:-1].split('[')
+        name, count = label[:-1].rsplit('[', 1)
         return {'array': [kind(name), int(count)]}
     return label if label in SCALARS else {'defined': {'name': label}}
 

@@ -101,8 +101,8 @@ it('discovers only canonical children of the selected owner portfolio and reject
 
 it('requires explicit schema-9 deployment selection independently of profile version', async () => {
   const fixture = await environment();
-  expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(9);
-  expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 8 as 9})).toThrow(/Explicit qualified/);
+  expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(10);
+  expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 9 as 10})).toThrow(/Explicit qualified/);
   const {accountSchema: _schema, ...missing} = fixture.config;
   expect(() => sdk.accountUserConfig(missing as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
 });

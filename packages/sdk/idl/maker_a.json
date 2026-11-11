@@ -1029,6 +1029,19 @@
             "type": "u64"
           },
           {
+            "name": "backing_epochs",
+            "docs": [
+              "Selected-market proof epochs in which this root was actually scanned.",
+              "Economic commits preserve these; only authenticated scans may set them."
+            ],
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
             "name": "bump",
             "type": "u8"
           }

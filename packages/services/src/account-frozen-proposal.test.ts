@@ -7,37 +7,37 @@ import {readAccountRateProposal} from './account-frozen-proposal.js';
 async function fixture() {
   const test=await accountFixture(),venue=test.config.venue,keys=await accountWorkerKeys(venue),epoch=1n;
   const [,registryBump]=await sdk.deriveVenueComponent(venue,'registry'),[,sourceBump]=await sdk.deriveVenueComponent(venue,'resolution');
-  const registry={schemaVersion:9,revision:1n,venue,membershipEpoch:4n,nextId:(1n<<54n)+8n,registeredCount:3n,financialCount:3n,
+  const registry={schemaVersion:10,revision:1n,venue,membershipEpoch:4n,nextId:(1n<<54n)+8n,registeredCount:3n,financialCount:3n,
     liveIndex:(await sdk.deriveMemberIndex(venue,14,0n))[0],bump:registryBump};
   test.put(keys.registry,sdk.getVenueRegistryEncoder().encode(registry));
-  const source={...test.empty(sdk.getResolutionDecoder()),schemaVersion:9,revision:2n,venue,epoch,stage:2,count:3n,
+  const source={...test.empty(sdk.getResolutionDecoder()),schemaVersion:10,revision:2n,venue,epoch,stage:2,count:3n,
     membershipEpoch:4n,liveIndex:registry.liveIndex,registryHash:financialMembershipHash({...registry,discriminator:sdk.VENUE_REGISTRY_DISCRIMINATOR}),
     cashBefore:100n,insuranceBefore:[20n,10n],bump:sourceBump};
   test.put(keys.resolution,sdk.getResolutionEncoder().encode(source));
   const [,storageBump]=await sdk.deriveRecoveryStorage(venue);
-  test.put(keys.storage,sdk.getRecoveryStorageEncoder().encode({...test.empty(sdk.getRecoveryStorageDecoder()),schemaVersion:9,revision:2n,
+  test.put(keys.storage,sdk.getRecoveryStorageEncoder().encode({...test.empty(sdk.getRecoveryStorageDecoder()),schemaVersion:10,revision:2n,
     venue,readyCapacity:64n,lockedEpoch:epoch,bump:storageBump}));
   const [,preparedBump]=await sdk.deriveSettlementWorkspace(venue,'prepared');
-  const prepared={...test.empty(sdk.getPreparedSettlementDecoder()),schemaVersion:9,revision:2n,venue,epoch,stage:3,count:3n,
+  const prepared={...test.empty(sdk.getPreparedSettlementDecoder()),schemaVersion:10,revision:2n,venue,epoch,stage:3,count:3n,
     membershipEpoch:4n,insurance:[20n,10n],bump:preparedBump};
   const denominator=Buffer.alloc(320);denominator[0]=1;denominator[1]=3;denominator.writeBigUInt64LE(1n,24);
   prepared.state.denominator=denominator;test.put(keys.prepared,sdk.getPreparedSettlementEncoder().encode(prepared));
   const [,ratesBump]=await sdk.deriveSettlementWorkspace(venue,'rates');
-  const rates={...test.empty(sdk.getSettlementRatesDecoder()),schemaVersion:9,revision:2n,venue,epoch,bump:ratesBump};
+  const rates={...test.empty(sdk.getSettlementRatesDecoder()),schemaVersion:10,revision:2n,venue,epoch,bump:ratesBump};
   const insurance=Buffer.alloc(64);insurance[0]=1;
   for(const [offset,value] of [[8,20n],[16,10n],[24,20n],[32,10n]] as const)insurance.writeBigUInt64LE(value,offset);
   rates.state.insurance=insurance;test.put(keys.rates,sdk.getSettlementRatesEncoder().encode(rates));
   const [,planBump]=await sdk.deriveSettlementWorkspace(venue,'plan');
-  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode({...test.empty(sdk.getSettlementPlanDecoder()),schemaVersion:9,revision:1n,venue,bump:planBump}));
+  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode({...test.empty(sdk.getSettlementPlanDecoder()),schemaVersion:10,revision:1n,venue,bump:planBump}));
   const [pageKey,pageBump]=await sdk.deriveFrozenMarginPage(venue,0n);
-  const page={...test.empty(sdk.getFrozenMarginPageDecoder()),schemaVersion:9,revision:4n,venue,epoch,pageIndex:0n,rowCount:3,bump:pageBump};
+  const page={...test.empty(sdk.getFrozenMarginPageDecoder()),schemaVersion:10,revision:4n,venue,epoch,pageIndex:0n,rowCount:3,bump:pageBump};
   const third=(await sdk.deriveMarginAccount((await sdk.deriveAccountPortfolio(venue,test.owner,1))[0],0))[0];
   for(const [ordinal,id] of [0n,65n,(1n<<54n)+7n].entries())Object.assign(page.rows[ordinal],{id,member:[...test.margins,third][ordinal],
     originalRevision:5n,activationGeneration:BigInt(ordinal+1),cash:ordinal===0?100n:0n,
     claims:ordinal===0?[-80_000_000_000n,-80_000_000_000n]:ordinal===1?[80_000_000_000n,0n]:[0n,80_000_000_000n],collected:ordinal===0?100n:0n});
   test.put(pageKey,sdk.getFrozenMarginPageEncoder().encode(page));
   const [limbKey,limbBump]=await sdk.deriveSettlementLimbPage(venue,0,0n);
-  const limb={...test.empty(sdk.getSettlementLimbPageDecoder()),schemaVersion:9,revision:3n,venue,epoch,wordCount:1,bump:limbBump};
+  const limb={...test.empty(sdk.getSettlementLimbPageDecoder()),schemaVersion:10,revision:3n,venue,epoch,wordCount:1,bump:limbBump};
   limb.payload.words[0]=1n;test.put(limbKey,sdk.getSettlementLimbPageEncoder().encode(limb));
   const rpc={call:async(method:string,args:unknown[]=[])=>({context:{slot:100},value:method==='getAccountInfo'?test.accounts.get(args[0] as string)??null:
     (args[0] as string[]).map(key=>test.accounts.get(key)??null)})};

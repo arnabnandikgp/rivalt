@@ -171,7 +171,7 @@ context!(CheckMarketBacking, venue, event_authority;
     registry: Read,
     btc: Read,
     eth: Read,
-    ledger: Read,
+    ledger: Write,
     certificate: Write,
 ];
 [

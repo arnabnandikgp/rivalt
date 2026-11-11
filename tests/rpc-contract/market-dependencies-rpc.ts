@@ -158,7 +158,7 @@ try {
     }
     const proof=sdk.getSettlementCertificateDecoder().decode((await h.read(certificate))!);assert(proof.complete);return {certificate,proof};
   };
-  const ethProof=await backing(1);assert.equal(ethProof.proof.requiredMarketMask,3);
+  const ethProof=await backing(1);assert.equal(sdk.decodeBackingSummary(sdk.getMarketLedgerDecoder().decode((await h.read(setup.ledgers[1]))!).backing.summary).requiredMask,3);
   const gain=sdk.getPayAccountGainInstruction({...claimIdentity,margin:setup.instances[3].capital,
     certificate:ethProof.certificate,marketIndex:1,amount:1n});
   const beforePay=await root(setup.instances[3].capital);

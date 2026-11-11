@@ -6,17 +6,17 @@ import type {AccountEvent} from './account-events.js';
 const zero='11111111111111111111111111111111',scale=1_000_000_000n;
 function fixture() {
   const state=emptyLiquidity(),blank=<T>(decoder:{fixedSize:number;decode(bytes:Uint8Array):T})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize)));
-  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:9,profileVersion:5,domain:'00'.repeat(32),markets:['btc','eth'],marketCount:2};
-  state.custody={...blank(sdk.getCustodyDecoder()),schemaVersion:9,allocatedVault:'6'};
-  state.safety={...blank(sdk.getVenueSafetyDecoder()),schemaVersion:9,mode:2,paused:true,epoch:'7',resolutionEpoch:'3'};
+  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:10,profileVersion:6,domain:'00'.repeat(32),markets:['btc','eth'],marketCount:2};
+  state.custody={...blank(sdk.getCustodyDecoder()),schemaVersion:10,allocatedVault:'6'};
+  state.safety={...blank(sdk.getVenueSafetyDecoder()),schemaVersion:10,mode:2,paused:true,epoch:'7',resolutionEpoch:'3'};
   state.revisions.source={kind:10,revision:'11'};
   for(let market=0;market<2;market++) {
-    state.markets[['btc','eth'][market]]={...blank(sdk.getMarketDecoder()),schemaVersion:9,index:market,lotsPerUnit:market?'100000':'1000000'};
-    state.ledgers[['bl','el'][market]]={...blank(sdk.getMarketLedgerDecoder()),schemaVersion:9,market:['btc','eth'][market],marketIndex:market,
+    state.markets[['btc','eth'][market]]={...blank(sdk.getMarketDecoder()),schemaVersion:10,index:market,lotsPerUnit:market?'100000':'1000000'};
+    state.ledgers[['bl','el'][market]]={...blank(sdk.getMarketLedgerDecoder()),schemaVersion:10,market:['btc','eth'][market],marketIndex:market,
       insurance:market?'0':'3',fees:market?'0':'2',version:'1',liabilityVersion:'1'};
   }
   for(let id=0;id<3;id++) {
-    const key=`root${id}`,root={...blank(sdk.getMarginAccountDecoder()),schemaVersion:9,revision:'9',venue:'venue',id:String(id),lifecycle:2,activationGeneration:'1',mode:0,
+    const key=`root${id}`,root={...blank(sdk.getMarginAccountDecoder()),schemaVersion:10,revision:'9',venue:'venue',id:String(id),lifecycle:2,activationGeneration:'1',mode:0,
       isolatedMarketIndex:255,cash:id===0?'1':'0',delegateEpoch:'1'};
     root.positions[0].virtualScaled=((id===0?-2n:1n)*scale).toString();
     root.book.lastOrderId='4';root.book.lastGroupId='8';state.members.push(key);state.roots[key]=root;

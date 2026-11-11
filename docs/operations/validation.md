@@ -1,5 +1,22 @@
 # Validation and measured limits
 
+## Maintained backing integration (P55B2, pending)
+
+The gated schema-10/profile-6 candidate has source-derived IDL/SDK outputs and an
+explicit D102 wire delta against immutable P55B1 `c650265`. Before its first clean
+build pin, affected checks pass: 18 cash/certificate tests, four region/layout tests,
+13 scoped journal tests, one dependency test, 65 client tests across ten affected
+files, 15 ABI-guard regressions, typecheck and the all-three-program ABI comparison.
+The changed kernel passes the independent five-method reference again (1,274
+corner contributions and 89,720 summary/restoration prefixes; native only).
+The worker completes an unpayable cohort's scan without attaching a doomed payment.
+
+No new SBF build, signed deployment/progress/payment, resource measurement or
+PostgreSQL replay is yet claimed. The selected runtime remains schema 8. Candidate
+build manifests now read actual source schema/profile constants rather than label
+new binaries as schema 8; this does not bypass the selected runtime hash allowlist.
+Exact clean pins and signed acceptance will replace this preliminary checkpoint.
+
 ## Maintained backing arithmetic (P55B1)
 
 Clean **`1715d20ceda111591bc1e8addbfa95ea4208c9f0`** compiles the actual

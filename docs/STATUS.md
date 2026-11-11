@@ -25,7 +25,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
-| P55B2–P62 successor implementation | Planned | Atomic maintained backing, expanded activation and later remediation follow their existing gates |
+| P55B2 on-chain maintained backing | In progress | D102 candidate storage/hooks, schema-10 IDL/SDK/indexer and worker implemented; focused native/client checks in progress; no new SBF/deployment or signed acceptance yet |
+| P56A–P62 successor implementation | Planned | Full clients/workers, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -57,7 +58,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P55A2 above ready #81;
+Next exact action: finish P55B2 candidate verification and signed progress above ready #83;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -724,7 +725,7 @@ decimal-string zero generation. All three affected native checks, eight SDK marg
 checks and typecheck pass locally. Run 43108366267 passes client/scope/report/shell
 and all qualified native cases; its default build found a refund test which
 incorrectly expected an enabled action. That test now explicitly asserts the
-default gate; both focused build-profile checks pass. The next hosted run is pending. Next exact action:
+default gate; both focused build-profile checks pass. Hosted run 43109440280 passes all five jobs at `3b9e15e`. Next exact action:
 implement P55B maintained backing against its conservative-region contract. P56A retains full UI,
 durable automatic default and the remaining historical raw-audit adapters; P56B
 retains populated-cohort qualification and runtime promotion.
@@ -750,6 +751,27 @@ does not authenticate membership, accept a source, update a program account or p
 a claim. No P55B2 integration, SBF/CU/lock result, RPC/WS/SQL progress, larger live
 population or runtime promotion is claimed. P55B1 is open as ready PR #83 above #82. Next exact action: implement P55B2's
 versioned summary storage and atomic mutation hooks, then its signed acceptance.
+
+## P55B2 candidate checkpoint
+
+The current working tree implements D102 storage and mutation hooks plus minimum
+schema-10/profile-6 SDK, event, worker and indexer migration. Gain authority exists
+only in explicit local qualification builds; default/devnet remain gated. Selected
+runtime artifacts remain schema 8. Four new certificate tests pass (freshness versus
+restart, required versus unseen dependencies and nine binding mutations), alongside
+14 cash/hook tests, one region test, one dependency test, three account layout tests,
+13 scoped journal tests and the explicit ABI comparison. Affected client checks
+initially exposed old profile/layout fixtures; corrected affected files pass.
+The consolidated affected verification passes: 18 cash/certificate, four
+region/layout, 13 scoped journal and 65 client tests across ten files; 15 wire
+regressions, typecheck and all-three-program explicit ABI checks pass. The independent
+Rust/Python backing reference passes again (1,274 contributions / 89,720 prefixes).
+These are pre-build working-tree results; no new binary,
+CU/lock measurement, signed transaction, SQL replay or phase completion is claimed.
+
+Next exact action: commit the gated candidate after focused checks, build fresh
+pinned schema-10 binaries, then run maintained-progress/payment/rollback and real
+PostgreSQL acceptance. No user decision is blocking this work.
 
 ## Deployment and operational limits
 

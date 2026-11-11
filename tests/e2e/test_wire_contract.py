@@ -25,6 +25,21 @@ class WireContractTest(unittest.TestCase):
         mutate(changed)
         self.assertNotEqual(wire.program_contract(changed), self.expected)
 
+    def test_backing_delta_preserves_exact_epoch_layout_and_ledger_privilege(self):
+        from backing_wire_contract import undo_backing_delta
+        undo_backing_delta(self.original, 'clearing')
+        for name in ('MarginAccount', 'MarketLedger', 'BackingState', 'BackingRegion', 'SettlementCertificate', 'AccountBackingChanged'):
+            altered = deepcopy(self.original)
+            layout = next(item for item in altered['types'] if item['name'] == name)['type']['fields']
+            layout.reverse()
+            with self.subTest(name=name), self.assertRaises(AssertionError):
+                undo_backing_delta(altered, 'clearing')
+        altered = deepcopy(self.original)
+        instruction = next(item for item in altered['instructions'] if item['name'] == 'check_market_backing')
+        next(meta for meta in instruction['accounts'] if meta['name'] == 'ledger')['writable'] = False
+        with self.assertRaises(AssertionError):
+            undo_backing_delta(altered, 'clearing')
+
     def test_source_names_and_declaration_order_are_not_wire(self):
         renamed = deepcopy(self.original)
         names = {item["name"]: "Renamed" + item["name"] for item in renamed["types"]}

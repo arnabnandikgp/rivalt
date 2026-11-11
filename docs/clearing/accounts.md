@@ -34,7 +34,7 @@ dependencies, not optional later repairs after lifting the registration limit.
 | `clearing/{wide,row}.rs`: 96 limbs, product denominator, 186-bit factor, 93-bit totals | Paged arithmetic; reduced exact LCM with bounded small divisors; count-derived widths, not a bigger unexplained constant | P54A/P54B |
 | `ResolutionRow/Page`: two wide flows per root, two roots/page, 32 pages | Compact frozen inputs and whole-flow quotients; shared paged wide scratch; recompute exact remainders to verify order | P54B/P54C |
 | `ResolutionWork`, `clearing/circulation.rs`: u64 visited mask, 69 nodes, 518 arcs/u16 offsets | Paged graph, u64 indices, complete rank/permutation proof, hierarchical active-arc lookup and resumable canonical DFS | P54C |
-| `account_cash/certificate.rs`: whole scan restarts on selected liability/source/membership stamp | Incrementally maintained per-page backing proofs; bounded validity region with current-source admission, no stale certificate or forced pause | P55B |
+| `account_cash/certificate.rs`: whole scan restarts on selected liability/source/membership stamp | Incrementally maintained per-root epochs and ledger backing summaries; bounded validity region with current-source admission, no stale certificate or forced pause | P55B |
 | `MarketLedger`, custody, retirement scans | Keep actual allocated vault cap; complete cash/claim totals, market attribution and empty-member exclusion proof; no duplicated cached spendable cash | P54/P55 |
 | `events.rs`, `instructions/scopes.rs`, SDK `account-{client,snapshot}.ts` | Versioned lifecycle/page events and authenticated bounded page discovery; IDs as decimal strings, no JS number conversion | P55/P56A |
 | Services `account-{frozen,rate}-proposal.ts`, `account-settlement-worker.ts` | Untrusted paged proposals, durable continuation/recovery and incremental backing; no whole-cohort transaction or trusted solver | P54/P56A |
@@ -735,3 +735,15 @@ classified continuous-sampling/trading scan attempts; rebuilt ABI/SDK/SBF parity
 actual RPC/WS/PostgreSQL crash/replay reconciliation. A temporary coordinated window
 may remain a measured limitation, never an implicit guarantee. P43/P44 cannot
 inherit resource acceptance from P41.
+
+### P55B2 backing layout boundary
+
+The unpromoted D102 candidate uses schema **10 / profile 6**. It adds two processed
+backing epochs to MarginAccount (1,011 bytes), a 248-byte BackingState to each
+MarketLedger (373 bytes), and replaces the old certificate's snapshot-dependent
+counters with a backing epoch and authenticated membership cursor (621 bytes).
+All other account layouts, PDA seeds, discriminators, instruction arguments and
+error numbers remain unchanged against P55B1. `check_market_backing` makes its
+existing selected ledger writable and writes a member root only for a member step.
+Fresh deployments and journal databases are mandatory; selected schema-8 and
+accepted P55A2 schema-9 evidence do not qualify schema 10. See [accounting](accounting.md#on-chain-maintained-proof-p55b2-candidate).

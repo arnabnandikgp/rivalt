@@ -61,6 +61,7 @@ export type MarginAccountSnapshot = {
   book: OrderBook;
   lifecycle: number;
   activationGeneration: bigint;
+  backingEpochs: Array<bigint>;
   bump: number;
 };
 
@@ -86,6 +87,7 @@ export type MarginAccountSnapshotArgs = {
   book: OrderBookArgs;
   lifecycle: number;
   activationGeneration: number | bigint;
+  backingEpochs: Array<number | bigint>;
   bump: number;
 };
 
@@ -112,6 +114,7 @@ export function getMarginAccountSnapshotEncoder(): FixedSizeEncoder<MarginAccoun
     ["book", getOrderBookEncoder()],
     ["lifecycle", getU8Encoder()],
     ["activationGeneration", getU64Encoder()],
+    ["backingEpochs", getArrayEncoder(getU64Encoder(), { size: 2 })],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -139,6 +142,7 @@ export function getMarginAccountSnapshotDecoder(): FixedSizeDecoder<MarginAccoun
     ["book", getOrderBookDecoder()],
     ["lifecycle", getU8Decoder()],
     ["activationGeneration", getU64Decoder()],
+    ["backingEpochs", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["bump", getU8Decoder()],
   ]);
 }

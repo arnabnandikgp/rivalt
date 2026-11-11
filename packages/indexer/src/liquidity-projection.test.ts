@@ -8,19 +8,19 @@ const venue=sdk.CLEARING_PROGRAM_ADDRESS,domain='00'.repeat(32);
 const blank=(decoder:{fixedSize:number;decode(bytes:Uint8Array):unknown})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize))) as any;
 function fixture() {
   const state=emptyLiquidity();
-  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:9,revision:'1',profileVersion:5,domain,markets:['btc','eth'],marketCount:2};
-  state.custody={schemaVersion:9,revision:'1',venue,allocatedVault:'200000',};
-  state.safety={schemaVersion:9,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
+  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:10,revision:'1',profileVersion:6,domain,markets:['btc','eth'],marketCount:2};
+  state.custody={schemaVersion:10,revision:'1',venue,allocatedVault:'200000',};
+  state.safety={schemaVersion:10,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
   state.members=['trader','capital'];state.membershipVersion='3';
   for(const [index,key] of ['btc','eth'].entries()) {
-    state.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:9,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
-    state.ledgers[`${key}-ledger`]={schemaVersion:9,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:'0',fees:'0',insuranceFeeRemainder:0,version:'1',liabilityVersion:'0'};
+    state.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:10,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
+    state.ledgers[`${key}-ledger`]={...blank(sdk.getMarketLedgerDecoder()),schemaVersion:10,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:'0',fees:'0',insuranceFeeRemainder:0,version:'1',liabilityVersion:'0'};
   }
-  for(const [id,key] of state.members.entries())state.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:9,revision:'1',venue,
+  for(const [id,key] of state.members.entries())state.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:10,revision:'1',venue,
     id:String(id),lifecycle:2,activationGeneration:'1',mode:1,role:id,owner:'owner',subaccountIndex:1,isolatedMarketIndex:0,cash:'100000',delegateEpoch:'1'};
-  state.liquidity!.makers.maker={...blank(sdk.getMakerRegistrationDecoder()),schemaVersion:9,revision:'1',venue,market:'btc',owner:'owner',
+  state.liquidity!.makers.maker={...blank(sdk.getMakerRegistrationDecoder()),schemaVersion:10,revision:'1',venue,market:'btc',owner:'owner',
     capital:'capital',instance:0,authorityEpoch:'1',depthEpoch:'1'};
-  state.liquidity!.publishers.publisher={schemaVersion:9,revision:'1',venue,market:'btc',publisher:'signer',authorityEpoch:'1',lastSequence:'0',lastObservedSlot:'0',lastObservedTime:'0',enabled:true};
+  state.liquidity!.publishers.publisher={schemaVersion:10,revision:'1',venue,market:'btc',publisher:'signer',authorityEpoch:'1',lastSequence:'0',lastObservedSlot:'0',lastObservedTime:'0',enabled:true};
   state.identities=Object.fromEntries(state.members.map((key,index)=>[String(index),key]));state.nextMemberId=String(state.members.length);state.registeredCount=state.nextMemberId;
   return state;
 }

@@ -95,6 +95,11 @@ export type MarginAccount = {
   book: OrderBook;
   lifecycle: number;
   activationGeneration: bigint;
+  /**
+   * Selected-market proof epochs in which this root was actually scanned.
+   * Economic commits preserve these; only authenticated scans may set them.
+   */
+  backingEpochs: Array<bigint>;
   bump: number;
 };
 
@@ -123,6 +128,11 @@ export type MarginAccountArgs = {
   book: OrderBookArgs;
   lifecycle: number;
   activationGeneration: number | bigint;
+  /**
+   * Selected-market proof epochs in which this root was actually scanned.
+   * Economic commits preserve these; only authenticated scans may set them.
+   */
+  backingEpochs: Array<number | bigint>;
   bump: number;
 };
 
@@ -152,6 +162,7 @@ export function getMarginAccountEncoder(): FixedSizeEncoder<MarginAccountArgs> {
       ["book", getOrderBookEncoder()],
       ["lifecycle", getU8Encoder()],
       ["activationGeneration", getU64Encoder()],
+      ["backingEpochs", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: MARGIN_ACCOUNT_DISCRIMINATOR }),
@@ -183,6 +194,7 @@ export function getMarginAccountDecoder(): FixedSizeDecoder<MarginAccount> {
     ["book", getOrderBookDecoder()],
     ["lifecycle", getU8Decoder()],
     ["activationGeneration", getU64Decoder()],
+    ["backingEpochs", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -269,5 +281,5 @@ export async function fetchAllMaybeMarginAccount(
 }
 
 export function getMarginAccountSize(): number {
-  return 995;
+  return 1011;
 }

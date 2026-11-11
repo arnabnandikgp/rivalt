@@ -11,19 +11,19 @@ async function membershipFixture() {
   put(margin,sdk.getMarginAccountEncoder().encode(root));
   const [registry,bump]=await sdk.deriveVenueComponent(config.venue,'registry');
   const path=await sdk.deriveMemberPath(config.venue,id);
-  put(registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:9,revision:9n,venue:config.venue,membershipEpoch:12n,
+  put(registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:10,revision:9n,venue:config.venue,membershipEpoch:12n,
     nextId:id+1n,registeredCount:2n,financialCount:1n,liveIndex:path[14][0],bump}));
   const [page,pageBump]=await sdk.deriveMemberPage(config.venue,id/64n);
   const members=empty(sdk.getMemberPageDecoder());
-  Object.assign(members,{schemaVersion:9,revision:11n,venue:config.venue,pageIndex:id/64n,allocatedMask:2n,financialMask:2n,bump:pageBump});
+  Object.assign(members,{schemaVersion:10,revision:11n,venue:config.venue,pageIndex:id/64n,allocatedMask:2n,financialMask:2n,bump:pageBump});
   members.members.entries[1]={root:margin,lifecycle:2,activationGeneration:7n};
   put(page,sdk.getMemberPageEncoder().encode(members));
   const [storage,storageBump]=await sdk.deriveRecoveryStorage(config.venue);
-  put(storage,sdk.getRecoveryStorageEncoder().encode({...empty(sdk.getRecoveryStorageDecoder()),schemaVersion:9,revision:3n,
+  put(storage,sdk.getRecoveryStorageEncoder().encode({...empty(sdk.getRecoveryStorageDecoder()),schemaVersion:10,revision:3n,
     venue:config.venue,readyCapacity:64n,bump:storageBump}));
   for(const [level,[key,nodeBump]]of path.entries()) {
     const slot=Number(((id/64n)>>BigInt(4*level))&15n),counts=Array<bigint>(16).fill(0n);counts[slot]=1n;
-    put(key,sdk.getMemberIndexNodeEncoder().encode({schemaVersion:9,revision:BigInt(20+level),venue:config.venue,level,
+    put(key,sdk.getMemberIndexNodeEncoder().encode({schemaVersion:10,revision:BigInt(20+level),venue:config.venue,level,
       prefix:(id/64n)>>BigInt(4*(level+1)),populatedMask:1<<slot,counts,bump:nodeBump}));
   }
   const rpc={call:async(method:string,args:unknown[]=[])=>({context:{slot:100},value:method==='getAccountInfo'?accounts.get(args[0] as string)??null:

@@ -55,22 +55,19 @@ pub(super) fn apply(
         accounts.first_capital.address().to_owned(),
         &quotes[0],
     ));
-    let previous = accounts.first_capital.positions;
+    identity.maintain_root(&accounts.first_capital, &next.makers[0])?;
     trading::commit_root(&mut accounts.first_capital, &next.makers[0])?;
-    identity.invalidate_positions(previous, accounts.first_capital.positions)?;
     if quotes.len() == 2 {
         let registration = accounts.second_registration.as_deref_mut().unwrap();
         let capital = accounts.second_capital.as_deref_mut().unwrap();
         consume(registration, &quotes[1])?;
         executed.push(leg(registration, capital.address().to_owned(), &quotes[1]));
-        let previous = capital.positions;
+        identity.maintain_root(capital, &next.makers[1])?;
         trading::commit_root(capital, &next.makers[1])?;
-        identity.invalidate_positions(previous, capital.positions)?;
     }
     let order = order_index.map(|index| identity.trader.book.orders[index].order);
-    let previous = identity.trader.positions;
+    identity.maintain_trader(&next.trader)?;
     trading::commit_root(&mut identity.trader, &next.trader)?;
-    identity.invalidate_positions(previous, identity.trader.positions)?;
     identity.market.gross_lots = next.gross_lots;
     trading::materialize_optional(
         [

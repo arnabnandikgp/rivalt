@@ -5,6 +5,68 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D102 — maintained backing inside existing financial ownership (12 November 2026)
+
+P55B2 implements D93/G3's conservative-region proof without a coordinated pause.
+The candidate places one selected-market summary/region/epoch inside each existing
+MarketLedger and two processed-epoch markers in each MarginAccount. A bounded scan
+writes the authenticated root marker and selected ledger as well as its cursor;
+ordinary root mutations maintain their already-required market ledgers. This
+supersedes the tentative extra per-page financial summaries in the P51B proposal:
+the complete live index proves coverage, while a per-root epoch proves whether a
+contribution has joined the summary. No new page or global registry write is added
+to every route. Actual contention/CU must still be measured before acceptance.
+
+Reserve fresh clearing schema **10 / local profile 6** for these changed layouts.
+Selected schema-8 and P55A2 schema-9 artifacts stay separate. Root IDs/seeds and
+lifecycle economics are unchanged. The existing 64 Financial qualification gate
+remains. Complete SDK/event/indexer and source-derived wire checks are mandatory;
+this decision does not authorize reinterpretation of earlier roots or journals.
+
+A proof starts a monotone nonzero market-local epoch, freezes its Financial count/
+epoch, safety/terms/config bindings and arithmetic region, and resets coverage.
+Each member contributes once. Every subsequent economic mutation of a processed
+root replaces its exact before/after contribution atomically, including cash-only
+and fee changes; unprocessed roots remain owed by the scan. q=0/z=0 in a selected
+market contributes zero regardless of cash or sibling exposures, so omitting that
+irrelevant ledger remains sound. Order/delegate-only paths must prove cash/q/z
+unchanged. A newly bad contribution blocks payment rather than vetoing an otherwise
+admissible financial action. Positive unpaid profit and insurance are never credit.
+
+Financial membership changes invalidate the entire old membership-bound proof;
+the next epoch makes every root explicitly unprocessed, including reentered roots.
+Empty registration/retirement leaves it valid. This chooses the conservative
+restart allowed by the candidate's bounded-membership-churn limit, rather than
+adding writable ledgers to the fifteen-node membership transaction. Liveness is
+required under ongoing in-region economic activity and a bounded number of actual
+membership transitions, not under infinitely fast new entries/exits. Retry reasons
+and denominators must expose that distinction. No old count alone can certify a
+new membership set.
+
+Region construction is deterministic, not proposer-selected: extend each current
+risk price interval by its own width on both sides (at least one atom, clamped to
+the existing numeric domain). Extend the current held funding interval by one
+hour of the existing maximum per-hour funding premium at that region's upper
+price, clamped to the existing cumulative-index domain. These are conservative
+proof bounds, not new price admission, funding accrual, oracle-age or recovery
+rules. They may withhold a payment whose current-point debtor is solvent. Current
+credible required sources and **all** current/held endpoints must still lie inside
+the region at payment. Out-of-region changes or incompatible bindings require a
+new proof; fresh in-region observations and checkpoint consumption do not.
+
+No permissionless reset may erase a valid complete proof. During a partial scan,
+an out-of-region endpoint in either market may permit restart, even if that
+market's first debtor has not been encountered yet. For a completed proof, only
+its actual dependency mask governs source/region checks. This prevents an unseen
+sibling dependency from stranding partial work and prevents unrelated market
+sampling from destroying completed scoped payment authority. Safety/default and
+terminal transitions invalidate old epochs before reuse; ordinary funded-cash
+exits retain their existing local admission and never depend on this proof.
+
+This is the implementation contract, not acceptance. P55B2 remains open until
+complete mutation/authority coverage, source/held corners, hostile replay, signed
+progress/rollback, exact PostgreSQL replay and measured resource/lock checks pass.
+
 ## D101 — canonical live membership and retirement wire (12 November 2026)
 
 P55A2 uses D93's fresh schema 9 / local profile 5 for the fixed registry header,

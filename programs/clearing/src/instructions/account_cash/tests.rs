@@ -21,7 +21,7 @@ fn root(cash: u64, claims: [i128; 2]) -> MarginAccount {
     }
 }
 
-fn fixture_snapshot() -> Snapshot {
+pub(super) fn fixture_snapshot() -> Snapshot {
     let markets = [0u8, 1].map(|index| Market {
         schema_version: crate::state::accounts::SCHEMA_VERSION,
         index,
@@ -252,22 +252,18 @@ fn funded_netting_moves_exact_backing_and_never_creates_cash() {
 #[test]
 fn unrelated_insolvency_is_not_a_market_payment_veto() {
     let snapshot = fixture_snapshot();
+    let region = BackingRegion::around(snapshot.risks.map(|risk| [risk.lower, risk.upper]), snapshot.bounds).unwrap().model();
+    let contribution = |account: &MarginAccount, selected| region.contribution(&trading::model(account).unwrap(), selected).unwrap();
     let eth_debtor = root(0, [0, -100 * SCALE]);
-    assert_eq!(
-        certificate::debtor_mask(&eth_debtor, &snapshot, 0).unwrap(),
-        0
-    );
-    assert!(certificate::debtor_mask(&eth_debtor, &snapshot, 1).is_err());
+    assert!(!contribution(&eth_debtor, 0).bad);
+    assert_eq!(contribution(&eth_debtor, 0).required, 0);
+    assert!(contribution(&eth_debtor, 1).bad);
     let cross_debtor = root(100, [-80 * SCALE, -40 * SCALE]);
-    for selected in [0, 1] {
-        assert!(certificate::debtor_mask(&cross_debtor, &snapshot, selected).is_err());
-    }
     let backed = root(120, [-80 * SCALE, -40 * SCALE]);
     for selected in [0, 1] {
-        assert_eq!(
-            certificate::debtor_mask(&backed, &snapshot, selected).unwrap(),
-            0
-        );
+        assert!(contribution(&cross_debtor, selected).bad);
+        assert!(!contribution(&backed, selected).bad);
+        assert_eq!(contribution(&backed, selected).required, 0);
     }
 }
 

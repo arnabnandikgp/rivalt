@@ -125,6 +125,9 @@ pub struct MarginAccount {
     pub book: OrderBook,
     pub lifecycle: u8,
     pub activation_generation: u64,
+    /// Selected-market proof epochs in which this root was actually scanned.
+    /// Economic commits preserve these; only authenticated scans may set them.
+    pub backing_epochs: [u64; MARKET_COUNT],
     pub bump: u8,
 }
 
@@ -171,6 +174,7 @@ pub struct MarketLedger {
     pub version: u64,
     /// Economic mutations of roots owing to this market invalidate its backing proof.
     pub liability_version: u64,
+    pub backing: BackingState,
     pub bump: u8,
 }
 
@@ -193,18 +197,9 @@ pub struct SettlementCertificate {
     pub revision: u64,
     pub venue: Address,
     pub market_index: u8,
-    pub safety_epoch: u64,
-    pub membership_version: u64,
-    pub liability_version: u64,
-    pub observations: [u64; MARKET_COUNT],
-    pub funding_bounds: [[i128; 2]; MARKET_COUNT],
-    pub source_deadlines: [i64; MARKET_COUNT],
-    pub required_market_mask: u8,
+    pub backing_epoch: u64,
     pub count: u64,
     pub next: u64,
-    pub cash: u64,
-    pub lots: [i128; MARKET_COUNT],
-    pub claim_sum: i128,
     pub complete: bool,
     pub membership: MembershipState,
     pub bump: u8,

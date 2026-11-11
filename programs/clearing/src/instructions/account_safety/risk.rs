@@ -119,38 +119,38 @@ pub fn liquidate(
             == u128::from(candidate.target.cash) + u128::from(candidate.receiver.cash),
         ClearingError::Reconciliation
     );
-    let target_positions = accounts.target.positions;
-    let receiver_positions = accounts.receiver.positions;
+    account_cash::maintained::update(
+        [
+            accounts
+                .btc_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+            accounts
+                .eth_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+        ],
+        &accounts.target,
+        &candidate.target,
+        &accounts.identity.safety,
+    )?;
+    account_cash::maintained::update(
+        [
+            accounts
+                .btc_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+            accounts
+                .eth_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+        ],
+        &accounts.receiver,
+        &candidate.receiver,
+        &accounts.identity.safety,
+    )?;
     account_trading::commit_root(&mut accounts.target, &candidate.target)?;
     account_trading::commit_root(&mut accounts.receiver, &candidate.receiver)?;
-    account_trading::invalidate(
-        [
-            accounts
-                .btc_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-            accounts
-                .eth_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-        ],
-        target_positions,
-        accounts.target.positions,
-    )?;
-    account_trading::invalidate(
-        [
-            accounts
-                .btc_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-            accounts
-                .eth_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-        ],
-        receiver_positions,
-        accounts.receiver.positions,
-    )?;
     let selected = if market_index == 0 {
         &mut accounts.identity.btc
     } else {

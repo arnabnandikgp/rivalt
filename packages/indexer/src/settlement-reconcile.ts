@@ -16,7 +16,7 @@ export const settlementDescriptors=[
 ] as const;
 export function scopedSchema(kind:number) {
   assert(Number.isInteger(kind)&&kind>=0&&kind<=27&&kind!==11&&kind!==12,'Known scoped kind');
-  return 9;
+  return sdk.ACCOUNT_SCHEMA;
 }
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
@@ -25,7 +25,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
   assert.equal(bytes.length,descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
   const value=descriptor[2].decode(bytes) as any;
-  assert.equal(value.schemaVersion,9);assert.equal(value.venue,binding.venue);
+  assert.equal(value.schemaVersion,10);assert.equal(value.venue,binding.venue);
   let label:string,suffix:Uint8Array[];
   switch(kind) {
     case 17:label='prepared-settlement';suffix=[];break;

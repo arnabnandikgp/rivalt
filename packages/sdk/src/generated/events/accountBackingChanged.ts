@@ -17,22 +17,34 @@ import {
   getConstantEncoder,
   getHiddenPrefixDecoder,
   getHiddenPrefixEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
   getU64Encoder,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type HasAddress,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
   getBackingSnapshotDecoder,
   getBackingSnapshotEncoder,
+  getMarginAccountSnapshotDecoder,
+  getMarginAccountSnapshotEncoder,
+  getMarketLedgerSnapshotDecoder,
+  getMarketLedgerSnapshotEncoder,
   type BackingSnapshot,
   type BackingSnapshotArgs,
+  type MarginAccountSnapshot,
+  type MarginAccountSnapshotArgs,
+  type MarketLedgerSnapshot,
+  type MarketLedgerSnapshotArgs,
 } from "../types/index.js";
 
 export const ACCOUNT_BACKING_CHANGED_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
@@ -49,6 +61,13 @@ export type AccountBackingChangedEvent = {
   slot: bigint;
   certificate: Address;
   state: BackingSnapshot;
+  /**
+   * Initialization has no summary/root mutation. Every scan emits its ledger
+   * and, on a member step, the exact root whose processed marker changed.
+   */
+  ledger: Option<MarketLedgerSnapshot>;
+  margin: Option<Address>;
+  rootState: Option<MarginAccountSnapshot>;
 };
 
 export type AccountBackingChangedEventArgs = {
@@ -56,36 +75,49 @@ export type AccountBackingChangedEventArgs = {
   slot: number | bigint;
   certificate: Address | HasAddress;
   state: BackingSnapshotArgs;
+  /**
+   * Initialization has no summary/root mutation. Every scan emits its ledger
+   * and, on a member step, the exact root whose processed marker changed.
+   */
+  ledger: OptionOrNullable<MarketLedgerSnapshotArgs>;
+  margin: OptionOrNullable<Address | HasAddress>;
+  rootState: OptionOrNullable<MarginAccountSnapshotArgs>;
 };
 
 /** Gets the encoder for {@link AccountBackingChangedEventArgs} event data. */
-export function getAccountBackingChangedEventEncoder(): FixedSizeEncoder<AccountBackingChangedEventArgs> {
+export function getAccountBackingChangedEventEncoder(): Encoder<AccountBackingChangedEventArgs> {
   return getHiddenPrefixEncoder(
     getStructEncoder([
       ["venue", getAddressEncoder()],
       ["slot", getU64Encoder()],
       ["certificate", getAddressEncoder()],
       ["state", getBackingSnapshotEncoder()],
+      ["ledger", getOptionEncoder(getMarketLedgerSnapshotEncoder())],
+      ["margin", getOptionEncoder(getAddressEncoder())],
+      ["rootState", getOptionEncoder(getMarginAccountSnapshotEncoder())],
     ]),
     [getConstantEncoder(ACCOUNT_BACKING_CHANGED_EVENT_DISCRIMINATOR)],
   );
 }
 
 /** Gets the decoder for {@link AccountBackingChangedEvent} event data. */
-export function getAccountBackingChangedEventDecoder(): FixedSizeDecoder<AccountBackingChangedEvent> {
+export function getAccountBackingChangedEventDecoder(): Decoder<AccountBackingChangedEvent> {
   return getHiddenPrefixDecoder(
     getStructDecoder([
       ["venue", getAddressDecoder()],
       ["slot", getU64Decoder()],
       ["certificate", getAddressDecoder()],
       ["state", getBackingSnapshotDecoder()],
+      ["ledger", getOptionDecoder(getMarketLedgerSnapshotDecoder())],
+      ["margin", getOptionDecoder(getAddressDecoder())],
+      ["rootState", getOptionDecoder(getMarginAccountSnapshotDecoder())],
     ]),
     [getConstantDecoder(ACCOUNT_BACKING_CHANGED_EVENT_DISCRIMINATOR)],
   );
 }
 
 /** Gets the codec for {@link AccountBackingChangedEvent} event data. */
-export function getAccountBackingChangedEventCodec(): FixedSizeCodec<
+export function getAccountBackingChangedEventCodec(): Codec<
   AccountBackingChangedEventArgs,
   AccountBackingChangedEvent
 > {

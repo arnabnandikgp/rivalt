@@ -7,12 +7,12 @@ import type {AccountEvent,AccountInvocation} from './account-events.js';
 const venue='venue',domain='00'.repeat(32),zero='11111111111111111111111111111111';
 function fixture() {
   const state=emptyLiquidity(),blank=<T>(decoder:{fixedSize:number;decode(bytes:Uint8Array):T})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize)));
-  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:9,revision:'1',profileVersion:5,domain,marketCount:0};
-  state.custody={...blank(sdk.getCustodyDecoder()),schemaVersion:9,revision:'1',venue};
-  state.safety={...blank(sdk.getVenueSafetyDecoder()),schemaVersion:9,revision:'1',venue};
-  state.portfolios.portfolio={schemaVersion:9,revision:'1',venue,owner:'owner',index:0,activeChildren:1};
+  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:10,revision:'1',profileVersion:6,domain,marketCount:0};
+  state.custody={...blank(sdk.getCustodyDecoder()),schemaVersion:10,revision:'1',venue};
+  state.safety={...blank(sdk.getVenueSafetyDecoder()),schemaVersion:10,revision:'1',venue};
+  state.portfolios.portfolio={schemaVersion:10,revision:'1',venue,owner:'owner',index:0,activeChildren:1};
   state.identities={'0':'root'};state.registeredCount='1';state.nextMemberId='1';state.membershipVersion='8';
-  state.roots.root={...blank(sdk.getMarginAccountDecoder()),schemaVersion:9,revision:'1',venue,portfolio:'portfolio',owner:'owner',
+  state.roots.root={...blank(sdk.getMarginAccountDecoder()),schemaVersion:10,revision:'1',venue,portfolio:'portfolio',owner:'owner',
     lifecycle:1,id:'0',delegate:zero,delegateEpoch:'3',nonce:'10',stateVersion:'11',activationGeneration:'7',mode:0,isolatedMarketIndex:255};
   state.roots.root.book.lastOrderId='51';state.roots.root.book.lastGroupId='39';
   state.revisions={venue:{kind:0,revision:'1'},custody:{kind:1,revision:'1'},safety:{kind:2,revision:'1'},

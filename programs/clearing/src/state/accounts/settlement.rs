@@ -2,7 +2,7 @@
 //! it; schema-8 financial activation is unchanged.
 use anchor_lang::prelude::*;
 
-pub const SETTLEMENT_SCHEMA: u16 = 9;
+pub const SETTLEMENT_SCHEMA: u16 = super::SCHEMA_VERSION;
 pub const LIMB_PAGE_WORDS: usize = financial_core::clearing::scalable::pages::PAGE_WORDS as usize;
 pub const LIMB_WORDS_OFFSET: usize = 81;
 pub const LIMB_PAGE_BYTES: usize = LIMB_WORDS_OFFSET + 8 * LIMB_PAGE_WORDS;

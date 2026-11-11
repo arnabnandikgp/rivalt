@@ -58,7 +58,7 @@ export function initialMembershipRequest(count:bigint):MembershipRequest {
 
 /** Canonical node/page keys come from the cursor. A member key comes only from
  * its authenticated fixed page, never a caller's registry-shaped list. */
-export async function membershipRequestAccounts(rpc:Pick<UserRpc,'call'>,venue:Address,request:MembershipRequest) {
+export async function membershipRequestAccounts(rpc:Pick<UserRpc,'call'>,venue:Address,request:MembershipRequest, writableRoot=false) {
   const readonly=(address:Address)=>({address,role:AccountRole.READONLY});
   if(request.kind==='done')return [];
   if(request.kind==='node')return [readonly((await deriveMemberIndex(venue,request.level,request.prefix))[0])];
@@ -71,5 +71,5 @@ export async function membershipRequestAccounts(rpc:Pick<UserRpc,'call'>,venue:A
   requireValue(state.schemaVersion===ACCOUNT_SCHEMA&&state.revision>0n&&state.venue===venue&&state.pageIndex===index&&state.bump===bump
     &&(state.allocatedMask&bit)!==0n&&(state.financialMask&bit)!==0n&&entry.lifecycle===MEMBER_FINANCIAL
     &&entry.activationGeneration>0n&&entry.root!=='11111111111111111111111111111111','Invalid Financial page member.');
-  return [readonly(page),readonly(entry.root)];
+  return [readonly(page),{address:entry.root,role:writableRoot?AccountRole.WRITABLE:AccountRole.READONLY}];
 }

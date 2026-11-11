@@ -41,7 +41,7 @@ impl Pages {
                     &crate::ID,
                 );
                 let mut page = SettlementLimbPage {
-                    schema_version: 9,
+                    schema_version: crate::state::accounts::SCHEMA_VERSION,
                     revision: 1,
                     venue: header.venue,
                     epoch: header.epoch,
@@ -122,7 +122,7 @@ pub(super) fn fixture(
     Pages,
 ) {
     let mut header = PreparedSettlement {
-        schema_version: 9,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 10,
         venue: Address::new_unique(),
         epoch: 17,
@@ -188,7 +188,7 @@ pub(super) fn fixture(
     words.write(4, 0, 2 * common).unwrap();
     let mut rounds = InsuranceRounds::new([0; 2]).unwrap();
     let mut rates = SettlementRates {
-        schema_version: 9,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 12,
         venue: header.venue,
         epoch: 17,
@@ -222,7 +222,7 @@ pub(super) fn fixture(
     rates.state.insurance = rounds.checkpoint();
     rates.stage = VERIFIED_RATE;
     let plan = SettlementPlan {
-        schema_version: 9,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         venue: header.venue,
         epoch: 17,
         rates_revision: 12,

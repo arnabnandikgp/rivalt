@@ -18,6 +18,7 @@ export * from './account-snapshot.js';
 export * from './account-client.js';
 export * from './account-markets.js';
 export * from './account-balance.js';
+export * from './account-backing.js';
 export * from './liquidity-adapter.js';
 export * from './liquidity-margin.js';
 export * from './liquidity-allocation.js';

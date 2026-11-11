@@ -29,6 +29,7 @@ pub(crate) fn commit_root(root: &mut MarginAccount, candidate: &MarginAccount) -
             && candidate.role == root.role
             && candidate.lifecycle == root.lifecycle
             && candidate.activation_generation == root.activation_generation
+            && candidate.backing_epochs == root.backing_epochs
             && candidate.bump == root.bump,
         ClearingError::Profile
     );
@@ -85,31 +86,6 @@ pub(crate) fn commit_market(market: &mut Market, candidate: &Market) -> Result<(
     market.valid_from = candidate.valid_from;
     market.valid_until = candidate.valid_until;
     market.oracle = candidate.oracle;
-    Ok(())
-}
-
-/// Event order does not authorize actions. Only economic dependencies invalidate
-/// payment certificates, including cross-market cash changes with an existing debt.
-pub(crate) fn invalidate(
-    ledgers: [Option<&mut MarketLedger>; 2],
-    before: [crate::state::Position; 2],
-    after: [crate::state::Position; 2],
-) -> Result<()> {
-    // Canonical identity is authenticated by the context, including omitted
-    // ledgers. The complete before/after union cannot be selected by the caller.
-    for (index, ledger) in ledgers.into_iter().enumerate() {
-        let required = [before[index], after[index]]
-            .iter()
-            .any(|position| position.lots != 0 || position.virtual_scaled != 0);
-        if required {
-            let ledger = ledger.ok_or(ClearingError::OrderState)?;
-            require!(
-                ledger.schema_version == SCHEMA_VERSION && ledger.market_index as usize == index,
-                ClearingError::Profile
-            );
-            increment(&mut ledger.liability_version)?;
-        }
-    }
     Ok(())
 }
 

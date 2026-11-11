@@ -33,7 +33,7 @@ pub struct CheckMarketBacking {
     #[account(seeds = [b"market-v3", venue.address().as_ref(), &[1]], bump = eth.bump, has_one = venue,
         constraint = venue.markets[1] == eth.address().to_owned() @ ClearingError::Profile)]
     pub eth: Box<BorshAccount<Market>>,
-    #[account(seeds = [b"ledger-v3", ledger.market.as_ref()], bump = ledger.bump, has_one = venue,
+    #[account(mut, seeds = [b"ledger-v3", ledger.market.as_ref()], bump = ledger.bump, has_one = venue,
         constraint = ledger.market_index < 2 && venue.markets[usize::from(ledger.market_index)] == ledger.market @ ClearingError::Profile)]
     pub ledger: Box<BorshAccount<MarketLedger>>,
     #[account(mut, seeds = [b"settlement-v3", venue.address().as_ref(), &[certificate.market_index]],
@@ -42,30 +42,17 @@ pub struct CheckMarketBacking {
     pub certificate: Box<BorshAccount<SettlementCertificate>>,
 }
 
-pub fn initialize(
-    ctx: &mut Context<InitializeMarketBacking>,
-    events: &mut crate::event_cpi::Payloads,
-    market_index: u8,
-) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
-    require!(
-        remaining_accounts.is_empty() && market_index < 2,
-        ClearingError::Profile
-    );
-    profile(&ctx.accounts.venue, &ctx.accounts.safety)?;
-    **ctx.accounts.certificate = SettlementCertificate {
-        schema_version: SCHEMA_VERSION,
-        venue: ctx.accounts.venue.address().to_owned(),
-        market_index,
-        bump: ctx.bumps.certificate,
-        ..Default::default()
-    };
+// Only the explicit local qualification build can exercise this candidate.
+// Default/devnet payment authority stays disabled; artifact promotion is separate.
+const MAINTAINED_BACKING_IMPLEMENTED: bool = TRADING_IMPLEMENTED;
 
-    emit_certificate(
-        &ctx.accounts.certificate,
-        events,
-        ctx.accounts.event_authority.account().clone(),
-    )
+pub fn initialize(ctx: &mut Context<InitializeMarketBacking>, events: &mut crate::event_cpi::Payloads,
+    market_index: u8) -> Result<()> {
+    require!(ctx.remaining_accounts()?.is_empty() && market_index < 2, ClearingError::Profile);
+    profile(&ctx.accounts.venue, &ctx.accounts.safety)?;
+    **ctx.accounts.certificate = SettlementCertificate { schema_version: SCHEMA_VERSION,
+        venue: *ctx.accounts.venue.address(), market_index, bump: ctx.bumps.certificate, ..Default::default() };
+    emit_certificate(&ctx.accounts.certificate, None, None, events, ctx.accounts.event_authority.account().clone())
 }
 
 fn registry_valid(registry: &VenueRegistry) -> Result<()> {
@@ -74,210 +61,130 @@ fn registry_valid(registry: &VenueRegistry) -> Result<()> {
     Ok(())
 }
 
-fn stamps(
-    certificate: &SettlementCertificate,
-    ledger: &MarketLedger,
-    safety: &VenueSafety,
-    registry: &VenueRegistry,
-    snapshot: &Snapshot,
-) -> Result<()> {
-    registry_valid(registry)?;
-    let selected = usize::from(certificate.market_index);
-    require!(
-        certificate.schema_version == SCHEMA_VERSION
-            && selected < 2
-            && ledger.schema_version == SCHEMA_VERSION
-            && ledger.venue == certificate.venue
-            && ledger.market_index as usize == selected
-            && certificate.safety_epoch == safety.epoch
-            && certificate.membership_version == registry.membership_epoch
-            && certificate.count == registry.financial_count
-            && certificate.liability_version == ledger.liability_version
-            && certificate.required_market_mask < 4,
-        ClearingError::ExitCohort
-    );
+fn region_current(backing: &BackingState, snapshot: &Snapshot, mask: u8, fresh: bool) -> Result<()> {
+    let prices = snapshot.risks.map(|risk| [risk.lower, risk.upper]);
+    require!(checked(backing.region.model().contains(mask, prices, snapshot.bounds))?, ClearingError::ExitCohort);
     for index in 0..2 {
-        if certificate.required_market_mask & (1 << index) != 0 {
-            require!(
-                certificate.observations[index] == snapshot.market(index)?.observation_sequence
-                    && snapshot.clock.unix_timestamp < certificate.source_deadlines[index]
-                    && certificate.funding_bounds[index][0] <= snapshot.risks[index].funding
-                    && snapshot.risks[index].funding <= certificate.funding_bounds[index][1],
-                ClearingError::ExitCohort
-            );
-            crate::engine::oracle::action(snapshot.market(index)?, &snapshot.clock, false)?;
+        if mask & (1 << index) != 0 {
+            let market = snapshot.market(index)?;
+            require!(market.config_epoch == backing.config_epochs[index], ClearingError::ExitCohort);
+            if fresh { crate::engine::oracle::action(market, &snapshot.clock, false)?; }
         }
     }
     Ok(())
 }
 
-pub(crate) fn certified(
-    certificate: &BorshAccount<SettlementCertificate>,
-    identity: &AccountFinancialIdentity,
-    registry: &VenueRegistry,
-    snapshot: &Snapshot,
-    ledger: &MarketLedger,
-    selected: usize,
-) -> Result<()> {
-    require!(
-        selected < 2
-            && certificate.market_index as usize == selected
-            && certificate.venue == identity.venue.address().to_owned()
-            && certificate.complete
-            && certificate.next == certificate.count,
-        ClearingError::ExitCohort
-    );
-    let expected = create_program_address(
-        &[
-            b"settlement-v3",
-            identity.venue.address().as_ref(),
-            &[selected as u8],
-            &[certificate.bump],
-        ],
-        &crate::ID,
-    )
-    .map_err(|_| ProgramError::from(ClearingError::ExitCohort))?;
-    require_keys_eq!(
-        certificate.address().to_owned(),
-        expected,
-        ClearingError::ExitCohort
-    );
-    stamps(certificate, ledger, &identity.safety, registry, snapshot)
+fn stamps(certificate: &SettlementCertificate, ledger: &MarketLedger, venue: &Venue,
+    safety: &VenueSafety, registry: &VenueRegistry, snapshot: &Snapshot, fresh: bool) -> Result<()> {
+    registry_valid(registry)?;
+    let selected = usize::from(certificate.market_index);
+    let backing = &ledger.backing;
+    require!(certificate.schema_version == SCHEMA_VERSION && selected < 2
+        && ledger.schema_version == SCHEMA_VERSION && ledger.venue == certificate.venue
+        && ledger.market_index as usize == selected && backing.epoch != 0
+        && certificate.backing_epoch == backing.epoch && backing.safety_epoch == safety.epoch
+        && backing.terms_epoch == venue.terms_epoch && backing.membership_epoch == registry.membership_epoch
+        && certificate.count == registry.financial_count && certificate.next <= certificate.count,
+        ClearingError::ExitCohort);
+    let totals = backing.totals()?;
+    require!(totals.count() == certificate.next, ClearingError::ExitCohort);
+    region_current(backing, snapshot, totals.required_mask(), fresh)
 }
 
-/// Returns precisely the market observations needed to establish this root's
-/// selected claim and, if it can be a debtor, both gross obligations.
-pub(crate) fn debtor_mask(
-    root: &MarginAccount,
-    snapshot: &Snapshot,
-    selected: usize,
-) -> Result<u8> {
-    require!(selected < 2, ClearingError::Profile);
-    let model = trading::model(root)?;
-    let mut mask = if root.positions[selected].lots != 0 {
-        1 << selected
-    } else {
-        0
-    };
-    let prices = std::array::from_fn(|index| {
-        if root.positions[index].lots < 0 {
-            snapshot.risks[index].upper
-        } else {
-            snapshot.risks[index].lower
-        }
-    });
-    let mut debtor = false;
-    for funding in snapshot.bounds[selected] {
-        let mut endpoints = snapshot.risks.map(|risk| risk.funding);
-        endpoints[selected] = funding;
-        debtor |= checked(model.claims(prices, endpoints))?[selected] < 0;
-    }
-    if debtor {
-        for index in 0..2 {
-            if root.positions[index].lots != 0 {
-                mask |= 1 << index;
-            }
-        }
-        snapshot.held_solvent(model)?;
-    }
-    for index in 0..2 {
-        if mask & (1 << index) != 0 {
-            crate::engine::oracle::action(snapshot.market(index)?, &snapshot.clock, false)?;
-        }
-    }
-    Ok(mask)
+fn restart_allowed(certificate: &SettlementCertificate, ledger: &MarketLedger, venue: &Venue,
+    safety: &VenueSafety, registry: &VenueRegistry, snapshot: &Snapshot) -> bool {
+    stamps(certificate, ledger, venue, safety, registry, snapshot, false).is_err()
+        || (!certificate.complete && region_current(&ledger.backing, snapshot, 3, false).is_err())
 }
 
-pub fn check(
-    ctx: &mut Context<CheckMarketBacking>, events: &mut crate::event_cpi::Payloads,
-    revision: u64, restart: bool,
-) -> Result<()> {
+pub(crate) fn certified(certificate: &BorshAccount<SettlementCertificate>, identity: &AccountFinancialIdentity,
+    registry: &VenueRegistry, snapshot: &Snapshot, ledger: &MarketLedger, selected: usize) -> Result<()> {
+    require!(MAINTAINED_BACKING_IMPLEMENTED && selected < 2 && certificate.market_index as usize == selected
+        && certificate.venue == *identity.venue.address() && certificate.complete && certificate.next == certificate.count,
+        ClearingError::ExitCohort);
+    let expected = create_program_address(&[b"settlement-v3", identity.venue.address().as_ref(),
+        &[selected as u8], &[certificate.bump]], &crate::ID).map_err(|_| ClearingError::ExitCohort)?;
+    require_keys_eq!(*certificate.address(), expected, ClearingError::ExitCohort);
+    stamps(certificate, ledger, &identity.venue, &identity.safety, registry, snapshot, true)?;
+    require!(checked(ledger.backing.totals()?.arithmetically_ready(certificate.count, ledger.settlement))?, ClearingError::ExitCohort);
+    Ok(())
+}
+
+pub fn check(ctx: &mut Context<CheckMarketBacking>, events: &mut crate::event_cpi::Payloads,
+    revision: u64, restart: bool) -> Result<()> {
     let remaining = ctx.remaining_accounts()?;
     let accounts = &mut ctx.accounts;
     profile(&accounts.venue, &accounts.safety)?;
     registry_valid(&accounts.registry)?;
-    let mut snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
+    let snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
     let certificate = &mut accounts.certificate;
+    let ledger = &mut accounts.ledger;
     require!(certificate.revision == revision, ClearingError::ExitCohort);
     if restart {
-        // An authenticated complete scan cannot be permissionlessly erased while
-        // its financial stamps still hold. Node-only progress is progress too.
-        let current = stamps(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &snapshot).is_ok();
-        let changed_observation = certificate.observations != [snapshot.market(0)?, snapshot.market(1)?]
-            .map(|market| market.observation_sequence);
-        require!(!current || (!certificate.complete && changed_observation), ClearingError::ExitCohort);
-        certificate.safety_epoch = accounts.safety.epoch;
-        certificate.membership_version = accounts.registry.membership_epoch;
-        certificate.liability_version = accounts.ledger.liability_version;
-        certificate.observations = [snapshot.market(0)?, snapshot.market(1)?].map(|market| market.observation_sequence);
-        certificate.funding_bounds = snapshot.bounds;
-        certificate.source_deadlines = [snapshot.market(0)?, snapshot.market(1)?].map(|market| market.oracle.source_deadline);
-        certificate.required_market_mask = 0;
+        // Temporary source unavailability blocks use, but is not permission to
+        // erase an otherwise valid arithmetic epoch and its completed coverage.
+        require!(restart_allowed(certificate, ledger, &accounts.venue, &accounts.safety, &accounts.registry, &snapshot),
+            ClearingError::ExitCohort);
+        ledger.backing = BackingState {
+            epoch: ledger.backing.epoch.checked_add(1).ok_or(ClearingError::Arithmetic)?,
+            safety_epoch: accounts.safety.epoch, membership_epoch: accounts.registry.membership_epoch,
+            terms_epoch: accounts.venue.terms_epoch, config_epochs: [accounts.btc.config_epoch, accounts.eth.config_epoch],
+            region: BackingRegion::around(snapshot.risks.map(|risk| [risk.lower, risk.upper]), snapshot.bounds)?,
+            summary: financial_core::backing::Summary::default().checkpoint(),
+        };
+        certificate.backing_epoch = ledger.backing.epoch;
         certificate.count = accounts.registry.financial_count;
         certificate.next = 0;
-        certificate.cash = 0;
-        certificate.lots = [0; 2];
-        certificate.claim_sum = 0;
         certificate.complete = false;
         certificate.membership.checkpoint = MembershipCursor::new(certificate.count)
             .map_err(|_| ClearingError::ExitCohort)?.checkpoint();
     }
-    stamps(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &snapshot)?;
+    stamps(certificate, ledger, &accounts.venue, &accounts.safety, &accounts.registry, &snapshot, true)?;
     require!(!certificate.complete, ClearingError::ExitCohort);
-    // Keep one market snapshot. The bounded traversal and its serialized cursor
-    // have a separate SBF frame; no second full Snapshot is moved onto this one.
-    snapshot.bounds = certificate.funding_bounds;
-    scan_certificate(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &snapshot, &remaining)?;
-    emit_certificate(certificate, events, accounts.event_authority.account().clone())
+    let changed = scan_certificate(certificate, ledger, &remaining)?;
+    stamps(certificate, ledger, &accounts.venue, &accounts.safety, &accounts.registry, &snapshot, true)?;
+    emit_certificate(certificate, Some(ledger), changed.as_ref().map(|(key,root)| (*key, &**root)),
+        events, accounts.event_authority.account().clone())
 }
 
 #[inline(never)]
-fn scan_certificate(
-    certificate: &mut SettlementCertificate,
-    ledger: &MarketLedger,
-    safety: &VenueSafety,
-    registry: &VenueRegistry,
-    snapshot: &Snapshot,
-    remaining: &[AccountView],
-) -> Result<()> {
+fn scan_certificate(certificate: &mut SettlementCertificate, ledger: &mut MarketLedger,
+    remaining: &[AccountView]) -> Result<Option<(Address, Box<MarginAccount>)>> {
     let selected = usize::from(certificate.market_index);
     let mut cursor = MembershipCursor::from_checkpoint(&certificate.membership.checkpoint, certificate.count)
         .map_err(|_| ClearingError::ExitCohort)?;
-    if let Some(root) = crate::instructions::account_membership::scan::step(&mut cursor, &certificate.venue, &remaining)? {
-        certificate.required_market_mask |= debtor_mask(&root, snapshot, selected)?;
-        stamps(certificate, ledger, safety, registry, snapshot)?;
-        if root.positions[selected].lots != 0 || root.positions[selected].virtual_scaled != 0 {
-            certificate.cash = certificate.cash.checked_add(root.cash).ok_or(ClearingError::Arithmetic)?;
-        }
-        for index in 0..2 { certificate.lots[index] = add(certificate.lots[index], i128::from(root.positions[index].lots))?; }
-        let position = root.positions[selected];
-        let fixed_claim = add(position.virtual_scaled, i128::from(position.lots)
-            .checked_mul(position.funding_checkpoint_scaled).ok_or(ClearingError::Arithmetic)?)?;
-        certificate.claim_sum = add(certificate.claim_sum, fixed_claim)?;
+    let mut changed = None;
+    if let Some(mut root) = crate::instructions::account_membership::scan::step(&mut cursor, &certificate.venue, remaining)? {
+        require!(remaining[1].is_writable() && root.backing_epochs[selected] != ledger.backing.epoch, ClearingError::ExitCohort);
+        let contribution = checked(ledger.backing.region.model().contribution(&trading::model(&root)?, selected))?;
+        ledger.backing.summary = checked(ledger.backing.totals()?.insert(contribution))?.checkpoint();
+        root.backing_epochs[selected] = ledger.backing.epoch;
+        let mut account = remaining[1].clone();
+        crate::wire::write_account(&*root, &mut account.try_borrow_mut()?[..])?;
         certificate.next = certificate.next.checked_add(1).ok_or(ClearingError::Arithmetic)?;
+        changed = Some((*remaining[1].address(), root));
     }
     certificate.membership.checkpoint = cursor.checkpoint();
     if cursor.request() == Request::Done {
-        require!(certificate.next == certificate.count && certificate.lots[selected] == 0
-            && certificate.claim_sum == checked(math::scaled(ledger.settlement))?, ClearingError::Reconciliation);
+        require!(certificate.next == certificate.count
+            && checked(ledger.backing.totals()?.conserved(certificate.count, ledger.settlement))?, ClearingError::Reconciliation);
         certificate.complete = true;
     }
-    Ok(())
+    Ok(changed)
 }
 
 #[inline(never)]
-fn emit_certificate<'info>(
-    certificate: &BorshAccount<SettlementCertificate>,
-    events: &mut crate::event_cpi::Payloads,
-    authority: AccountView,
-) -> Result<()> {
-    events.emit(
-        &crate::events::AccountBackingChanged {
-            venue: certificate.venue,
-            slot: Clock::get()?.slot,
-            certificate: certificate.address().to_owned(),
-            state: crate::events::BackingSnapshot::from(&**certificate),
-        },
-        authority,
-    )
+fn emit_certificate(certificate: &BorshAccount<SettlementCertificate>, ledger: Option<&BorshAccount<MarketLedger>>,
+    root: Option<(Address, &MarginAccount)>, events: &mut crate::event_cpi::Payloads, authority: AccountView) -> Result<()> {
+    let event = Box::new(crate::events::AccountBackingChanged {
+        venue: certificate.venue, slot: Clock::get()?.slot, certificate: *certificate.address(),
+        state: crate::events::BackingSnapshot::from(&**certificate),
+        ledger: ledger.map(super::super::account_custody::ledger_snapshot),
+        margin: root.map(|(key,_)| key), root_state: root.map(|(_,root)| crate::events::MarginAccountSnapshot::from(root)),
+    });
+    events.emit(&*event, authority)
 }
+
+#[cfg(test)]
+#[path = "certificate_tests.rs"]
+mod tests;

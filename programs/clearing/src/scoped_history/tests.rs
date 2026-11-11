@@ -10,13 +10,13 @@ fn manual_storage_creation_requires_system_empty_then_exact_owned_new_layout() {
     empty.view().set_lamports(37); // a prior donation must not block creation
     let mut bytes = vec![0; 8 + PreparedSettlement::INIT_SPACE];
     bytes[..8].copy_from_slice(PreparedSettlement::DISCRIMINATOR);
-    bytes[8..10].copy_from_slice(&9u16.to_le_bytes());
+    bytes[8..10].copy_from_slice(&10u16.to_le_bytes());
     for (owner, size, schema, revision) in [
-        (crate::ID, bytes.len(), 9, 0),
-        (anchor_lang::system_program::ID, bytes.len(), 9, 0),
-        (crate::ID, bytes.len() - 1, 9, 0),
+        (crate::ID, bytes.len(), 10, 0),
+        (anchor_lang::system_program::ID, bytes.len(), 10, 0),
+        (crate::ID, bytes.len() - 1, 10, 0),
         (crate::ID, bytes.len(), 8, 0),
-        (crate::ID, bytes.len(), 9, 1),
+        (crate::ID, bytes.len(), 10, 1),
     ] {
         let mut scope = Scope::new();
         scope
@@ -29,7 +29,7 @@ fn manual_storage_creation_requires_system_empty_then_exact_owned_new_layout() {
         let mut account = initialized.view();
         scope.cursor = Some(0);
         let result = scope.created_raw::<PreparedSettlement>(&mut account);
-        if owner == crate::ID && size == bytes.len() && schema == 9 && revision == 0 {
+        if owner == crate::ID && size == bytes.len() && schema == 10 && revision == 0 {
             result.unwrap();
             assert_eq!(&account.try_borrow().unwrap()[10..18], &1u64.to_le_bytes());
             assert_eq!(
@@ -237,7 +237,7 @@ fn envelope_has_literal_field_offsets_and_bounded_entity_count() {
     };
     let bytes = event.data();
     assert_eq!(bytes.len(), 190); // 100 + one 41-byte read + one 49-byte write
-    assert_eq!(&bytes[8..10], &[9, 0]);
+    assert_eq!(&bytes[8..10], &[10, 0]);
     assert_eq!(&bytes[10..42], &[7; 32]);
     assert_eq!(&bytes[42..74], &[9; 32]);
     assert_eq!(&bytes[74..82], &42u64.to_le_bytes());
@@ -298,7 +298,7 @@ fn canonical_account_headers_bind_kind_schema_revision_and_canonical_discriminat
         assert_eq!(value.revision(), 0x0807_0605_0403_0201);
         let mut actual = Vec::new();
         crate::wire::write_discriminated(&value, &mut actual).unwrap();
-        assert_eq!(&actual[8..18], &[9, 0, 1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(&actual[8..18], &[10, 0, 1, 2, 3, 4, 5, 6, 7, 8]);
         bytes[..8].copy_from_slice(&[0; 8]);
         assert!(T::try_deserialize(&mut bytes.as_slice()).is_err());
     }
@@ -307,11 +307,11 @@ fn canonical_account_headers_bind_kind_schema_revision_and_canonical_discriminat
     check::<VenueSafety>("VenueSafety", 2, 85);
     check::<VenueRegistry>("VenueRegistry", 3, 115);
     check::<Portfolio>("Portfolio", 4, 91);
-    check::<MarginAccount>("MarginAccount", 5, 995);
+    check::<MarginAccount>("MarginAccount", 5, 1011);
     check::<Market>("Market", 6, 455);
-    check::<MarketLedger>("MarketLedger", 7, 125);
+    check::<MarketLedger>("MarketLedger", 7, 373);
     check::<CapitalBinding>("CapitalBinding", 8, 114);
-    check::<SettlementCertificate>("SettlementCertificate", 9, 790);
+    check::<SettlementCertificate>("SettlementCertificate", 9, 621);
     check::<Resolution>("Resolution", 10, 572);
     check::<RetirementCertificate>("RetirementCertificate", 13, 636);
     check::<LiquidityRegistry>("LiquidityRegistry", 14, 181);
@@ -384,14 +384,14 @@ fn successor_schema_is_kind_bound_and_raw_page_writes_advance_once() {
     let key = Address::new_unique();
     for kind in 17..=23 {
         assert!(Scope::new().visit(key, kind, 8, 1, Access::Read).is_err());
-        assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_ok());
+        assert!(Scope::new().visit(key, kind, 10, 1, Access::Read).is_ok());
     }
     assert!(Scope::new().visit(key, 5, 8, 1, Access::Read).is_err());
     for kind in [11, 12, 28] {
-        assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_err());
+        assert!(Scope::new().visit(key, kind, 10, 1, Access::Read).is_err());
     }
     let page = SettlementLimbPage {
-        schema_version: 9,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 11,
         ..Default::default()
     };

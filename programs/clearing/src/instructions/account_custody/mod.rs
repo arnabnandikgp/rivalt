@@ -158,6 +158,7 @@ pub(crate) fn ledger_snapshot(account: &BorshAccount<MarketLedger>) -> MarketLed
         insurance_fee_remainder: account.insurance_fee_remainder,
         version: account.version,
         liability_version: account.liability_version,
+        backing: account.backing.clone(),
     }
 }
 
@@ -554,21 +555,7 @@ pub fn cash(
     if !withdraw && ctx.accounts.safety.mode == ACTIVE {
         super::account_cash::profile(&ctx.accounts.venue, &ctx.accounts.safety)?;
         super::account_trading::model(&ctx.accounts.margin)?;
-        let positions = ctx.accounts.margin.positions;
-        super::account_trading::invalidate(
-            [
-                ctx.accounts
-                    .btc_ledger
-                    .as_deref_mut()
-                    .map(|ledger| &mut **ledger),
-                ctx.accounts
-                    .eth_ledger
-                    .as_deref_mut()
-                    .map(|ledger| &mut **ledger),
-            ],
-            positions,
-            positions,
-        )?;
+
     } else {
         active(
             &ctx.accounts.venue,
@@ -584,7 +571,16 @@ pub fn cash(
     require!(amount > 0, ClearingError::Amount);
     vault_backed(&ctx.accounts.custody, ctx.accounts.vault.amount())?;
     let operation = if withdraw { cash_sub } else { cash_add };
-    ctx.accounts.margin.cash = arithmetic(operation(ctx.accounts.margin.cash, amount))?;
+    let next_cash = arithmetic(operation(ctx.accounts.margin.cash, amount))?;
+    if ctx.accounts.safety.mode == ACTIVE {
+        let mut candidate = super::account_trading::root_view(&ctx.accounts.margin)?;
+        candidate.cash = next_cash;
+        super::account_cash::maintained::update([
+            ctx.accounts.btc_ledger.as_deref_mut().map(|ledger| &mut **ledger),
+            ctx.accounts.eth_ledger.as_deref_mut().map(|ledger| &mut **ledger),
+        ], &ctx.accounts.margin, &candidate, &ctx.accounts.safety)?;
+    }
+    ctx.accounts.margin.cash = next_cash;
     ctx.accounts.custody.allocated_vault =
         arithmetic(operation(ctx.accounts.custody.allocated_vault, amount))?;
     increment(&mut ctx.accounts.margin.state_version)?;

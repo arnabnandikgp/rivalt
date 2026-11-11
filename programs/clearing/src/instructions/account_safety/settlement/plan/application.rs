@@ -45,6 +45,7 @@ pub(super) fn applied_margin(
     original_margin(header, frozen, root)?;
     let mut next = Box::new(root.clone());
     next.cash = amounts.cash;
+    next.backing_epochs = [0; 2];
     for (market, position) in next.positions.iter_mut().enumerate() {
         if next.mode == MODE_ISOLATED && usize::from(next.isolated_market_index) != market {
             require!(empty_position(position), ClearingError::Profile);

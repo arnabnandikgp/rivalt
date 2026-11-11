@@ -17,16 +17,10 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBooleanDecoder,
   getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getI128Decoder,
-  getI128Encoder,
-  getI64Decoder,
-  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU16Decoder,
@@ -75,18 +69,9 @@ export type SettlementCertificate = {
   revision: bigint;
   venue: Address;
   marketIndex: number;
-  safetyEpoch: bigint;
-  membershipVersion: bigint;
-  liabilityVersion: bigint;
-  observations: Array<bigint>;
-  fundingBounds: Array<Array<bigint>>;
-  sourceDeadlines: Array<bigint>;
-  requiredMarketMask: number;
+  backingEpoch: bigint;
   count: bigint;
   next: bigint;
-  cash: bigint;
-  lots: Array<bigint>;
-  claimSum: bigint;
   complete: boolean;
   membership: MembershipState;
   bump: number;
@@ -98,18 +83,9 @@ export type SettlementCertificateArgs = {
   revision: number | bigint;
   venue: Address | HasAddress;
   marketIndex: number;
-  safetyEpoch: number | bigint;
-  membershipVersion: number | bigint;
-  liabilityVersion: number | bigint;
-  observations: Array<number | bigint>;
-  fundingBounds: Array<Array<number | bigint>>;
-  sourceDeadlines: Array<number | bigint>;
-  requiredMarketMask: number;
+  backingEpoch: number | bigint;
   count: number | bigint;
   next: number | bigint;
-  cash: number | bigint;
-  lots: Array<number | bigint>;
-  claimSum: number | bigint;
   complete: boolean;
   membership: MembershipStateArgs;
   bump: number;
@@ -124,23 +100,9 @@ export function getSettlementCertificateEncoder(): FixedSizeEncoder<SettlementCe
       ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["marketIndex", getU8Encoder()],
-      ["safetyEpoch", getU64Encoder()],
-      ["membershipVersion", getU64Encoder()],
-      ["liabilityVersion", getU64Encoder()],
-      ["observations", getArrayEncoder(getU64Encoder(), { size: 2 })],
-      [
-        "fundingBounds",
-        getArrayEncoder(getArrayEncoder(getI128Encoder(), { size: 2 }), {
-          size: 2,
-        }),
-      ],
-      ["sourceDeadlines", getArrayEncoder(getI64Encoder(), { size: 2 })],
-      ["requiredMarketMask", getU8Encoder()],
+      ["backingEpoch", getU64Encoder()],
       ["count", getU64Encoder()],
       ["next", getU64Encoder()],
-      ["cash", getU64Encoder()],
-      ["lots", getArrayEncoder(getI128Encoder(), { size: 2 })],
-      ["claimSum", getI128Encoder()],
       ["complete", getBooleanEncoder()],
       ["membership", getMembershipStateEncoder()],
       ["bump", getU8Encoder()],
@@ -160,23 +122,9 @@ export function getSettlementCertificateDecoder(): FixedSizeDecoder<SettlementCe
     ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["marketIndex", getU8Decoder()],
-    ["safetyEpoch", getU64Decoder()],
-    ["membershipVersion", getU64Decoder()],
-    ["liabilityVersion", getU64Decoder()],
-    ["observations", getArrayDecoder(getU64Decoder(), { size: 2 })],
-    [
-      "fundingBounds",
-      getArrayDecoder(getArrayDecoder(getI128Decoder(), { size: 2 }), {
-        size: 2,
-      }),
-    ],
-    ["sourceDeadlines", getArrayDecoder(getI64Decoder(), { size: 2 })],
-    ["requiredMarketMask", getU8Decoder()],
+    ["backingEpoch", getU64Decoder()],
     ["count", getU64Decoder()],
     ["next", getU64Decoder()],
-    ["cash", getU64Decoder()],
-    ["lots", getArrayDecoder(getI128Decoder(), { size: 2 })],
-    ["claimSum", getI128Decoder()],
     ["complete", getBooleanDecoder()],
     ["membership", getMembershipStateDecoder()],
     ["bump", getU8Decoder()],
@@ -280,5 +228,5 @@ export async function fetchAllMaybeSettlementCertificate(
 }
 
 export function getSettlementCertificateSize(): number {
-  return 790;
+  return 621;
 }

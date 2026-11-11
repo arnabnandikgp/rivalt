@@ -198,7 +198,7 @@ impl Fixture {
         cursor.page(7).unwrap();
         header.state.membership = cursor.checkpoint();
         let page = FrozenMarginPage {
-            schema_version: 9,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             revision: 1,
             venue: self.venue_key,
             epoch: 2,
@@ -414,7 +414,7 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
 #[test]
 fn rate_proposal_layout_separates_attempt_budget_and_word_progress() {
     let mut rates = SettlementRates {
-        schema_version: 9,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 7,
         epoch: 3,
         attempt: 11,
