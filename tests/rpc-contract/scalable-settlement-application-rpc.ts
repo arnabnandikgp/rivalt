@@ -12,7 +12,7 @@ export async function qualifySettlementApplication(input:{h:CanonicalHarness;set
   epoch:bigint;rowPages:Address[];rows:{key:Address;root:sdk.MarginAccount;cash:bigint;claims:bigint[]}[];
   expected:{cash:string[];movements:string[][]};tracked:Address[];
   reject:(label:string,instruction:Instruction,error?:ExpectedInstructionError)=>Promise<void>;
-  checkpoint:(name:string)=>Promise<void>}) {
+  checkpoint:(name:string)=>Promise<void>;stopBeforeExitAndRecovery?:boolean}) {
   const {h,setup,prepared,rates,plan,epoch,rowPages,rows,expected,tracked,reject,checkpoint}=input;
   const common={...setup.safetyCommon,prepared,rates,plan,epoch};
   const state=async()=>sdk.getSettlementPlanDecoder().decode((await h.read(plan))!);
@@ -94,8 +94,9 @@ export async function qualifySettlementApplication(input:{h:CanonicalHarness;set
   const complete=sdk.getCompleteSettlementPlanInstruction({...common,revision:(await state()).revision});
   await h.send('P54C complete actual vault and cohort reconciliation',[complete]);await reject('terminal plan replay',complete);
   assert.equal((await source()).stage,11);assert.equal((await safety()).mode,3);assert.equal((await state()).stage,12);
+  const exits:{ordinal:number;amount:string}[]=[];
+  if(input.stopBeforeExitAndRecovery)return {exits,insuranceSpent:initial.insuranceSpent,appliedCash,movements,finalPlan:await state(),finalSource:await source()};
   const token=async(key:Address)=>getTokenDecoder().decode((await h.read(key))!).amount;
-  const exits=[];
   for(let ordinal=0;ordinal<rows.length;ordinal++) {
     const account=await root(rows[ordinal].key);if(account.cash===0n)continue;
     const signer=account.owner===setup.traderOwner.address?setup.traderOwner:setup.owner;

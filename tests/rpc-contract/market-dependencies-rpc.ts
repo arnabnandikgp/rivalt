@@ -1,3 +1,5 @@
+import {backingStep} from './membership-scan-helper.js';
+import {registerFinancialTestMargin} from './account-membership-setup.js';
 // P41/P42: real signed market/custody dependencies and fresh PostgreSQL replay.
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
@@ -85,8 +87,8 @@ try {
   assert.equal((await root(cross)).cash,999_971n);
   const portfolio=(await root(cross)).portfolio;
   const [ethOnly]=await sdk.deriveMarginAccount(portfolio,2);
-  await h.send('P41 register isolated ETH root',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio,
-    margin:ethOnly,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:0})],[owner]);
+  await registerFinancialTestMargin(h,setup.common,setup.payer,{owner,portfolio,
+    margin:ethOnly,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:0});
   await h.send('P41 fund isolated ETH internally',[sdk.getTransferFundedAccountInstruction({...financial,donor:cross,recipient:ethOnly,
     btc:setup.markets[0],eth:setup.markets[1],guard:await guard(cross),amount:100_000n})],[owner]);
   await setup.sample();
@@ -146,11 +148,13 @@ try {
   const backing=async(marketIndex:0|1)=>{
     const [certificate]=await sdk.deriveSettlementCertificate(setup.venue,marketIndex);
     await h.send('P41 initialize backing certificate',[sdk.getInitializeMarketBackingInstruction({...setup.common,payer:setup.payer,certificate,marketIndex})]);
-    const members=sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!).members;
-    for(let start=0;start<members.length;start+=2) {
-      const instruction=sdk.getCheckMarketBackingInstruction({...claimIdentity,certificate,ledger:setup.ledgers[marketIndex],start});
-      await h.send(`P41 complete backing ${marketIndex}/${start}`,[{...instruction,accounts:[...instruction.accounts,
-        ...members.slice(start,start+2).map(address=>({address,role:AccountRole.READONLY}))]}]);
+    const identity={...claimIdentity,certificate,ledger:setup.ledgers[marketIndex]};
+    let restart=true;
+    for(let steps=0;;steps++) {
+      assert(steps<1000,'bounded qualification scan');
+      const next=await backingStep(h,identity,restart);
+      await h.send(`complete backing ${marketIndex}/${steps}`,[next.instruction]);restart=false;
+      if(sdk.getSettlementCertificateDecoder().decode((await h.read(certificate))!).complete)break;
     }
     const proof=sdk.getSettlementCertificateDecoder().decode((await h.read(certificate))!);assert(proof.complete);return {certificate,proof};
   };

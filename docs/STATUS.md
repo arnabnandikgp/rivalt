@@ -23,7 +23,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
 | P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
-| P55A2 on-chain membership/lifecycle | In progress | D100 storage provisioning, canonical lifecycle and terminal refund source are implemented locally; consumer migration and signed acceptance remain unfinished |
+| P55A2 on-chain membership/lifecycle | In progress | D100 storage provisioning, canonical lifecycle and terminal refund source are implemented locally; signed lifecycle/default/SQL pass; remaining custody/client compatibility checks are in progress |
 | P55B–P62 successor implementation | Planned | Backing, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -672,79 +672,40 @@ Automated CodeRabbit also reports success; this is not independent financial rev
 No decision/access blocker is known. Next exact action: implement P55A2 above #81
 without waiting for merge; continue through P62's dependencies.
 
-P55A2 is active above exact `7b0ab07`. D100 specifies reusable, pre-funded recovery
-capacity. Clean verifier **`81aae9d`** on clean SBF **`174b3b2`** passes **223 signed
-RPC/WS outcomes**, including **11 expected rejections**, authenticating all **99
-physical allocations** for 128-root storage capacity. Both isolated Anchor clients
-agree on 220 instructions, 199 accounts and 214 events. Allocation/verification
-peak at 44,499/18,448 CU; allocation plus receipt rent is 1,169,339,800 local test
-lamports. Eight focused native cases, typecheck and literal ABI checks pass. The
-first probe's conformance-name error is fixed; raw failed/successful evidence stays
-under `.local/scalable-settlement/`. The owned Surfpool stopped normally. This is
-storage provisioning only: no 128-root financial admission or PostgreSQL/default
-acceptance is claimed, and no selected artifact changed.
-The in-progress P55A2 source now implements canonical schema-9 roots and fixed
-registry, registration pages, explicit Financial entry/exit, permanent retirement,
-complete live-index scans and reusable default storage. Clearing and both maker
-crates compile; focused native membership, financial, settlement/layout and journal
-checks pass in the working tree. These are not clean-pin integrated acceptance.
-D101 records the fresh wire/domain and retirement of the old fixed-cohort solver.
-Generated IDL/SDK outputs have been rebuilt. Terminal refund source now preserves
-72-byte canonical allocation markers and immutable payer receipts; only excess
-rent is returned after terminal retirement and an unlocked workspace. Eleven
-membership, thirteen journal and three layout native cases pass in the working
-tree. SDK builders preserve high u64 IDs, explicit eligibility and generation
-fences. Indexer source distinguishes registration/Financial membership/tombstones,
-retains full scoped kind transitions and independently checks canonical pages.
-The focused consumer run passes all 89 cases after correcting old schema fixtures.
-Those changes are committed at `bfd10e8`; its first SBF build was rejected because
-`account_cash::certificate::check` exceeded the 4,096-byte stack-offset limit by
-584 bytes (estimated frame 4,800 bytes). No binary from that build is admitted.
-The fix keeps one market snapshot and places bounded traversal in a separate
-non-inlined call. Clean **`65c14bf`** builds all three qualification SBF programs
-without oversized-stack diagnostics; clearing is 2,335,664 bytes, SHA-256
-`2db51e364f0a8acc2aebe0da9c407a62d95e6b648a035c9954ee0aa86c0d0e01`.
-Harness **`eb22de5`** against that candidate passes the exercised registration,
-entry/re-entry, stale-predecessor rejection, real SPL deposit/withdrawal and empty
-retirement assertions, then fails the live-refund negative at simulation: Anchor
-2040 rejects an authority wallet also being the recorded rent payer. This is a
-partial failed run, not lifecycle acceptance. Its 398 fetched transactions remain
-at `.local/scalable-settlement/runs/p55a2-lifecycle-eb22de5/`. The context now
-permits that specific untyped payer overlap, retaining immutable destination and
-all other mutable-account guards; a fresh build/run is required. The SDK bounded
-scan decoder and migrated ordinary backing worker pass four focused consumer
-cases; no progress-under-continuous-activity claim is made.
+P55A2 remains active above exact **`7b0ab07`**. D100/D101 implement pre-funded
+reusable recovery storage, schema-9/profile-5 roots and fixed registry, authenticated
+Financial membership, permanent retirement and terminal rent refunds. No selected
+runtime or expanded Financial population is activated. The temporary 64 Financial
+account gate remains; registration/identity is not capped at 64.
 
-The corrected SBF **`583dbcb`** and committed lifecycle harness **`0d9c378`**
-now pass **411 signed RPC/WS outcomes / 18 expected rejections**, 71 registrations,
-two Financial roots, stale predecessor/re-entry fences, actual SPL custody exit,
-three root retirements and all five terminal storage refund kinds. Dual Anchor
-conformance covers 407 clearing instructions, 377 accounts and 556 events.
-Entry/exit costs 54,339–56,334 CU and uses v1 at exactly 1,232 wire bytes (v0
-1,274); terminal refunds return 34,391,600 test lamports to the recorded payer.
-The final run metadata is dirty because separate default-harness migration ran
-concurrently; executed lifecycle source did not change. Full limits and pins are
-in [validation](operations/validation.md#canonical-account-lifecycle-p55a2-intermediate).
+Clean SBF **`583dbcb`** passes the lifecycle run (**`0d9c378`** harness: 411 signed
+RPC/WS outcomes, 18 expected rejections, 71 identities, two Financial roots, real
+SPL entry/exit and five refund kinds). That lifecycle run's final tree was dirty
+from unrelated concurrent harness work, as recorded in validation. The same SBF
+with clean harness **`1de35c3`** passes the complete ten-Financial-account default:
+**1,538 signed outcomes / 67 expected rejections**, independent Fraction/graph
+checks, eight actual SPL exits, credible-source recovery, three PostgreSQL
+checkpoints and **identical 141-event fresh replay / 227-account reconciliation**.
+Actual/allocated vault is **11,199,993 atoms**, with zero unallocated surplus.
+Peak observed CU is 161,562; whole probe fees are 8,415,000 local test lamports.
+Earlier stack, duplicate-payer and partial-SQL failures remain local evidence and
+are described in [validation](operations/validation.md).
 
-The ordinary backing worker now follows authenticated bounded membership requests
-and atomically pairs final traversal completion with payment; four targeted
-consumer checks pass. Default setup uses actual pre-funded storage and explicit
-Financial entry. The first canonical complete-default run (`4c8dd27` harness / `583dbcb` SBF)
-reaches the first actual Apply, with independent rate/graph checks passing, then
-fails PostgreSQL partial reconciliation: the indexer compares frozen source fields
-to partial plan counters. The source/plan ownership check is corrected with a
-focused regression; 17 affected rate/projection/reconciliation checks and three
-frozen-reader checks pass. This failed run remains at
-`.local/scalable-settlement/runs/p55a2-default-583dbcb/`; it does not qualify
-complete default. The schema-9 rate reader uses reduced-LCM/count-derived limb
-proposals and revision fences. Automatic default continuation explicitly blocks
-until P56A's durable successor; removed schema-8 instructions cannot be submitted.
-Complete-default/RPC/WS/PostgreSQL, remaining consumer tests/typecheck and wire-delta
-validation are still outstanding. P55A2
-is Active, with no new PR or selected-artifact promotion. No user decision/access
-blocker is known. Next exact action: run the migrated complete-default qualification
-against `583dbcb`, resolve actual failures, then finish required consumers/checks
-and submit the ready P55A2 PR above #81.
+Current consumer work replaces fixed-member scan adapters and old solver calls,
+regenerates **all three** source IDLs (including maker-imported clearing layouts),
+and adds the explicit D101 ABI delta over immutable P55A1. Eleven focused
+conformance/economics tests, fourteen wire-guard tests and typecheck pass. The
+refactored custody runner uses the canonical v0/v1 transport and remains unrun.
+The historical fixed-width SVM scratch probe and retained-schema-8 projection
+runner are retired at their `7b0ab07` Git provenance; paged arithmetic tests,
+signed resource measurements and actual PostgreSQL reconciliation replace them.
+Automatic paged default continuation remains explicitly blocked until P56A; no
+success or durable-worker qualification is claimed. Current runtime commands reject
+schema-8 selected artifacts against schema-9 clients before deployment.
+
+No user decision/access blocker is known. Next exact action: finish and commit the
+focused custody verifier, run signed custody/transfer/withdrawal acceptance on
+`583dbcb`, finish remaining compatibility checks, then submit ready P55A2 above #81.
 
 ## Deployment and operational limits
 

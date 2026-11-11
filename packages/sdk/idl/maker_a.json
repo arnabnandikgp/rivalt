@@ -947,11 +947,11 @@
           },
           {
             "name": "subaccount_index",
-            "type": "u16"
+            "type": "u32"
           },
           {
             "name": "id",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "mode",
@@ -1019,6 +1019,14 @@
                 "name": "OrderBook"
               }
             }
+          },
+          {
+            "name": "lifecycle",
+            "type": "u8"
+          },
+          {
+            "name": "activation_generation",
+            "type": "u64"
           },
           {
             "name": "bump",

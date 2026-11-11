@@ -2,7 +2,7 @@
 import hashlib
 from copy import deepcopy
 
-SCALARS = {'u8', 'u16', 'u32', 'u64', 'i64', 'i128', 'bool', 'pubkey'}
+SCALARS = {'u8', 'u16', 'u32', 'u64', 'i64', 'i128', 'u128', 'bool', 'pubkey'}
 
 def kind(label):
     if label.endswith('*'):
@@ -18,8 +18,6 @@ def fields(text):
 
 PREFIX = 'schema_version:u16 revision:u64 venue:pubkey '
 TYPES = {
-    'RecoveryStorage': PREFIX+'ready_capacity:u64 target_capacity:u64 next_allocation:u64 generation:u64 locked_epoch:u64 completed_epoch:u64 bump:u8',
-    'StorageFunding': PREFIX+'allocation:pubkey rent_payer:pubkey contributed_lamports:u64 bump:u8',
     'FrozenMargin': 'id:u64 member:pubkey activation_generation:u64 original_revision:u64 cash:u64 lots:i64[2] generations:u64[2] claims:i128[2] collected:u64',
     'FrozenMarginPage': PREFIX+'epoch:u64 page_index:u64 row_count:u8 rows:FrozenMargin[8] bump:u8',
     'LimbPayload': 'words:u64[256]',
@@ -41,16 +39,11 @@ EVENTS = {
 }
 TYPES.update(EVENTS)
 
-ACCOUNTS = {'FrozenMarginPage','SettlementLimbPage','MemberPage','MemberIndexNode','PreparedSettlement','SettlementRates','SettlementPlan','RecoveryStorage','StorageFunding'}
+ACCOUNTS = {'FrozenMarginPage','SettlementLimbPage','MemberPage','MemberIndexNode','PreparedSettlement','SettlementRates','SettlementPlan'}
 # Existing verification contexts stay readonly; Apply's exact writers are explicit.
 SOURCE = 'venue custody safety registry resolution btc eth btc_ledger eth_ledger vault'
 TAIL = 'event_authority program'
 INSTRUCTIONS = {
-    'initialize_recovery_storage': (f'authority! venue safety storage+ system_program {TAIL}', ''),
-    'begin_recovery_provision': (f'authority^ venue safety storage+ {TAIL}', 'capacity:u64 revision:u64'),
-    'cancel_recovery_provision': (f'authority^ venue safety storage+ {TAIL}', 'generation:u64 revision:u64'),
-    'fund_recovery_allocation': (f'payer! venue safety storage allocation+ receipt+ system_program {TAIL}', 'kind:u8 register:u32 page:u64 generation:u64 ordinal:u64'),
-    'verify_recovery_allocation': (f'venue safety storage+ allocation receipt {TAIL}', 'generation:u64 ordinal:u64 revision:u64'),
     'initialize_prepared_settlement': (f'payer! {SOURCE} prepared+ system_program {TAIL}', 'epoch:u64 source_revision:u64'),
     'initialize_prepared_index_node': (f'payer! {SOURCE} prepared+ node+ system_program {TAIL}', 'epoch:u64 level:u8 revision:u64'),
     'initialize_prepared_members': (f'payer! {SOURCE} prepared+ page+ system_program {TAIL}', 'epoch:u64 revision:u64'),
@@ -88,7 +81,7 @@ INSTRUCTIONS.update({
 DOMAINS = ['account:MemberIndexNode','account:MemberPage','account:PreparedSettlement',
            'account:SettlementLimbPage','frozen-margin-page','member-index',
            'member-page','prepared-settlement','resolution-limbs','settlement-rates','account:SettlementRates',
-           'settlement-plan','account:SettlementPlan','recovery-storage','storage-funding']
+           'settlement-plan','account:SettlementPlan']
 
 def strip_additions(idl):
     """Check the literal extension first; return the untouched predecessor surface."""

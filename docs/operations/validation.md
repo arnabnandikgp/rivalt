@@ -47,6 +47,39 @@ claim. The owned Surfpool stopped normally. Complete-default/SQL acceptance,
 remaining consumers/typecheck and wire-delta validation are still required before
 P55A2 Review. Runtime selection remains P53B; default/devnet remain disabled.
 
+## Canonical complete default (P55A2 intermediate)
+
+Clean verifier **`1de35c30f4cb96047292ca6d5d45f36cabc7bca2`** against the
+same clean **`583dbcb`** SBF passes **1,538 signed RPC/WS outcomes**, including
+**67 expected rejections**. Ten actual Financial accounts enter through signed
+storage-backed membership. Independent Python Fraction and graph expectations
+check rate prefixes, insurance clipping, conserving atom owners and actual Apply.
+All accounts reconcile, eight one-atom SPL exits land, and sustained credible
+sources allow explicit recovery to custody. No financial state is injected.
+
+Actual PostgreSQL checkpoints pass after the first Apply, after complete bucket
+distribution and after recovery/exits. Fresh refetch/replay exactly matches **141
+events** and reconciles **227 accounts / ten Financial members**. Final actual and
+allocated vault both equal **11,199,993 atoms**; surplus is zero. Applied cash is
+9,500,000 atoms and market insurance spent is 1,001,522 / 300,430 atoms. Peak
+observed CU is **161,562**; full probe fees are **8,415,000 test lamports**, including
+provisioning and hostile/replay attempts, not an operating-cost forecast.
+
+Both isolated Anchor clients agree on 1,516 clearing instructions / 75 accounts /
+1,588 events, plus 76/38 maker-A/B instructions and 80/40 events. Raw evidence is
+`.local/scalable-settlement/runs/p55a2-default-source-plan-fixed/`. Start and end
+tracked trees were clean. The preceding `4c8dd27` run failed its first partial SQL
+checkpoint because the indexer used old source-header progress semantics. Its
+retained failure led to the frozen-source versus plan-progress regression; no
+partial run is counted as acceptance.
+
+This completes the exercised on-chain default path at ten Financial roots, not
+128-root acceptance, durable automatic continuation, runtime promotion or P56B.
+The old fixed-width resource-only `safety-width-svm.ts` and retained-schema-8
+`scoped-safety-projection.ts` runners are retired; retrieve them at immutable
+`7b0ab0716810c6894064cc1a11fc5da27ed54a3a` only for their historical captures.
+Current verification uses paged arithmetic checks and actual signed RPC/WS/SQL.
+
 ## Recovery storage provisioning (P55A2 intermediate)
 
 Clean verifier **`81aae9df623bdddff69a73f2ba9f88c80a6fc9bb`** runs

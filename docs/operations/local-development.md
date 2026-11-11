@@ -1,5 +1,13 @@
 # Local development
 
+During the P55A2 schema-9 migration, the selected schema-8 runtime is retained for
+its historical evidence. Current runtime probes reject that client/artifact schema
+mismatch before launching a chain. Use the explicitly pinned
+`ops/account-membership-smoke.sh` (optional `RIVALT_MEMBERSHIP_PROBE=custody`) and
+`ops/scalable-settlement-smoke.sh` candidate probes described in validation.
+P56 owns complete service/UI qualification and runtime promotion; these candidates
+are not a supported demo deployment yet.
+
 ## Pinned toolchain
 
 | Component | Pin / distinction |

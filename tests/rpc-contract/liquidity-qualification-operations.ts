@@ -1,3 +1,4 @@
+import {CANONICAL_DEFAULT_AUTOMATION_READY} from '../../packages/services/src/account-risk-worker.js';
 // P34 complete-cohort operations, outside the timed pricing populations.
 import assert from 'node:assert/strict';
 import { createWriteStream, readFileSync, writeFileSync } from 'node:fs';
@@ -11,6 +12,7 @@ import { qualificationSetup } from './liquidity-qualification-setup.js';
 import { qualificationServices, waitFor } from './liquidity-qualification-services.js';
 const directory = process.env.RIVALT_RUN_DIR!, revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim(), '');
+assert(CANONICAL_DEFAULT_AUTOMATION_READY,'Canonical automatic default qualification is pending P56A; use ops/scalable-settlement-smoke.sh for signed operator acceptance.');
 const transport = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, directory, {
     deferFinality: true, computeUnitLimit: label => label.startsWith('P34 route') ? 800000 : label.includes('publisher') ? 200000 :
         label.startsWith('P34 resume') ? 1200000 : label === 'continuation reprice batch' || label === 'refresh independent sources and six maker publications' ? 600000 : 400000, maxLoadedAccounts: () => 32
@@ -53,7 +55,7 @@ try {
         await h.send('P34 route operational exposure', quote.instructions, [setup.owner]);
     }
     const keys = [setup.venue, setup.custody, setup.safety, setup.vault, setup.registry, setup.mint.address, ...setup.allRoots, ...setup.markets, ...setup.ledgers,
-        canonical.token.address, setup.token.address, canonical.resolution, canonical.work, ...canonical.pages];
+        canonical.token.address, setup.token.address, canonical.resolution, canonical.storage];
     async function raw() { const response = await rpc.call('getMultipleAccounts', [keys, { encoding: 'base64', commitment: 'confirmed' }]); return Object.fromEntries(keys.map((key, index) => [key, response.value[index]?.data[0] ?? null])); }
     function startRisk(receiver?: Address) {
         const signerPath = `${directory}/risk-signer.json`;
@@ -91,7 +93,7 @@ try {
     risk = startRisk();
     await waitFor(header, value => value.stage === 2, 'complete-cohort default freeze', 60);
     const capture: any = { roots: setup.allRoots, markets: setup.markets, ledgers: setup.ledgers, custody: setup.custody, vault: setup.vault,
-        mint: setup.mint.address, userTokens: [canonical.token.address, setup.token.address], resolution: canonical.resolution, work: canonical.work, pages: canonical.pages,
+        mint: setup.mint.address, userTokens: [canonical.token.address, setup.token.address], resolution: canonical.resolution, storage: canonical.storage,
         liquidation: { target: setup.cross, receiver: setup.operations, before, after }, frozenAccounts: await raw() };
     writeFileSync(`${directory}/financial-capture.json`, json(capture));
     const deadline = Date.now() + 300000;
@@ -99,10 +101,13 @@ try {
     while ((await header()).stage !== 11) {
         assert(Date.now() < deadline, 'Complete bounded default');
         const current = await header();
-        if (current.stage === 4 && current.proposalUploaded > 0 && !restarted) {
+        const [ratesKey]=await sdk.deriveSettlementWorkspace(setup.venue,'rates');
+        const rates=sdk.getSettlementRatesDecoder().decode((await h.read(ratesKey))!);
+        const uploaded=rates.uploaded.reduce((sum,value)=>sum+value,0n);
+        if (rates.stage === 1 && uploaded > 0n && !restarted) {
             risk.kill('SIGKILL');
             await waitFor(async () => risk.signalCode === 'SIGKILL', Boolean, 'risk SIGKILL');
-            restarts.push({ stage: current.stage, uploaded: current.proposalUploaded, pid: risk.pid });
+            restarts.push({ stage: current.stage, uploaded: uploaded.toString(), pid: risk.pid });
             risk = startRisk();
             restarted = true;
         }

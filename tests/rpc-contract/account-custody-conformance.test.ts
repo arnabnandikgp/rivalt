@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { createNoopSigner, getAddressDecoder, type Instruction } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 
-test('schema-8 custody bytes, roles and bounded amounts match isolated Anchor', async () => {
+test('schema-9 custody bytes, roles and bounded amounts match isolated Anchor', async () => {
   const key = (value: number) => getAddressDecoder().decode(new Uint8Array(32).fill(value));
   const owner = createNoopSigner(key(1)), authority = createNoopSigner(key(2));
   const reserveSigner = createNoopSigner(key(19));
@@ -15,7 +15,7 @@ test('schema-8 custody bytes, roles and bounded amounts match isolated Anchor', 
   const common = { venue: key(3), registry: key(4), vault: key(5), quoteMint: key(6),
     eventAuthority: key(7), program, programData: key(8), authority, owner, donor: owner,
     portfolio: key(9), margin: key(10), market: key(11), userToken: key(12), donorToken: key(12),
-    recipient: key(13), custody: key(14), safety: key(15), btcLedger: key(16), ethLedger: key(17), ledger: key(16) };
+    recipient: key(13), custody: key(14), safety: key(15), btcLedger: key(16), ethLedger: key(17), ledger: key(16), members:key(21) };
   const domain = new Uint8Array(32).fill(27), amount = 9007199254740993n;
   const value = (value: unknown) => ({ kind: 'value', value });
   const integer = (value: bigint) => ({ kind: 'u64', value: value.toString() });
@@ -34,7 +34,7 @@ test('schema-8 custody bytes, roles and bounded amounts match isolated Anchor', 
     { name: 'createPortfolio', args: [value(3)], instruction: await sdk.getCreatePortfolioInstructionAsync({ ...common, index: 3 }),
       names: ['owner',...base,'portfolio','systemProgram',...end] },
     { name: 'registerMargin', args: [value(8),value(1),value(1),value(2)], instruction: await sdk.getRegisterMarginInstructionAsync({ ...common, subaccountIndex: 8, mode: 1, isolatedMarketIndex: 1, role: 2 }),
-      names: ['owner',...base,'registry','portfolio','margin','systemProgram',...end] },
+      names: ['owner',...base,'registry','portfolio','margin','members','systemProgram',...end] },
     ...(['depositAccount','withdrawAccountCustody'] as const).map(name => ({ name, args: [integer(amount)],
       instruction: name === 'depositAccount' ? sdk.getDepositAccountInstruction({ ...common, amount }) : sdk.getWithdrawAccountCustodyInstruction({ ...common, amount }),
       names: ['owner',...ledgerBase,'margin','quoteMint','vault','userToken','tokenProgram',...end] })),

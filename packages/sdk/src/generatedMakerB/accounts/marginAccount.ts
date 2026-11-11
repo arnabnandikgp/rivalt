@@ -25,6 +25,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -76,7 +78,7 @@ export type MarginAccount = {
   portfolio: Address;
   owner: Address;
   subaccountIndex: number;
-  id: number;
+  id: bigint;
   mode: number;
   isolatedMarketIndex: number;
   role: number;
@@ -91,6 +93,8 @@ export type MarginAccount = {
   reserved: bigint;
   /** Reuse only the stable scalar wire records; V2 handlers cannot own V3 bytes. */
   book: OrderBook;
+  lifecycle: number;
+  activationGeneration: bigint;
   bump: number;
 };
 
@@ -102,7 +106,7 @@ export type MarginAccountArgs = {
   portfolio: Address | HasAddress;
   owner: Address | HasAddress;
   subaccountIndex: number;
-  id: number;
+  id: number | bigint;
   mode: number;
   isolatedMarketIndex: number;
   role: number;
@@ -117,6 +121,8 @@ export type MarginAccountArgs = {
   reserved: number | bigint;
   /** Reuse only the stable scalar wire records; V2 handlers cannot own V3 bytes. */
   book: OrderBookArgs;
+  lifecycle: number;
+  activationGeneration: number | bigint;
   bump: number;
 };
 
@@ -130,8 +136,8 @@ export function getMarginAccountEncoder(): FixedSizeEncoder<MarginAccountArgs> {
       ["venue", getAddressEncoder()],
       ["portfolio", getAddressEncoder()],
       ["owner", getAddressEncoder()],
-      ["subaccountIndex", getU16Encoder()],
-      ["id", getU16Encoder()],
+      ["subaccountIndex", getU32Encoder()],
+      ["id", getU64Encoder()],
       ["mode", getU8Encoder()],
       ["isolatedMarketIndex", getU8Encoder()],
       ["role", getU8Encoder()],
@@ -144,6 +150,8 @@ export function getMarginAccountEncoder(): FixedSizeEncoder<MarginAccountArgs> {
       ["delegateEpoch", getU64Encoder()],
       ["reserved", getU64Encoder()],
       ["book", getOrderBookEncoder()],
+      ["lifecycle", getU8Encoder()],
+      ["activationGeneration", getU64Encoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: MARGIN_ACCOUNT_DISCRIMINATOR }),
@@ -159,8 +167,8 @@ export function getMarginAccountDecoder(): FixedSizeDecoder<MarginAccount> {
     ["venue", getAddressDecoder()],
     ["portfolio", getAddressDecoder()],
     ["owner", getAddressDecoder()],
-    ["subaccountIndex", getU16Decoder()],
-    ["id", getU16Decoder()],
+    ["subaccountIndex", getU32Decoder()],
+    ["id", getU64Decoder()],
     ["mode", getU8Decoder()],
     ["isolatedMarketIndex", getU8Decoder()],
     ["role", getU8Decoder()],
@@ -173,6 +181,8 @@ export function getMarginAccountDecoder(): FixedSizeDecoder<MarginAccount> {
     ["delegateEpoch", getU64Decoder()],
     ["reserved", getU64Decoder()],
     ["book", getOrderBookDecoder()],
+    ["lifecycle", getU8Decoder()],
+    ["activationGeneration", getU64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -259,5 +269,5 @@ export async function fetchAllMaybeMarginAccount(
 }
 
 export function getMarginAccountSize(): number {
-  return 978;
+  return 995;
 }

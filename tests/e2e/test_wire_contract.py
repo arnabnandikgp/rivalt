@@ -155,6 +155,23 @@ class WireContractTest(unittest.TestCase):
             with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
                 rc2.comparable_program('clearing', changed)
 
+    def test_membership_delta_keeps_identity_width_metadata_and_privileges_exact(self):
+        for mutation in ('id', 'child', 'generation', 'signer', 'storage_writer', 'seed', 'duplicate'):
+            changed = deepcopy(self.original)
+            instruction = next(item for item in changed['instructions'] if item['name'] == 'activate_margin')
+            fields = next(item['type']['fields'] for item in changed['types'] if item['name'] == 'MarginAccount')
+            if mutation in ('id', 'child', 'generation'):
+                field = {'id':'id','child':'subaccount_index','generation':'activation_generation'}[mutation]
+                next(item for item in fields if item['name'] == field)['type'] = 'u16'
+            elif mutation == 'signer': instruction['accounts'][0]['signer'] = False
+            elif mutation == 'storage_writer':
+                next(item for item in instruction['accounts'] if item['name'] == 'storage')['writable'] = True
+            elif mutation == 'seed':
+                next(item for item in instruction['accounts'] if item['name'] == 'registry')['pda']['seeds'][0]['value'] = [0]
+            else: changed['instructions'].append(deepcopy(instruction))
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                rc2.comparable_program('clearing', changed)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,14 +13,14 @@ type Evaluation={proposal:string[];budgets:string[];spent:string[];fractional:bo
 export async function qualifySettlementRates(options:{h:CanonicalHarness;
   setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>; prepared:Address;epoch:bigint;
   rows:{cash:bigint;claims:bigint[]}[];rowPages:Address[];limbPages:Address[];tracked:Address[];
-  expectedCommon:bigint;reject:(label:string,instruction:Instruction,error?:ExpectedInstructionError)=>Promise<void>}) {
+  expectedCommon:bigint;hostileChecks?:boolean;reject:(label:string,instruction:Instruction,error?:ExpectedInstructionError)=>Promise<void>}) {
   const {h,setup,prepared,epoch,rows,rowPages,limbPages,tracked,reject}=options;
   const header=sdk.getPreparedSettlementDecoder().decode((await h.read(prepared))!);
   const reference=JSON.parse(execFileSync('python3',['tests/financial/settlement_rpc_reference.py'],{
     input:JSON.stringify({rows,pools:header.pools,insurance:header.insurance},(_,value)=>typeof value==='bigint'?String(value):value),encoding:'utf8'
   })) as {common:string;evaluations:Evaluation[]};
   assert.equal(BigInt(reference.common),options.expectedCommon);
-  assert(reference.evaluations.length>=2,'signed fixture must exercise real fractional insurance clipping');
+  if(options.hostileChecks!==false)assert(reference.evaluations.length>=2,'signed fixture must exercise real fractional insurance clipping');
   const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
   const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
   const pda=async(label:string,...suffix:Uint8Array[])=>(await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
@@ -59,7 +59,8 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
     }
   };
   const first=reference.evaluations[0].proposal.map(BigInt);
-  let current=await state();
+  let current=await state(),stalled=0n;
+  if(options.hostileChecks!==false) {
   await reject('stale rate epoch',sdk.getBeginSettlementRateProposalInstruction({...common,epoch:epoch+1n,actor:setup.payer,
     revision:current.revision,factor:factorWords(1n),lengths:[0n,0n]}));
   await reject('zero rate factor',sdk.getBeginSettlementRateProposalInstruction({...common,actor:setup.payer,revision:current.revision,
@@ -72,7 +73,7 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
     revision:current.revision,attempt:current.attempt})],[setup.traderOwner],sdk.CLEARING_ERROR__RESOLUTION);
   await reject('incomplete upload cannot verify',sdk.getAcceptSettlementRateRowInstruction({...common,page:rowPages[0],
     revision:current.revision,attempt:current.attempt}));
-  const stalled=current.attempt,deadline=Date.now()+20_000;
+  stalled=current.attempt;const deadline=Date.now()+20_000;
   while(await setup.slot()<current.lastProgressSlot+64n){assert(Date.now()<deadline,'real slot progress');await delay(50);}
   await h.send('P54 permissionless stalled upload recovery',[sdk.getResetSettlementRateProposalInstruction({...common,actor:setup.traderOwner,
     revision:current.revision,attempt:stalled})],[setup.traderOwner]);
@@ -86,6 +87,7 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
   await h.send('P54 permissionless stalled verification recovery',[sdk.getResetSettlementRateProposalInstruction({...common,actor:setup.traderOwner,
     revision:current.revision,attempt:current.attempt})],[setup.traderOwner]);
   assert.equal((await state()).stage,0);
+  }
   let continuations=0,observedPrefixes=0;
   const magnitude=async(checkpoint:Buffer,register:number)=>{
     const used=Number(checkpoint.readBigUInt64LE(320+register*8));assert(used<=256);
@@ -147,11 +149,13 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
   };
   // Correctly encoded but financially wrong rates must be rejected after actual
   // deterministic evaluation, with the original insurance checkpoint preserved.
+  if(options.hostileChecks!==false) {
   const bad=[first[0],first[1]-1n,first[2]],beforeBad=Buffer.from((await state()).state.insurance);
   await begin(bad);await upload(bad,true);const badResult=await verify(undefined,true);
   assert.equal(badResult.stage,3);assert.deepEqual(Buffer.from(badResult.state.insurance),beforeBad);
   await h.send('P54 reset rejected equation',[sdk.getResetSettlementRateProposalInstruction({...common,actor:setup.traderOwner,
     revision:badResult.revision,attempt:badResult.attempt})],[setup.traderOwner]);
+  }
   for(const expected of reference.evaluations){
     const proposal=expected.proposal.map(BigInt);await begin(proposal);await upload(proposal);
     const result=await verify(expected),checkpoint=Buffer.from(result.state.work);

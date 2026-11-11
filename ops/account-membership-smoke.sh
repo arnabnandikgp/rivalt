@@ -43,5 +43,10 @@ solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/clea
 solana program deploy "$RIVALT_MEMBERSHIP_ARTIFACT_DIR/clearing.so" --buffer "$RIVALT_RUN_DIR/clearing-buffer.json" \
   --program-id .local/keys/clearing.json --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
   --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/clearing-deployment.json"
-node --import tsx tests/rpc-contract/account-membership-storage-rpc.ts
+case "${RIVALT_MEMBERSHIP_PROBE:-lifecycle}" in
+  lifecycle) node --import tsx tests/rpc-contract/account-membership-storage-rpc.ts ;;
+  custody) node --import tsx tests/rpc-contract/account-custody-rpc.ts
+    python3 tests/financial/account-custody-reference.py "$RIVALT_RUN_DIR/summary.json" ;;
+  *) echo 'Unknown membership probe' >&2; exit 1 ;;
+esac
 printf 'Membership storage probe: %s\n' "$RIVALT_RUN_DIR"

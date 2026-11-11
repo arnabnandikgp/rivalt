@@ -1,138 +1,81 @@
-// Fresh P32 complete-cohort resolution using the unchanged financial engine.
-// The independent Fraction reference proposes rates; the deployed program must
-// verify every row, round, apply and reconcile before any funded exit.
+/** Current schema-9 test-operator default driver. Independent Python Fraction /
+ * graph expectations are checked against signed deployed effects in every stage.
+ * This is not the P56 durable service or expanded-population acceptance. */
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
-import { AccountRole, type Address, type Instruction } from '@solana/kit';
+import {AccountRole,type Address,type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
-import type { CanonicalHarness } from './canonical-maker-cases.js';
-import type { liquidityExecutionSetup } from './liquidity-execution-setup.js';
+import type {CanonicalHarness} from './canonical-maker-cases.js';
+import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
+import {recoveryKey} from './account-membership-setup.js';
+import {scanMetas,financialRoots} from './membership-scan-helper.js';
+import {denominatorPages} from './settlement-page-plan.js';
+import {qualifySettlementRates} from './scalable-settlement-rates-rpc.js';
+import {qualifySettlementPlan} from './scalable-settlement-plan-rpc.js';
+import {qualifySettlementApplication} from './scalable-settlement-application-rpc.js';
 
-export async function resolveLiquidityCohort(h: CanonicalHarness,
-  setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>, roots: Address[],
-  reject: (label: string, instruction: Instruction, error?: number) => Promise<void>) {
-  const accounts = setup.safetyCommon;
-  const header = async () => sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
-  const initial = await header();
-  assert.equal(initial.stage, 2); assert.equal(initial.count, roots.length);
-  const rows = await Promise.all(roots.map(async key => {
-    const root = sdk.getMarginAccountDecoder().decode((await h.read(key))!);
-    return { cash: root.cash, claims: root.positions.map((position, index) =>
-      position.lots * initial.prices[index] * 1_000_000_000n + position.virtualScaled
-        - position.lots * (initial.funding[index] - position.fundingCheckpointScaled)), key };
-  }));
-  const advance = (stage: number, start: number, length: number, members: Address[] = []) => {
-    const instruction = sdk.getAdvanceAccountResolutionInstruction({ ...accounts,
-      page: setup.pages[Math.floor(start / 2)], epoch: initial.epoch, stage, start, length });
-    return { ...instruction, accounts: [...instruction.accounts!, ...members.map(address => ({
-      address, role: stage === 9 ? AccountRole.WRITABLE : AccountRole.READONLY }))] };
+export async function resolveLiquidityCohort(h:CanonicalHarness,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,
+  roots:Address[],reject:(label:string,instruction:Instruction,error?:number)=>Promise<void>) {
+  const initial=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
+  assert.equal(initial.stage,2);assert.equal(initial.count,BigInt(roots.length));
+  assert.deepEqual(roots,await financialRoots(h,setup.venue,setup.registry));
+  const rows=await Promise.all(roots.map(async key=>{const root=sdk.getMarginAccountDecoder().decode((await h.read(key))!);
+    return {key,root,cash:root.cash,claims:root.positions.map((position,index)=>
+      position.lots*initial.prices[index]*1_000_000_000n+position.virtualScaled
+      -position.lots*(initial.funding[index]-position.fundingCheckpointScaled))};}));
+  const prepared=await recoveryKey(setup.venue,0),rowPages=await Promise.all(Array.from({length:Math.ceil(roots.length/8)},(_,index)=>recoveryKey(setup.venue,3,0,BigInt(index))));
+  const limbPages=await Promise.all([0,1,2].map(register=>recoveryKey(setup.venue,4,register)));
+  const common={...setup.safetyCommon,prepared,epoch:initial.epoch};
+  const header=async()=>sdk.getPreparedSettlementDecoder().decode((await h.read(prepared))!);
+  const send=(label:string,instruction:Instruction)=>h.send(`paged safety ${label}`,[instruction]);
+  await send('initialize frozen membership',sdk.getInitializePreparedSettlementInstruction({...common,sourceRevision:initial.revision}));
+  for(const [index,page] of rowPages.entries())await send('initialize frozen page',sdk.getInitializeFrozenMarginPageInstruction({...common,page,pageIndex:BigInt(index)}));
+  for(const [register,page] of limbPages.entries())await send('initialize denominator page',sdk.getInitializeSettlementLimbPageInstruction({...common,page,register,pageIndex:0n}));
+  while((await header()).stage<2) {
+    const current=await header(),request=sdk.membershipRequest(current.state.membership,current.count);
+    const metas=await scanMetas(h,setup.venue,request);
+    if(request.kind==='member') {
+      assert.equal(metas[1].address,roots[Number(request.ordinal)]);
+      const instruction=sdk.getValuePreparedMemberInstruction({...common,revision:current.revision,members:metas[0].address,
+        margin:metas[1].address,page:rowPages[Number(request.ordinal/8n)]});
+      await send('value complete Financial member',instruction);
+      const row=sdk.getFrozenMarginPageDecoder().decode((await h.read(rowPages[Number(request.ordinal/8n)]))!).rows[Number(request.ordinal%8n)];
+      assert.equal(row.id,rows[Number(request.ordinal)].root.id);assert.deepEqual(row.claims,rows[Number(request.ordinal)].claims);
+      assert.equal(row.activationGeneration,rows[Number(request.ordinal)].root.activationGeneration);
+    }else {
+      assert(request.kind==='node'||request.kind==='page');
+      await send('advance authenticated membership',sdk.getAdvancePreparedMembershipInstruction({...common,revision:current.revision,index:metas[0].address}));
+    }
+  }
+  const gcd=(left:bigint,right:bigint):bigint=>{while(right)[left,right]=[right,left%right];return left;};
+  let expectedCommon=1n,accepted=0;
+  for(let steps=0;(await header()).stage===2;steps++) {
+    assert(steps<10000,'bounded denominator qualification');const current=await header(),checkpoint=Buffer.from(current.state.denominator);
+    if(checkpoint[1]===1) {
+      const ordinal=Number(checkpoint.readBigUInt64LE(16));assert.equal(ordinal,accepted++);
+      const row=rows[ordinal],debts=row.claims.map(claim=>claim<0n?-claim:0n),debt=debts[0]+debts[1];
+      const collected=row.cash<debt/1_000_000_000n?row.cash:debt/1_000_000_000n;
+      const divisor=collected&&debts.every(value=>value>0n)?debt/gcd(debt,collected*1_000_000_000n*debts[0]):1n;
+      expectedCommon=expectedCommon/gcd(expectedCommon,divisor)*divisor;
+      await send('accept denominator member',sdk.getAcceptDenominatorRowInstruction({...common,revision:current.revision,page:rowPages[Math.floor(ordinal/8)]}));
+    }else {
+      const requests=denominatorPages(checkpoint);assert(requests.every(request=>request.index===0n),'this bounded harness uses at most 64 Financial accounts');
+      const revisions=await Promise.all(requests.map(async request=>sdk.getSettlementLimbPageDecoder().decode((await h.read(limbPages[request.register]))!).revision));
+      while(revisions.length<3)revisions.push(0n);
+      const instruction=sdk.getContinueSettlementDenominatorInstruction({...common,revision:current.revision,steps:128,revisions});
+      await send('continue checked denominator',{...instruction,accounts:[...instruction.accounts,...requests.map(request=>({address:limbPages[request.register],role:request.writable?AccountRole.WRITABLE:AccountRole.READONLY}))]});
+    }
+  }
+  assert.equal(accepted,roots.length);
+  const tracked=[...setup.tracked,...roots,prepared,...rowPages,...limbPages];
+  const rejectCurrent=async(label:string,instruction:Instruction,error?:import('./instruction-errors.js').ExpectedInstructionError)=>{
+    const before=await Promise.all(tracked.map(h.read));await h.send(`paged safety reject ${label}`,[instruction],[],error??sdk.CLEARING_ERROR__RESOLUTION);
+    assert.deepEqual(await Promise.all(tracked.map(h.read)),before);
   };
-  const send = (label: string, instruction: Instruction) => h.send(`P32 safety ${label}`, [instruction]);
-  await reject('complete valuation cannot omit first member', advance(2, 1, 1, [roots[1]]));
-  await reject('complete valuation cannot reorder members', advance(2, 0, 2, [roots[1], roots[0]]));
-  for (let start = 0; start < roots.length; start += 2) {
-    await send('canonical complete valuation', advance(2, start, Math.min(2, roots.length - start), roots.slice(start, start + 2)));
-  }
-  assert.equal((await header()).stage, 3);
-  for (let start = 0; start < roots.length; start += 2) {
-    await send('exact denominator pass', advance(3, start, Math.min(2, roots.length - start)));
-  }
-  const finalize = () => sdk.getFinalizeAccountResolutionRatesInstruction({ ...accounts, epoch: initial.epoch });
-  const proofs = [];
-  let expectedInsurance: bigint[] = [];
-  for (let evaluation = 0; (await header()).stage === 4; evaluation++) {
-    assert(evaluation < 3);
-    const current = await header(); assert.equal(current.evaluation, evaluation);
-    const proof = JSON.parse(execFileSync('python3', ['tests/financial/clearing-rate-proposal.py'], {
-      input: JSON.stringify({ rows, pools: initial.poolsBefore, budgets: current.budgets },
-        (_, value) => typeof value === 'bigint' ? value.toString() : value), encoding: 'utf8',
-    })) as { common: string; factor: string; rates: string[]; spent: string[]; fractional: boolean[] };
-    proofs.push(proof);
-    assert.equal(current.common.limbs.reduceRight((total, limb) => (total << 64n) + limb, 0n), BigInt(proof.common));
-    const proposal = Buffer.alloc(1560);
-    const encode = (value: bigint, offset: number, length: number) => {
-      for (let index = 0; index < length; index++) { proposal[offset + index] = Number(value & 255n); value >>= 8n; }
-      assert.equal(value, 0n);
-    };
-    proof.rates.forEach((rate, index) => encode(BigInt(rate), index * 768, 768));
-    encode(BigInt(proof.factor), 1536, 24);
-    const proposalHash = createHash('sha256').update(proposal).digest();
-    for (let offset = 0; offset < proposal.length; offset += 512) {
-      await send('upload untrusted exact rate proposal', sdk.getProposeAccountResolutionInstruction({ ...accounts,
-        epoch: initial.epoch, evaluation, proposalHash, offset, bytes: proposal.subarray(offset, Math.min(offset + 512, proposal.length)) }));
-    }
-    assert.equal((await header()).stage, 5);
-    await reject('rates cannot finalize before complete verification', finalize());
-    await reject('rate verification remains bounded to one row', advance(5, 0, 2));
-    for (let start = 0; start < roots.length; start++) await send('verify every frozen exact flow', advance(5, start, 1));
-    await send('verify complete equations and insurance floors', finalize());
-    if (proof.fractional.some(Boolean)) {
-      assert.equal((await header()).stage, 4);
-      assert.deepEqual((await header()).budgets, current.budgets.map((budget, index) => proof.fractional[index] ? BigInt(proof.spent[index]) : budget));
-    } else {
-      expectedInsurance = proof.spent.map(BigInt); assert.equal((await header()).stage, 6);
-    }
-  }
-  const verified = await header(); assert.equal(verified.stage, 6);
-  assert.deepEqual(verified.insuranceSpent, expectedInsurance);
-  for (let start = 0; start < roots.length; start++) await send('plan all atom floors', advance(6, start, 1));
-  assert.equal((await header()).stage, 7);
-  const frozenRows: sdk.ResolutionRow[] = [];
-  for (let index = 0; index < Math.ceil(roots.length / 2); index++) {
-    const page = sdk.getResolutionPageDecoder().decode((await h.read(setup.pages[index]))!);
-    frozenRows.push(...page.rows.slice(0, page.rowCount));
-  }
-  const wide = (limbs: readonly bigint[]) => limbs.reduceRight((total, limb) => (total << 64n) + limb, 0n);
-  const denominator = wide(verified.flowDenominator.limbs);
-  const orders = [0, 1].map(market => roots.map((_, index) => index).sort((left, right) => {
-    const remainder = (index: number) => frozenRows[index].claimsScaled[market] > 0n
-      ? wide(frozenRows[index].exactFlowNumerators[market].limbs) - frozenRows[index].roundedFlows[market] * denominator : 0n;
-    const first = remainder(left), second = remainder(right);
-    return first === second ? left - right : first > second ? -1 : 1;
-  })) as [number[], number[]];
-  await reject('remainder order cannot omit or duplicate members', sdk.getOrderAccountResolutionInstruction({ ...accounts,
-    epoch: initial.epoch, orders: [Array(roots.length).fill(0), orders[1]] }));
-  await send('propose complete remainder order', sdk.getOrderAccountResolutionInstruction({ ...accounts, epoch: initial.epoch, orders }));
-  for (let start = 0; start < roots.length * 2; start++) {
-    const member = orders[Math.floor(start / roots.length)][start % roots.length];
-    await send('verify exact remainder order and stable ties', sdk.getCheckAccountResolutionOrderInstruction({ ...accounts,
-      page: setup.pages[Math.floor(member / 2)], epoch: initial.epoch, start }));
-  }
-  for (let steps = 0; (await header()).stage === 8; steps++) {
-    assert(steps < 2000, 'bounded deterministic circulation');
-    await send('deterministic conserving atom circulation', sdk.getRoundAccountResolutionInstruction({ ...accounts,
-      epoch: initial.epoch, start: (await header()).cursor }));
-  }
-  const rounded = await header(); assert.equal(rounded.stage, 9);
-  const graph = sdk.getResolutionWorkDecoder().decode((await h.read(setup.work))!);
-  const plannedCash = frozenRows.map((row, index) => row.cashAfter + BigInt(graph.residualCapacity[2 * (2 * roots.length + index) + 1]));
-  for (let market = 0; market < 2; market++) {
-    const movements = frozenRows.reduce((total, row, index) => total
-      + (row.claimsScaled[market] < 0n ? -1n : row.claimsScaled[market] > 0n ? 1n : 0n)
-        * (row.roundedFlows[market] + BigInt(graph.residualCapacity[2 * (market * roots.length + index) + 1])), 0n);
-    assert.equal(movements, initial.poolsBefore[market] + verified.insuranceSpent[market]);
-  }
-  await reject('reconciliation cannot precede row application', advance(10, 0, 1, [roots[0]]));
-  await send('apply first atom ownership row', advance(9, 0, 1, [roots[0]]));
-  await reject('applied row cannot replay', advance(9, 0, 1, [roots[0]]));
-  for (let start = 1; start < roots.length;) {
-    const length = start % 2 === 1 ? 1 : Math.min(2, roots.length - start);
-    await send('apply every remaining canonical row', advance(9, start, length, roots.slice(start, start + length)));
-    start += length;
-  }
-  assert.equal((await header()).stage, 10);
-  for (const [index, key] of roots.entries()) {
-    const root = sdk.getMarginAccountDecoder().decode((await h.read(key))!);
-    assert.equal(root.cash, plannedCash[index]);
-    assert(root.positions.every(position => position.lots === 0n && position.virtualScaled === 0n));
-    assert(root.book.orders.every(entry => entry.order.state === 0));
-    assert.equal(root.reserved, 0n); assert.equal(root.delegateExpirySlot, 0n);
-  }
-  for (let start = 0; start < roots.length; start += 2) {
-    await send('complete applied-account reconciliation', advance(10, start, Math.min(2, roots.length - start), roots.slice(start, start + 2)));
-  }
-  assert.equal((await header()).stage, 11);
-  assert.equal(sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).mode, 3);
-  return { initial, verified, rounded, plannedCash, proofs, graph, frozenInputs: rows };
+  const rates=await qualifySettlementRates({h,setup,prepared,epoch:initial.epoch,rows,rowPages,limbPages,tracked,expectedCommon,hostileChecks:false,reject:rejectCurrent});
+  const plan=await qualifySettlementPlan({h,setup,prepared,rates:rates.rates,epoch:initial.epoch,rows,rowPages,limbPages,tracked,reject:rejectCurrent});
+  const applied=await qualifySettlementApplication({h,setup,prepared,rates:rates.rates,plan:plan.plan,epoch:initial.epoch,
+    rowPages,rows,expected:plan.expected,tracked,reject:rejectCurrent,checkpoint:async()=>{},stopBeforeExitAndRecovery:true});
+  assert.equal(applied.finalSource.stage,11);
+  return {initial,verified:rates.state,rounded:plan.state,plannedCash:plan.expected.cash.map(BigInt),proofs:rates.reference,
+    graph:plan.state,frozenInputs:rows,tracked,applied};
 }
