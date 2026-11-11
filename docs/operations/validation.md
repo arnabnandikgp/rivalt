@@ -38,6 +38,26 @@ inactive checkpoint:
   qualification, program initialization, RPC/WS/PostgreSQL or financial activation
   is claimed. This child branch has no phase PR yet.
 
+Clean **`6f051bcea8fb5a67f53eebdbfa408f0116e192e8`** adds the read-side financial
+index. Two core tests exercise **11 dense/sparse populations, 22,448 total native
+entries**, including 10,002 entries in the largest case and u64-maximum IDs. Every
+encoded traversal prefix restores exactly; the resulting ordered IDs equal the
+independently enumerated list. The exact logical request bound is checked. Missing/
+duplicate/out-of-order requests, wrong child counts/masks, unreachable namespace
+branches, malformed checkpoints and terminal replay reject. These are synthetic
+index entries, not admitted trading accounts.
+
+Three clearing native-loader tests independently check literal 190-/2,699-byte
+node/page codecs, complete two-entry traversal and corrupted discriminator/venue/
+PDA/count/mask/owner/size/entry-lifecycle bindings. Frozen safety/membership locking
+and actual root valuation are not supplied by these readers and remain required.
+Scoped formatting, pinned SBF metadata and evidence policy pass. The initial
+legacy error-macro compile issue was corrected for RC2 before this clean pin.
+Raw logs remain at `.local/scalable-settlement/p54b-6f051bc/`; no signed transaction,
+linked SBF build, CU/rent or expanded-capacity acceptance follows from this result.
+Reproduce with `cargo test --locked -p financial-core --test scalable_membership`
+and `cargo test --locked -p clearing --lib --features liquidity-execution-qualification instructions::account_safety::settlement_membership::tests`.
+
 Reproduce the new checks with `cargo build --locked -p financial-core --bin scalable-wide-driver --bin scalable-snapshot-driver`,
 `python3 tests/financial/test_cohort_denominator.py`,
 `python3 tests/financial/test_scalable_snapshot.py`,

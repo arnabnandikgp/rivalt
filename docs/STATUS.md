@@ -277,12 +277,18 @@ artifact or larger-account acceptance is inferred. The cohesive P54B PR awaits i
 actual signed acceptance. Remaining work is frozen complete membership/source
 binding, owning on-chain control, rate/proposal reset and signed RPC/WS verification
 with full-context CU/wire/stack/rent measurements. P54C still owns Apply and recovery.
-The next local checkpoint implements the bounded complete financial-index
-traversal and canonical index/page/entry readers. Development native tests pass;
-a clean pinned rerun is next. The read interfaces do not yet freeze membership,
-authenticate actual margin-root valuation or provide a public instruction.
-No access blocker is known. Next exact action: pin/verify these membership reads,
-then connect the owning frozen-epoch/root-valuation handler to the checked cursors.
+Clean **`6f051bcea8fb5a67f53eebdbfa408f0116e192e8`** adds bounded complete
+financial-index traversal and canonical node/page/entry readers. Two core tests
+pass across 11 dense/sparse populations (22,448 native entries, up to 10,002 per
+case); three clearing native-reader tests pass. Every encoded traversal prefix,
+exact request bound, literal account codec and invalid identity/count/order case
+is checked. Formatting, evidence policy and pinned SBF metadata pass. These are
+native index/reader checks, not admitted trading accounts or frozen on-chain
+transitions. Logs stay at `.local/scalable-settlement/p54b-6f051bc/`.
+The read interfaces do not yet freeze membership, authenticate actual root
+valuation or provide a public instruction. No access blocker is known. Next exact
+action: implement the owning frozen-epoch/root-valuation controller using the
+checked membership, valuation and denominator cursors.
 
 ## Integrated quantity work
 
