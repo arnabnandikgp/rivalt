@@ -101,8 +101,9 @@ update this table and STATUS rather than silently combining unrelated work.
 | P54A | Scalable exact settlement kernel | P51B/G2, P53A unchanged numeric bounds |
 | P54B | On-chain frozen input and rate verification | P54A |
 | P54C | On-chain rounding, application and recovery | P54B |
-| P55A | Paged membership and safe account lifecycle | P51B identity contract, P54C safety path |
-| P55B | Scalable ordinary backing/payment progress | P55A, G3 |
+| P55A1 | u64 financial identity and authenticated index-update foundation | P51B identity contract, P54C safety path |
+| P55A2 | On-chain membership, recovery storage and safe account lifecycle | P55A1 |
+| P55B | Scalable ordinary backing/payment progress | P55A2, G3 |
 | P56A | Account-scale services, SDK and UI | P52, P55A–P55B |
 | P56B | Larger-cohort acceptance and local activation | P53–P56A |
 | P57A | General maker admission/lifecycle | P56B |
@@ -268,6 +269,17 @@ PostgreSQL replay match. Unrelated healthy cash, retained fees and foreign insur
 cannot become a default subsidy. New-population activation remains disabled.
 
 ### P55A — membership and account lifecycle
+
+Implementation refinement (12 November 2026): P55A1 isolates full-width scalar
+financial identity and the authenticated bounded radix-update foundation. Its
+acceptance is native independent count/financial vectors, hostile account-loader
+checks and compiled compatibility; it does not change the on-chain identity layout
+or remove the runtime limit. P55A2 owns the complete public lifecycle, schema/SDK
+transition, recovery-storage funding and signed acceptance below. Both are required
+for P55A; opening P55A1 is not completion of membership or permission to skip P55A2.
+This separates arithmetic/loader review from the cross-component wire migration;
+P55B follows P55A2 and the publication stack remains linear.
+
 
 **Deliver:** paged, authenticated registration and economic-participation tracking
 with stable identities, rent ownership, safe retirement and anti-replay generations.

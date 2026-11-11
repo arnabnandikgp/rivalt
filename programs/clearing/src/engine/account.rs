@@ -17,7 +17,7 @@ pub(crate) fn model(root: &MarginAccount) -> Result<math::margin::Margin> {
         ClearingError::Profile
     );
     let model = math::margin::Margin {
-        id: root.id,
+        id: u64::from(root.id),
         mode: if root.mode == MODE_CROSS {
             math::margin::Mode::Cross
         } else {

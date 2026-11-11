@@ -1,6 +1,6 @@
 use financial_core::{margin::*, *};
 
-fn isolated(id: u16, market: usize, cash: u64) -> Margin {
+fn isolated(id: u64, market: usize, cash: u64) -> Margin {
     Margin {
         id,
         mode: Mode::Isolated(market),

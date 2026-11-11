@@ -1,6 +1,6 @@
 use financial_core::*;
 
-fn p(id: u16, cash: u64) -> Participant {
+fn p(id: u64, cash: u64) -> Participant {
     Participant {
         id,
         cash,

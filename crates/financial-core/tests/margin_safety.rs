@@ -2,7 +2,7 @@ use financial_core::{
     margin::{self, Margin, Mode, Position, Risk},
     *,
 };
-fn root(id: u16, market: usize, cash: u64) -> Margin {
+fn root(id: u64, market: usize, cash: u64) -> Margin {
     Margin {
         id,
         mode: Mode::Isolated(market),

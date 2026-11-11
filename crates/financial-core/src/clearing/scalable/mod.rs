@@ -14,6 +14,7 @@ pub mod graph_pages;
 pub mod graph_work;
 pub mod insurance_rounds;
 pub mod membership;
+pub mod membership_update;
 pub mod normalized;
 pub mod order_work;
 pub mod pages;

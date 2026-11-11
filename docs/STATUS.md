@@ -1,6 +1,6 @@
 # Current status
 
-Updated 11 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 12 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -22,7 +22,9 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
 | P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
-| P55A–P62 successor implementation | Planned | Membership, expanded activation and later remediation follow their existing gates |
+| P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
+| P55A2 on-chain membership/lifecycle | Planned | Versioned registration, financially active membership, storage funding, retirement and complete frozen-source integration; signed acceptance required |
+| P55B–P62 successor implementation | Planned | Backing, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -54,8 +56,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P55A paged membership and safe account lifecycle
-above ready #80; leave every PR open.
+Next exact action: implement P55A2 above ready #81;
+leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
 
@@ -638,12 +640,35 @@ Surfpool/PostgreSQL processes stopped normally.
 
 P54C is published ready as [#80](https://github.com/arnabnandikgp/rivalt/pull/80)
 above #79 in stack #74; it remains open and is not integrated. Hosted CI has been
-requested; no result is claimed at this publication checkpoint. The selected P53B runtime,
+completed: scope, client, report, financial and shell pass on exact `51393a9` in
+[run 43076612051](https://github.com/arnabnandikgp/rivalt/actions/runs/43076612051).
+The selected P53B runtime,
 default/devnet gates and 64-member bridge remain unchanged. P55A/P55B own scalable
 membership/backing; P56B owns expanded activation and its cost gate. No user
 decision or access blocker remains for this PR. P15B/P16B remain Open and continuous
 24-hour endurance Deferred. Next exact action: begin P55A paged membership and
 safe account lifecycle above #80 under the existing roadmap.
+
+## P55A foundation and remaining lifecycle
+
+P55A1 branches above #80 / `51393a9`. Clean **`b8a19eb`** passes 38 focused
+native cases and links a 2,335,560-byte clearing SBF without oversized-stack
+diagnostics. It separates u64 scalar financial IDs from bounded reference-cohort
+size, and authenticates all fifteen financial-index path nodes before mutation.
+The independent reconstruction covers 1,027 sparse members / 2,054 entry-exit
+transitions; literal high-ID financial cases retain exact fees, funding, exits and
+atom ties. This is native/compilation acceptance only; current wire IDs, admitted
+population and selected runtime remain unchanged. Exact pin/hash and limitations
+are in [validation](operations/validation.md#membership-foundation-p55a1).
+
+The [roadmap](operations/remediation-plan.md#p55a--membership-and-account-lifecycle)
+now separates this foundation from P55A2's complete on-chain lifecycle and storage
+integration. P55A as a whole is unfinished. P55A2 must implement the canonical
+schema-9 layouts/consumers, Registered/Financial/Retired authority, funded recovery
+storage, complete live-index freeze/default and signed entry/exit/race acceptance.
+P55A1 is ready as #81 above #80 and remains open; hosted CI is pending.
+No decision/access blocker is known. Next exact action: implement P55A2 above #81
+without waiting for merge; continue through P62's dependencies.
 
 ## Deployment and operational limits
 

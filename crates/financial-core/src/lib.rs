@@ -80,7 +80,7 @@ pub fn fee_increment(prefix: u64, notional: u64) -> Result<(u64, u64)> {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Participant {
-    pub id: u16,
+    pub id: u64,
     pub cash: u64,
     pub lots: i64,
     pub virtual_scaled: i128,
@@ -312,7 +312,7 @@ fn validate_cohort(cohort: &[Participant]) -> Result<()> {
         return Err(Error::Cohort);
     }
     for (i, p) in cohort.iter().enumerate() {
-        if p.id as usize >= MAX_PARTICIPANTS || cohort[..i].iter().any(|other| other.id == p.id) {
+        if cohort[..i].iter().any(|other| other.id == p.id) {
             return Err(Error::Cohort);
         }
     }
@@ -363,13 +363,13 @@ pub fn mul_div_rem(a: u128, b: u128, d: u128) -> Result<(u128, u128)> {
     Ok((q, r))
 }
 /// Largest remainder in the caller's integer unit; deterministic stable-ID ties.
-pub fn apportion(total: u128, weights: &[(u16, u128)]) -> Result<Vec<u128>> {
+pub fn apportion(total: u128, weights: &[(u64, u128)]) -> Result<Vec<u128>> {
     if weights.is_empty() || weights.len() > MAX_PARTICIPANTS {
         return Err(Error::Cohort);
     }
     let mut denominator = 0u128;
     for (i, (id, w)) in weights.iter().enumerate() {
-        if *id as usize >= MAX_PARTICIPANTS || weights[..i].iter().any(|(other, _)| other == id) {
+        if weights[..i].iter().any(|(other, _)| other == id) {
             return Err(Error::Cohort);
         }
         denominator = denominator.checked_add(*w).ok_or(Error::Overflow)?;
