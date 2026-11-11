@@ -319,6 +319,23 @@ Adoption, exactly-once application/reconciliation, recovery, token exits and sig
 RPC/WS/SQL acceptance remain unfinished. No selected artifact, financial writer or
 expanded population is activated by this construction checkpoint.
 
+Application primitives now retain a 368-byte complete-cohort scan: original cash,
+lots/gross and three-word positive/negative claims remain separate from applied
+cash and signed market movements. Each row checks canonical ordinal/ID, verified
+fractional increments, exact cash conservation and retained uncollected cash.
+Completion requires all original obligations plus market movements exactly equal
+to their own pool/insurance supply. Partial live balances are never substituted
+for that original scan. Structural checkpoint validity alone supplies no authority.
+
+The root helper rechecks actual whole-account funding/claims and original revision,
+clears positions/reservations/orders/delegation, preserves both order and protective
+group IDs, advances generations/nonces and leaves an isolated forbidden slot zero.
+It prepares a private candidate before committing any root mutation. Reconciliation
+checks the next scoped revision, frozen funding endpoints, exact generations and
+all dormant book bytes. These helpers are native-tested and **not yet connected to
+a public financial instruction**; exclusive adoption and complete ledger/recovery
+integration remain required before they can be used on-chain.
+
 ### Frozen work, completion and adversarial proposals
 
 The successor stages are `Freeze → Value → Denominator → Propose → VerifyRates →

@@ -4,8 +4,11 @@
 use super::*;
 use crate::clearing::scalable::{
     active_work::Hierarchy,
+    application::{ApplicationBinding, ApplicationScan},
     graph_build::{BuildStorage, GraphBuild},
+    graph_pages::FlowRecord,
     graph_work::{self as paged, Access, GraphStorage, GraphWork, Record},
+    snapshot::SnapshotBinding,
     wide::LimbStorage,
 };
 struct Store {
@@ -263,19 +266,44 @@ impl Circulation<'_, '_> {
         }
         let mut cash = zeroed::<u64>(self.count)?;
         let mut movements = zeroed::<[i64; 2]>(self.count)?;
+        let application_binding = ApplicationBinding {
+            snapshot: SnapshotBinding {
+                count: self.count as u64,
+                allocated: self.plan.allocated,
+                pools: self.plan.pools,
+                insurance: self.plan.insurance,
+                fees: self.plan.fees,
+                gross: [0; 2],
+            },
+            insurance_spent: self.plan.spent,
+        };
+        let mut application = ApplicationScan::new(application_binding)?;
         for (index, row) in self.plan.rows.iter().enumerate() {
-            for kind in 0..3 {
-                let increment = store.arcs[2 * (kind * self.count + index) + 1].capacity;
-                let amount = self.plan.floors[index].whole[kind]
-                    .checked_add(increment)
-                    .ok_or(Error::Overflow)?;
-                if kind == 2 {
-                    cash[index] = amount;
-                } else {
-                    movements[index][kind] = i64::try_from(amount).map_err(|_| Error::Bounds)?
-                        * row.claims[kind].signum() as i64;
-                }
-            }
+            // Native transport has already verified both complete permutations
+            // and the terminal graph. These markers are not program authority.
+            let flow = FlowRecord {
+                id: index as u64,
+                cash: row.cash,
+                whole: self.plan.floors[index].whole,
+                fractional: self.plan.floors[index].fractional,
+                directions: row.claims.map(|claim| claim.signum() as i8),
+                order: store.roots[index].order,
+                seen_attempt: 1,
+                seen_mask: 3,
+                applied: false,
+            };
+            let increments = core::array::from_fn(|kind| {
+                store.arcs[2 * (kind * self.count + index) + 1].capacity
+            });
+            let applied =
+                application.accept(index as u64, index as u64, *row, [0; 2], flow, increments)?;
+            application =
+                ApplicationScan::from_checkpoint(&application.checkpoint(), application_binding)?;
+            cash[index] = applied.cash;
+            movements[index] = [
+                i64::try_from(applied.movements[0]).map_err(|_| Error::Bounds)?,
+                i64::try_from(applied.movements[1]).map_err(|_| Error::Bounds)?,
+            ];
             if cash[index] > MAX_CASH
                 || cash[index] < row.cash - row.collected()?
                 || i128::from(cash[index])
@@ -286,6 +314,7 @@ impl Circulation<'_, '_> {
                 return Err(Error::Invariant);
             }
         }
+        application.result()?;
         Ok(Outcome {
             rounded: Rounded {
                 cash,
