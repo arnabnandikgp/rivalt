@@ -1,6 +1,6 @@
 # Validation and measured limits
 
-## Maintained backing integration (P55B2, pending)
+## Maintained backing integration (P55B2)
 
 The gated schema-10/profile-6 candidate has source-derived IDL/SDK outputs and an
 explicit D102 wire delta against immutable P55B1 `c650265`. Before its first clean
@@ -68,8 +68,37 @@ the unchanged 1,000-atom minimum notional; `716d56c` passed its 500-lot replacem
 but required normal source recovery after the SQL section. No risk rule was relaxed.
 The focused worker run at `cf128c0` lands 41 original transactions and completes
 lost-ack/SIGKILL recovery and SQL checks, but the final independent audit stops on a
-missing certificate capture. Its focused corrected rerun is still required before
-P55B2 acceptance. No larger population, runtime promotion, endurance or external
+missing certificate capture. The corrected clean **`831d352a5b95043c4aca11c1202e5b102d021c87`** worker run
+passes: **278 setup/publication outcomes plus 41 durable worker originals**, all
+independently fetched with signature WS checks. A real SIGKILL after RPC acceptance
+and before acknowledgement recovers the same persisted signed bytes (one observed
+broadcast); producer calls remain blocked while that original is unresolved.
+The proof completes epoch 1 in 39 scan steps, with loss collection/certificate
+initialization making 41 originals total. Exactly five atoms are collected and
+paid; final closure/payment is atomic. The independent auditor matches **39
+summaries / 41 frames**. Fresh PostgreSQL replay is identical across **136 events**,
+225 accounts/eight Financial roots, with **8,000,000 actual/allocated vault atoms**
+and zero surplus. The settlement budget spends exactly **205,000 test lamports**,
+with zero retained fee/access reservations. Worker CU spans **15,876–79,589**. The
+128.55-second worker-loop measurement includes source renewal, executor death,
+reopening, checks and SQL replay; it is not saturated throughput. The tracked tree
+is clean. Raw evidence is `.local/scalable-settlement/runs/p55b2-worker-complete`.
+
+The expanded financial run additionally measures one flat net at **51,858 CU**,
+liquidation at **68,970 CU**, and eight default Apply actions at **84,008–86,064 CU**
+(up to 915 bytes). Its peak is 181,941 CU and whole-harness fees are 9,720,000 local
+test lamports, including setup and expected rejection cases, not a default-only
+cost claim. Full population/default-worker/UI activation remains P56A/P56B.
+
+Reproduce using `source ops/env.sh`, explicit
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p55b2-frame-fix`, a fresh
+`RIVALT_RUN_DIR`, and `bash ops/scalable-settlement-smoke.sh`. The financial workload
+selects `RIVALT_SETTLEMENT_PROBE=maintained-backing` with
+`RIVALT_SETTLEMENT_PLAN=1 RIVALT_SETTLEMENT_APPLY=1`; the separate worker workload
+selects `RIVALT_SETTLEMENT_PROBE=backing-worker`. Both own actual Surfpool and
+PostgreSQL, and the supervisor stops them after completion. The worker harness
+binds only the explicit candidate hashes; no production financial method is replaced.
+P55B2 is accepted for Review on these pins. No larger population, runtime promotion, endurance or external
 validation follows from these checks.
 
 ## Maintained backing arithmetic (P55B1)

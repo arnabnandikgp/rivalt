@@ -63,9 +63,10 @@ sampling from destroying completed scoped payment authority. Safety/default and
 terminal transitions invalidate old epochs before reuse; ordinary funded-cash
 exits retain their existing local admission and never depend on this proof.
 
-This is the implementation contract, not acceptance. P55B2 remains open until
-complete mutation/authority coverage, source/held corners, hostile replay, signed
-progress/rollback, exact PostgreSQL replay and measured resource/lock checks pass.
+This is the implementation contract; [validation](operations/validation.md#maintained-backing-integration-p55b2)
+records P55B2's accepted signed mutation, source, rollback, default/recovery and
+durable-worker checks. The stack remains unmerged. These bounded results do not
+activate expanded population, the full default worker or the selected runtime.
 
 ## D101 — canonical live membership and retirement wire (12 November 2026)
 

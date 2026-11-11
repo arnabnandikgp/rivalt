@@ -25,7 +25,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
-| P55B2 on-chain maintained backing | In progress | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; focused worker capture correction remains |
+| P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; ready local commits awaiting publication |
 | P56A–P62 successor implementation | Planned | Full clients/workers, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -58,7 +58,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: finish P55B2 candidate verification and signed progress above ready #83;
+Next exact action: publish accepted P55B2 above ready #83, then implement P56A;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -761,7 +761,7 @@ SBF `bc9f029fa0f541a7407384a0bc7715bcee9c0f08` builds all three default/qualific
 programs without oversized-stack diagnostics. Clearing is 2,374,856 bytes, SHA-256
 `62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9`.
 Affected native/client/ABI checks and independent backing arithmetic pass as recorded
-in [validation](operations/validation.md#maintained-backing-integration-p55b2-pending).
+in [validation](operations/validation.md#maintained-backing-integration-p55b2).
 
 Clean harness **`cf128c0e9840867a8eff054e845bd46966903ff1`** passes **1,474 signed
 RPC/WS outcomes / 61 expected atomic rejections** on that binary. Both eight-root
@@ -790,12 +790,21 @@ the unchanged 1,000-atom minimum notional; a later section needed sustained sour
 recovery after SQL reconciliation. Those harness fixes changed no economic rule.
 The focused worker at `cf128c0` lands **41 durable originals**, completes same-epoch
 coverage/payment and executor lost-ack/SIGKILL recovery, reconciles the eight-million-
-atom vault and reaches fresh SQL replay. Its final independent audit fails because
-its capture omitted certificates. No whole worker-run pass is claimed; the capture
-now includes actual certificate RPC bytes and immediately retains fault evidence.
+atom vault and reaches fresh SQL replay. Its final independent audit failed because
+its capture omitted certificates; that failed run is retained. The corrected clean
+**`831d352a5b95043c4aca11c1202e5b102d021c87`** run passes with **41 durable originals**,
+278 separately fetched setup/publication outcomes, 39 independent summary comparisons
+and **136-event identical fresh replay**. All 225 accounts/eight members reconcile
+to **8,000,000 actual/allocated atoms**. One actual post-acceptance SIGKILL/lost-ack
+recovers the same signed original, with a single observed broadcast and no duplicated
+financial effect. Collection and payment each move exactly five atoms; final closure
+and payment are atomic. The settlement budget spends exactly **205,000 test lamports**,
+retains zero reservation/access rows, and observed worker CU spans **15,876–79,589**.
+End tracked tree is clean. Raw files remain in
+`.local/scalable-settlement/runs/p55b2-worker-complete`.
 
-P55B2 is not yet ready for publication. Next exact action: rerun only the focused
-settlement-worker capture/restart check, then publish the complete phase above #83.
+P55B2 is accepted for Review on these exact pins. Next exact action: publish the
+ready phase above #83, then start P56A without waiting for merge.
 No user decision or access blocker is known. Expanded population and runtime
 promotion remain P56B; automatic default continuation and wallet/UI acceptance
 remain P56A. P15B/P16B remain Open and 24-hour endurance Deferred.
