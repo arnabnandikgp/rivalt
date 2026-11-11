@@ -196,10 +196,9 @@ pub fn check(
     let accounts = &mut ctx.accounts;
     profile(&accounts.venue, &accounts.safety)?;
     registry_valid(&accounts.registry)?;
-    let snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
+    let mut snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
     let certificate = &mut accounts.certificate;
     require!(certificate.revision == revision, ClearingError::ExitCohort);
-    let selected = usize::from(certificate.market_index);
     if restart {
         // An authenticated complete scan cannot be permissionlessly erased while
         // its financial stamps still hold. Node-only progress is progress too.
@@ -225,12 +224,28 @@ pub fn check(
     }
     stamps(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &snapshot)?;
     require!(!certificate.complete, ClearingError::ExitCohort);
-    let bounded = Snapshot { bounds: certificate.funding_bounds, ..snapshot };
+    // Keep one market snapshot. The bounded traversal and its serialized cursor
+    // have a separate SBF frame; no second full Snapshot is moved onto this one.
+    snapshot.bounds = certificate.funding_bounds;
+    scan_certificate(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &snapshot, &remaining)?;
+    emit_certificate(certificate, events, accounts.event_authority.account().clone())
+}
+
+#[inline(never)]
+fn scan_certificate(
+    certificate: &mut SettlementCertificate,
+    ledger: &MarketLedger,
+    safety: &VenueSafety,
+    registry: &VenueRegistry,
+    snapshot: &Snapshot,
+    remaining: &[AccountView],
+) -> Result<()> {
+    let selected = usize::from(certificate.market_index);
     let mut cursor = MembershipCursor::from_checkpoint(&certificate.membership.checkpoint, certificate.count)
         .map_err(|_| ClearingError::ExitCohort)?;
     if let Some(root) = crate::instructions::account_membership::scan::step(&mut cursor, &certificate.venue, &remaining)? {
-        certificate.required_market_mask |= debtor_mask(&root, &bounded, selected)?;
-        stamps(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &bounded)?;
+        certificate.required_market_mask |= debtor_mask(&root, snapshot, selected)?;
+        stamps(certificate, ledger, safety, registry, snapshot)?;
         if root.positions[selected].lots != 0 || root.positions[selected].virtual_scaled != 0 {
             certificate.cash = certificate.cash.checked_add(root.cash).ok_or(ClearingError::Arithmetic)?;
         }
@@ -244,10 +259,10 @@ pub fn check(
     certificate.membership.checkpoint = cursor.checkpoint();
     if cursor.request() == Request::Done {
         require!(certificate.next == certificate.count && certificate.lots[selected] == 0
-            && certificate.claim_sum == checked(math::scaled(accounts.ledger.settlement))?, ClearingError::Reconciliation);
+            && certificate.claim_sum == checked(math::scaled(ledger.settlement))?, ClearingError::Reconciliation);
         certificate.complete = true;
     }
-    emit_certificate(certificate, events, accounts.event_authority.account().clone())
+    Ok(())
 }
 
 #[inline(never)]

@@ -696,9 +696,12 @@ membership, thirteen journal and three layout native cases pass in the working
 tree. SDK builders preserve high u64 IDs, explicit eligibility and generation
 fences. Indexer source distinguishes registration/Financial membership/tombstones,
 retains full scoped kind transitions and independently checks canonical pages.
-The focused consumer run passed 81 cases initially; its six stale literal-schema
-fixtures were corrected and their seven cases pass, along with two new lifecycle
-projection cases. These are working-tree checks, not clean-pin acceptance.
+The focused consumer run passes all 89 cases after correcting old schema fixtures.
+Those changes are committed at `bfd10e8`; its first SBF build was rejected because
+`account_cash::certificate::check` exceeded the 4,096-byte stack-offset limit by
+584 bytes (estimated frame 4,800 bytes). No binary from that build is admitted.
+The fix keeps one market snapshot and places bounded traversal in a separate
+non-inlined call; fresh compilation and signed acceptance remain required.
 
 Service controllers, existing RPC harnesses and remaining consumer tests still
 need migration; full typecheck is not yet green. Fresh SBF, signed lifecycle/race/
