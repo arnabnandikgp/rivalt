@@ -25,7 +25,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
-| P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; ready local commits awaiting publication |
+| P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
 | P56A–P62 successor implementation | Planned | Full clients/workers, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -58,7 +58,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: publish accepted P55B2 above ready #83, then implement P56A;
+Next exact action: implement P56A above ready #84;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -803,8 +803,9 @@ retains zero reservation/access rows, and observed worker CU spans **15,876–79
 End tracked tree is clean. Raw files remain in
 `.local/scalable-settlement/runs/p55b2-worker-complete`.
 
-P55B2 is accepted for Review on these exact pins. Next exact action: publish the
-ready phase above #83, then start P56A without waiting for merge.
+P55B2 is open for Review as ready [PR #84](https://github.com/arnabnandikgp/rivalt/pull/84)
+above #83 at `bd7c0df`. Hosted CI for this tip is not yet claimed. Next exact action:
+start P56A above #84 without waiting for merge.
 No user decision or access blocker is known. Expanded population and runtime
 promotion remain P56B; automatic default continuation and wallet/UI acceptance
 remain P56A. P15B/P16B remain Open and 24-hour endurance Deferred.
