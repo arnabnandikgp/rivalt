@@ -81,7 +81,7 @@ are local at `.local/scalable-settlement/runs/p54c-construction-2205ada/`; the o
 Surfpool is stopped. Apply, financial recovery, token exits, PostgreSQL replay and
 full P54C acceptance remain unfinished. No new financial writer is enabled.
 
-Subsequent development adds complete original/applied bookkeeping and root-mutation
+Clean **`cadabc2`** adds complete original/applied bookkeeping and root-mutation
 helpers. The same 774 independent graph cases now feed the actual persisted
 ApplicationScan and check its returned payouts against the independent atom oracle;
 original rows have zero position quantities in this arithmetic transport. Two
@@ -90,8 +90,8 @@ insurance overdraw and checkpoint binding. Two program-helper tests cover actual
 nonzero cross/isolated positions, accrued funding, both monotone order/group IDs,
 generation/nonce/delegate invalidation, dormant-book reconciliation and exhaustion
 without input mutation. Pinned SBF metadata compilation passes. These development
-checks have no signed Apply, source adoption, pool debit or SQL effect; the clean
-application-helper pin remains pending.
+checks have no signed Apply, source adoption, pool debit or SQL effect. Raw logs
+remain beside the preceding construction evidence with the `cadabc2` pin.
 
 ## Authenticated frozen and rate verification (P54B)
 

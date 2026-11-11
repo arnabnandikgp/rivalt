@@ -644,12 +644,12 @@ Original financial bytes stay unchanged. New successful calls peak at 114,841 CU
 858 wire bytes / 20 loaded accounts; legacy/RC2 parity agrees on 950 clearing
 instructions, 74 accounts and 984 events. The owned Surfpool is stopped.
 
-Application bookkeeping and root-mutation helpers also pass development checks:
+Clean **`cadabc2`** application bookkeeping and root-mutation helpers pass:
 774 independent full-cohort atom cases now exercise the persisted application scan;
 four focused kernel/program tests cover conservation/replay, accrued funding,
 isolated/cross cleanup, monotone order/protection IDs and exhausted counters. SBF
-metadata compilation passes. This newer helper work has no public financial entrypoint
-and its clean pin is pending; the signed construction result above remains separate.
+metadata compilation passes. This newer helper work has no public financial entrypoint;
+the signed construction result above remains separate.
 
 Exclusive adoption and public Apply/Reconcile, recovery, token exits and fresh PostgreSQL replay
 remain. No financial writer, selected artifact or admitted population changes.
