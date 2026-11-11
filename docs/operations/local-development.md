@@ -27,7 +27,7 @@ Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
 The RC2 toolchain uses `bash ops/install-anchor-rc2.sh`, followed by
-`bash ops/build.sh`. P49 qualifies the expanded-quantity serialized RC2 artifacts
+`bash ops/build.sh`. P53A qualifies the shared-policy serialized RC2 artifacts (same accepted quantities/prices)
 and selects `.local/anchor-rc2/current` for builds, probes and the local demo. Actual files
 must match the SDK's admitted hashes; changing a manifest does not qualify code.
 `RIVALT_ARTIFACT_DIR` may explicitly select another directory containing those

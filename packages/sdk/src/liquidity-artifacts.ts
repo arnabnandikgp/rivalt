@@ -5,7 +5,7 @@ import {MAKER_B_PROGRAM_ADDRESS} from './generatedMakerB/index.js';
 import {ArtifactVerifier} from './artifacts.js';
 import type {UserRpc} from './wallet-client.js';
 
-// P53A unchanged-policy candidate: clean SBF source 2136106; qualification tracked in STATUS.
+// P53A qualified unchanged price policy: SBF 2136106; publisher 55426dc, replay e98b0eb.
 // Preserve the candidate binding used by actual originals; never rewrite C0 journals.
 // Public configuration never supplies replacement hashes or default/devnet code.
 export const LIQUIDITY_ARTIFACT_SET='p53a-shared-price-policy-candidate-v1';

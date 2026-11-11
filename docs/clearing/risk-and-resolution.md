@@ -152,6 +152,53 @@ proofs, source age/confidence/depeg/recovery, deposit/cancel/eligible exit rules
 default/devnet gates remain unchanged. Validation separates current source checks
 from qualification of rebuilt binaries.
 
+### Proposed P53B calibration (G5, not enabled)
+
+Recommendation for the test prototype: remove the old raw BTC/ETH USD fixture
+bands and accept authenticated positive source values only when checked unit
+normalization and the complete risk interval fit the existing numeric envelope.
+Keep collateral $0.5–1.5 / Normal $0.95–1.05, confidence, disagreement, ages,
+recovery, fees, margin and cash/claim bounds unchanged.
+
+| Proposed policy-2 term | Literal value / rationale |
+|---|---|
+| Converted reference / trigger | 2–909,090 collateral atoms per lot. At 2, the worst confidence-adjusted lower interval is still at least 1; the upper ceiling is floor(1,000,000 × 10/11), keeping the whole execution band in numeric range. |
+| Persistent order limit | 1–1,000,000 collateral atoms per lot, with unchanged full reservation/financial admission and signed-price preservation |
+| Raw asset USD range | Positive checked source values, then converted-reference and full interval validation; no separate BTC/ETH fixture price bands |
+| Existing numeric domain | Unchanged: risk/marginal prices 1–1,000,000, cash <=10^15, q <=10^8 and scaled-claim bounds |
+| Deployment | New policy version and fresh local genesis/domain/artifact binding; no in-place position/order/original migration, default/devnet remain closed |
+
+At collateral parity, the proposed reference range corresponds to BTC 2–909,090
+and ETH 0.2–90,909 collateral tokens per whole asset. Those are representation-
+derived limits, **not forecasts, calibrated leverage recommendations or a promise
+that prices near them are economically desirable**. This materially widens accepted
+risk sources; G5 approval and fresh signed acceptance remain required.
+
+Exact conservative bound: at the largest reference r=909,090, an accepted guard
+has floor ratio at most r+floor(r/100)=918,180. Its actual ratio is <918,181.
+The worst confidence/model upper is therefore at most
+ceil(918,181 × 10,050/9,975 × 101/100)=934,336; the missing-guard 103% envelope is
+936,363. Both stay below 1,000,000 without clipping. At r=2, the lower interval is
+at least floor(2 × 9,950/10,025 × 99/100)=1. These are arithmetic derivations, not
+implementation-test evidence. Independent exact cases must check floors, ceilings,
+confidences, invalid guard handling, depegs and both market unit conversions.
+
+Funding coupling: unchanged six-token impact notional gives Q=7–3,000,000 lots,
+so the old 600-quantity enumeration cannot qualify this policy. Bring the exact
+canonical published-depth search portion of P58A forward into P53B, retaining
+complete maker coverage, two-leg limits and all existing ties. Measure actual
+worst-case work; do not discard financially unavailable quotes or invent maker
+margin admission for funding. The ceil means realized reference notional is at
+least six and less than 6.909090 collateral tokens. Higher maximum premium also
+can exhaust the unchanged finite funding index sooner; P58D remains required for
+lifetime maintenance, without erasing earned funding.
+
+Before enabling, qualify independently derived extreme and old-edge values in
+native/client code and real signed deployed paths, plus source-failure cancellation,
+deposit, eligible reduction/exit/default and whole-account reservations. Preserve
+the current policy if approval or any required acceptance is missing. P54A can
+continue independently because its admitted arithmetic envelope does not change.
+
 ## Risk sources and account admission
 
 Risk uses independent index bounds, never maker execution prices or attested impact

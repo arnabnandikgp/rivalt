@@ -17,7 +17,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
 | P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
-| P53A shared price policy | In progress | Canonical Rust definitions and generated SDK/UI consumers preserve accepted ranges; native/client checks pass, fresh compiled/RPC acceptance pending |
+| P53A shared price policy | Accepted locally — publication pending | SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
 | P53B calibrated ranges | Planned — G5 open | Explicit risk-range proposal and funding-search resource checks precede any widening |
 | P54–P62 successor implementation | Planned | Compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
@@ -51,8 +51,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: build P53A's unchanged-policy candidate and run focused signed
-price/funding and replay checks before opening its ready PR above #75.
+Next exact action: publish accepted P53A above #75, then resolve P53B's documented
+G5 price-range proposal while preparing the independent P54A settlement kernel.
 
 ## Remediation planning
 
@@ -154,23 +154,28 @@ from Rust. Source normalization, order/trigger checks, maker/routing execution b
 funding, liquidation and UI preserve their current values. No new risk range,
 account layout, live parameter authority or deployment is enabled.
 
-At this working revision, typecheck, 59 focused SDK/UI tests, 22 financial-core
-integration tests and 29 actual clearing-engine native tests pass. These include
-literal BTC/ETH source edges, depeg conversion, full-range fallback reservations,
-post-fee liquidation and stored-order behavior. They are not SBF/RPC evidence.
-Clean `2136106` builds all SBF artifacts with no unsafe stack diagnostic. Only
-qualified-profile clearing changes (1,538,784 bytes); makers, default clearing
-and fixtures are byte-identical to P49. Candidate SDK hash binding is explicit;
-P49 artifact files remain untouched. Clean verifier `55426dc` passes 99 signed publisher outcomes (12 reports) and
-120 indexer-slice outcomes with a matching 72-event projection. The latter
-identified a stale test assumption: one successful recovery cycle does not always
-publish a fresh replay. The scoped harness now waits for published readiness and
-compares every retained event byte. Its first rerun timed out after macOS entered
-Idle Sleep at 12:21:19 for 170 seconds (confirmed by `pmset`), exceeding its
-unchanged 60-second readiness deadline. Extend the existing supervisor-owned
-idle-sleep inhibitor to all finite runtime probes; rerun only this affected
-check. No source, freshness or financial rule changes. P53B's G5 calibration and lower-price funding-search coupling remain
-explicit. P15B/P16B and deferred endurance are unchanged.
+Clean SBF `2136106` and actual signed verifiers `55426dc`/`e98b0eb` pass scoped
+acceptance: 99 publisher outcomes (12 reports), 120 financial/journal outcomes,
+exact published fresh state and all 72 retained event bytes. Seventy entities/eight
+roots and 8,000,000 allocated/actual vault atoms reconcile; independent fee checks
+pass. Only qualification clearing changes (+896 bytes); makers/defaults/fixtures
+are byte-identical to P49. The accepted candidate is selected in the current local
+artifact directory; prior files are retained. Owned runtimes are stopped.
+
+Typecheck, 59 SDK/UI, 22 financial-core and 29 clearing-engine native checks pass,
+with generation/ABI/document/shell/evidence checks. No broad local regression,
+browser, larger-account or endurance run is inferred. The first projection-only
+journal pass and the subsequent host-sleep timeout remain retained. The final
+probe requires fresh published readiness and exact event bytes, with unchanged
+freshness/deadlines and a temporary supervisor-owned idle-sleep inhibitor.
+[Validation](operations/validation.md#shared-unchanged-price-policy-p53a) records
+exact pins, results and limitations. Publication is next; P53A is not integrated.
+
+P53B's [literal G5 proposal](clearing/risk-and-resolution.md#proposed-p53b-calibration-g5-not-enabled)
+is reviewable and disabled: reference/trigger 2–909,090 and order limit 1–1,000,000
+atoms per lot, unchanged safeguards and numeric envelope. It requires approval
+and exact scalable funding search before activation. P54A can proceed independently
+on the unchanged arithmetic proof. P15B/P16B and deferred endurance are unchanged.
 
 ## Integrated quantity work
 

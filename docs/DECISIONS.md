@@ -1,5 +1,10 @@
 # Current design decisions
 
+These are current choices and their rationale. Component specifications own exact
+rules. Historical D-numbers remain stable references; the complete supersession
+chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
+A source rename or documentation cleanup changes neither economics nor authority.
+
 ## D95 — separate price-policy consolidation from calibration (11 November 2026)
 
 P53A centralizes the existing price policy in financial-core and generates SDK
@@ -22,11 +27,6 @@ current per-quantity publisher search is not automatically scalable. P54A can
 proceed on the unchanged numeric proof while G5 remains open. This is not approval
 to widen prices or relax source confidence, freshness, depeg or recovery safeguards.
 
-
-These are current choices and their rationale. Component specifications own exact
-rules. Historical D-numbers remain stable references; the complete supersession
-chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
-A source rename or documentation cleanup changes neither economics nor authority.
 
 ## D94 — bounded covered history and independently reconciled publication (11 November 2026)
 
