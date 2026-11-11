@@ -16,7 +16,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; clean `8931c73` passes full backlog, three SIGKILL boundaries, integrity and original recovery; live diagnostic identifies RPC account/context skew; fixed-witness finality extension implemented and 18 transport tests pass; scoped rerun next |
+| P52 bounded-progress finalized indexer | In progress | Clean `32988bb` passes 44 focused checks and the small signed live/crash/fresh-replay diagnostic; full >10,000-transaction qualification remains before its ready PR above #73 |
 | P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -49,9 +49,9 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: run the small P52 live-capture diagnostic, fix the observed
-fixed-witness finality extension under continuous writes, then complete the
-full qualification, publish its ready PR above #73 and continue P53.
+Next exact action: run full P52 signed backlog/crash/live/fresh-replay qualification
+with the verified fixed-witness implementation, publish its ready PR above #73,
+then continue P53 without waiting for merges.
 
 ## Remediation planning
 
@@ -115,48 +115,26 @@ forward-overwriting an older candidate is insufficient proof. SQL format 3 requi
 a fresh journal, preserving earlier databases/originals. Program artifacts and
 account schema 8 remain unchanged.
 
-Typecheck and 40 focused indexer/API/service checks pass in the implementation
-working tree: bounded reads/progress, publication and stale API behavior, account
-capture, >4,096 scoped invocations, stream byte limits and existing order scheduling.
-These are transport/control checks, not deployed financial evidence. The new real
-probe prepares >10,000 signed transactions, >4,096 clearing invocations, three
-SIGKILL boundaries, WS recovery, pending-original execution during lag, continuous
-relevant writes and independent fresh SQL replay. Clean `7615b45` completed initial SQL reconciliation and submitted 2,510 delegate
-updates before a finality harness timeout after an apparent host pause. The first
-saved timeout diagnostic already reports finalized success; the complete backlog,
-crash and replay acceptance did not finish. Evidence remains under
-`.local/indexer-progress/7615b45-20261111-a`. The next candidate adds a process-scoped
-idle-sleep inhibitor and charges empty blocks to the per-cycle work budget; neither
-weakens oracle, reconciliation or finality checks. Clean `a47cd10` passes typecheck and 16 transport tests (including two new
-empty/oversized-block edges), publishes its initial reconciled SQL state, and
-independently fetches all 4,200 successful delegate invocations. Its unrelated SOL
-transfer fixture then rejects because the new recipient lacks rent-exempt balance;
-10,100 submitted originals are retained and no full-backlog pass is claimed. The
-fixture now funds that recipient and checks its first finalized batch before
-producing the remainder. Clean `4ad0213` passes all 42 focused tests and typecheck. Its real run finalizes
-4,200 successful delegate invocations, one deliberate atomic rejection and 10,100
-successful unrelated transfers. Pending-original recovery during stale publication
-also finalizes identical signed bytes. The before-commit SIGKILL check passes; the
-during-commit injector then hangs because its `Pool.connect` wrapper drops the
-callback overload used by its own checkpoint read. PostgreSQL terminates that idle
-transaction after 15 seconds. This is a harness failure, not completed acceptance;
-fix the wrapper and rerun the crash/backlog/live/fresh-replay checks. Raw evidence
-remains in `.local/indexer-progress/4ad0213-20261111-c`. Clean `8931c73` fixes the
-injector and passes all three SIGKILL boundaries, >10,000 successful unrelated
-transactions / 4,200 clearing invocations, original-signature recovery, malformed
-history/publication/format rejection and bounded backlog catch-up. It then fails
-the stronger requirement for three distinct reconciled publications while a root
-changes continuously. No readiness error is suppressed, and fresh replay has not
-run. A small signed live diagnostic now records captured context/revision versus
-finalized coverage to identify the mismatch without repeating the large load. Clean `bd9ebd4` reproduces the mismatch in a
-70-entity diagnostic: captured root revision 93 with reported finalized slot 2376
-versus covered revision 75. The version-pinned Surfpool account handler selects
-its context before reading live bytes. The fix retains one witness, uses one fixed
-post-read processed-slot ceiling, waits for actual finalization and publishes only
-a full financial-field match in canonical finalized history. Typecheck and all
-18 transport tests pass, including expiry without reading nonfinalized blocks;
-small real diagnostic and full qualification remain pending. No P52 PR or phase acceptance is claimed. No access blocker is known;
-the local container service was started for the owned qualification runtime.
+Clean **`32988bb94e2223f095d7c3d877a2c7dfca3d7da6`** passes typecheck and 44 focused
+indexer/API/service tests. Its small signed Surfpool/WS/PostgreSQL diagnostic passes:
+three real SIGKILL boundaries, immutable-original recovery during indexing lag,
+conflicting history/publication/format rejection, three advancing reconciled
+publications during continuous writes and identical 183-event fresh SQL replay.
+The fixture has 70 entities/eight margin roots; this is not expanded-account or
+full-backlog acceptance. Details are in [validation](operations/validation.md#bounded-progress-indexer-p52-in-qualification).
+
+The diagnostic identified Surfpool account values ahead of their reported finalized
+context. D94 retains the exact captured witness and, when necessary, extends once
+to a fixed post-read slot after that slot finalizes. Every account field must match
+a canonical finalized prefix; freshness and financial checks are unchanged. Earlier
+full attempts proved the large signed traffic and crash/integrity slices but did
+not finish continuous-write/fresh-replay acceptance. They are not substituted for
+the upcoming complete qualification. Raw records remain at their existing ignored
+`.local/indexer-progress/` paths; no earlier evidence or database was deleted.
+
+No P52 PR or phase acceptance is claimed yet. The small diagnostic completed and
+its owned runtime stopped; full qualification is the next action. No access blocker
+is known. P15B/P16B remain Open and 24-hour endurance Deferred.
 
 ## Integrated quantity work
 

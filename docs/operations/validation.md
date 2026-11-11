@@ -1,5 +1,37 @@
 # Validation and measured limits
 
+## Bounded-progress indexer (P52, in qualification)
+
+Clean **`32988bb94e2223f095d7c3d877a2c7dfca3d7da6`** passes typecheck and 44 focused
+transport, projection-publication, account-reconciliation, API and service checks.
+No program/IDL/account schema or financial rule changes; the probe deploys the
+existing qualified P49 artifacts with Surfpool 1.7.0 and PostgreSQL 18.6.
+
+The small signed diagnostic passes three real subprocess SIGKILL boundaries
+(before writes, before SQL COMMIT, after COMMIT), WS reconnect, identical signed
+original recovery during stale publication, conflicting retained history,
+uncovered/regressing/expired publication and format-2 rejection. Two actual fills
+independently require 26 fee atoms: six insurance, 20 retained fees and remainder
+two; root cash plus fees remains 8,000,000 collateral atoms. An intentionally
+reverted two-instruction delegate transaction leaves no economic event.
+
+Live capture publishes three distinct root nonces (35, 57, 81) while 74 additional
+delegate updates execute. The complete resulting state and 183 ordered event byte
+records match fresh PostgreSQL replay; 70 account entities/eight margin roots and
+8,000,000 actual/allocated vault atoms reconcile. This fixes the demonstrated local
+account/context skew without treating nonfinalized history as publication authority.
+The [proof contract](../application/durability.md#attainable-reconciliation-while-the-head-advances)
+retains the original ten-second freshness deadline and full-field comparisons.
+
+This diagnostic lasts 113.589 seconds and deliberately uses a small traffic set
+(225 transactions at its backlog checkpoint, 262 in final replay). It **does not**
+qualify the required >10,000-transaction / >4,096-invocation backlog. That full run
+remains pending; earlier partial runs cannot close P52. Evidence stays under
+`.local/indexer-progress/32988bb-20261111-live`, with `phaseAcceptance:false`.
+The small driver is selected only by `RIVALT_INDEXER_DIAGNOSTIC=live`; normal
+`indexer-progress` retains the full acceptance thresholds. P15B/P16B remain external
+and 24-hour endurance remains Deferred.
+
 ## Account-scale native feasibility (P51B)
 
 Clean candidate **`a5ac218d6e439be74fc136bed67c2d5b9e733a41`**, based on planning
