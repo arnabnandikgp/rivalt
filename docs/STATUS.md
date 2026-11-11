@@ -657,7 +657,10 @@ native checks cover the controller and protected source binding; its separate
 2,331,160-byte SBF links without oversized-stack diagnostics; no signed financial
 acceptance is claimed yet. The indexer now has explicit scratch-kind/PDA checks and original/applied financial
 projection. Its development one-atom/rejection checks and 21 affected existing
-checks pass. Signed recovery, token exits and fresh PostgreSQL replay remain. The selected artifact and admitted population
+checks pass. Signed recovery, token exits and fresh PostgreSQL replay remain.
+The first application harness stopped at a duplicate legacy-page initialization
+(already provisioned by setup); the fixture now reuses it. No payout was attempted
+in that run. The owned chain/database stopped and captures remain local. The selected artifact and admitted population
 are unchanged.
 No P54C PR is opened and no user decision/access blocker is known. Exact next
 action: qualify the application binary and wire exact paged-plan indexer

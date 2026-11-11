@@ -5,7 +5,9 @@
 The application candidate from clean **`efa45951e01b9586469b48294de24d3f0f5fd02a`**
 links at **2,331,160 bytes**, SHA-256
 `c943fafd89ddd7688e693384acdc650b8284689f1c5822689c38c36998873af0`,
-with no oversized-stack diagnostic. It is retained separately at
+with no oversized-stack diagnostic. Clean verifier `d6669ac` passes the 13 scoped
+native and 23 affected indexer tests. Its first signed run stops before default at
+a duplicate test-page allocation; this is a harness failure, not payout evidence. It is retained separately at
 `.local/scalable-settlement/p54c-efa4595/`. Development checks pass 13 scoped native
 settlement tests (including complete 3-/64-root application), typecheck, generated
 SDK, literal ABI and 13 wire-contract checks; those development test results are

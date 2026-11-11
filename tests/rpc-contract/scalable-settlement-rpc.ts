@@ -51,8 +51,8 @@ try {
       owner,portfolio,margin:receiver,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:2})],[owner]);
     await h.send('P54C fund unrelated healthy receiver cash',[await sdk.getDepositAccountInstructionAsync({...setup.common,
       owner,margin:receiver,quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1n})],[owner]);
-    const [page]=await sdk.findResolutionPagePda(setup.venue,4);setup.pages.push(page);
-    await h.send('P54C provision complete legacy bridge page',[sdk.getInitializeAccountResolutionPageInstruction({...setup.safetyCommon,page,pageIndex:4})]);
+    // Setup already provisions all 32 legacy pages; the ninth root needs no duplicate allocation.
+    assert(await h.read(setup.pages[4]));
   }
   setup.sourcePrices.btc=40_000_000_000n;setup.sourcePrices.eth=2_000_000_000n;await setup.fresh();
   const safety=()=>h.read(setup.safety).then(bytes=>sdk.getVenueSafetyDecoder().decode(bytes!));
