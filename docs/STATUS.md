@@ -720,7 +720,10 @@ passed scope/report/shell but exposed three native maker-admission and five SDK
 margin-preview tests whose fixtures still omitted Financial lifecycle/generation.
 Those fixtures are corrected without weakening admission; the preview also rejects
 decimal-string zero generation. All three affected native checks, eight SDK margin
-checks and typecheck now pass locally; the corrected hosted run is pending. Next exact action:
+checks and typecheck pass locally. Run 43108366267 passes client/scope/report/shell
+and all qualified native cases; its default build found a refund test which
+incorrectly expected an enabled action. That test now explicitly asserts the
+default gate; both focused build-profile checks pass. The next hosted run is pending. Next exact action:
 implement P55B maintained backing against its conservative-region contract. P56A retains full UI,
 durable automatic default and the remaining historical raw-audit adapters; P56B
 retains populated-cohort qualification and runtime promotion.

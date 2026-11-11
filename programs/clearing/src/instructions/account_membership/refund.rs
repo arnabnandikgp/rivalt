@@ -131,7 +131,9 @@ mod tests {
             completed_epoch: 3,
             ..Default::default()
         };
-        terminal(&venue, &safety, &storage).unwrap();
+        // The same suite runs against the disabled default build. Even a fully
+        // retired account must not bypass that explicit deployment gate.
+        assert_eq!(terminal(&venue, &safety, &storage).is_ok(), TRADING_IMPLEMENTED);
         for mode in [CUSTODY, ACTIVE, FROZEN, RESOLVED] {
             safety.mode = mode;
             assert!(terminal(&venue, &safety, &storage).is_err());
