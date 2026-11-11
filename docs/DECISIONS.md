@@ -5,6 +5,24 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D96 — bounded scratch steps for scalable exact settlement (11 November 2026)
+
+P54A implements the selected P51B G2 arithmetic as operations over caller-owned
+logical limb registers. Population determines the required width; no fixed
+96-limb array or new small cohort ceiling is introduced. Each cursor step touches
+at most three words and contains no width-sized stack/heap value. Addition,
+subtraction and division take width steps; multiplication takes width times one
+plus its at-most-five factor limbs. Half-word division keeps an exact remainder
+below 2^88 inside u128 without a 152-bit intermediate.
+
+These primitives provide no custody, account authentication, rate acceptance or
+payout authority. P54B must map registers to authenticated epoch/attempt pages
+and persist progress atomically. A failed scratch operation is not committable;
+replayed completed cursors reject. Native storage and cursor copying test arithmetic
+continuation only. The exact LCM, full rate/insurance verification, compact flow
+rounding and measured end-to-end completion still belong to P54A; expanded financial
+activation remains at P56B. Preserve atom ownership, fees and complete coverage.
+
 ## D95 — separate price-policy consolidation from calibration (11 November 2026)
 
 P53A centralizes the existing price policy in financial-core and generates SDK

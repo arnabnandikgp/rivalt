@@ -55,6 +55,30 @@ claim-domain changes must rederive K and this bound. Retain factored writeoff
 records; never expand arbitrary products into ordinary margin state. Whole-flow
 quotients retain the existing <2^58 bound; exact flow rounding remains <one atom.
 
+### Compiled scratch arithmetic (P54A, incomplete settlement candidate)
+
+`financial-core::clearing::scalable::wide` supplies the first compiled successor
+primitives. Logical registers implement `LimbStorage`; `Cursor::step` performs
+one bounded addition/subtraction/product/division word step with no allocation.
+Inputs and output cannot alias. Width comes from the count-derived proof above;
+allocation/physical-storage failure remains an explicit error, not a partial plan.
+Small factors are <2^302 (five limbs), divisors are nonzero and <2^88. Division
+processes two half-words per step, preserving the exact remainder with u128.
+
+For width W, add/subtract/divide finish in W steps; multiplication by k limbs
+finishes in W*(k+1), including output clearing. A step accesses at most three
+storage words. Completed cursors reject another step. On any arithmetic/storage
+error, discard scratch changes; an eventual program adapter must persist cursor
+and page changes in one atomic invocation. Register identifiers are private work
+addresses, never signer or account authority. Native tests use vector storage;
+this does not claim that all words fit a Solana heap or one account.
+
+The `scalable-wide-driver` is a native independent-test transport. Full LCM/rate/
+insurance verification, compact conserving rounding and cohort-scale completion
+are still unfinished P54A work. No program path uses these primitives yet, no
+account/PDA layout changes, and no expanded trading or default is enabled. P54B
+owns authenticated physical paging and on-chain continuation/replay acceptance.
+
 ### Frozen work, completion and adversarial proposals
 
 The successor stages are `Freeze → Value → Denominator → Propose → VerifyRates →
