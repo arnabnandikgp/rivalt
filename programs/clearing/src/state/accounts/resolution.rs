@@ -40,4 +40,3 @@ pub struct Resolution {
     pub remaining_claims: [i128; MARKET_COUNT],
     pub bump: u8,
 }
-

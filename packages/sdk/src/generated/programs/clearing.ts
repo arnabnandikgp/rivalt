@@ -58,6 +58,7 @@ import {
   getSettlementPlanCodec,
   getSettlementRatesCodec,
   getStorageFundingCodec,
+  getStorageTombstoneCodec,
   getVenueCodec,
   getVenueRegistryCodec,
   getVenueSafetyCodec,
@@ -105,6 +106,8 @@ import {
   type SettlementRatesArgs,
   type StorageFunding,
   type StorageFundingArgs,
+  type StorageTombstone,
+  type StorageTombstoneArgs,
   type Venue,
   type VenueArgs,
   type VenueRegistry,
@@ -174,6 +177,7 @@ import {
   getReactivateAccountsInstructionAsync,
   getReconcileSettlementMarginInstructionAsync,
   getRecoverAccountsInstructionAsync,
+  getRefundRecoveryAllocationInstructionAsync,
   getRegisterLiquidityInstructionAsync,
   getRegisterMarginInstructionAsync,
   getReplenishLiquidityInstructionAsync,
@@ -255,6 +259,7 @@ import {
   parseReactivateAccountsInstruction,
   parseReconcileSettlementMarginInstruction,
   parseRecoverAccountsInstruction,
+  parseRefundRecoveryAllocationInstruction,
   parseRegisterLiquidityInstruction,
   parseRegisterMarginInstruction,
   parseReplenishLiquidityInstruction,
@@ -389,6 +394,7 @@ import {
   type ParsedReactivateAccountsInstruction,
   type ParsedReconcileSettlementMarginInstruction,
   type ParsedRecoverAccountsInstruction,
+  type ParsedRefundRecoveryAllocationInstruction,
   type ParsedRegisterLiquidityInstruction,
   type ParsedRegisterMarginInstruction,
   type ParsedReplenishLiquidityInstruction,
@@ -417,6 +423,7 @@ import {
   type ReactivateAccountsAsyncInput,
   type ReconcileSettlementMarginAsyncInput,
   type RecoverAccountsAsyncInput,
+  type RefundRecoveryAllocationAsyncInput,
   type RegisterLiquidityAsyncInput,
   type RegisterMarginAsyncInput,
   type ReplenishLiquidityAsyncInput,
@@ -488,6 +495,7 @@ export enum ClearingAccount {
   SettlementPlan,
   SettlementRates,
   StorageFunding,
+  StorageTombstone,
   Venue,
   VenueRegistry,
   VenueSafety,
@@ -743,6 +751,17 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([226, 0, 146, 150, 206, 12, 160, 154]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.StorageTombstone;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([8, 155, 85, 226, 234, 173, 42, 242]),
       ),
       0,
@@ -807,6 +826,7 @@ export enum ClearingEvent {
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
   MarginMembershipChanged,
+  RecoveryStorageRefunded,
   RetiredReserveWithdrawn,
   SettlementMarginApplied,
   SettlementPlanProgress,
@@ -1128,6 +1148,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([103, 147, 48, 236, 163, 112, 213, 188]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.RecoveryStorageRefunded;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([213, 243, 125, 15, 120, 146, 238, 160]),
       ),
       0,
@@ -1224,6 +1255,7 @@ export enum ClearingInstruction {
   ReactivateAccounts,
   ReconcileSettlementMargin,
   RecoverAccounts,
+  RefundRecoveryAllocation,
   RegisterLiquidity,
   RegisterMargin,
   ReplenishLiquidity,
@@ -1925,6 +1957,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([35, 222, 78, 132, 92, 105, 99, 88]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RefundRecoveryAllocation;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([238, 192, 252, 155, 240, 56, 252, 251]),
       ),
       0,
@@ -2333,6 +2376,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.RecoverAccounts;
     } & ParsedRecoverAccountsInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RefundRecoveryAllocation;
+    } & ParsedRefundRecoveryAllocationInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.RegisterLiquidity;
     } & ParsedRegisterLiquidityInstruction<TProgram>)
@@ -2826,6 +2872,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseRecoverAccountsInstruction(instruction),
       };
     }
+    case ClearingInstruction.RefundRecoveryAllocation: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RefundRecoveryAllocation,
+        ...parseRefundRecoveryAllocationInstruction(instruction),
+      };
+    }
     case ClearingInstruction.RegisterLiquidity: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3028,6 +3081,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<SettlementRatesArgs, SettlementRates>;
   storageFunding: ReturnType<typeof getStorageFundingCodec> &
     SelfFetchFunctions<StorageFundingArgs, StorageFunding>;
+  storageTombstone: ReturnType<typeof getStorageTombstoneCodec> &
+    SelfFetchFunctions<StorageTombstoneArgs, StorageTombstone>;
   venue: ReturnType<typeof getVenueCodec> &
     SelfFetchFunctions<VenueArgs, Venue>;
   venueRegistry: ReturnType<typeof getVenueRegistryCodec> &
@@ -3342,6 +3397,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRecoverAccountsInstructionAsync> &
     SelfPlanAndSendFunctions;
+  refundRecoveryAllocation: (
+    input: RefundRecoveryAllocationAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRefundRecoveryAllocationInstructionAsync> &
+    SelfPlanAndSendFunctions;
   registerLiquidity: (
     input: RegisterLiquidityAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3550,6 +3610,10 @@ export function clearingProgram(
           storageFunding: addSelfFetchFunctions(
             client,
             getStorageFundingCodec(),
+          ),
+          storageTombstone: addSelfFetchFunctions(
+            client,
+            getStorageTombstoneCodec(),
           ),
           venue: addSelfFetchFunctions(client, getVenueCodec()),
           venueRegistry: addSelfFetchFunctions(client, getVenueRegistryCodec()),
@@ -4058,6 +4122,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getRecoverAccountsInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          refundRecoveryAllocation: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRefundRecoveryAllocationInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

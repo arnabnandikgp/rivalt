@@ -159,3 +159,26 @@ pub struct RetireMargin {
     /// CHECK: canonical binding must have no owned data before terminal retirement.
     pub binding: UncheckedAccount,
 }
+
+
+#[event_cpi]
+#[derive(Accounts)]
+pub struct RefundRecoveryAllocation {
+    pub authority: Signer,
+    #[account(seeds=[b"venue-v3",&venue.domain],bump=venue.bump,has_one=authority)]
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds=[b"safety-v3",venue.address().as_ref()],bump=safety.bump,has_one=venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
+    #[account(mut,seeds=[b"recovery-storage",venue.address().as_ref()],bump=storage.bump,has_one=venue)]
+    pub storage: Box<BorshAccount<RecoveryStorage>>,
+    /// CHECK: exact canonical work kind/PDA/epoch/rent verified before shrinking;
+    /// the only destination layout is the permanent StorageTombstone.
+    #[account(mut)]
+    pub allocation: ManualAccount<StorageTombstone>,
+    #[account(seeds=[b"storage-funding",venue.address().as_ref(),allocation.address().as_ref()],bump=receipt.bump,
+        has_one=venue,constraint=receipt.allocation == *allocation.address() @ ClearingError::Resolution)]
+    pub receipt: Box<BorshAccount<StorageFunding>>,
+    /// CHECK: lamport credit only, bound to the immutable creation payer.
+    #[account(mut,address=receipt.rent_payer)]
+    pub rent_payer: UncheckedAccount,
+}

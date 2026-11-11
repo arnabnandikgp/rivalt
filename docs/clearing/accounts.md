@@ -119,6 +119,7 @@ literal byte-size/seed tests must agree before P54/P55 deploy anything.
 | StorageFunding | `allocation:Pubkey, rent_payer:Pubkey, contributed_lamports:u64, bump:u8`; 123 bytes; immutable actual payer top-up and rent refund binding, not custody/insurance or a spendable trader balance; the workspace owns the lock (D100) |
 | Portfolio | Keep ownership; replace `index:u16, children:u16` with `index:u32, active_children:u32`; 91 bytes, no bitmap-based child authorization |
 | MarginAccount | Replace `subaccount_index:u16, id:u16` with `subaccount_index:u32, id:u64`; append `lifecycle:u8, activation_generation:u64` immediately before bump; 995 bytes, other fields unchanged |
+| StorageTombstone | Common prefix, `original_kind:u8, completed_epoch:u64, register:u32, page_index:u64, bump:u8`; 72 bytes; permanent terminal workspace marker with immutable payer receipt retained |
 | MarginTombstone | Common prefix, `portfolio:Pubkey, owner:Pubkey, child:u32, id:u64, activation_generation:u64, bump:u8`; 135 bytes; same root address, different discriminator |
 | Resolution / work | u64 frozen count/cursors/row IDs, committed live-index root and epoch; replace inline `Wide` by typed paged references and explicit used-limb counts; no inline cohort arrays |
 | Frozen row | Stable member ID/key, original cash/q/generations/claims, own collected cash, three whole-flow floors, fractional/direction flags, applied bit; no per-row wide numerator |

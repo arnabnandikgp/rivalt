@@ -76,6 +76,9 @@ pub mod clearing {
     pub fn retire_margin(ctx: &mut Context<RetireMargin>, revision: u64, safety_epoch: u64) -> Result<()> {
         scoped_history::run(ctx, [238, 226, 35, 87, 92, 76, 136, 41], false, |ctx, events| account_membership::handlers::retire(ctx, events, revision, safety_epoch))
     }
+    pub fn refund_recovery_allocation(ctx: &mut Context<RefundRecoveryAllocation>, kind: u8, register: u32, page: u64, revision: u64) -> Result<()> {
+        scoped_history::run(ctx, [35, 222, 78, 132, 92, 105, 99, 88], false, |ctx, events| account_membership::refund::refund(ctx, events, kind, register, page, revision))
+    }
     pub fn fund_member_page(ctx: &mut Context<FundMemberPage>, page_index: u64) -> Result<()> {
         scoped_history::run(ctx, [112, 40, 74, 193, 138, 7, 215, 68], false, |ctx, _events| account_membership::allocation::page(ctx, page_index))
     }

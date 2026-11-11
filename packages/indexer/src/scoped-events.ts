@@ -1,5 +1,4 @@
-/** Schema-6 transport authentication. This is not yet connected to the live
- * journal. RPC must supply compiled instructions, loaded keys and stack heights;
+/** Schema-9 transport authentication for the live journal. RPC must supply compiled instructions, loaded keys and stack heights;
  * log text and address-history pagination cannot establish invocation ancestry. */
 import {createHash} from 'node:crypto';
 import {address, getAddressDecoder, getBase58Encoder} from '@solana/kit';
@@ -37,14 +36,14 @@ export function decodeTransition(bytes: Buffer) {
   const u32 = () => take(4).readUInt32LE();
   const u64 = () => take(8).readBigUInt64LE();
   const key = () => addressDecoder.decode(take(32));
-  if (u16() !== 8) throw new Error('Unsupported scoped envelope schema');
+  if (u16() !== 9) throw new Error('Unsupported scoped envelope schema');
   const venue = key(), domain = take(32).toString('hex'), slot = u64(), instruction = take(8).toString('hex');
   const payloadCount = u16();
   if (payloadCount > 4) throw new Error('Scoped payload count exceeds bound');
   const reads: ScopedRead[] = [], writes: ScopedWrite[] = [], entities = new Set<string>();
   const entity = () => {
     const account = key(), kind = take(1)[0];
-    if (kind > 23 || entities.has(account)) throw new Error('Duplicate or invalid scoped entity');
+    if (kind > 27 || kind === 11 || kind === 12 || entities.has(account)) throw new Error('Duplicate or invalid scoped entity');
     entities.add(account); return {account, kind};
   };
   const readCount = u32();

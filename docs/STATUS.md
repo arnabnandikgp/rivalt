@@ -23,7 +23,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
 | P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
 | P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
-| P55A2 on-chain membership/lifecycle | In progress | D100 reusable recovery-capacity provisioning is implemented locally; canonical lifecycle/wire integration and signed acceptance remain unfinished |
+| P55A2 on-chain membership/lifecycle | In progress | D100 storage provisioning, canonical lifecycle and terminal refund source are implemented locally; consumer migration and signed acceptance remain unfinished |
 | P55B–P62 successor implementation | Planned | Backing, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -689,13 +689,23 @@ complete live-index scans and reusable default storage. Clearing and both maker
 crates compile; focused native membership, financial, settlement/layout and journal
 checks pass in the working tree. These are not clean-pin integrated acceptance.
 D101 records the fresh wire/domain and retirement of the old fixed-cohort solver.
-Generated IDL/SDK outputs have been rebuilt; minimum SDK/indexer/service consumers
-still need migration, and typecheck currently reports those expected API/layout
-incompatibilities. Terminal workspace cleanup, fresh SBF, signed lifecycle/race/
-default checks and PostgreSQL reconciliation remain outstanding. No new PR or
-artifact promotion is claimed. No user decision/access blocker is known.
-Next exact action: finish canonical consumer migration and terminal cleanup, then
-qualify the complete P55A2 lifecycle on fresh signed deployed programs.
+Generated IDL/SDK outputs have been rebuilt. Terminal refund source now preserves
+72-byte canonical allocation markers and immutable payer receipts; only excess
+rent is returned after terminal retirement and an unlocked workspace. Eleven
+membership, thirteen journal and three layout native cases pass in the working
+tree. SDK builders preserve high u64 IDs, explicit eligibility and generation
+fences. Indexer source distinguishes registration/Financial membership/tombstones,
+retains full scoped kind transitions and independently checks canonical pages.
+The focused consumer run passed 81 cases initially; its six stale literal-schema
+fixtures were corrected and their seven cases pass, along with two new lifecycle
+projection cases. These are working-tree checks, not clean-pin acceptance.
+
+Service controllers, existing RPC harnesses and remaining consumer tests still
+need migration; full typecheck is not yet green. Fresh SBF, signed lifecycle/race/
+default/refund checks and PostgreSQL reconciliation remain outstanding. No new PR
+or artifact promotion is claimed. No user decision/access blocker is known.
+Next exact action: build the canonical SBF candidate, migrate the signed lifecycle
+harness and remaining consumers, then run fresh RPC/WS/PostgreSQL acceptance.
 
 ## Deployment and operational limits
 

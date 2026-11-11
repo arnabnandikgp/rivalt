@@ -10,3 +10,4 @@ pub(crate) mod allocation;
 pub(crate) mod members;
 pub(crate) mod handlers;
 pub(crate) mod scan;
+pub(crate) mod refund;

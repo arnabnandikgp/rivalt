@@ -19,7 +19,9 @@ fn manual_storage_creation_requires_system_empty_then_exact_owned_new_layout() {
         (crate::ID, bytes.len(), 9, 1),
     ] {
         let mut scope = Scope::new();
-        scope.created_raw::<PreparedSettlement>(&mut empty.view()).unwrap();
+        scope
+            .created_raw::<PreparedSettlement>(&mut empty.view())
+            .unwrap();
         let mut candidate = bytes[..size].to_vec();
         candidate[8..10].copy_from_slice(&(schema as u16).to_le_bytes());
         candidate[10..18].copy_from_slice(&(revision as u64).to_le_bytes());
@@ -30,11 +32,24 @@ fn manual_storage_creation_requires_system_empty_then_exact_owned_new_layout() {
         if owner == crate::ID && size == bytes.len() && schema == 9 && revision == 0 {
             result.unwrap();
             assert_eq!(&account.try_borrow().unwrap()[10..18], &1u64.to_le_bytes());
-            assert_eq!(owned(&scope.finish(Address::default(), [0; 32], [0; 8], 0, 1).unwrap()).writes[0].kind, 17);
-        } else { assert!(result.is_err()); }
+            assert_eq!(
+                owned(
+                    &scope
+                        .finish(Address::default(), [0; 32], [0; 8], 0, 1)
+                        .unwrap()
+                )
+                .writes[0]
+                    .kind,
+                17
+            );
+        } else {
+            assert!(result.is_err());
+        }
     }
     let mut already_owned = TestAccount::new(key, crate::ID, &bytes, true, false);
-    assert!(Scope::new().created_raw::<PreparedSettlement>(&mut already_owned.view()).is_err());
+    assert!(Scope::new()
+        .created_raw::<PreparedSettlement>(&mut already_owned.view())
+        .is_err());
 }
 
 fn with_margin(
@@ -372,7 +387,9 @@ fn successor_schema_is_kind_bound_and_raw_page_writes_advance_once() {
         assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_ok());
     }
     assert!(Scope::new().visit(key, 5, 8, 1, Access::Read).is_err());
-    for kind in [11, 12, 27] { assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_err()); }
+    for kind in [11, 12, 28] {
+        assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_err());
+    }
     let page = SettlementLimbPage {
         schema_version: 9,
         revision: 11,
@@ -424,9 +441,7 @@ fn rate_work_creation_and_read_use_the_successor_schema_mapping() {
             .unwrap(),
         1
     );
-    assert!(Scope::new()
-        .visit(key, kind, 8, 1, Access::Read)
-        .is_err());
+    assert!(Scope::new().visit(key, kind, 8, 1, Access::Read).is_err());
     assert!(Scope::new()
         .visit(key, u8::MAX, 0, 0, Access::Create)
         .is_err());
@@ -452,39 +467,128 @@ fn conserving_plan_creation_and_read_use_append_only_kind_23() {
             .unwrap(),
         1
     );
-    assert!(Scope::new()
-        .visit(key, kind, 8, 1, Access::Read)
-        .is_err());
+    assert!(Scope::new().visit(key, kind, 8, 1, Access::Read).is_err());
 }
 
 #[test]
 fn permanent_tombstone_keeps_predecessor_revision_and_has_one_narrow_kind_transition() {
     use crate::test_support::TestAccount;
     let key = Address::new_unique();
-    let root = MarginAccount { schema_version: SCHEMA_VERSION, revision: 77, lifecycle: MEMBER_REGISTERED,
-        activation_generation: 9, ..Default::default() };
-    let mut root_bytes = Vec::new(); crate::wire::write_discriminated(&root, &mut root_bytes).unwrap();
+    let root = MarginAccount {
+        schema_version: SCHEMA_VERSION,
+        revision: 77,
+        lifecycle: MEMBER_REGISTERED,
+        activation_generation: 9,
+        ..Default::default()
+    };
+    let mut root_bytes = Vec::new();
+    crate::wire::write_discriminated(&root, &mut root_bytes).unwrap();
     let mut before = TestAccount::new(key, crate::ID, &root_bytes, true, false);
-    let tombstone = MarginTombstone { schema_version: SCHEMA_VERSION, revision: 77, activation_generation: 9,
-        ..Default::default() };
-    let mut tombstone_bytes = Vec::new(); crate::wire::write_discriminated(&tombstone, &mut tombstone_bytes).unwrap();
+    let tombstone = MarginTombstone {
+        schema_version: SCHEMA_VERSION,
+        revision: 77,
+        activation_generation: 9,
+        ..Default::default()
+    };
+    let mut tombstone_bytes = Vec::new();
+    crate::wire::write_discriminated(&tombstone, &mut tombstone_bytes).unwrap();
     for mutation in 0..7 {
-        let mut scope = Scope::new(); scope.retire_margin(&mut before.view()).unwrap();
+        let mut scope = Scope::new();
+        scope.retire_margin(&mut before.view()).unwrap();
         let mut candidate = tombstone_bytes.clone();
-        let (mut address, mut owner, mut writable) = (key,crate::ID,true);
-        match mutation { 0=>{},1=>candidate[10..18].copy_from_slice(&1u64.to_le_bytes()),
-            2=>candidate[8]=8,3=>candidate[..8].copy_from_slice(MarginAccount::DISCRIMINATOR),
-            4=>address=Address::new_unique(),5=>owner=anchor_lang::system_program::ID,6=>writable=false,_=>unreachable!() }
-        let mut after = TestAccount::new(address,owner,&candidate,writable,false);
-        scope.cursor=Some(0);
-        let result=scope.retire_margin(&mut after.view());
+        let (mut address, mut owner, mut writable) = (key, crate::ID, true);
+        match mutation {
+            0 => {}
+            1 => candidate[10..18].copy_from_slice(&1u64.to_le_bytes()),
+            2 => candidate[8] = 8,
+            3 => candidate[..8].copy_from_slice(MarginAccount::DISCRIMINATOR),
+            4 => address = Address::new_unique(),
+            5 => owner = anchor_lang::system_program::ID,
+            6 => writable = false,
+            _ => unreachable!(),
+        }
+        let mut after = TestAccount::new(address, owner, &candidate, writable, false);
+        scope.cursor = Some(0);
+        let result = scope.retire_margin(&mut after.view());
         if mutation == 0 {
             result.unwrap();
-            let event=owned(&scope.finish(Address::default(),[0;32],[0;8],1,42).unwrap());
-            assert_eq!(event.writes,vec![ScopedWrite {account:key,kind:26,before:77,after:78}]);
-            assert_eq!(&after.view().try_borrow().unwrap()[10..18],&78u64.to_le_bytes());
-        } else { assert!(result.is_err(),"mutation {mutation}"); }
+            let event = owned(
+                &scope
+                    .finish(Address::default(), [0; 32], [0; 8], 1, 42)
+                    .unwrap(),
+            );
+            assert_eq!(
+                event.writes,
+                vec![ScopedWrite {
+                    account: key,
+                    kind: 26,
+                    before: 77,
+                    after: 78
+                }]
+            );
+            assert_eq!(
+                &after.view().try_borrow().unwrap()[10..18],
+                &78u64.to_le_bytes()
+            );
+        } else {
+            assert!(result.is_err(), "mutation {mutation}");
+        }
     }
-    let mut tombstone = TestAccount::new(key,crate::ID,&tombstone_bytes,true,false);
+    let mut tombstone = TestAccount::new(key, crate::ID, &tombstone_bytes, true, false);
     assert!(Scope::new().retire_margin(&mut tombstone.view()).is_err());
+}
+
+#[test]
+fn terminal_storage_relabelling_is_limited_to_exact_recovery_shapes() {
+    use crate::test_support::TestAccount;
+    let key = Address::new_unique();
+    for (kind, discriminator, space) in [
+        (17, PreparedSettlement::DISCRIMINATOR, PreparedSettlement::INIT_SPACE),
+        (18, FrozenMarginPage::DISCRIMINATOR, FrozenMarginPage::INIT_SPACE),
+        (21, SettlementLimbPage::DISCRIMINATOR, SettlementLimbPage::INIT_SPACE),
+        (22, SettlementRates::DISCRIMINATOR, SettlementRates::INIT_SPACE),
+        (23, SettlementPlan::DISCRIMINATOR, SettlementPlan::INIT_SPACE),
+    ] {
+        let mut original = vec![0; 8 + space];
+        original[..8].copy_from_slice(discriminator);
+        original[8..10].copy_from_slice(&SETTLEMENT_SCHEMA.to_le_bytes());
+        original[10..18].copy_from_slice(&91u64.to_le_bytes());
+        let tombstone = StorageTombstone { schema_version: SETTLEMENT_SCHEMA, revision: 91,
+            original_kind: kind, completed_epoch: 3, ..Default::default() };
+        let mut expected = Vec::new();
+        crate::wire::write_discriminated(&tombstone, &mut expected).unwrap();
+        for mutation in 0..9 {
+            let mut before = TestAccount::new(key, crate::ID, &original, true, false);
+            let mut scope = Scope::new();
+            scope.retire_storage(&mut before.view()).unwrap();
+            let mut bytes = expected.clone();
+            let (mut account_key, mut owner, mut writable) = (key, crate::ID, true);
+            match mutation {
+                0 => {},
+                1 => bytes[10..18].copy_from_slice(&90u64.to_le_bytes()),
+                2 => bytes[8] = 8,
+                3 => bytes[50] = 5,
+                4 => bytes[50] = if kind == 17 { 18 } else { 17 },
+                5 => account_key = Address::new_unique(),
+                6 => owner = anchor_lang::system_program::ID,
+                7 => writable = false,
+                8 => bytes.push(0),
+                _ => unreachable!(),
+            }
+            let mut after = TestAccount::new(account_key, owner, &bytes, writable, false);
+            scope.cursor = Some(0);
+            let result = scope.retire_storage(&mut after.view());
+            if mutation == 0 {
+                result.unwrap();
+                let event = owned(&scope.finish(Address::default(), [0; 32], [0; 8], 1, 42).unwrap());
+                assert_eq!(event.writes, vec![ScopedWrite { account: key, kind: 27, before: 91, after: 92 }]);
+            } else { assert!(result.is_err(), "kind {kind}, mutation {mutation}"); }
+        }
+        let mut retired = TestAccount::new(key, crate::ID, &expected, true, false);
+        assert!(Scope::new().retire_storage(&mut retired.view()).is_err());
+    }
+    let mut member = vec![0; 8 + MemberPage::INIT_SPACE];
+    member[..8].copy_from_slice(MemberPage::DISCRIMINATOR);
+    let mut member = TestAccount::new(key, crate::ID, &member, true, false);
+    assert!(Scope::new().retire_storage(&mut member.view()).is_err());
 }

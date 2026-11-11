@@ -552,6 +552,7 @@ pub struct AccountRetirementProgress {
     pub next: u64,
     pub cash: u64,
     pub complete: bool,
+    pub membership: crate::state::accounts::MembershipState,
 }
 
 #[event]
@@ -660,4 +661,18 @@ pub struct MarginMembershipChanged {
     pub financial_count: u64,
     pub next_id: u64,
     pub refunded_lamports: u64,
+}
+
+#[event]
+pub struct RecoveryStorageRefunded {
+    pub venue: Address,
+    pub slot: u64,
+    pub allocation: Address,
+    pub rent_payer: Address,
+    pub original_kind: u8,
+    pub register: u32,
+    pub page_index: u64,
+    pub completed_epoch: u64,
+    pub refunded_lamports: u64,
+    pub retained_lamports: u64,
 }

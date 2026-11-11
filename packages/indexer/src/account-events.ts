@@ -1,11 +1,14 @@
 import * as sdk from '@rivalt/sdk';
 import {eventPayloads, json, PROGRAM, type JournalEvent} from './events.js';
 import {scopedInvocations, decodeTransition, type ScopedInvocation} from './scoped-events.js';
+import type {ScopedRetirement} from './scoped-history.js';
 import {integer} from './rpc.js';
 
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['MarginMembershipChanged', sdk.MARGIN_MEMBERSHIP_CHANGED_EVENT_DISCRIMINATOR, sdk.getMarginMembershipChangedEventDecoder()],
+  ['RecoveryStorageRefunded', sdk.RECOVERY_STORAGE_REFUNDED_EVENT_DISCRIMINATOR, sdk.getRecoveryStorageRefundedEventDecoder()],
   ['SettlementPlanProgress', sdk.SETTLEMENT_PLAN_PROGRESS_EVENT_DISCRIMINATOR, sdk.getSettlementPlanProgressEventDecoder()],
   ['SettlementMarginApplied', sdk.SETTLEMENT_MARGIN_APPLIED_EVENT_DISCRIMINATOR, sdk.getSettlementMarginAppliedEventDecoder()],
   ['LiquidityRegistryChangedV4', sdk.LIQUIDITY_REGISTRY_CHANGED_EVENT_DISCRIMINATOR, sdk.getLiquidityRegistryChangedEventDecoder()],
@@ -54,8 +57,8 @@ export function eventDomain(signature:string,transaction:any,authority:string,ve
 }
 export function decodeAccountInvocations(signature:string,transaction:any,transactionIndex:number,
   binding:{program:string;eventAuthority:string;venue:string;domain:string}):AccountInvocation[] {
-  return scopedInvocations(signature,transaction,transactionIndex,binding).map(invocation=>({
-    ...invocation,events:invocation.payloads.map(({inner,bytes},ordinal)=>{
+  return scopedInvocations(signature,transaction,transactionIndex,binding).map(invocation=>{
+    const events:AccountEvent[]=invocation.payloads.map(({inner,bytes},ordinal)=>{
       const payload=Buffer.from(bytes,'base64');
       const entry=decoders.find(([,tag])=>payload.subarray(0,8).equals(Buffer.from(tag)));
       if(!entry)throw new Error('Unknown critical account event schema');
@@ -63,12 +66,27 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
       if(end!==payload.length)throw new Error('Trailing account event bytes');
       const data=JSON.parse(json(value));
       if(BigInt(data.slot)!==invocation.slot||data.venue!==binding.venue)throw new Error('Account event slot/venue mismatch');
-      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==8||data.profileVersion!==4||data.domain!==binding.domain))
+      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==9||data.profileVersion!==5||data.domain!==binding.domain))
         throw new Error('Unsupported account event version/domain');
       return {signature,outer:invocation.outer,inner,ordinal,slot:transaction.slot,
         blockTime:transaction.blockTime===null?null:integer(transaction.blockTime),type,data,bytes};
-    })
-  }));
+    });
+    const retirements:ScopedRetirement[]=[];
+    for(const write of invocation.writes) {
+      if(write.kind===26) {
+        const change=events.filter(event=>event.type==='MarginMembershipChanged'&&event.data.margin===write.account&&event.data.lifecycle===3);
+        if(invocation.instruction!==sdk.hex(sdk.RETIRE_MARGIN_DISCRIMINATOR)||change.length!==1||write.before==='0')
+          throw new Error('Unproven margin retirement kind transition');
+        retirements.push({account:write.account,from:5,to:26});
+      } else if(write.kind===27) {
+        const change=events.filter(event=>event.type==='RecoveryStorageRefunded'&&event.data.allocation===write.account);
+        if(invocation.instruction!==sdk.hex(sdk.REFUND_RECOVERY_ALLOCATION_DISCRIMINATOR)||change.length!==1||write.before==='0'
+          ||![17,18,21,22,23].includes(change[0].data.originalKind))throw new Error('Unproven storage retirement kind transition');
+        retirements.push({account:write.account,from:change[0].data.originalKind,to:27});
+      }
+    }
+    return {...invocation,events,retirements};
+  });
 }
 export function decodeAccounts(signature:string,transaction:any,authority:string,venue:string,
   program:string=PROGRAM,profile:4=4):AccountEvent[] {

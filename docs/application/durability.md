@@ -1,5 +1,28 @@
 # Finalized state and durable execution
 
+## Canonical membership migration (P55A2, in progress)
+
+The new source uses immutable journal binding schema 9 and profile 5; transport
+API version 4 and persisted semantic event names remain unchanged. A fresh
+binding/database is required. Historical schema-8 runs cannot be reopened with the
+new account codecs or treated as new qualification evidence.
+
+Projection separates allocated stable identities, non-retired roots and Financial
+members. Empty registration/retirement leaves the Financial epoch unchanged.
+Every member page and live-index count is reconciled against the complete projected
+identity/lifecycle set. Root IDs are decimal strings, never array offsets. Default
+rows retain both Financial ordinal and stable identity, including actual activation
+generation. A recovered historical resolution retains its frozen membership epoch
+even when new members subsequently enter.
+
+The scoped sorter accepts only payload-authenticated retirement transitions:
+MarginAccount 5→26 through `retire_margin`, or recovery kinds 17/18/21/22/23→27
+through `refund_recovery_allocation`. Revision ordering includes both predecessor
+and successor kinds, preserving read-before-retire and read-after-retire edges.
+Any other kind change, tombstone recreation or missing predecessor rejects the
+whole transaction. The immutable rent receipt stays separate from financial cash.
+Fresh signed RPC/WS/PostgreSQL acceptance remains outstanding in STATUS.
+
 ## Bounded-progress successor contract (P52)
 
 P52 separates durable catch-up from reconciled publication, with no change to

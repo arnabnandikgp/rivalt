@@ -25,6 +25,16 @@ accept that change only with the `retire_margin` instruction and matching lifecy
 payload; it is not a general account-kind relabelling rule. Empty exits remain
 possible after terminal venue retirement; activation and registration do not.
 
+Terminal recovery-allocation refunds similarly retain a permanent 72-byte
+`StorageTombstone` plus the immutable payer receipt. Only PreparedSettlement,
+FrozenMarginPage, SettlementLimbPage, SettlementRates and SettlementPlan may
+transition to journal kind 27, only through `refund_recovery_allocation` with its
+matching refund payload. The program authenticates the original canonical
+allocation, completed epoch and recorded payer before returning excess rent.
+Member pages/indexes cannot be reclaimed through this instruction. Refunding an
+allocation immediately invalidates the workspace capacity proof; no terminal
+allocation can be revived or count toward future Financial admission.
+
 This deliberately replaces the P54/D97 frozen **mirror** with the live Financial
 index. The complete snapshot binds venue, canonical index root, financial count and
 membership epoch; each row records the actual activation generation. D100's funded

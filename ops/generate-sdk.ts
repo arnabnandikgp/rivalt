@@ -32,7 +32,7 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   const dynamicAddresses = new Set([
     'identity.venue.fee_authority', 'identity.venue.authority',
     'identity.venue.quote_mint', 'identity.venue.reserve_authority',
-    'config.state.controller',
+    'config.state.controller', 'receipt.rent_payer',
   ]);
   for (const instruction of idl.instructions) for (const account of instruction.accounts) {
     if (typeof account.address === 'string' && account.address.includes('.')) {

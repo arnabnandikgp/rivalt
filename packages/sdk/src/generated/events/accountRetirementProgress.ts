@@ -30,6 +30,12 @@ import {
   type HasAddress,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getMembershipStateDecoder,
+  getMembershipStateEncoder,
+  type MembershipState,
+  type MembershipStateArgs,
+} from "../types/index.js";
 
 export const ACCOUNT_RETIREMENT_PROGRESS_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([226, 240, 202, 110, 27, 48, 118, 40]);
@@ -49,6 +55,7 @@ export type AccountRetirementProgressEvent = {
   next: bigint;
   cash: bigint;
   complete: boolean;
+  membership: MembershipState;
 };
 
 export type AccountRetirementProgressEventArgs = {
@@ -60,6 +67,7 @@ export type AccountRetirementProgressEventArgs = {
   next: number | bigint;
   cash: number | bigint;
   complete: boolean;
+  membership: MembershipStateArgs;
 };
 
 /** Gets the encoder for {@link AccountRetirementProgressEventArgs} event data. */
@@ -74,6 +82,7 @@ export function getAccountRetirementProgressEventEncoder(): FixedSizeEncoder<Acc
       ["next", getU64Encoder()],
       ["cash", getU64Encoder()],
       ["complete", getBooleanEncoder()],
+      ["membership", getMembershipStateEncoder()],
     ]),
     [getConstantEncoder(ACCOUNT_RETIREMENT_PROGRESS_EVENT_DISCRIMINATOR)],
   );
@@ -91,6 +100,7 @@ export function getAccountRetirementProgressEventDecoder(): FixedSizeDecoder<Acc
       ["next", getU64Decoder()],
       ["cash", getU64Decoder()],
       ["complete", getBooleanDecoder()],
+      ["membership", getMembershipStateDecoder()],
     ]),
     [getConstantDecoder(ACCOUNT_RETIREMENT_PROGRESS_EVENT_DISCRIMINATOR)],
   );

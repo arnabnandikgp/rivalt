@@ -6,7 +6,7 @@ import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
 import type {AccountState} from './account-projection.js';
 export const settlementDescriptors=[
-  [sdk.PREPARED_SETTLEMENT_DISCRIMINATOR,1463,sdk.getPreparedSettlementDecoder()],
+  [sdk.PREPARED_SETTLEMENT_DISCRIMINATOR,1460,sdk.getPreparedSettlementDecoder()],
   [sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,1156,sdk.getFrozenMarginPageDecoder()],
   [sdk.MEMBER_INDEX_NODE_DISCRIMINATOR,190,sdk.getMemberIndexNodeDecoder()],
   [sdk.MEMBER_PAGE_DISCRIMINATOR,2699,sdk.getMemberPageDecoder()],
@@ -15,8 +15,8 @@ export const settlementDescriptors=[
   [sdk.SETTLEMENT_PLAN_DISCRIMINATOR,1181,sdk.getSettlementPlanDecoder()],
 ] as const;
 export function scopedSchema(kind:number) {
-  assert(Number.isInteger(kind)&&kind>=0&&kind<=23,'Known scoped kind');
-  return kind>=17?9:8;
+  assert(Number.isInteger(kind)&&kind>=0&&kind<=27&&kind!==11&&kind!==12,'Known scoped kind');
+  return 9;
 }
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
@@ -28,14 +28,14 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   assert.equal(value.schemaVersion,9);assert.equal(value.venue,binding.venue);
   let label:string,suffix:Uint8Array[];
   switch(kind) {
-    case 17:label='prepared-settlement';suffix=[le64(value.epoch)];break;
-    case 18:label='frozen-margin-page';suffix=[le64(value.epoch),le64(value.pageIndex)];assert(value.rowCount<=8);break;
+    case 17:label='prepared-settlement';suffix=[];break;
+    case 18:label='frozen-margin-page';suffix=[le64(value.pageIndex)];assert(value.rowCount<=8);break;
     case 19:label='member-index';suffix=[Uint8Array.of(value.level),le64(value.prefix)];assert(value.level<=14);break;
     case 20:label='member-page';suffix=[le64(value.pageIndex)];break;
-    case 21:label='resolution-limbs';suffix=[le64(value.epoch),le32(value.register),le64(value.pageIndex)];
-      assert(value.wordCount>0&&value.wordCount<=256);assert(value.register<=45||value.register>=64&&value.register<=70);break;
-    case 22:label='settlement-rates';suffix=[le64(value.epoch)];assert(value.stage<=4);break;
-    case 23:label='settlement-plan';suffix=[le64(value.epoch)];assert(value.stage<=12);break;
+    case 21:label='resolution-limbs';suffix=[le32(value.register),le64(value.pageIndex)];
+      assert(value.wordCount<=256&&(value.epoch===0n||value.wordCount>0));assert(value.register<=45||value.register>=64&&value.register<=70);break;
+    case 22:label='settlement-rates';suffix=[];assert(value.stage<=4);break;
+    case 23:label='settlement-plan';suffix=[];assert(value.stage<=12);break;
     default:throw new Error('Unsupported scratch');
   }
   const [canonical,bump]=await getProgramDerivedAddress({programAddress:address(binding.program),
@@ -54,11 +54,11 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(kind===18&&plan) {
     for(let within=0;within<value.rowCount;within++) {
       const ordinal=value.pageIndex*8n+BigInt(within),row=value.rows[within];
-      const frozen:NonNullable<AccountState['resolution']>['rows'][number]|undefined=Object.entries(resolution.rows).find(([id])=>BigInt(id)===ordinal)?.[1];assert(frozen,'Complete frozen row');
+      const frozen:NonNullable<AccountState['resolution']>['rows'][string]|undefined=Object.values(resolution.rows).find(row=>row.member===state.members[Number(ordinal)]);assert(frozen,'Complete frozen row');
       const actual=JSON.parse(json(row));
-      for(const [field,expected] of Object.entries({id:ordinal.toString(),member:frozen.member,cash:frozen.cashBefore,
+      for(const [field,expected] of Object.entries({id:state.roots[frozen.member].id,member:frozen.member,cash:frozen.cashBefore,
         lots:frozen.lots,generations:frozen.generations,claims:frozen.claimsScaled,collected:frozen.collected,
-        activationGeneration:'1',originalRevision:frozen.originalRevision}))assert.deepEqual(actual[field],expected,`Frozen ${field}`);
+        activationGeneration:frozen.activationGeneration,originalRevision:frozen.originalRevision}))assert.deepEqual(actual[field],expected,`Frozen ${field}`);
     }
   }
   if(kind===23&&plan) {
@@ -72,7 +72,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     for(let offset=0;offset+7<=value.wordCount;offset+=7) {
       const ordinal=value.pageIndex*36n+BigInt(offset/7);
       if(ordinal>=BigInt(plan.count))break;
-      const row:NonNullable<AccountState['resolution']>['rows'][number]|undefined=Object.entries(resolution.rows).find(([id])=>BigInt(id)===ordinal)?.[1];assert(row);
+      const row:NonNullable<AccountState['resolution']>['rows'][string]|undefined=Object.values(resolution.rows).find(row=>row.member===state.members[Number(ordinal)]);assert(row);
       const flags=Buffer.alloc(16);flags.writeBigUInt64LE(words[offset+5]);flags.writeBigUInt64LE(words[offset+6],8);
       assert.equal(words[offset],ordinal);assert.equal(words[offset+1],BigInt(row.cashBefore));
       assert.equal(flags[15],row.applied?1:0);

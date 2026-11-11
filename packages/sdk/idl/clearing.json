@@ -15094,6 +15094,203 @@
       ]
     },
     {
+      "name": "refund_recovery_allocation",
+      "discriminator": [
+        35,
+        222,
+        78,
+        132,
+        92,
+        105,
+        99,
+        88
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "venue"
+          ]
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "storage",
+            "receipt"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "storage",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  111,
+                  118,
+                  101,
+                  114,
+                  121,
+                  45,
+                  115,
+                  116,
+                  111,
+                  114,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "allocation",
+          "docs": [
+            "CHECK: exact canonical work kind/PDA/epoch/rent verified before shrinking;",
+            "the only destination layout is the permanent StorageTombstone."
+          ],
+          "writable": true
+        },
+        {
+          "name": "receipt",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  111,
+                  114,
+                  97,
+                  103,
+                  101,
+                  45,
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "account",
+                "path": "allocation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rent_payer",
+          "docs": [
+            "CHECK: lamport credit only, bound to the immutable creation payer."
+          ],
+          "writable": true,
+          "relations": [
+            "receipt"
+          ]
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "kind",
+          "type": "u8"
+        },
+        {
+          "name": "register",
+          "type": "u32"
+        },
+        {
+          "name": "page",
+          "type": "u64"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "register_liquidity",
       "discriminator": [
         238,
@@ -19877,6 +20074,19 @@
       ]
     },
     {
+      "name": "StorageTombstone",
+      "discriminator": [
+        226,
+        0,
+        146,
+        150,
+        206,
+        12,
+        160,
+        154
+      ]
+    },
+    {
       "name": "Venue",
       "discriminator": [
         8,
@@ -20279,6 +20489,19 @@
         17,
         174,
         47
+      ]
+    },
+    {
+      "name": "RecoveryStorageRefunded",
+      "discriminator": [
+        103,
+        147,
+        48,
+        236,
+        163,
+        112,
+        213,
+        188
       ]
     },
     {
@@ -21818,6 +22041,14 @@
           {
             "name": "complete",
             "type": "bool"
+          },
+          {
+            "name": "membership",
+            "type": {
+              "defined": {
+                "name": "MembershipState"
+              }
+            }
           }
         ]
       }
@@ -25002,6 +25233,54 @@
       }
     },
     {
+      "name": "RecoveryStorageRefunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "allocation",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "original_kind",
+            "type": "u8"
+          },
+          {
+            "name": "register",
+            "type": "u32"
+          },
+          {
+            "name": "page_index",
+            "type": "u64"
+          },
+          {
+            "name": "completed_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "refunded_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "retained_lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "Resolution",
       "type": {
         "kind": "struct",
@@ -26024,6 +26303,50 @@
               "Lamports actually paid to create the allocation, excluding this receipt's",
               "own rent. This immutable record is not a transferable withdrawal right."
             ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StorageTombstone",
+      "docs": [
+        "Permanent terminal marker. The original payer receipt remains immutable;",
+        "only rent above this small marker's minimum is refundable."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          },
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "original_kind",
+            "type": "u8"
+          },
+          {
+            "name": "completed_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "register",
+            "type": "u32"
+          },
+          {
+            "name": "page_index",
             "type": "u64"
           },
           {

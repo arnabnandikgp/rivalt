@@ -131,6 +131,29 @@ pub(crate) fn verify_funded_allocation(
     let expected = state
         .expected(generation, ordinal)
         .map_err(|_| ClearingError::Resolution)?;
+    funded_allocation(
+        venue,
+        expected,
+        state.completed_epoch,
+        allocation,
+        receipt,
+        rent,
+    )?;
+    state
+        .record(generation, ordinal)
+        .map_err(|_| ClearingError::Resolution.into())
+}
+
+/// Shared physical proof for capacity and terminal cleanup. The caller supplies
+/// the authenticated workspace epoch; this helper grants no refund authority.
+pub(crate) fn funded_allocation(
+    venue: &Address,
+    expected: Allocation,
+    completed_epoch: u64,
+    allocation: &AccountView,
+    receipt: &AccountView,
+    rent: &Rent,
+) -> Result<()> {
     let (key, bump) = allocation_address(venue, expected);
     require_keys_eq!(*allocation.address(), key, ClearingError::Resolution);
     let (discriminator, size, bump_offset) = allocation_shape(expected);
@@ -141,7 +164,7 @@ pub(crate) fn verify_funded_allocation(
         let bytes = allocation.try_borrow()?;
         require!(
             bytes[bump_offset] == bump
-                && u64::from_le_bytes(bytes[50..58].try_into().unwrap()) <= state.completed_epoch,
+                && u64::from_le_bytes(bytes[50..58].try_into().unwrap()) <= completed_epoch,
             ClearingError::Resolution
         );
         match expected {
@@ -187,9 +210,7 @@ pub(crate) fn verify_funded_allocation(
             && receipt.lamports() >= rent.try_minimum_balance(8 + StorageFunding::INIT_SPACE)?,
         ClearingError::Resolution
     );
-    state
-        .record(generation, ordinal)
-        .map_err(|_| ClearingError::Resolution.into())
+    Ok(())
 }
 
 #[cfg(test)]

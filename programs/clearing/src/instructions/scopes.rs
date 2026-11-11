@@ -1030,3 +1030,15 @@ impl ScopedContext for RetireMargin {
     fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
+
+impl ScopedContext for RefundRecoveryAllocation {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.account(&mut self.storage, Access::Write)?;
+        scope.retire_storage(&mut self.allocation.account().clone())?;
+        scope.account(&mut self.receipt, Access::Read)
+    }
+    fn venue(&self) -> (Address, [u8;32]) { (*self.venue.address(),self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}

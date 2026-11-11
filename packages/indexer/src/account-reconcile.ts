@@ -1,3 +1,4 @@
+import {membershipDescriptors,reconcileMembershipStorage,requireMembershipCoverage} from './membership-reconcile.js';
 import assert from 'node:assert/strict';
 import {scopedSchema,settlementDescriptors,reconcileSettlementScratch} from './settlement-reconcile.js';
 import {address,getAddressDecoder,getAddressEncoder,getProgramDerivedAddress,type ReadonlyUint8Array} from '@solana/kit';
@@ -52,7 +53,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   const identities=new Map<string,{bump:number;decoder:{decode(bytes:Uint8Array):unknown};discriminator:ReadonlyUint8Array;expected:unknown}>();
   const expect=async (key:string,derive:Promise<readonly [string,number]>,decoder:{decode(bytes:Uint8Array):unknown},
     discriminator:ReadonlyUint8Array,expected:unknown)=>{
-    const [canonical,bump]=await derive;assert.equal(key,canonical,'Canonical schema-8 PDA');
+    const [canonical,bump]=await derive;assert.equal(key,canonical,'Canonical schema-9 PDA');
     identities.set(key,{bump,decoder,discriminator,expected});
   };
   const component=(name:Parameters<typeof sdk.deriveVenueComponent>[1])=>sdk.deriveVenueComponent(venue,name,program);
@@ -62,13 +63,24 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   await expect(venue,sdk.deriveAccountVenue(Buffer.from(binding.domain,'hex'),program),sdk.getVenueDecoder(),sdk.VENUE_DISCRIMINATOR,state.venue);
   await expect(safety,component('safety'),sdk.getVenueSafetyDecoder(),sdk.VENUE_SAFETY_DISCRIMINATOR,state.safety);
   if(state.membershipVersion!==null)await expect(registry,component('registry'),sdk.getVenueRegistryDecoder(),sdk.VENUE_REGISTRY_DISCRIMINATOR,
-    {schemaVersion:8,revision:state.revisions[registry]?.revision,venue,membershipVersion:state.membershipVersion,count:state.members.length,members:state.members});
+    {schemaVersion:9,revision:state.revisions[registry]?.revision,venue,membershipEpoch:state.membershipVersion,nextId:state.nextMemberId,
+      registeredCount:state.registeredCount,financialCount:String(state.members.length),liveIndex:(await sdk.deriveMemberIndex(venue,14,0n,program))[0]});
   for(const [key,value] of Object.entries(state.markets))await expect(key,sdk.deriveAccountMarket(venue,value.index,program),sdk.getMarketDecoder(),sdk.MARKET_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.ledgers))await expect(key,sdk.deriveMarketLedger(address(value.market),program),sdk.getMarketLedgerDecoder(),sdk.MARKET_LEDGER_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioDecoder(),sdk.PORTFOLIO_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.roots))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.subaccountIndex,program),sdk.getMarginAccountDecoder(),sdk.MARGIN_ACCOUNT_DISCRIMINATOR,value);
+  for(const [key,value]of Object.entries(state.tombstones))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.child,program),sdk.getMarginTombstoneDecoder(),sdk.MARGIN_TOMBSTONE_DISCRIMINATOR,value);
+  for(const [key,value]of Object.entries(state.storageTombstones)) {
+    const prefix=({17:'prepared-settlement',18:'frozen-margin-page',21:'resolution-limbs',22:'settlement-rates',23:'settlement-plan'} as Record<number,string>)[value.originalKind];
+    assert(prefix,'retired workspace kind');
+    const suffix=value.originalKind===21?[sdk.namespaceIndexBytes(value.register),sdk.memberIndexBytes(BigInt(value.pageIndex))]:
+      value.originalKind===18?[sdk.memberIndexBytes(BigInt(value.pageIndex))]:[];
+    await expect(key,getProgramDerivedAddress({programAddress:program,seeds:[Buffer.from(prefix),getAddressEncoder().encode(venue),...suffix]}),
+      sdk.getStorageTombstoneDecoder(),sdk.STORAGE_TOMBSTONE_DISCRIMINATOR,value);
+  }
+  await requireMembershipCoverage(state,venue,program);
   if(state.liquidity) {
-    assert.equal(state.venue!.profileVersion,4);
+    assert.equal(state.venue!.profileVersion,5);
     for(const [key,value] of Object.entries(state.liquidity.registries))await expect(key,sdk.findLiquidityRegistryPda({market:address(value.market)},{programAddress:program}),sdk.getLiquidityRegistryDecoder(),sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,value);
     for(const [key,value] of Object.entries(state.liquidity.makers))await expect(key,getProgramDerivedAddress({programAddress:program,
       seeds:[Buffer.from('maker-v4'),getAddressEncoder().encode(address(value.market)),Uint8Array.of(value.instance)]}),sdk.getMakerRegistrationDecoder(),sdk.MAKER_REGISTRATION_DISCRIMINATOR,value);
@@ -79,17 +91,17 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   const resolutionKeys:string[]=[];
   if(state.resolution) {
     resolutionKeys.push((await component('resolution'))[0]);
-    for(let page=0;page<Math.ceil(state.resolution.count/2);page++)resolutionKeys.push((await sdk.findResolutionPagePda(venue,page,program))[0]);
+
   }
   const descriptors=[
     [sdk.VENUE_DISCRIMINATOR,329],[sdk.CUSTODY_DISCRIMINATOR,59],[sdk.VENUE_SAFETY_DISCRIMINATOR,85],
-    [sdk.VENUE_REGISTRY_DISCRIMINATOR,2113],[sdk.PORTFOLIO_DISCRIMINATOR,87],[sdk.MARGIN_ACCOUNT_DISCRIMINATOR,978],
+    [sdk.VENUE_REGISTRY_DISCRIMINATOR,115],[sdk.PORTFOLIO_DISCRIMINATOR,91],[sdk.MARGIN_ACCOUNT_DISCRIMINATOR,995],
     [sdk.MARKET_DISCRIMINATOR,455],[sdk.MARKET_LEDGER_DISCRIMINATOR,125],[sdk.CAPITAL_BINDING_DISCRIMINATOR,114],
-    [sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,234],[sdk.RESOLUTION_DISCRIMINATOR,3652],
-    [sdk.RESOLUTION_PAGE_DISCRIMINATOR,3408],[sdk.RESOLUTION_WORK_DISCRIMINATOR,7926],
-    [sdk.RETIREMENT_CERTIFICATE_DISCRIMINATOR,80],[sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,181],
+    [sdk.SETTLEMENT_CERTIFICATE_DISCRIMINATOR,790],[sdk.RESOLUTION_DISCRIMINATOR,572],
+    null,null,
+    [sdk.RETIREMENT_CERTIFICATE_DISCRIMINATOR,636],[sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,181],
     [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148],
-    ...settlementDescriptors
+    ...settlementDescriptors,...membershipDescriptors
   ] as const;
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
@@ -123,15 +135,12 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       const value=sdk.getCapitalBindingDecoder().decode(raw(key,sdk.CAPITAL_BINDING_DISCRIMINATOR));
       assert.equal(value.venue,venue);assert.equal(key,(await sdk.findCapitalBindingPda({capital:value.capital},{programAddress:program}))[0]);
       assert.equal(state.liquidity?.makers[value.registration]?.capital,value.capital,'Capital registration binding');
-    } else if(entity.kind===10||entity.kind===12) {
-      const value=(entity.kind===10?sdk.getResolutionDecoder():sdk.getResolutionWorkDecoder()).decode(raw(key));
-      const [canonical,bump]=await component(entity.kind===10?'resolution':'resolution-work');
+    } else if(entity.kind===10) {
+      const value=sdk.getResolutionDecoder().decode(raw(key));
+      const [canonical,bump]=await component('resolution');
       assert.equal(key,canonical);assert.equal(value.venue,venue);assert.equal(value.bump,bump);
-    } else if(entity.kind===11) {
-      const value=sdk.getResolutionPageDecoder().decode(raw(key));
-      const [canonical,bump]=await sdk.findResolutionPagePda(venue,value.pageIndex,program);
-      assert.equal(key,canonical);assert.equal(value.venue,venue);assert.equal(value.bump,bump);
-    } else if(entity.kind>=17&&entity.kind<=23)await reconcileSettlementScratch(key,entity.kind,raw(key),state,binding);
+    } else if([19,20,24,25].includes(entity.kind))await reconcileMembershipStorage(key,entity.kind,raw(key),state,binding,raw);
+    else if(entity.kind>=17&&entity.kind<=23)await reconcileSettlementScratch(key,entity.kind,raw(key),state,binding);
     else throw new Error(`Missing projected entity kind ${entity.kind}`);
   }
   for(const [key,identity] of identities) {
@@ -142,25 +151,16 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   if(state.resolution) {
     const expected=state.resolution;
     const header=JSON.parse(json(sdk.getResolutionDecoder().decode(raw(resolutionKeys[0],sdk.RESOLUTION_DISCRIMINATOR))));
-    assert.equal(header.bump,(await component('resolution'))[1]);assert.equal(header.schemaVersion,8);assert.equal(header.venue,venue);
+    assert.equal(header.bump,(await component('resolution'))[1]);assert.equal(header.schemaVersion,9);assert.equal(header.venue,venue);
     for(const field of ['epoch','stage','cursor','count','registryHash','termsEpoch','configEpochs','sourceObservations','sourceDeadlines','prices','funding','frozenAt',
-      'cashBefore','poolsBefore','insuranceBefore','feesBefore','allocatedBefore','budgets','insuranceSpent','evaluation','clippedMask'] as const)
+      'cashBefore','poolsBefore','insuranceBefore','feesBefore','allocatedBefore'] as const)
       assert.deepEqual(header[field],expected[field],`Resolution ${field}`);
-    if(expected.stage===9)for(const [field,value] of Object.entries({scannedCash:expected.remainingCash,cashApplied:expected.appliedCash,
+    if(expected.stage===14)for(const [field,value] of Object.entries({scannedCash:expected.remainingCash,cashApplied:expected.appliedCash,
       remainingLots:expected.remainingLots,remainingGross:expected.remainingGross,remainingClaims:expected.remainingClaims}))assert.deepEqual(header[field],value,`Partial Apply ${field}`);
-    for(let index=1;!state.pagedSettlement&&index<resolutionKeys.length;index++) {
-      const page=JSON.parse(json(sdk.getResolutionPageDecoder().decode(raw(resolutionKeys[index],sdk.RESOLUTION_PAGE_DISCRIMINATOR))));
-      assert.equal(page.bump,(await sdk.findResolutionPagePda(venue,index-1,program))[1]);assert.equal(page.schemaVersion,8);assert.equal(page.venue,venue);assert.equal(page.pageIndex,index-1);
-      for(let within=0;within<2;within++) {
-        const row=expected.rows[2*(index-1)+within];if(!row)continue;
-        assert.equal(page.epoch,expected.epoch);assert(page.rowCount>within);
-        const actual=page.rows[within];
-        for(const field of ['member','cashBefore','lots','generations','claimsScaled','collected'] as const)assert.deepEqual(actual[field],row[field],`Frozen row ${field}`);
-        assert.equal(actual.applied,row.applied??false);
-        if(row.applied){assert.deepEqual(actual.roundedFlows,row.flows);assert.equal(actual.cashAfter,row.cashAfter);}
-      }
-    }
+    assert.equal(header.membershipEpoch,expected.membershipEpoch);
+    assert.equal(header.liveIndex,(await sdk.deriveMemberIndex(venue,14,0n,program))[0]);
   }
+
   const token=raw(vault,undefined,'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
   assert.equal(token.length,165);assert.equal(token[108],1);
   assert.equal(getAddressDecoder().decode(token.subarray(0,32)),state.venue!.quoteMint);assert.equal(getAddressDecoder().decode(token.subarray(32,64)),venue);

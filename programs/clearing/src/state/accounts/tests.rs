@@ -39,6 +39,7 @@ fn exact_contract_sizes_and_roundtrips() {
     wire(RecoveryStorage::default(), 99);
     wire(StorageFunding::default(), 123);
     wire(MarginTombstone::default(), 135);
+    wire(StorageTombstone::default(), 72);
 }
 
 #[test]

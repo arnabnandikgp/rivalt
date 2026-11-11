@@ -50,13 +50,13 @@ revisioned! {
     14 => LiquidityRegistry, 15 => MakerRegistration, 16 => FundingPublisher,
     17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
     20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
-    24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone,
+    24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone, 27 => StorageTombstone,
 }
 
 fn schema_for_kind(kind: u8) -> Result<u16> {
     match kind {
         0..=10 | 13..=16 => Ok(SCHEMA_VERSION),
-        17..=26 => Ok(SETTLEMENT_SCHEMA),
+        17..=27 => Ok(SETTLEMENT_SCHEMA),
         _ => Err(ClearingError::Profile.into()),
     }
 }
@@ -198,19 +198,38 @@ impl Scope {
     /// Canonical PDA initialization inside the handler lets the rent receipt
     /// record the exact payer top-up even when somebody donated lamport dust.
     pub(crate) fn created_raw<T: Revisioned + Discriminator + Space>(
-        &mut self, account: &mut AccountView,
+        &mut self,
+        account: &mut AccountView,
     ) -> Result<()> {
-        require!(account.is_writable() && !account.executable() && !account.is_signer(), ClearingError::Profile);
+        require!(
+            account.is_writable() && !account.executable() && !account.is_signer(),
+            ClearingError::Profile
+        );
         let (schema, revision) = if self.cursor.is_none() {
-            require!(account.owner() == &anchor_lang::system_program::ID && account.data_len() == 0, ClearingError::Profile);
+            require!(
+                account.owner() == &anchor_lang::system_program::ID && account.data_len() == 0,
+                ClearingError::Profile
+            );
             (0, 0)
         } else {
             require!(account.owner() == &crate::ID, ClearingError::Profile);
             let bytes = account.try_borrow()?;
-            require!(bytes.len() == 8 + T::INIT_SPACE && bytes[..8] == *T::DISCRIMINATOR, ClearingError::Profile);
-            (u16::from_le_bytes(bytes[8..10].try_into().unwrap()), u64::from_le_bytes(bytes[10..18].try_into().unwrap()))
+            require!(
+                bytes.len() == 8 + T::INIT_SPACE && bytes[..8] == *T::DISCRIMINATOR,
+                ClearingError::Profile
+            );
+            (
+                u16::from_le_bytes(bytes[8..10].try_into().unwrap()),
+                u64::from_le_bytes(bytes[10..18].try_into().unwrap()),
+            )
         };
-        let next = self.visit(*account.address(), T::KIND, schema, revision, Access::Create)?;
+        let next = self.visit(
+            *account.address(),
+            T::KIND,
+            schema,
+            revision,
+            Access::Create,
+        )?;
         if self.cursor.is_some() {
             account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
         }
@@ -221,19 +240,117 @@ impl Scope {
     /// 26 with the predecessor root revision; decoders authorize 5 -> 26 only for
     /// retire_margin and its matching lifecycle payload. No general relabel API.
     pub(crate) fn retire_margin(&mut self, account: &mut AccountView) -> Result<()> {
-        require!(account.owner() == &crate::ID && account.is_writable() && !account.is_signer()
-            && !account.executable(), ClearingError::Profile);
+        require!(
+            account.owner() == &crate::ID
+                && account.is_writable()
+                && !account.is_signer()
+                && !account.executable(),
+            ClearingError::Profile
+        );
         let bytes = account.try_borrow()?;
         let after = self.cursor.is_some();
-        let (length, discriminator) = if after { (8 + MarginTombstone::INIT_SPACE, MarginTombstone::DISCRIMINATOR) }
-            else { (8 + MarginAccount::INIT_SPACE, MarginAccount::DISCRIMINATOR) };
-        require!(bytes.len() == length && bytes[..8] == *discriminator, ClearingError::Profile);
+        let (length, discriminator) = if after {
+            (
+                8 + MarginTombstone::INIT_SPACE,
+                MarginTombstone::DISCRIMINATOR,
+            )
+        } else {
+            (8 + MarginAccount::INIT_SPACE, MarginAccount::DISCRIMINATOR)
+        };
+        require!(
+            bytes.len() == length && bytes[..8] == *discriminator,
+            ClearingError::Profile
+        );
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
         let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
         drop(bytes);
-        let next = self.visit(*account.address(), MarginAccount::KIND, schema, revision, Access::Write)?;
-        if after { account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes()); }
-        else { self.entries.last_mut().ok_or(ClearingError::Profile)?.written_kind = MarginTombstone::KIND; }
+        let next = self.visit(
+            *account.address(),
+            MarginAccount::KIND,
+            schema,
+            revision,
+            Access::Write,
+        )?;
+        if after {
+            account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
+        } else {
+            self.entries
+                .last_mut()
+                .ok_or(ClearingError::Profile)?
+                .written_kind = MarginTombstone::KIND;
+        }
+        Ok(())
+    }
+
+    /// Terminal work cleanup is restricted to the five physical recovery kinds.
+    /// It cannot retire a live member page, financial root or arbitrary account.
+    pub(crate) fn retire_storage(&mut self, account: &mut AccountView) -> Result<()> {
+        require!(
+            account.owner() == &crate::ID
+                && account.is_writable()
+                && !account.is_signer()
+                && !account.executable(),
+            ClearingError::Profile
+        );
+        let bytes = account.try_borrow()?;
+        require!(bytes.len() >= 18, ClearingError::Profile);
+        let after = self.cursor.is_some();
+        let kind = if after {
+            require!(
+                bytes.len() == 8 + StorageTombstone::INIT_SPACE
+                    && bytes[..8] == *StorageTombstone::DISCRIMINATOR,
+                ClearingError::Profile
+            );
+            bytes[50]
+        } else {
+            let shapes = [
+                (
+                    17,
+                    PreparedSettlement::DISCRIMINATOR,
+                    PreparedSettlement::INIT_SPACE,
+                ),
+                (
+                    18,
+                    FrozenMarginPage::DISCRIMINATOR,
+                    FrozenMarginPage::INIT_SPACE,
+                ),
+                (
+                    21,
+                    SettlementLimbPage::DISCRIMINATOR,
+                    SettlementLimbPage::INIT_SPACE,
+                ),
+                (
+                    22,
+                    SettlementRates::DISCRIMINATOR,
+                    SettlementRates::INIT_SPACE,
+                ),
+                (
+                    23,
+                    SettlementPlan::DISCRIMINATOR,
+                    SettlementPlan::INIT_SPACE,
+                ),
+            ];
+            shapes
+                .into_iter()
+                .find(|(_, discriminator, size)| {
+                    bytes[..8] == **discriminator && bytes.len() == 8 + size
+                })
+                .ok_or(ClearingError::Profile)?
+                .0
+        };
+        require!([17, 18, 21, 22, 23].contains(&kind), ClearingError::Profile);
+        let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
+        let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
+        drop(bytes);
+        let next = self.visit(*account.address(), kind, schema, revision, Access::Write)?;
+        if after {
+            account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
+        } else {
+            self.entries
+                .last_mut()
+                .ok_or(ClearingError::Profile)?
+                .written_kind = StorageTombstone::KIND;
+        }
         Ok(())
     }
 
@@ -363,7 +480,11 @@ unsafe impl<'a> SchemaWrite<anchor_lang::BorshConfig> for ScopedRows<'a> {
         writer.write(&count.to_le_bytes())?;
         for entry in value.entries.iter().filter(included) {
             writer.write(entry.account.as_ref())?;
-            writer.write(&[if value.writes { entry.written_kind } else { entry.kind }])?;
+            writer.write(&[if value.writes {
+                entry.written_kind
+            } else {
+                entry.kind
+            }])?;
             writer.write(&entry.revision.to_le_bytes())?;
             if value.writes {
                 let after = entry.revision.checked_add(1).ok_or(
@@ -445,14 +566,20 @@ pub(crate) fn run_pages<'context, T: ScopedContext>(
 }
 
 pub(crate) fn run_membership<'context, T: ScopedContext>(
-    context: &mut Context<'context, T>, instruction: [u8; 8],
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
-) -> Result<()> { run_with_remaining(context, instruction, Remaining::MembershipPath, handler) }
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::MembershipPath, handler)
+}
 
 pub(crate) fn run_membership_scan<'context, T: ScopedContext>(
-    context: &mut Context<'context, T>, instruction: [u8; 8],
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
-) -> Result<()> { run_with_remaining(context, instruction, Remaining::MembershipScan, handler) }
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::MembershipScan, handler)
+}
 
 #[derive(Clone, Copy)]
 enum Remaining {
@@ -467,16 +594,26 @@ impl Remaining {
             Self::MembershipScan => {
                 require!(accounts.len() <= 2, ClearingError::Resolution);
                 for account in accounts {
-                    let discriminator = account.try_borrow()?.get(..8).ok_or(ClearingError::Resolution)?.to_vec();
-                    if discriminator == MemberIndexNode::DISCRIMINATOR { scope.raw::<MemberIndexNode>(account, Access::Read)?; }
-                    else if discriminator == MemberPage::DISCRIMINATOR { scope.raw::<MemberPage>(account, Access::Read)?; }
-                    else { scope.raw::<MarginAccount>(account, Access::Read)?; }
+                    let discriminator = account
+                        .try_borrow()?
+                        .get(..8)
+                        .ok_or(ClearingError::Resolution)?
+                        .to_vec();
+                    if discriminator == MemberIndexNode::DISCRIMINATOR {
+                        scope.raw::<MemberIndexNode>(account, Access::Read)?;
+                    } else if discriminator == MemberPage::DISCRIMINATOR {
+                        scope.raw::<MemberPage>(account, Access::Read)?;
+                    } else {
+                        scope.raw::<MarginAccount>(account, Access::Read)?;
+                    }
                 }
                 Ok(())
             }
             Self::MembershipPath => {
                 require!(accounts.len() == 15, ClearingError::Resolution);
-                for account in accounts { scope.raw::<MemberIndexNode>(account, Access::Write)?; }
+                for account in accounts {
+                    scope.raw::<MemberIndexNode>(account, Access::Write)?;
+                }
                 Ok(())
             }
             Self::Roots(writable) => scope.remaining(accounts, writable),

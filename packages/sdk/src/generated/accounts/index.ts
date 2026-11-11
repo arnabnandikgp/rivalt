@@ -28,6 +28,7 @@ export * from "./settlementLimbPage.js";
 export * from "./settlementPlan.js";
 export * from "./settlementRates.js";
 export * from "./storageFunding.js";
+export * from "./storageTombstone.js";
 export * from "./venue.js";
 export * from "./venueRegistry.js";
 export * from "./venueSafety.js";

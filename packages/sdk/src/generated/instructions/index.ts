@@ -67,6 +67,7 @@ export * from "./quarantineLiquidity.js";
 export * from "./reactivateAccounts.js";
 export * from "./reconcileSettlementMargin.js";
 export * from "./recoverAccounts.js";
+export * from "./refundRecoveryAllocation.js";
 export * from "./registerLiquidity.js";
 export * from "./registerMargin.js";
 export * from "./replenishLiquidity.js";

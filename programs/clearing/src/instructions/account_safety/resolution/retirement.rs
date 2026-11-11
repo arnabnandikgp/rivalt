@@ -179,6 +179,7 @@ pub fn check(
         venue: *accounts.identity.venue.address(), slot: Clock::get()?.slot,
         safety_epoch: certificate.safety_epoch, membership_version: certificate.membership_version,
         count: certificate.count, next: certificate.next, cash: certificate.cash, complete: certificate.complete,
+        membership: certificate.membership.clone(),
     }, accounts.event_authority.account().clone())
 }
 

@@ -5,7 +5,7 @@ import {accountFixture} from './account-test-fixture.js';
 it('reads profile-4 funded balances and builds a direct exit without any maker dependency',async()=>{
   const fixture=await accountFixture();
   const venue=sdk.getVenueDecoder().decode(Buffer.from(fixture.accounts.get(fixture.config.venue).data[0],'base64'));
-  fixture.put(fixture.config.venue,sdk.getVenueEncoder().encode({...venue,profileVersion:4}));
+  fixture.put(fixture.config.venue,sdk.getVenueEncoder().encode({...venue,profileVersion:5}));
   const config={...fixture.config,version:4 as const,profile:'liquidity-execution-qualification' as const};
   const client=new sdk.AccountUserClient(config),snapshot=await sdk.readAccountSnapshot(fixture.rpc,config,[fixture.margins[0]]);
   expect(fixture.batches[1]).toHaveLength(12);expect(snapshot.liquidity).toBeUndefined();

@@ -11,26 +11,27 @@ const zero=address('11111111111111111111111111111111'),venue=fixtureVenue,domain
 const blank=(decoder:{fixedSize:number;decode(bytes:Uint8Array):unknown})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize))) as any;
 function state():AccountState {
   const value=emptyLiquidity();
-  value.venue={...blank(sdk.getVenueDecoder()),schemaVersion:8,revision:'1',profileVersion:4,domain,markets:['btc','eth'],marketCount:2};
-  value.custody={schemaVersion:8,revision:'1',venue,allocatedVault:'210',};
-  value.safety={schemaVersion:8,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
+  value.venue={...blank(sdk.getVenueDecoder()),schemaVersion:9,revision:'1',profileVersion:5,domain,markets:['btc','eth'],marketCount:2};
+  value.custody={schemaVersion:9,revision:'1',venue,allocatedVault:'210',};
+  value.safety={schemaVersion:9,revision:'1',venue,mode:1,paused:false,epoch:'1',resolutionEpoch:'0',recoverySince:'0',recoveryLast:'0'};
   value.members=['debtor','winner'];value.membershipVersion='3';
   for(const [index,key] of ['btc','eth'].entries()) {
-    value.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:8,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
-    value.ledgers[`${key}-ledger`]={schemaVersion:8,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:index===0?'10':'0',fees:'0',insuranceFeeRemainder:0,version:'1',liabilityVersion:'0'};
+    value.markets[key]={...blank(sdk.getMarketDecoder()),schemaVersion:9,revision:'1',venue,index,lotsPerUnit:index===0?'1000000':'100000'};
+    value.ledgers[`${key}-ledger`]={schemaVersion:9,revision:'1',venue,market:key,marketIndex:index,settlement:'0',insurance:index===0?'10':'0',fees:'0',insuranceFeeRemainder:0,version:'1',liabilityVersion:'0'};
   }
-  for(const [id,key] of value.members.entries())value.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:8,revision:'1',venue,
-    id,mode:0,subaccountIndex:0,isolatedMarketIndex:255,cash:'100',delegateEpoch:'1'};
+  for(const [id,key] of value.members.entries())value.roots[key]={...blank(sdk.getMarginAccountDecoder()),schemaVersion:9,revision:'1',venue,
+    id:String(id),lifecycle:2,activationGeneration:'1',mode:0,subaccountIndex:0,isolatedMarketIndex:255,cash:'100',delegateEpoch:'1'};
+  value.identities=Object.fromEntries(value.members.map((key,index)=>[String(index),key]));value.nextMemberId=String(value.members.length);value.registeredCount=value.nextMemberId;
   return value;
 }
 const event=(type:AccountEvent['type'],data:any):AccountEvent=>({type,data:{venue,sequence:'1',slot:'10',...data},
   signature:'signed',outer:0,inner:0,ordinal:0,slot:10,blockTime:10,bytes:'bounded-test-vector'});
-const init=()=>sdk.getAccountCustodyChangedEventEncoder().encode({schemaVersion:8,profileVersion:4,
+const init=()=>sdk.getAccountCustodyChangedEventEncoder().encode({schemaVersion:9,profileVersion:5,
   domain:new Uint8Array(32),venue,slot:10n,kind:0,actor:zero,subject:venue,index:0,amount:0n,
   members:[],ledgers:[],authority:zero,feeAuthority:zero,reserveAuthority:zero,reserveDestinationOwner:zero,
   quoteMint:zero,vault:zero,markets:[zero,zero],marketCount:0,insuranceFeeShareBps:2500,mode:0,paused:false,
   safetyEpoch:1n,termsEpoch:1n,configEpoch:1n,allocatedVault:0n,
-  membershipVersion:null,memberCount:null,actualVault:0n});
+  membershipVersion:null,memberCount:null,registeredCount:null,nextMemberId:null,actualVault:0n});
 const transaction=(payload=init())=>eventTransaction(payload,venue,zero);
 
 describe('schema-8 authenticated stream',()=>{
@@ -94,7 +95,7 @@ describe('per-market fractional accounting',()=>{
     // after the market adds I=10. Frozen custody remains C=200,I=10 until complete.
     const current=state();current.safety!.mode=2;current.safety!.paused=true;
     current.roots.debtor.cash='0';current.roots.winner.positions[0].virtualScaled='120000000000';
-    current.resolution={epoch:'1',stage:9,cursor:1,count:2,registryHash:'00'.repeat(32),safetyEpoch:'2',termsEpoch:'2',
+    current.resolution={epoch:'1',stage:9,cursor:'1',count:'2',registryHash:'00'.repeat(32),membershipEpoch:'3',safetyEpoch:'2',termsEpoch:'2',
       configEpochs:['1','1'],sourceObservations:['1','1'],sourceDeadlines:['100','100'],prices:['10','20'],funding:['0','0'],frozenAt:'90',
       cashBefore:'200',poolsBefore:['0','0'],insuranceBefore:['10','0'],feesBefore:['0','0'],allocatedBefore:'210',budgets:['10','0'],insuranceSpent:['10','0'],
       evaluation:0,clippedMask:0,rows:{},remainingCash:'100',appliedCash:'0',remainingLots:['0','0'],remainingGross:['0','0'],remainingClaims:['120000000000','0']};

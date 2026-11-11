@@ -54,3 +54,18 @@ pub struct StorageFunding {
     pub contributed_lamports: u64,
     pub bump: u8,
 }
+
+/// Permanent terminal marker. The original payer receipt remains immutable;
+/// only rent above this small marker's minimum is refundable.
+#[account(borsh)]
+#[derive(InitSpace, Default)]
+pub struct StorageTombstone {
+    pub schema_version: u16,
+    pub revision: u64,
+    pub venue: Address,
+    pub original_kind: u8,
+    pub completed_epoch: u64,
+    pub register: u32,
+    pub page_index: u64,
+    pub bump: u8,
+}

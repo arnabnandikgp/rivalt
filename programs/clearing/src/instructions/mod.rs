@@ -364,3 +364,8 @@ pub use account_membership::RetireMargin;
 pub(crate) use account_membership::__client_accounts_retiremargin;
 #[cfg(feature="cpi")]
 pub(crate) use account_membership::__cpi_accounts_retiremargin;
+
+pub use account_membership::RefundRecoveryAllocation;
+pub(crate) use account_membership::__client_accounts_refundrecoveryallocation;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_refundrecoveryallocation;
