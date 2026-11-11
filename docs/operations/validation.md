@@ -108,7 +108,12 @@ qualification checks, both disabled-default activation checks and the regenerate
 90-entrypoint inventory. The reviewed access delta is `check_market_backing`'s
 writable ledger, already implemented/measured by D102. Other changes are IDL hashes.
 Only tests and the bounded inventory change; the accepted program binary and signed
-financial results above remain the same. Hosted rerun is separately observed.
+financial results above remain the same. Hosted run 43122151935 passes financial,
+scope, report and shell. Its client suite catches the stale profile-5 frozen-proposal
+reader; clean `f560b05` updates that guard to profile 6 and passes all three focused
+proposal tests. A first worktree test attempt lacked workspace dependency links and
+ran no tests; after reusing existing dependencies the complete focused run passes.
+No SBF/economic change or additional signed acceptance is claimed for this guard fix.
 
 ## Maintained backing arithmetic (P55B1)
 
