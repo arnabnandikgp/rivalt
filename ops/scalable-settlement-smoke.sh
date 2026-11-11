@@ -61,5 +61,9 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
 if [[ "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 ]]; then source ops/postgres.sh; fi
-node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts
+case "${RIVALT_SETTLEMENT_PROBE:-default}" in
+  default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
+  membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;
+  *) echo 'Unknown settlement probe' >&2; exit 1 ;;
+esac
 printf 'Frozen verifier probe: %s\n' "$RIVALT_RUN_DIR"

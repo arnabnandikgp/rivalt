@@ -695,11 +695,15 @@ Current consumer work replaces fixed-member scan adapters and old solver calls,
 regenerates **all three** source IDLs (including maker-imported clearing layouts),
 and adds the explicit D101 ABI delta over immutable P55A1. Eleven focused
 conformance/economics tests, fourteen wire-guard tests and typecheck pass. The
-first refactored custody run (`7574fde`) completed its signed financial assertions
-but failed parity because it compared the deliberately removed owner-signer bit
-with a valid IDL-generated instruction. That one malformed-meta case now remains
-an actual signed rejection, explicitly omitted only from builder parity; a fresh
-custody run is required. No custody acceptance is claimed from that failed run.
+corrected custody verifier **`e8dfe31`** passes **234 signed outcomes / 26 expected
+rejections**, five Financial roots, real transfers/exits, exact 18-atom final
+insurance/vault backing and eight independently rejected raw-byte corruptions.
+Both isolated Anchor clients match 228 instructions / five accounts / 232 events;
+one intentionally malformed signer-bit rejection is explicitly outside builder
+parity. The earlier `7574fde` attempt reached the financial checks but failed that
+inapplicable parity comparison. Both raw captures are retained. A new focused
+interleaving harness now covers membership versus registration/trade/transfer,
+stale retirement after reentry, and freeze barriers; it is not run yet.
 The historical fixed-width SVM scratch probe and retained-schema-8 projection
 runner are retired at their `7b0ab07` Git provenance; paged arithmetic tests,
 signed resource measurements and actual PostgreSQL reconciliation replace them.
@@ -707,9 +711,9 @@ Automatic paged default continuation remains explicitly blocked until P56A; no
 success or durable-worker qualification is claimed. Current runtime commands reject
 schema-8 selected artifacts against schema-9 clients before deployment.
 
-No user decision/access blocker is known. Next exact action: finish and commit the
-focused custody verifier, run signed custody/transfer/withdrawal acceptance on
-`583dbcb`, finish remaining compatibility checks, then submit ready P55A2 above #81.
+No user decision/access blocker is known. Next exact action: commit and run the focused membership/trade/freeze
+interleaving probe on `583dbcb`, finish compatibility checks, then submit ready
+P55A2 above #81.
 
 ## Deployment and operational limits
 
