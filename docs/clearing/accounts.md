@@ -228,13 +228,53 @@ integral round, with no more than three evaluations. D98 defines reset authority
 and the 64-slot inactivity bound; reset cannot change frozen input or successful
 insurance rounds. Missing/stale/foreign account guards still fail atomically.
 
-Scoped history kinds 17–22 are PreparedSettlement, FrozenMarginPage,
-MemberIndexNode, MemberPage, SettlementLimbPage and SettlementRates. Their schema is 9; all existing
+Scoped history kinds 17–23 are PreparedSettlement, FrozenMarginPage,
+MemberIndexNode, MemberPage, SettlementLimbPage, SettlementRates and SettlementPlan. Their schema is 9; all existing
 financial kinds remain 8. The ABI extension is literal in
 [its checker](../../ops/settlement_wire_contract.py); existing instructions/layouts,
 seeds, discriminators, signing domains and errors are independently retained.
 The selected runtime artifacts and admitted capacity remain unchanged until
 actual acceptance. Generated clients do not establish deployed qualification.
+
+### Conserving plan and scalar pages (P54C in progress)
+
+`SettlementPlan` is a separate **1,181-byte** schema-9 account, seeded by
+`settlement-plan`, venue and epoch LE-u64. After the common prefix it binds the
+epoch, exact verified-rate revision/attempt, stage/cursor, proposer and progress
+slot, order attempt/market, integral insurance consumption, constructed graph
+length/required flow, original/applied cash, market movements and adoption revision.
+Its 960-byte stage-owned checkpoint begins at offset 220; the bump is at 1,180.
+Unused checkpoint tails must be zero. Generated IDL and the literal ABI checker
+specify every ordered field. The financial-application fields remain reserved at
+this construction checkpoint; no Apply instruction is implemented yet.
+
+The six new entrypoints initialize the plan/storage, accept a frozen row,
+begin/reset ordering and continue bounded work. They keep all source financial
+accounts read-only. Plan creation requires both complete rate verification and
+terminal original-budget insurance history with the identical integral result.
+Rows always come from the canonical frozen page. No uploader supplies flow floors,
+graph edges or work checkpoints. Scoped history owns all plan/page revisions.
+
+Existing limb pages also store fixed scalar records; no record crosses a page:
+
+| Register | Record | Capacity / page |
+|---|---|---|
+| 25–40 / 41–45 | Flow / order arithmetic | Count-derived wide width |
+| 64 | Frozen ID/cash, three floors, directions/fractions/order, seen attempt/mask, applied flag | 56 bytes; 36 rows |
+| 65 | Graph node | 72 bytes; 28 nodes |
+| 66 | Directed residual arc | 32 bytes; 64 arcs |
+| 67 | Adjacency arc ID | 256 u64 values |
+| 68 | Active hierarchy word | 256 u64 values |
+| 69 / 70 | BTC / ETH frozen ordinal permutation | 256 u64 values |
+
+The owner derives each register's capacity from count and graph topology; the
+loader authenticates its individual last-page length and rejects tail access.
+Flow bytes are ID at 0, cash at 8, floors at 16, directions at 40, fraction mask at
+42, local order at 43, order-attempt LE-u64 at 46, seen mask at 54 and applied bool
+at 55. Invalid flags/directions/permutations reject; an uninitialized zero row is
+invalid. Scalar encodings are explicit codecs, not fields inferred from the IDL's
+opaque word array. Program authentication and actual financial qualification are
+separate requirements; the selected runtime remains unchanged.
 
 ### Successor limb-page layout (P54B, inactive)
 

@@ -27,7 +27,7 @@ fn rounds(header: &PreparedSettlement, rates: &SettlementRates) -> Result<Insura
     ))
 }
 #[inline(never)]
-fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Result<RateInput> {
+pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Result<RateInput> {
     require!(
         header.stage == PROPOSAL
             && rates.schema_version == SETTLEMENT_SCHEMA
@@ -62,6 +62,33 @@ fn cursor(header: &PreparedSettlement, rates: &SettlementRates) -> Result<RateWo
         &rates.state.work,
         input(header, rates)?,
     ))
+}
+
+/// A completed rate evaluation alone is insufficient: its original-budget
+/// insurance history must also be terminal and its integral result identical.
+pub(super) fn verified_rates(
+    header: &PreparedSettlement,
+    rates: &SettlementRates,
+) -> Result<(
+    financial_core::clearing::scalable::rate_work::VerifiedRateValues,
+    [u64; 2],
+)> {
+    require!(
+        rates.stage == VERIFIED_RATE && rates.attempt > 0,
+        ClearingError::Resolution
+    );
+    let insurance = rounds(header, rates)?;
+    let (spent, _) = arithmetic(insurance.result())?;
+    let work = arithmetic(RateWork::from_checkpoint(
+        &rates.state.work,
+        input(header, rates)?,
+    ))?;
+    let result = arithmetic(work.result())?;
+    require!(
+        result.spent == spent && result.fractional == [false; 2],
+        ClearingError::Resolution
+    );
+    Ok((arithmetic(work.verified_values())?, spent))
 }
 pub fn rate_plan(header: &PreparedSettlement, rates: &SettlementRates) -> Result<PagePlan> {
     let work = cursor(header, rates)?;

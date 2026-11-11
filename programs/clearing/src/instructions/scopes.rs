@@ -809,3 +809,90 @@ context!(ContinueSettlementRates, source.venue, event_authority;
     rates: Write,
 ];
 []);
+
+context!(InitializeSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Create,
+];
+[]);
+
+context!(InitializeSettlementPlanPage, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Read,
+    page: Create,
+];
+[]);
+
+context!(AcceptSettlementPlanRow, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+    page: Read,
+];
+[]);
+
+context!(ManageSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(ContinueSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);

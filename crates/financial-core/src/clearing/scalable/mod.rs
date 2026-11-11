@@ -9,6 +9,7 @@ pub mod comparison;
 pub mod denominator;
 pub mod flow_work;
 pub mod graph_build;
+pub mod graph_pages;
 pub mod graph_work;
 pub mod insurance_rounds;
 pub mod membership;

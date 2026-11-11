@@ -293,6 +293,108 @@ pub mod clearing {
             },
         )
     }
+    pub fn initialize_settlement_plan(
+        ctx: &mut Context<InitializeSettlementPlan>,
+        epoch: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [142, 104, 12, 214, 212, 137, 32, 109],
+            false,
+            |ctx, _events| account_safety::settlement::initialize_plan(ctx, epoch),
+        )
+    }
+    pub fn initialize_settlement_plan_page(
+        ctx: &mut Context<InitializeSettlementPlanPage>,
+        epoch: u64,
+        register: u32,
+        page_index: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [253, 190, 72, 214, 255, 210, 221, 29],
+            false,
+            |ctx, _events| {
+                account_safety::settlement::initialize_plan_page(ctx, epoch, register, page_index)
+            },
+        )
+    }
+    pub fn accept_settlement_plan_row(
+        ctx: &mut Context<AcceptSettlementPlanRow>,
+        epoch: u64,
+        revision: u64,
+        ordinal: u64,
+        attempt: u64,
+        revisions: [u64; 3],
+    ) -> Result<()> {
+        let plan = account_safety::settlement::settlement_plan_row_pages(
+            &ctx.accounts.prepared,
+            &ctx.accounts.rates,
+            &ctx.accounts.plan,
+            ordinal,
+        )?;
+        scoped_history::run_pages(
+            ctx,
+            [114, 88, 4, 27, 204, 53, 88, 130],
+            plan,
+            |ctx, _events| {
+                account_safety::settlement::accept_plan_row(
+                    ctx, epoch, revision, ordinal, attempt, revisions,
+                )
+            },
+        )
+    }
+    pub fn begin_settlement_plan_order(
+        ctx: &mut Context<ManageSettlementPlan>,
+        epoch: u64,
+        revision: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [204, 83, 186, 130, 114, 186, 221, 230],
+            false,
+            |ctx, _events| account_safety::settlement::begin_plan_order(ctx, epoch, revision),
+        )
+    }
+    pub fn reset_settlement_plan_order(
+        ctx: &mut Context<ManageSettlementPlan>,
+        epoch: u64,
+        revision: u64,
+        attempt: u64,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [238, 168, 72, 132, 250, 98, 141, 30],
+            false,
+            |ctx, _events| {
+                account_safety::settlement::reset_plan_order(ctx, epoch, revision, attempt)
+            },
+        )
+    }
+    pub fn continue_settlement_plan(
+        ctx: &mut Context<ContinueSettlementPlan>,
+        epoch: u64,
+        revision: u64,
+        attempt: u64,
+        steps: u16,
+        revisions: [u64; 3],
+    ) -> Result<()> {
+        let plan = account_safety::settlement::settlement_plan_pages(
+            &ctx.accounts.prepared,
+            &ctx.accounts.rates,
+            &ctx.accounts.plan,
+        )?;
+        scoped_history::run_pages(
+            ctx,
+            [244, 56, 133, 188, 70, 13, 9, 96],
+            plan,
+            |ctx, _events| {
+                account_safety::settlement::continue_plan(
+                    ctx, epoch, revision, attempt, steps, revisions,
+                )
+            },
+        )
+    }
     pub fn activate_liquidity(ctx: &mut Context<ActivateAccounts>) -> Result<()> {
         scoped_history::run(
             ctx,

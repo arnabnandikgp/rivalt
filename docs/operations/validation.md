@@ -23,7 +23,7 @@ on-chain graph construction, payouts, token exits, SQL replay, larger population
 CU, heap/stack, latency or affordability. Raw development logs remain at
 `.local/scalable-settlement/p54c-flow-development/`.
 
-The subsequent development tree adds a bounded persisted graph constructor and
+Clean **`ae33d3377de817db83c7b578b0b31f7b18378abf`** adds a bounded persisted graph constructor and
 exact market-order cursor. All 774 independent payout cases also compare every
 newly constructed node, arc and adjacency with the retained canonical topology,
 starting from poisoned scratch. Each construction step performs at most three
@@ -31,7 +31,19 @@ record accesses. Exact order verification accepts 835 independent valid sequence
 and rejects 1,197 reversed/tied/duplicate/incomplete sequences; maximum 1,981 word
 steps/cohort in these fixtures. Permutation markers are still native test transport,
 not authenticated program records. Two additional codec tests and SBF metadata
-compilation pass. The extension's clean pin and program acceptance remain pending.
+compilation pass. Program acceptance remains pending.
+
+The subsequent development controller adds six public entrypoints, a 1,181-byte
+owned plan and scalar records inside the existing authenticated limb pages. Three
+native controller tests pass: independently derived half-atom tie ownership across
+1/7/128-step restarts, a 65-row physical-page case, duplicate/reversed-order and
+stale/incomplete rate-history rejection, and revision/attempt/64-slot recovery
+boundaries. Each work/row step uses the real PageWindow loader and serialized plan;
+the test transport supplies account bytes, not signed transactions. Two scalar
+codec/layout tests pass. Generated SDK, retained D90 plus literal new ABI and
+83-entrypoint inventory agree; existing financial access sets are unchanged.
+Clean pin, linked SBF, actual new instruction execution and financial acceptance
+are still pending. No new CU, financial population or deployment claim follows.
 
 ## Authenticated frozen and rate verification (P54B)
 

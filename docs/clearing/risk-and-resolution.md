@@ -298,13 +298,26 @@ used active hierarchy before populating it, overwrites every readable graph reco
 and derives all auxiliary capacities; no uploaded edge is accepted. Each step
 accesses at most two records and performs at most three reads/writes. Native
 transport compares every constructed node/arc/adjacency with the retained canonical
-model before independently checking final atom owners. It is **not yet** an
-on-chain construction proof. Checkpoint codecs validate structure, exact bindings
+model before independently checking final atom owners. This native comparison is
+not a signed on-chain construction proof. Checkpoint codecs validate structure, exact bindings
 and nested operation types, but cannot authenticate caller-provided progress.
-D99 specifies exclusive plan adoption and recoverable order attempts. Program-owned
-pages, canonical order/permutation authentication, application,
-reconciliation and recovery remain required before financial exposure. No new
-entrypoint, financial writer or expanded population is enabled by these modules.
+D99 specifies exclusive plan adoption and recoverable order attempts. The current
+program controller now authenticates the frozen source, completed rate/insurance
+history and canonical scalar pages. It derives each flow in ordinal order, then
+accepts exactly one occurrence of every frozen ordinal in each market order using
+per-root attempt/seen markers. Exact positive remainders and stable-ID ties are
+checked before constructing the graph. Attempts cannot overwrite completed rate
+pages. Invalid order records Rejected; malformed account/epoch/revision access
+fails atomically. Only the order proposer supplies permutation rows; anyone may
+continue arithmetic. Proposer cancellation or 64-slot stalled/rejected recovery
+restarts ordering, retaining original floors and insurance. There is no heartbeat.
+
+Both complete permutations advance irreversibly to deterministic construction and
+audited circulation. Ready means that verification finished, **not** payout
+authority. All six new entrypoints keep the original financial accounts read-only.
+Adoption, exactly-once application/reconciliation, recovery, token exits and signed
+RPC/WS/SQL acceptance remain unfinished. No selected artifact, financial writer or
+expanded population is activated by this construction checkpoint.
 
 ### Frozen work, completion and adversarial proposals
 

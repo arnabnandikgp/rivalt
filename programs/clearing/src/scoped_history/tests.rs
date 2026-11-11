@@ -334,12 +334,12 @@ fn bytes<T: SchemaWrite<anchor_lang::BorshConfig, Src = T>>(value: &T) -> Vec<u8
 #[test]
 fn successor_schema_is_kind_bound_and_raw_page_writes_advance_once() {
     let key = Address::new_unique();
-    for kind in 17..=22 {
+    for kind in 17..=23 {
         assert!(Scope::new().visit(key, kind, 8, 1, Access::Read).is_err());
         assert!(Scope::new().visit(key, kind, 9, 1, Access::Read).is_ok());
     }
     assert!(Scope::new().visit(key, 5, 9, 1, Access::Read).is_err());
-    assert!(Scope::new().visit(key, 23, 9, 1, Access::Read).is_err());
+    assert!(Scope::new().visit(key, 24, 9, 1, Access::Read).is_err());
     let page = SettlementLimbPage {
         schema_version: 9,
         revision: 11,
@@ -396,5 +396,30 @@ fn rate_work_creation_and_read_use_the_successor_schema_mapping() {
         .is_err());
     assert!(Scope::new()
         .visit(key, u8::MAX, 0, 0, Access::Create)
+        .is_err());
+}
+
+#[test]
+fn conserving_plan_creation_and_read_use_append_only_kind_23() {
+    let kind = <SettlementPlan as Revisioned>::KIND;
+    assert_eq!(kind, 23);
+    let key = Address::new_unique();
+    let mut scope = Scope::new();
+    assert_eq!(scope.visit(key, kind, 0, 0, Access::Create).unwrap(), 0);
+    scope.cursor = Some(0);
+    assert_eq!(
+        scope
+            .visit(key, kind, SETTLEMENT_SCHEMA, 0, Access::Create)
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        Scope::new()
+            .visit(key, kind, SETTLEMENT_SCHEMA, 1, Access::Read)
+            .unwrap(),
+        1
+    );
+    assert!(Scope::new()
+        .visit(key, kind, SCHEMA_VERSION, 1, Access::Read)
         .is_err());
 }

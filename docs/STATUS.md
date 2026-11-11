@@ -21,7 +21,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
 | P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
 | P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
-| P54C conserving settlement | In progress | Exact per-root flows/order and persisted graph primitives pass native independent cases; authenticated construction, Apply/recovery and signed token/SQL acceptance remain; no PR or activation yet |
+| P54C conserving settlement | In progress | Native flow/order/graph vectors and initial owned controller/page checks pass; compiled construction, Apply/recovery and signed token/SQL acceptance remain; no PR or activation yet |
 | P55A–P62 successor implementation | Planned | Membership, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -54,7 +54,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P54C authenticated flow/order/graph construction, then
+Next exact action: compile and qualify P54C authenticated flow/order/graph construction, then
 exactly-once application/recovery and signed token/SQL acceptance above #79; leave every PR open.
 
 ## Remediation planning
@@ -621,19 +621,26 @@ Four focused codec/hierarchy tests, pinned SBF metadata compilation and evidence
 policy pass. These are clean native results; metadata compilation is not a linked
 SBF run, measured CU, RPC or larger-cohort acceptance.
 
-Further development adds persisted exact market ordering (835 valid / 1,197
+Clean **`ae33d33`** adds persisted exact market ordering (835 valid / 1,197
 invalid orders) and a 384-byte graph constructor. The constructor overwrites dirty
 records, derives all topology and active bits, and matches the canonical graph in
 all 774 native payout cases. Two new codec tests and SBF metadata compilation pass;
-this extension's clean pin is pending. D99 records exclusive Apply adoption,
+this extension is native-only. D99 records exclusive Apply adoption,
 recoverable order attempts and unchanged recovery/economics.
 
-Program-page authentication of flows/orders/construction, exactly-once
-Apply/Reconcile, recovery, token exits and fresh PostgreSQL replay remain.
-No financial instruction, selected artifact or admitted population changes.
+The development controller now binds flows/orders/construction to authenticated
+source/rate/page accounts through six new entrypoints. Three native tests cover
+literal half-atom ownership, 1/7/128-step checkpoints, 65-row physical page crossing,
+duplicate/tie-reversal and incomplete/stale binding refusal, and order-reset
+authority/progress boundaries. Scalar codecs, generated SDK, literal ABI and
+83-entrypoint access inventory agree. Clean controller pin and compiled execution
+remain pending; these native checks do not qualify a larger live cohort.
+
+Exactly-once Apply/Reconcile, recovery, token exits and fresh PostgreSQL replay
+remain. No financial writer, selected artifact or admitted population changes.
 No P54C PR is opened and no user decision/access blocker is known. Exact next
-action: finish the authenticated construction controller above these primitives,
-then qualify its complete application/recovery path. P15B/P16B stay Open and
+action: validate the compiled controller, implement exclusive adoption and
+exactly-once application, then qualify recovery and SQL/token exits. P15B/P16B stay Open and
 24-hour endurance Deferred.
 
 ## Deployment and operational limits

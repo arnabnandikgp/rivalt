@@ -28,10 +28,12 @@ TYPES = {
     'MemberIndexNode': PREFIX+'level:u8 prefix:u64 populated_mask:u16 counts:u64[16] bump:u8',
     'RateCheckpoints': 'insurance:u8[64] work:u8[960]',
     'SettlementRates': PREFIX+'epoch:u64 attempt:u64 stage:u8 proposer:pubkey last_progress_slot:u64 factor:u64[5] lengths:u64[2] uploaded:u64[2] state:RateCheckpoints bump:u8',
+    'PlanCheckpoint': 'bytes:u8[960]',
+    'SettlementPlan': PREFIX+'epoch:u64 rates_revision:u64 rates_attempt:u64 stage:u8 cursor:u64 proposer:pubkey last_progress_slot:u64 order_attempt:u64 order_market:u8 insurance_spent:u64[2] graph_length:u64 graph_required:u64 original_cash_remaining:u64 cash_applied:u64 market_movements:i128[2] adoption_revision:u64 work:PlanCheckpoint bump:u8',
     'PreparationState': 'membership:u8[544] valuation:u8[288] denominator:u8[320]',
     'PreparedSettlement': PREFIX+'epoch:u64 source:pubkey source_revision:u64 registry_revision:u64 membership_epoch:u64 registry_hash:u8[32] count:u64 safety_epoch:u64 terms_epoch:u64 config_epochs:u64[2] prices:u64[2] funding:i128[2] allocated:u64 pools:u64[2] insurance:u64[2] fees:u64[2] gross:u64[2] stage:u8 index_initialized:u16 member_page_initialized:bool state:PreparationState bump:u8',
 }
-ACCOUNTS = {'FrozenMarginPage','SettlementLimbPage','MemberPage','MemberIndexNode','PreparedSettlement','SettlementRates'}
+ACCOUNTS = {'FrozenMarginPage','SettlementLimbPage','MemberPage','MemberIndexNode','PreparedSettlement','SettlementRates','SettlementPlan'}
 # Readonly source fields cannot become a hidden mutation of current finances.
 SOURCE = 'venue custody safety registry resolution btc eth btc_ledger eth_ledger vault'
 TAIL = 'event_authority program'
@@ -52,10 +54,17 @@ INSTRUCTIONS = {
     'accept_settlement_rate_row': (f'{SOURCE} prepared rates+ page {TAIL}', 'epoch:u64 revision:u64 attempt:u64'),
     'continue_settlement_rates': (f'{SOURCE} prepared rates+ {TAIL}', 'epoch:u64 revision:u64 attempt:u64 steps:u16 revisions:u64[3]'),
     'continue_settlement_denominator': (f'{SOURCE} prepared+ {TAIL}', 'epoch:u64 revision:u64 steps:u16 revisions:u64[3]'),
+    'initialize_settlement_plan': (f'payer! {SOURCE} prepared rates plan+ system_program {TAIL}', 'epoch:u64'),
+    'initialize_settlement_plan_page': (f'payer! {SOURCE} prepared rates plan page+ system_program {TAIL}', 'epoch:u64 register:u32 page_index:u64'),
+    'accept_settlement_plan_row': (f'{SOURCE} prepared rates plan+ page actor^ {TAIL}', 'epoch:u64 revision:u64 ordinal:u64 attempt:u64 revisions:u64[3]'),
+    'begin_settlement_plan_order': (f'{SOURCE} prepared rates plan+ actor^ {TAIL}', 'epoch:u64 revision:u64'),
+    'reset_settlement_plan_order': (f'{SOURCE} prepared rates plan+ actor^ {TAIL}', 'epoch:u64 revision:u64 attempt:u64'),
+    'continue_settlement_plan': (f'{SOURCE} prepared rates plan+ {TAIL}', 'epoch:u64 revision:u64 attempt:u64 steps:u16 revisions:u64[3]'),
 }
 DOMAINS = ['account:MemberIndexNode','account:MemberPage','account:PreparedSettlement',
            'account:SettlementLimbPage','frozen-margin-page','member-index',
-           'member-page','prepared-settlement','resolution-limbs','settlement-rates','account:SettlementRates']
+           'member-page','prepared-settlement','resolution-limbs','settlement-rates','account:SettlementRates',
+           'settlement-plan','account:SettlementPlan']
 
 def strip_additions(idl):
     """Check the literal extension first; return the untouched predecessor surface."""

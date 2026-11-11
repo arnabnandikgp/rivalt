@@ -273,3 +273,28 @@ pub(crate) use account_safety::settlement::__client_accounts_continuesettlementr
 #[cfg(feature = "cpi")]
 pub(crate) use account_safety::settlement::__cpi_accounts_continuesettlementrates;
 pub use account_safety::settlement::ContinueSettlementRates;
+
+pub(crate) use account_safety::settlement::__client_accounts_initializesettlementplan;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_initializesettlementplan;
+pub use account_safety::settlement::InitializeSettlementPlan;
+
+pub(crate) use account_safety::settlement::__client_accounts_initializesettlementplanpage;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_initializesettlementplanpage;
+pub use account_safety::settlement::InitializeSettlementPlanPage;
+
+pub(crate) use account_safety::settlement::__client_accounts_acceptsettlementplanrow;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_acceptsettlementplanrow;
+pub use account_safety::settlement::AcceptSettlementPlanRow;
+
+pub(crate) use account_safety::settlement::__client_accounts_managesettlementplan;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_managesettlementplan;
+pub use account_safety::settlement::ManageSettlementPlan;
+
+pub(crate) use account_safety::settlement::__client_accounts_continuesettlementplan;
+#[cfg(feature = "cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_continuesettlementplan;
+pub use account_safety::settlement::ContinueSettlementPlan;

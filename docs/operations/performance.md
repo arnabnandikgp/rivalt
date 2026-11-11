@@ -129,8 +129,9 @@ programs. Establish a measured capacity envelope and explicit cost scenarios.
 
 `node --import tsx tests/performance/inventory.ts` checks the bounded generated
 [inventory](../../tests/performance/baselines/current-locks.json) against all three
-current IDLs: 69 clearing entrypoints and four each for maker A/B. P54B adds
-16 verification-only entrypoints; the retained 61 access sets are unchanged and
+current IDLs: 75 clearing entrypoints and four each for maker A/B. P54B adds
+16 verification-only entrypoints and P54C adds six plan-construction entrypoints;
+the retained 61 access sets are unchanged and
 custody still has 20 declared writers. New verification writes target only its
 scratch records and, during allocation, the rent payer. Dynamic limb pages are
 validated from the derived per-step plan. The inventory includes
