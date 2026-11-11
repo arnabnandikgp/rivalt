@@ -12,6 +12,13 @@ fi
 # The SDK pins the qualified local artifacts; retained P44/C0 remain separate.
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
+node --import tsx --input-type=module -e '
+  import assert from "node:assert/strict";
+  import {readFileSync} from "node:fs";
+  import {ACCOUNT_SCHEMA} from "./packages/sdk/src/account-membership.ts";
+  const manifest=JSON.parse(readFileSync(process.env.RIVALT_ARTIFACT_DIR+"/build-manifest.json","utf8"));
+  assert.equal(manifest.accountSchema,ACCOUNT_SCHEMA,"Selected runtime predates this SDK. Schema-9 canonical runtime qualification/promotion is pending P56; use the explicitly pinned membership/default probes.");
+'
 test "$(surfpool --version)" = 'surfpool 1.7.0'
 # Browser qualification must consume this checkout's schema/SDK, never a stale
 # ignored dist directory left by an older phase.

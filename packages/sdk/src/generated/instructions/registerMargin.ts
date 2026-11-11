@@ -14,8 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   getU8Decoder,
   getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -73,6 +73,7 @@ export type RegisterMarginInstruction<
   TAccountRegistry extends string | AccountMeta<string> = string,
   TAccountPortfolio extends string | AccountMeta<string> = string,
   TAccountMargin extends string | AccountMeta<string> = string,
+  TAccountMembers extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TAccountEventAuthority extends string | AccountMeta<string> = string,
@@ -104,6 +105,9 @@ export type RegisterMarginInstruction<
       TAccountMargin extends string
         ? WritableAccount<TAccountMargin>
         : TAccountMargin,
+      TAccountMembers extends string
+        ? WritableAccount<TAccountMembers>
+        : TAccountMembers,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -136,7 +140,7 @@ export function getRegisterMarginInstructionDataEncoder(): FixedSizeEncoder<Regi
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["subaccountIndex", getU16Encoder()],
+      ["subaccountIndex", getU32Encoder()],
       ["mode", getU8Encoder()],
       ["isolatedMarketIndex", getU8Encoder()],
       ["role", getU8Encoder()],
@@ -148,7 +152,7 @@ export function getRegisterMarginInstructionDataEncoder(): FixedSizeEncoder<Regi
 export function getRegisterMarginInstructionDataDecoder(): FixedSizeDecoder<RegisterMarginInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["subaccountIndex", getU16Decoder()],
+    ["subaccountIndex", getU32Decoder()],
     ["mode", getU8Decoder()],
     ["isolatedMarketIndex", getU8Decoder()],
     ["role", getU8Decoder()],
@@ -173,6 +177,7 @@ export type RegisterMarginAsyncInput<
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
   TAccountPortfolio extends InstructionAccountInput = InstructionAccountInput,
   TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
@@ -186,6 +191,7 @@ export type RegisterMarginAsyncInput<
   registry?: TAccountRegistry;
   portfolio: TAccountPortfolio;
   margin?: TAccountMargin;
+  members: TAccountMembers;
   systemProgram?: TAccountSystemProgram;
   /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority?: TAccountEventAuthority;
@@ -205,6 +211,7 @@ export async function getRegisterMarginInstructionAsync<
   TAccountRegistry extends InstructionAccountInput,
   TAccountPortfolio extends InstructionAccountInput,
   TAccountMargin extends InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
@@ -218,6 +225,7 @@ export async function getRegisterMarginInstructionAsync<
     TAccountRegistry,
     TAccountPortfolio,
     TAccountMargin,
+    TAccountMembers,
     TAccountSystemProgram,
     TAccountEventAuthority,
     TAccountProgram
@@ -255,6 +263,10 @@ export async function getRegisterMarginInstructionAsync<
     ResolvedInstructionAccountMeta<
       TAccountMargin,
       InstructionAccountInputAddress<TAccountMargin>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
@@ -302,6 +314,11 @@ export async function getRegisterMarginInstructionAsync<
       isWritable: true,
     },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
+    members: {
+      value: input.members ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
     systemProgram: {
       value: input.systemProgram ?? null,
       isSigner: false,
@@ -394,6 +411,7 @@ export async function getRegisterMarginInstructionAsync<
       getAccountMeta("registry", accounts.registry),
       getAccountMeta("portfolio", accounts.portfolio),
       getAccountMeta("margin", accounts.margin),
+      getAccountMeta("members", accounts.members),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
@@ -433,6 +451,10 @@ export async function getRegisterMarginInstructionAsync<
       InstructionAccountInputAddress<TAccountMargin>
     >,
     ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
+    >,
+    ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
     >,
@@ -455,6 +477,7 @@ export type RegisterMarginInput<
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
   TAccountPortfolio extends InstructionAccountInput = InstructionAccountInput,
   TAccountMargin extends InstructionAccountInput = InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput =
@@ -468,6 +491,7 @@ export type RegisterMarginInput<
   registry: TAccountRegistry;
   portfolio: TAccountPortfolio;
   margin: TAccountMargin;
+  members: TAccountMembers;
   systemProgram?: TAccountSystemProgram;
   /** CHECK: Only the event authority can invoke self-CPI */
   eventAuthority: TAccountEventAuthority;
@@ -487,6 +511,7 @@ export function getRegisterMarginInstruction<
   TAccountRegistry extends InstructionAccountInput,
   TAccountPortfolio extends InstructionAccountInput,
   TAccountMargin extends InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
   TAccountEventAuthority extends InstructionAccountInput,
   TAccountProgram extends InstructionAccountInput,
@@ -500,6 +525,7 @@ export function getRegisterMarginInstruction<
     TAccountRegistry,
     TAccountPortfolio,
     TAccountMargin,
+    TAccountMembers,
     TAccountSystemProgram,
     TAccountEventAuthority,
     TAccountProgram
@@ -536,6 +562,10 @@ export function getRegisterMarginInstruction<
   ResolvedInstructionAccountMeta<
     TAccountMargin,
     InstructionAccountInputAddress<TAccountMargin>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountMembers,
+    InstructionAccountInputAddress<TAccountMembers>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSystemProgram,
@@ -582,6 +612,11 @@ export function getRegisterMarginInstruction<
       isWritable: true,
     },
     margin: { value: input.margin ?? null, isSigner: false, isWritable: true },
+    members: {
+      value: input.members ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
     systemProgram: {
       value: input.systemProgram ?? null,
       isSigner: false,
@@ -621,6 +656,7 @@ export function getRegisterMarginInstruction<
       getAccountMeta("registry", accounts.registry),
       getAccountMeta("portfolio", accounts.portfolio),
       getAccountMeta("margin", accounts.margin),
+      getAccountMeta("members", accounts.members),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("eventAuthority", accounts.eventAuthority),
       getAccountMeta("program", accounts.program),
@@ -660,6 +696,10 @@ export function getRegisterMarginInstruction<
       InstructionAccountInputAddress<TAccountMargin>
     >,
     ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
+    >,
+    ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
       InstructionAccountInputAddress<TAccountSystemProgram>
     >,
@@ -687,11 +727,12 @@ export type ParsedRegisterMarginInstruction<
     registry: TAccountMetas[4];
     portfolio: TAccountMetas[5];
     margin: TAccountMetas[6];
-    systemProgram: TAccountMetas[7];
+    members: TAccountMetas[7];
+    systemProgram: TAccountMetas[8];
     /** CHECK: Only the event authority can invoke self-CPI */
-    eventAuthority: TAccountMetas[8];
+    eventAuthority: TAccountMetas[9];
     /** CHECK: Kept for v1-compatible account ordering and IDL shape */
-    program: TAccountMetas[9];
+    program: TAccountMetas[10];
   };
   data: RegisterMarginInstructionData;
 };
@@ -704,12 +745,12 @@ export function parseRegisterMarginInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedRegisterMarginInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 10) {
+  if (instruction.accounts.length < 11) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 10,
+        expectedAccountMetas: 11,
       },
     );
   }
@@ -729,6 +770,7 @@ export function parseRegisterMarginInstruction<
       registry: getNextAccount(),
       portfolio: getNextAccount(),
       margin: getNextAccount(),
+      members: getNextAccount(),
       systemProgram: getNextAccount(),
       eventAuthority: getNextAccount(),
       program: getNextAccount(),

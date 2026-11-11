@@ -36,6 +36,13 @@ pub struct ActivateAccounts {
     #[account(seeds = [b"resolution-v3", qualification.venue.address().as_ref()], bump = resolution.bump,
         constraint = resolution.venue == qualification.venue.address().to_owned() @ ClearingError::Profile)]
     pub resolution: Box<BorshAccount<Resolution>>,
+    #[account(seeds=[b"registry-v3",qualification.venue.address().as_ref()],bump=registry.bump,
+        constraint=registry.venue == *qualification.venue.address() @ ClearingError::Resolution)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(seeds=[b"recovery-storage",qualification.venue.address().as_ref()],bump=storage.bump,
+        constraint=storage.venue == *qualification.venue.address() @ ClearingError::Resolution)]
+    pub storage: Box<BorshAccount<RecoveryStorage>>,
+
 }
 
 fn storage_ready(header: &Resolution, safety: &VenueSafety) -> Result<()> {
@@ -43,7 +50,7 @@ fn storage_ready(header: &Resolution, safety: &VenueSafety) -> Result<()> {
         header.schema_version == SCHEMA_VERSION
             && header.epoch == 0
             && header.stage == 0
-            && usize::from(header.cursor) == MAX_MEMBERS / RESOLUTION_PAGE_ROWS
+            && header.cursor == 0
             && header.count == 0
             && safety.resolution_epoch == 0,
         ClearingError::Resolution
@@ -61,10 +68,13 @@ pub fn activate_liquidity(
     require!(
         remaining_accounts.is_empty()
             && cfg!(feature = "liquidity-execution-qualification")
-            && ctx.accounts.qualification.venue.profile_version == 4,
+            && ctx.accounts.qualification.venue.profile_version == PROFILE_VERSION,
         ClearingError::Profile
     );
     storage_ready(&ctx.accounts.resolution, &ctx.accounts.qualification.safety)?;
+    crate::instructions::account_membership::members::registry(&ctx.accounts.registry)?;
+    require!(ctx.accounts.storage.model().locked_epoch == 0, ClearingError::Resolution);
+    ctx.accounts.storage.model().admits(ctx.accounts.registry.financial_count).map_err(|_| ClearingError::Capacity)?;
     transition_accounts(&mut ctx.accounts.qualification, events)
 }
 
@@ -124,18 +134,18 @@ mod tests {
     #[test]
     fn current_activation_rejects_retired_profiles_pauses_and_nontrading_modes() {
         let mut venue = Venue {
-            schema_version: 8,
-            profile_version: 4,
+            schema_version: SCHEMA_VERSION,
+            profile_version: PROFILE_VERSION,
             market_count: 2,
             insurance_fee_share_bps: 2500,
             ..Default::default()
         };
         let custody = Custody {
-            schema_version: 8,
+            schema_version: SCHEMA_VERSION,
             ..Default::default()
         };
         let mut safety = VenueSafety {
-            schema_version: 8,
+            schema_version: SCHEMA_VERSION,
             mode: ACTIVE,
             ..Default::default()
         };
@@ -151,24 +161,24 @@ mod tests {
         safety.paused = true;
         assert!(activated(&venue, &custody, &safety).is_err());
         safety.paused = false;
-        for version in [0, 1, 2, 3, 5] {
+        for version in [0, 1, 2, 3, 4, 6] {
             venue.profile_version = version;
             assert!(activated(&venue, &custody, &safety).is_err());
         }
     }
 
     #[test]
-    fn fresh_activation_requires_all_precreated_pages_and_no_previous_resolution() {
+    fn fresh_activation_requires_unused_scalar_source_and_no_previous_resolution() {
         let mut header = Resolution {
             schema_version: SCHEMA_VERSION,
             ..Default::default()
         };
         let mut safety = VenueSafety::default();
-        for cursor in 0..32 {
+        for cursor in 1..=32 {
             header.cursor = cursor;
             assert!(storage_ready(&header, &safety).is_err());
         }
-        header.cursor = 32;
+        header.cursor = 0;
         storage_ready(&header, &safety).unwrap();
         header.epoch = 1;
         assert!(storage_ready(&header, &safety).is_err());

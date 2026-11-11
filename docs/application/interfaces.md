@@ -3,9 +3,12 @@
 ## Planned account-scale interface (P51B)
 
 The schema-9/profile-5 [account contract](../clearing/accounts.md#account-scale-successor-contract-p51b)
-is a design candidate only; current clients below remain schema 8. P56A must add an
-explicit fresh deployment binding, generated IDL/codecs and staged completeness
-before any expanded profile is enabled. u64 member IDs/cursors are decimal strings
+is implemented in the P55A2 source and generated codecs. The
+selected, qualified artifact remains schema 8; these clients cannot reinterpret
+that deployment. P55A2 has a pinned schema-9 candidate and signed lifecycle/default evidence;
+complete UI/worker acceptance and runtime promotion remain P56A/P56B in STATUS.
+P56A owns complete UI and restartable worker integration before expanded financial
+activation. u64 member IDs/cursors are decimal strings
 in JSON and bigint internally; u32 portfolio/child keys have explicit bounds.
 Never cast a member ID into a JS number or confuse a page slot with a global ID.
 
@@ -32,11 +35,21 @@ readiness rules rather than invent the future layout.
 pins, genesis and the actual initialization signature/hash. Configuration includes
 RPC/WS URLs, venue, mint and domain. Never infer a deployment from a port or retained
 acceptance dump. The fresh RC2 deployment requires explicit
-`accountSchema: 8` in addition to transport `version: 4` and the local profile;
-missing/old schema selection rejects. All clearing-owned decoders use schema 8,
+`accountSchema: 9` in addition to transport `version: 4` and the local profile;
+missing/old schema selection rejects. The in-progress clearing-owned decoders use schema 9 / on-chain profile 5,
 while maker-owned curve/price schemas advance to 5; quote/report protocol versions remain unchanged. This is a fresh-domain/client change,
 not permission to upgrade retained state or replay old signed originals. [Deployment](../operations/deployment.md) owns
 artifact and key configuration; [routing](../liquidity/routing.md) owns snapshots.
+
+Minimum lifecycle builders distinguish registration, Financial activation,
+deactivation and permanent retirement. Namespace seeds are u32; member IDs remain
+u64/bigint. `readMarginMembership` authenticates the canonical member page and all
+fifteen revision-guarded index nodes for entry/exit. Empty retirement does not need
+funded index/storage accounts. Owner discovery reads the current bounded child
+namespace and validates tombstones rather than interpreting `activeChildren` as a
+bitmap. Ordinary money/trade snapshots require Financial roots with nonzero
+activation generation. These are client checks; landed clearing admission remains
+authoritative. Complete wallet/UI flow acceptance remains P56A work.
 
 P47 qualifies the exact C0 local artifacts. Normal launchers use the separate
 `.local/anchor-rc2/current` directory; deployment binding and executable hash checks
@@ -142,7 +155,7 @@ independent operators, or assumed hedges as observed costs. Instrumented local
 Wallet Standard browser evidence is distinct from external-provider compatibility.
 
 The current RC2 account-schema-8 deployment retains API version 4 but requires
-`accountSchema: 8` in deployment configuration and API envelopes. `asOf.cursor`
+`accountSchema: 9` in deployment configuration and API envelopes. `asOf.cursor`
 is the journal-local financial-payload cursor, `asOf.cursorScope` identifies that
 scope, and `asOf.blockhash`/`slot` identify its complete finalized block fence.
 Scoped revisions authenticate protocol history; UI pagination cursors do not.

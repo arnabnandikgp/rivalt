@@ -1,3 +1,4 @@
+import {registerFinancialTestMargin} from './account-membership-setup.js';
 import assert from 'node:assert/strict';
 import { type Address } from '@solana/kit';
 import { getMintToInstruction } from '@solana-program/token';
@@ -27,7 +28,7 @@ export async function qualificationSetup(h: CanonicalHarness, rpc: WireRpc, prof
     }
     async function register(subaccountIndex: number, mode: number, isolatedMarketIndex: number, role: number, amount: bigint) {
         const [margin] = await sdk.deriveMarginAccount(portfolio, subaccountIndex);
-        await h.send('P34 register explicit comparison account', [await sdk.getRegisterMarginInstructionAsync({ ...setup.common, owner, portfolio, margin, subaccountIndex, mode, isolatedMarketIndex, role })], [owner]);
+        await registerFinancialTestMargin(h,setup.common,setup.payer,{owner, portfolio, margin, subaccountIndex, mode, isolatedMarketIndex, role });
         roots.push(margin);
         await deposit(margin, amount);
         return margin;

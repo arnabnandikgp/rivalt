@@ -15,6 +15,8 @@ fn clock() -> Clock {
 }
 fn root() -> MarginAccount {
     MarginAccount {
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
         schema_version: SCHEMA_VERSION,
         mode: MODE_CROSS,
         isolated_market_index: 255,

@@ -111,13 +111,13 @@ pub fn initialize_rates(ctx: &mut Context<InitializeSettlementRates>, _epoch: u6
         accounts.prepared.stage == PROPOSAL,
         ClearingError::Resolution
     );
+    super::workspace::reset_rates(&mut accounts.rates, &accounts.source.storage, accounts.prepared.epoch)?;
     let rates = &mut accounts.rates;
     rates.schema_version = SETTLEMENT_SCHEMA;
     rates.venue = accounts.prepared.venue;
     rates.epoch = accounts.prepared.epoch;
     rates.state.insurance =
         arithmetic(InsuranceRounds::new(accounts.prepared.insurance))?.checkpoint();
-    rates.bump = ctx.bumps.rates;
     Ok(())
 }
 pub fn begin_rate_proposal(

@@ -12,7 +12,7 @@ export async function qualifySettlementApplication(input:{h:CanonicalHarness;set
   epoch:bigint;rowPages:Address[];rows:{key:Address;root:sdk.MarginAccount;cash:bigint;claims:bigint[]}[];
   expected:{cash:string[];movements:string[][]};tracked:Address[];
   reject:(label:string,instruction:Instruction,error?:ExpectedInstructionError)=>Promise<void>;
-  checkpoint:(name:string)=>Promise<void>}) {
+  checkpoint:(name:string)=>Promise<void>;stopBeforeExitAndRecovery?:boolean}) {
   const {h,setup,prepared,rates,plan,epoch,rowPages,rows,expected,tracked,reject,checkpoint}=input;
   const common={...setup.safetyCommon,prepared,rates,plan,epoch};
   const state=async()=>sdk.getSettlementPlanDecoder().decode((await h.read(plan))!);
@@ -24,7 +24,7 @@ export async function qualifySettlementApplication(input:{h:CanonicalHarness;set
   const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
   const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
   const pageKey=async(register:number,index:bigint)=>(await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
-    seeds:[Buffer.from('resolution-limbs'),getAddressEncoder().encode(setup.venue),le64(epoch),le32(register),le64(index)]}))[0];
+    seeds:[Buffer.from('resolution-limbs'),getAddressEncoder().encode(setup.venue),le32(register),le64(index)]}))[0];
   const before=await source(),buckets=await ledgers();
   const initial=await state();assert.equal(initial.stage,8);
   await reject('stale adoption revision',sdk.getAdoptSettlementPlanInstruction({...common,revision:initial.revision-1n}));
@@ -32,9 +32,6 @@ export async function qualifySettlementApplication(input:{h:CanonicalHarness;set
   await h.send('P54C adopt exclusive verified plan',[adoption]);
   assert.equal((await source()).stage,14);assert.equal((await state()).adoptionRevision,before.revision+1n);
   await reject('adoption replay',adoption);
-  await reject('legacy Apply after paged adoption',{...sdk.getAdvanceAccountResolutionInstruction({...setup.safetyCommon,
-    page:setup.pages[0],epoch,stage:9,start:0,length:1}),accounts:[...sdk.getAdvanceAccountResolutionInstruction({...setup.safetyCommon,
-      page:setup.pages[0],epoch,stage:9,start:0,length:1}).accounts,{address:rows[0].key,role:AccountRole.WRITABLE}]});
   await reject('order reset after adoption',sdk.getResetSettlementPlanOrderInstruction({...common,actor:setup.payer,
     revision:(await state()).revision,attempt:initial.orderAttempt}));
   await reject('distribution before all roots',sdk.getCompleteSettlementApplicationInstruction({...common,revision:(await state()).revision}));
@@ -97,8 +94,9 @@ export async function qualifySettlementApplication(input:{h:CanonicalHarness;set
   const complete=sdk.getCompleteSettlementPlanInstruction({...common,revision:(await state()).revision});
   await h.send('P54C complete actual vault and cohort reconciliation',[complete]);await reject('terminal plan replay',complete);
   assert.equal((await source()).stage,11);assert.equal((await safety()).mode,3);assert.equal((await state()).stage,12);
+  const exits:{ordinal:number;amount:string}[]=[];
+  if(input.stopBeforeExitAndRecovery)return {exits,insuranceSpent:initial.insuranceSpent,appliedCash,movements,finalPlan:await state(),finalSource:await source()};
   const token=async(key:Address)=>getTokenDecoder().decode((await h.read(key))!).amount;
-  const exits=[];
   for(let ordinal=0;ordinal<rows.length;ordinal++) {
     const account=await root(rows[ordinal].key);if(account.cash===0n)continue;
     const signer=account.owner===setup.traderOwner.address?setup.traderOwner:setup.owner;

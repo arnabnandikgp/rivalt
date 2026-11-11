@@ -40,6 +40,7 @@ pub fn initialize_limb_page(
             && page_index < capacity.div_ceil(PAGE_WORDS),
         ClearingError::Resolution
     );
+    super::workspace::reset_limbs(&mut accounts.page, &accounts.source.storage, accounts.prepared.epoch)?;
     let page = &mut accounts.page;
     page.schema_version = SETTLEMENT_SCHEMA;
     page.venue = accounts.prepared.venue;
@@ -48,7 +49,6 @@ pub fn initialize_limb_page(
     page.register = register;
     page.page_index = page_index;
     page.word_count = (capacity - page_index * PAGE_WORDS).min(PAGE_WORDS) as u16;
-    page.bump = ctx.bumps.page;
     Ok(())
 }
 

@@ -1,5 +1,30 @@
 # Finalized state and durable execution
 
+## Canonical membership migration (P55A2)
+
+The new source uses immutable journal binding schema 9 and profile 5; transport
+API version 4 and persisted semantic event names remain unchanged. A fresh
+binding/database is required. Historical schema-8 runs cannot be reopened with the
+new account codecs or treated as new qualification evidence.
+
+Projection separates allocated stable identities, non-retired roots and Financial
+members. Empty registration/retirement leaves the Financial epoch unchanged.
+Every member page and live-index count is reconciled against the complete projected
+identity/lifecycle set. Root IDs are decimal strings, never array offsets. Default
+rows retain both Financial ordinal and stable identity, including actual activation
+generation. A recovered historical resolution retains its frozen membership epoch
+even when new members subsequently enter.
+
+The scoped sorter accepts only payload-authenticated retirement transitions:
+MarginAccount 5→26 through `retire_margin`, or recovery kinds 17/18/21/22/23→27
+through `refund_recovery_allocation`. Revision ordering includes both predecessor
+and successor kinds, preserving read-before-retire and read-after-retire edges.
+Any other kind change, tombstone recreation or missing predecessor rejects the
+whole transaction. The immutable rent receipt stays separate from financial cash.
+Pinned signed lifecycle/default/custody/race checks and fresh PostgreSQL replay
+pass within P55A2's scope; see STATUS/validation. Durable automatic continuation
+and full UI acceptance remain P56A work.
+
 ## Bounded-progress successor contract (P52)
 
 P52 separates durable catch-up from reconciled publication, with no change to
@@ -522,3 +547,23 @@ silently promote the new program through public runtime configuration. Clean
 `c6e08f9` passes partial-Apply/distributed/recovered reconciliation and byte-identical
 131-event fresh replay; [validation](../operations/validation.md#conserving-settlement-p54c)
 records the exact binary, actual token effects and remaining activation limits.
+
+### Canonical membership migration boundary
+
+The P55A2 schema-9 reader uses a fixed registry/source/workspace batch and bounded
+frozen-row page reads with an exact final revision fence. Rate proposals use the
+reduced LCM and count-derived limb storage; they remain untrusted inputs to full
+on-chain verification. Ordinary backing follows the live membership cursor.
+Liquidation, authenticated freeze, source valuation and recovery remain supported.
+The removed schema-8 fixed-cohort continuation instructions are never submitted:
+automatic default continuation returns `canonical-default-automation-awaiting-p56a`
+until P56A qualifies its durable successor. The signed operator qualification
+harness exercises the implemented paged default path meanwhile. This explicit
+worker gate is neither successful settlement nor a claim of end-to-end service
+readiness.
+
+During partial Apply, `Resolution` remains the frozen source certificate.
+`SettlementPlan` owns partial original cash, applied cash and market movements;
+its checkpoints and applied roots must reconcile separately. Source terminal
+counters change only after complete root/vault reconciliation. Reading partial
+plan progress as if it lived in the source is a decoder/projection error.

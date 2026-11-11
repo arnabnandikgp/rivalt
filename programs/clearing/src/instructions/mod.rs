@@ -83,25 +83,16 @@ pub use account_custody::PauseVenue;
 pub use account_custody::RegisterMargin;
 pub use account_custody::SeedMarketInsurance;
 pub use account_custody::TransferAccountCustody;
-pub(crate) use account_safety::resolution::__client_accounts_advanceaccountresolution;
 pub(crate) use account_safety::resolution::__client_accounts_freezeaccounts;
 pub(crate) use account_safety::resolution::__client_accounts_initializeaccountresolution;
-pub(crate) use account_safety::resolution::__client_accounts_initializeaccountresolutionpage;
-pub(crate) use account_safety::resolution::__client_accounts_proposeaccountresolution;
 pub(crate) use account_safety::resolution::__client_accounts_recoveraccounts;
 pub(crate) use account_safety::resolution::__client_accounts_resolutionidentity;
 pub(crate) use account_safety::resolution::__client_accounts_resolutionsources;
 pub(crate) use account_safety::resolution::__client_accounts_valueaccountresolution;
 #[cfg(feature = "cpi")]
-pub(crate) use account_safety::resolution::__cpi_accounts_advanceaccountresolution;
-#[cfg(feature = "cpi")]
 pub(crate) use account_safety::resolution::__cpi_accounts_freezeaccounts;
 #[cfg(feature = "cpi")]
 pub(crate) use account_safety::resolution::__cpi_accounts_initializeaccountresolution;
-#[cfg(feature = "cpi")]
-pub(crate) use account_safety::resolution::__cpi_accounts_initializeaccountresolutionpage;
-#[cfg(feature = "cpi")]
-pub(crate) use account_safety::resolution::__cpi_accounts_proposeaccountresolution;
 #[cfg(feature = "cpi")]
 pub(crate) use account_safety::resolution::__cpi_accounts_recoveraccounts;
 #[cfg(feature = "cpi")]
@@ -126,11 +117,8 @@ pub use account_safety::resolution::retirement::CheckAccountRetirement;
 pub use account_safety::resolution::retirement::InitializeAccountRetirement;
 pub use account_safety::resolution::retirement::RetireAccounts;
 pub use account_safety::resolution::retirement::WithdrawRetiredReserve;
-pub use account_safety::resolution::AdvanceAccountResolution;
 pub use account_safety::resolution::FreezeAccounts;
 pub use account_safety::resolution::InitializeAccountResolution;
-pub use account_safety::resolution::InitializeAccountResolutionPage;
-pub use account_safety::resolution::ProposeAccountResolution;
 pub use account_safety::resolution::RecoverAccounts;
 pub use account_safety::resolution::ResolutionIdentity;
 pub use account_safety::resolution::ResolutionSources;
@@ -208,8 +196,6 @@ pub(crate) use account_safety::settlement::__client_accounts_acceptdenominatorro
 pub(crate) use account_safety::settlement::__client_accounts_advancepreparedmembership;
 pub(crate) use account_safety::settlement::__client_accounts_continuesettlementdenominator;
 pub(crate) use account_safety::settlement::__client_accounts_initializefrozenmarginpage;
-pub(crate) use account_safety::settlement::__client_accounts_initializepreparedindexnode;
-pub(crate) use account_safety::settlement::__client_accounts_initializepreparedmembers;
 pub(crate) use account_safety::settlement::__client_accounts_initializepreparedsettlement;
 pub(crate) use account_safety::settlement::__client_accounts_initializesettlementlimbpage;
 pub(crate) use account_safety::settlement::__client_accounts_preparedsourceidentity;
@@ -223,10 +209,6 @@ pub(crate) use account_safety::settlement::__cpi_accounts_continuesettlementdeno
 #[cfg(feature = "cpi")]
 pub(crate) use account_safety::settlement::__cpi_accounts_initializefrozenmarginpage;
 #[cfg(feature = "cpi")]
-pub(crate) use account_safety::settlement::__cpi_accounts_initializepreparedindexnode;
-#[cfg(feature = "cpi")]
-pub(crate) use account_safety::settlement::__cpi_accounts_initializepreparedmembers;
-#[cfg(feature = "cpi")]
 pub(crate) use account_safety::settlement::__cpi_accounts_initializepreparedsettlement;
 #[cfg(feature = "cpi")]
 pub(crate) use account_safety::settlement::__cpi_accounts_initializesettlementlimbpage;
@@ -238,8 +220,6 @@ pub use account_safety::settlement::AcceptDenominatorRow;
 pub use account_safety::settlement::AdvancePreparedMembership;
 pub use account_safety::settlement::ContinueSettlementDenominator;
 pub use account_safety::settlement::InitializeFrozenMarginPage;
-pub use account_safety::settlement::InitializePreparedIndexNode;
-pub use account_safety::settlement::InitializePreparedMembers;
 pub use account_safety::settlement::InitializePreparedSettlement;
 pub use account_safety::settlement::InitializeSettlementLimbPage;
 pub use account_safety::settlement::PreparedSourceIdentity;
@@ -344,3 +324,48 @@ pub(crate) use account_safety::settlement::__client_accounts_completionsourceide
 #[cfg(feature = "cpi")]
 pub(crate) use account_safety::settlement::__cpi_accounts_completionsourceidentity;
 pub use account_safety::settlement::CompletionSourceIdentity;
+
+pub use account_membership::InitializeRecoveryStorage;
+pub(crate) use account_membership::__client_accounts_initializerecoverystorage;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_initializerecoverystorage;
+
+pub use account_membership::ConfigureRecoveryStorage;
+pub(crate) use account_membership::__client_accounts_configurerecoverystorage;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_configurerecoverystorage;
+
+pub use account_membership::FundRecoveryAllocation;
+pub(crate) use account_membership::__client_accounts_fundrecoveryallocation;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_fundrecoveryallocation;
+
+pub use account_membership::VerifyRecoveryAllocation;
+pub(crate) use account_membership::__client_accounts_verifyrecoveryallocation;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_verifyrecoveryallocation;
+
+pub use account_membership::FundMemberPage;
+pub(crate) use account_membership::__client_accounts_fundmemberpage;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_fundmemberpage;
+
+pub use account_membership::FundMemberIndex;
+pub(crate) use account_membership::__client_accounts_fundmemberindex;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_fundmemberindex;
+
+pub use account_membership::ChangeMarginMembership;
+pub(crate) use account_membership::__client_accounts_changemarginmembership;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_changemarginmembership;
+
+pub use account_membership::RetireMargin;
+pub(crate) use account_membership::__client_accounts_retiremargin;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_retiremargin;
+
+pub use account_membership::RefundRecoveryAllocation;
+pub(crate) use account_membership::__client_accounts_refundrecoveryallocation;
+#[cfg(feature="cpi")]
+pub(crate) use account_membership::__cpi_accounts_refundrecoveryallocation;

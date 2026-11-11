@@ -32,7 +32,7 @@ it('matches isolated Anchor for nested identities, optional legs and flattened i
   conformance.record([sdk.getActivateLiquidityInstruction({ authority: common.actor, venue: common.venue,
     custody: common.custody, safety: common.safety, btc: common.market, eth: common.otherMarket,
     btcLedger: common.ledger, ethLedger: common.otherLedger, vault: common.vault,
-    eventAuthority: common.eventAuthority, program: common.program, resolution: testAddress(23) })]);
+    eventAuthority: common.eventAuthority, program: common.program, resolution: testAddress(23), registry:testAddress(24), storage:testAddress(25) })]);
   const directory = mkdtempSync(join(tmpdir(), 'rivalt-route-parity-'));
   try {
     const result = await conformance.finish(directory, [], async () => null);

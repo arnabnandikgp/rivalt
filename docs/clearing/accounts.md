@@ -42,15 +42,27 @@ dependencies, not optional later repairs after lifting the registration limit.
 
 ### P55A implementation boundary
 
-The in-progress source separates scalar financial identity from cohort size:
-`Participant` and `Margin` use u64 IDs, while the retained small-cohort reference
-still bounds its array population. Wire margin IDs remain schema-8 u16 until the
-successor layout transition; there is no new registration or financial admission.
-`scalable::membership_update` prepares all fifteen radix count/mask changes before
-any mutation. The program's `account_membership::index` adapter authenticates exact
-node owner/PDA/schema/length/revision and declared write access. Lifecycle handlers
-must additionally authenticate the root, member page, authority, storage coverage
-and unfrozen safety; the adapter alone grants none of those permissions.
+P55A1's accepted native foundation separates u64 scalar identity from the retained
+small reference-cohort array size. P55A2's source implements schema-9
+roots/header/pages, owner-controlled activation/deactivation, permanent same-address
+retirement and pre-funded capacity checks. The selected qualified runtime is still
+schema 8; new source, IDL and clients require fresh-domain acceptance before use.
+
+`account_membership::index` authenticates all fifteen canonical writable nodes,
+revisions and predecessor counts before mutation. Entry/exit commits the root,
+member page, fixed header and path atomically; ordinary financial actions do not
+write that index. `members` validates page slots; `lifecycle` rejects residual
+obligations; `scan` performs one authenticated node/page/member visit with a
+serialized cursor. Node allocation itself creates only zero counts, never Financial
+eligibility. Recovery capacity comes from actual complete `StorageFunding` proofs.
+
+The new default path consumes the live index and D100 reusable workspace. Fixed-
+cohort solver/mirror entrypoints are deliberately retired (D101). Whole-venue
+retirement and the existing conservative backing scan now traverse the same index;
+P55B still owns maintained backing and progress under concurrent financial changes.
+The scoped journal records the narrowly authorized root-kind transition 5→26 on
+retirement; no other instruction may relabel that root. Pinned signed lifecycle, custody, interleaving and complete-default/SQL checks
+are recorded in validation; they do not qualify expanded Financial admission.
 
 ### Identity and membership invariants
 
@@ -103,18 +115,21 @@ literal byte-size/seed tests must agree before P54/P55 deploy anything.
 | MemberPage | `page_index:u64, allocated_mask:u64, financial_mask:u64, entries:[MemberEntry;64], bump:u8`; 2,699 bytes |
 | MemberEntry | `root:Pubkey, lifecycle:u8, activation_generation:u64`; 41 bytes; member ID is page/slot-derived; unallocated entry all zero |
 | MemberIndexNode | `level:u8, prefix:u64, populated_mask:u16, counts:[u64;16], bump:u8`; 190 bytes; children use deterministic PDA prefixes; zero count iff absent bit |
-| StorageFunding | `allocation:Pubkey, rent_payer:Pubkey, contributed_lamports:u64, locked_epoch:u64, bump:u8`; 131 bytes; rent refund binding, not custody/insurance or a spendable trader balance |
-| Portfolio | Keep ownership; replace `index:u16, children:u16` with `index:u32, active_children:u32`; no bitmap-based child authorization |
-| MarginAccount | Replace `subaccount_index:u16, id:u16` with `subaccount_index:u32, id:u64`; append `lifecycle:u8, activation_generation:u64` immediately before bump; other fields unchanged |
+| RecoveryStorage | `ready_capacity:u64, target_capacity:u64, next_allocation:u64, generation:u64, locked_epoch:u64, completed_epoch:u64, bump:u8`; 99 bytes; actual complete-capacity proof and exclusive recovery epoch |
+| StorageFunding | `allocation:Pubkey, rent_payer:Pubkey, contributed_lamports:u64, bump:u8`; 123 bytes; immutable actual payer top-up and rent refund binding, not custody/insurance or a spendable trader balance; the workspace owns the lock (D100) |
+| Portfolio | Keep ownership; replace `index:u16, children:u16` with `index:u32, active_children:u32`; 91 bytes, no bitmap-based child authorization |
+| MarginAccount | Replace `subaccount_index:u16, id:u16` with `subaccount_index:u32, id:u64`; append `lifecycle:u8, activation_generation:u64` immediately before bump; 995 bytes, other fields unchanged |
+| StorageTombstone | Common prefix, `original_kind:u8, completed_epoch:u64, register:u32, page_index:u64, bump:u8`; 72 bytes; permanent terminal workspace marker with immutable payer receipt retained |
 | MarginTombstone | Common prefix, `portfolio:Pubkey, owner:Pubkey, child:u32, id:u64, activation_generation:u64, bump:u8`; 135 bytes; same root address, different discriminator |
 | Resolution / work | u64 frozen count/cursors/row IDs, committed live-index root and epoch; replace inline `Wide` by typed paged references and explicit used-limb counts; no inline cohort arrays |
 | Frozen row | Stable member ID/key, original cash/q/generations/claims, own collected cash, three whole-flow floors, fractional/direction flags, applied bit; no per-row wide numerator |
-| Arithmetic / graph / order pages | Epoch, work-object kind, page index, used length, fixed bounded payload, bump; all page identity derived from venue/epoch/kind/index, never a caller-selected writable account |
+| Arithmetic / graph / order pages | Epoch, work-object kind, page index, used length, fixed bounded payload, bump; successor reusable identity derives from venue/kind/index (D100), never a caller-selected writable account |
 
 New seed prefixes are `member-page`, `member-index`, `resolution-limbs`,
 `resolution-graph`, `resolution-order` and `storage-funding`, followed by venue and
 the typed indices (or allocation key for storage funding);
-work pages additionally include resolution epoch. Root/portfolio prefixes remain
+P54 bridge work pages additionally include resolution epoch; D100 removes that
+seed in the successor workspace, retaining the payload's epoch fence. Root/portfolio prefixes remain
 but use u32 namespace seeds under a fresh domain. Typed layout lengths, graph-word
 packing and arithmetic page payload sizes are P54's measured encoding decisions;
 they cannot be inferred from the native Python object sizes. An opcode may access
@@ -123,12 +138,25 @@ only its bounded canonical pages. No page instruction grants authority over mone
 Creation pays rent explicitly from a transaction signer. P55 must reserve scalar
 snapshot/graph capacity **before financial activation** and provision wide scratch
 for the aggregate proved numeric envelope, not wait for a bankrupt keeper to pay.
-Shared scratch grows only at an authenticated capacity transition. The funding
+Shared scratch grows only at an authenticated capacity transition. D100's successor
+uses reusable canonical allocation keys without epoch seeds; epoch remains in
+every work payload. The existing P54 source bridge still uses its epoch-specific
+keys until complete lifecycle integration replaces it. The funding
 source is explicit local operator lamports or an authorized storage payer, never
 collateral, insurance or silently redirected trading fees. Refunds go to the
 recorded payer only after no active/frozen work references that allocation.
 The exact worst-case provisioning/cost proof remains an activation gate; an
 unfunded allocation is a rejected activation, not an unresolvable admitted debt.
+
+The P55A2 provisioning controller is being implemented separately from financial
+eligibility. `RecoveryLayout` derives frozen-row pages, all 46 arithmetic registers
+at the count-derived worst width, and graph/order registers 64–70. The authority
+starts growth; each exact cursor step proves a real rent-funded allocation and
+its canonical `StorageFunding` receipt. No partial proof changes ready capacity.
+Cancellation retains storage/payer ownership, and a monotone generation rejects
+old continuations. A locked recovery epoch blocks all provisioning writes. These
+controllers do not yet replace the existing freeze/recovery handlers or grant
+Financial membership; signed lifecycle acceptance is still required.
 
 Numeric exhaustion rejects without wrap. With N finite financial roots and retained
 per-root claim bound K, use checked totals sufficient for N*K; u128 is not a proof

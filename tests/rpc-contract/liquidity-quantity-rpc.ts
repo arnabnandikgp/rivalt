@@ -1,3 +1,4 @@
+import {financialRoots} from './membership-scan-helper.js';
 // Large quantities are exercised only through signed instructions on a fresh
 // qualified local deployment. No financial state is installed by a fixture.
 import assert from 'node:assert/strict';
@@ -33,7 +34,7 @@ try {
   const [reserveDestination]=await findAssociatedTokenPda({owner:setup.payer.address,mint:setup.mint.address,tokenProgram:TOKEN_PROGRAM_ADDRESS});
   await h.send('create test reserve destination',[getCreateAssociatedTokenInstruction({payer:setup.payer,ata:reserveDestination,
     owner:setup.payer.address,mint:setup.mint.address})]);
-  const tracked=[...new Set([...setup.tracked,...roots,...setup.configurations,setup.resolution,setup.work,...setup.pages,
+  const tracked=[...new Set([...setup.tracked,...roots,...setup.configurations,setup.resolution,setup.storage,
     reserveDestination,setup.mint.address,setup.traderToken.address])];
   const raw=async()=>Object.fromEntries(await Promise.all(tracked.map(async key=>[key,(await h.read(key))!.toString('base64')])));
   const reject=async(label:string,instruction:Instruction,error=sdk.CLEARING_ERROR__RESOLUTION,signers:typeof owner[]=[])=>{
@@ -123,7 +124,7 @@ try {
     guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
   setup.sourcePrices.btc=40_000_000_000n;setup.sourcePrices.eth=2_000_000_000n;await setup.fresh();
   await h.send('freeze complete large-quantity cohort',[sdk.getFreezeAccountsInstruction({...setup.safetyCommon,...sources,
-    caller:setup.payer,target:cross,safetyEpoch:sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).epoch,
+    caller:setup.payer,target:cross,members:(await sdk.deriveMemberPage(setup.venue,(await root(cross)).id/64n))[0],safetyEpoch:sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).epoch,
     resolutionEpoch:sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!).epoch,emergency:false})]);
   const frozenAccounts=await raw();
   await resolveLiquidityCohort(h,setup,roots,reject);
@@ -132,7 +133,7 @@ try {
   const resolvedAccounts=await raw();
   const capture={scenario:'two-market-resolved',venue:setup.venue,custody:setup.custody,safety:setup.safety,registry:setup.registry,
     vault:setup.vault,mint:setup.mint.address,userTokens:[setup.token.address,setup.traderToken.address],reserveDestination,
-    resolution:setup.resolution,work:setup.work,pages:setup.pages,roots,markets:setup.markets,ledgers:setup.ledgers,
+    resolution:setup.resolution,storage:setup.storage,roots,markets:setup.markets,ledgers:setup.ledgers,
     financialSteps,liquidationSteps:[{target:cross,receiver:isolated,lots:500_000n,price:52_000n,before:beforeLiquidation,after:afterLiquidation}],
     frozenAccounts,completedAccounts,resolvedAccounts,rawAccounts:resolvedAccounts};
   writeFileSync(`${runDir}/financial-capture.json`,serialize(capture));

@@ -9,6 +9,8 @@ struct Fixture {
     custody: Custody,
     safety: VenueSafety,
     registry: VenueRegistry,
+    member_keys: Vec<Address>,
+    storage: RecoveryStorage,
     resolution: Resolution,
     markets: [Market; 2],
     ledgers: [MarketLedger; 2],
@@ -20,21 +22,24 @@ impl Fixture {
         let markets = [Address::new_unique(), Address::new_unique()];
         let members: Vec<_> = (0..3).map(|_| Address::new_unique()).collect();
         let registry = VenueRegistry {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             revision: 9,
             venue: venue_key,
-            membership_version: 3,
-            count: 3,
-            members,
+            membership_epoch: 3,
+            next_id: 3,
+            registered_count: 3,
+            financial_count: 3,
+            live_index: crate::instructions::account_membership::members::index_root(&venue_key),
             ..Default::default()
         };
-        let mut bytes = Vec::new();
-        crate::wire::write(&registry, &mut bytes).unwrap();
+        let registry_hash = super::super::resolution::registry_hash(&registry).unwrap();
         let mut roots: [MarginAccount; 3] = core::array::from_fn(|index| MarginAccount {
-            schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             revision: 7,
             venue: venue_key,
-            id: index as u16,
+            id: index as u64,
             owner: Address::new_unique(),
             mode: MODE_CROSS,
             isolated_market_index: CROSS_MARKET_SENTINEL,
@@ -82,9 +87,9 @@ impl Fixture {
             venue_key,
             source_key: Address::new_unique(),
             venue: Venue {
-                schema_version: 8,
+                schema_version: crate::state::accounts::SCHEMA_VERSION,
                 revision: 1,
-                profile_version: 4,
+                profile_version: crate::state::accounts::PROFILE_VERSION,
                 markets,
                 market_count: 2,
                 insurance_fee_share_bps: 2500,
@@ -92,14 +97,14 @@ impl Fixture {
                 ..Default::default()
             },
             custody: Custody {
-                schema_version: 8,
+                schema_version: crate::state::accounts::SCHEMA_VERSION,
                 revision: 1,
                 venue: venue_key,
                 allocated_vault: 27,
                 ..Default::default()
             },
             safety: VenueSafety {
-                schema_version: 8,
+                schema_version: crate::state::accounts::SCHEMA_VERSION,
                 revision: 1,
                 venue: venue_key,
                 mode: FROZEN,
@@ -109,7 +114,7 @@ impl Fixture {
                 ..Default::default()
             },
             resolution: Resolution {
-                schema_version: 8,
+                schema_version: crate::state::accounts::SCHEMA_VERSION,
                 revision: 10,
                 venue: venue_key,
                 epoch: 2,
@@ -118,7 +123,9 @@ impl Fixture {
                 safety_epoch: 3,
                 terms_epoch: 3,
                 config_epochs: [4, 5],
-                registry_hash: solana_sha256_hasher::hash(&bytes).to_bytes(),
+                registry_hash,
+                membership_epoch: registry.membership_epoch,
+                live_index: registry.live_index,
                 prices: [100, 20],
                 funding: [3 * SCALE, 5 * SCALE],
                 remaining_gross: [4, 2],
@@ -130,7 +137,7 @@ impl Fixture {
                 ..Default::default()
             },
             markets: core::array::from_fn(|index| Market {
-                schema_version: 8,
+                schema_version: crate::state::accounts::SCHEMA_VERSION,
                 revision: 1,
                 venue: venue_key,
                 index: index as u8,
@@ -142,7 +149,7 @@ impl Fixture {
                 ..Default::default()
             }),
             ledgers: core::array::from_fn(|index| MarketLedger {
-                schema_version: 8,
+                schema_version: crate::state::accounts::SCHEMA_VERSION,
                 revision: 1,
                 venue: venue_key,
                 market_index: index as u8,
@@ -153,6 +160,8 @@ impl Fixture {
                 ..Default::default()
             }),
             registry,
+            member_keys: members,
+            storage: RecoveryStorage { schema_version: SETTLEMENT_SCHEMA, revision: 1, venue: venue_key, ready_capacity: 64, locked_epoch: 2, completed_epoch: 1, ..Default::default() },
             roots,
         }
     }
@@ -164,6 +173,7 @@ impl Fixture {
             custody: &self.custody,
             safety: &self.safety,
             registry: &self.registry,
+            storage: &self.storage,
             source: &self.resolution,
             markets: self.markets.each_ref(),
             ledgers: self.ledgers.each_ref(),
@@ -171,15 +181,13 @@ impl Fixture {
         }
     }
     fn header(&self) -> PreparedSettlement {
-        let mut header = PreparedSettlement::default();
+        let mut header = PreparedSettlement { schema_version: SETTLEMENT_SCHEMA, revision: 1, ..Default::default() };
         self.source().initialize(&mut header).unwrap();
         header.revision = 1;
         header
     }
     fn value_state(&self) -> (PreparedSettlement, FrozenMarginPage) {
         let mut header = self.header();
-        header.index_initialized = 0x7fff;
-        header.member_page_initialized = true;
         begin_value(&mut header).unwrap();
         let mut cursor = MembershipCursor::from_checkpoint(&header.state.membership, 3).unwrap();
         let mut counts = [0; 16];
@@ -200,7 +208,7 @@ impl Fixture {
     }
     fn entry(&self, index: usize) -> MemberEntry {
         MemberEntry {
-            root: self.registry.members[index],
+            root: self.member_keys[index],
             lifecycle: MEMBER_FINANCIAL,
             activation_generation: 1,
         }
@@ -225,11 +233,11 @@ fn prepared_source_binds_the_actual_freeze_and_all_economic_buckets() {
             5 => changed.safety.epoch += 1,
             6 => changed.safety.resolution_epoch += 1,
             7 => changed.venue.terms_epoch += 1,
-            8 => changed.venue.profile_version = 5,
-            9 => changed.registry.members.swap(0, 1),
-            10 => changed.registry.members[1] = changed.registry.members[0],
-            11 => changed.registry.members.pop().map(|_| ()).unwrap(),
-            12 => changed.registry.membership_version += 1,
+            8 => changed.venue.profile_version += 1,
+            9 => changed.registry.live_index = Address::new_unique(),
+            10 => changed.registry.financial_count += 1,
+            11 => changed.storage.locked_epoch += 1,
+            12 => changed.registry.membership_epoch += 1,
             13 => changed.registry.revision += 1,
             14 => changed.markets[0].config_epoch += 1,
             15 => changed.markets[1].funding_index_scaled += 1,
@@ -264,7 +272,7 @@ fn actual_margin_model_values_both_markets_preserving_fractional_claims_and_cash
         value_member(
             &mut header,
             &mut page,
-            fixture.registry.members[index],
+            fixture.member_keys[index],
             &fixture.entry(index),
             &fixture.roots[index],
         )
@@ -327,7 +335,7 @@ fn valuation_rejects_reorder_identity_generation_and_conservation_without_prefix
             value_member(
                 &mut header,
                 &mut page,
-                fixture.registry.members[0],
+                fixture.member_keys[0],
                 &entry,
                 &root
             )
@@ -343,7 +351,7 @@ fn valuation_rejects_reorder_identity_generation_and_conservation_without_prefix
         value_member(
             &mut header,
             &mut page,
-            fixture.registry.members[index],
+            fixture.member_keys[index],
             &fixture.entry(index),
             &fixture.roots[index],
         )
@@ -355,7 +363,7 @@ fn valuation_rejects_reorder_identity_generation_and_conservation_without_prefix
     assert!(value_member(
         &mut header,
         &mut page,
-        fixture.registry.members[2],
+        fixture.member_keys[2],
         &fixture.entry(2),
         &last
     )
@@ -371,8 +379,8 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
     let header = fixture.header();
     let mut bytes = Vec::new();
     crate::wire::write_discriminated(&header, &mut bytes).unwrap();
-    assert_eq!(bytes.len(), 1463);
-    assert_eq!(8 + PreparedSettlement::INIT_SPACE, 1463);
+    assert_eq!(bytes.len(), 1460);
+    assert_eq!(8 + PreparedSettlement::INIT_SPACE, 1460);
     assert_eq!(
         &bytes[..8],
         &solana_sha256_hasher::hash(b"account:PreparedSettlement").to_bytes()[..8]
@@ -388,7 +396,7 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
     value_member(
         &mut header,
         &mut page,
-        fixture.registry.members[0],
+        fixture.member_keys[0],
         &fixture.entry(0),
         &fixture.roots[0],
     )
@@ -398,7 +406,7 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
     assert_eq!(bytes.len(), 1156);
     assert_eq!(8 + FrozenMarginPage::INIT_SPACE, 1156);
     assert_eq!(bytes[66], 1);
-    assert_eq!(&bytes[75..107], fixture.registry.members[0].as_ref());
+    assert_eq!(&bytes[75..107], fixture.member_keys[0].as_ref());
     assert_eq!(&bytes[163..179], &(-8_750_000_000i128).to_le_bytes());
     assert_eq!(&bytes[195..203], &3u64.to_le_bytes());
 }

@@ -1,89 +1,82 @@
-import {createHash} from 'node:crypto';
 import {expect,it} from 'vitest';
 import * as sdk from '@rivalt/sdk';
 import {accountFixture} from '../../sdk/src/account-test-fixture.js';
+import {accountWorkerKeys,financialMembershipHash} from './account-worker-state.js';
 import {readAccountRateProposal} from './account-frozen-proposal.js';
 
 async function fixture() {
-  const setup=await accountFixture(),{empty,put,config,accounts}=setup,venue=config.venue;
-  const [[resolution,bump],[registry,registryBump]]=await Promise.all([sdk.deriveVenueComponent(venue,'resolution'),sdk.deriveVenueComponent(venue,'registry')]);
-  const [third]=await sdk.deriveMarginAccount(setup.portfolio,2),members=[...setup.margins,third];
-  const registryState={schemaVersion:8,revision:1n,venue,membershipVersion:4n,count:3,members,bump:registryBump};
-  const registryBytes=sdk.getVenueRegistryEncoder().encode(registryState);
-  put(registry,Buffer.concat([Buffer.from(registryBytes),Buffer.alloc(100)])); // Account allocation padding is not serialized membership.
-  const header={...empty(sdk.getResolutionDecoder()),schemaVersion:8,revision:1n,venue,epoch:1n,stage:4,count:3,safetyEpoch:2n,termsEpoch:1n,
-    registryHash:createHash('sha256').update(registryBytes.slice(8)).digest(),cashBefore:100n,poolsBefore:[0n,0n],insuranceBefore:[20n,10n],
-    budgets:[20n,10n],positiveScaled:[80_000_000_000n,80_000_000_000n],bump};header.common.limbs[0]=160_000_000_000n;
-  put(resolution,sdk.getResolutionEncoder().encode(header));
-  const safety=sdk.getVenueSafetyDecoder().decode(Buffer.from(accounts.get(setup.safety).data[0],'base64'));
-  put(setup.safety,sdk.getVenueSafetyEncoder().encode({...safety,mode:2,paused:true,resolutionEpoch:1n}));
-  const pageStates=[];
-  for(let pageIndex=0;pageIndex<2;pageIndex++) {
-    const [key,pageBump]=await sdk.findResolutionPagePda(venue,pageIndex);
-    const page={...empty(sdk.getResolutionPageDecoder()),schemaVersion:8,revision:1n,venue,epoch:1n,pageIndex,rowCount:pageIndex===0?2:1,bump:pageBump};
-    for(let offset=0;offset<page.rowCount;offset++) {
-      const id=pageIndex*2+offset;
-      Object.assign(page.rows[offset],{member:members[id],cashBefore:id===0?100n:0n,collected:id===0?100n:0n,
-        claimsScaled:id===0?[-80_000_000_000n,-80_000_000_000n]:id===1?[80_000_000_000n,0n]:[0n,80_000_000_000n]});
-    }
-    put(key,sdk.getResolutionPageEncoder().encode(page));pageStates.push({key,page});
-  }
-  const reads:string[][]=[],rpc={call:async(method:string,params:unknown[]=[])=>{
-    const keys=method==='getAccountInfo'?[params[0] as string]:params[0] as string[];reads.push(keys);
-    return {context:{slot:100},value:method==='getAccountInfo'?accounts.get(keys[0]):keys.map(key=>accounts.get(key)??null)};
-  }};
-  return {...setup,resolution,header,registry,registryState,pageStates,rpc,reads};
+  const test=await accountFixture(),venue=test.config.venue,keys=await accountWorkerKeys(venue),epoch=1n;
+  const [,registryBump]=await sdk.deriveVenueComponent(venue,'registry'),[,sourceBump]=await sdk.deriveVenueComponent(venue,'resolution');
+  const registry={schemaVersion:9,revision:1n,venue,membershipEpoch:4n,nextId:(1n<<54n)+8n,registeredCount:3n,financialCount:3n,
+    liveIndex:(await sdk.deriveMemberIndex(venue,14,0n))[0],bump:registryBump};
+  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode(registry));
+  const source={...test.empty(sdk.getResolutionDecoder()),schemaVersion:9,revision:2n,venue,epoch,stage:2,count:3n,
+    membershipEpoch:4n,liveIndex:registry.liveIndex,registryHash:financialMembershipHash({...registry,discriminator:sdk.VENUE_REGISTRY_DISCRIMINATOR}),
+    cashBefore:100n,insuranceBefore:[20n,10n],bump:sourceBump};
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode(source));
+  const [,storageBump]=await sdk.deriveRecoveryStorage(venue);
+  test.put(keys.storage,sdk.getRecoveryStorageEncoder().encode({...test.empty(sdk.getRecoveryStorageDecoder()),schemaVersion:9,revision:2n,
+    venue,readyCapacity:64n,lockedEpoch:epoch,bump:storageBump}));
+  const [,preparedBump]=await sdk.deriveSettlementWorkspace(venue,'prepared');
+  const prepared={...test.empty(sdk.getPreparedSettlementDecoder()),schemaVersion:9,revision:2n,venue,epoch,stage:3,count:3n,
+    membershipEpoch:4n,insurance:[20n,10n],bump:preparedBump};
+  const denominator=Buffer.alloc(320);denominator[0]=1;denominator[1]=3;denominator.writeBigUInt64LE(1n,24);
+  prepared.state.denominator=denominator;test.put(keys.prepared,sdk.getPreparedSettlementEncoder().encode(prepared));
+  const [,ratesBump]=await sdk.deriveSettlementWorkspace(venue,'rates');
+  const rates={...test.empty(sdk.getSettlementRatesDecoder()),schemaVersion:9,revision:2n,venue,epoch,bump:ratesBump};
+  const insurance=Buffer.alloc(64);insurance[0]=1;
+  for(const [offset,value] of [[8,20n],[16,10n],[24,20n],[32,10n]] as const)insurance.writeBigUInt64LE(value,offset);
+  rates.state.insurance=insurance;test.put(keys.rates,sdk.getSettlementRatesEncoder().encode(rates));
+  const [,planBump]=await sdk.deriveSettlementWorkspace(venue,'plan');
+  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode({...test.empty(sdk.getSettlementPlanDecoder()),schemaVersion:9,revision:1n,venue,bump:planBump}));
+  const [pageKey,pageBump]=await sdk.deriveFrozenMarginPage(venue,0n);
+  const page={...test.empty(sdk.getFrozenMarginPageDecoder()),schemaVersion:9,revision:4n,venue,epoch,pageIndex:0n,rowCount:3,bump:pageBump};
+  const third=(await sdk.deriveMarginAccount((await sdk.deriveAccountPortfolio(venue,test.owner,1))[0],0))[0];
+  for(const [ordinal,id] of [0n,65n,(1n<<54n)+7n].entries())Object.assign(page.rows[ordinal],{id,member:[...test.margins,third][ordinal],
+    originalRevision:5n,activationGeneration:BigInt(ordinal+1),cash:ordinal===0?100n:0n,
+    claims:ordinal===0?[-80_000_000_000n,-80_000_000_000n]:ordinal===1?[80_000_000_000n,0n]:[0n,80_000_000_000n],collected:ordinal===0?100n:0n});
+  test.put(pageKey,sdk.getFrozenMarginPageEncoder().encode(page));
+  const [limbKey,limbBump]=await sdk.deriveSettlementLimbPage(venue,0,0n);
+  const limb={...test.empty(sdk.getSettlementLimbPageDecoder()),schemaVersion:9,revision:3n,venue,epoch,wordCount:1,bump:limbBump};
+  limb.payload.words[0]=1n;test.put(limbKey,sdk.getSettlementLimbPageEncoder().encode(limb));
+  const rpc={call:async(method:string,args:unknown[]=[])=>({context:{slot:100},value:method==='getAccountInfo'?test.accounts.get(args[0] as string)??null:
+    (args[0] as string[]).map(key=>test.accounts.get(key)??null)})};
+  return {...test,venue,keys,epoch,registry,source,prepared,rates,page,pageKey,limb,limbKey,rpc};
 }
-it('derives an untrusted proposal from one complete current frozen RPC batch',async()=>{
-  const value=await fixture(),result=await readAccountRateProposal(value.rpc,value.config.venue,1n);
-  expect(value.reads).toHaveLength(2);expect(value.reads[1]).toHaveLength(6);
-  expect(result.proposal.rates).toEqual([{numerator:7n,denominator:8n},{numerator:3n,denominator:4n}]);
-  expect(result.proposal.insuranceSpent).toEqual([20n,10n]);expect(result.header.proposalUploaded).toBe(0);
+it('reads sparse stable identities from frozen rows and emits exact reduced-LCM rate words',async()=>{
+  const test=await fixture(),result=await readAccountRateProposal(test.rpc,test.venue,1n);
+  expect(result.rows.map(row=>row.id)).toEqual([0n,65n,(1n<<54n)+7n]);
+  expect(result.proposal.common).toBe(1n);expect(result.proposal.factor).toBe(8n);expect(result.proposal.numerators).toEqual([7n,6n]);
+  expect(result.proposal.insuranceSpent).toEqual([20n,10n]);
 });
-it('binds the unchanged financial schema to the explicitly configured profile',async()=>{
-  const value=await fixture(),venue=value.config.venue;
-  const original=sdk.getVenueDecoder().decode(Buffer.from(value.accounts.get(venue).data[0],'base64'));
-  const result=await readAccountRateProposal(value.rpc,venue,1n);
-  expect(result.proposal.rates).toEqual([{numerator:7n,denominator:8n},{numerator:3n,denominator:4n}]);
-  value.put(venue,sdk.getVenueEncoder().encode({...original,profileVersion:3}));
-  await expect(readAccountRateProposal(value.rpc,venue,1n)).rejects.toThrow(/profile/);
-  await expect(readAccountRateProposal(value.rpc,venue,1n,3 as 4)).rejects.toThrow(/Unsupported/);
-});
-it('refuses a partial page, out-of-order member or already-applied row',async()=>{
-  for(const mutation of ['count','member','applied'] as const) {
-    const value=await fixture(),{key,page}=value.pageStates[0];
-    if(mutation==='count')page.rowCount=1;
-    if(mutation==='member')page.rows[0].member=value.margins[1];
-    if(mutation==='applied')page.rows[0].applied=true;
-    value.put(key,sdk.getResolutionPageEncoder().encode(page));
-    await expect(readAccountRateProposal(value.rpc,value.config.venue,1n)).rejects.toThrow(/frozen page|member/);
-  }
-});
-it('refuses changed registry membership, wrong page owner and wrong epoch',async()=>{
-  const value=await fixture();value.put(value.registry,sdk.getVenueRegistryEncoder().encode({...value.registryState,membershipVersion:5n}));
-  await expect(readAccountRateProposal(value.rpc,value.config.venue,1n)).rejects.toThrow(/registry hash/);
-  value.put(value.registry,sdk.getVenueRegistryEncoder().encode(value.registryState));
-  value.accounts.get(value.pageStates[0].key).owner=value.owner;
-  await expect(readAccountRateProposal(value.rpc,value.config.venue,1n)).rejects.toThrow(/Foreign/);
-  await expect(readAccountRateProposal(value.rpc,value.config.venue,2n)).rejects.toThrow(/awaiting/);
-});
-it('refuses final-batch stage changes after discovery',async()=>{
-  const value=await fixture(),original=value.rpc.call;
-  value.rpc.call=async(method,params)=>{
-    if(method==='getMultipleAccounts')value.put(value.resolution,sdk.getResolutionEncoder().encode({...value.header,stage:5}));
-    return original(method,params);
-  };
-  await expect(readAccountRateProposal(value.rpc,value.config.venue,1n)).rejects.toThrow(/stage/);
-});
-it('verifies frozen collections, aggregate cash and common denominator',async()=>{
-  for(const mutation of ['collected','cash','common'] as const) {
-    const value=await fixture();
-    if(mutation==='collected') {
-      const {key,page}=value.pageStates[0];page.rows[0].collected=99n;value.put(key,sdk.getResolutionPageEncoder().encode(page));
-    }else {
-      if(mutation==='cash')value.header.cashBefore=101n;else value.header.common.limbs[0]++;
-      value.put(value.resolution,sdk.getResolutionEncoder().encode(value.header));
+it('rejects missing/mixed frozen rows, old domains, duplicate identities and wrong collection',async()=>{
+  for(const mutation of ['missing','old-schema','wrong-epoch','duplicate-id','duplicate-key','cash','collection','denominator','membership','profile']) {
+    const test=await fixture();
+    if(mutation==='missing')test.accounts.delete(test.pageKey);
+    else if(mutation==='denominator'){test.limb.payload.words[0]=2n;test.put(test.limbKey,sdk.getSettlementLimbPageEncoder().encode(test.limb));}
+    else if(mutation==='membership'){test.registry.membershipEpoch++;test.put(test.keys.registry,sdk.getVenueRegistryEncoder().encode(test.registry));}
+    else if(mutation==='profile') {
+      const venue=sdk.getVenueDecoder().decode(Buffer.from(test.accounts.get(test.venue).data[0],'base64'));venue.profileVersion=4;
+      test.put(test.venue,sdk.getVenueEncoder().encode(venue));
+    } else {
+      if(mutation==='old-schema')test.page.schemaVersion=8;
+      if(mutation==='wrong-epoch')test.page.epoch++;
+      if(mutation==='duplicate-id')test.page.rows[1].id=0n;
+      if(mutation==='duplicate-key')test.page.rows[1].member=test.page.rows[0].member;
+      if(mutation==='cash')test.page.rows[1].cash=1n;
+      if(mutation==='collection')test.page.rows[0].collected=99n;
+      test.put(test.pageKey,sdk.getFrozenMarginPageEncoder().encode(test.page));
     }
-    await expect(readAccountRateProposal(value.rpc,value.config.venue,1n)).rejects.toThrow(/collection|cash|denominator/);
+    await expect(readAccountRateProposal(test.rpc,test.venue,1n),mutation).rejects.toThrow();
   }
+});
+it('does not publish a rate proposal when another continuation advances during page reads',async()=>{
+  const test=await fixture();let calls=0;
+  const rpc={call:async(method:string,args:unknown[]=[])=>{
+    const result=await test.rpc.call(method,args);
+    if(++calls===3){test.rates.revision++;test.put(test.keys.rates,sdk.getSettlementRatesEncoder().encode(test.rates));}
+    return result;
+  }};
+  await expect(readAccountRateProposal(rpc,test.venue,1n)).rejects.toThrow(/revision changed/);
+  await expect(readAccountRateProposal(test.rpc,test.venue,1n,4 as 5)).rejects.toThrow(/Unsupported/);
 });

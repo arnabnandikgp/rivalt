@@ -104,7 +104,6 @@ impl<'a> PageWindow<'a> {
                 &[
                     b"resolution-limbs",
                     venue.as_ref(),
-                    &epoch.to_le_bytes(),
                     &request.register.to_le_bytes(),
                     &request.index.to_le_bytes(),
                     &[bytes[80]],

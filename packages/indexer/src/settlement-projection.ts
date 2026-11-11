@@ -17,8 +17,7 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
   if(event.type==='SettlementMarginApplied') {
     const plan=present(state.pagedSettlement,'adopted plan'),id=BigInt(change.id),ordinal=BigInt(change.ordinal);
     accountCheck(current.stage===14&&plan.stage===9&&ordinal===BigInt(plan.cursor)&&ordinal<BigInt(plan.count),'paged next Apply');
-    // Schema-8 bridge is bounded; no u64 is converted to a JS number for identity lookup.
-    eq(ordinal.toString(),id.toString(),'bridge identity');
+    // Financial ordinal and stable identity are distinct after empty-account churn.
     const member=state.members.find(key=>BigInt(state.roots[key].id)===id);
     eq(member,change.member,'member');
     const previous=present(state.roots[change.member],'original margin');
@@ -53,7 +52,7 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
   accountCheck(event.type==='SettlementPlanProgress','paged event kind');
   let plan=state.pagedSettlement;
   if(!plan) {
-    accountCheck(current.stage===2&&current.cursor===0&&change.stage===9&&change.cursor==='0','paged adoption transition');
+    accountCheck(current.stage===2&&current.cursor==='0'&&change.stage===9&&change.cursor==='0','paged adoption transition');
     eq(change.count,String(state.members.length),'complete count');
     eq(change.remainingCash,current.cashBefore,'original total');eq(change.appliedCash,'0','initial payout');
     eq(change.marketMovements,['0','0'],'initial movements');
@@ -65,7 +64,7 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
       const source=state.roots[key],values=claims(source,current.prices,current.funding);
       const debt=values.reduce((sum,value)=>sum+(BigInt(value)<0n?-BigInt(value):0n),0n)/scale;
       const cash=BigInt(source.cash);
-      current.rows[id]={member:key,originalRevision:source.revision,cashBefore:source.cash,lots:source.positions.map(position=>position.lots),
+      current.rows[source.id]={member:key,originalRevision:source.revision,activationGeneration:source.activationGeneration,cashBefore:source.cash,lots:source.positions.map(position=>position.lots),
         generations:source.positions.map(position=>position.generation),claimsScaled:values,collected:(cash<debt?cash:debt).toString()};
     }
     plan=state.pagedSettlement={plan:change.plan,epoch:change.epoch,stage:9,cursor:'0',count:change.count,

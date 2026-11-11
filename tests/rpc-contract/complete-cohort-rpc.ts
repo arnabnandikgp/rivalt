@@ -1,3 +1,5 @@
+import {financialRoots} from './membership-scan-helper.js';
+import {registerFinancialTestMargin} from './account-membership-setup.js';
 // P44: real maximum membership and source-emergency recovery, no injected accounts.
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -29,19 +31,19 @@ try {
       if (!(await h.read(portfolio))) await h.send('P44 create maximum cohort portfolio', [await sdk.getCreatePortfolioInstructionAsync({
         ...setup.common, owner, portfolio, index: portfolioIndex })], [owner]);
       for (let subaccountIndex = 0; subaccountIndex <= 8; subaccountIndex++) {
-        if ((await registry()).count === 64) break;
+        if ((await registry()).financialCount === 64n) break;
         const [margin] = await sdk.deriveMarginAccount(portfolio, subaccountIndex);
         if (await h.read(margin)) continue;
-        await h.send('P44 register complete-cohort member', [await sdk.getRegisterMarginInstructionAsync({ ...setup.common, owner, portfolio,
-          margin, subaccountIndex, mode: subaccountIndex === 0 ? 0 : 1, isolatedMarketIndex: subaccountIndex === 0 ? 255 : subaccountIndex % 2, role: 0 })], [owner]);
+        await registerFinancialTestMargin(h,setup.common,setup.payer,{owner, portfolio,
+          margin, subaccountIndex, mode: subaccountIndex === 0 ? 0 : 1, isolatedMarketIndex: subaccountIndex === 0 ? 255 : subaccountIndex % 2, role: 0 });
         await h.send('P44 fund new member with one actual collateral atom', [getMintToInstruction({ mint: setup.mint.address,
           token: token.address, mintAuthority: setup.payer, amount: 1n }), await sdk.getDepositAccountInstructionAsync({ ...setup.common,
           owner, margin, quoteMint: setup.mint.address, userToken: token.address, amount: 1n })], [owner]);
       }
-      if ((await registry()).count === 64) break;
+      if ((await registry()).financialCount === 64n) break;
     }
   }
-  const roots = (await registry()).members; assert.equal(roots.length, 64);
+  const roots = await financialRoots(h,setup.venue,setup.registry); assert.equal(roots.length, 64);
   const cross = setup.roots[0]; await setup.qualify();
   for (const marketIndex of [0, 1] as const) {
     await setup.sample();
@@ -51,7 +53,7 @@ try {
   const [reserveDestination] = await findAssociatedTokenPda({ owner: setup.payer.address, mint: setup.mint.address, tokenProgram: TOKEN_PROGRAM_ADDRESS });
   await h.send('P44 prepare terminal reserve destination', [getCreateAssociatedTokenInstruction({ payer: setup.payer,
     ata: reserveDestination, owner: setup.payer.address, mint: setup.mint.address })]);
-  const keys = [...new Set([...setup.tracked, ...roots, ...setup.configurations, setup.resolution, setup.work, ...setup.pages,
+  const keys = [...new Set([...setup.tracked, ...roots, ...setup.configurations, setup.resolution, setup.storage,
     reserveDestination, setup.mint.address, setup.traderToken.address])];
   const raw = async () => Object.fromEntries(await Promise.all(keys.map(async key => [key, (await h.read(key))?.toString('base64') ?? null])));
   const reject = async (label: string, instruction: Instruction, error = sdk.CLEARING_ERROR__RESOLUTION) => {
@@ -61,7 +63,7 @@ try {
   const header = async () => sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   const sources = { primaryBtc: setup.feeds[0].feed, primaryCollateral: setup.feeds[1].feed,
     guardBtc: setup.feeds[2].feed, guardCollateral: setup.feeds[3].feed, primaryEth: setup.feeds[4].feed, guardEth: setup.feeds[5].feed };
-  const freeze = async () => sdk.getFreezeAccountsInstruction({ ...setup.safetyCommon, ...sources, caller: setup.payer, target: cross,
+  const freeze = async () => sdk.getFreezeAccountsInstruction({ ...setup.safetyCommon, ...sources, caller: setup.payer, target: cross,members:(await sdk.deriveMemberPage(setup.venue,(await root(cross)).id/64n))[0],
     safetyEpoch: sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).epoch, resolutionEpoch: (await header()).epoch, emergency: true });
   await reject('fresh sources cannot authorize emergency freeze', await freeze());
   const deadline = (await setup.marketState(0)).oracle.sourceDeadline + 31n;
@@ -86,7 +88,7 @@ try {
   const resolvedAccounts = await raw();
   const capture = { scenario: 'two-market-resolved', venue: setup.venue, custody: setup.custody, safety: setup.safety,
     registry: setup.registry, vault: setup.vault, mint: setup.mint.address, userTokens: [setup.token.address, setup.traderToken.address],
-    reserveDestination, resolution: setup.resolution, work: setup.work, pages: setup.pages, roots, markets: setup.markets,
+    reserveDestination, resolution: setup.resolution, storage: setup.storage, roots, markets: setup.markets,
     ledgers: setup.ledgers, frozenAccounts, completedAccounts, resolvedAccounts, rawAccounts: resolvedAccounts };
   writeFileSync(`${directory}/financial-capture.json`, serialize(capture));
   execFileSync('python3', ['tests/financial/account-safety-reference.py', `${directory}/financial-capture.json`], { stdio: 'inherit' });

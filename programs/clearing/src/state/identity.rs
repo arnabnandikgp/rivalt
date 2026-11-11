@@ -1,8 +1,8 @@
 //! Bounded immutable identities shared by current and compatibility decoders.
 pub const MARKET_COUNT: usize = 2;
 pub const MAX_MEMBERS: usize = 64;
-pub const MAX_PORTFOLIOS: u16 = 4;
-pub const MAX_SUBACCOUNT: u16 = 8;
+pub const MAX_PORTFOLIOS: u32 = 4;
+pub const MAX_SUBACCOUNT: u32 = 8;
 pub const CROSS_MARKET_SENTINEL: u8 = u8::MAX;
 
 pub const MODE_CROSS: u8 = 0;
@@ -13,8 +13,8 @@ pub const ROLE_RECEIVER: u8 = 2;
 
 /// Validate immutable account identity separately from runtime health/authority.
 pub fn valid_identity(
-    portfolio_index: u16,
-    subaccount_index: u16,
+    portfolio_index: u32,
+    subaccount_index: u32,
     mode: u8,
     isolated_market_index: u8,
     role: u8,

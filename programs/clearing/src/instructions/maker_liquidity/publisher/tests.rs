@@ -6,14 +6,14 @@ fn fixture() -> (Venue, Market, FundingPublisher, FundingReport, Clock) {
         ..Venue::default()
     };
     let market = Market {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         config_epoch: 4,
         terms_epoch: 2,
         observation_sequence: 9,
         ..Market::default()
     };
     let configuration = FundingPublisher {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 0,
         venue: Address::new_unique(),
         market: Address::new_unique(),

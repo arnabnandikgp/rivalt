@@ -12,6 +12,7 @@ import subprocess
 
 from wire_contract import PROGRAMS, BASELINE, program_contract, source_domains
 from settlement_wire_contract import strip_additions, DOMAINS
+from membership_wire_contract import undo_membership_delta, DOMAINS_ADDED, DOMAINS_REMOVED
 
 PREDECESSOR = 'c0bc3aaa3825896fcafbc879fe104362da61c21d'
 
@@ -129,12 +130,14 @@ def check_domains():
                     'global:control_curve_v4': 'global:control_curve',
                     'global:quote_v4': 'global:quote_curve'}
     expected['rust_byte_literals'] = sorted(set(replacements.get(item, item)
-                                            for item in expected['rust_byte_literals']) | set(DOMAINS))
+                                            for item in expected['rust_byte_literals']) | set(DOMAINS) | DOMAINS_ADDED)
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) - DOMAINS_REMOVED)
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
 def comparable_program(program, actual):
     """Validate every explicit extension before comparing the retained D90 ABI."""
+    actual = undo_membership_delta(actual, program)
     if program == 'clearing':
         actual = strip_additions(actual)
     return comparable(actual, expected_idl(program))

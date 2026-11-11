@@ -29,18 +29,18 @@ export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBin
     const init=initialization?.events.find(event=>event.type==='AccountCustodyChangedV3'&&event.data.kind===0);
     if(!init)throw new Error('Invalid liquidity initialization anchor');
     await this.artifacts.verify(address(init.data.authority));
-    return {schema:8,venue:this.config.venue,profile:this.config.profile,artifactSet:LIQUIDITY_ARTIFACT_SET,genesis,domain:init.data.domain,
+    return {schema:9,venue:this.config.venue,profile:this.config.profile,artifactSet:LIQUIDITY_ARTIFACT_SET,genesis,domain:init.data.domain,
       anchor:this.config.anchor,anchorHash:hash(anchor.transaction),program:this.deployment.clearing};
   }
   async reconcile(snapshot?:{state:AccountState;binding:LiquidityBinding}) {
     const row=snapshot??await this.store.snapshot();
-    if(row.binding.artifactSet!==LIQUIDITY_ARTIFACT_SET||row.state.venue?.profileVersion!==4||!row.state.liquidity)
+    if(row.binding.artifactSet!==LIQUIDITY_ARTIFACT_SET||row.state.venue?.profileVersion!==5||!row.state.liquidity)
       throw new Error('Unqualified liquidity journal deployment');
     await this.artifacts.verify(address(row.state.venue.authority));
     return reconcileAccountSnapshot(row.state,row.binding,keys=>this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]));
   }
   protected async capture(snapshot:{state:AccountState;binding:LiquidityBinding},minimumSlot:number) {
-    if(snapshot.binding.artifactSet!==LIQUIDITY_ARTIFACT_SET||snapshot.state.venue?.profileVersion!==4||!snapshot.state.liquidity)
+    if(snapshot.binding.artifactSet!==LIQUIDITY_ARTIFACT_SET||snapshot.state.venue?.profileVersion!==5||!snapshot.state.liquidity)
       throw new Error('Unqualified liquidity journal deployment');
     await this.artifacts.verify(address(snapshot.state.venue.authority));
     const witness=await captureAccountReconciliation(snapshot.state,snapshot.binding,keys=>this.rpc.call('getMultipleAccounts',

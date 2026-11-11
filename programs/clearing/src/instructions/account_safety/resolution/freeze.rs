@@ -117,12 +117,11 @@ pub fn freeze(
             && identity.safety.epoch == expected_safety_epoch
             && header.schema_version == SCHEMA_VERSION
             && header.epoch == expected_resolution_epoch
-            && ((header.stage == IDLE && header.cursor == PAGE_COUNT) || header.stage == RECOVERED)
-            && accounts.work.schema_version == SCHEMA_VERSION
-            && accounts.registry.members.get(accounts.target.id as usize)
-                == Some(&accounts.target.address().to_owned()),
+            && (header.stage == IDLE || header.stage == RECOVERED),
         ClearingError::Resolution
     );
+    crate::instructions::account_membership::members::member(&accounts.members, &accounts.registry,
+        accounts.target.address(), &accounts.target)?;
     let registry_hash = registry_hash(&accounts.registry)?;
     let clock = Clock::get()?;
     let bounds = sources(identity, &accounts.sources, clock.unix_timestamp)?;
@@ -159,7 +158,11 @@ pub fn freeze(
         VALUE
     };
     header.cursor = 0;
-    header.count = accounts.registry.count;
+    header.count = accounts.registry.financial_count;
+    header.membership_epoch = accounts.registry.membership_epoch;
+    header.live_index = accounts.registry.live_index;
+    let locked = accounts.storage.model().lock(header.epoch, header.count).map_err(|_| ClearingError::Resolution)?;
+    accounts.storage.commit(locked)?;
     header.registry_hash = registry_hash;
     header.safety_epoch = identity.safety.epoch;
     header.terms_epoch = identity.venue.terms_epoch;
@@ -191,33 +194,7 @@ pub fn freeze(
     header.positive_scaled = [0; 2];
     header.budgets = header.insurance_before;
     header.insurance_spent = [0; 2];
-    header.evaluation = 0;
-    header.clipped_mask = 0;
     header.cash_applied = 0;
-    header.proposal_hash = [0; 32];
-    header.proposal_uploaded = 0;
-    header.rate_factor = [0; 3];
-    header.common.limbs.fill(0);
-    header.flow_denominator.limbs.fill(0);
-    for rate in &mut header.rate_numerators {
-        rate.limbs.fill(0);
-    }
-    let work = &mut accounts.work;
-    work.epoch = header.epoch;
-    work.opcode = header.stage;
-    work.row = 0;
-    work.limb_cursor = 0;
-    for register in &mut work.registers {
-        register.limbs.fill(0);
-    }
-    work.residual_capacity.fill(0);
-    work.market_edge_order = [[0; MAX_MEMBERS]; 2];
-    work.visited_members = 0;
-    work.parents.fill(0);
-    work.dfs_next.fill(0);
-    work.dfs_path.fill(0);
-    work.depth = 0;
-    work.augmentations = 0;
 
     frozen(&identity, &accounts.registry, header, header.epoch)?;
     emit(

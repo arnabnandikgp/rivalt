@@ -15,91 +15,10 @@ pub fn initialize(
         source.source.epoch == epoch && source.source.revision == source_revision,
         ClearingError::Resolution
     );
+    super::workspace::reset_prepared(&mut ctx.accounts.prepared, source.storage, epoch)?;
     source.initialize(&mut ctx.accounts.prepared)?;
-    ctx.accounts.prepared.bump = ctx.bumps.prepared;
+    begin_value(&mut ctx.accounts.prepared)?;
     Ok(())
-}
-fn preparing(
-    source: &PreparedSourceIdentity,
-    header: &PreparedSettlement,
-    revision: u64,
-) -> Result<()> {
-    source.frozen().matches(header)?;
-    require!(
-        header.revision == revision && header.stage == PREPARE_INDEX,
-        ClearingError::Resolution
-    );
-    Ok(())
-}
-fn ready(header: &mut PreparedSettlement) -> Result<()> {
-    if header.index_initialized == 0x7fff && header.member_page_initialized {
-        begin_value(header)?;
-    }
-    Ok(())
-}
-pub fn initialize_node(
-    ctx: &mut Context<InitializePreparedIndexNode>,
-    _epoch: u64,
-    level: u8,
-    revision: u64,
-) -> Result<()> {
-    require!(
-        ctx.remaining_accounts()?.is_empty(),
-        ClearingError::Resolution
-    );
-    let accounts = &mut ctx.accounts;
-    preparing(&accounts.source, &accounts.prepared, revision)?;
-    require!(
-        level < 15 && accounts.prepared.index_initialized & (1 << level) == 0,
-        ClearingError::Resolution
-    );
-    let node = &mut accounts.node;
-    node.schema_version = SETTLEMENT_SCHEMA;
-    node.venue = accounts.prepared.venue;
-    node.level = level;
-    node.prefix = 0;
-    node.populated_mask = 1;
-    node.counts[0] = accounts.prepared.count;
-    node.bump = ctx.bumps.node;
-    accounts.prepared.index_initialized |= 1 << level;
-    ready(&mut accounts.prepared)
-}
-pub fn initialize_members(
-    ctx: &mut Context<InitializePreparedMembers>,
-    _epoch: u64,
-    revision: u64,
-) -> Result<()> {
-    require!(
-        ctx.remaining_accounts()?.is_empty(),
-        ClearingError::Resolution
-    );
-    let accounts = &mut ctx.accounts;
-    preparing(&accounts.source, &accounts.prepared, revision)?;
-    require!(
-        !accounts.prepared.member_page_initialized,
-        ClearingError::Resolution
-    );
-    let page = &mut accounts.page;
-    page.schema_version = SETTLEMENT_SCHEMA;
-    page.venue = accounts.prepared.venue;
-    page.page_index = 0;
-    let count = accounts.prepared.count;
-    page.allocated_mask = if count == 64 {
-        u64::MAX
-    } else {
-        (1u64 << count) - 1
-    };
-    page.financial_mask = page.allocated_mask;
-    page.bump = ctx.bumps.page;
-    for (index, member) in accounts.source.registry.members.iter().enumerate() {
-        page.members.entries[index] = MemberEntry {
-            root: *member,
-            lifecycle: MEMBER_FINANCIAL,
-            activation_generation: 1,
-        };
-    }
-    accounts.prepared.member_page_initialized = true;
-    ready(&mut accounts.prepared)
 }
 pub fn initialize_rows(
     ctx: &mut Context<InitializeFrozenMarginPage>,
@@ -116,12 +35,12 @@ pub fn initialize_rows(
         accounts.prepared.stage <= VALUE && page_index < accounts.prepared.count.div_ceil(8),
         ClearingError::Resolution
     );
+    super::workspace::reset_rows(&mut accounts.page, &accounts.source.storage, accounts.prepared.epoch)?;
     let page = &mut accounts.page;
     page.schema_version = SETTLEMENT_SCHEMA;
     page.venue = accounts.prepared.venue;
     page.epoch = accounts.prepared.epoch;
     page.page_index = page_index;
-    page.bump = ctx.bumps.page;
     Ok(())
 }
 pub fn advance_membership(

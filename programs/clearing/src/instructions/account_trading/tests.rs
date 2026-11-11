@@ -13,7 +13,9 @@ fn clock() -> Clock {
 }
 fn root() -> MarginAccount {
     MarginAccount {
-        schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Address::new_from_array([1; 32]),
@@ -26,7 +28,7 @@ fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -199,7 +201,7 @@ fn positive_unpaid_claims_never_fund_risk_or_fee() {
 fn fee_carry_is_exact_per_market_and_never_an_asset() {
     let mut account_cash = 100_000;
     let mut ledgers = [0u8, 1].map(|market_index| MarketLedger {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         market_index,
         ..Default::default()
     });

@@ -1,3 +1,4 @@
+import {registerFinancialTestMargin} from './account-membership-setup.js';
 // Bounded direct-RPC offered-load experiment, separate from durable queue capacity.
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync,appendFileSync} from 'node:fs';
@@ -55,7 +56,7 @@ try {
     getMintToInstruction({mint:setup.mint.address,token:ethToken.address,mintAuthority:setup.payer,amount:1_000_000n})],[ethToken]);
   const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,ethOwner.address,0),[ethRoot]=await sdk.deriveMarginAccount(portfolio,1);
   await h.send('load create independent ETH portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner:ethOwner,portfolio,index:0})],[ethOwner]);
-  await h.send('load register independent isolated ETH',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner:ethOwner,portfolio,margin:ethRoot,subaccountIndex:1,mode:1,isolatedMarketIndex:1,role:0})],[ethOwner]);
+  await registerFinancialTestMargin(h,setup.common,setup.payer,{owner:ethOwner,portfolio,margin:ethRoot,subaccountIndex:1,mode:1,isolatedMarketIndex:1,role:0});
   await h.send('load deposit independent ETH collateral',[await sdk.getDepositAccountInstructionAsync({...setup.common,owner:ethOwner,margin:ethRoot,quoteMint:setup.mint.address,userToken:ethToken.address,amount:1_000_000n})],[ethOwner]);
   await setup.qualify();await flush();
   const allRoots=[...setup.instances.map(maker=>maker.capital),...setup.roots,ethRoot],initial=await Promise.all(allRoots.map(helper.root));
@@ -119,7 +120,7 @@ try {
   running=false;await Promise.all([producer,indexing]);await flush();if(backgroundError)throw backgroundError;
   // Independent per-root replay sorted by authoritative root version, not async
   // submit order. Reverted invocations contribute no economic transition.
-  const changes=new Map<number,{after:sdk.MarginAccountSnapshot;offer:Offer;gross:bigint;fee:bigint;trader:boolean}[]>(),fees=[0n,0n];
+  const changes=new Map<bigint,{after:sdk.MarginAccountSnapshot;offer:Offer;gross:bigint;fee:bigint;trader:boolean}[]>(),fees=[0n,0n];
   for(const offer of offers.filter(offer=>offer.submitted)){
     const index=checks.findIndex(check=>check.label===offer.label),check=checks[index];assert(check);
     const transaction=JSON.parse(readFileSync(`${directory}/transaction-${index}.json`,'utf8'));if(transaction.meta.err)continue;

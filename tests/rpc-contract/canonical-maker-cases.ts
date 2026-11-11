@@ -7,6 +7,7 @@ import { getCreateAccountInstruction, getTransferSolInstruction } from '@solana-
 import { TOKEN_PROGRAM_ADDRESS, getInitializeMint2Instruction, getInitializeAccount3Instruction, getMintToInstruction, getTokenDecoder } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import { accountPda, accountMarket } from './account-custody-cases.js';
+import {provisionRecoveryWorkspace,registerFinancialTestMargin} from './account-membership-setup.js';
 import { addresses, fixtureKey, payerKey, LOADER, type Harness } from './harness.js';
 
 export type CanonicalHarness = Harness & { quote(label: string, instruction: Instruction, expected: bigint): Promise<void>; elapseSeconds?(seconds: number): Promise<void> };
@@ -26,7 +27,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
-  const domain = createHash('sha256').update('rivalt/p46/schema8/canonical-makers/profile4').digest();
+  const domain = createHash('sha256').update('rivalt/p55/schema9/canonical-makers/profile5').digest();
   const venue = await accountPda('venue-v3', domain);
   const registry = await accountPda('registry-v3', keyBytes.encode(venue));
   const vault = await accountPda('vault-v3', keyBytes.encode(venue));
@@ -53,13 +54,14 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
     lamports: await h.rent(165), space: 165n, programAddress: TOKEN_PROGRAM_ADDRESS }),
     getInitializeAccount3Instruction({ account: token.address, mint: mint.address, owner: owner.address }),
     getMintToInstruction({ mint: mint.address, token: token.address, mintAuthority: payer, amount: initialCash * 6n })], [token]);
-  await h.send('initialize fresh profile4 custody', [await sdk.getInitializeLiquidityVenueInstructionAsync({ ...admin, domain })]);
-  assert.equal(sdk.getVenueDecoder().decode((await h.read(venue))!).profileVersion, 4);
+  await h.send('initialize fresh profile5 custody', [await sdk.getInitializeLiquidityVenueInstructionAsync({ ...admin, domain })]);
+  assert.equal(sdk.getVenueDecoder().decode((await h.read(venue))!).profileVersion, 5);
   await h.send('initialize venue registry', [await sdk.getInitializeVenueRegistryInstructionAsync(admin)]);
   for (const marketIndex of [0, 1]) {
     await h.send(`initialize market ${marketIndex}`, [sdk.getInitializeMarketInstruction({ ...admin, index: marketIndex,
       market: markets[marketIndex], ledger: ledgers[marketIndex] })]);
   }
+  const storage=await provisionRecoveryWorkspace(h,common,payer);
   const instances = [];
   for (const marketIndex of makerMarkets) {
     const market = markets[marketIndex];
@@ -67,14 +69,14 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
     const liquidityCommon = { ...common, market, registry: liquidityRegistry, authority: payer };
     await h.send(`initialize maker registry ${marketIndex}`, [await sdk.getInitializeLiquidityInstructionAsync(liquidityCommon)]);
     tracked.push(liquidityRegistry);
-    const portfolio = await accountPda('portfolio-v3', keyBytes.encode(venue), keyBytes.encode(owner.address), u16(marketIndex));
+    const portfolio = await accountPda('portfolio-v3', keyBytes.encode(venue), keyBytes.encode(owner.address), sdk.namespaceIndexBytes(marketIndex));
     await h.send(`create operator portfolio ${marketIndex}`, [await sdk.getCreatePortfolioInstructionAsync({ ...common, owner, portfolio, index: marketIndex })], [owner]);
     tracked.push(portfolio);
     const marketInstances = [];
     for (const instance of [0, 1, 2]) {
-      const capital = await accountPda('margin-v3', keyBytes.encode(portfolio), u16(instance + 1));
-      await h.send(`register isolated capital ${marketIndex}/${instance}`, [await sdk.getRegisterMarginInstructionAsync({ ...common, owner,
-        portfolio, margin: capital, subaccountIndex: instance + 1, mode: 1, isolatedMarketIndex: marketIndex, role: 1 })], [owner]);
+      const capital = await accountPda('margin-v3', keyBytes.encode(portfolio), sdk.namespaceIndexBytes(instance + 1));
+      await registerFinancialTestMargin(h,common,payer,{owner,portfolio,margin:capital,subaccountIndex:instance+1,
+        mode:1,isolatedMarketIndex:marketIndex,role:1});
       await h.send(`fund isolated capital ${marketIndex}/${instance}`, [await sdk.getDepositAccountInstructionAsync({ ...common, owner,
         margin: capital, quoteMint: mint.address, userToken: token.address, amount: initialCash })], [owner]);
       const module = instance === 2 ? sdk.makerB : sdk.makerA;
@@ -117,7 +119,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
       first: marketInstances[0].registration, second: marketInstances[1].registration, third: marketInstances[2].registration })]);
     assert.equal(sdk.getLiquidityRegistryDecoder().decode((await h.read(liquidityRegistry))!).sealed, true);
   }
-  return { payer, owner, updater, mint, token, deployment, domain, venue, registry, vault, custody, safety,
+  return { storage, payer, owner, updater, mint, token, deployment, domain, venue, registry, vault, custody, safety,
     markets, ledgers, common, admin, tracked, instances, rejected };
 }
 

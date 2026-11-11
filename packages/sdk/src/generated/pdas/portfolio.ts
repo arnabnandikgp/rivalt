@@ -10,7 +10,7 @@ import {
   getAddressEncoder,
   getBytesEncoder,
   getProgramDerivedAddress,
-  getU16Encoder,
+  getU32Encoder,
   type Address,
   type HasAddress,
   type ProgramDerivedAddress,
@@ -44,7 +44,7 @@ export async function findPortfolioPda(
       ),
       getAddressEncoder().encode(seeds.venue),
       getAddressEncoder().encode(seeds.owner),
-      getU16Encoder().encode(seeds.index),
+      getU32Encoder().encode(seeds.index),
     ],
   });
 }

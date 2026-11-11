@@ -32,6 +32,12 @@ import {
   type FixedSizeEncoder,
   type HasAddress,
 } from "@solana/kit";
+import {
+  getMembershipStateDecoder,
+  getMembershipStateEncoder,
+  type MembershipState,
+  type MembershipStateArgs,
+} from "./index.js";
 
 export type BackingSnapshot = {
   schemaVersion: number;
@@ -44,12 +50,13 @@ export type BackingSnapshot = {
   fundingBounds: Array<Array<bigint>>;
   sourceDeadlines: Array<bigint>;
   requiredMarketMask: number;
-  count: number;
-  next: number;
+  count: bigint;
+  next: bigint;
   cash: bigint;
   lots: Array<bigint>;
   claimSum: bigint;
   complete: boolean;
+  membership: MembershipState;
   bump: number;
 };
 
@@ -64,12 +71,13 @@ export type BackingSnapshotArgs = {
   fundingBounds: Array<Array<number | bigint>>;
   sourceDeadlines: Array<number | bigint>;
   requiredMarketMask: number;
-  count: number;
-  next: number;
+  count: number | bigint;
+  next: number | bigint;
   cash: number | bigint;
   lots: Array<number | bigint>;
   claimSum: number | bigint;
   complete: boolean;
+  membership: MembershipStateArgs;
   bump: number;
 };
 
@@ -90,12 +98,13 @@ export function getBackingSnapshotEncoder(): FixedSizeEncoder<BackingSnapshotArg
     ],
     ["sourceDeadlines", getArrayEncoder(getI64Encoder(), { size: 2 })],
     ["requiredMarketMask", getU8Encoder()],
-    ["count", getU16Encoder()],
-    ["next", getU16Encoder()],
+    ["count", getU64Encoder()],
+    ["next", getU64Encoder()],
     ["cash", getU64Encoder()],
     ["lots", getArrayEncoder(getI128Encoder(), { size: 2 })],
     ["claimSum", getI128Encoder()],
     ["complete", getBooleanEncoder()],
+    ["membership", getMembershipStateEncoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -117,12 +126,13 @@ export function getBackingSnapshotDecoder(): FixedSizeDecoder<BackingSnapshot> {
     ],
     ["sourceDeadlines", getArrayDecoder(getI64Decoder(), { size: 2 })],
     ["requiredMarketMask", getU8Decoder()],
-    ["count", getU16Decoder()],
-    ["next", getU16Decoder()],
+    ["count", getU64Decoder()],
+    ["next", getU64Decoder()],
     ["cash", getU64Decoder()],
     ["lots", getArrayDecoder(getI128Decoder(), { size: 2 })],
     ["claimSum", getI128Decoder()],
     ["complete", getBooleanDecoder()],
+    ["membership", getMembershipStateDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }

@@ -21,8 +21,6 @@ import {
   getHiddenPrefixEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   type Address,
@@ -32,6 +30,12 @@ import {
   type HasAddress,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getMembershipStateDecoder,
+  getMembershipStateEncoder,
+  type MembershipState,
+  type MembershipStateArgs,
+} from "../types/index.js";
 
 export const ACCOUNT_RETIREMENT_PROGRESS_EVENT_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([226, 240, 202, 110, 27, 48, 118, 40]);
@@ -47,10 +51,11 @@ export type AccountRetirementProgressEvent = {
   slot: bigint;
   safetyEpoch: bigint;
   membershipVersion: bigint;
-  count: number;
-  next: number;
+  count: bigint;
+  next: bigint;
   cash: bigint;
   complete: boolean;
+  membership: MembershipState;
 };
 
 export type AccountRetirementProgressEventArgs = {
@@ -58,10 +63,11 @@ export type AccountRetirementProgressEventArgs = {
   slot: number | bigint;
   safetyEpoch: number | bigint;
   membershipVersion: number | bigint;
-  count: number;
-  next: number;
+  count: number | bigint;
+  next: number | bigint;
   cash: number | bigint;
   complete: boolean;
+  membership: MembershipStateArgs;
 };
 
 /** Gets the encoder for {@link AccountRetirementProgressEventArgs} event data. */
@@ -72,10 +78,11 @@ export function getAccountRetirementProgressEventEncoder(): FixedSizeEncoder<Acc
       ["slot", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
       ["membershipVersion", getU64Encoder()],
-      ["count", getU16Encoder()],
-      ["next", getU16Encoder()],
+      ["count", getU64Encoder()],
+      ["next", getU64Encoder()],
       ["cash", getU64Encoder()],
       ["complete", getBooleanEncoder()],
+      ["membership", getMembershipStateEncoder()],
     ]),
     [getConstantEncoder(ACCOUNT_RETIREMENT_PROGRESS_EVENT_DISCRIMINATOR)],
   );
@@ -89,10 +96,11 @@ export function getAccountRetirementProgressEventDecoder(): FixedSizeDecoder<Acc
       ["slot", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
       ["membershipVersion", getU64Decoder()],
-      ["count", getU16Decoder()],
-      ["next", getU16Decoder()],
+      ["count", getU64Decoder()],
+      ["next", getU64Decoder()],
       ["cash", getU64Decoder()],
       ["complete", getBooleanDecoder()],
+      ["membership", getMembershipStateDecoder()],
     ]),
     [getConstantDecoder(ACCOUNT_RETIREMENT_PROGRESS_EVENT_DISCRIMINATOR)],
   );

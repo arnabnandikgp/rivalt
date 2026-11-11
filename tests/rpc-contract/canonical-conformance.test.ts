@@ -24,9 +24,9 @@ it('cannot report instruction parity for an empty selection', async () => {
 
 it('compares nested resolution contexts and every dynamic page meta with isolated Anchor',async()=>{
   const key=sdk.CLEARING_PROGRAM_ADDRESS;
-  const fixed=sdk.getAdvanceAccountResolutionInstruction({venue:key,custody:key,safety:key,btc:key,eth:key,
-    btcLedger:key,ethLedger:key,vault:key,registry:key,resolution:key,work:key,page:key,
-    eventAuthority:key,program:key,epoch:9007199254740993n,stage:5,start:0,length:1});
+  const fixed=sdk.getAdvancePreparedMembershipInstruction({venue:key,custody:key,safety:key,btc:key,eth:key,
+    btcLedger:key,ethLedger:key,vault:key,registry:key,resolution:key,storage:key,prepared:key,index:key,
+    eventAuthority:key,program:key,epoch:9007199254740993n,revision:4n});
   const remaining=[{address:sdk.makerA.MAKER_A_PROGRAM_ADDRESS,role:0 as const},
     {address:sdk.makerB.MAKER_B_PROGRAM_ADDRESS,role:1 as const}];
   const conformance=new CanonicalConformance();
@@ -39,14 +39,14 @@ it('compares nested resolution contexts and every dynamic page meta with isolate
   finally{rmSync(directory,{recursive:true});}
 });
 
-it('encodes the variable-byte untrusted proposal through the isolated Anchor client',async()=>{
+it('encodes full-width paged rate limbs through the isolated Anchor client',async()=>{
   const key=sdk.CLEARING_PROGRAM_ADDRESS,conformance=new CanonicalConformance();
-  conformance.record([sdk.getProposeAccountResolutionInstruction({venue:key,custody:key,safety:key,btc:key,eth:key,
-    btcLedger:key,ethLedger:key,vault:key,registry:key,resolution:key,work:key,eventAuthority:key,program:key,
-    epoch:9007199254740993n,evaluation:2,proposalHash:new Uint8Array(32).fill(255),offset:1024,
-    bytes:Uint8Array.from({length:512},(_,index)=>index%256)})]);
-  const payload=sdk.getAccountResolutionProposalEventEncoder().encode({venue:key,slot:100n,epoch:9007199254740993n,
-    evaluation:2,proposalHash:new Uint8Array(32).fill(255),offset:1024,bytes:Uint8Array.from([0,255,1]),rejected:false,nextStage:4});
+  conformance.record([sdk.getUploadSettlementRateInstruction({venue:key,custody:key,safety:key,btc:key,eth:key,
+    btcLedger:key,ethLedger:key,vault:key,registry:key,resolution:key,storage:key,prepared:key,rates:key,page:key,
+    proposer:createNoopSigner(key),eventAuthority:key,program:key,epoch:9007199254740993n,revision:7n,attempt:2n,market:1,
+    offset:9007199254740994n,words:[0n,9007199254740993n,18446744073709551615n]})]);
+  const payload=sdk.getAccountResolutionRatesEventEncoder().encode({venue:key,slot:100n,epoch:9007199254740993n,
+    evaluation:2,proposalHash:new Uint8Array(32).fill(255),outcome:3,nextEvaluation:2,clippedMask:0,budgets:[7n,8n],insuranceSpent:[1n,2n]});
   conformance.record([],{meta:{err:null,innerInstructions:[{instructions:[{programIdIndex:0,
     data:getBase58Decoder().decode(Buffer.concat([Buffer.alloc(8),Buffer.from(payload)]))}]}]},
     transaction:{message:{accountKeys:[key]}}});

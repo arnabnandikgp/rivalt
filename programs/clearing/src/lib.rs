@@ -30,6 +30,7 @@ mod event_cpi;
 pub mod events;
 pub mod instructions;
 mod program_accounts;
+mod manual_account;
 #[cfg(any(test, feature = "devnet-test-profile"))]
 mod pyth_core;
 mod scoped_history;
@@ -62,6 +63,43 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn activate_margin(ctx: &mut Context<ChangeMarginMembership>, revision: u64, membership_epoch: u64,
+        safety_epoch: u64, index_revisions: [u64; 15]) -> Result<()> {
+        scoped_history::run_membership(ctx, [206, 170, 249, 231, 115, 159, 95, 29], |ctx, events| account_membership::handlers::change(
+            ctx, events, true, revision, membership_epoch, safety_epoch, index_revisions))
+    }
+    pub fn deactivate_margin(ctx: &mut Context<ChangeMarginMembership>, revision: u64, membership_epoch: u64,
+        safety_epoch: u64, index_revisions: [u64; 15]) -> Result<()> {
+        scoped_history::run_membership(ctx, [154, 172, 173, 30, 123, 60, 158, 235], |ctx, events| account_membership::handlers::change(
+            ctx, events, false, revision, membership_epoch, safety_epoch, index_revisions))
+    }
+    pub fn retire_margin(ctx: &mut Context<RetireMargin>, revision: u64, safety_epoch: u64) -> Result<()> {
+        scoped_history::run(ctx, [238, 226, 35, 87, 92, 76, 136, 41], false, |ctx, events| account_membership::handlers::retire(ctx, events, revision, safety_epoch))
+    }
+    pub fn refund_recovery_allocation(ctx: &mut Context<RefundRecoveryAllocation>, kind: u8, register: u32, page: u64, revision: u64) -> Result<()> {
+        scoped_history::run(ctx, [35, 222, 78, 132, 92, 105, 99, 88], false, |ctx, events| account_membership::refund::refund(ctx, events, kind, register, page, revision))
+    }
+    pub fn fund_member_page(ctx: &mut Context<FundMemberPage>, page_index: u64) -> Result<()> {
+        scoped_history::run(ctx, [112, 40, 74, 193, 138, 7, 215, 68], false, |ctx, _events| account_membership::allocation::page(ctx, page_index))
+    }
+    pub fn fund_member_index(ctx: &mut Context<FundMemberIndex>, level: u8, prefix: u64) -> Result<()> {
+        scoped_history::run(ctx, [157, 110, 124, 229, 139, 44, 23, 146], false, |ctx, _events| account_membership::allocation::index(ctx, level, prefix))
+    }
+    pub fn initialize_recovery_storage(ctx: &mut Context<InitializeRecoveryStorage>) -> Result<()> {
+        scoped_history::run(ctx, [106, 158, 29, 233, 151, 19, 14, 179], false, |ctx, _events| account_membership::provision::initialize(ctx))
+    }
+    pub fn begin_recovery_provision(ctx: &mut Context<ConfigureRecoveryStorage>, capacity: u64, revision: u64) -> Result<()> {
+        scoped_history::run(ctx, [135, 74, 63, 142, 165, 222, 140, 251], false, |ctx, _events| account_membership::provision::begin(ctx, capacity, revision))
+    }
+    pub fn cancel_recovery_provision(ctx: &mut Context<ConfigureRecoveryStorage>, generation: u64, revision: u64) -> Result<()> {
+        scoped_history::run(ctx, [16, 233, 73, 117, 122, 173, 100, 221], false, |ctx, _events| account_membership::provision::cancel(ctx, generation, revision))
+    }
+    pub fn fund_recovery_allocation(ctx: &mut Context<FundRecoveryAllocation>, kind: u8, register: u32, page: u64, generation: u64, ordinal: u64) -> Result<()> {
+        scoped_history::run(ctx, [244, 52, 71, 227, 190, 76, 39, 38], false, |ctx, _events| account_membership::provision::fund(ctx, kind, register, page, generation, ordinal))
+    }
+    pub fn verify_recovery_allocation(ctx: &mut Context<VerifyRecoveryAllocation>, generation: u64, ordinal: u64, revision: u64) -> Result<()> {
+        scoped_history::run(ctx, [204, 213, 63, 59, 88, 246, 243, 60], false, |ctx, _events| account_membership::provision::verify(ctx, generation, ordinal, revision))
+    }
     pub fn initialize_prepared_settlement(
         ctx: &mut Context<InitializePreparedSettlement>,
         epoch: u64,
@@ -74,31 +112,8 @@ pub mod clearing {
             |ctx, _events| account_safety::settlement::initialize(ctx, epoch, source_revision),
         )
     }
-    pub fn initialize_prepared_index_node(
-        ctx: &mut Context<InitializePreparedIndexNode>,
-        epoch: u64,
-        level: u8,
-        revision: u64,
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [117, 16, 8, 101, 140, 193, 196, 138],
-            false,
-            |ctx, _events| account_safety::settlement::initialize_node(ctx, epoch, level, revision),
-        )
-    }
-    pub fn initialize_prepared_members(
-        ctx: &mut Context<InitializePreparedMembers>,
-        epoch: u64,
-        revision: u64,
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [173, 221, 142, 20, 24, 134, 194, 65],
-            false,
-            |ctx, _events| account_safety::settlement::initialize_members(ctx, epoch, revision),
-        )
-    }
+
+
     pub fn initialize_frozen_margin_page(
         ctx: &mut Context<InitializeFrozenMarginPage>,
         epoch: u64,
@@ -480,22 +495,7 @@ pub mod clearing {
             |ctx, events| account_trading::activation::activate_liquidity(ctx, events),
         )
     }
-    pub fn advance_account_resolution(
-        ctx: &mut Context<AdvanceAccountResolution>,
-        epoch: u64,
-        stage: u8,
-        start: u16,
-        length: u8,
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [126, 218, 57, 229, 217, 138, 41, 255],
-            stage == account_safety::resolution::APPLY,
-            |ctx, events| {
-                account_safety::resolution::advance(ctx, events, epoch, stage, start, length)
-            },
-        )
-    }
+
     pub fn allocate_market_fees(
         ctx: &mut Context<AllocateMarketFees>,
         market_index: u8,
@@ -519,35 +519,22 @@ pub mod clearing {
             |ctx, events| maker_liquidity::approve(ctx, events, expected_authority),
         )
     }
-    pub fn check_account_resolution_order(
-        ctx: &mut Context<AdvanceAccountResolution>,
-        epoch: u64,
-        start: u16,
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [149, 102, 156, 38, 43, 158, 226, 4],
-            false,
-            |ctx, events| account_safety::resolution::check_order(ctx, events, epoch, start),
-        )
-    }
+
     pub fn check_account_retirement(
         ctx: &mut Context<CheckAccountRetirement>,
-        start: u16,
+        revision: u64, restart: bool,
     ) -> Result<()> {
-        scoped_history::run(
+        scoped_history::run_membership_scan(
             ctx,
             [249, 193, 141, 17, 196, 101, 226, 246],
-            false,
-            |ctx, events| account_safety::resolution::retirement::check(ctx, events, start),
+            |ctx, events| account_safety::resolution::retirement::check(ctx, events, revision, restart),
         )
     }
-    pub fn check_market_backing(ctx: &mut Context<CheckMarketBacking>, start: u16) -> Result<()> {
-        scoped_history::run(
+    pub fn check_market_backing(ctx: &mut Context<CheckMarketBacking>, revision: u64, restart: bool) -> Result<()> {
+        scoped_history::run_membership_scan(
             ctx,
             [66, 145, 239, 19, 111, 19, 186, 239],
-            false,
-            |ctx, events| account_cash::certificate::check(ctx, events, start),
+            |ctx, events| account_cash::certificate::check(ctx, events, revision, restart),
         )
     }
     pub fn classify_market_surplus(
@@ -611,7 +598,7 @@ pub mod clearing {
             },
         )
     }
-    pub fn create_portfolio(ctx: &mut Context<CreatePortfolio>, index: u16) -> Result<()> {
+    pub fn create_portfolio(ctx: &mut Context<CreatePortfolio>, index: u32) -> Result<()> {
         scoped_history::run(
             ctx,
             [54, 26, 137, 113, 59, 182, 53, 225],
@@ -649,17 +636,7 @@ pub mod clearing {
             |ctx, events| maker_liquidity::routes::execute(ctx, events, args),
         )
     }
-    pub fn finalize_account_resolution_rates(
-        ctx: &mut Context<ProposeAccountResolution>,
-        epoch: u64,
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [240, 183, 132, 7, 94, 122, 26, 36],
-            false,
-            |ctx, events| account_safety::resolution::finalize(ctx, events, epoch),
-        )
-    }
+
     pub fn freeze_accounts(
         ctx: &mut Context<FreezeAccounts>,
         safety_epoch: u64,
@@ -691,17 +668,7 @@ pub mod clearing {
             |ctx, events| account_safety::resolution::initialize(ctx, events),
         )
     }
-    pub fn initialize_account_resolution_page(
-        ctx: &mut Context<InitializeAccountResolutionPage>,
-        page_index: u16,
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [140, 24, 112, 109, 122, 218, 84, 200],
-            false,
-            |ctx, events| account_safety::resolution::initialize_page(ctx, events, page_index),
-        )
-    }
+
     pub fn initialize_account_retirement(
         ctx: &mut Context<InitializeAccountRetirement>,
     ) -> Result<()> {
@@ -846,18 +813,7 @@ pub mod clearing {
             |ctx, events| account_cash::claims::net(ctx, events, guard, source_market, amount),
         )
     }
-    pub fn order_account_resolution(
-        ctx: &mut Context<ProposeAccountResolution>,
-        epoch: u64,
-        orders: [Vec<u16>; 2],
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [54, 181, 74, 95, 94, 228, 178, 94],
-            false,
-            |ctx, events| account_safety::resolution::order(ctx, events, epoch, orders),
-        )
-    }
+
     pub fn pause_venue(ctx: &mut Context<PauseVenue>, paused: bool) -> Result<()> {
         scoped_history::run(
             ctx,
@@ -878,31 +834,7 @@ pub mod clearing {
             |ctx, events| account_cash::claims::change(ctx, events, market_index, amount, true),
         )
     }
-    pub fn propose_account_resolution(
-        ctx: &mut Context<ProposeAccountResolution>,
-        epoch: u64,
-        evaluation: u8,
-        proposal_hash: [u8; 32],
-        offset: u16,
-        bytes: Vec<u8>,
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [5, 94, 130, 146, 21, 228, 47, 102],
-            false,
-            |ctx, events| {
-                account_safety::resolution::upload(
-                    ctx,
-                    events,
-                    epoch,
-                    evaluation,
-                    proposal_hash,
-                    offset,
-                    bytes,
-                )
-            },
-        )
-    }
+
     pub fn publish_funding_report(
         ctx: &mut Context<PublishFundingReport>,
         report: state::liquidity::FundingReport,
@@ -955,7 +887,7 @@ pub mod clearing {
     }
     pub fn register_margin(
         ctx: &mut Context<RegisterMargin>,
-        subaccount_index: u16,
+        subaccount_index: u32,
         mode: u8,
         isolated_market_index: u8,
         role: u8,
@@ -999,18 +931,7 @@ pub mod clearing {
             |ctx, events| account_safety::resolution::retirement::retire(ctx, events, safety_epoch),
         )
     }
-    pub fn round_account_resolution(
-        ctx: &mut Context<ProposeAccountResolution>,
-        epoch: u64,
-        start: u16,
-    ) -> Result<()> {
-        scoped_history::run(
-            ctx,
-            [248, 104, 22, 65, 93, 7, 115, 112],
-            false,
-            |ctx, events| account_safety::resolution::round(ctx, events, epoch, start),
-        )
-    }
+
     pub fn seal_liquidity(ctx: &mut Context<SealLiquidity>) -> Result<()> {
         scoped_history::run(
             ctx,

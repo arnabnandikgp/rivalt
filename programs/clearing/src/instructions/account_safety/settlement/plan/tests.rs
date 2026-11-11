@@ -35,7 +35,6 @@ impl Pages {
                     &[
                         b"resolution-limbs",
                         header.venue.as_ref(),
-                        &header.epoch.to_le_bytes(),
                         &register.to_le_bytes(),
                         &index.to_le_bytes(),
                     ],

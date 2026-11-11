@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {getProgramDerivedAddress,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
+import {getAddressEncoder,getProgramDerivedAddress,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import type {Rpc} from '../../indexer/src/rpc.js';
 
 export function decodeAccountWorker<Value>(account:any,discriminator:ReadonlyUint8Array,decoder:Decoder<Value>&{fixedSize?:number}):Value {
-  assert(account?.owner===sdk.CLEARING_PROGRAM_ADDRESS&&account.data?.[1]==='base64','Missing or foreign account worker input');
+  assert(account?.owner===sdk.CLEARING_PROGRAM_ADDRESS&&!account.executable&&account.data?.[1]==='base64','Missing or foreign account worker input');
   const bytes=Buffer.from(account.data[0],'base64');
   assert(sdk.hex(bytes.subarray(0,8))===sdk.hex(discriminator),'Wrong account worker schema');
   if(decoder.fixedSize!==undefined)assert(bytes.length===decoder.fixedSize,'Wrong account worker size');
@@ -13,63 +13,51 @@ export function decodeAccountWorker<Value>(account:any,discriminator:ReadonlyUin
 }
 
 export async function accountWorkerKeys(venue:Address) {
-  const [[registry],[resolution],[work],[eventAuthority]]=await Promise.all([
-    sdk.deriveVenueComponent(venue,'registry'),sdk.deriveVenueComponent(venue,'resolution'),
-    sdk.deriveVenueComponent(venue,'resolution-work'),
+  const [[registry],[resolution],[storage],[prepared],[rates],[plan],[eventAuthority]]=await Promise.all([
+    sdk.deriveVenueComponent(venue,'registry'),sdk.deriveVenueComponent(venue,'resolution'),sdk.deriveRecoveryStorage(venue),
+    sdk.deriveSettlementWorkspace(venue,'prepared'),sdk.deriveSettlementWorkspace(venue,'rates'),sdk.deriveSettlementWorkspace(venue,'plan'),
     getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]})]);
-  return {registry,resolution,work,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS};
+  return {registry,resolution,storage,prepared,rates,plan,eventAuthority,program:sdk.CLEARING_PROGRAM_ADDRESS};
 }
 
-/** Complete frozen continuation in one batch. Ordinary trading and own-cash
- * exits never use this registry/page scan. No retained evidence is an input. */
+export function financialMembershipHash(registry:sdk.VenueRegistry) {
+  return createHash('sha256').update('rivalt-financial-membership-v1').update(Buffer.from(getAddressEncoder().encode(registry.venue)))
+    .update(Buffer.from(getAddressEncoder().encode(registry.liveIndex))).update(sdk.memberIndexBytes(registry.membershipEpoch))
+    .update(sdk.memberIndexBytes(registry.financialCount)).digest();
+}
+
+/** Fixed-size coherent continuation. Frozen rows/limbs are fetched only for the
+ * next bounded request; ordinary liquidation never downloads the full cohort. */
 export async function readAccountResolution(rpc:Pick<Rpc,'call'>,venue:Address) {
   const keys=await accountWorkerKeys(venue);
-  const [[,registryBump],[,resolutionBump],[,workBump],pages]=await Promise.all([
-    sdk.deriveVenueComponent(venue,'registry'),sdk.deriveVenueComponent(venue,'resolution'),
-    sdk.deriveVenueComponent(venue,'resolution-work'),
-    Promise.all(Array.from({length:32},(_,index)=>sdk.findResolutionPagePda(venue,index)))]);
-  const response=await rpc.call('getMultipleAccounts',[[keys.registry,keys.resolution,keys.work,...pages.map(([key])=>key)],
-    {encoding:'base64',commitment:'confirmed'}]);
-  assert(response.value?.length===35,'Incomplete resolution continuation');
-  const registry=decodeAccountWorker(response.value[0],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
-  const header=decodeAccountWorker(response.value[1],sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder());
-  const work=decodeAccountWorker(response.value[2],sdk.RESOLUTION_WORK_DISCRIMINATOR,sdk.getResolutionWorkDecoder());
-  assert(registry.schemaVersion===8&&registry.venue===venue&&registry.bump===registryBump&&registry.count>0&&registry.count<=64&&
-    registry.members.length===registry.count&&new Set(registry.members).size===registry.count,'Invalid complete resolution registry');
-  assert(header.schemaVersion===8&&header.venue===venue&&header.bump===resolutionBump&&
-    work.schemaVersion===8&&work.venue===venue&&work.bump===workBump,'Foreign resolution continuation');
-  const rows:sdk.ResolutionRow[]=[];
-  if(header.stage>=2&&header.stage<=11) {
-    assert(header.count===registry.count&&work.epoch===header.epoch,'Resolution epoch/count mismatch');
-    const hash=createHash('sha256').update(sdk.getVenueRegistryEncoder().encode(registry).slice(8)).digest();
-    assert(sdk.hex(hash)===sdk.hex(header.registryHash),'Frozen membership hash mismatch');
-    for(let index=0;index<Math.ceil(header.count/2);index++) {
-      const page=decodeAccountWorker(response.value[3+index],sdk.RESOLUTION_PAGE_DISCRIMINATOR,sdk.getResolutionPageDecoder());
-      assert(page.schemaVersion===8&&page.venue===venue&&page.bump===pages[index][1]&&page.pageIndex===index,'Foreign resolution page');
-      // Future pages in Value still contain the previous/precreated epoch.
-      if(header.stage>2)assert(page.epoch===header.epoch&&page.rowCount===Math.min(2,header.count-2*index),'Incomplete frozen page');
-      rows.push(...page.rows.slice(0,Math.min(2,header.count-2*index)));
-    }
-    if(header.stage>2)assert(rows.every((row,index)=>row.member===registry.members[index]),'Wrong frozen row order');
+  const fields=['registry','resolution','storage','prepared','rates','plan'] as const;
+  const response=await rpc.call('getMultipleAccounts',[fields.map(field=>keys[field]),{encoding:'base64',commitment:'confirmed'}]);
+  assert(response.value?.length===fields.length,'Incomplete resolution continuation');
+  const descriptors=[
+    [sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder()],
+    [sdk.RESOLUTION_DISCRIMINATOR,sdk.getResolutionDecoder()],
+    [sdk.RECOVERY_STORAGE_DISCRIMINATOR,sdk.getRecoveryStorageDecoder()],
+    [sdk.PREPARED_SETTLEMENT_DISCRIMINATOR,sdk.getPreparedSettlementDecoder()],
+    [sdk.SETTLEMENT_RATES_DISCRIMINATOR,sdk.getSettlementRatesDecoder()],
+    [sdk.SETTLEMENT_PLAN_DISCRIMINATOR,sdk.getSettlementPlanDecoder()],
+  ] as const;
+  const decoded=descriptors.map(([tag,decoder],index)=>decodeAccountWorker(response.value[index],tag,decoder as Decoder<any>));
+  const [registry,header,storage,prepared,rates,plan]=decoded as [sdk.VenueRegistry,sdk.Resolution,sdk.RecoveryStorage,sdk.PreparedSettlement,sdk.SettlementRates,sdk.SettlementPlan];
+  const bumps=await Promise.all([sdk.deriveVenueComponent(venue,'registry'),sdk.deriveVenueComponent(venue,'resolution'),sdk.deriveRecoveryStorage(venue),
+    sdk.deriveSettlementWorkspace(venue,'prepared'),sdk.deriveSettlementWorkspace(venue,'rates'),sdk.deriveSettlementWorkspace(venue,'plan')]);
+  decoded.forEach((value,index)=>assert(value.schemaVersion===9&&value.venue===venue&&value.bump===bumps[index][1]&&value.revision>0n,'Foreign resolution continuation'));
+  assert(registry.financialCount<=registry.registeredCount&&registry.registeredCount<=registry.nextId&&registry.membershipEpoch>0n
+    &&registry.liveIndex===(await sdk.deriveMemberIndex(venue,14,0n))[0],'Invalid Financial registry');
+  if([1,2,14,15,16].includes(header.stage)) {
+    assert(header.count>0n&&header.count===registry.financialCount&&header.membershipEpoch===registry.membershipEpoch&&header.liveIndex===registry.liveIndex
+      &&sdk.hex(header.registryHash)===sdk.hex(financialMembershipHash(registry))&&storage.lockedEpoch===header.epoch
+      &&storage.readyCapacity>=header.count,'Frozen membership/workspace mismatch');
   }
-  return {...keys,registryState:registry,header,workState:work,pages:pages.map(([key])=>key),rows};
+  return {...keys,registryState:registry,header,storageState:storage,preparedState:prepared,ratesState:rates,planState:plan,
+    raw:response.value.map((value:any)=>Buffer.from(value.data[0],'base64')),contextSlot:BigInt(response.context.slot)};
 }
 
 export function accountRiskSources(snapshot:sdk.AccountSnapshot) {
   const btc=snapshot.marketStates[0].oracle.sources,eth=snapshot.marketStates[1].oracle.sources;
   return {primaryBtc:btc[0],primaryCollateral:btc[1],guardBtc:btc[2],guardCollateral:btc[3],primaryEth:eth[0],guardEth:eth[2]};
-}
-
-export function accountRemainderOrders(rows:sdk.ResolutionRow[],denominator:bigint):[number[],number[]] {
-  assert(rows.length>0&&rows.length<=64&&denominator>0n,'Invalid remainder inputs');
-  const orders=[0,1].map(market=>{
-    const remainders=rows.map(row=>{
-      if(row.claimsScaled[market]<=0n)return 0n;
-      const numerator=row.exactFlowNumerators[market].limbs.reduceRight((total,limb)=>(total<<64n)+limb,0n);
-      const remainder=numerator-row.roundedFlows[market]*denominator;
-      assert(remainder>=0n&&remainder<denominator,'Invalid verified flow remainder');return remainder;
-    });
-    return rows.map((_,index)=>index).sort((left,right)=>remainders[left]===remainders[right]?left-right:remainders[left]>remainders[right]?-1:1);
-  });
-  return [orders[0],orders[1]];
 }

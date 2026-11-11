@@ -92,17 +92,17 @@ it('discovers only canonical children of the selected owner portfolio and reject
   };
   const owned=await client.ownerAccounts(fixture.owner,0);
   expect(owned.accounts.map(([key])=>key)).toEqual(fixture.margins);
-  expect(calls).toEqual([[fixture.portfolio],fixture.margins]);
+  expect(calls[0]).toEqual([fixture.portfolio]);expect(calls[1]).toHaveLength(9);expect(calls[1].slice(0,2)).toEqual(fixture.margins);
   const other=await client.ownerAccounts(fixture.owner,3);expect(other.accounts).toEqual([]);expect(other.portfolio.account).toBeNull();
   const root=sdk.getMarginAccountDecoder().decode(Buffer.from(fixture.accounts.get(fixture.margins[0]).data[0],'base64'));
   fixture.put(fixture.margins[0],sdk.getMarginAccountEncoder().encode({...root,owner:fixture.config.mint}));
   await expect(client.ownerAccounts(fixture.owner,0)).rejects.toThrow('Owner account identity mismatch');
 });
 
-it('requires explicit schema-8 deployment selection independently of profile version', async () => {
+it('requires explicit schema-9 deployment selection independently of profile version', async () => {
   const fixture = await environment();
-  expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(8);
-  expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 7 as 8})).toThrow(/Explicit qualified/);
+  expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(9);
+  expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 8 as 9})).toThrow(/Explicit qualified/);
   const {accountSchema: _schema, ...missing} = fixture.config;
   expect(() => sdk.accountUserConfig(missing as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
 });

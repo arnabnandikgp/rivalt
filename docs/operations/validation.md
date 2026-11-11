@@ -1,5 +1,176 @@
 # Validation and measured limits
 
+## Canonical account lifecycle (P55A2)
+
+Clean SBF **`583dbcb53a748db8f2fa21d0594eaaafdd7e5f85`** links without
+oversized-stack diagnostics: clearing 2,335,664 bytes / SHA-256
+`d48d562762208c50a5566c9ea640e23fbe01bc10729e8cf0e9681544aae68074`.
+The source-derived IDL/SDK has schema 9 / profile 5. The earlier `bfd10e8`
+stack-rejected build is not admitted; the subsequent `65c14bf` signed attempt
+found a legitimate same-wallet authority/rent-payer duplicate constraint. The
+narrow untyped destination exception preserves immutable payer binding and
+other mutable-account duplicate guards. No financial or oracle rule changed.
+
+Lifecycle harness **`0d9c378`**, with that SBF, passes **411 signed RPC/WS
+outcomes**, including **18 expected rejections**. It registers 71 permanent
+identities, exercises IDs 65/66 as two Financial roots, rejects entry before
+complete rent-backed capacity, fences a stale competing predecessor, increments
+re-entry generation, and rejects leaving with cash. Five actual SPL atoms are
+deposited/withdrawn before exit. Three root retirements retain 135-byte markers;
+whole-venue retirement enables five allocation-kind refunds to the immutable
+payer, retaining 72-byte markers. Actual payer balance increases equal refunds
+less independently fetched transaction fees; total refunded is 34,391,600 test
+lamports. Recovery ready capacity becomes zero after the terminal cleanup.
+
+| Transaction | Observed CU | Wire / loaded keys |
+|---|---:|---:|
+| Financial entry/exit | 54,339–56,334 | v1 1,232 bytes / 27 |
+| Empty root retirement | 23,122–24,410 | v0 617 bytes / 12 |
+| Terminal allocation refund | 16,581–17,248 | v0 461 bytes / 9 |
+
+The v0 entry/exit encoding is 1,274 bytes; the canonical v1 encoding is exactly
+1,232, with zero priority bid and no lookup tables. Both isolated Anchor clients
+agree on 407 clearing instructions, 377 final account decodes and 556 events.
+Signature WS and fetched transaction errors match for every outcome. The full
+probe consumes 10,036,949 CU and 2,865,000 base-fee lamports. The 99 recovery
+allocations/receipts cost 1,169,324,560 rent lamports, excluding the header and
+permanent membership storage; capacity is 128 roots, **not** evidence of 128
+Financial participants. Owner/signature separation measures rent refunds without
+confusing them with trader collateral. Shared-index stale-guard acceptance is an
+optimistic race check, not a throughput benchmark.
+
+Raw results: `.local/scalable-settlement/runs/p55a2-lifecycle-refund-fixed/`.
+The run starts from the committed harness; its final Git metadata reports dirty
+because the separate default/SQL harness was migrated concurrently. The executed
+lifecycle sources were unchanged. This is not a clean whole-repository acceptance
+claim. The owned Surfpool stopped normally. The subsequent default/SQL, custody, race and wire-delta checks below complete
+the P55A2 boundary. Runtime selection remains P53B; default/devnet remain disabled.
+
+## Canonical complete default (P55A2)
+
+Clean verifier **`1de35c30f4cb96047292ca6d5d45f36cabc7bca2`** against the
+same clean **`583dbcb`** SBF passes **1,538 signed RPC/WS outcomes**, including
+**67 expected rejections**. Ten actual Financial accounts enter through signed
+storage-backed membership. Independent Python Fraction and graph expectations
+check rate prefixes, insurance clipping, conserving atom owners and actual Apply.
+All accounts reconcile, eight one-atom SPL exits land, and sustained credible
+sources allow explicit recovery to custody. No financial state is injected.
+
+Actual PostgreSQL checkpoints pass after the first Apply, after complete bucket
+distribution and after recovery/exits. Fresh refetch/replay exactly matches **141
+events** and reconciles **227 accounts / ten Financial members**. Final actual and
+allocated vault both equal **11,199,993 atoms**; surplus is zero. Applied cash is
+9,500,000 atoms and market insurance spent is 1,001,522 / 300,430 atoms. Peak
+observed CU is **161,562**; full probe fees are **8,415,000 test lamports**, including
+provisioning and hostile/replay attempts, not an operating-cost forecast.
+
+Both isolated Anchor clients agree on 1,516 clearing instructions / 75 accounts /
+1,588 events, plus 76/38 maker-A/B instructions and 80/40 events. Raw evidence is
+`.local/scalable-settlement/runs/p55a2-default-source-plan-fixed/`. Start and end
+tracked trees were clean. The preceding `4c8dd27` run failed its first partial SQL
+checkpoint because the indexer used old source-header progress semantics. Its
+retained failure led to the frozen-source versus plan-progress regression; no
+partial run is counted as acceptance.
+
+This completes the exercised on-chain default path at ten Financial roots, not
+128-root acceptance, durable automatic continuation, runtime promotion or P56B.
+The old fixed-width resource-only `safety-width-svm.ts` and retained-schema-8
+`scoped-safety-projection.ts` runners are retired; retrieve them at immutable
+`7b0ab0716810c6894064cc1a11fc5da27ed54a3a` only for their historical captures.
+Current verification uses paged arithmetic checks and actual signed RPC/WS/SQL.
+
+## Custody and lifecycle interleavings (P55A2)
+
+Clean custody verifier **`e8dfe31b1f169edc3ca520622e8e4fec127821b0`**, against
+SBF **`583dbcb`**, passes **234 signed outcomes / 26 expected rejections** with
+five Financial roots. Actual transfers and SPL exits preserve final cash zero,
+market insurance 7/11 atoms and actual/allocated vault 18 atoms. The separate
+raw-byte Python auditor rejects eight corruptions. Peak CU is 56,019; fees are
+1,425,000 test lamports. Both isolated Anchor clients agree on 228 instructions,
+five accounts and 232 events. The deliberately malformed missing-owner-signer
+instruction is explicitly excluded from builder parity: the IDL builder correctly
+restores the mandatory flag. Its actual signed rejection and rollback are still
+verified. The earlier `7574fde` attempt failed that inapplicable parity comparison;
+raw evidence is retained under `.local/scalable-settlement/runs/p55a2-custody-*`.
+
+Clean race verifier **`061e201881f0396831e40b81f54f318b74a8f569`** with the same
+SBF passes **274 signed outcomes / eight expected rejections**. A prepared entry
+survives unrelated empty registration and a real 50-lot BTC fill. A one-atom cash
+transfer invalidates a prepared exit; cash-bearing exit rejects until an actual
+SPL withdrawal. Reentry advances generation and fences an old retirement. Actual
+bankruptcy freezes all eight remaining Financial roots; previously prepared entry,
+retirement, registration and trade cannot cross that freeze. A rebuilt trade also
+rejects frozen-mode admission. Every hostile case compares full affected bytes.
+
+Signature WS errors match independently fetched finalized outcomes. Both isolated
+Anchor clients match 256 clearing instructions / three accounts / 329 events,
+44/22 maker-A/B instructions and 48/24 maker events. Peak CU is **160,680** (the
+actual fill); Financial entry reaches **57,077 CU / v1 1,232 bytes**, retirement
+25,146 CU and freeze 49,091 CU. Full probe fees are **1,895,000 test lamports**.
+The preceding `d45ff29` run rejected the pre-freeze trade correctly but expected
+Profile instead of the earlier FinancialSequence guard. The corrected run tests
+both the stale guard and newly rebuilt guard. Raw results remain at
+`.local/scalable-settlement/runs/p55a2-races-061e201/`; both start/end trees are clean.
+These are optimistic transaction interleavings, not simultaneous-load/TPS evidence.
+
+All three IDLs and generated SDKs are source-derived, including imported clearing
+layouts in maker IDLs. The D101 ABI regression names the literal delta from
+immutable `7b0ab07` and then reuses the previous D97/D90 guards; no baseline is
+recaptured. Fourteen wire tests, eleven affected conformance/economics tests,
+typecheck and generated-output/instruction-inventory checks pass at `7574fde`.
+The final race-only correction changes no ABI or SBF. Full hosted regression is
+CI's responsibility; no unobserved CI pass is claimed here.
+
+P56A still owns complete wallet/UI discovery, durable paged-default automation and
+migration of the retained trading/safety Python raw-audit adapters. Current-runtime
+commands explicitly reject selected schema-8 artifacts with schema-9 clients.
+This phase does not promote the demo, qualify 128 Financial roots or enable default/
+devnet trading. Reproduce the scoped candidate checks using
+`ops/account-membership-smoke.sh` (lifecycle or `RIVALT_MEMBERSHIP_PROBE=custody`)
+and `ops/scalable-settlement-smoke.sh` (default or
+`RIVALT_SETTLEMENT_PROBE=membership-races`), with the explicit artifact/run paths.
+
+## Recovery storage provisioning (P55A2 intermediate)
+
+Clean verifier **`81aae9df623bdddff69a73f2ba9f88c80a6fc9bb`** runs
+`ops/account-membership-smoke.sh` against clearing SBF
+**`174b3b2a9659b873b6ac037f9050fee27d3ac31f`**, 2,445,600 bytes, SHA-256
+**`189320a7a9ed4ebf419dd421f8b3aee639775827535f2afa25ac854092cde85f`**.
+It is a fresh local qualification deployment; selected/default/devnet artifacts
+remain unchanged. The pinned SBPFv0 build has no oversized-stack diagnostic.
+
+Actual Surfpool RPC/WS verifies **223 signed outcomes / 11 expected atomic
+rejections**. The independently derived 128-root schedule authenticates **99 real
+allocations**, with immutable payer receipts, before earning any capacity. Cases
+cover authority, zero/overflow/decreasing capacity, stale start/progress/cancel,
+skipped steps, interrupted cancellation/restart, paused writes and actual partial/
+fully donated rent. Funding alone leaves the proof cursor/capacity unchanged.
+Collateral remains zero throughout. Signature WS outcomes match fetched finalized
+results, and both isolated Anchor clients match **220 clearing instructions,
+199 accounts and 214 events**.
+
+Allocation costs **31,491–44,499 CU**, at most **501 bytes / ten loaded accounts**;
+verification **16,120–18,448 CU**, **462 bytes / nine accounts**. These are actual
+v0 transactions at 400,000 requested CU and zero priority fee. Allocation plus
+receipt rent is **1,169,339,800 lamports** (excluding the capacity header); actual
+allocation payer top-ups total **1,035,340,320**, with prior donated lamports
+separately exercised. Whole-probe transaction fees total **1,125,000 lamports**
+and measured CU total **5,817,743**. These are local test costs, not a production
+fee forecast or a claim about complete default recovery cost.
+
+At the same clean verifier pin, eight focused native checks pass: four schedule/
+epoch cases, two hostile actual-account loaders, one scoped raw-create transition
+and the literal layout roundtrip. Typecheck and D90 plus explicit additions ABI
+checks pass. The first run completed its signed provisioning assertions but failed
+the final client check because the harness used PascalCase instead of Anchor's
+camelCase account names; the corrected fresh run above passes. Original captures
+remain at `.local/scalable-settlement/runs/p55a2-storage-174b3b2/` and
+`.../p55a2-storage-parity/`; the owned runtime stopped normally.
+
+This is an intermediate **storage-only** result. It does not complete P55A2,
+activate Financial membership, qualify live-index freeze/default or establish a
+PostgreSQL replay. Those remain required before phase acceptance.
+
 ## Membership foundation (P55A1)
 
 Clean **`b8a19ebf13f32a23461213648de97a8daa4382c0`** passes **38 focused native

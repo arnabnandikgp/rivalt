@@ -2,6 +2,14 @@
 use super::*;
 
 pub(crate) fn model(root: &MarginAccount) -> Result<math::margin::Margin> {
+    require!(root.lifecycle == MEMBER_FINANCIAL && root.activation_generation > 0, ClearingError::Profile);
+    structural_model(root)
+}
+
+/// Validates stored financial fields without granting trading/cash eligibility.
+/// Only membership transitions use this for a Registered root; ordinary financial
+/// paths must continue through model's explicit Financial lifecycle check.
+pub(crate) fn structural_model(root: &MarginAccount) -> Result<math::margin::Margin> {
     require!(
         root.schema_version == SCHEMA_VERSION
             && valid_identity(
@@ -17,7 +25,7 @@ pub(crate) fn model(root: &MarginAccount) -> Result<math::margin::Margin> {
         ClearingError::Profile
     );
     let model = math::margin::Margin {
-        id: u64::from(root.id),
+        id: root.id,
         mode: if root.mode == MODE_CROSS {
             math::margin::Mode::Cross
         } else {

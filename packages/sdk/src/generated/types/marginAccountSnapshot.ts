@@ -16,6 +16,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -44,7 +46,7 @@ export type MarginAccountSnapshot = {
   portfolio: Address;
   owner: Address;
   subaccountIndex: number;
-  id: number;
+  id: bigint;
   mode: number;
   isolatedMarketIndex: number;
   role: number;
@@ -57,6 +59,8 @@ export type MarginAccountSnapshot = {
   delegateEpoch: bigint;
   reserved: bigint;
   book: OrderBook;
+  lifecycle: number;
+  activationGeneration: bigint;
   bump: number;
 };
 
@@ -67,7 +71,7 @@ export type MarginAccountSnapshotArgs = {
   portfolio: Address | HasAddress;
   owner: Address | HasAddress;
   subaccountIndex: number;
-  id: number;
+  id: number | bigint;
   mode: number;
   isolatedMarketIndex: number;
   role: number;
@@ -80,6 +84,8 @@ export type MarginAccountSnapshotArgs = {
   delegateEpoch: number | bigint;
   reserved: number | bigint;
   book: OrderBookArgs;
+  lifecycle: number;
+  activationGeneration: number | bigint;
   bump: number;
 };
 
@@ -90,8 +96,8 @@ export function getMarginAccountSnapshotEncoder(): FixedSizeEncoder<MarginAccoun
     ["venue", getAddressEncoder()],
     ["portfolio", getAddressEncoder()],
     ["owner", getAddressEncoder()],
-    ["subaccountIndex", getU16Encoder()],
-    ["id", getU16Encoder()],
+    ["subaccountIndex", getU32Encoder()],
+    ["id", getU64Encoder()],
     ["mode", getU8Encoder()],
     ["isolatedMarketIndex", getU8Encoder()],
     ["role", getU8Encoder()],
@@ -104,6 +110,8 @@ export function getMarginAccountSnapshotEncoder(): FixedSizeEncoder<MarginAccoun
     ["delegateEpoch", getU64Encoder()],
     ["reserved", getU64Encoder()],
     ["book", getOrderBookEncoder()],
+    ["lifecycle", getU8Encoder()],
+    ["activationGeneration", getU64Encoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -115,8 +123,8 @@ export function getMarginAccountSnapshotDecoder(): FixedSizeDecoder<MarginAccoun
     ["venue", getAddressDecoder()],
     ["portfolio", getAddressDecoder()],
     ["owner", getAddressDecoder()],
-    ["subaccountIndex", getU16Decoder()],
-    ["id", getU16Decoder()],
+    ["subaccountIndex", getU32Decoder()],
+    ["id", getU64Decoder()],
     ["mode", getU8Decoder()],
     ["isolatedMarketIndex", getU8Decoder()],
     ["role", getU8Decoder()],
@@ -129,6 +137,8 @@ export function getMarginAccountSnapshotDecoder(): FixedSizeDecoder<MarginAccoun
     ["delegateEpoch", getU64Decoder()],
     ["reserved", getU64Decoder()],
     ["book", getOrderBookDecoder()],
+    ["lifecycle", getU8Decoder()],
+    ["activationGeneration", getU64Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }

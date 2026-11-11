@@ -40,7 +40,7 @@ pub fn initialize(
     let clock = Clock::get()?;
     **accounts.configuration = FundingPublisher {
         revision: 0,
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         venue: accounts.venue.address().to_owned(),
         market: accounts.market.address().to_owned(),
         publisher,
@@ -77,13 +77,13 @@ pub fn configure(
     let accounts = &mut ctx.accounts;
     require!(
         cfg!(feature = "liquidity-execution-qualification")
-            && accounts.venue.schema_version == 8
-            && accounts.venue.profile_version == 4
+            && accounts.venue.schema_version == crate::state::accounts::SCHEMA_VERSION
+            && accounts.venue.profile_version == crate::state::accounts::PROFILE_VERSION
             && accounts.venue.market_count == 2
             && accounts.venue.insurance_fee_share_bps == 2500
-            && accounts.safety.schema_version == 8
-            && accounts.market.schema_version == 8
-            && accounts.configuration.schema_version == 8
+            && accounts.safety.schema_version == crate::state::accounts::SCHEMA_VERSION
+            && accounts.market.schema_version == crate::state::accounts::SCHEMA_VERSION
+            && accounts.configuration.schema_version == crate::state::accounts::SCHEMA_VERSION
             && accounts.configuration.authority_epoch == expected_authority
             && expected_authority > 0
             && matches!(

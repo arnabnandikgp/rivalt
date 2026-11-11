@@ -2,7 +2,7 @@
 import hashlib
 from copy import deepcopy
 
-SCALARS = {'u8', 'u16', 'u32', 'u64', 'i64', 'i128', 'bool', 'pubkey'}
+SCALARS = {'u8', 'u16', 'u32', 'u64', 'i64', 'i128', 'u128', 'bool', 'pubkey'}
 
 def kind(label):
     if label.endswith('*'):

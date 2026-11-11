@@ -52,12 +52,6 @@ import {
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
 } from "@solana/kit";
-import {
-  getWideDecoder,
-  getWideEncoder,
-  type Wide,
-  type WideArgs,
-} from "../types/index.js";
 
 export const RESOLUTION_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   31, 13, 235, 201, 17, 66, 5, 138,
@@ -75,16 +69,16 @@ export type Resolution = {
   venue: Address;
   epoch: bigint;
   stage: number;
-  cursor: number;
-  count: number;
+  cursor: bigint;
+  count: bigint;
   registryHash: ReadonlyUint8Array;
+  membershipEpoch: bigint;
+  liveIndex: Address;
   safetyEpoch: bigint;
   termsEpoch: bigint;
   configEpochs: Array<bigint>;
   sourceObservations: Array<bigint>;
   sourceDeadlines: Array<bigint>;
-  proposalHash: ReadonlyUint8Array;
-  proposalUploaded: number;
   prices: Array<bigint>;
   funding: Array<bigint>;
   frozenAt: bigint;
@@ -100,13 +94,6 @@ export type Resolution = {
   positiveScaled: Array<bigint>;
   budgets: Array<bigint>;
   insuranceSpent: Array<bigint>;
-  evaluation: number;
-  clippedMask: number;
-  common: Wide;
-  rateNumerators: Array<Wide>;
-  /** At most 186 bits; unused high six bits must be zero. */
-  rateFactor: Array<bigint>;
-  flowDenominator: Wide;
   cashApplied: bigint;
   remainingLots: Array<bigint>;
   remainingGross: Array<bigint>;
@@ -121,16 +108,16 @@ export type ResolutionArgs = {
   venue: Address | HasAddress;
   epoch: number | bigint;
   stage: number;
-  cursor: number;
-  count: number;
+  cursor: number | bigint;
+  count: number | bigint;
   registryHash: ReadonlyUint8Array;
+  membershipEpoch: number | bigint;
+  liveIndex: Address | HasAddress;
   safetyEpoch: number | bigint;
   termsEpoch: number | bigint;
   configEpochs: Array<number | bigint>;
   sourceObservations: Array<number | bigint>;
   sourceDeadlines: Array<number | bigint>;
-  proposalHash: ReadonlyUint8Array;
-  proposalUploaded: number;
   prices: Array<number | bigint>;
   funding: Array<number | bigint>;
   frozenAt: number | bigint;
@@ -146,13 +133,6 @@ export type ResolutionArgs = {
   positiveScaled: Array<number | bigint>;
   budgets: Array<number | bigint>;
   insuranceSpent: Array<number | bigint>;
-  evaluation: number;
-  clippedMask: number;
-  common: WideArgs;
-  rateNumerators: Array<WideArgs>;
-  /** At most 186 bits; unused high six bits must be zero. */
-  rateFactor: Array<number | bigint>;
-  flowDenominator: WideArgs;
   cashApplied: number | bigint;
   remainingLots: Array<number | bigint>;
   remainingGross: Array<number | bigint>;
@@ -170,16 +150,16 @@ export function getResolutionEncoder(): FixedSizeEncoder<ResolutionArgs> {
       ["venue", getAddressEncoder()],
       ["epoch", getU64Encoder()],
       ["stage", getU8Encoder()],
-      ["cursor", getU16Encoder()],
-      ["count", getU16Encoder()],
+      ["cursor", getU64Encoder()],
+      ["count", getU64Encoder()],
       ["registryHash", fixEncoderSize(getBytesEncoder(), 32)],
+      ["membershipEpoch", getU64Encoder()],
+      ["liveIndex", getAddressEncoder()],
       ["safetyEpoch", getU64Encoder()],
       ["termsEpoch", getU64Encoder()],
       ["configEpochs", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["sourceObservations", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["sourceDeadlines", getArrayEncoder(getI64Encoder(), { size: 2 })],
-      ["proposalHash", fixEncoderSize(getBytesEncoder(), 32)],
-      ["proposalUploaded", getU16Encoder()],
       ["prices", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["funding", getArrayEncoder(getI128Encoder(), { size: 2 })],
       ["frozenAt", getI64Encoder()],
@@ -195,12 +175,6 @@ export function getResolutionEncoder(): FixedSizeEncoder<ResolutionArgs> {
       ["positiveScaled", getArrayEncoder(getU128Encoder(), { size: 2 })],
       ["budgets", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["insuranceSpent", getArrayEncoder(getU64Encoder(), { size: 2 })],
-      ["evaluation", getU8Encoder()],
-      ["clippedMask", getU8Encoder()],
-      ["common", getWideEncoder()],
-      ["rateNumerators", getArrayEncoder(getWideEncoder(), { size: 2 })],
-      ["rateFactor", getArrayEncoder(getU64Encoder(), { size: 3 })],
-      ["flowDenominator", getWideEncoder()],
       ["cashApplied", getU64Encoder()],
       ["remainingLots", getArrayEncoder(getI128Encoder(), { size: 2 })],
       ["remainingGross", getArrayEncoder(getU64Encoder(), { size: 2 })],
@@ -220,16 +194,16 @@ export function getResolutionDecoder(): FixedSizeDecoder<Resolution> {
     ["venue", getAddressDecoder()],
     ["epoch", getU64Decoder()],
     ["stage", getU8Decoder()],
-    ["cursor", getU16Decoder()],
-    ["count", getU16Decoder()],
+    ["cursor", getU64Decoder()],
+    ["count", getU64Decoder()],
     ["registryHash", fixDecoderSize(getBytesDecoder(), 32)],
+    ["membershipEpoch", getU64Decoder()],
+    ["liveIndex", getAddressDecoder()],
     ["safetyEpoch", getU64Decoder()],
     ["termsEpoch", getU64Decoder()],
     ["configEpochs", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["sourceObservations", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["sourceDeadlines", getArrayDecoder(getI64Decoder(), { size: 2 })],
-    ["proposalHash", fixDecoderSize(getBytesDecoder(), 32)],
-    ["proposalUploaded", getU16Decoder()],
     ["prices", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["funding", getArrayDecoder(getI128Decoder(), { size: 2 })],
     ["frozenAt", getI64Decoder()],
@@ -245,12 +219,6 @@ export function getResolutionDecoder(): FixedSizeDecoder<Resolution> {
     ["positiveScaled", getArrayDecoder(getU128Decoder(), { size: 2 })],
     ["budgets", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["insuranceSpent", getArrayDecoder(getU64Decoder(), { size: 2 })],
-    ["evaluation", getU8Decoder()],
-    ["clippedMask", getU8Decoder()],
-    ["common", getWideDecoder()],
-    ["rateNumerators", getArrayDecoder(getWideDecoder(), { size: 2 })],
-    ["rateFactor", getArrayDecoder(getU64Decoder(), { size: 3 })],
-    ["flowDenominator", getWideDecoder()],
     ["cashApplied", getU64Decoder()],
     ["remainingLots", getArrayDecoder(getI128Decoder(), { size: 2 })],
     ["remainingGross", getArrayDecoder(getU64Decoder(), { size: 2 })],
@@ -337,5 +305,5 @@ export async function fetchAllMaybeResolution(
 }
 
 export function getResolutionSize(): number {
-  return 3652;
+  return 572;
 }

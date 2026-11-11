@@ -1,6 +1,6 @@
 //! Complete market backing, scoped independently from funded-cash exit authority.
 use super::*;
-use anchor_lang::AccountDeserialize;
+use financial_core::clearing::scalable::membership::{MembershipCursor, Request};
 
 #[event_cpi]
 #[derive(Accounts)]
@@ -69,19 +69,8 @@ pub fn initialize(
 }
 
 fn registry_valid(registry: &VenueRegistry) -> Result<()> {
-    require!(
-        registry.schema_version == SCHEMA_VERSION
-            && registry.count > 0
-            && usize::from(registry.count) == registry.members.len()
-            && registry.members.len() <= MAX_MEMBERS,
-        ClearingError::ExitCohort
-    );
-    for (index, key) in registry.members.iter().enumerate() {
-        require!(
-            !registry.members[..index].contains(key),
-            ClearingError::ExitCohort
-        );
-    }
+    crate::instructions::account_membership::members::registry(registry)?;
+    require!(registry.financial_count > 0, ClearingError::ExitCohort);
     Ok(())
 }
 
@@ -101,8 +90,8 @@ fn stamps(
             && ledger.venue == certificate.venue
             && ledger.market_index as usize == selected
             && certificate.safety_epoch == safety.epoch
-            && certificate.membership_version == registry.membership_version
-            && certificate.count == registry.count
+            && certificate.membership_version == registry.membership_epoch
+            && certificate.count == registry.financial_count
             && certificate.liability_version == ledger.liability_version
             && certificate.required_market_mask < 4,
         ClearingError::ExitCohort
@@ -156,41 +145,6 @@ pub(crate) fn certified(
     stamps(certificate, ledger, &identity.safety, registry, snapshot)
 }
 
-#[inline(never)]
-fn member(
-    info: &AccountView,
-    registry: &VenueRegistry,
-    index: usize,
-) -> Result<Box<MarginAccount>> {
-    require!(
-        info.owner() == &crate::ID
-            && !info.is_signer()
-            && registry.members.get(index) == Some(info.address())
-            && info.data_len() == 8 + MarginAccount::INIT_SPACE,
-        ClearingError::ExitCohort
-    );
-    let root = Box::new(MarginAccount::try_deserialize(
-        &mut &info.try_borrow()?[..],
-    )?);
-    require!(
-        root.venue == registry.venue && usize::from(root.id) == index,
-        ClearingError::ExitCohort
-    );
-    let expected = create_program_address(
-        &[
-            b"margin-v3",
-            root.portfolio.as_ref(),
-            &root.subaccount_index.to_le_bytes(),
-            &[root.bump],
-        ],
-        &crate::ID,
-    )
-    .map_err(|_| ProgramError::from(ClearingError::ExitCohort))?;
-    require_keys_eq!(expected, *info.address(), ClearingError::ExitCohort);
-    trading::model(&root)?;
-    Ok(root)
-}
-
 /// Returns precisely the market observations needed to establish this root's
 /// selected claim and, if it can be a debtor, both gross obligations.
 pub(crate) fn debtor_mask(
@@ -235,131 +189,80 @@ pub(crate) fn debtor_mask(
 }
 
 pub fn check(
-    ctx: &mut Context<CheckMarketBacking>,
-    events: &mut crate::event_cpi::Payloads,
-    start: u16,
+    ctx: &mut Context<CheckMarketBacking>, events: &mut crate::event_cpi::Payloads,
+    revision: u64, restart: bool,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let remaining = ctx.remaining_accounts()?;
     let accounts = &mut ctx.accounts;
     profile(&accounts.venue, &accounts.safety)?;
     registry_valid(&accounts.registry)?;
-    let snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
+    let mut snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
     let certificate = &mut accounts.certificate;
-    let selected = usize::from(certificate.market_index);
-    if start == 0 {
-        // A valid completed certificate cannot be erased by a permissionless
-        // restart. Stale/incomplete scans remain recoverable by any payer.
-        require!(
-            !certificate.complete
-                || stamps(
-                    certificate,
-                    &accounts.ledger,
-                    &accounts.safety,
-                    &accounts.registry,
-                    &snapshot
-                )
-                .is_err(),
-            ClearingError::ExitCohort
-        );
-        require!(
-            certificate.next == 0
-                || certificate.complete
-                || stamps(
-                    certificate,
-                    &accounts.ledger,
-                    &accounts.safety,
-                    &accounts.registry,
-                    &snapshot
-                )
-                .is_err()
-                || certificate.observations
-                    != [snapshot.market(0)?, snapshot.market(1)?]
-                        .map(|market| market.observation_sequence),
-            ClearingError::ExitCohort
-        );
+    require!(certificate.revision == revision, ClearingError::ExitCohort);
+    if restart {
+        // An authenticated complete scan cannot be permissionlessly erased while
+        // its financial stamps still hold. Node-only progress is progress too.
+        let current = stamps(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &snapshot).is_ok();
+        let changed_observation = certificate.observations != [snapshot.market(0)?, snapshot.market(1)?]
+            .map(|market| market.observation_sequence);
+        require!(!current || (!certificate.complete && changed_observation), ClearingError::ExitCohort);
         certificate.safety_epoch = accounts.safety.epoch;
-        certificate.membership_version = accounts.registry.membership_version;
+        certificate.membership_version = accounts.registry.membership_epoch;
         certificate.liability_version = accounts.ledger.liability_version;
-        certificate.observations =
-            [snapshot.market(0)?, snapshot.market(1)?].map(|market| market.observation_sequence);
+        certificate.observations = [snapshot.market(0)?, snapshot.market(1)?].map(|market| market.observation_sequence);
         certificate.funding_bounds = snapshot.bounds;
-        certificate.source_deadlines =
-            [snapshot.market(0)?, snapshot.market(1)?].map(|market| market.oracle.source_deadline);
+        certificate.source_deadlines = [snapshot.market(0)?, snapshot.market(1)?].map(|market| market.oracle.source_deadline);
         certificate.required_market_mask = 0;
-        certificate.count = accounts.registry.count;
+        certificate.count = accounts.registry.financial_count;
         certificate.next = 0;
         certificate.cash = 0;
         certificate.lots = [0; 2];
         certificate.claim_sum = 0;
         certificate.complete = false;
+        certificate.membership.checkpoint = MembershipCursor::new(certificate.count)
+            .map_err(|_| ClearingError::ExitCohort)?.checkpoint();
     }
-    stamps(
-        certificate,
-        &accounts.ledger,
-        &accounts.safety,
-        &accounts.registry,
-        &snapshot,
-    )?;
-    let length = remaining_accounts.len();
-    require!(
-        !certificate.complete
-            && certificate.next == start
-            && (1..=2).contains(&length)
-            && usize::from(start) + length <= usize::from(certificate.count),
-        ClearingError::ExitCohort
-    );
-    // Use the frozen funding endpoints for every page, even when current funding
-    // has advanced within the same still-valid observation window.
-    let bounded = Snapshot {
-        bounds: certificate.funding_bounds,
-        ..snapshot
-    };
-    for (offset, info) in remaining_accounts.iter().enumerate() {
-        let root = member(info, &accounts.registry, usize::from(start) + offset)?;
-        certificate.required_market_mask |= debtor_mask(&root, &bounded, selected)?;
-        stamps(
-            certificate,
-            &accounts.ledger,
-            &accounts.safety,
-            &accounts.registry,
-            &bounded,
-        )?;
+    stamps(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &snapshot)?;
+    require!(!certificate.complete, ClearingError::ExitCohort);
+    // Keep one market snapshot. The bounded traversal and its serialized cursor
+    // have a separate SBF frame; no second full Snapshot is moved onto this one.
+    snapshot.bounds = certificate.funding_bounds;
+    scan_certificate(certificate, &accounts.ledger, &accounts.safety, &accounts.registry, &snapshot, &remaining)?;
+    emit_certificate(certificate, events, accounts.event_authority.account().clone())
+}
+
+#[inline(never)]
+fn scan_certificate(
+    certificate: &mut SettlementCertificate,
+    ledger: &MarketLedger,
+    safety: &VenueSafety,
+    registry: &VenueRegistry,
+    snapshot: &Snapshot,
+    remaining: &[AccountView],
+) -> Result<()> {
+    let selected = usize::from(certificate.market_index);
+    let mut cursor = MembershipCursor::from_checkpoint(&certificate.membership.checkpoint, certificate.count)
+        .map_err(|_| ClearingError::ExitCohort)?;
+    if let Some(root) = crate::instructions::account_membership::scan::step(&mut cursor, &certificate.venue, &remaining)? {
+        certificate.required_market_mask |= debtor_mask(&root, snapshot, selected)?;
+        stamps(certificate, ledger, safety, registry, snapshot)?;
         if root.positions[selected].lots != 0 || root.positions[selected].virtual_scaled != 0 {
-            certificate.cash = certificate
-                .cash
-                .checked_add(root.cash)
-                .ok_or(ClearingError::Arithmetic)?;
+            certificate.cash = certificate.cash.checked_add(root.cash).ok_or(ClearingError::Arithmetic)?;
         }
-        for index in 0..2 {
-            certificate.lots[index] = add(
-                certificate.lots[index],
-                i128::from(root.positions[index].lots),
-            )?;
-        }
+        for index in 0..2 { certificate.lots[index] = add(certificate.lots[index], i128::from(root.positions[index].lots))?; }
         let position = root.positions[selected];
-        let fixed_claim = add(
-            position.virtual_scaled,
-            i128::from(position.lots)
-                .checked_mul(position.funding_checkpoint_scaled)
-                .ok_or(ClearingError::Arithmetic)?,
-        )?;
+        let fixed_claim = add(position.virtual_scaled, i128::from(position.lots)
+            .checked_mul(position.funding_checkpoint_scaled).ok_or(ClearingError::Arithmetic)?)?;
         certificate.claim_sum = add(certificate.claim_sum, fixed_claim)?;
+        certificate.next = certificate.next.checked_add(1).ok_or(ClearingError::Arithmetic)?;
     }
-    certificate.next += length as u16;
-    if certificate.next == certificate.count {
-        require!(
-            certificate.lots[selected] == 0
-                && certificate.claim_sum == checked(math::scaled(accounts.ledger.settlement))?,
-            ClearingError::Reconciliation
-        );
+    certificate.membership.checkpoint = cursor.checkpoint();
+    if cursor.request() == Request::Done {
+        require!(certificate.next == certificate.count && certificate.lots[selected] == 0
+            && certificate.claim_sum == checked(math::scaled(ledger.settlement))?, ClearingError::Reconciliation);
         certificate.complete = true;
     }
-
-    emit_certificate(
-        certificate,
-        events,
-        accounts.event_authority.account().clone(),
-    )
+    Ok(())
 }
 
 #[inline(never)]

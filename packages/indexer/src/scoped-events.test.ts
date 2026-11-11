@@ -19,7 +19,7 @@ const u16 = (value: number) => {const bytes = Buffer.alloc(2); bytes.writeUInt16
 const u32 = (value: number) => {const bytes = Buffer.alloc(4); bytes.writeUInt32LE(value); return bytes;};
 const u64 = (value: bigint) => {const bytes = Buffer.alloc(8); bytes.writeBigUInt64LE(value); return bytes;};
 const footer = (payloadCount = 1, before = 7n) => Buffer.concat([
-  transitionTag, u16(8), Buffer.alloc(32, 3), Buffer.alloc(32, 9), u64(42n), instruction, u16(payloadCount),
+  transitionTag, u16(9), Buffer.alloc(32, 3), Buffer.alloc(32, 9), u64(42n), instruction, u16(payloadCount),
   u32(1), Buffer.alloc(32, 3), Buffer.from([0]), u64(1n),
   u32(1), Buffer.alloc(32, 2), Buffer.from([5]), u64(before), u64(before + 1n),
 ]);
@@ -117,18 +117,18 @@ it('checks literal envelope widths, revisions, bounded counts, aliases and compl
     (bytes: Buffer) => {bytes.writeBigUInt64LE(0n, 129);},
     (bytes: Buffer) => {bytes.writeUInt32LE(0, 137);},
     (bytes: Buffer) => {bytes.fill(3, 141, 173);},
-    (bytes: Buffer) => {bytes[173] = 24;},
+    (bytes: Buffer) => {bytes[173] = 28;},
     (bytes: Buffer) => {bytes.writeBigUInt64LE(9n, 182);},
   ]) {const bytes = footer(); mutate(bytes); expect(() => decodeTransition(bytes)).toThrow();}
-  for (let kind=17;kind<=23;kind++) {const bytes=footer();bytes[173]=kind;expect(decodeTransition(bytes).writes[0].kind).toBe(kind);}
+  for (let kind=17;kind<=27;kind++) {const bytes=footer();bytes[173]=kind;expect(decodeTransition(bytes).writes[0].kind).toBe(kind);}
   expect(() => decodeTransition(footer().subarray(0, -1))).toThrow(/Truncated/);
   expect(() => decodeTransition(Buffer.concat([footer(), Buffer.from([0])]))).toThrow(/Trailing/);
 });
 
-it('matches the rebuilt generated SDK against the literal schema-8 envelope', () => {
+it('matches the rebuilt generated SDK against the literal schema-9 envelope', () => {
   const bytes = footer(), [value, end] = getAccountTransitionEventDecoder().read(bytes, 0);
   expect(end).toBe(190);
-  expect(value.schemaVersion).toBe(8);
+  expect(value.schemaVersion).toBe(9);
   expect(value.venue).toBe(venue);
   expect(value.reads).toEqual([{account: venue, kind: 0, revision: 1n}]);
   expect(value.writes).toEqual([{account: root, kind: 5, before: 7n, after: 8n}]);

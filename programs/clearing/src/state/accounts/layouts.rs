@@ -62,9 +62,10 @@ pub struct RetirementCertificate {
     pub safety_epoch: u64,
     pub membership_version: u64,
     pub cash: u64,
-    pub count: u16,
-    pub next: u16,
+    pub count: u64,
+    pub next: u64,
     pub complete: bool,
+    pub membership: MembershipState,
     pub bump: u8,
 }
 
@@ -75,10 +76,12 @@ pub struct VenueRegistry {
     /// Scoped journal revision; never a financial signing or risk parameter.
     pub revision: u64,
     pub venue: Address,
-    pub membership_version: u64,
-    pub count: u16,
-    #[max_len(64)]
-    pub members: Vec<Address>,
+    /// Changes only when Financial membership changes, never empty registration.
+    pub membership_epoch: u64,
+    pub next_id: u64,
+    pub registered_count: u64,
+    pub financial_count: u64,
+    pub live_index: Address,
     pub bump: u8,
 }
 
@@ -90,8 +93,8 @@ pub struct Portfolio {
     pub revision: u64,
     pub venue: Address,
     pub owner: Address,
-    pub index: u16,
-    pub children: u16,
+    pub index: u32,
+    pub active_children: u32,
     pub bump: u8,
 }
 
@@ -104,8 +107,8 @@ pub struct MarginAccount {
     pub venue: Address,
     pub portfolio: Address,
     pub owner: Address,
-    pub subaccount_index: u16,
-    pub id: u16,
+    pub subaccount_index: u32,
+    pub id: u64,
     pub mode: u8,
     pub isolated_market_index: u8,
     pub role: u8,
@@ -120,6 +123,8 @@ pub struct MarginAccount {
     pub reserved: u64,
     /// Reuse only the stable scalar wire records; V2 handlers cannot own V3 bytes.
     pub book: OrderBook,
+    pub lifecycle: u8,
+    pub activation_generation: u64,
     pub bump: u8,
 }
 
@@ -195,11 +200,12 @@ pub struct SettlementCertificate {
     pub funding_bounds: [[i128; 2]; MARKET_COUNT],
     pub source_deadlines: [i64; MARKET_COUNT],
     pub required_market_mask: u8,
-    pub count: u16,
-    pub next: u16,
+    pub count: u64,
+    pub next: u64,
     pub cash: u64,
     pub lots: [i128; MARKET_COUNT],
     pub claim_sum: i128,
     pub complete: bool,
+    pub membership: MembershipState,
     pub bump: u8,
 }

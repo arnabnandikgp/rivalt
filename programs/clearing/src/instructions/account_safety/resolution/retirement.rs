@@ -1,6 +1,7 @@
 //! Irreversible venue retirement. The scan is an administrative proof, never a
 //! prerequisite for a funded owner exit. No reserve can leave a live identity.
 use super::*;
+use financial_core::clearing::scalable::membership::{MembershipCursor, Request};
 use account_cash::fees::{
     __client_accounts_treasurytokenidentity, __cpi_accounts_treasurytokenidentity,
     TreasuryTokenIdentity, TreasuryTokenIdentityBumps,
@@ -80,16 +81,7 @@ fn reserve_destination(venue: &Venue) -> Address {
 }
 
 fn registry_valid(registry: &VenueRegistry) -> Result<()> {
-    require!(
-        registry.schema_version == SCHEMA_VERSION
-            && usize::from(registry.count) == registry.members.len()
-            && registry.members.len() <= MAX_MEMBERS,
-        ClearingError::Resolution
-    );
-    if registry.count > 0 {
-        registry_hash(registry)?;
-    }
-    Ok(())
+    crate::instructions::account_membership::members::registry(registry)
 }
 
 fn matches(
@@ -99,9 +91,9 @@ fn matches(
 ) -> bool {
     certificate.schema_version == SCHEMA_VERSION
         && certificate.safety_epoch == safety.epoch
-        && certificate.membership_version == registry.membership_version
+        && certificate.membership_version == registry.membership_epoch
         && safety.paused
-        && certificate.count == registry.count
+        && certificate.count == registry.financial_count
 }
 
 fn global_flat(identity: &ResolutionIdentity) -> Result<()> {
@@ -140,78 +132,55 @@ pub fn initialize(
 }
 
 pub fn check(
-    ctx: &mut Context<CheckAccountRetirement>,
-    events: &mut crate::event_cpi::Payloads,
-    start: u16,
+    ctx: &mut Context<CheckAccountRetirement>, events: &mut crate::event_cpi::Payloads,
+    revision: u64, restart: bool,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let remaining = ctx.remaining_accounts()?;
     let accounts = &mut ctx.accounts;
     global_flat(&accounts.identity)?;
-    require!(
-        matches!(accounts.identity.safety.mode, CUSTODY | ACTIVE)
-            && accounts.identity.safety.paused,
-        ClearingError::Resolution
-    );
+    require!(matches!(accounts.identity.safety.mode, CUSTODY | ACTIVE) && accounts.identity.safety.paused,
+        ClearingError::Resolution);
     registry_valid(&accounts.registry)?;
-    let length = remaining_accounts.len();
-    require!(
-        (1..=2).contains(&length) || (length == 0 && accounts.registry.count == 0),
-        ClearingError::Resolution
-    );
     let certificate = &mut accounts.certificate;
-    let current = matches(certificate, &accounts.identity.safety, &accounts.registry);
-    if start == 0 {
-        require!(
-            !current || (!certificate.complete && certificate.next == 0),
-            ClearingError::Resolution
-        );
+    require!(certificate.revision == revision, ClearingError::Resolution);
+    if restart {
+        require!(!matches(certificate, &accounts.identity.safety, &accounts.registry), ClearingError::Resolution);
         certificate.safety_epoch = accounts.identity.safety.epoch;
-        certificate.membership_version = accounts.registry.membership_version;
-        certificate.count = accounts.registry.count;
+        certificate.membership_version = accounts.registry.membership_epoch;
+        certificate.count = accounts.registry.financial_count;
         certificate.next = 0;
         certificate.cash = 0;
         certificate.complete = false;
+        certificate.membership.checkpoint = if certificate.count == 0 { [0; 544] }
+            else { MembershipCursor::new(certificate.count).map_err(|_| ClearingError::Resolution)?.checkpoint() };
+    }
+    require!(matches(certificate, &accounts.identity.safety, &accounts.registry) && !certificate.complete,
+        ClearingError::Resolution);
+    let finished = if certificate.count == 0 {
+        require!(remaining.is_empty(), ClearingError::Resolution);
+        true
     } else {
-        require!(current && !certificate.complete, ClearingError::Resolution);
-    }
-    require!(
-        certificate.next == start && usize::from(start) + length <= usize::from(certificate.count),
-        ClearingError::Resolution
-    );
-    for (offset, info) in remaining_accounts.iter().enumerate() {
-        let root = pages::member(info, &accounts.registry, usize::from(start) + offset, false)?;
-        account_custody::liability_free(&root)?;
-        certificate.cash = checked(math::cash_add(certificate.cash, root.cash))?;
-    }
-    certificate.next = start
-        .checked_add(length as u16)
-        .ok_or(ClearingError::Arithmetic)?;
-    if certificate.next == certificate.count {
-        require!(
-            certificate.cash
-                == account_custody::accounted_cash(
-                    &accounts.identity.custody,
-                    [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger]
-                )?,
-            ClearingError::Reconciliation
-        );
+        let mut cursor = MembershipCursor::from_checkpoint(&certificate.membership.checkpoint, certificate.count)
+            .map_err(|_| ClearingError::Resolution)?;
+        if let Some(root) = crate::instructions::account_membership::scan::step(&mut cursor, &certificate.venue, &remaining)? {
+            account_custody::liability_free(&root)?;
+            certificate.cash = checked(math::cash_add(certificate.cash, root.cash))?;
+            certificate.next = certificate.next.checked_add(1).ok_or(ClearingError::Arithmetic)?;
+        }
+        certificate.membership.checkpoint = cursor.checkpoint();
+        cursor.request() == Request::Done
+    };
+    if finished {
+        require!(certificate.next == certificate.count && certificate.cash == account_custody::accounted_cash(
+            &accounts.identity.custody, [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger])?, ClearingError::Reconciliation);
         certificate.complete = true;
     }
-
-    events.emit(
-        &crate::events::AccountRetirementProgress {
-            venue: accounts.identity.venue.address().to_owned(),
-
-            slot: Clock::get()?.slot,
-            safety_epoch: certificate.safety_epoch,
-            membership_version: certificate.membership_version,
-            count: certificate.count,
-            next: certificate.next,
-            cash: certificate.cash,
-            complete: certificate.complete,
-        },
-        accounts.event_authority.account().clone(),
-    )
+    events.emit(&crate::events::AccountRetirementProgress {
+        venue: *accounts.identity.venue.address(), slot: Clock::get()?.slot,
+        safety_epoch: certificate.safety_epoch, membership_version: certificate.membership_version,
+        count: certificate.count, next: certificate.next, cash: certificate.cash, complete: certificate.complete,
+        membership: certificate.membership.clone(),
+    }, accounts.event_authority.account().clone())
 }
 
 pub fn retire(
@@ -239,7 +208,7 @@ pub fn retire(
                 && header.stage == COMPLETE
                 && header.epoch == accounts.identity.safety.resolution_epoch
                 && header.cursor == header.count
-                && header.count == accounts.registry.count
+                && header.count == accounts.registry.financial_count
                 && header.registry_hash == registry_hash(&accounts.registry)?,
             ClearingError::Resolution
         );
@@ -278,7 +247,7 @@ pub fn retire(
             slot: Clock::get()?.slot,
             safety_epoch: accounts.identity.safety.epoch,
             terms_epoch: accounts.identity.venue.terms_epoch,
-            count: accounts.registry.count,
+            count: accounts.registry.financial_count,
             total_cash: account_custody::accounted_cash(
                 &accounts.identity.custody,
                 [&accounts.identity.btc_ledger, &accounts.identity.eth_ledger],
@@ -368,6 +337,7 @@ pub fn withdraw(
 #[cfg(test)]
 mod tests {
     use super::*;
+use financial_core::clearing::scalable::membership::{MembershipCursor, Request};
     #[test]
     fn certificate_requires_the_same_paused_epoch_and_complete_membership() {
         let proof = RetirementCertificate {
@@ -383,8 +353,8 @@ mod tests {
             ..Default::default()
         };
         let mut registry = VenueRegistry {
-            membership_version: 3,
-            count: 2,
+            membership_epoch: 3,
+            financial_count: 2,
             ..Default::default()
         };
         assert!(matches(&proof, &safety, &registry));
@@ -395,12 +365,12 @@ mod tests {
         safety.epoch += 1;
         assert!(!matches(&proof, &safety, &registry));
         safety.epoch -= 1;
-        registry.membership_version += 1;
+        registry.membership_epoch += 1;
         assert!(!matches(&proof, &safety, &registry));
-        registry.membership_version -= 1;
-        registry.count += 1;
+        registry.membership_epoch -= 1;
+        registry.financial_count += 1;
         assert!(!matches(&proof, &safety, &registry));
-        registry.count -= 1;
+        registry.financial_count -= 1;
         // Unrelated journal revisions are not retirement authority.
         safety.revision += 1;
         registry.revision += 1;

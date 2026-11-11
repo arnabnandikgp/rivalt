@@ -23,7 +23,7 @@ export async function qualifySettlementPlan(options:{h:CanonicalHarness;
   const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
   const pda=async(label:string,...suffix:Uint8Array[])=>(await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
     seeds:[Buffer.from(label),getAddressEncoder().encode(setup.venue),...suffix]}))[0];
-  const plan=await pda('settlement-plan',le64(epoch));tracked.push(plan);
+  const plan=await pda('settlement-plan');tracked.push(plan);
   const common={...setup.safetyCommon,prepared,rates,plan,epoch};
   const state=async()=>sdk.getSettlementPlanDecoder().decode((await h.read(plan))!);
   await h.send('P54C initialize conserving plan',[sdk.getInitializeSettlementPlanInstruction(common)]);
@@ -37,7 +37,7 @@ export async function qualifySettlementPlan(options:{h:CanonicalHarness;
   for(const [register,capacity] of [[64,packed(count,7n)],[65,packed(count+5n,9n)],[66,4n*(8n*count+6n)],
     [67,8n*count+6n],[68,hierarchy(8n*count+6n)],[69,count],[70,count]] as const)capacities.set(register,capacity);
   for(const [register,capacity] of capacities)for(let index=0n;index<(capacity+255n)/256n;index++) {
-    const key=await pda('resolution-limbs',le64(epoch),le32(register),le64(index));
+    const key=await pda('resolution-limbs',le32(register),le64(index));
     tracked.push(key);extras.push(key);pageKeys.set(`${register}:${index}`,key);
     await h.send('P54C provision count-derived plan page',[sdk.getInitializeSettlementPlanPageInstruction({...common,page:key,register,pageIndex:index})]);
   }

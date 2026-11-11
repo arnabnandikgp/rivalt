@@ -1,48 +1,16 @@
 import assert from 'node:assert/strict';
-import {AccountRole,address,type Address,type Instruction} from '@solana/kit';
+import {address,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {quantityCandidates} from './quantity-candidates.js';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
-import {accountRemainderOrders,accountRiskSources,readAccountResolution} from './account-worker-state.js';
-import {readAccountRateProposal} from './account-frozen-proposal.js';
+import {accountRiskSources,readAccountResolution} from './account-worker-state.js';
 
-/** Each call resumes exactly the current on-chain cursor. Proposal/order data is
- * untrusted; neither the worker nor the queue computes authoritative payouts. */
-export async function accountResolutionInstruction(runtime:AccountRuntime,snapshot:Awaited<ReturnType<AccountRuntime['snapshot']>>,
-  continuation:Awaited<ReturnType<typeof readAccountResolution>>) {
-  const {header,workState,rows,pages,registryState}=continuation;
-  const common={...snapshot,...continuation,epoch:header.epoch},start=header.cursor;
-  if(header.stage===4) {
-    const {header:current,proposal}=await readAccountRateProposal(runtime.rpc,snapshot.venue,header.epoch,runtime.profile);
-    assert(current.evaluation===header.evaluation,'Rate evaluation advanced; reread');
-    const matches=sdk.hex(current.proposalHash)===sdk.hex(proposal.hash);
-    const offset=matches?current.proposalUploaded:0;
-    assert(offset>=0&&offset<proposal.bytes.length&&offset%8===0,'Invalid rate upload cursor');
-    return sdk.getProposeAccountResolutionInstruction({...common,evaluation:current.evaluation,proposalHash:proposal.hash,offset,
-      bytes:proposal.bytes.subarray(offset,Math.min(proposal.bytes.length,offset+512))});
-  }
-  if(header.stage===5&&start===header.count)return sdk.getFinalizeAccountResolutionRatesInstruction(common);
-  if(header.stage===7) {
-    if(workState.limbCursor===0) {
-      assert(start===0,'Uncommitted remainder ordering');
-      const denominator=header.flowDenominator.limbs.reduceRight((total,limb)=>(total<<64n)+limb,0n);
-      return sdk.getOrderAccountResolutionInstruction({...common,orders:accountRemainderOrders(rows,denominator)});
-    }
-    assert(start<2*header.count,'Invalid order verification cursor');
-    const id=workState.marketEdgeOrder[Math.floor(start/header.count)][start%header.count];
-    assert(id<header.count,'Invalid proposed member');
-    return sdk.getCheckAccountResolutionOrderInstruction({...common,page:pages[Math.floor(id/2)],start});
-  }
-  if(header.stage===8)return sdk.getRoundAccountResolutionInstruction({...common,start});
-  assert([2,3,5,6,9,10].includes(header.stage)&&start<header.count,'No bounded resolution page due');
-  const length=[5,6].includes(header.stage)?1:Math.min(2-start%2,header.count-start);
-  const instruction=sdk.getAdvanceAccountResolutionInstruction({...common,page:pages[Math.floor(start/2)],stage:header.stage,start,length});
-  const members=[2,9,10].includes(header.stage)?registryState.members.slice(start,start+length):[];
-  return {...instruction,accounts:[...instruction.accounts,...members.map(address=>({address,
-    role:header.stage===9?AccountRole.WRITABLE:AccountRole.READONLY}))]};
-}
+/** Schema-9 valuation/adoption is driven by the signed operator harness until
+ * P56A qualifies a durable automatic continuation. Never invoke removed schema-8
+ * instructions or treat an unimplemented financial step as successful. */
+export const CANONICAL_DEFAULT_AUTOMATION_READY=false;
 
 export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receiver?:Address):Promise<AccountWorkerOutcome> {
   const budget=await runtime.budget('risk',key);
@@ -61,14 +29,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   if(snapshot.safetyState.mode===2) {
     if(header.stage===1)return await submit(`value:${header.epoch}`,sdk.getValueAccountResolutionInstruction({...common,epoch:header.epoch}),true)?
       {status:'queued',reason:'awaited-complete-cohort-valuation'}:{status:'blocked',reason:'closeout-sources-unavailable'};
-    if(header.stage>=2&&header.stage<=10) {
-      const instruction=await accountResolutionInstruction(runtime,snapshot,continuation);
-      // The resolution header revision distinguishes a stage reset after a competing
-      // invalid proposal. It is a job identity only, never a signed cash guard.
-      const id=`page:${header.epoch}:${header.stage}:${header.cursor}:${header.evaluation}:${header.proposalUploaded}:${continuation.workState.limbCursor}:${header.revision}`;
-      return await submit(id,instruction,true)?{status:'queued',reason:'complete-account-resolution-step'}:
-        {status:'blocked',reason:'resolution-step-simulation-rejected'};
-    }
+    if([2,14,15,16].includes(header.stage))return {status:'blocked',reason:'canonical-default-automation-awaiting-p56a'};
     return {status:'blocked',reason:'unsupported-frozen-stage'};
   }
   if(snapshot.safetyState.mode===3&&header.stage===11) {
@@ -86,7 +47,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   const probes=candidates.length?Array.from({length:Math.min(2,candidates.length)},(_,offset)=>address(candidates[(runtime.riskProbeCursor+offset)%candidates.length])):[];
   runtime.riskProbeCursor=candidates.length?(runtime.riskProbeCursor+probes.length)%candidates.length:0;
   for(const target of probes) {
-    const instruction=sdk.getFreezeAccountsInstruction({...common,caller:key,target,safetyEpoch:snapshot.safetyState.epoch,
+    const instruction=sdk.getFreezeAccountsInstruction({...common,caller:key,target,members:(await sdk.deriveMemberPage(snapshot.venue,BigInt(state.roots[target].id)/64n))[0],safetyEpoch:snapshot.safetyState.epoch,
       resolutionEpoch:header.epoch,emergency:false});
     if(await submit(`freeze:${header.epoch}:${target}:${snapshot.custodyState.revision}`,instruction))return {status:'queued',reason:'authenticated-net-insolvency'};
   }

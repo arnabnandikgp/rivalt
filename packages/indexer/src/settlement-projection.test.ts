@@ -6,25 +6,26 @@ import type {AccountEvent} from './account-events.js';
 const zero='11111111111111111111111111111111',scale=1_000_000_000n;
 function fixture() {
   const state=emptyLiquidity(),blank=<T>(decoder:{fixedSize:number;decode(bytes:Uint8Array):T})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize)));
-  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:8,profileVersion:4,domain:'00'.repeat(32),markets:['btc','eth'],marketCount:2};
-  state.custody={...blank(sdk.getCustodyDecoder()),schemaVersion:8,allocatedVault:'6'};
-  state.safety={...blank(sdk.getVenueSafetyDecoder()),schemaVersion:8,mode:2,paused:true,epoch:'7',resolutionEpoch:'3'};
+  state.venue={...blank(sdk.getVenueDecoder()),schemaVersion:9,profileVersion:5,domain:'00'.repeat(32),markets:['btc','eth'],marketCount:2};
+  state.custody={...blank(sdk.getCustodyDecoder()),schemaVersion:9,allocatedVault:'6'};
+  state.safety={...blank(sdk.getVenueSafetyDecoder()),schemaVersion:9,mode:2,paused:true,epoch:'7',resolutionEpoch:'3'};
   state.revisions.source={kind:10,revision:'11'};
   for(let market=0;market<2;market++) {
-    state.markets[['btc','eth'][market]]={...blank(sdk.getMarketDecoder()),schemaVersion:8,index:market,lotsPerUnit:market?'100000':'1000000'};
-    state.ledgers[['bl','el'][market]]={...blank(sdk.getMarketLedgerDecoder()),schemaVersion:8,market:['btc','eth'][market],marketIndex:market,
+    state.markets[['btc','eth'][market]]={...blank(sdk.getMarketDecoder()),schemaVersion:9,index:market,lotsPerUnit:market?'100000':'1000000'};
+    state.ledgers[['bl','el'][market]]={...blank(sdk.getMarketLedgerDecoder()),schemaVersion:9,market:['btc','eth'][market],marketIndex:market,
       insurance:market?'0':'3',fees:market?'0':'2',version:'1',liabilityVersion:'1'};
   }
   for(let id=0;id<3;id++) {
-    const key=`root${id}`,root={...blank(sdk.getMarginAccountDecoder()),schemaVersion:8,revision:'9',venue:'venue',id,mode:0,
+    const key=`root${id}`,root={...blank(sdk.getMarginAccountDecoder()),schemaVersion:9,revision:'9',venue:'venue',id:String(id),lifecycle:2,activationGeneration:'1',mode:0,
       isolatedMarketIndex:255,cash:id===0?'1':'0',delegateEpoch:'1'};
     root.positions[0].virtualScaled=((id===0?-2n:1n)*scale).toString();
     root.book.lastOrderId='4';root.book.lastGroupId='8';state.members.push(key);state.roots[key]=root;
   }
-  state.resolution={epoch:'3',stage:2,cursor:0,count:3,registryHash:'00'.repeat(32),safetyEpoch:'7',termsEpoch:'1',configEpochs:['1','1'],
+  state.resolution={epoch:'3',stage:2,cursor:'0',count:'3',registryHash:'00'.repeat(32),membershipEpoch:'3',safetyEpoch:'7',termsEpoch:'1',configEpochs:['1','1'],
     sourceObservations:['0','0'],sourceDeadlines:['0','0'],prices:['10','20'],funding:['0','0'],frozenAt:'1',cashBefore:'1',poolsBefore:['0','0'],
     insuranceBefore:['3','0'],feesBefore:['2','0'],allocatedBefore:'6',budgets:['3','0'],insuranceSpent:['0','0'],evaluation:0,clippedMask:0,
     rows:{},remainingCash:'1',appliedCash:'0',remainingLots:['0','0'],remainingGross:['0','0'],remainingClaims:['0','0']};
+  state.identities=Object.fromEntries(state.members.map((key,index)=>[String(index),key]));state.nextMemberId='3';state.registeredCount='3';
   reconcileAccountLedger(state);return state;
 }
 const progress=(overrides:any={})=>({venue:'venue',slot:'1',epoch:'3',plan:'plan',stage:9,cursor:'0',count:'3',adoptionRevision:'12',

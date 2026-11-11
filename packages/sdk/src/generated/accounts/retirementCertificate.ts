@@ -46,6 +46,12 @@ import {
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getMembershipStateDecoder,
+  getMembershipStateEncoder,
+  type MembershipState,
+  type MembershipStateArgs,
+} from "../types/index.js";
 
 export const RETIREMENT_CERTIFICATE_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([219, 215, 122, 131, 244, 149, 119, 95]);
@@ -65,9 +71,10 @@ export type RetirementCertificate = {
   safetyEpoch: bigint;
   membershipVersion: bigint;
   cash: bigint;
-  count: number;
-  next: number;
+  count: bigint;
+  next: bigint;
   complete: boolean;
+  membership: MembershipState;
   bump: number;
 };
 
@@ -79,9 +86,10 @@ export type RetirementCertificateArgs = {
   safetyEpoch: number | bigint;
   membershipVersion: number | bigint;
   cash: number | bigint;
-  count: number;
-  next: number;
+  count: number | bigint;
+  next: number | bigint;
   complete: boolean;
+  membership: MembershipStateArgs;
   bump: number;
 };
 
@@ -96,9 +104,10 @@ export function getRetirementCertificateEncoder(): FixedSizeEncoder<RetirementCe
       ["safetyEpoch", getU64Encoder()],
       ["membershipVersion", getU64Encoder()],
       ["cash", getU64Encoder()],
-      ["count", getU16Encoder()],
-      ["next", getU16Encoder()],
+      ["count", getU64Encoder()],
+      ["next", getU64Encoder()],
       ["complete", getBooleanEncoder()],
+      ["membership", getMembershipStateEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({
@@ -118,9 +127,10 @@ export function getRetirementCertificateDecoder(): FixedSizeDecoder<RetirementCe
     ["safetyEpoch", getU64Decoder()],
     ["membershipVersion", getU64Decoder()],
     ["cash", getU64Decoder()],
-    ["count", getU16Decoder()],
-    ["next", getU16Decoder()],
+    ["count", getU64Decoder()],
+    ["next", getU64Decoder()],
     ["complete", getBooleanDecoder()],
+    ["membership", getMembershipStateDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -222,5 +232,5 @@ export async function fetchAllMaybeRetirementCertificate(
 }
 
 export function getRetirementCertificateSize(): number {
-  return 80;
+  return 636;
 }

@@ -13,7 +13,7 @@ export function projectedEntities(state:AccountState) {
     accountCheck(keys.length===1,`singleton revision coverage ${kind}`);values.set(keys[0],value);
   }
   for(const [kind,collection] of [[4,state.portfolios],[5,state.roots],[6,state.markets],[7,state.ledgers],[9,state.backing],
-    [14,state.liquidity?.registries??{}],[15,state.liquidity?.makers??{}],[16,state.liquidity?.publishers??{}]] as const)
+    [26,state.tombstones],[27,state.storageTombstones],[14,state.liquidity?.registries??{}],[15,state.liquidity?.makers??{}],[16,state.liquidity?.publishers??{}]] as const)
     for(const [account,value] of Object.entries(collection)) {
       accountCheck(state.revisions[account]?.kind===kind,`snapshot entity kind ${account}`);values.set(account,value);
     }

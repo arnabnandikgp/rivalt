@@ -10,12 +10,14 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
+  getU64Decoder,
+  getU64Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -117,16 +119,21 @@ export type CheckAccountRetirementInstruction<
 
 export type CheckAccountRetirementInstructionData = {
   discriminator: ReadonlyUint8Array;
-  start: number;
+  revision: bigint;
+  restart: boolean;
 };
 
-export type CheckAccountRetirementInstructionDataArgs = { start: number };
+export type CheckAccountRetirementInstructionDataArgs = {
+  revision: number | bigint;
+  restart: boolean;
+};
 
 export function getCheckAccountRetirementInstructionDataEncoder(): FixedSizeEncoder<CheckAccountRetirementInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["start", getU16Encoder()],
+      ["revision", getU64Encoder()],
+      ["restart", getBooleanEncoder()],
     ]),
     (value) => ({
       ...value,
@@ -138,7 +145,8 @@ export function getCheckAccountRetirementInstructionDataEncoder(): FixedSizeEnco
 export function getCheckAccountRetirementInstructionDataDecoder(): FixedSizeDecoder<CheckAccountRetirementInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["start", getU16Decoder()],
+    ["revision", getU64Decoder()],
+    ["restart", getBooleanDecoder()],
   ]);
 }
 
@@ -181,7 +189,8 @@ export type CheckAccountRetirementAsyncInput<
   eventAuthority?: TAccountEventAuthority;
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
-  start: CheckAccountRetirementInstructionDataArgs["start"];
+  revision: CheckAccountRetirementInstructionDataArgs["revision"];
+  restart: CheckAccountRetirementInstructionDataArgs["restart"];
 };
 
 export async function getCheckAccountRetirementInstructionAsync<
@@ -516,7 +525,8 @@ export type CheckAccountRetirementInput<
   eventAuthority: TAccountEventAuthority;
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
-  start: CheckAccountRetirementInstructionDataArgs["start"];
+  revision: CheckAccountRetirementInstructionDataArgs["revision"];
+  restart: CheckAccountRetirementInstructionDataArgs["restart"];
 };
 
 export function getCheckAccountRetirementInstruction<

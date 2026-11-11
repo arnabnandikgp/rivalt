@@ -10,6 +10,7 @@ pub(crate) struct FrozenSource<'a> {
     pub custody: &'a Custody,
     pub safety: &'a VenueSafety,
     pub registry: &'a VenueRegistry,
+    pub storage: &'a RecoveryStorage,
     pub source: &'a Resolution,
     pub markets: [&'a Market; 2],
     pub ledgers: [&'a MarketLedger; 2],
@@ -45,26 +46,17 @@ impl FrozenSource<'_> {
                 && self.registry.schema_version == SCHEMA_VERSION
                 && self.registry.venue == self.venue_key
                 && self.registry.revision > 0
-                && self.registry.count > 0
-                && self.registry.count == self.source.count
-                && usize::from(self.registry.count) == self.registry.members.len()
-                && self.registry.members.len() <= MAX_MEMBERS,
+                && self.registry.financial_count > 0
+                && self.registry.financial_count == self.source.count,
             ClearingError::Resolution
         );
-        for (index, member) in self.registry.members.iter().enumerate() {
-            require!(
-                *member != Address::default() && !self.registry.members[..index].contains(member),
-                ClearingError::Resolution
-            );
-        }
-        // Initial qualification input is the existing bounded source. P55
-        // replaces this bridge with the live index's immutable frozen epoch.
-        let mut encoded = Vec::with_capacity(VenueRegistry::INIT_SPACE);
-        crate::wire::write(self.registry, &mut encoded)?;
-        require!(
-            solana_sha256_hasher::hash(&encoded).to_bytes() == self.source.registry_hash,
-            ClearingError::Resolution
-        );
+        require!(super::super::resolution::registry_hash(self.registry)? == self.source.registry_hash
+            && self.source.membership_epoch == self.registry.membership_epoch
+            && self.source.live_index == self.registry.live_index, ClearingError::Resolution);
+        self.storage.model().validate().map_err(|_| ClearingError::Resolution)?;
+        require!(self.storage.schema_version == SETTLEMENT_SCHEMA && self.storage.venue == self.venue_key
+            && self.storage.locked_epoch == self.source.epoch && self.storage.ready_capacity >= self.source.count,
+            ClearingError::Resolution);
         for index in 0..2 {
             let market = self.markets[index];
             let ledger = self.ledgers[index];
@@ -103,7 +95,7 @@ impl FrozenSource<'_> {
     pub(crate) fn initialize(&self, header: &mut PreparedSettlement) -> Result<()> {
         self.validate()?;
         require!(
-            header.schema_version == 0 && header.revision == 0,
+            header.schema_version == SETTLEMENT_SCHEMA && header.revision > 0 && header.epoch == 0,
             ClearingError::Resolution
         );
         header.schema_version = SETTLEMENT_SCHEMA;
@@ -112,9 +104,9 @@ impl FrozenSource<'_> {
         header.source_revision = self.source.revision;
         header.epoch = self.source.epoch;
         header.registry_revision = self.registry.revision;
-        header.membership_epoch = self.registry.membership_version;
+        header.membership_epoch = self.registry.membership_epoch;
         header.registry_hash = self.source.registry_hash;
-        header.count = u64::from(self.registry.count);
+        header.count = u64::from(self.registry.financial_count);
         header.safety_epoch = self.safety.epoch;
         header.terms_epoch = self.venue.terms_epoch;
         header.config_epochs = self.source.config_epochs;
@@ -140,9 +132,9 @@ impl FrozenSource<'_> {
                 && header.source_revision == revision
                 && header.epoch == self.source.epoch
                 && header.registry_revision == self.registry.revision
-                && header.membership_epoch == self.registry.membership_version
+                && header.membership_epoch == self.registry.membership_epoch
                 && header.registry_hash == self.source.registry_hash
-                && header.count == u64::from(self.registry.count)
+                && header.count == u64::from(self.registry.financial_count)
                 && header.safety_epoch == self.safety.epoch
                 && header.terms_epoch == self.venue.terms_epoch
                 && header.config_epochs == self.source.config_epochs

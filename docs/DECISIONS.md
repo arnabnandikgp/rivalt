@@ -5,6 +5,90 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D101 — canonical live membership and retirement wire (12 November 2026)
+
+P55A2 uses D93's fresh schema 9 / local profile 5 for the fixed registry header,
+u64 member IDs, u32 portfolio/child seeds and explicit Registered/Financial/Retired
+roots. The membership epoch changes only on Financial entry/exit. Empty identity
+creation/retirement changes discovery revisions and counts but cannot invalidate a
+financial commitment. Financial roots stay indexed until an owner explicitly exits
+with zero cash, quantities, claims (including fractions), reserves, active orders,
+protections and delegate authority. An owned maker binding still blocks exit until
+P57 supplies maker retirement. Reentry increments activation generation and replay
+counters without resetting order IDs or position history.
+
+A root retires to a permanent 135-byte `MarginTombstone` at the same PDA. The owner
+who paid root creation receives only the rent above the retained tombstone minimum.
+The journal's sole root-kind transition is MarginAccount (5) to MarginTombstone
+(26), preserving the predecessor revision and incrementing it once. Consumers must
+accept that change only with the `retire_margin` instruction and matching lifecycle
+payload; it is not a general account-kind relabelling rule. Empty exits remain
+possible after terminal venue retirement; activation and registration do not.
+
+Terminal recovery-allocation refunds similarly retain a permanent 72-byte
+`StorageTombstone` plus the immutable payer receipt. Only PreparedSettlement,
+FrozenMarginPage, SettlementLimbPage, SettlementRates and SettlementPlan may
+transition to journal kind 27, only through `refund_recovery_allocation` with its
+matching refund payload. The program authenticates the original canonical
+allocation, completed epoch and recorded payer before returning excess rent.
+Member pages/indexes cannot be reclaimed through this instruction. Refunding an
+allocation immediately invalidates the workspace capacity proof; no terminal
+allocation can be revived or count toward future Financial admission.
+
+This deliberately replaces the P54/D97 frozen **mirror** with the live Financial
+index. The complete snapshot binds venue, canonical index root, financial count and
+membership epoch; each row records the actual activation generation. D100's funded
+workspace is locked at freeze, retagged only from completed older epochs and
+unlocked only after complete financial reconciliation. The seven old fixed-cohort
+solver instructions, their inline wide work/page accounts and two mirror-creation
+instructions are removed from the new dispatch/IDL. Historical journal kinds 11/12
+stay reserved. The exact native reference arithmetic remains available for checks;
+there is no callable fixed-size fallback for a larger live registry.
+
+The successor's local financial-admission gate remains 64 until P56B's populated
+acceptance; registration, stable IDs and traversal have no corresponding 64-root
+ceiling. This is an explicit temporary qualification gate, not a newly chosen
+permanent protocol cap. Default/devnet remain disabled. P55A2 is unfinished until
+minimum client/indexer migration and fresh signed RPC/WS/PostgreSQL acceptance pass;
+these source changes do not promote an artifact or relabel P54 evidence.
+
+## D100 — pre-funded reusable recovery workspace (12 November 2026)
+
+P55A2 implements D93's requirement that recovery storage be funded before financial
+admission. Use one canonical reusable workspace per venue, with a bounded proof
+over every required physical allocation. Capacity depends on the Financial count,
+not the highest stable member ID or Registered-only population. The schedule covers
+all frozen rows, exact-width arithmetic registers and conserving graph/order work.
+The program must authenticate actual program-owned, rent-exempt accounts and their
+immutable payer receipts; a keeper's claimed capacity or a lamport balance alone
+cannot authorize a funded root.
+
+The venue authority starts/cancels capacity growth. Anyone may fund and verify its
+next required allocation. Incomplete growth admits no additional capacity; an
+already completed smaller capacity remains usable. Each proof has a monotone
+generation and exact cursor. Cancellation retains allocated accounts and payer
+records. A freeze locks the workspace to its resolution epoch, preventing growth,
+reuse or refund while that work remains active. Completion must be authenticated
+by the financial controller before unlocking; no timeout or admin assertion may
+release it. P55A2 must connect these fences to the complete default/recovery path
+before membership activation can use the capacity.
+
+This deliberately supersedes D97/D99's **epoch-specific scratch allocation** in the
+successor profile. Scratch PDA seeds omit epoch; payloads retain epoch/attempt and
+monotone scoped revisions. Reinitialization may discard only completed old-epoch
+scratch, never current results or applied financial effects. There is no in-place
+conversion of the schema-8 deployment or automatic selection of the new artifact.
+
+Rent uses explicitly signed operator/payer SOL, never collateral, insurance or
+trading fees. A payer receipt records the actual top-up; pre-existing donations
+cannot block canonical account creation. The receipt creator owns the eventual
+allocation-rent refund (including voluntarily donated lamports), not a trader
+claim. Refund requires terminal venue authority and proof that no active/frozen
+work can reference the allocation. The central workspace lock replaces D93's
+proposed per-receipt locked epoch, avoiding a write to every receipt on freeze.
+The complete cost, lifecycle and signed acceptance gates remain open; storage
+provisioning alone does not expand membership or qualify financial trading.
+
 ## D99 — conserving plan ownership before financial application (11 November 2026)
 
 P54C extends D97's local frozen-source bridge with a separate, fully verified

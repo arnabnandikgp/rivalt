@@ -21,6 +21,7 @@ pub use rates::*;
 mod plan;
 pub use plan::*;
 mod source;
+mod workspace;
 pub use contexts::*;
 pub use handlers::*;
 pub(crate) use source::*;
@@ -44,9 +45,7 @@ pub(crate) fn snapshot_binding(header: &PreparedSettlement) -> SnapshotBinding {
 /// Called only after the complete authenticated index has been provisioned.
 pub(crate) fn begin_value(header: &mut PreparedSettlement) -> Result<()> {
     require!(
-        header.stage == PREPARE_INDEX
-            && header.index_initialized == 0x7fff
-            && header.member_page_initialized,
+        header.stage == PREPARE_INDEX,
         ClearingError::Resolution
     );
     let membership = MembershipCursor::new(header.count)
@@ -74,16 +73,15 @@ pub(crate) fn value_member(
     let Request::Member { ordinal, id } = membership.request() else {
         return Err(ClearingError::Resolution.into());
     };
-    // Schema-8 has immutable, never-reused IDs and no activation/deactivation.
-    // The bridge maps every registry entry to generation 1; P55 replaces this
-    // source binding with the explicit schema-9 lifecycle/generation.
     require!(
         root.schema_version == SCHEMA_VERSION
             && root.venue == header.venue
             && u64::from(root.id) == id
             && entry.root == member_key
             && entry.lifecycle == MEMBER_FINANCIAL
-            && entry.activation_generation == 1
+            && root.lifecycle == MEMBER_FINANCIAL
+            && root.activation_generation > 0
+            && entry.activation_generation == root.activation_generation
             && root.revision > 0
             && page.schema_version == SETTLEMENT_SCHEMA
             && page.venue == header.venue
@@ -116,7 +114,7 @@ pub(crate) fn value_member(
     page.rows[usize::from(page.row_count)] = FrozenMargin {
         id,
         member: member_key,
-        activation_generation: 1,
+        activation_generation: root.activation_generation,
         original_revision: root.revision,
         cash: root.cash,
         lots,

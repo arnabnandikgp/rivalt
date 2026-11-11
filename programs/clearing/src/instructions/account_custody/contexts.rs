@@ -71,7 +71,7 @@ pub struct InitializeMarket {
 
 #[event_cpi]
 #[derive(Accounts)]
-#[instruction(index: u16)]
+#[instruction(index: u32)]
 pub struct CreatePortfolio {
     #[account(mut)]
     pub owner: Signer,
@@ -89,7 +89,7 @@ pub struct CreatePortfolio {
 
 #[event_cpi]
 #[derive(Accounts)]
-#[instruction(subaccount_index: u16)]
+#[instruction(subaccount_index: u32)]
 pub struct RegisterMargin {
     #[account(mut)]
     pub owner: Signer,
@@ -107,6 +107,9 @@ pub struct RegisterMargin {
     #[account(init, payer = owner, space = 8 + MarginAccount::INIT_SPACE,
         seeds = [b"margin-v3", portfolio.address().as_ref(), &subaccount_index.to_le_bytes()], bump)]
     pub margin: Box<BorshAccount<MarginAccount>>,
+    #[account(mut,seeds=[b"member-page",venue.address().as_ref(),&members.page_index.to_le_bytes()],
+        bump=members.bump,has_one=venue)]
+    pub members: Box<BorshAccount<MemberPage>>,
     pub system_program: Program<System>,
 }
 

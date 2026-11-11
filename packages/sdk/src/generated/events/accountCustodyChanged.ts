@@ -29,6 +29,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -95,7 +97,9 @@ export type AccountCustodyChangedEvent = {
   configEpoch: bigint;
   allocatedVault: Option<bigint>;
   membershipVersion: Option<bigint>;
-  memberCount: Option<number>;
+  memberCount: Option<bigint>;
+  registeredCount: Option<bigint>;
+  nextMemberId: Option<bigint>;
   actualVault: Option<bigint>;
 };
 
@@ -132,7 +136,9 @@ export type AccountCustodyChangedEventArgs = {
   configEpoch: number | bigint;
   allocatedVault: OptionOrNullable<number | bigint>;
   membershipVersion: OptionOrNullable<number | bigint>;
-  memberCount: OptionOrNullable<number>;
+  memberCount: OptionOrNullable<number | bigint>;
+  registeredCount: OptionOrNullable<number | bigint>;
+  nextMemberId: OptionOrNullable<number | bigint>;
   actualVault: OptionOrNullable<number | bigint>;
 };
 
@@ -148,7 +154,7 @@ export function getAccountCustodyChangedEventEncoder(): Encoder<AccountCustodyCh
       ["kind", getU8Encoder()],
       ["actor", getAddressEncoder()],
       ["subject", getAddressEncoder()],
-      ["index", getU16Encoder()],
+      ["index", getU32Encoder()],
       ["amount", getU64Encoder()],
       ["members", getArrayEncoder(getAccountCashSnapshotEncoder())],
       ["ledgers", getArrayEncoder(getMarketLedgerSnapshotEncoder())],
@@ -168,7 +174,9 @@ export function getAccountCustodyChangedEventEncoder(): Encoder<AccountCustodyCh
       ["configEpoch", getU64Encoder()],
       ["allocatedVault", getOptionEncoder(getU64Encoder())],
       ["membershipVersion", getOptionEncoder(getU64Encoder())],
-      ["memberCount", getOptionEncoder(getU16Encoder())],
+      ["memberCount", getOptionEncoder(getU64Encoder())],
+      ["registeredCount", getOptionEncoder(getU64Encoder())],
+      ["nextMemberId", getOptionEncoder(getU64Encoder())],
       ["actualVault", getOptionEncoder(getU64Encoder())],
     ]),
     [getConstantEncoder(ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR)],
@@ -187,7 +195,7 @@ export function getAccountCustodyChangedEventDecoder(): Decoder<AccountCustodyCh
       ["kind", getU8Decoder()],
       ["actor", getAddressDecoder()],
       ["subject", getAddressDecoder()],
-      ["index", getU16Decoder()],
+      ["index", getU32Decoder()],
       ["amount", getU64Decoder()],
       ["members", getArrayDecoder(getAccountCashSnapshotDecoder())],
       ["ledgers", getArrayDecoder(getMarketLedgerSnapshotDecoder())],
@@ -207,7 +215,9 @@ export function getAccountCustodyChangedEventDecoder(): Decoder<AccountCustodyCh
       ["configEpoch", getU64Decoder()],
       ["allocatedVault", getOptionDecoder(getU64Decoder())],
       ["membershipVersion", getOptionDecoder(getU64Decoder())],
-      ["memberCount", getOptionDecoder(getU16Decoder())],
+      ["memberCount", getOptionDecoder(getU64Decoder())],
+      ["registeredCount", getOptionDecoder(getU64Decoder())],
+      ["nextMemberId", getOptionDecoder(getU64Decoder())],
       ["actualVault", getOptionDecoder(getU64Decoder())],
     ]),
     [getConstantDecoder(ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR)],

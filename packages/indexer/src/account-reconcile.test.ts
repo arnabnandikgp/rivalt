@@ -16,16 +16,16 @@ async function fixture() {
   const accounts=new Map<string,{owner:string;data:[string,string]}>();
   const put=(key:string,data:ReadonlyUint8Array,owner:string=program)=>accounts.set(key,{owner,data:[Buffer.from(data).toString('base64'),'base64']});
   const empty=<T>(decoder:{fixedSize:number;decode(bytes:Uint8Array):T})=>decoder.decode(Buffer.alloc(decoder.fixedSize));
-  const venueState={...empty(sdk.getVenueDecoder()),schemaVersion:8,revision:1n,profileVersion:4,domain,quoteMint:mint,vault,bump:venueBump,vaultBump};
-  const custodyState={...empty(sdk.getCustodyDecoder()),schemaVersion:8,revision:1n,venue,bump:custodyBump};
-  const safetyState={...empty(sdk.getVenueSafetyDecoder()),schemaVersion:8,revision:1n,venue,epoch:1n,bump:safetyBump};
+  const venueState={...empty(sdk.getVenueDecoder()),schemaVersion:9,revision:1n,profileVersion:5,domain,quoteMint:mint,vault,bump:venueBump,vaultBump};
+  const custodyState={...empty(sdk.getCustodyDecoder()),schemaVersion:9,revision:1n,venue,bump:custodyBump};
+  const safetyState={...empty(sdk.getVenueSafetyDecoder()),schemaVersion:9,revision:1n,venue,epoch:1n,bump:safetyBump};
   state.venue=accountFields(venueState);state.custody=accountFields(custodyState);state.safety=accountFields(safetyState);
   for(const [key,kind] of [[venue,0],[custody,1],[safety,2]] as const)state.revisions[key]={kind,revision:'1'};
   put(venue,sdk.getVenueEncoder().encode(venueState));put(custody,sdk.getCustodyEncoder().encode(custodyState));put(safety,sdk.getVenueSafetyEncoder().encode(safetyState));
   const portfolios:Address[]=[];
   for(let index=0;index<105;index++) {
     const owner=getAddressDecoder().decode(Buffer.alloc(32,index+1)),[key,bump]=await sdk.deriveAccountPortfolio(venue,owner,0);
-    const value={schemaVersion:8,revision:1n,venue,owner,index:0,children:0,bump};
+    const value={schemaVersion:9,revision:1n,venue,owner,index:0,activeChildren:0,bump};
     state.portfolios[key]=accountFields(value);state.revisions[key]={kind:4,revision:'1'};put(key,sdk.getPortfolioEncoder().encode(value));portfolios.push(key);
   }
   const token=Buffer.alloc(165);Buffer.from(getAddressEncoder().encode(mint)).copy(token);Buffer.from(getAddressEncoder().encode(venue)).copy(token,32);token[108]=1;
@@ -81,4 +81,19 @@ it('rejects stale captured bank contexts and finalized revisions',async()=>{
   await expect(captureAccountReconciliation(test.state,test.binding,test.read,200)).rejects.toThrow(/precedes candidate/);
   test.mutate(test.portfolios[0],0n);
   await expect(captureAccountReconciliation(test.state,test.binding,test.read,100)).rejects.toThrow(/behind candidate/);
+});
+
+it('reconciles the unchanged freeze source separately from partial plan ownership',async()=>{
+  const {reconcileFrozenSourceDuringApply}=await import('./account-reconcile.js');
+  // Original: two +/-7 lot counterparties, 3 atoms already in the market pool.
+  // Partial Apply: one original root remains; source counters have not moved.
+  const expected={count:'2',poolsBefore:['3','0'],remainingCash:'7198048',appliedCash:'2301952',
+    remainingGross:['7','0'],remainingLots:['-7','0'],remainingClaims:['19','0'],rows:{
+      '0':{lots:['7','0']},'65':{lots:['-7','0']}}} as unknown as NonNullable<import('./account-projection.js').AccountState['resolution']>;
+  const header={scannedCash:'0',cashApplied:'0',remainingLots:['0','0'],remainingGross:['14','0'],remainingClaims:['3000000000','0']};
+  expect(()=>reconcileFrozenSourceDuringApply(header,expected)).not.toThrow();
+  for(const patch of [{scannedCash:'7198048'},{cashApplied:'2301952'},{remainingGross:['7','0']},{remainingClaims:['0','0']}])
+    expect(()=>reconcileFrozenSourceDuringApply({...header,...patch},expected)).toThrow(/Adopted frozen source/);
+  const omitted=structuredClone(expected);delete omitted.rows['65'];
+  expect(()=>reconcileFrozenSourceDuringApply(header,omitted)).toThrow(/Complete original cohort/);
 });

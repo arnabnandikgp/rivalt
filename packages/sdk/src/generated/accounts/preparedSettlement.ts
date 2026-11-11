@@ -19,8 +19,6 @@ import {
   getAddressEncoder,
   getArrayDecoder,
   getArrayEncoder,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getI128Decoder,
@@ -89,9 +87,6 @@ export type PreparedSettlement = {
   fees: Array<bigint>;
   gross: Array<bigint>;
   stage: number;
-  /** Qualification bridge only: immutable copies of the existing <=64 roots. */
-  indexInitialized: number;
-  memberPageInitialized: boolean;
   state: PreparationState;
   bump: number;
 };
@@ -118,9 +113,6 @@ export type PreparedSettlementArgs = {
   fees: Array<number | bigint>;
   gross: Array<number | bigint>;
   stage: number;
-  /** Qualification bridge only: immutable copies of the existing <=64 roots. */
-  indexInitialized: number;
-  memberPageInitialized: boolean;
   state: PreparationStateArgs;
   bump: number;
 };
@@ -151,8 +143,6 @@ export function getPreparedSettlementEncoder(): FixedSizeEncoder<PreparedSettlem
       ["fees", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["gross", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["stage", getU8Encoder()],
-      ["indexInitialized", getU16Encoder()],
-      ["memberPageInitialized", getBooleanEncoder()],
       ["state", getPreparationStateEncoder()],
       ["bump", getU8Encoder()],
     ]),
@@ -185,8 +175,6 @@ export function getPreparedSettlementDecoder(): FixedSizeDecoder<PreparedSettlem
     ["fees", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["gross", getArrayDecoder(getU64Decoder(), { size: 2 })],
     ["stage", getU8Decoder()],
-    ["indexInitialized", getU16Decoder()],
-    ["memberPageInitialized", getBooleanDecoder()],
     ["state", getPreparationStateDecoder()],
     ["bump", getU8Decoder()],
   ]);
@@ -283,5 +271,5 @@ export async function fetchAllMaybePreparedSettlement(
 }
 
 export function getPreparedSettlementSize(): number {
-  return 1463;
+  return 1460;
 }

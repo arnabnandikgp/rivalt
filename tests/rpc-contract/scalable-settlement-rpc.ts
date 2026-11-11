@@ -1,4 +1,4 @@
-// P54B controller qualification: actual fills/freeze, no injected financial state.
+// Canonical live-membership default qualification: signed fills/freeze; no injected financial state.
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
@@ -10,11 +10,14 @@ import {qualifySettlementApplication} from './scalable-settlement-application-rp
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 import {qualifySettlementPlan} from './scalable-settlement-plan-rpc.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
+import {registerFinancialTestMargin} from './account-membership-setup.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import type {ExpectedInstructionError} from './instruction-errors.js';
 import {denominatorPages} from './settlement-page-plan.js';
 const directory=process.env.RIVALT_RUN_DIR!;
+const runSource={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
+  trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()};
 const serialize=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint'?item.toString():item,2)+'\n';
 const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:label=>label.startsWith('P54')?1_000_000:800_000});
@@ -47,15 +50,13 @@ try {
       amount:400_000n,guard:await guard(isolated)})],[owner]);
     const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,0);
     const [receiver]=await sdk.deriveMarginAccount(portfolio,2);
-    await h.send('P54C register real isolated receiver',[await sdk.getRegisterMarginInstructionAsync({...setup.common,
-      owner,portfolio,margin:receiver,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:2})],[owner]);
+    await registerFinancialTestMargin(h,setup.common,setup.payer,{owner,portfolio,margin:receiver,subaccountIndex:2,mode:1,isolatedMarketIndex:1,role:2});
     await h.send('P54C fund unrelated healthy receiver cash',[await sdk.getDepositAccountInstructionAsync({...setup.common,
       owner,margin:receiver,quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1n})],[owner]);
     const [creditorPortfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,1);
     await h.send('P54C create cross creditor portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner,portfolio:creditorPortfolio,index:1})],[owner]);
     const [creditor]=await sdk.deriveMarginAccount(creditorPortfolio,0);
-    await h.send('P54C register cross creditor',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio:creditorPortfolio,
-      margin:creditor,subaccountIndex:0,mode:0,isolatedMarketIndex:255,role:0})],[owner]);
+    await registerFinancialTestMargin(h,setup.common,setup.payer,{owner,portfolio:creditorPortfolio,margin:creditor,subaccountIndex:0,mode:0,isolatedMarketIndex:255,role:0});
     await h.send('P54C mint valueless cross creditor funding',[getMintToInstruction({mint:setup.mint.address,
       token:setup.traderToken.address,mintAuthority:setup.payer,amount:1_000_000n})]);
     await h.send('P54C deposit cross creditor collateral',[await sdk.getDepositAccountInstructionAsync({...setup.common,owner,margin:creditor,
@@ -65,8 +66,7 @@ try {
       await h.send('P54C create real cross creditor position',[await route({trader:creditor,actor:owner,marketIndex,side:1,
         makers:[setup.instances[marketIndex*3+1]],lots:[25n]})],[owner]);
     }
-    // Setup already provisions all 32 legacy pages; ten roots reuse that storage.
-    assert(await h.read(setup.pages[4]));
+    // Financial membership already authenticated the complete reusable workspace.
   }
   setup.sourcePrices.btc=40_000_000_000n;setup.sourcePrices.eth=2_000_000_000n;await setup.fresh();
   const safety=()=>h.read(setup.safety).then(bytes=>sdk.getVenueSafetyDecoder().decode(bytes!));
@@ -74,9 +74,17 @@ try {
   const feeds={primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
     guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
   await h.send('P54 actual complete-cohort freeze',[sdk.getFreezeAccountsInstruction({...setup.safetyCommon,...feeds,caller:setup.payer,
-    target:cross,safetyEpoch:(await safety()).epoch,resolutionEpoch:(await source()).epoch,emergency:false})]);
-  const frozen=await source();assert.equal(frozen.stage,2);assert.equal(frozen.cursor,0);
-  const registry=sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!);const roots=registry.members;
+    target:cross,members:(await sdk.deriveMemberPage(setup.venue,(await root(cross)).id/64n))[0],safetyEpoch:(await safety()).epoch,resolutionEpoch:(await source()).epoch,emergency:false})]);
+  const frozen=await source();assert.equal(frozen.stage,2);assert.equal(frozen.cursor,0n);
+  const registry=sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!);const roots:Address[]=[];
+  // Independent fixed-fixture census from physical registration pages. The
+  // program's full live-index traversal below must account for the same roots.
+  for(let pageIndex=0n;pageIndex<(registry.nextId+63n)/64n;pageIndex++) {
+    const [key]=await sdk.deriveMemberPage(setup.venue,pageIndex);
+    const page=sdk.getMemberPageDecoder().decode((await h.read(key))!);
+    for(let slot=0;slot<64;slot++)if(page.financialMask&(1n<<BigInt(slot)))roots.push(page.members.entries[slot].root);
+  }
+  assert.equal(BigInt(roots.length),registry.financialCount);assert.equal(new Set(roots).size,roots.length);
   const rows=await Promise.all(roots.map(async key=>{const value=await root(key);return {key,root:value,cash:value.cash,claims:value.positions.map((position,index)=>
     position.lots*frozen.prices[index]*1_000_000_000n+position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled))};}));
   assert(rows.some(row=>row.claims.every(claim=>claim<0n)&&row.cash>0n),'must exercise proportional double debt collection');
@@ -88,14 +96,14 @@ try {
   }
   const pda=async(label:string,...suffix:Uint8Array[])=> (await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,
     seeds:[Buffer.from(label),getAddressEncoder().encode(setup.venue),...suffix]}))[0];
-  const prepared=await pda('prepared-settlement',u64(frozen.epoch));
+  const prepared=await pda('prepared-settlement');
   const memberPage=await pda('member-page',u64(0n));
   const nodes=await Promise.all(Array.from({length:15},(_,level)=>pda('member-index',Buffer.from([level]),u64(0n))));
-  const rowPages=await Promise.all(Array.from({length:Math.ceil(roots.length/8)},(_,index)=>pda('frozen-margin-page',u64(frozen.epoch),u64(BigInt(index)))));
-  const limbPages=await Promise.all([0,1,2].map(register=>pda('resolution-limbs',u64(frozen.epoch),u32(register),u64(0n))));
+  const rowPages=await Promise.all(Array.from({length:Math.ceil(roots.length/8)},(_,index)=>pda('frozen-margin-page',u64(BigInt(index)))));
+  const limbPages=await Promise.all([0,1,2].map(register=>pda('resolution-limbs',u32(register),u64(0n))));
   const common={...setup.safetyCommon,prepared,epoch:frozen.epoch};
   const header=()=>h.read(prepared).then(bytes=>sdk.getPreparedSettlementDecoder().decode(bytes!));
-  const financial=[setup.venue,setup.custody,setup.safety,setup.registry,setup.vault,...setup.markets,...setup.ledgers,...roots,setup.resolution,setup.work,...setup.pages];
+  const financial=[setup.venue,setup.custody,setup.safety,setup.registry,setup.vault,...setup.markets,...setup.ledgers,...roots,setup.resolution,setup.storage];
   const readAll=(keys:Address[])=>Promise.all(keys.map(async key=>(await h.read(key))?.toString('base64')??null));
   const financialBefore=await readAll(financial),tracked=[...financial,prepared,memberPage,...nodes,...rowPages,...limbPages];
   const reject=async(label:string,instruction:Instruction,error:ExpectedInstructionError=sdk.CLEARING_ERROR__RESOLUTION)=>{
@@ -103,9 +111,6 @@ try {
   };
   await reject('stale frozen source revision',sdk.getInitializePreparedSettlementInstruction({...common,sourceRevision:frozen.revision-1n}));
   await h.send('P54 initialize source-bound verification',[sdk.getInitializePreparedSettlementInstruction({...common,sourceRevision:frozen.revision})]);
-  for(const level of Array.from({length:15},(_,level)=>level))await h.send('P54 initialize canonical count node',[
-    sdk.getInitializePreparedIndexNodeInstruction({...common,level,node:nodes[level],revision:(await header()).revision})]);
-  await h.send('P54 initialize complete immutable member page',[sdk.getInitializePreparedMembersInstruction({...common,page:memberPage,revision:(await header()).revision})]);
   for(const [index,page] of rowPages.entries())await h.send('P54 initialize frozen rows',[sdk.getInitializeFrozenMarginPageInstruction({...common,page,pageIndex:BigInt(index)})]);
   for(const [register,page] of limbPages.entries())await h.send('P54 initialize bounded limb register',[sdk.getInitializeSettlementLimbPageInstruction({...common,page,register,pageIndex:0n})]);
   await reject('wrong radix level',sdk.getAdvancePreparedMembershipInstruction({...common,index:nodes[0],revision:(await header()).revision}));
@@ -120,7 +125,7 @@ try {
   for(const [index,row] of rows.entries()){
     const instruction=await value(index);await h.send('P54 value actual whole-account claims',[instruction]);
     const page=sdk.getFrozenMarginPageDecoder().decode((await h.read(rowPages[Math.floor(index/8)]))!),entry=page.rows[index%8];
-    assert.equal(entry.member,row.key);assert.equal(entry.id,BigInt(index));assert.equal(entry.originalRevision,row.root.revision);
+    assert.equal(entry.member,row.key);assert.equal(entry.id,row.root.id);assert.equal(entry.activationGeneration,row.root.activationGeneration);assert.equal(entry.originalRevision,row.root.revision);
     assert.equal(entry.cash,row.cash);assert.deepEqual(entry.claims,row.claims);assert.deepEqual(entry.lots,row.root.positions.map(position=>position.lots));
     const debt=row.claims.reduce((sum,claim)=>sum+(claim<0n?-claim:0n),0n)/1_000_000_000n;
     assert.equal(entry.collected,row.cash<debt?row.cash:debt);
@@ -186,9 +191,8 @@ try {
     .map(entry=>({program:sdk.CLEARING_PROGRAM_ADDRESS,...entry}));
   const parity=await conformance.finish(directory,accountKeys,h.read);
   const rent=await Promise.all(accountKeys.map(async entry=>({name:entry.name,key:entry.key,lamports:String((await rpc.call('getAccountInfo',[entry.key,{encoding:'base64',commitment:'finalized'}])).value.lamports)})));
-  const result={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
-    trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
+  const result={...runSource,endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     build:JSON.parse(readFileSync(`${process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR}/build-manifest.json`,'utf8')),checks,parity,rent,
-    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,planResult,applicationResult,sqlResult,limitations:applicationResult?['source bridge <=64','no expanded trading','internal makers and synthetic prices','candidate-specific SQL harness; normal runtime allowlist unchanged']:['source bridge <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
+    count:roots.length,continuations,common:expectedCommon,rows,prepared:await header(),rateResult,planResult,applicationResult,sqlResult,limitations:applicationResult?['temporary Financial admission <=64','no expanded trading','internal makers and synthetic prices','candidate-specific SQL harness; normal runtime allowlist unchanged']:['temporary Financial admission <=64','no Apply or expanded trading','no PostgreSQL replay in this verification-only probe']};
   writeFileSync(`${directory}/result.json`,serialize(result));console.log(serialize({checks:checks.length,continuations,rateContinuations:rateResult.continuations,rateEvaluations:rateResult.reference.evaluations.length,common:expectedCommon,parity}));
 }finally{await journal?.close();await flush();await ws.close();}
