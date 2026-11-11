@@ -56,7 +56,7 @@ try {
     const key=await pda(prefixes[kind],...(kind===4?[u32(register),u64(page)]:kind===3?[u64(page)]:[]));
     const receipt=await pda('storage-funding',bytes.encode(key));
     tracked.add(key);tracked.add(receipt);
-    return {kind,register,page,key,receipt,name:['PreparedSettlement','SettlementRates','SettlementPlan','FrozenMarginPage','SettlementLimbPage'][kind],
+    return {kind,register,page,key,receipt,name:['preparedSettlement','settlementRates','settlementPlan','frozenMarginPage','settlementLimbPage'][kind],
       size:[1463,1204,1181,1156,2129][kind]};
   };
   const firstAllocations=await Promise.all([0,1].map(kind=>allocation(kind,0,0n)));
@@ -124,9 +124,10 @@ try {
   assert.equal((await rpc.call('getTokenAccountBalance',[vault,{commitment:'confirmed'}])).value.amount,'0');
   await flush();
   for(const outcome of checks)assert.deepEqual(outcome.signatureWsError,outcome.error);
-  const parity=await conformance.finish(directory,[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'RecoveryStorage',key:storage},
+  writeFileSync(`${directory}/outcomes.json`,encode(checks));
+  const parity=await conformance.finish(directory,[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'recoveryStorage',key:storage},
     ...expected.flatMap(item=>[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:item.name,key:item.key},
-      {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'StorageFunding',key:item.receipt}])],h.read);
+      {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'storageFunding',key:item.receipt}])],h.read);
   const result={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedDirty:execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()!=='',
     build:JSON.parse(readFileSync(`${process.env.RIVALT_MEMBERSHIP_ARTIFACT_DIR}/build-manifest.json`,'utf8')),
