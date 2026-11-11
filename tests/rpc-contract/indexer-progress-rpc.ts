@@ -208,7 +208,7 @@ try {
   const capture=(indexer as any).capture.bind(indexer);let captureTrace:any;
   (indexer as any).capture=async(snapshot:any,minimumSlot:number)=>{
     const witness=await capture(snapshot,minimumSlot),entry=witness.captured.get(margin);
-    captureTrace={minimumSlot,reportedMax:witness.maxSlot,entities:witness.captured.size,candidateRevision:snapshot.state.revisions[margin].revision,
+    captureTrace={minimumSlot,reportedMax:witness.maxSlot,observedCeiling:witness.extensionSlot,entities:witness.captured.size,candidateRevision:snapshot.state.revisions[margin].revision,
       capturedRevision:Buffer.from(entry.value.data[0],'base64').readBigUInt64LE(10).toString(),
       finalized:await rpc.call('getSlot',[{commitment:'finalized'}]),confirmed:await rpc.call('getSlot',[{commitment:'confirmed'}]),verified:false};
     const verify=witness.verify;witness.verify=async(state:any)=>{captureTrace.verified=true;return verify(state);};return witness;

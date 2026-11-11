@@ -153,3 +153,23 @@ it('commits an oversized complete block atomically even when it exceeds the rema
   expect(test.store.commit.mock.calls[0][0][0].transactions).toHaveLength(2);
   expect(test.indexer.healthy).toBe(true);expect(test.durable().published_state.cash).toBe(14);
 });
+
+it('retains one captured witness until its fixed observation ceiling is finalized',async()=>{
+  const test=fixture(),capture=vi.fn(async()=>{
+    test.setHead(4);return {maxSlot:2,extensionSlot:4,matches:(state:State)=>state.revisions.root.revision==='3',
+      verify:async(state:State)=>{expect(state.cash).toBe(21);}};
+  });
+  test.indexer.capture=capture;await test.indexer.cycle();
+  expect(capture).toHaveBeenCalledTimes(1);expect(test.indexer.metrics.finalityExtensions).toBe(1);
+  expect(test.durable().checkpoint).toBe('block4');expect(test.durable().published_checkpoint).toBe('block3');
+  expect(test.durable().published_state.cash).toBe(21);expect(test.indexer.healthy).toBe(true);
+});
+it('expires an unfinalized witness without publishing or reading confirmed block bodies',async()=>{
+  vi.useFakeTimers();
+  try {
+    const test=fixture();test.indexer.capture=async()=>({maxSlot:2,extensionSlot:4,matches:()=>false,verify:async()=>{throw new Error('unfinalized');}});
+    const cycle=test.indexer.cycle();await vi.advanceTimersByTimeAsync(10_100);await cycle;
+    expect(test.durable().checkpoint).toBe('block2');expect(test.store.publish).not.toHaveBeenCalled();expect(test.indexer.healthy).toBe(false);
+    expect(test.rpc.mock.calls.filter(([method])=>method==='getBlocks').map(([,params])=>params!.slice(0,2))).toEqual([[2,2]]);
+  }finally{vi.useRealTimers();}
+});

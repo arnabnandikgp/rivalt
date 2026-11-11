@@ -20,12 +20,18 @@ forward from an earlier candidate cannot prove overwritten earlier values; the
 initial P52 design proposal's original-prefix publication is deliberately replaced
 with a common historical checkpoint. Custody/vault share one read batch. No common
 checkpoint means saved coverage with closed readiness, not relaxed reconciliation.
-Freshness starts before capturing the target, never after lengthy replay. API
+The signed local diagnostic exposed current account values ahead of their
+reported finalized context. Retain one captured witness and, only if the reported
+interval has no common match, extend once to a processed-slot ceiling observed
+after all reads. That ceiling must finalize before complete canonical history is
+read; every account field must match one covered finalized state before publishing.
+No nonfinalized projection is served. Freshness starts before capturing the target,
+never after waiting or lengthy replay. API
 history is capped at the published cursor. Pending signed-original recovery keeps
 immutable deployment checks independent of financial discovery readiness.
 
 This removes backlog-size cliffs, not every throughput limit. Account batching can
-still lack a common fence under continuous writes across more than 100 entities;
+still lack a common fence under continuous writes across multiple RPC batches;
 RPC response/transaction resource budgets are explicit and oversized inputs are
 retryable after operator sizing. Actual runtime measurements belong in validation;
 none imply expanded-account activation, independent review or production capacity.

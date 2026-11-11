@@ -16,7 +16,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 |---|---|---|
 | P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; clean `8931c73` passes full backlog, three SIGKILL boundaries, integrity and original recovery; continuous-write publication still fails, so no PR/acceptance yet |
+| P52 bounded-progress finalized indexer | In progress | Branch above verified #73; bounded per-block coverage, common-fence publication and format-3 storage implemented; clean `8931c73` passes full backlog, three SIGKILL boundaries, integrity and original recovery; live diagnostic identifies RPC account/context skew; fixed-witness finality extension implemented and 18 transport tests pass; scoped rerun next |
 | P53–P62 successor implementation | Planned | Price policy, compiled settlement, paged membership and expanded activation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -50,7 +50,7 @@ at that closeout returned none. The fetched merge has the accepted tip's exact t
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
 Next exact action: run the small P52 live-capture diagnostic, fix the observed
-publication failure without weakening finality/reconciliation, then complete the
+fixed-witness finality extension under continuous writes, then complete the
 full qualification, publish its ready PR above #73 and continue P53.
 
 ## Remediation planning
@@ -148,7 +148,14 @@ history/publication/format rejection and bounded backlog catch-up. It then fails
 the stronger requirement for three distinct reconciled publications while a root
 changes continuously. No readiness error is suppressed, and fresh replay has not
 run. A small signed live diagnostic now records captured context/revision versus
-finalized coverage to identify the mismatch without repeating the large load. No P52 PR or phase acceptance is claimed. No access blocker is known;
+finalized coverage to identify the mismatch without repeating the large load. Clean `bd9ebd4` reproduces the mismatch in a
+70-entity diagnostic: captured root revision 93 with reported finalized slot 2376
+versus covered revision 75. The version-pinned Surfpool account handler selects
+its context before reading live bytes. The fix retains one witness, uses one fixed
+post-read processed-slot ceiling, waits for actual finalization and publishes only
+a full financial-field match in canonical finalized history. Typecheck and all
+18 transport tests pass, including expiry without reading nonfinalized blocks;
+small real diagnostic and full qualification remain pending. No P52 PR or phase acceptance is claimed. No access blocker is known;
 the local container service was started for the owned qualification runtime.
 
 ## Integrated quantity work

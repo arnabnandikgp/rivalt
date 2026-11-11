@@ -56,7 +56,9 @@ witness tied to complete finalized history:
    These observations may be at different later slots; never combine them into a
    fictitious atomic account snapshot.
 3. Durably ingest complete blocks through the maximum captured observation slot,
-   a finite target independent of subsequent head advancement.
+   a finite target independent of subsequent head advancement. Also record one
+   processed-slot ceiling **after** all reads; it is a bounded recovery target,
+   never publication authority.
 4. Replay authenticated complete blocks within this finite interval. Select the
    latest complete-block state whose **entire entity revision vector** matches
    the captured bytes. New entities absent from the capture prevent a match.
@@ -64,17 +66,32 @@ witness tied to complete finalized history:
    partial-resolution value and conservation identity at that exact state against
    captured account bytes. Custody and the token vault are captured in the same
    actual RPC batch, binding controlled token movements to its custody revision.
-6. Publish only that verified common historical checkpoint. Later coverage stays
+6. If no common state matches within the reported contexts, retain the same
+   captured bytes and extend once to that fixed processed-slot ceiling. First
+   wait for its finalization within the original ten-second freshness window,
+   then ingest only finalized block bodies/manifests and look for the same exact
+   common match. Never fetch a newer witness while chasing this one. This covers
+   local RPC responses whose context is older than their returned live bytes.
+7. Publish only that verified common historical checkpoint. Later coverage stays
    unpublished. Never treat overwriting a bad earlier value with a correct later
    event as proof of the earlier state. If no common checkpoint exists, retain
    coverage, keep readiness closed and retry with a fresh capture.
 
 Account reads need not all have the same bank slot: unchanged revisions can span
-slots. They must still match one genuine historical complete-block state. More
-than 100 continuously changing accounts can prevent a common captured vector;
+slots. They must still match one genuine historical complete-block state. Writes
+spanning multiple RPC batches can prevent a common captured vector;
 this implementation does not promise wait-free publication for that case. Its
 local live acceptance and later expanded-cohort acceptance remain separate.
-This is an implementation design requiring adversarial tests, not permission to
+Surfpool 1.7.0's [account handler](https://github.com/solana-foundation/surfpool/blob/v1.7.0/crates/core/src/rpc/accounts_data.rs#L408)
+selects the response context before fetching current account values. The signed
+P52 diagnostic observed revision 93 under finalized context 2376 while complete
+coverage at that slot had revision 75. The one-time fixed extension treats those
+bytes as an untrusted witness until every field matches a canonical finalized
+prefix; neither the processed slot nor the RPC commitment label proves readiness.
+A fork, missing history, no common revision vector or expired witness still closes
+readiness. The freshness limit is unchanged; a long finality lag is not excused.
+
+This is not permission to
 compare only revision numbers or trust an indexer's own output twice. Same-revision
 changed bytes, omitted account fields, missing independent writers, mismatched
 vault timing and foreign observations must reject. Program artifact binding and

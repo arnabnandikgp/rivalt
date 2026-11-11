@@ -1,3 +1,4 @@
+import {setTimeout as delay} from 'node:timers/promises';
 import { getProgramDerivedAddress } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import { Rpc, Subscription, integer } from './rpc.js';
@@ -7,7 +8,7 @@ import {readFinalizedBlock,validateBlockChain,type FinalizedBlock,type BlockFenc
 import type {RevisionVector} from './scoped-history.js';
 
 
-export type ReconciliationWitness<State>={maxSlot:number;matches(state:State):boolean;verify(state:State):Promise<unknown>};
+export type ReconciliationWitness<State>={maxSlot:number;extensionSlot?:number;matches(state:State):boolean;verify(state:State):Promise<unknown>};
 // Each block has two authenticated reads (body + signature manifest). Bound
 // network concurrency while retaining canonical slot/transaction application.
 export const FINALIZED_BLOCK_READ_WIDTH=8;
@@ -22,7 +23,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
   ws?: Subscription;
   eventAuthority = '';
   healthy = false;
-  metrics = { cycles: 0, pages: 0, fetched: 0, notifications: 0, reconnects: 0, failures: 0, catchups: 0, historyRestarts: 0, chunks: 0, pending: 0, peakBlockTransactions: 0, peakCommitMs: 0 };
+  metrics = { cycles: 0, pages: 0, fetched: 0, notifications: 0, reconnects: 0, failures: 0, catchups: 0, historyRestarts: 0, finalityExtensions: 0, chunks: 0, pending: 0, peakBlockTransactions: 0, peakCommitMs: 0 };
   private busy = false;
   private anchorSlot=0;
   constructor(readonly config: TransportConfig, store: JournalStore<State, Binding, Event>) {
@@ -83,11 +84,28 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
     // historical revision fence. Forward-overwriting an old bad snapshot is not
     // proof of that old snapshot. Search only this finite captured interval.
     let replay=candidate,best=witness.matches(candidate.state)?candidate:null;
-    for await(const block of this.store.blocksAfter(target,witness.maxSlot)) {
-      validateBlockChain([block],{slot:Number(replay.checkpoint_slot),blockhash:replay.checkpoint!},{slot:block.slot,blockhash:block.blockhash});
-      const state=this.store.projection.apply(replay.state,this.decodeBlock(block,row.binding),row.binding).state;
-      replay={...replay,state,checkpoint:block.blockhash,checkpoint_slot:String(block.slot)};
-      if(witness.matches(state))best=replay;
+    const replayTo=async(last:number)=>{
+      for await(const block of this.store.blocksAfter(Number(replay.checkpoint_slot),last)) {
+        validateBlockChain([block],{slot:Number(replay.checkpoint_slot),blockhash:replay.checkpoint!},{slot:block.slot,blockhash:block.blockhash});
+        const state=this.store.projection.apply(replay.state,this.decodeBlock(block,row.binding),row.binding).state;
+        replay={...replay,state,checkpoint:block.blockhash,checkpoint_slot:String(block.slot)};
+        if(witness.matches(state))best=replay;
+      }
+    };
+    await replayTo(witness.maxSlot);
+    if(!best&&witness.extensionSlot!==undefined&&witness.extensionSlot>witness.maxSlot) {
+      // Some local RPC account reads expose live bytes with a finalized context.
+      // Retain those exact bytes, and wait for a FIXED upper observation slot.
+      // Only a matching complete finalized projection can qualify them. Never
+      // replace the witness with newer data while trying to catch up to it.
+      this.metrics.finalityExtensions++;
+      const extension=integer(witness.extensionSlot);
+      while(integer(await this.rpc.call('getSlot',[{commitment:'finalized'}]))<extension) {
+        if(Date.now()-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS){this.healthy=false;this.metrics.pending++;return;}
+        await delay(100);
+      }
+      if(!await this.cover(extension,budget)){this.healthy=false;this.metrics.pending++;return;}
+      await replayTo(extension);
     }
     if(!best||Date.now()-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS){this.healthy=false;this.metrics.pending++;return;}
     await witness.verify(best.state);
