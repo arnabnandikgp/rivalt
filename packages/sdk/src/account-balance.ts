@@ -28,7 +28,7 @@ export function accountFundingBounds(safety:Safety,market:Market,now:bigint,slot
 /** Current whole-account valuation. Headroom is indicative, not a payout promise:
  * the atomic instruction recomputes sources, funding, reservations and solvency. */
 export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:bigint,slot:bigint) {
-  if(root.schemaVersion!==9||root.lifecycle!==2||root.activationGeneration===0n||root.venue!==safety.venue||markets.some((market,index)=>
+  if(root.schemaVersion!==9||root.lifecycle!==2||BigInt(root.activationGeneration)===0n||root.venue!==safety.venue||markets.some((market,index)=>
     market.schemaVersion!==9||market.venue!==root.venue||market.index!==index))throw new Error('Invalid account preview dependencies');
   const sources=markets.map(market=>accountSourceMode(safety,market,now,slot));
   const funding=markets.map(market=>effectiveAccountFunding(safety,market,now,slot));

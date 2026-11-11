@@ -130,6 +130,8 @@ mod tests {
         let venue = Address::new_unique();
         let capital = MarginAccount {
             schema_version: crate::state::accounts::SCHEMA_VERSION,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
             venue,
             owner: Address::new_unique(),
             subaccount_index: 1,

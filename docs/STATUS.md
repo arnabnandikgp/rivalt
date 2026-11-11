@@ -715,7 +715,12 @@ Automatic paged default continuation remains explicitly blocked until P56A; no
 success or durable-worker qualification is claimed. Current runtime commands reject
 schema-8 selected artifacts against schema-9 clients before deployment.
 
-No user decision/access blocker is known. P55A2 is open as ready PR #82 above #81; CI is pending. Next exact action:
+No user decision/access blocker is known. P55A2 is open as ready PR #82 above #81. Initial hosted run 43107548317
+passed scope/report/shell but exposed three native maker-admission and five SDK
+margin-preview tests whose fixtures still omitted Financial lifecycle/generation.
+Those fixtures are corrected without weakening admission; the preview also rejects
+decimal-string zero generation. All three affected native checks, eight SDK margin
+checks and typecheck now pass locally; the corrected hosted run is pending. Next exact action:
 implement P55B maintained backing against its conservative-region contract. P56A retains full UI,
 durable automatic default and the remaining historical raw-audit adapters; P56B
 retains populated-cohort qualification and runtime promotion.
