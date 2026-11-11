@@ -5,10 +5,24 @@
 The current D97 controller adds source binding, actual margin valuation, complete
 ancestor closure and bounded public denominator steps. Native source/margin vectors,
 schema-specific scoped revisions and the literal ABI extension are implemented.
-A development linked SBF build has no oversized stack diagnostics; that dirty-tree
-build is not a pinned acceptance artifact. Signed prefix/replay/resource checks,
+Clean **`38fc788e82a21c7920d6eda9a35d0272c1bdf771`** passes four actual model/source
+native tests and eight scoped-history tests. They check literal layout offsets,
+whole-account funding/fractional claims, complete count/conservation, changed
+source bindings and rollback of failed native prefixes; scoped writes increment
+exactly once and schema 9 cannot substitute for financial schema 8. Generated
+client parity/typecheck, literal ABI, evidence and whitespace checks pass. Its
+linked qualification SBF builds without unsafe stack diagnostics, SHA-256
+`2f1f90825a429da58ef3fd4691cf869d1507c617264311df340b71c1dc27b9d6`.
+Logs and candidate remain at `.local/scalable-settlement/p54b-38fc788/`.
+Signed prefix/replay/resource checks,
 rate proposals/reset and full P54B acceptance remain pending. The selected ordinary
-runtime is unchanged. These checks will use a fresh existing-size frozen cohort;
+runtime is unchanged. Reproduce this scoped candidate probe with
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/scalable-settlement/p54b-38fc788 bash ops/scalable-settlement-smoke.sh`.
+The launcher checks the exact candidate hash separately from admitted maker/oracle
+artifacts and uses an owned offline Surfpool. It never promotes the candidate to
+normal runtime. The new probe derives a real frozen cohort from signed deposits,
+fills and an adverse synthetic price move; signed continuation acceptance is
+pending until its recorded run succeeds. These checks will use a fresh existing-size frozen cohort;
 P55/P56 still own live lifecycle and expanded population qualification.
 
 Clean **`a7adbaf7c1bee16cbc47c304e830f11c393ed507`**, restacked above P54A's

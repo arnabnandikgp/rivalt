@@ -288,12 +288,14 @@ transitions. Logs stay at `.local/scalable-settlement/p54b-6f051bc/`.
 D97 now adds verification-only public source/valuation/denominator handlers above
 these foundations. They bind the actual existing freeze, derive whole-account
 claims from real roots, and journal atomic page/work revisions. The schema-8 source
-remains bounded; no payout or expanded admission is enabled. Diagnostic native
-checks and a linked SBF build pass while developing this change; clean pinned
-acceptance is pending. Generated additions have a separate literal ABI checker,
+remains bounded; no payout or expanded admission is enabled. Clean **`38fc788e82a21c7920d6eda9a35d0272c1bdf771`** passes four source/valuation
+native tests and eight scoped-history tests, generated-client/typecheck/literal ABI
+and evidence checks. Its linked qualification SBF builds without stack diagnostics;
+SHA-256 is `2f1f90825a429da58ef3fd4691cf869d1507c617264311df340b71c1dc27b9d6`.
+This is a pinned candidate, not signed acceptance or normal-runtime admission. Generated additions have a separate literal ABI checker,
 with the retained D90 surface unchanged. No phase PR or new selected artifact is
-claimed. Next exact action: pin this controller and execute signed freeze,
-valuation and denominator prefix/replay checks before implementing rate work.
+claimed. Next exact action: execute the new signed freeze/valuation/denominator prefix probe
+against this pinned candidate, then implement rate proposal/reset work.
 
 ## Integrated quantity work
 
