@@ -286,13 +286,23 @@ Generation marks avoid population-sized clearing after each augmentation. Active
 index updates occur before search resumes; an interrupted pair update cannot make
 an unfinished graph available for Apply.
 
-The graph controller must independently construct every edge, balance and
-adjacency from verified flow floors and complete canonical order before creating
-this work. Current native transport obtains that construction from P54A and
-compares final payouts against independent atom owners; it is **not yet** an
+`scalable::order_work` verifies exact positive-claim remainders and stable-ID
+ties in a 576-byte checkpoint, using scratch registers 41–45. The owner must also
+prove the complete permutation with authenticated per-root attempt/seen markers;
+counting accepted arithmetic rows alone is not a membership proof. Rejected numeric
+order is explicit and never enables construction.
+
+`scalable::graph_build` constructs every edge, balance and adjacency from verified
+flow floors and complete canonical order in a 384-byte checkpoint. It clears the
+used active hierarchy before populating it, overwrites every readable graph record
+and derives all auxiliary capacities; no uploaded edge is accepted. Each step
+accesses at most two records and performs at most three reads/writes. Native
+transport compares every constructed node/arc/adjacency with the retained canonical
+model before independently checking final atom owners. It is **not yet** an
 on-chain construction proof. Checkpoint codecs validate structure, exact bindings
 and nested operation types, but cannot authenticate caller-provided progress.
-Program-owned pages, canonical order/permutation verification, application,
+D99 specifies exclusive plan adoption and recoverable order attempts. Program-owned
+pages, canonical order/permutation authentication, application,
 reconciliation and recovery remain required before financial exposure. No new
 entrypoint, financial writer or expanded population is enabled by these modules.
 

@@ -5,6 +5,48 @@ rules. Historical D-numbers remain stable references; the complete supersession
 chain and original acceptance claims are preserved in [HISTORY](HISTORY.md).
 A source rename or documentation cleanup changes neither economics nor authority.
 
+## D99 — conserving plan ownership before financial application (11 November 2026)
+
+P54C extends D97's local frozen-source bridge with a separate, fully verified
+settlement plan. It preserves exact rates, insurance clipping, market attribution,
+canonical fractional atom owners and complete membership. D97's verification
+entrypoints remain read-only; their completion alone still cannot authorize Apply.
+Bounded flow/order/construction/circulation cursors replace native vector schedules.
+The program derives graph topology and balances from verified scalar rows and
+complete ordered permutations, never from uploaded arcs or alleged final cash.
+
+Market order upload has a separate monotone attempt and per-root seen markers.
+It must prove each frozen ordinal once in each market permutation, then exact
+positive-claim remainder ordering with stable-ID ties. A bad or stalled order may
+be restarted under D98's explicit 64-slot liveness policy without changing the
+frozen cohort, verified rates, insurance history or flow floors. Once both orders
+are complete, graph construction and all later work are permissionless and
+monotone; no proposer timeout can select payouts or undo applied accounts.
+
+Before the first root mutation, adopt the complete audited plan atomically and
+move the schema-8 source resolution into reserved **PagedApply stage 14**. The old
+resolution's existing stage range excludes it, preventing competing legacy Apply.
+The child plan binds the exact adoption revision. Before adoption, advancing the
+legacy source invalidates the child; after adoption, resume this plan through
+complete application/reconciliation rather than falling back to another solver.
+Storage and continuation must be proven usable before adoption can succeed.
+
+Partial Apply owns an explicit remaining-original/applied cash split, remaining
+exposure/claims and market movements. Mixed live roots are never added to frozen
+aggregate balances again. Clear positions/orders/reservations/delegates exactly
+once while preserving monotone IDs/nonces, isolated forbidden slots and funding
+checkpoints. Only complete verified application changes settlement/insurance
+buckets; retained fees and unspent market insurance remain with their owners.
+Reconcile every applied root and the actual vault before terminal completion.
+
+The existing-size bridge may then populate the canonical legacy complete header
+and use its unchanged source-recovery/owner-resume rules. This is a fresh local
+test deployment, not in-place migration or expanded membership. P55 replaces the
+live identity bridge; P56B alone activates a larger cohort. New account/event/SDK
+layouts require literal ABI and signed RPC/WS/PostgreSQL acceptance before P54C
+can be called complete. STATUS/validation distinguish current native primitives
+from this controller's still-required implementation and financial qualification.
+
 ## D98 — bounded untrusted rate attempts and recoverable verification (11 November 2026)
 
 P54B stores proposal state separately from frozen valuation and financial balances.

@@ -612,15 +612,23 @@ the integrated M13 checkpoint above records its implementation and qualification
 P54C branches above ready #79 / `d2f7810`. Native flow work now derives exact
 payments/cash, atom floors and canonical local remainder order. Persisted graph
 work uses bounded declared record accesses and resumes its canonical traversal
-from serialized checkpoints. Development checks match 10,920 independent per-root
+from serialized checkpoints. Clean **`51b4a4f`** checks match 10,920 independent per-root
 flows and 774 complete independent atom-owner cases; 137 fractional insurance
 evaluations reject flow authorization. Graph cases cover 3,639 augmentations,
 with at most 3,478 steps in these fixtures. A separate ordered-set comparison
 covers 90,000 hierarchy updates/queries, including sparse u64 address boundaries.
-Four focused codec/hierarchy tests pass. These are native development results,
-not clean-pin, SBF, RPC or larger-cohort acceptance yet.
+Four focused codec/hierarchy tests, pinned SBF metadata compilation and evidence
+policy pass. These are clean native results; metadata compilation is not a linked
+SBF run, measured CU, RPC or larger-cohort acceptance.
 
-Authenticated graph construction and permutation verification, exactly-once
+Further development adds persisted exact market ordering (835 valid / 1,197
+invalid orders) and a 384-byte graph constructor. The constructor overwrites dirty
+records, derives all topology and active bits, and matches the canonical graph in
+all 774 native payout cases. Two new codec tests and SBF metadata compilation pass;
+this extension's clean pin is pending. D99 records exclusive Apply adoption,
+recoverable order attempts and unchanged recovery/economics.
+
+Program-page authentication of flows/orders/construction, exactly-once
 Apply/Reconcile, recovery, token exits and fresh PostgreSQL replay remain.
 No financial instruction, selected artifact or admitted population changes.
 No P54C PR is opened and no user decision/access blocker is known. Exact next

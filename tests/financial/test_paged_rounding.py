@@ -34,9 +34,11 @@ class PagedRounding(unittest.TestCase):
                 self.assertEqual(got['spent'], oracle.insurance_spent)
                 self.assertEqual(got['remaining_insurance'], tuple(insurance[market]-oracle.insurance_spent[market] for market in range(2)))
                 self.assertEqual(got['retained_fees'], (17, 23))
-                steps, actual_reads, actual_writes, actual_augmentations = map(int, line.split('|')[-1].split(','))
+                steps, actual_reads, actual_writes, actual_augmentations, build_steps, build_reads, build_writes = map(int, line.split('|')[-1].split(','))
                 self.assertEqual(actual_augmentations, oracle.augmentations)
                 self.assertLessEqual(actual_reads+actual_writes, 4*steps)
+                self.assertGreater(build_steps, 0)
+                self.assertLessEqual(build_reads+build_writes, 3*build_steps)
                 maximum = max(maximum, steps)
                 reads += actual_reads
                 writes += actual_writes

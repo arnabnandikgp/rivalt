@@ -119,9 +119,10 @@ fn execute(line: &str) -> Result<String> {
     let orders = [fields[6], fields[7]]
         .map(|text| text.split(',').map(decimal).collect::<Result<Vec<u64>>>());
     let [first, second] = orders;
-    let mut graph = Circulation::new(&plan, [&first?, &second?], &mut arithmetic)?;
+    let (first, second) = (first?, second?);
+    let mut graph = Circulation::new(&plan, [&first, &second], &mut arithmetic)?;
     let paged = if fields[0] == "paged" {
-        Some(graph.run_paged(budget)?)
+        Some(graph.run_paged(budget, [&first, &second], &mut arithmetic)?)
     } else {
         None
     };
@@ -152,8 +153,14 @@ fn execute(line: &str) -> Result<String> {
     let mut result = graph.result()?;
     let paged_metrics = paged.as_ref().map(|value| {
         format!(
-            "{},{},{},{}",
-            value.steps, value.reads, value.writes, value.augmentations
+            "{},{},{},{},{},{},{}",
+            value.steps,
+            value.reads,
+            value.writes,
+            value.augmentations,
+            value.build_metrics[0],
+            value.build_metrics[1],
+            value.build_metrics[2]
         )
     });
     if let Some(paged) = paged {

@@ -2,7 +2,7 @@
 
 ## Conserving flow and graph primitives (P54C in progress)
 
-The current development tree passes 10,920 exact per-root flow/retained-cash/
+Clean **`51b4a4fd8f5b7cf63790ea5fdaf8df779493e0b9`** passes 10,920 exact per-root flow/retained-cash/
 floor/fraction/order comparisons against the independent Fraction oracle and
 rejects flow authorization for 137 fractional-insurance evaluations. Maximum
 observed flow work is 2,453 word steps/root. A separate 774-case persisted graph
@@ -10,17 +10,28 @@ matrix reproduces independent canonical cash and market atom owners at checkpoin
 budgets 1/7/128: 3,639 augmentations total, maximum 3,478 steps, 352,956 scalar
 record reads and 116,778 writes across the fixtures. Undeclared reads/writes reject;
 each transition accesses at most three records and performs at most four reads/
-writes. The graph constructor is still the native P54A implementation, explicitly
+writes. At that pin graph construction is still the native P54A implementation, explicitly
 not program-page authentication or financial application.
 
 Two hierarchy tests compare 90,000 updates/queries against an ordered set across
 nine lengths, including sparse u64 boundaries; per-operation bounds remain eleven
 update and 21 successor word steps. Flow and graph codec tests cover immutable
 bindings, invalid domains and substitution of a write cursor for a successor read.
-Clean source pin and SBF metadata check are pending. No current result qualifies
+Pinned SBF metadata compilation and evidence-policy checks pass. This does not
+link or execute a Solana binary. No current result qualifies
 on-chain graph construction, payouts, token exits, SQL replay, larger populations,
 CU, heap/stack, latency or affordability. Raw development logs remain at
 `.local/scalable-settlement/p54c-flow-development/`.
+
+The subsequent development tree adds a bounded persisted graph constructor and
+exact market-order cursor. All 774 independent payout cases also compare every
+newly constructed node, arc and adjacency with the retained canonical topology,
+starting from poisoned scratch. Each construction step performs at most three
+record accesses. Exact order verification accepts 835 independent valid sequences
+and rejects 1,197 reversed/tied/duplicate/incomplete sequences; maximum 1,981 word
+steps/cohort in these fixtures. Permutation markers are still native test transport,
+not authenticated program records. Two additional codec tests and SBF metadata
+compilation pass. The extension's clean pin and program acceptance remain pending.
 
 ## Authenticated frozen and rate verification (P54B)
 

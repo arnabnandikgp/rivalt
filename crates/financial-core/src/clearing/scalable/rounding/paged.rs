@@ -1,9 +1,10 @@
 //! Native transport for the actual persisted graph cursor. Construction still
-//! comes from the independently checked complete native plan; this is explicitly
+//! derives topology from verified scalar flows and orders in bounded steps. This is explicitly
 //! not the future authenticated program construction/financial controller.
 use super::*;
 use crate::clearing::scalable::{
-    active_work::{ActiveWork, Hierarchy},
+    active_work::Hierarchy,
+    graph_build::{BuildStorage, GraphBuild},
     graph_work::{self as paged, Access, GraphStorage, GraphWork, Record},
     wide::LimbStorage,
 };
@@ -12,6 +13,7 @@ struct Store {
     arcs: Vec<paged::Arc>,
     adjacency: Vec<u64>,
     roots: Vec<paged::Root>,
+    orders: [Vec<u64>; 2],
     active: Vec<u64>,
     allowed: [Option<Access>; 3],
     reads: core::cell::Cell<u64>,
@@ -71,6 +73,24 @@ impl GraphStorage for Store {
         self.roots.get(index as usize).copied().ok_or(Error::Bounds)
     }
 }
+impl BuildStorage for Store {
+    fn order(&self, market: u8, position: u64) -> Result<u64> {
+        self.read(Record::Order { market, position })?;
+        self.orders
+            .get(usize::from(market))
+            .and_then(|order| order.get(position as usize))
+            .copied()
+            .ok_or(Error::Bounds)
+    }
+    fn write_adjacency(&mut self, position: u64, arc: u64) -> Result<()> {
+        self.write(Record::Adjacency(position))?;
+        *self
+            .adjacency
+            .get_mut(position as usize)
+            .ok_or(Error::Bounds)? = arc;
+        Ok(())
+    }
+}
 impl LimbStorage for Store {
     fn read(&self, register: u32, limb: u64) -> Result<u64> {
         if register != paged::ACTIVE_REGISTER {
@@ -94,9 +114,15 @@ pub struct Outcome {
     pub reads: u64,
     pub writes: u64,
     pub augmentations: u64,
+    pub build_metrics: [u64; 3],
 }
 impl Circulation<'_, '_> {
-    pub fn run_paged(&self, budget: u64) -> Result<Outcome> {
+    pub fn run_paged(
+        &self,
+        budget: u64,
+        orders: [&[u64]; 2],
+        arithmetic: &mut Arithmetic,
+    ) -> Result<Outcome> {
         if self.steps != 0 || budget == 0 || budget > 128 {
             return Err(Error::Bounds);
         }
@@ -132,34 +158,82 @@ impl Circulation<'_, '_> {
                 .iter()
                 .enumerate()
                 .map(|(index, row)| paged::Root {
+                    cash: row.cash,
+                    whole: self.plan.floors[index].whole,
+                    order: [0, 1, 2], // Replaced by exact verified root order below before construction.
                     directions: row.claims.map(|claim| claim.signum() as i8),
                     fractional: self.plan.floors[index].fractional,
                 })
                 .collect(),
-            active: zeroed(hierarchy.words() as usize)?,
+            active: vec![u64::MAX; hierarchy.words() as usize],
+            orders: orders.map(|order| order.to_vec()),
             allowed: [None; 3],
             reads: core::cell::Cell::new(0),
             writes: 0,
         };
-        for position in 0..length {
-            if store.arcs[store.adjacency[position as usize] as usize].capacity == 0 {
-                continue;
-            }
-            let mut update = hierarchy.set(position, true)?;
-            while !update.is_done() {
-                let word = update.accesses()?[0].ok_or(Error::Invariant)?;
-                store.allowed = [
-                    Some(Access {
-                        record: Record::Active(word.limb),
-                        writable: word.writable,
-                    }),
-                    None,
-                    None,
-                ];
-                update.step(&mut store)?;
-                update = ActiveWork::from_checkpoint(&update.checkpoint(), hierarchy)?;
-            }
+        for (index, root) in store.roots.iter_mut().enumerate() {
+            let remainders = self.plan.remainders(index, arithmetic)?;
+            root.order.sort_by(|left, right| {
+                arithmetic
+                    .compare(
+                        &remainders[usize::from(*right)],
+                        &remainders[usize::from(*left)],
+                    )
+                    .then(left.cmp(right))
+            });
         }
+        let expected_nodes = store.nodes.clone();
+        let expected_arcs = store.arcs.clone();
+        let expected_adjacency = store.adjacency.clone();
+        // Poison old graph records. Construction must overwrite every readable
+        // record and initialize the entire active hierarchy before circulation.
+        store.nodes.fill(paged::Node {
+            first: u64::MAX,
+            ..Default::default()
+        });
+        store.arcs.fill(paged::Arc {
+            capacity: u64::MAX,
+            ..Default::default()
+        });
+        store.adjacency = vec![u64::MAX; store.arcs.len()];
+        let cash_before = self.plan.rows.iter().try_fold(0u64, |sum, row| {
+            sum.checked_add(row.cash).ok_or(Error::Overflow)
+        })?;
+        let budgets = [
+            self.plan.pools[0] + self.plan.spent[0],
+            self.plan.pools[1] + self.plan.spent[1],
+        ];
+        let mut build = GraphBuild::new(self.count as u64, cash_before, budgets)?;
+        let mut build_steps = 0;
+        while !build.is_done() {
+            for _ in 0..budget {
+                if build.is_done() {
+                    break;
+                }
+                store.allowed = build.accesses()?;
+                let before = store.reads.get() + store.writes;
+                build.step(&mut store)?;
+                if store.reads.get() + store.writes - before > 3 {
+                    return Err(Error::Invariant);
+                }
+                build_steps += 1;
+            }
+            build = GraphBuild::from_checkpoint(
+                &build.checkpoint(),
+                self.count as u64,
+                cash_before,
+                budgets,
+            )?;
+        }
+        if build.result()? != (length, self.required)
+            || store.nodes != expected_nodes
+            || store.arcs != expected_arcs
+            || store.adjacency[..length as usize] != expected_adjacency
+            || build.step(&mut store).is_ok()
+        {
+            return Err(Error::Invariant);
+        }
+        let build_metrics = [build_steps, store.reads.get(), store.writes];
         store.reads.set(0);
         store.writes = 0;
         let mut work = GraphWork::new(self.count as u64, length, self.required)?;
@@ -223,6 +297,7 @@ impl Circulation<'_, '_> {
                 retained_fees: self.plan.fees,
             },
             steps,
+            build_metrics,
             reads: store.reads.get(),
             writes: store.writes,
             augmentations: work.augmentations(),

@@ -29,6 +29,9 @@ pub struct Arc {
 }
 #[derive(Clone, Copy, Debug)]
 pub struct Root {
+    pub cash: u64,
+    pub whole: [u64; 3],
+    pub order: [u8; 3],
     pub directions: [i8; 2],
     pub fractional: [bool; 3],
 }
@@ -39,6 +42,7 @@ pub enum Record {
     Adjacency(u64),
     Root(u64),
     Active(u64),
+    Order { market: u8, position: u64 },
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Access {
