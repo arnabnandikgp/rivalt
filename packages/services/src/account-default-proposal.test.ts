@@ -23,7 +23,7 @@ it('rejects duplicate, oversized, noncanonical or future helper responses',()=>{
 it('keeps candidate artifacts explicit and separate from API budget version',()=>{
   expect(accountDeployment('selected')).toMatchObject({schema:8,programProfile:4});
   const candidate=accountDeployment(accountDeploymentSelection('account-scale-candidate'));
-  expect(candidate).toMatchObject({schema:10,programProfile:6,artifactSet:'p55b2-maintained-bc9f029'});
-  expect(candidate.artifacts.find(value=>value.name==='clearing')?.sha256).toBe('62523299a7f1629dc40e56cd99c6b858a74a247bc5eecca46debab0ec0ab65a9');
+  expect(candidate).toMatchObject({schema:10,programProfile:6,artifactSet:'p56-population-0cc21b8'});
+  expect(candidate.artifacts.find(value=>value.name==='clearing')?.sha256).toBe('16f94c7fb2808e9ac4d547a3671a13386be4296c2a43cb5ef8950e67de3d0651');
   expect(()=>accountDeploymentSelection('anything')).toThrow();
 });

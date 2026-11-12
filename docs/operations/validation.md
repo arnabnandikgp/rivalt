@@ -2069,3 +2069,17 @@ boundary tests and five risk-controller checks pass; typecheck passes. No progra
 or economics change was needed for batching. The option remains explicit and
 defaults to one step. This completes the eight-root batching acceptance only;
 128-root resource, rejection/contended progress and expanded activation gates remain.
+
+## Workspace-backed population build (P56 candidate)
+
+Clean **`0cc21b820005cc9708d7baeb63193f55576c4f62`** builds all current default,
+qualification and fixture binaries with the pinned RC2/SBF toolchain and no
+oversized-stack diagnostics. Clearing is **2,374,816 bytes**, SHA-256
+`16f94c7fb2808e9ac4d547a3671a13386be4296c2a43cb5ef8950e67de3d0651`.
+The default clearing binary and both maker programs remain byte-identical to D102;
+only the qualified clearing population guard changes. The explicit candidate set
+is `p56-population-0cc21b8`, schema 10/profile 6, retained at
+`.local/scalable-settlement/p56-population`. Selected artifacts remain unchanged.
+Eleven affected native membership checks and typecheck pass. No larger Financial
+population or G1 acceptance is implied by compilation; the new signed populated
+probe must establish that independently.
