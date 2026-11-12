@@ -19,6 +19,8 @@ const browser=await chromium.launch({executablePath:'/Applications/Google Chrome
   args:['--disable-background-networking','--disable-component-update','--no-first-run']});
 const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
 page.setDefaultTimeout(25000);page.on('pageerror',error=>errors.push(error.message));
+const consoleErrors:string[]=[];
+page.on('console',message=>{if(message.type()==='error'&&consoleErrors.length<100)consoleErrors.push(message.text().slice(0,8000));});
 let decline=false;page.on('dialog',dialog=>{if(decline){decline=false;void dialog.dismiss();}else void dialog.accept();});
 const button=(name:string)=>page.getByRole('button',{name,exact:true});
 const receipts=()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('rivalt:receipts:v4:')).flatMap(([,value])=>JSON.parse(value))) as Promise<sdk.SignedIntent[]>;
@@ -136,5 +138,5 @@ try{
   writeFileSync(`${directory}/summary.json`,JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));
 }catch(error){
   await page.screenshot({path:`${directory}/failure.png`,fullPage:true}).catch(()=>{});
-  writeFileSync(`${directory}/failure.json`,JSON.stringify({error:String(error),errors,alerts:await page.getByRole('alert').allTextContents(),outcomes},null,2));throw error;
+  writeFileSync(`${directory}/failure.json`,JSON.stringify({error:String(error),errors,consoleErrors,alerts:await page.getByRole('alert').allTextContents(),outcomes},null,2));throw error;
 }finally{await browser.close();}

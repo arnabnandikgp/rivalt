@@ -33,13 +33,16 @@ export function useAccountController(config: AccountTraderConfig) {
     // A display preference only; ownership and authority are always read afresh.
     try { localStorage.setItem(selectionKey, JSON.stringify({portfolio: portfolioIndex, subaccount, market: marketIndex})); } catch { /* Signing still requires durable receipt storage. */ }
   }, [selectionKey, portfolioIndex, subaccount, marketIndex]);
-  const venue = useAccountVenue(config, `${portfolioIndex}:${subaccount}:${marketIndex}`, portfolioIndex, subaccount),
-    snapshot = venue.snapshot;
+  const venue = useAccountVenue(config, `${portfolioIndex}:${subaccount}:${marketIndex}`, portfolioIndex, subaccount);
   const { accounts } = venue;
   const retired = venue.retired??[],retiredSelection=retired.some(([,entry])=>entry.child===subaccount);
   const portfolio = venue.ownerPortfolio?.account ? venue.ownerPortfolio.address : undefined;
   const selected = accounts.find(([, root]) => root.subaccountIndex === subaccount),
     margin = selected?.[0] as Address | undefined,
+    // Selection renders before the venue effect clears its previous snapshot.
+    // Discovery can show the new identity, but balances and financial actions
+    // must wait for a snapshot that actually contains that selected root.
+    snapshot = margin && venue.snapshot?.roots[margin] ? venue.snapshot : undefined,
     root = margin ? snapshot?.roots[margin]??selected?.[1] : undefined;
   const [collateral, setCollateral] = useState(''),
     [amount, setAmount] = useState('1'),

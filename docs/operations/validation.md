@@ -34,6 +34,13 @@ measurement before enablement; no unlimited population or profitability is claim
 
 The normal launcher/client selection is being qualified against these same bytes;
 P56 remains In progress until that final check passes.
+The `7c8cb4a` launcher corrects the initial publisher-fence wait and reaches normal
+readiness, after one separate low-disk shutdown. Its browser check finalizes six
+wallet actions before a view crash when switching between existing accounts:
+discovery has selected the new root but the snapshot still contains the old one.
+The focused regression fails before the selected-snapshot guard and all four
+component cases pass after it; typecheck passes. This partial browser run is not
+acceptance. Raw failed sessions and wallet originals remain local and intact.
 
 ## Maintained backing integration (P55B2)
 

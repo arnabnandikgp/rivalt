@@ -870,13 +870,16 @@ syntax, artifact/helper hash checks and changed-document paths. Browser prefligh
 passes on installed Chrome 157.0.8103.39; actual normal-launcher acceptance is next.
 No new SBF build is required for these client/launcher changes.
 
-The first normal-launcher attempt at `c6435ce` stops during signed provisioning:
-its first report snapshot is still in the publisher initialization slot. The SDK
-correctly rejects the observation fence; no report is submitted. Setup now waits
-for the authenticated Clock boundary before refreshing report inputs. That scoped
-fix awaits a fresh normal-launcher/browser run; the failed session is retained at
-`.local/interactive-demo-p56-selected`. Reclaimed only generated Rust incremental
-build cache to restore disk headroom; databases, keys and evidence are retained.
+Normal-launcher `c6435ce` initially rejects the first report's initialization-slot
+fence; `7c8cb4a` waits for authenticated Clock progress and passes provisioning.
+A subsequent attempt stops on the disk guard; only generated Rust build caches
+are reclaimed, preserving every database/key/evidence file. The fresh third
+session reaches indexed/WS-connected readiness and six finalized wallet actions,
+then exposes a UI account-switch crash: discovery identifies cross while the
+snapshot still contains only isolated. A focused regression reproduces the crash;
+the fix withholds financial calculation/actions until the selected root snapshot
+arrives. All four component tests and typecheck pass. Fresh normal-launcher/browser
+acceptance remains next; partial sessions/results are retained locally.
 
 The earlier 128-root attempts remain failed/partial evidence in validation: an old
 reference ceiling, omitted fixture generation, the 997-original budget/time miss,

@@ -161,6 +161,10 @@ Show pending, confirmed and finalized separately. Submitted does not mean filled
 a triggered stop authorizes an attempt and can fail liquidity/price/risk checks.
 Keep exact original signatures/wire for reload and direct RPC recovery. Account,
 wallet, chain and configuration changes invalidate incompatible prepared state.
+Account discovery may identify a newly selected account before its financial
+snapshot arrives. Render that identity without attempting a balance calculation
+against the previous account's snapshot; keep financial actions disabled until
+the snapshot contains the selected root.
 
 Separate actual fill candles and execution VWAP from independent risk/index prices
 and publisher-attested funding impact. Expose source/quote/publisher age and reason
@@ -172,7 +176,7 @@ independent operators, or assumed hedges as observed costs. Instrumented local
 Wallet Standard browser evidence is distinct from external-provider compatibility.
 
 The schema-10 candidate retains API version 4 and reports `accountSchema: 10`
-in configuration and API envelopes. The selected older artifacts remain separate. `asOf.cursor`
+in configuration and API envelopes. Older artifacts remain separate. `asOf.cursor`
 is the journal-local financial-payload cursor, `asOf.cursorScope` identifies that
 scope, and `asOf.blockhash`/`slot` identify its complete finalized block fence.
 Scoped revisions authenticate protocol history; UI pagination cursors do not.
