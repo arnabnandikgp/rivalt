@@ -2039,3 +2039,33 @@ attempt. Early browser preflight now selects an installed executable before sign
 provisioning. No new SBF build, unrelated native regression, devnet, Phantom,
 external wallet or larger Financial population is qualified here. P56 still owns
 continuation batching and G1's populated-cohort resource gate before promotion.
+
+## Atomic default continuation batches (P56)
+
+Clean **`2521b21159c5db94f3cc22f14fabf791d3ce258e`** passes the existing actual
+`default-worker` probe with `RIVALT_DEFAULT_BATCH_STEPS=8` on unchanged D102 SBF.
+The same **665 guarded instructions** fit **84 immutable signed originals**;
+**189.010 seconds**, **420,000 test lamports**, peak **703,645 CU / 1,590 bytes**.
+Compared with the separately pinned scalar run, original count/fees fall 87.37%
+and measured completion time falls 85.08%. These are two local runs with their own
+independent frozen-input expectations, not public-network throughput guarantees.
+
+Both real SIGKILL/lost-ack faults (inside upload and Apply batches) recover one
+observed broadcast of the exact original wire/signature. Every applied ordinal
+matches the independent Fraction/graph reference. Insurance spends 120/30 atoms;
+actual one-atom token exit, sustained recovery and explicit resume succeed.
+Fresh PostgreSQL replay reproduces **109 events / 224 accounts / eight members**;
+actual/allocated vault is **7,399,999 atoms**, zero surplus. No fee reservation or
+access lock remains. Setup/recovery contributes 271 separately fetched outcomes;
+worker instruction parity is not claimed through the isolated Anchor client.
+The runner and independent post-audit both exit successfully, with clean final tree.
+Raw evidence: `.local/scalable-settlement/runs/p56-default-batches-writes`.
+
+The first clean attempt `1e39de7` stopped before any default original because RPC
+omitted a requested simulation poststate. The planner now requests only writable
+poststates and reads unchanged dependencies using its checked speculative reader;
+it never substitutes live state for a missing write result. Thirteen transport
+boundary tests and five risk-controller checks pass; typecheck passes. No program
+or economics change was needed for batching. The option remains explicit and
+defaults to one step. This completes the eight-root batching acceptance only;
+128-root resource, rejection/contended progress and expanded activation gates remain.

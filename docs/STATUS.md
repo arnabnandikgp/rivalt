@@ -26,7 +26,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
-| P56 account-scale services, clients and activation | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above #84; internal A1 passes on clean `25ed94a`: 665 durable originals, two actual SIGKILL/same-original recoveries, independent exact payouts, token exit, sustained recovery and 109-event identical PostgreSQL replay. A2 passes on clean `b9d2a21`: 23 signed browser actions, 412 provisioning/publication outcomes, 77 identities / ten Financial roots / one retired slot, identical 248-event fresh replay and 304 reconciled accounts; actual/allocated vault 10,010,000 atoms. Internal wallet only. Bounded atomic continuation batching is implemented behind an explicit 1–8-step option (default 1); 18 focused batch/risk checks pass. The first clean batching attempt `1e39de7` stops before any default original on a missing simulated poststate; poststate requests now cover only writable accounts, with ordinary checked reads for unchanged headers. Signed batching and B larger-cohort cost acceptance remain required before activation |
+| P56 account-scale services, clients and activation | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above #84; internal A1 passes on clean `25ed94a`: 665 durable originals, two actual SIGKILL/same-original recoveries, independent exact payouts, token exit, sustained recovery and 109-event identical PostgreSQL replay. A2 passes on clean `b9d2a21`: 23 signed browser actions, 412 provisioning/publication outcomes, 77 identities / ten Financial roots / one retired slot, identical 248-event fresh replay and 304 reconciled accounts; actual/allocated vault 10,010,000 atoms. Internal wallet only. Bounded atomic continuation batching is implemented behind an explicit 1–8-step option (default 1); 18 focused batch/risk checks pass. Clean `2521b21` passes all 665 guarded steps in 84 atomic originals / 189.010 seconds / 420,000 test lamports, both real crash recoveries and 109-event fresh replay. B larger-cohort cost acceptance remains required before activation |
 | P57–P62 successor implementation | Planned | One ready PR per numbered phase, following the user's 12 November granularity update; internal lettered checkpoints retain their gates without separate PRs |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -59,7 +59,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: qualify bounded atomic default continuation batches, then the 128-Financial-root resource envelope within the same PR #85;
+Next exact action: build the explicit workspace-backed population candidate and qualify 128 Financial roots against G1 within PR #85;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -869,6 +869,23 @@ focused client/SDK/API checks, typecheck and UI build passed on the implementati
 A2 needed no SBF rebuild or unrelated regression suite. All remaining P56 work
 continues in #85. No input/access blocker remains; larger-cohort cost acceptance,
 activation and selected runtime promotion are still pending.
+
+Bounded batching passes at clean **`2521b21159c5db94f3cc22f14fabf791d3ce258e`**
+with unchanged D102 SBF: the same **665 guarded instructions** execute in **84
+immutable originals**, **189.010 seconds** and **420,000 test lamports**, versus
+665 originals / 1,266.843 seconds / 3,325,000 lamports in the scalar run. Peak is
+**703,645 CU / 1,590 bytes**. Both actual upload/Apply SIGKILL recoveries retain
+one observed broadcast and their exact originals. Independent payouts/insurance,
+actual token exit, recovery and identical **109-event / 224-account** fresh SQL
+replay pass; actual/allocated vault remains **7,399,999 atoms**. The captured tree
+is clean. Raw files remain at `.local/scalable-settlement/runs/p56-default-batches-writes`.
+
+The first batching attempt at `1e39de7` rejected a missing simulator poststate before
+any default original. Only writable poststates are now requested; unchanged inputs
+use checked RPC reads. Thirteen focused transport tests and five risk-controller
+checks pass, plus typecheck. This is eight-root acceptance, not a 128-root G1 claim.
+The explicit batch option remains bounded at eight and defaults to scalar; selected
+runtime promotion and larger population still require their remaining acceptance.
 
 ## Deployment and operational limits
 
