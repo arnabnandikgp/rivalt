@@ -139,7 +139,7 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Accoun
     await wait(()=>page.getByTestId('account-cash').textContent(),value=>Boolean(value&&value!=='—'),'RPC balance recovery while APIs are blocked');
     assert.equal(await page.getByLabel('Margin account',{exact:true}).inputValue(),'1');
     assert.deepEqual(errors,[]);await page.screenshot({path:`${directory}/liquidity-ui.png`,fullPage:true});
-    writeFileSync(`${directory}/browser-summary.json`,json({internalWallet:true,outcomes,errors,wireCount:wires.length,preparationObservations}));return outcomes;
+    writeFileSync(`${directory}/browser-summary.json`,json({internalWallet:true,browserVersion:browser.version(),outcomes,errors,wireCount:wires.length,preparationObservations}));return outcomes;
   }catch(error){await page.screenshot({path:`${directory}/browser-failure.png`,fullPage:true}).catch(()=>{});
     writeFileSync(`${directory}/browser-failure.json`,json({error:String(error),alerts:await page.getByRole('alert').allTextContents(),outcomes,errors,preparationObservations}));throw error;
   }finally{await browser.close();await readApp.close();vite?.kill('SIGTERM');}
