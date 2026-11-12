@@ -48,6 +48,13 @@ now recognizes that the quote-lifetime check can reject before RouteIntent, but
 still requires actual signed expiry proof. Error number alone is insufficient;
 unknown/ambiguous originals remain non-retriable. This partial run is retained at
 `.local/scalable-settlement/p56-normal-demo-wallet-selected`.
+The next `204cac8` attempt has six successes and a finalized OraclePolicy refusal
+at slot 9,553 within signed expiry 9,615. This is a source-policy refusal, not
+proven route expiry. The browser's bounded new-review flow now accepts that
+explicit finalized rejection class and rechecks source admission before preparing
+another transaction; unknown outcomes and unrelated financial errors still stop.
+Raw originals remain in `.local/scalable-settlement/p56-normal-demo-wallet-complete`.
+No continuous-availability or all-quotes-fill claim follows from this UI check.
 
 ## Maintained backing integration (P55B2)
 

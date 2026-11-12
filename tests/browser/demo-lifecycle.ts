@@ -68,13 +68,14 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
   writeFileSync(`${directory}/wallet-transactions.json`,JSON.stringify(outcomes,null,2));
   writeFileSync(`${directory}/wallet-finalized-${outcomes.length}.json`,JSON.stringify(history,null,2));
   if(receipt.status==='failed'){
-    // A live settlement worker can advance the account between review and send.
-    // Model a new user review only AFTER independent finalized failure proof;
-    // retain its original, fee and rejection. Unknown outcomes never retry here.
+    // Live workers can advance an account or source policy between review and
+    // send. Model a new user review only AFTER independent finalized failure
+    // proof; retain its original, fee and rejection. The new review waits for
+    // current source admission again. Unknown outcomes never retry here.
     assert.equal(name,'Review atomic trade',JSON.stringify(receipt.error));
     const code=history.meta.err?.InstructionError?.[1]?.Custom;
     assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:code}]});
-    assert(code===6122||code===6117||code===6115,JSON.stringify(history.meta.err));
+    assert(code===6122||code===6117||code===6115||code===sdk.CLEARING_ERROR__ORACLE_POLICY,JSON.stringify(history.meta.err));
     if(code===6117||code===6115){
       // Quote lifetime can reject before the route-intent check. Both errors
       // are broad: require independently proven signed route expiry, never
@@ -85,7 +86,7 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
       const intent=sdk.getExecuteLiquidityRouteInstructionDataDecoder().decode(instruction.data);
       assert(BigInt(history.slot)>=intent.expirySlot,'Finalized route must have landed after its signed expiry');
     }
-    assert(reviewAttempt<3,'Bounded fresh review after finalized version conflict or proven expiry');
+    assert(reviewAttempt<3,'Bounded fresh review after finalized version/source refusal or proven expiry');
     await button('Refresh').click();
     await wait(()=>page.getByRole('main').getAttribute('aria-busy'),value=>value==='false','finalized rejection refresh');
     return action(name,sourceMargin,reviewAttempt+1);

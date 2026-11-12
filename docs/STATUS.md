@@ -59,10 +59,10 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: qualify the normal local launcher and browser wallet against
-the accepted D108 binaries with the selected schema-10/profile-6 binding. Keep
-PR #85 open; mark P56 Review only after that check, then begin P57 above it.
-No input/access decision is pending. Continue one ready PR per phase through P62.
+Next exact action: finish the normal local launcher/browser acceptance against
+the accepted D108 binaries, then publish P56's final result in open PR #85. The
+user's latest 12 November direction is to finish P56 and stop for the account-scale
+discussion before P57; the remaining roadmap is retained, not started.
 
 ## Remediation planning
 
@@ -885,6 +885,13 @@ rejects before the route-intent guard. The browser verifier now allows its bound
 fresh review only after the same independently proven signed expiry; it never
 retries an uncertain original or treats the broad error alone as transient.
 Complete browser acceptance remains next; partial sessions/results are retained.
+The following `204cac8` browser attempt records six successes and a finalized
+OraclePolicy rejection on its first trade, within the signed slot lifetime. It is
+not reclassified as expiry. The verifier now models at most three new reviews
+after a finalized source-policy refusal, waiting for current source admission each
+time and retaining every original/fee/rejection. No program, source-age rule,
+publication cadence or unknown-original retry behavior changes. The owned demo
+is stopped; the next attempt uses a fresh session and internal wallet.
 
 The earlier 128-root attempts remain failed/partial evidence in validation: an old
 reference ceiling, omitted fixture generation, the 997-original budget/time miss,
