@@ -27,7 +27,7 @@ pub use settlement_rates::*;
 
 pub const SCHEMA_VERSION: u16 = 10;
 pub const PROFILE_VERSION: u16 = 6;
-pub use crate::state::identity::{MARKET_COUNT, MAX_MEMBERS};
+pub use crate::state::identity::MARKET_COUNT;
 pub const RESOLUTION_PAGE_ROWS: usize = 2;
 pub const WIDE_LIMBS: usize = 96;
 pub const TRADING_IMPLEMENTED: bool = cfg!(feature = "liquidity-execution-qualification");

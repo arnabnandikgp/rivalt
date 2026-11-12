@@ -11,7 +11,7 @@ import json
 import subprocess
 
 from wire_contract import PROGRAMS, BASELINE, program_contract, source_domains
-from settlement_wire_contract import strip_additions, DOMAINS
+from settlement_wire_contract import strip_additions, DOMAINS, undo_window_delta
 from backing_wire_contract import undo_backing_delta
 from membership_wire_contract import undo_membership_delta, DOMAINS_ADDED, DOMAINS_REMOVED
 
@@ -140,6 +140,7 @@ def check_domains():
 
 def comparable_program(program, actual):
     """Validate every explicit extension before comparing the retained D90 ABI."""
+    actual = undo_window_delta(actual, program)
     actual = undo_backing_delta(actual, program)
     actual = undo_membership_delta(actual, program)
     if program == 'clearing':

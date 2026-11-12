@@ -23,8 +23,11 @@ recovery. [Operator setup](../operations/deployment.md) gives actual entrypoints
 | Wallet, review, positions and receipts | [Trader application](../../apps/trader/src/) |
 | Local demo supervisor | [Local demo](../../packages/local-demo/src/) |
 
-The P47-qualified local runtime uses `/v4` interfaces and profile 4 with schema-8 clearing accounts.
-The SDK, services, indexer and app bind this deployment explicitly;
-unknown or historical profiles reject. Transport API version 4 remains; explicit account schema/projection binding 8
-requires a fresh domain/genesis/database. Historical clients remain at the immutable pre-retirement
-revision; [STATUS](../STATUS.md) records fresh runtime acceptance separately.
+The account-scale local runtime uses `/v4` interfaces, profile 6 and schema-10
+clearing accounts. Its SDK, services, indexer and app bind the exact deployment;
+unknown or historical profiles reject. API version 4 remains distinct from account
+schema 10 and SQL journal format 3. A fresh domain/genesis/database is required;
+old signed originals stay with their original executor. Durable default uses a
+bounded native page-descriptor helper and resource-limited atomic batches. Clearing
+independently verifies every financial transition; neither helper nor simulation
+can authorize a payout. STATUS records acceptance separately from integration.

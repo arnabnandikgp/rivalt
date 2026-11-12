@@ -11,6 +11,20 @@ deletes none of them. Recovery example:
 git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 ```
 
+## Account-scale operations entrypoint
+
+P56 replaces the retained schema-8 all-account operations runner with the actual
+paged default-worker, recovery, token-exit and fresh-SQL qualification. The old
+`tests/rpc-contract/liquidity-qualification-operations.ts` body is reproducible at
+`ad19215`; its current entrypoint rejects explicitly rather than using incompatible
+raw layout offsets. Existing raw evidence and databases are preserved. This source
+retirement is not a claim that historical full-drain measurements qualify P56.
+The selected schema-10/profile-6 runtime is qualified on D108 SBF/helper `ed46603`,
+populated-cohort harness `ad19215` and normal launcher/browser `6b92665`. The latter
+passes all 13 wallet originals after fixing initialization-fence waiting and an
+account-switch snapshot mismatch. Validation records the separate failed attempts
+and exact resource limits. PR #85 remains open; this is not a merged milestone.
+
 ## Quantity expansion and constraint audit integration
 
 On 10 November 2026, stack #70 integrated P48/P49/P50 as

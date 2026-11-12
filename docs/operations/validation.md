@@ -1,5 +1,78 @@
 # Validation and measured limits
 
+## Account-scale populated qualification (P56)
+
+Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper
+**`ed466030eccd485b8552b378815bf3f4e28fb658`**, passes the actual populated
+128-Financial-root run. The cohort includes six makers, 16 cross roots, 120 exposed
+roots, 65 debtors, 70 creditors and 15 roots with opposite-sign market claims.
+There are **175 durable originals / 2,317 guarded instructions**, **506.428 seconds**
+through complete resolution, **875,000 test lamports**, peak **897,380 CU / 3,348
+wire bytes**. Original p50/p95 processing is 2.328 / 2.751 seconds. G1 passes.
+
+Both actual upload/Apply SIGKILLs recover the same signed originals with one observed
+broadcast each. Independent Fraction/graph payouts and market insurance consumption
+(**6,792 / 3,252 atoms**), complete application, one-atom SPL exit, sustained recovery
+and explicit resume pass. All 1,023 setup/recovery outcomes (eight deliberate
+rejections) are fetched over RPC and matched to WS. Independently paid BTC/ETH fills
+have disjoint actual signed lock sets; this is not a validator-throughput claim.
+Fresh PostgreSQL replay reproduces **1,074 events / 405 accounts / 128 Financial
+members**. Actual and allocated vault equal **332,907,139 atoms**, zero surplus.
+Both isolated Anchor clients match 3,332 clearing instructions / 4,368 clearing
+events, plus 378 maker instructions / 384 maker events. This run adds no account
+decode vectors. The separate independent worker audit passes; end tracked tree is
+clean. Raw files remain in `.local/scalable-settlement/runs/p56-populated-128-parity`.
+
+Pre-funded recovery has **99 accounts / 192,661 data bytes / 1,043,091,640 rent
+lamports**. All clearing accounts before resolution total **404 / 352,526 bytes /
+2,053,529,040 rent lamports**. Rent is separate from transaction fees and collateral;
+these are local test-lamport measurements with zero priority bids. Worst-width
+storage is provisioned; this financially populated sample is not an adversarial
+maximum-denominator latency proof. The finite work/storage bounds remain checked.
+Larger compiled workloads, including 1,024 Financial roots, require separate
+measurement before enablement; no unlimited population or profitability is claimed.
+
+### Selected normal launcher and wallet
+
+Clean **`6b92665d5561ac547595a9f4211b567d7e144c30`** passes the actual normal
+launcher on the same D108 binaries/helper and installed Chrome **157.0.8103.39**.
+The complete run has **13 successful wallet originals, zero rejected originals
+and zero page errors**. Every signed wire matches independently fetched finalized
+RPC history. Actual Surfpool RPC/WS and PostgreSQL serve the app and indexer.
+
+Checks cover a fresh internal browser wallet and faucet, origin/stop denial,
+portfolio and both account modes, atomic activation/deposits, sibling allocation,
+wallet decline with no original, BTC/ETH fills, TP/SL/cancel, both reduce-only
+closes, an actual **1,000,000-atom token withdrawal**, reload with retained originals
+and reconciled indexed fills. The tracked tree is clean at completion. The owned
+server and database stop normally. Captures remain at
+`.local/scalable-settlement/p56-normal-demo-wallet-final`; runtime/keys/database
+remain at `.local/interactive-demo-p56-selected-5`.
+
+Earlier normal-launcher attempts are partial evidence: an initialization-slot
+publisher fence (fixed by waiting before refreshing inputs), a low-disk shutdown,
+and a cross/isolated selection render crash (fixed by requiring the selected root
+in the snapshot before financial calculation/actions). The crash reproduces in a
+focused regression before the fix; all four component cases and typecheck pass
+afterward. The 51 prior selection/client/batch/binding checks also pass.
+
+Other browser attempts preserve a MakerQuote rejection after signed route expiry
+(expiry 4,118; finalized landing 4,138), and an OraclePolicy refusal inside its
+signed lifetime (landing 9,553; expiry 9,615). The latter is not relabelled expiry.
+The verifier models at most three fresh user reviews after finalized version/source
+refusals or independently proven expiry, waiting for current source admission each
+time. Unknown originals and unrelated financial errors stop; every failure and fee
+is retained. Neither partial run is counted as complete acceptance. The passing
+run required no such retries. No program guard or publication cadence was relaxed.
+
+This closes P56's local acceptance, not PR integration, external-wallet acceptance,
+continuous availability, production throughput or a larger-population cost claim.
+Hosted run 43162914676 on `6c4652c` passes 403 client checks but exposes three
+launcher fixtures with schema-8 manifests. The fixture-only correction declares
+schema 10/profile 6; all three focused checks now reach their intended bad-hash
+rejection before runtime creation. No program, launcher guard or qualified binary
+changes, and the signed financial/browser acceptance is not rerun for this fix.
+
 ## Maintained backing integration (P55B2)
 
 The gated schema-10/profile-6 candidate has source-derived IDL/SDK outputs and an
@@ -11,7 +84,7 @@ The changed kernel passes the independent five-method reference again (1,274
 corner contributions and 89,720 summary/restoration prefixes; native only).
 The worker completes an unpayable cohort's scan without attaching a doomed payment.
 
-The selected runtime remains schema 8. Candidate manifests now read actual source
+At the P55B2 checkpoint, the selected runtime remained schema 8. Candidate manifests now read actual source
 schema/profile constants; they do not bypass the selected runtime hash allowlist.
 Candidate `bbd3398` is rejected by the SBF guard: backing-event construction has
 maximum stack offset 4,192, 96 bytes over the allowed frame. It was not deployed.
@@ -1950,3 +2023,209 @@ faults separately checked. Retired-profile suites, new comparative load, 24-hour
 endurance, external wallet/devnet and independent/funded gates are not rerun or
 claimed. Hosted CI supplies broad supported client/native regression after PR
 publication; local acceptance does not imply an unobserved CI result.
+
+
+## Durable paged default worker (P56 internal A1)
+
+Clean `25ed94a832e66c8986554b53be6cb59d9c5b7139` passes the actual production
+candidate controller/queue against unchanged D102 SBF `bc9f029`. Native page helper
+build `2d7337f` has identical helper source at the tested revision; its 547,184-byte
+executable hashes to `246a3e09925c3f04bf91ec528a0d7a6c07b32c414c067af60f0466887a0659fe`.
+The helper returns bounded account descriptors, never financial authority.
+
+Run `RIVALT_SETTLEMENT_PROBE=default-worker` with the pinned artifact directory
+through `ops/scalable-settlement-smoke.sh`. Actual signed trades create the
+bankrupt cross debtor and opposing maker claims. The pre-execution independent
+Python Fraction/graph reference supplies expected cash/insurance; post-run
+`tests/financial/check_default_worker.py` checks every final owner, protected fee
+carry, all insurance/pools, the one-atom token exit, exact original bytes and fees.
+
+| Measured result | Observed |
+|---|---|
+| Financial population / durable worker originals | 8 / 665 |
+| Separate provisioning/recovery RPC/WS outcomes | 271 |
+| Upload and Apply executor faults | Actual SIGKILL after RPC acceptance, before acknowledgement; same signature/bytes and one observed broadcast each |
+| Maximum worker CU / serialized bytes | 116,191 / 915 |
+| Worker fees / remaining fee reservation | 3,325,000 test lamports / 0 |
+| Worker elapsed through completion | 1,266.843 seconds; serial finality after each original |
+| Insurance consumed BTC / ETH | 120 / 30 collateral atoms |
+| Fresh SQL replay | 109 identical events, 224 reconciled accounts, 8 members |
+| Actual / allocated collateral / surplus after exit | 7,399,999 / 7,399,999 / 0 atoms |
+
+SQL checkpoints cover partial Apply, distribution, complete settlement and recovered
+custody. All payouts match the independent model; reservations/delegates/positions
+clear and historical order/group IDs remain. An actual SPL withdrawal is followed
+by sustained source recovery and explicit resume. End tracked tree is clean.
+Both isolated Anchor clients match 249 setup/recovery clearing instructions and
+1,023 clearing events (plus maker events); worker instructions are fetched as exact
+persisted wire but are not claimed as an additional legacy instruction-parity run.
+Nineteen focused service tests, two native descriptor tests, typecheck and all five
+hosted jobs pass at the recorded revisions. Hosted run: 43126999240 at `25ed94a`.
+
+Earlier stopped runs are retained, not accepted: `bd61659` incorrectly required
+fresh publication for frozen continuation; `6752a36` reached 656 originals but used
+the source stage instead of the plan stage after distribution. Regression checks
+cover live-discovery fencing, frozen progress during publication lag, adopted-plan
+reconciliation/completion and mismatched checkpoint rejection.
+
+Limits: internal makers/synthetic sources, eight roots and one insurance evaluation;
+no larger Financial population, selected runtime promotion, external wallet, soak
+or independent review. This 21.1-minute scalar path does not meet larger-cohort G1
+latency acceptance; P56 owns continuation optimization and populated-cohort costs.
+Raw evidence remains at `.local/scalable-settlement/runs/p56a1-default-complete`.
+
+## Account lifecycle clients (P56 internal A2)
+
+Clean **`b9d2a21beffc7f551ebc0d078cc65d15f5aa4677`** passes
+`RIVALT_SETTLEMENT_PROBE=account-clients bash ops/scalable-settlement-smoke.sh`
+with the unchanged D102 binaries, actual Surfpool RPC/WS, PostgreSQL and explicitly
+selected Chrome **157.0.8103.39**. Evidence is local at
+`.local/scalable-settlement/runs/p56-account-clients-chrome`; `result.json` records
+a clean final tree, 412 separately fetched setup/publication outcomes and 23
+browser-signed originals, all matched to their exact RPC bytes and finalized
+signature notifications. No indexer recovery exception was recorded.
+
+The UI creates a portfolio and Registered accounts beyond stable ID 64, atomically
+activates/deposits, trades BTC/ETH in cross and isolated accounts, places/cancels a
+reserved order and existing-position TP/SL, allocates collateral, withdraws,
+deactivates an empty child and permanently retires its namespace. An actual
+activation followed by zero deposit rejects and restores membership, fifteen index
+nodes and custody/vault bytes. Reload preserves retired slots and signed receipts;
+RPC deposit/exit succeeds with both HTTP service surfaces blocked. Trading roots
+retain their true closed/fractional claims; the retirement case is collateral-only.
+
+Final discovery has **77 identities / 76 non-retired roots / ten Financial roots /
+one retired slot**. Actual/allocated vault is **10,010,000 atoms**, wallet tokens
+**1,990,000 atoms**, zero surplus. An independent fresh PostgreSQL database replays
+**248 identical events**, with **304 accounts** reconciled at one finalized fence.
+Browser transactions use **16,550–160,492 CU / 443–1,329 bytes**, each costing
+5,000 test lamports; atomic activation/deposit uses v1. The two isolated Anchor
+clients agree on **392 clearing setup/publication instructions / 612 events**,
+196 maker-A instructions / 200 events and 98 maker-B instructions / 100 events.
+Those counts exclude wallet instruction parity; wallet evidence is independently
+fetched signed wire and decoded/reconciled state, not a second Anchor-client claim.
+
+Thirty focused discovery/activation-envelope/ingress/API/UI checks, typecheck and
+UI build pass on the implementation. The earlier clean `10b55aa` run provisioned
+identities but stopped at a missing Playwright binary; it is retained as a failed
+attempt. Early browser preflight now selects an installed executable before signed
+provisioning. No new SBF build, unrelated native regression, devnet, Phantom,
+external wallet or larger Financial population is qualified here. P56 still owns
+continuation batching and G1's populated-cohort resource gate before promotion.
+
+## Atomic default continuation batches (P56)
+
+Clean **`2521b21159c5db94f3cc22f14fabf791d3ce258e`** passes the existing actual
+`default-worker` probe with `RIVALT_DEFAULT_BATCH_STEPS=8` on unchanged D102 SBF.
+The same **665 guarded instructions** fit **84 immutable signed originals**;
+**189.010 seconds**, **420,000 test lamports**, peak **703,645 CU / 1,590 bytes**.
+Compared with the separately pinned scalar run, original count/fees fall 87.37%
+and measured completion time falls 85.08%. These are two local runs with their own
+independent frozen-input expectations, not public-network throughput guarantees.
+
+Both real SIGKILL/lost-ack faults (inside upload and Apply batches) recover one
+observed broadcast of the exact original wire/signature. Every applied ordinal
+matches the independent Fraction/graph reference. Insurance spends 120/30 atoms;
+actual one-atom token exit, sustained recovery and explicit resume succeed.
+Fresh PostgreSQL replay reproduces **109 events / 224 accounts / eight members**;
+actual/allocated vault is **7,399,999 atoms**, zero surplus. No fee reservation or
+access lock remains. Setup/recovery contributes 271 separately fetched outcomes;
+worker instruction parity is not claimed through the isolated Anchor client.
+The runner and independent post-audit both exit successfully, with clean final tree.
+Raw evidence: `.local/scalable-settlement/runs/p56-default-batches-writes`.
+
+The first clean attempt `1e39de7` stopped before any default original because RPC
+omitted a requested simulation poststate. The planner now requests only writable
+poststates and reads unchanged dependencies using its checked speculative reader;
+it never substitutes live state for a missing write result. Thirteen transport
+boundary tests and five risk-controller checks pass; typecheck passes. No program
+or economics change was needed for batching. The option remains explicit and
+defaults to one step. This completes the eight-root batching acceptance only;
+128-root resource, rejection/contended progress and expanded activation gates remain.
+
+## Workspace-backed population build (P56 candidate)
+
+Clean **`0cc21b820005cc9708d7baeb63193f55576c4f62`** builds all current default,
+qualification and fixture binaries with the pinned RC2/SBF toolchain and no
+oversized-stack diagnostics. Clearing is **2,374,816 bytes**, SHA-256
+`16f94c7fb2808e9ac4d547a3671a13386be4296c2a43cb5ef8950e67de3d0651`.
+The default clearing binary and both maker programs remain byte-identical to D102;
+only the qualified clearing population guard changes. The explicit candidate set
+is `p56-population-0cc21b8`, schema 10/profile 6, retained at
+`.local/scalable-settlement/p56-population`. Selected artifacts remain unchanged.
+Eleven affected native membership checks and typecheck pass. No larger Financial
+population or G1 acceptance is implied by compilation; the new signed populated
+probe must establish that independently.
+
+The first clean populated harness **`46462fd`** creates, funds and trades all 128
+Financial accounts and freezes them, but stops before any default original: the
+independent Python branch reference still imposed its historical 64-row fixture
+ceiling. This is a failed qualification, retained at
+`.local/scalable-settlement/runs/p56-populated-128`; no settlement or G1 result is
+claimed. That reference-only ceiling is removed without changing its conservation,
+fixed-point, insurance or rounding equations. Thirty affected reference checks now
+pass, including literal 65/128-row cash/haircut and cashless-cycle cases compared
+against the actual compiled Rust kernel. Frozen inputs are now captured before
+reference execution so a diagnostic failure retains its exact proposed inputs.
+
+### P56 populated recovery resource follow-up
+
+Clean `74484ea`, D106 SBF `0cc21b8`, eight-step batches and 128 actual Financial
+roots reached 997 originals / 7,976 instructions before the operator fee-budget
+guard rejected further work. Measured originals cost 4,985,000 test lamports and
+2,073.172 seconds; peak CU 751,785. Upload same-original SIGKILL recovery passed.
+No Apply, complete payouts, exit or fresh replay acceptance is claimed. This
+misses G1's 900-second target. Raw run: existing ignored
+`.local/scalable-settlement/runs/p56-populated-128-cases`.
+
+The resource-bound 32-step attempt at `0d265a3` correctly rejected the concurrent
+reduce-only fixture's omitted position generation before any default original.
+`0d01a11` supplies the actual generation. Clean D107 source `1c08778` passes 14
+focused native settlement tests and all qualification/default SBF builds without
+oversized-stack diagnostics; clearing is 2,378,392 bytes / SHA-256
+`60c3bb23a550723dd0958fc6b34dcde72ed742f3dde4075bf1b6eab5a01e3790`.
+This only qualifies the build and native checks; signed resource improvement and
+populated completion remain pending. Selected runtime has not been promoted.
+
+D107's clean `0ca9927` populated attempt retained 146 finalized worker originals /
+2,854 instructions, peak 899,903 CU, one upload SIGKILL recovery and two actual
+disjoint-lock BTC/ETH fills. The negative full-batch replay correctly rejected
+at 908,178 CU but violated its harness's 20%-headroom assertion. The fix budgets
+that negative probe at 1.2m and flushes immediately; worker limits stay unchanged.
+The observed 977.9-second sum contains one 597.06-second interval; neither full
+recovery nor steady-state elapsed time is qualified. Raw run remains under
+`.local/scalable-settlement/runs/p56-populated-128-continuation`.
+
+D108 candidate native checks pass: 23 settlement/page-authentication cases, two
+helper transport cases and 19 batch/descriptor/binding checks. Its literal
+one-atom debtor/equal-creditor test preserves exact ownership across restarts;
+65-root plan continuations decrease from 1,792 to 89, and 128 roots take 166.
+Only three native roots carry claims in that boundary fixture. Generated clearing
+IDL/SDK and the explicit additive ABI guard pass; the 91-entrypoint lock inventory
+adds the window context only. Compiled CU/frames, populated signed outcomes,
+crash recovery and SQL reconciliation remain required before promotion.
+
+Clean D108 SBF **`ed466030eccd485b8552b378815bf3f4e28fb658`** builds all
+qualification/default programs without oversized-stack diagnostics. Clearing is
+**2,389,840 bytes**, SHA-256
+`2637469c4a8b1761c7cefc4c931d38611ebb651e05c60065e9617bbf3af13d3e`.
+Its separately retained version-2 helper is 588,816 bytes, SHA-256
+`3b378f41a508cbed8689211a67028e8648fe45157f53f52af21ff54203bfcafa`;
+both manifests record clean source. The 16 ABI-guard checks and 91-entrypoint
+inventory pass. Candidate bindings are pinned to these bytes. Actual populated
+RPC/WS/reconciliation and resource acceptance are still pending; selected runtime
+and historical helper binaries remain unchanged.
+
+The D108 run at clean `faf5427` completes actual 128-root default, both upload/Apply
+SIGKILL recoveries, independent payouts, token exit, recovery and fresh SQL replay
+assertions, then fails final compatibility reporting on an 8 MiB stdout buffer.
+It retains 175 worker originals / 2,317 instructions / 875,000 test lamports, peak
+897,380 CU, and 417.979 seconds summed original-processing time. Final reconciliation
+is 405 accounts / 128 members and 332,907,139 actual/allocated atoms, zero surplus.
+Total wall time/storage were not persisted before the reporting error: this is
+not yet full G1 acceptance. Raw capture remains in
+`.local/scalable-settlement/runs/p56-populated-128-window`. File-backed isolated
+client output removes the capture buffer; original builder metas replace compiled
+transaction privilege unions in the negative probe and all worker parity checks.
+Offline comparison classified exactly two promoted read-only metas; no program
+layout or economic rule changed. A complete corrected run is required.

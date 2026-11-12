@@ -32,8 +32,11 @@ complete default. Maker execution pricing belongs to [liquidity](../liquidity/RE
   [financial core](../../crates/financial-core/src/) and
   [independent expectations](../../tests/financial/).
 
-The P47-qualified RC2 local profile uses schema-8 clearing accounts under immutable
-profile 4; retained P44 deployments use their historical schema-7 clients.
+The account-scale RC2 local profile uses schema-10 clearing accounts under immutable
+profile 6, paged Financial membership and maintained ordinary-payment backing.
+Its launcher provisions recovery capacity for 128 Financial roots; registration
+identity and pages are separate from qualified financial capacity. Earlier
+deployments retain their original clients, domains and journals.
 Qualification and integration are recorded in STATUS and validation. Shared records live in `state/records.rs`; `engine/` uses
 current account records directly for both isolated and cross accounts. The earlier
 standalone/group/fixed-maker runtimes are retired, with historical reproduction

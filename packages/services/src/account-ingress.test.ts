@@ -91,3 +91,26 @@ it('validates v1 header budgets, zero priority fee and the canonical action prof
   const retired={...route(),data:Buffer.from((await import('node:crypto')).createHash('sha256').update('global:execute_account_route_v3').digest().subarray(0,8))};
   const retiredSigned=await encode(retired);expect(()=>accountUserAuthority(retiredSigned,venue)).toThrow(/Unsupported/);
 });
+
+it('accepts only the exact same-owner atomic activation/deposit envelope and no fabricated expiry proof',async()=>{
+  const path=await sdk.deriveMemberPath(venue,65n);
+  const activation=sdk.getActivateMarginInstruction({...common,owner:payer,margin,portfolio,registry:placeholder,members:placeholder,
+    storage:placeholder,binding:placeholder,revision:1n,membershipEpoch:3n,safetyEpoch:2n,indexRevisions:Array(15).fill(1n)});
+  const first={...activation,accounts:[...activation.accounts,...path.map(([address])=>({address,role:1 as const}))]};
+  const deposit=await sdk.getDepositAccountInstructionAsync({...common,owner:payer,margin,quoteMint:placeholder,userToken:placeholder,amount:1n});
+  const encode=async(instructions:Instruction[])=>{
+    const result=await sdk.signCanonicalInstructions(connection,payer,instructions,{computeUnitLimit:400_000,loadedAccountsDataSizeLimit:8*1024*1024});
+    return Buffer.from(result.transaction.serialize()).toString('base64');
+  };
+  expect(sdk.validateActivationDeposit([first,deposit])).toEqual({owner:payer.address,venue,margin});
+  expect(accountUserAuthority(await encode([first,deposit]),venue)).toBeNull();
+  expect(accountUserAuthority(await encode([first]),venue)).toBeNull();
+  const foreign=await sdk.getDepositAccountInstructionAsync({...common,owner:payer,margin:donor,quoteMint:placeholder,userToken:placeholder,amount:1n});
+  const zero=await sdk.getDepositAccountInstructionAsync({...common,owner:payer,margin,quoteMint:placeholder,userToken:placeholder,amount:0n});
+  for(const instructions of [[deposit,first],[first,foreign],[first,zero],[first,deposit,deposit],
+    [{...first,accounts:[...first.accounts,{address:other.address,role:0 as const}]},deposit],
+    [{...first,accounts:first.accounts.map((meta,index)=>index===first.accounts.length-1?{...meta,role:0 as const}:meta)},deposit]]) {
+    expect(()=>sdk.accountWalletInstructions(instructions)).toThrow();
+    const signed=await encode(instructions);expect(()=>accountUserAuthority(signed,venue)).toThrow();
+  }
+});

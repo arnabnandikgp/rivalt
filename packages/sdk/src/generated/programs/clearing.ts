@@ -139,6 +139,7 @@ import {
   getConfigureFundingPublisherInstructionAsync,
   getContinueSettlementDenominatorInstructionAsync,
   getContinueSettlementPlanInstructionAsync,
+  getContinueSettlementPlanWindowInstructionAsync,
   getContinueSettlementRatesInstructionAsync,
   getControlLiquidityInstructionAsync,
   getCreatePortfolioInstructionAsync,
@@ -221,6 +222,7 @@ import {
   parseConfigureFundingPublisherInstruction,
   parseContinueSettlementDenominatorInstruction,
   parseContinueSettlementPlanInstruction,
+  parseContinueSettlementPlanWindowInstruction,
   parseContinueSettlementRatesInstruction,
   parseControlLiquidityInstruction,
   parseCreatePortfolioInstruction,
@@ -303,6 +305,7 @@ import {
   type ConfigureFundingPublisherAsyncInput,
   type ContinueSettlementDenominatorAsyncInput,
   type ContinueSettlementPlanAsyncInput,
+  type ContinueSettlementPlanWindowAsyncInput,
   type ContinueSettlementRatesAsyncInput,
   type ControlLiquidityAsyncInput,
   type CreatePortfolioAsyncInput,
@@ -356,6 +359,7 @@ import {
   type ParsedConfigureFundingPublisherInstruction,
   type ParsedContinueSettlementDenominatorInstruction,
   type ParsedContinueSettlementPlanInstruction,
+  type ParsedContinueSettlementPlanWindowInstruction,
   type ParsedContinueSettlementRatesInstruction,
   type ParsedControlLiquidityInstruction,
   type ParsedCreatePortfolioInstruction,
@@ -1217,6 +1221,7 @@ export enum ClearingInstruction {
   ConfigureFundingPublisher,
   ContinueSettlementDenominator,
   ContinueSettlementPlan,
+  ContinueSettlementPlanWindow,
   ContinueSettlementRates,
   ControlLiquidity,
   CreatePortfolio,
@@ -1534,6 +1539,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ContinueSettlementPlan;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([113, 145, 71, 236, 95, 105, 254, 221]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ContinueSettlementPlanWindow;
   }
   if (
     containsBytes(
@@ -2263,6 +2279,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ContinueSettlementPlan;
     } & ParsedContinueSettlementPlanInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ContinueSettlementPlanWindow;
+    } & ParsedContinueSettlementPlanWindowInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ContinueSettlementRates;
     } & ParsedContinueSettlementRatesInstruction<TProgram>)
   | ({
@@ -2604,6 +2623,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ContinueSettlementPlan,
         ...parseContinueSettlementPlanInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ContinueSettlementPlanWindow: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ContinueSettlementPlanWindow,
+        ...parseContinueSettlementPlanWindowInstruction(instruction),
       };
     }
     case ClearingInstruction.ContinueSettlementRates: {
@@ -3207,6 +3233,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getContinueSettlementPlanInstructionAsync> &
     SelfPlanAndSendFunctions;
+  continueSettlementPlanWindow: (
+    input: ContinueSettlementPlanWindowAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getContinueSettlementPlanWindowInstructionAsync> &
+    SelfPlanAndSendFunctions;
   continueSettlementRates: (
     input: ContinueSettlementRatesAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3800,6 +3831,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getContinueSettlementPlanInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          continueSettlementPlanWindow: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getContinueSettlementPlanWindowInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

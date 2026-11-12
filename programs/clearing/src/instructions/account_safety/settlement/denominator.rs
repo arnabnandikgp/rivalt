@@ -10,14 +10,28 @@ fn cursor(header: &PreparedSettlement) -> Result<DenominatorPass> {
         .map_err(|_| ClearingError::Resolution.into())
 }
 
-pub fn denominator_plan(header: &PreparedSettlement) -> Result<PagePlan> {
+/// Invocation-local decoded work, shared by scope discovery and execution.
+/// Never persisted or reused across instructions; all owned source/page guards remain.
+pub(crate) struct DenominatorContinuation {
+    work: DenominatorPass,
+    pages: PagePlan,
+}
+impl DenominatorContinuation {
+    pub(crate) fn pages(&self) -> PagePlan { self.pages }
+}
+#[inline(never)]
+pub(crate) fn prepare_denominator_continuation(header: &PreparedSettlement) -> Result<Box<DenominatorContinuation>> {
     let work = cursor(header)?;
-    PagePlan::next(
+    let pages = PagePlan::next(
         work.accesses()
             .map_err(|_| ProgramError::from(ClearingError::Resolution))?,
         required_limbs(header.count).map_err(|_| ProgramError::from(ClearingError::Arithmetic))?,
     )
-    .map_err(|_| ClearingError::Resolution.into())
+    .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
+    Ok(Box::new(DenominatorContinuation { work, pages }))
+}
+pub fn denominator_plan(header: &PreparedSettlement) -> Result<PagePlan> {
+    Ok(prepare_denominator_continuation(header)?.pages())
 }
 
 pub fn initialize_limb_page(
@@ -91,12 +105,13 @@ pub fn accept_denominator_row(
     Ok(())
 }
 
-pub fn continue_denominator(
+pub(crate) fn continue_denominator(
     ctx: &mut Context<ContinueSettlementDenominator>,
     _epoch: u64,
     revision: u64,
     steps: u16,
     revisions: [u64; 3],
+    mut continuation: Box<DenominatorContinuation>,
 ) -> Result<()> {
     require!(steps > 0 && steps <= 128, ClearingError::Resolution);
     let mut remaining = ctx.remaining_accounts()?;
@@ -106,8 +121,8 @@ pub fn continue_denominator(
         accounts.prepared.revision == revision,
         ClearingError::Resolution
     );
-    let mut work = cursor(&accounts.prepared)?;
-    let plan = denominator_plan(&accounts.prepared)?;
+    let plan = continuation.pages();
+    let work = &mut continuation.work;
     let length = plan.requests().len();
     require!(
         revisions[length..].iter().all(|revision| *revision == 0),

@@ -22,9 +22,8 @@ pub fn change(ctx: &mut Context<ChangeMarginMembership>, events: &mut crate::eve
     let update = index::prepare(&path, accounts.venue.address(), accounts.margin.id,
         accounts.members.financial_mask, accounts.registry.financial_count, entering, index_revisions)?;
     if activate {
-        // P56B owns larger financially populated qualification. This temporary
-        // local admission gate does not cap registration, IDs or the index.
-        require!(update.financial_count <= MAX_MEMBERS as u64, ClearingError::Capacity);
+        // Population admission follows the fully authenticated, rent-funded
+        // recovery workspace. IDs and empty registration do not consume it.
         accounts.storage.model().admits(update.financial_count).map_err(|_| ClearingError::Capacity)?;
     }
     let epoch = membership_epoch.checked_add(1).ok_or(ClearingError::Arithmetic)?;

@@ -27,18 +27,35 @@ class WireContractTest(unittest.TestCase):
 
     def test_backing_delta_preserves_exact_epoch_layout_and_ledger_privilege(self):
         from backing_wire_contract import undo_backing_delta
-        undo_backing_delta(self.original, 'clearing')
+        from settlement_wire_contract import undo_window_delta
+        original = undo_window_delta(self.original, 'clearing')
+        undo_backing_delta(original, 'clearing')
         for name in ('MarginAccount', 'MarketLedger', 'BackingState', 'BackingRegion', 'SettlementCertificate', 'AccountBackingChanged'):
-            altered = deepcopy(self.original)
+            altered = deepcopy(original)
             layout = next(item for item in altered['types'] if item['name'] == name)['type']['fields']
             layout.reverse()
             with self.subTest(name=name), self.assertRaises(AssertionError):
                 undo_backing_delta(altered, 'clearing')
-        altered = deepcopy(self.original)
+        altered = deepcopy(original)
         instruction = next(item for item in altered['instructions'] if item['name'] == 'check_market_backing')
         next(meta for meta in instruction['accounts'] if meta['name'] == 'ledger')['writable'] = False
         with self.assertRaises(AssertionError):
             undo_backing_delta(altered, 'clearing')
+
+    def test_window_extension_rejects_unknown_authority_payload_or_layout(self):
+        from settlement_wire_contract import undo_window_delta
+        undo_window_delta(self.original, 'clearing')
+        for mutation in ('argument', 'order', 'discriminator', 'layout', 'duplicate'):
+            altered = deepcopy(self.original)
+            instruction = next(item for item in altered['instructions'] if item['name'] == 'continue_settlement_plan_window')
+            if mutation == 'argument': instruction['args'][3]['type'] = 'u32'
+            elif mutation == 'order': instruction['accounts'].reverse()
+            elif mutation == 'discriminator': instruction['discriminator'][0] ^= 1
+            elif mutation == 'layout':
+                next(item for item in altered['types'] if item['name'] == 'SettlementPageAccess')['type']['fields'].reverse()
+            else: altered['instructions'].append(deepcopy(instruction))
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                undo_window_delta(altered, 'clearing')
 
     def test_source_names_and_declaration_order_are_not_wire(self):
         renamed = deepcopy(self.original)

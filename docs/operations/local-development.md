@@ -1,12 +1,11 @@
 # Local development
 
-During the P55A2 schema-9 migration, the selected schema-8 runtime is retained for
-its historical evidence. Current runtime probes reject that client/artifact schema
-mismatch before launching a chain. Use the explicitly pinned
-`ops/account-membership-smoke.sh` (optional `RIVALT_MEMBERSHIP_PROBE=custody`) and
-`ops/scalable-settlement-smoke.sh` candidate probes described in validation.
-P56 owns complete service/UI qualification and runtime promotion; these candidates
-are not a supported demo deployment yet.
+The normal local runtime selects schema-10/profile-6 clearing, paged Financial
+membership, maintained backing and durable default. Use a fresh domain/genesis
+and PostgreSQL database. Preserve earlier sessions and unresolved originals with
+their original clients; a schema-8 artifact or database fails before startup.
+The launcher provisions recovery capacity for 128 Financial roots. This is the
+qualified local operating envelope, not a fixed identity-registration ceiling.
 
 ## Pinned toolchain
 
@@ -35,7 +34,8 @@ Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
 The RC2 toolchain uses `bash ops/install-anchor-rc2.sh`, followed by
-`bash ops/build.sh`. P53B qualifies the approved numeric-bound policy-2 RC2 artifacts (unchanged quantities/risk safeguards)
+`bash ops/build.sh`. P56 selects the account-scale RC2 artifacts with the unchanged approved policy-2
+price bounds, quantities and risk safeguards
 and selects `.local/anchor-rc2/current` for builds, probes and the local demo. Actual files
 must match the SDK's admitted hashes; changing a manifest does not qualify code.
 `RIVALT_ARTIFACT_DIR` may explicitly select another directory containing those
@@ -49,8 +49,11 @@ preflight used by normal probes and the broad smoke launcher.
 The frozen P44 directory and `.tools/bin/anchor` remain untouched; RC2 build scripts
 select `.tools/anchor-v2-rc2/bin/anchor`. Install the isolated test client with
 `pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile`.
-Fresh schema-8 domains/databases are required; no old accounts or signed originals
+Fresh schema-10 domains/databases are required; no old accounts or signed originals
 are relabeled. [STATUS](../STATUS.md) distinguishes qualification and PR integration.
+Signed provisioning waits for Clock to pass both publishers' initialization fences
+before refreshing inputs and preparing the first funding reports. This does not
+relax report freshness, the two-second sample interval or monotone observation slots.
 The demo starts workers only after a coherent published finalized provisioning
 journal, waiting across bounded recovery cycles for up to 60 seconds. A completed
 catch-up cycle alone is not readiness.
@@ -171,3 +174,52 @@ On macOS, finite `ops/current-runtime-smoke.sh` qualification runs hold a tempor
 no display awake and changes no persistent system settings. Host suspension can
 otherwise invalidate real freshness/timeout measurements; it is not repaired by
 extending oracle validity or relabelling a timed-out test as successful.
+
+
+### Candidate paged-default operator helper
+
+The paged-default service uses a bounded native descriptor helper; retail SDK
+calls do not need it. `bash ops/build.sh` builds the programs, generated SDK and
+helper. Build only the helper when its source changes:
+
+```sh
+bash ops/build-settlement-helper.sh
+```
+
+The locked native executable and SHA-256 manifest live under ignored
+`.local/settlement-helper/`, or the explicit `RIVALT_SETTLEMENT_HELPER_DIR`.
+Version 2, schema 10/profile 6 and exact file hash/size are required. The helper
+suggests canonical page descriptors; clearing independently verifies all work.
+The demo checks it before provisioning. It holds no signing key or financial
+permission. Rebuild after changing its checkpoint dependencies.
+
+
+### Account-scale wallet candidate
+
+P56A2's dedicated local probe uses `RIVALT_SETTLEMENT_PROBE=account-clients` with
+`ops/scalable-settlement-smoke.sh` and the explicitly pinned candidate artifact
+directory. It builds the trader UI and runs an internal Wallet Standard browser
+against real Surfpool RPC/WS and owned PostgreSQL. It is a dedicated client probe, separate from normal `ops/demo.sh` startup.
+
+Candidate wallet configuration requires `accountSchema: 10` and
+`deployment: "account-scale-candidate"`. Both processes require a matching explicit deployment binding. Exact executable,
+anchor, genesis and domain checks reject mismatched deployments. The browser
+qualifies an internal test signer; it does not claim new external-wallet review.
+
+The default-worker probe uses bounded batches of up to 32 instructions; set
+`RIVALT_DEFAULT_BATCH_STEPS=1` for a scalar transport diagnostic. Each batch is
+independently constrained by CU, wire size and account data. The normal operations
+entrypoint is:
+
+```sh
+bash ops/liquidity-operations-smoke.sh
+```
+
+It creates 128 genuinely funded Financial roots, trades both directions, exercises
+cash/orders/liquidation, then verifies complete default, upload/Apply crash
+recovery, token exit and identical fresh PostgreSQL replay. It asserts G1's local
+time/fee/storage envelope. The 1,024-root extended diagnostic is available only
+through explicit `RIVALT_DEFAULT_POPULATION=1024`; it must be measured before an
+operator enables that workload. Omitting population in the low-level candidate
+probe retains the eight-root comparison. Only the exact qualified artifact set
+may run through normal launchers.

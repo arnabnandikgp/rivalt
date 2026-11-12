@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, openSync, closeSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { getBase58Encoder, type Address, type Instruction } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
@@ -73,13 +73,47 @@ export class CanonicalConformance {
     const input = Object.fromEntries(this.modules.map(module => [module.name, { instructions: module.instructions, accounts: module.accounts, events: module.events }]));
     const path = `${runDir}/legacy-input.json`;
     writeFileSync(path, JSON.stringify(input, null, 2)+'\n');
-    for (const client of ['tests/anchor-conformance/canonical-maker.cjs', 'tests/anchor-rc2-conformance/canonical-maker.mjs']) {
-    const legacy = JSON.parse(execFileSync(process.execPath, [client, path], { encoding: 'utf8', maxBuffer: 8*1024*1024 }));
-    for (const module of this.modules) {
-      assert.deepEqual(legacy[module.name].instructions, module.instructions.map(item => item.expected), `${module.name}: instruction data/account flags`);
-      assert.deepEqual(legacy[module.name].accounts.map((item: any) => item.value), module.expectedAccounts, `${module.name}: account fields`);
-      assert.deepEqual(legacy[module.name].events.map((item: any) => item.data), module.expectedEvents, `${module.name}: event fields`);
+    return this.compare(runDir);
+  }
+  /** Recheck retained bytes without replaying financial transactions. */
+  static replay(runDir: string) {
+    const captured = JSON.parse(readFileSync(`${runDir}/legacy-input.json`, 'utf8'));
+    const check = new CanonicalConformance();
+    for (const module of check.modules) {
+      const data = captured[module.name];
+      assert(data && Array.isArray(data.instructions) && Array.isArray(data.accounts) && Array.isArray(data.events), 'Incomplete conformance capture');
+      module.instructions = data.instructions;
+      module.accounts = data.accounts;
+      module.events = data.events;
+      module.expectedAccounts = data.accounts.map((item: any) => canonicalValue((module.sdk as any)[`get${upper(item.name)}Decoder`]().decode(Buffer.from(item.data, 'base64'))));
+      module.expectedEvents = data.events.map((item: string) => {
+        const bytes = Buffer.from(item, 'base64');
+        const definition = module.idl.events.find((event: any) => Buffer.from(event.discriminator).equals(bytes.subarray(0, 8)));
+        assert(definition, 'Unknown captured event');
+        return canonicalValue((module.sdk as any)[`get${definition.name}EventDecoder`]().decode(bytes));
+      });
     }
+    assert(check.modules.some(module => module.instructions.length > 0), 'Empty conformance capture');
+    return check.compare(runDir);
+  }
+  private compare(runDir: string) {
+    const path = `${runDir}/legacy-input.json`;
+    for (const [name, client] of [
+      ['legacy', 'tests/anchor-conformance/canonical-maker.cjs'],
+      ['rc2', 'tests/anchor-rc2-conformance/canonical-maker.mjs'],
+    ]) {
+      // Output grows with real captured instructions/events. Stream to retained
+      // local evidence instead of imposing Node's stdout maxBuffer on a cohort.
+      const output = `${runDir}/conformance-${name}.json`, descriptor = openSync(output, 'w', 0o600);
+      try {
+        execFileSync(process.execPath, [client, path], { stdio: ['ignore', descriptor, 'pipe'], timeout: 120_000, maxBuffer: 1024*1024 });
+      } finally { closeSync(descriptor); }
+      const legacy = JSON.parse(readFileSync(output, 'utf8'));
+      for (const module of this.modules) {
+        assert.deepEqual(legacy[module.name].instructions, module.instructions.map(item => item.expected), `${module.name}: instruction data/account flags`);
+        assert.deepEqual(legacy[module.name].accounts.map((item: any) => item.value), module.expectedAccounts, `${module.name}: account fields`);
+        assert.deepEqual(legacy[module.name].events.map((item: any) => item.data), module.expectedEvents, `${module.name}: event fields`);
+      }
     }
     return this.modules.map(module => ({ program: module.name, instructions: module.instructions.length,
       instructionNames: [...new Set(module.instructions.map(item => item.name))], accounts: module.accounts.length, events: module.events.length }));

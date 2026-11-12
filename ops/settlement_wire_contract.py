@@ -110,3 +110,32 @@ def strip_additions(idl):
     for category, names in [('instructions',INSTRUCTIONS),('accounts',ACCOUNTS),('types',TYPES),('events',EVENTS)]:
         result[category]=[item for item in result[category] if item['name'] not in names]
     return result
+
+
+def undo_window_delta(actual, program):
+    """D108 adds one bounded plan-I/O entrypoint; prior ABI stays byte-identical."""
+    if program != 'clearing':
+        return actual
+    import subprocess
+    import json
+    from anchor_rc2_wire_contract import clean
+    predecessor = json.loads(subprocess.check_output([
+        'git', 'show', '0ca99277a95452ac400e6e11b67d49f23cf5d77d:packages/sdk/idl/clearing.json']))
+    expected = deepcopy(next(item for item in predecessor['instructions'] if item['name'] == 'continue_settlement_plan'))
+    name = 'continue_settlement_plan_window'
+    expected['name'] = name
+    expected['discriminator'] = list(hashlib.sha256(f'global:{name}'.encode()).digest()[:8])
+    expected['args'] = fields('epoch:u64 revision:u64 attempt:u64 steps:u16') + [
+        {'name': 'pages', 'type': {'vec': {'defined': {'name': 'SettlementPageAccess'}}}}]
+    assert sum(item['name'] == name for item in actual['instructions']) == 1
+    assert sum(item['name'] == 'SettlementPageAccess' for item in actual['types']) == 1
+    observed = next(item for item in actual['instructions'] if item['name'] == name)
+    assert clean(observed) == clean(expected), 'D108 bounded window instruction/authority delta'
+    access = next(item for item in actual['types'] if item['name'] == 'SettlementPageAccess')
+    assert clean(access) == {'name': 'SettlementPageAccess', 'type': {'kind': 'struct',
+        'fields': fields('register:u32 page_index:u64 writable:bool revision:u64')}}, 'D108 descriptor layout'
+    result = deepcopy(actual)
+    result['instructions'] = [item for item in result['instructions'] if item['name'] != name]
+    result['types'] = [item for item in result['types'] if item['name'] != 'SettlementPageAccess']
+    assert clean(result) == clean(predecessor), 'D108 changed the preexisting ABI'
+    return result

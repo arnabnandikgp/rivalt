@@ -77,3 +77,23 @@ describe('canonical membership client',()=>{
     expect(()=>sdk.deriveMemberIndex(address('11111111111111111111111111111111'),14,1n)).toThrow();
   });
 });
+
+it('builds activation and a positive deposit from Registered state without inventing a financial snapshot',async()=>{
+  const fixture=await membershipFixture(),client=new sdk.AccountUserClient(fixture.config);Object.assign(client,{rpc:fixture.rpc});
+  fixture.root.lifecycle=1;fixture.root.cash=0n;fixture.members.financialMask=0n;fixture.members.members.entries[1].lifecycle=1;
+  fixture.put(fixture.margin,sdk.getMarginAccountEncoder().encode(fixture.root));fixture.put(fixture.page,sdk.getMemberPageEncoder().encode(fixture.members));
+  const registry=sdk.getVenueRegistryDecoder().decode(Buffer.from(fixture.accounts.get(fixture.registry).data[0],'base64'));
+  fixture.put(fixture.registry,sdk.getVenueRegistryEncoder().encode({...registry,financialCount:0n}));
+  for(const [key]of fixture.path) {
+    const node=sdk.getMemberIndexNodeDecoder().decode(Buffer.from(fixture.accounts.get(key).data[0],'base64'));
+    fixture.put(key,sdk.getMemberIndexNodeEncoder().encode({...node,counts:Array(16).fill(0n),populatedMask:0}));
+  }
+  const plan=await client.activateAndDeposit(fixture.owner,fixture.margin,fixture.config.mint,123n);
+  expect(plan.instructions).toHaveLength(2);expect(sdk.validateActivationDeposit(plan.instructions)).toMatchObject({margin:fixture.margin});
+  expect(sdk.getDepositAccountInstructionDataDecoder().decode(plan.instructions[1].data!).amount).toBe(123n);
+  expect(sdk.getActivateMarginInstructionDataDecoder().decode(plan.instructions[0].data!)).toMatchObject({revision:fixture.root.revision,membershipEpoch:12n,safetyEpoch:2n});
+  for(const amount of [0n,-1n,1n<<64n])await expect(client.activateAndDeposit(fixture.owner,fixture.margin,fixture.config.mint,amount)).rejects.toThrow(/amount/);
+  const storage=sdk.getRecoveryStorageDecoder().decode(Buffer.from(fixture.accounts.get(fixture.storage).data[0],'base64'));
+  fixture.put(fixture.storage,sdk.getRecoveryStorageEncoder().encode({...storage,readyCapacity:0n}));
+  await expect(client.activateAndDeposit(fixture.owner,fixture.margin,fixture.config.mint,123n)).rejects.toThrow(/recovery capacity/);
+});

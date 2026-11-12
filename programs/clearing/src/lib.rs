@@ -44,6 +44,7 @@ pub use error::ClearingError;
 pub use events::*;
 pub use instructions::*;
 pub use state::*;
+pub use state::accounts::SettlementPageAccess;
 
 #[cfg(not(feature = "devnet-test-profile"))]
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
@@ -184,14 +185,15 @@ pub mod clearing {
         steps: u16,
         revisions: [u64; 3],
     ) -> Result<()> {
-        let plan = account_safety::settlement::denominator_plan(&ctx.accounts.prepared)?;
+        let continuation = account_safety::settlement::prepare_denominator_continuation(&ctx.accounts.prepared)?;
+        let plan = continuation.pages();
         scoped_history::run_pages(
             ctx,
             [160, 108, 231, 235, 16, 93, 96, 125],
             plan,
             |ctx, _events| {
                 account_safety::settlement::continue_denominator(
-                    ctx, epoch, revision, steps, revisions,
+                    ctx, epoch, revision, steps, revisions, continuation,
                 )
             },
         )
@@ -295,15 +297,15 @@ pub mod clearing {
         steps: u16,
         revisions: [u64; 3],
     ) -> Result<()> {
-        let plan =
-            account_safety::settlement::rate_plan(&ctx.accounts.prepared, &ctx.accounts.rates)?;
+        let continuation = account_safety::settlement::prepare_rate_continuation(&ctx.accounts.prepared, &ctx.accounts.rates)?;
+        let plan = continuation.pages();
         scoped_history::run_pages(
             ctx,
             [183, 223, 168, 83, 201, 143, 99, 138],
             plan,
             |ctx, _events| {
                 account_safety::settlement::continue_rates(
-                    ctx, epoch, revision, attempt, steps, revisions,
+                    ctx, epoch, revision, attempt, steps, revisions, continuation,
                 )
             },
         )
@@ -394,21 +396,38 @@ pub mod clearing {
         steps: u16,
         revisions: [u64; 3],
     ) -> Result<()> {
-        let plan = account_safety::settlement::settlement_plan_pages(
+        let continuation = account_safety::settlement::prepare_plan_continuation(
             &ctx.accounts.prepared,
             &ctx.accounts.rates,
             &ctx.accounts.plan,
         )?;
+        let plan = continuation.pages();
         scoped_history::run_pages(
             ctx,
             [244, 56, 133, 188, 70, 13, 9, 96],
             plan,
             |ctx, _events| {
                 account_safety::settlement::continue_plan(
-                    ctx, epoch, revision, attempt, steps, revisions,
+                    ctx, epoch, revision, attempt, steps, revisions, continuation,
                 )
             },
         )
+    }
+    pub fn continue_settlement_plan_window(
+        ctx: &mut Context<ContinueSettlementPlan>,
+        epoch: u64,
+        revision: u64,
+        attempt: u64,
+        steps: u16,
+        pages: Vec<SettlementPageAccess>,
+    ) -> Result<()> {
+        let continuation = account_safety::settlement::prepare_plan_window(
+            &ctx.accounts.prepared, &ctx.accounts.rates, &ctx.accounts.plan, &pages,
+        )?;
+        let page_plan = continuation.pages();
+        scoped_history::run_pages(ctx, [113, 145, 71, 236, 95, 105, 254, 221], page_plan, |ctx, _events| {
+            account_safety::settlement::continue_plan_window(ctx, revision, attempt, steps, &pages, continuation)
+        })
     }
     pub fn adopt_settlement_plan(
         ctx: &mut Context<AdoptSettlementPlan>,

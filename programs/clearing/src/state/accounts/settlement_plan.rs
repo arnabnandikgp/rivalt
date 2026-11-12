@@ -12,6 +12,15 @@ impl Default for PlanCheckpoint {
     }
 }
 
+/// Bounded scratch-window proposal, never an uploaded checkpoint or payout.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
+pub struct SettlementPageAccess {
+    pub register: u32,
+    pub page_index: u64,
+    pub writable: bool,
+    pub revision: u64,
+}
+
 #[account(borsh)]
 #[derive(InitSpace, Default)]
 pub struct SettlementPlan {

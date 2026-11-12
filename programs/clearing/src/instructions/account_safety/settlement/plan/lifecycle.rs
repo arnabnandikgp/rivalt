@@ -273,7 +273,7 @@ pub fn apply_plan_margin(
         &accounts.prepared,
         &accounts.plan,
         page_plan,
-        revisions,
+        &revisions,
         &mut remaining,
     )?;
     let pages = GraphPages {

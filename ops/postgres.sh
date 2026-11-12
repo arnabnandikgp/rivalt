@@ -10,6 +10,9 @@ import socket, sys
 with socket.socket() as s: s.bind(('127.0.0.1', int(sys.argv[1])))
 PY
 mkdir -p "$RIVALT_RUN_DIR/postgres-data"
+# Both absolute and repository-relative retained run directories are supported.
+# Resolve only the actual database directory; never prepend PWD to an absolute path.
+RIVALT_PG_DATA_DIRECTORY="$(cd "$RIVALT_RUN_DIR/postgres-data" && pwd -P)"
 python3 - "$RIVALT_RUN_DIR/postgres.env" "$RIVALT_PG_PORT" <<'PY'
 import os,secrets,sys
 password=secrets.token_hex(24)
@@ -23,7 +26,7 @@ export RIVALT_DATABASE_URL
 RIVALT_DATABASE_URL="$(cat "$RIVALT_RUN_DIR/postgres.env.url")"
 container run --detach --name "$RIVALT_PG_CONTAINER" --platform linux/arm64 --cpus 2 --memory 512M \
   --publish "127.0.0.1:$RIVALT_PG_PORT:5432" --env-file "$RIVALT_RUN_DIR/postgres.env" \
-  --volume "$PWD/$RIVALT_RUN_DIR/postgres-data:/var/lib/postgresql" "$RIVALT_PG_IMAGE" \
+  --volume "$RIVALT_PG_DATA_DIRECTORY:/var/lib/postgresql" "$RIVALT_PG_IMAGE" \
   > "$RIVALT_RUN_DIR/postgres-container.txt"
 ready=0
 for _ in {1..60}; do

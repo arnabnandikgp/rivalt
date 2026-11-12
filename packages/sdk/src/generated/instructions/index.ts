@@ -29,6 +29,7 @@ export * from "./completeSettlementPlan.js";
 export * from "./configureFundingPublisher.js";
 export * from "./continueSettlementDenominator.js";
 export * from "./continueSettlementPlan.js";
+export * from "./continueSettlementPlanWindow.js";
 export * from "./continueSettlementRates.js";
 export * from "./controlLiquidity.js";
 export * from "./createPortfolio.js";

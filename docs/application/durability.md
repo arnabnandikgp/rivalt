@@ -22,8 +22,8 @@ and successor kinds, preserving read-before-retire and read-after-retire edges.
 Any other kind change, tombstone recreation or missing predecessor rejects the
 whole transaction. The immutable rent receipt stays separate from financial cash.
 Pinned signed lifecycle/default/custody/race checks and fresh PostgreSQL replay
-pass within P55A2's scope; see STATUS/validation. Durable automatic continuation
-and full UI acceptance remain P56A work.
+pass within P55A2's scope; see STATUS/validation. P56 integrates durable automatic continuation and wallet clients; see the
+exact acceptance pins and limitations in validation.
 
 ## Bounded-progress successor contract (P52)
 
@@ -591,3 +591,90 @@ The candidate worker acceptance retains a real lost-ack original through SIGKILL
 and process restart, then completes the same proof epoch and reconciles fresh SQL
 replay. See validation for exact pins and scope. This does not qualify the still-
 gated full default worker or promote the selected deployment.
+
+
+## Paged default controller (P56A1 candidate)
+
+The selected service binding and explicit `account-scale-candidate` alias recognize
+only the qualified schema-10/profile-6 binary set. They never reinterpret old
+databases. `RIVALT_ACCOUNT_PROFILE=liquidity-execution-qualification` retains
+API/budget policy 4; account schema and on-chain profile remain separate identities.
+All initialization, genesis, owner and executable hash checks remain mandatory.
+
+`account-default-worker.ts` proposes one bounded current transition after checking
+that no unresolved risk original owns the budget. The source, prepared, rates and
+plan headers share a coherent RPC fence. Frozen continuation uses this complete
+on-chain source directly and remains available during read-API publication lag.
+Live liquidation/freeze discovery still requires fresh reconciled publication. Canonical frozen/limb pages are provisioned
+before Financial admission; the worker initializes/reuses those allocations and
+never spends collateral for SOL rent. Rate and complete market-order proposals are
+untrusted. They are recomputed from fenced frozen rows on process restart and cached
+only by venue/epoch/prepared revision/insurance checkpoint. The program independently
+checks normalized uploads, greatest rates, exact remainder order and full membership.
+
+The native `rivalt-settlement-pages` helper returns only the next bounded page
+metas. Build it using `bash ops/build-settlement-helper.sh`; its local binary and
+SHA-256 manifest live in ignored `.local/settlement-helper/` (or the explicit
+`RIVALT_SETTLEMENT_HELPER_DIR`). Version 2 supports plan windows; older helpers
+reject before this controller can operate. Input/output limits,
+exact schema/size, canonical page ordering and a five-second process deadline fail
+closed. A changed manifest or native error cannot declare financial progress.
+The helper is not needed for retail transactions and requires no signing key.
+
+Every successful producer step enters the existing durable queue before broadcast.
+A restarted producer rereads committed stages and cannot replace a pending original;
+an executor recovers the same signature/wire after a lost acknowledgement. Missing
+storage, foreign active proposals, unavailable input and failed preflight remain
+classified failures. No continuation can skip Apply or complete reconciliation.
+The selected runtime includes this controller; acceptance is recorded on its
+exact program/helper/client revisions, never inherited from historical runs.
+
+The frozen source stays in `PAGED_APPLY` (14) while the adopted plan advances
+through Apply (9), reconciliation (10), and reconciled (11). The controller uses
+that plan stage and cursor, bound to the source's adoption revision; only verified
+completion changes the source to Complete (11). Distribution does not independently
+advance the source stage. Unsupported or mismatched checkpoints fail closed.
+
+### Bounded atomic continuation candidate (P56)
+
+`RIVALT_DEFAULT_BATCH_STEPS` defaults to **32** after populated acceptance and
+accepts only integers 1–32; `1` retains the scalar producer. Both selected and
+explicit alias bindings use the same qualified planner. It simulates each unsigned prefix, requests all writable poststates and reads unchanged headers through checked RPC, then uses the ordinary authenticated continuation reader
+and descriptor helper to propose the next instruction. Simulation is untrusted
+proposal material, never committed progress or financial authority. A separate
+speculative cache cannot pollute committed rate proposals.
+
+Each prefix has at most 32 instructions, 64 returned accounts and 8 MiB returned
+account bytes; v0/v1 remain within 1,232/4,096 wire bytes. A 1m CU transaction budget
+and at most 900k measured simulation CU bound batching. Rejection or resource
+exhaustion retains only the preceding admissible unsigned prefix; malformed RPC
+poststates fail closed. Unchanged headers and new read-only dependencies are fetched no earlier than the
+simulation slot and pass existing decoders. A concurrent change can invalidate the
+proposal, so final signed preflight and every program revision/epoch/attempt guard
+remain mandatory. No financial computation, authority or SBF ABI changes.
+
+The whole batch becomes one persisted original, one budget reservation and the
+union of its dispatch locks. No next batch is created while that original remains
+ambiguous. Upload/Apply crash tests identify actual instructions inside the signed
+wire, and every applied ordinal is checked against independent expected payouts.
+Validation records actual costs, runtime and fresh SQL replay. These are local
+measurements, not a network latency or low-priority-fee guarantee.
+
+
+Inside one on-chain continuation, scope discovery and execution reuse the same
+checked arithmetic cursor and derived page plan (D107). This private boxed value
+exists only within that invocation; remaining-account scope capture changes no
+state before execution. Frozen source, revision/attempt and actual page guards
+still run. No decoder state is reused across transactions, and the wire/scoped
+history contract is unchanged. A new program artifact needs independent resource
+and financial acceptance before selection.
+
+The D108 candidate adds a bounded plan-window instruction. The helper previews
+at most 128 unchanged kernel steps over copies of up to eight authenticated RPC
+pages, requesting missing pages through at most nine bounded preview calls. Input
+is at most 64 KiB, output at most 16 KiB. It returns only sorted unique descriptors
+and permissions. Clearing rechecks every descriptor and repeats the actual work;
+verified input registers remain read-only, and missing I/O stops before the next
+step. No preview result or simulation is uploaded as a trusted financial effect.
+The existing three-descriptor instructions retain their wire contract. Windowed
+source/build/runtime acceptance is separate from prior scalar/batched evidence.

@@ -92,17 +92,53 @@ it('discovers only canonical children of the selected owner portfolio and reject
   };
   const owned=await client.ownerAccounts(fixture.owner,0);
   expect(owned.accounts.map(([key])=>key)).toEqual(fixture.margins);
-  expect(calls[0]).toEqual([fixture.portfolio]);expect(calls[1]).toHaveLength(9);expect(calls[1].slice(0,2)).toEqual(fixture.margins);
+  expect(calls).toHaveLength(1);expect(calls[0]).toHaveLength(10);expect(calls[0].slice(0,3)).toEqual([fixture.portfolio,...fixture.margins]);
   const other=await client.ownerAccounts(fixture.owner,3);expect(other.accounts).toEqual([]);expect(other.portfolio.account).toBeNull();
   const root=sdk.getMarginAccountDecoder().decode(Buffer.from(fixture.accounts.get(fixture.margins[0]).data[0],'base64'));
   fixture.put(fixture.margins[0],sdk.getMarginAccountEncoder().encode({...root,owner:fixture.config.mint}));
   await expect(client.ownerAccounts(fixture.owner,0)).rejects.toThrow('Owner account identity mismatch');
 });
 
-it('requires explicit schema-9 deployment selection independently of profile version', async () => {
+it('requires explicit schema-10 deployment selection independently of profile version', async () => {
   const fixture = await environment();
   expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(10);
   expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 9 as 10})).toThrow(/Explicit qualified/);
+  expect(sdk.accountUserConfig({...fixture.config,deployment:'selected'}).deployment).toBe('selected');
+  expect(()=>sdk.accountUserConfig({...fixture.config,deployment:'old-baseline'} as unknown as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
   const {accountSchema: _schema, ...missing} = fixture.config;
   expect(() => sdk.accountUserConfig(missing as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
+});
+
+it('keeps Registered and permanently retired identities distinct with exact high member IDs',async()=>{
+  const fixture=await environment(),client=new sdk.AccountUserClient(fixture.config);
+  client.rpc.call=fixture.rpc.call;
+  const read=(key:string)=>Buffer.from(fixture.accounts.get(key).data[0],'base64');
+  const first=sdk.getMarginAccountDecoder().decode(read(fixture.margins[0]));
+  fixture.put(fixture.margins[0],sdk.getMarginAccountEncoder().encode({...first,id:(1n<<54n)+1n,lifecycle:1,cash:0n}));
+  const last=sdk.getMarginAccountDecoder().decode(read(fixture.margins[1]));
+  fixture.put(fixture.margins[1],sdk.getMarginTombstoneEncoder().encode({schemaVersion:10,revision:5n,
+    venue:last.venue,portfolio:last.portfolio,owner:last.owner,child:1,id:(1n<<54n)+2n,activationGeneration:7n,bump:last.bump}));
+  const portfolio=sdk.getPortfolioDecoder().decode(read(fixture.portfolio));
+  fixture.put(fixture.portfolio,sdk.getPortfolioEncoder().encode({...portfolio,activeChildren:1}));
+  const result=await client.ownerAccounts(fixture.owner);
+  expect(result.accounts.map(([,root])=>[root.lifecycle,root.id])).toEqual([[1,(1n<<54n)+1n]]);
+  expect(result.retired.map(([,root])=>[root.child,root.id])).toEqual([[1,(1n<<54n)+2n]]);
+  expect(result.contextSlot).toBe(100n);expect(fixture.batches).toHaveLength(1);
+  fixture.put(fixture.portfolio,sdk.getPortfolioEncoder().encode({...portfolio,activeChildren:2}));
+  await expect(client.ownerAccounts(fixture.owner)).rejects.toThrow(/Incomplete owner namespace/);
+  fixture.accounts.delete(fixture.portfolio);
+  await expect(client.ownerAccounts(fixture.owner)).rejects.toThrow(/without a portfolio/);
+});
+it('fails owner discovery closed on missing children, mixed domains and retired identity substitution',async()=>{
+  for(const mutation of ['missing','foreign','retired','truncated']) {
+    const fixture=await environment(),client=new sdk.AccountUserClient(fixture.config);
+    client.rpc.call=fixture.rpc.call;
+    const key=fixture.margins[1],root=sdk.getMarginAccountDecoder().decode(Buffer.from(fixture.accounts.get(key).data[0],'base64'));
+    if(mutation==='missing')fixture.accounts.delete(key);
+    if(mutation==='foreign')fixture.put(key,sdk.getMarginAccountEncoder().encode({...root,venue:fixture.config.mint}));
+    if(mutation==='retired')fixture.put(key,sdk.getMarginTombstoneEncoder().encode({schemaVersion:10,revision:1n,
+      venue:root.venue,portfolio:root.portfolio,owner:root.owner,child:7,id:root.id,activationGeneration:1n,bump:root.bump}));
+    if(mutation==='truncated')client.rpc.call=async()=>({context:{slot:100},value:[]});
+    await expect(client.ownerAccounts(fixture.owner)).rejects.toThrow();
+  }
 });

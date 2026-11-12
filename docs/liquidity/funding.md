@@ -48,10 +48,11 @@ risk valuation, all-or-nothing routes and funded cash versus unpaid claims.
 ## Frozen publisher contract — D76
 
 This is the implemented D76 report/authority contract.
-Scope remains the fresh profile4 local qualification artifact; V1–V3 are unchanged.
+The current account-scale binding is schema 10/profile 6; the report format
+and authority/economic rules below remain unchanged.
 
 - `FundingPublisher` PDA: `["funding-publisher-v4", market]`, clearing-owned,
-  148 bytes including the discriminator. Borsh field order: schema_version u16=6; revision u64;
+  148 bytes including the discriminator. Borsh field order: schema_version u16=10; revision u64;
   venue, market, publisher Pubkeys; authority_epoch, last_sequence,
   last_observed_slot u64; last_observed_time i64; enabled bool; bump u8.
 - `FundingReport` instruction payload: 203 bytes. Field order: version u16=1,

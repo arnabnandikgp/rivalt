@@ -1,10 +1,11 @@
 # Accounts, ownership and wire identity
 
-P47 qualifies the RC2 schema-8 local runtime; integration is tracked in [STATUS](../STATUS.md).
-The retained P44 deployment stays on its schema-7 client.
+The account-scale RC2 local runtime uses schema 10/profile 6. Acceptance and
+integration are tracked separately in [STATUS](../STATUS.md). Prior deployments
+stay on their original clients; there is no in-place account migration.
 
 Preserve two markets (BTC index 0, ETH index 1), one classic SPL six-decimal test
-mint, 64 stable members including makers/receivers, four portfolios per owner,
+mint, monotone u64 identities and paged Financial membership, four portfolios per owner,
 children 0–8, two position slots, four orders and two protective pairs per root.
 Child zero is Cross; positive children are Isolated. Makers are isolated. Cross
 eligibility is immutable on market admission; both initial markets are eligible.
@@ -14,13 +15,18 @@ The bounded two-slot implementation is not a claim of unlimited market support.
 
 ## Account-scale successor contract (P51B)
 
-**Successor contract; financial activation remains disabled.** Schema 8 above
-remains the active implementation. D93 selects the following candidate for P54–P56;
-P51B changed no instruction, layout, IDL, enabled count or deployment. P54B now
-implements the inactive scratch-page layout described below. The
-[resolution candidate](risk-and-resolution.md#scalable-exact-resolution-candidate-p51b)
-and [backing candidate](accounting.md#incremental-backing-candidate-p51b) are required
-dependencies, not optional later repairs after lifting the registration limit.
+D93–D108 implement the scalable account contract described here. The 64-entry
+**page** is a storage unit, not a venue population cap. Financial entry requires
+complete, rent-funded recovery capacity; the local launcher provisions 128 roots.
+Larger workloads require their own measured acceptance before enabling them.
+These are distinct gates: the program checks actual funded storage against the
+resulting Financial count; operator qualification measures an intended capacity
+and workload, not each new registration. There is no on-chain test-certificate
+flag. Ordinary fills do not enumerate the population. Complete default does, and
+its exact arithmetic cost also depends on claim denominators; paged storage alone
+does not prove practical recovery time at a larger population.
+The following gap matrix records the replaced predecessor; the membership and
+maintained-backing sections describe the current source.
 
 ### Code-to-design gap matrix
 
@@ -45,8 +51,9 @@ dependencies, not optional later repairs after lifting the registration limit.
 P55A1's accepted native foundation separates u64 scalar identity from the retained
 small reference-cohort array size. P55A2's source implements schema-9
 roots/header/pages, owner-controlled activation/deactivation, permanent same-address
-retirement and pre-funded capacity checks. The selected qualified runtime is still
-schema 8; new source, IDL and clients require fresh-domain acceptance before use.
+retirement and pre-funded capacity checks. D102 advances this layout to schema
+10/profile 6; P56 binds the common SDK,
+services and local runtime to the same explicitly qualified fresh-domain artifacts.
 
 `account_membership::index` authenticates all fifteen canonical writable nodes,
 revisions and predecessor counts before mutation. Entry/exit commits the root,
@@ -101,9 +108,11 @@ freeze sees either the full entry/exit or its unchanged predecessor.
 
 ### Versioned layout target and storage ownership
 
-Reserve **account schema 9 / local profile 5** for this successor; this reservation
-does not activate it or change existing financial account schemas. The initial
-scratch layout below has its own typed/native decoder. All new accounts retain canonical name-based
+P55 introduced **account schema 9 / local profile 5** for membership; D102 advances
+the same membership layout to **schema 10 / profile 6**, adding maintained-backing
+fields below. The table records the membership delta; MarginAccount is now 1,011
+bytes after its two processed epochs. Scratch layouts have typed decoders.
+All new accounts retain canonical name-based
 discriminators and ordered little-endian Borsh fields. Common prefix is
 `schema:u16, revision:u64, venue:Pubkey`; sizes include the eight-byte discriminator.
 No version suffix is added to Rust domain type names. The final generated ABI and
@@ -148,15 +157,15 @@ recorded payer only after no active/frozen work references that allocation.
 The exact worst-case provisioning/cost proof remains an activation gate; an
 unfunded allocation is a rejected activation, not an unresolvable admitted debt.
 
-The P55A2 provisioning controller is being implemented separately from financial
-eligibility. `RecoveryLayout` derives frozen-row pages, all 46 arithmetic registers
+The provisioning controller remains separate from financial eligibility.
+`RecoveryLayout` derives frozen-row pages, all 46 arithmetic registers
 at the count-derived worst width, and graph/order registers 64–70. The authority
 starts growth; each exact cursor step proves a real rent-funded allocation and
 its canonical `StorageFunding` receipt. No partial proof changes ready capacity.
 Cancellation retains storage/payer ownership, and a monotone generation rejects
-old continuations. A locked recovery epoch blocks all provisioning writes. These
-controllers do not yet replace the existing freeze/recovery handlers or grant
-Financial membership; signed lifecycle acceptance is still required.
+old continuations. A locked recovery epoch blocks all provisioning writes.
+Provisioning proves capacity; only the separate owner-signed activation transition
+grants Financial membership. Freeze locks the same workspace before default.
 
 Numeric exhaustion rejects without wrap. With N finite financial roots and retained
 per-root claim bound K, use checked totals sufficient for N*K; u128 is not a proof
@@ -411,13 +420,18 @@ conflicting actions. Distinct-market independence is not a validator TPS claim.
 
 Ordered Borsh fields in [state/accounts](../../programs/clearing/src/state/accounts) are normative.
 Clearing accounts use canonical discriminator bytes, SHA-256(`account:<name>`)[0..8].
-Each begins with schema u16=8 and a scoped revision u64. D84 deliberately supersedes
+The current clearing-owned prefix uses schema u16=10 and a scoped revision u64. D84 deliberately supersedes
 P36's preserved historical discriminators for this fresh local domain. Integer seeds are little endian. Reused Position and
 OrderBook scalar records preserve 48-/680-byte encoding only, not V2 account
 identity, handlers or common-loss semantics. All public JSON integers are decimal
 strings with explicit units and schema.
 
-| Account | PDA seeds after string prefix | Bytes including discriminator |
+The following table is the **retained schema-8 predecessor**, for migration
+comparison only. Current membership and D102 layout deltas above/below supersede
+its registry, namespace, root, certificate and resolution records. Generated IDLs
+and literal size tests own current wire identity.
+
+| Predecessor account | PDA seeds after string prefix | Historical bytes including discriminator |
 |---|---|---:|
 | Venue | `venue-v3`, domain[32] | 329 |
 | Custody | `custody-v3`, venue | 59 |
@@ -444,7 +458,7 @@ contract's size tests do not establish SBF stack/CU safety.
 
 ## Current-profile additions and activation
 
-Canonical maker registrations and funding publishers are clearing-owned schema 8.
+Canonical maker registrations and funding publishers are clearing-owned schema 10.
 Maker-owned curve and price accounts use schema 5. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
 The older fixed-maker registration is retired, not reinterpreted as the current
@@ -457,9 +471,10 @@ Seed insurance requires both reserve authority and actual donor-token authority.
 Surplus classification requires reserve authority and cannot exceed the unallocated
 actual vault excess; repeated classification cannot allocate it twice.
 
-The profile-4 initializer permits flat custody setup only under its explicit local
+The profile-6 initializer permits flat custody setup only under its explicit local
 feature. `activate_liquidity` requires venue authority, unpaused Custody, complete
-32-page safety storage, an idle zero-epoch resolution header, reconciled vault and
+unlocked recovery capacity covering the authenticated Financial count, an idle
+zero-epoch resolution header, reconciled vault and
 ledgers, zero gross exposure/funding/settlement/fees/carry and both fresh Normal
 market qualifications. Only the restricted publisher can qualify this profile;
 initialization required sealed complete registries. Activation clears held
@@ -738,12 +753,28 @@ inherit resource acceptance from P41.
 
 ### P55B2 backing layout boundary
 
-The unpromoted D102 candidate uses schema **10 / profile 6**. It adds two processed
+D102 uses schema **10 / profile 6**. It adds two processed
 backing epochs to MarginAccount (1,011 bytes), a 248-byte BackingState to each
 MarketLedger (373 bytes), and replaces the old certificate's snapshot-dependent
 counters with a backing epoch and authenticated membership cursor (621 bytes).
 All other account layouts, PDA seeds, discriminators, instruction arguments and
 error numbers remain unchanged against P55B1. `check_market_backing` makes its
 existing selected ledger writable and writes a member root only for a member step.
-Fresh deployments and journal databases are mandatory; selected schema-8 and
+Fresh deployments and journal databases are mandatory; retained schema-8 and
 accepted P55A2 schema-9 evidence do not qualify schema 10. See [accounting](accounting.md#on-chain-maintained-proof-p55b2-candidate).
+
+### Workspace-backed population candidate (P56)
+
+D106 removes the temporary `MAX_MEMBERS=64` check in the account-scale local
+profile. Financial entry still authenticates the root lifecycle, exact registry
+membership epoch, all fifteen path revisions and the fully rent-funded reusable
+workspace. `RecoveryStorage.ready_capacity` must cover the resulting Financial
+count; a partial larger proof cannot supply capacity. Frozen storage excludes
+membership changes. Empty registration and permanent IDs never consume financial
+workspace capacity. No account layout, discriminator, seed or permission changes.
+
+The selected binary and 128-populated-root acceptance are pinned in validation. Previously
+qualified D102 binaries retain their 64-Financial gate. Native models, empty
+registration beyond 64, and the eight-root batch run do not qualify expansion.
+The G1 128/1,024 cohorts are measured acceptance cases, not new fixed protocol caps;
+operators must provision and qualify the capacity they intend to enable.

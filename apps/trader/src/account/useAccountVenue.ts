@@ -57,6 +57,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
   const [ownerPortfolio, setOwnerPortfolio] =
     useState<Awaited<ReturnType<sdk.AccountUserClient['ownerPortfolio']>>>();
   const [accounts, setAccounts] = useState<[sdk.MarginAccount['owner'], sdk.MarginAccount][]>([]);
+  const [retired, setRetired] = useState<[sdk.MarginAccount['owner'], sdk.MarginTombstone][]>([]);
   const [rpcError, setRpcError] = useState(''),
     [apiError, setApiError] = useState(''),
     [notice, setNotice] = useState(''),
@@ -91,6 +92,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
     setBusy('');
     setTokens([]);
     setAccounts([]);
+    setRetired([]);
     setSnapshot(undefined);
     setOwnerPortfolio(undefined);
     setNotice('');
@@ -113,10 +115,11 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
         ? await Promise.all([client.walletTokens(owner), client.ownerAccounts(owner, portfolioIndex)])
         : [[], undefined];
       const selected = discovery?.accounts.find(([, root]) => root.subaccountIndex === subaccountIndex);
-      const state = selected ? await client.snapshot([selected[0]]) : undefined;
+      const state = selected?.[1].lifecycle===2 ? await client.snapshot([selected[0]]) : undefined;
       if (epoch !== current.current.epoch) return;
       setSnapshot(state);
       setAccounts(discovery?.accounts ?? []);
+      setRetired(discovery?.retired ?? []);
       setTokens(owned);
       setOwnerPortfolio(discovery?.portfolio);
       setRpcError('');
@@ -133,7 +136,8 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
         if (
           [trades, events, group].some(
             (value) =>
-              value.schemaVersion !== config.version || value.venue !== config.venue ||
+              value.schemaVersion !== config.version || value.accountSchema !== config.accountSchema || value.venue !== config.venue ||
+              value.deployment?.artifactSet !== sdk.accountDeployment(config.deployment).artifactSet ||
               value.deployment?.anchor !== config.anchor ||
               value.deployment?.genesis !== config.genesis ||
               value.deployment?.domain !== config.domain ||
@@ -244,7 +248,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
       // remain finalized and execution still rechecks the signed dependencies.
       const discovered = await client.ownerAccounts(owner, portfolioIndex);
       const selected = discovered.accounts.find(([, root]) => root.subaccountIndex === subaccountIndex);
-      const s = selected ? await client.snapshot([selected[0]], 'confirmed') : undefined;
+      const s = selected?.[1].lifecycle===2 ? await client.snapshot([selected[0]], 'confirmed') : undefined;
       const prepared = await build(s, owner);
       if (epoch !== current.current.epoch || current.current.scope !== scope) return;
       if (recordsRef.current.some((x) => !terminal(x) && x.label === prepared.label))
@@ -355,6 +359,7 @@ export function useAccountVenue(config: AccountTraderConfig, scope: string, port
     tokens,
     ownerPortfolio,
     accounts,
+    retired,
     rpcError,
     apiError,
     notice,

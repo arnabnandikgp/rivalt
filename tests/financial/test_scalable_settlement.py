@@ -102,6 +102,28 @@ def assert_work_bounds(count, metrics):
 
 
 class CompiledScalableSettlement(unittest.TestCase):
+    def test_literal_populated_cohorts_above_64(self):
+        # Each debtor pays its one funded atom against a three-atom loss; the
+        # matching isolated creditor receives one. No insurance or cross subsidy.
+        block = ((1, (-3*SCALE, 0)), (0, (3*SCALE, 0)),
+                 (1, (0, -3*SCALE)), (0, (0, 3*SCALE)))
+        cases = [(block*16 + ((17, (0, 0)),), (0, 1, 0, 1)*16 + (17,)),
+                 (block*32, (0, 1, 0, 1)*32),
+                 (((0, (7*SCALE, -7*SCALE)), (0, (-7*SCALE, 7*SCALE)))*64, (0,)*128)]
+        for rows, cash in cases:
+            with self.subTest(population=len(rows), cycles=not any(cash)):
+                accounts, _, proposals, orders = independent_input(rows, (0, 0), (0, 0))
+                oracle = clear_atom_cohort(accounts)
+                self.assertEqual(oracle.cash, cash)
+                self.assertEqual(oracle.insurance_spent, (0, 0))
+                self.assertEqual(oracle.benchmark.rates,
+                                 (Fraction(1, 3),)*2 if any(cash) else (Fraction(1),)*2)
+                got = decode(run([command(rows, (0, 0), (0, 0), (0, 0), proposals, orders)])[0])
+                self.assertEqual(got['cash'], cash)
+                self.assertEqual(got['spent'], (0, 0))
+                self.assertEqual(got['movements'], oracle.claim_cash_movements)
+                assert_work_bounds(len(rows), got['metrics'])
+
     def test_independent_complete_cohorts(self):
         commands, expected = [], []
         edges = [

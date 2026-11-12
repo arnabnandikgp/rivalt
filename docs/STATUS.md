@@ -26,7 +26,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
-| P56A–P62 successor implementation | Planned | Full clients/workers, expanded activation and later remediation follow their existing gates |
+| P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
+| P57–P62 successor implementation | Planned | Retained roadmap; the user's latest 12 November instruction stops implementation after P56 for a scalability discussion. No P57 branch or implementation has started |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -58,8 +59,10 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement P56A above ready #84;
-leave every PR open and continue through the P62 dependencies.
+P56's final acceptance is published in open PR #85; its exact hosted check status
+is tracked there. Next exact action after those checks: discuss account-scale
+recovery with the user before any P57 work. The roadmap is retained, not started.
+No local acceptance blocker remains.
 
 ## Remediation planning
 
@@ -812,11 +815,92 @@ change is the intended writable backing ledger; SBF/financial semantics are unch
 Hosted run 43122151935 passes financial/scope/report/shell and exposes the
 remaining frozen-proposal reader still expecting profile 5. Clean `f560b05` binds
 that reader to profile 6; all three focused proposal checks pass. No program or
-financial semantics changed. A new hosted client result is pending. Next exact action:
-start P56A above #84 without waiting for merge.
+financial semantics changed. All five hosted jobs pass at `817fa9d` (run 43123083610). Next exact action:
+finish P56A1 signed default-worker acceptance above #84.
 No user decision or access blocker is known. Expanded population and runtime
 promotion remain P56B; automatic default continuation and wallet/UI acceptance
 remain P56A. P15B/P16B remain Open and 24-hour endurance Deferred.
+
+## P56 acceptance and runtime handoff
+
+P56 remains one PR (#85), following the user's 12 November instruction. Durable
+default and client checkpoints are accepted on their recorded pins: `25ed94a`
+scalar default and `b9d2a21` browser/SDK/API lifecycle. The latter has 23 actual
+internal-wallet originals, 77 stable identities, ten Financial roots, a permanent
+tombstone, API-outage/direct-RPC exit and 248-event fresh SQL replay. It is not an
+external-wallet check. Batching and D107/D108 reduce transport and repeated setup
+without changing settlement economics or trusted authority.
+
+Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper
+**`ed466030eccd485b8552b378815bf3f4e28fb658`**, passes the actual populated
+128-Financial-root run. The cohort includes six makers, 16 cross roots, 120 exposed
+roots, 65 debtors, 70 creditors and 15 roots with opposite-sign market claims.
+There are **175 durable originals / 2,317 guarded instructions**, **506.428 seconds**
+through complete resolution, **875,000 test lamports**, peak **897,380 CU / 3,348
+wire bytes**. Original p50/p95 processing is 2.328 / 2.751 seconds. G1 passes.
+
+Both actual upload/Apply SIGKILLs recover the same signed originals with one observed
+broadcast each. Independent Fraction/graph payouts and market insurance consumption
+(**6,792 / 3,252 atoms**), complete application, one-atom SPL exit, sustained recovery
+and explicit resume pass. All 1,023 setup/recovery outcomes (eight deliberate
+rejections) are fetched over RPC and matched to WS. Independently paid BTC/ETH fills
+have disjoint actual signed lock sets; this is not a validator-throughput claim.
+Fresh PostgreSQL replay reproduces **1,074 events / 405 accounts / 128 Financial
+members**. Actual and allocated vault equal **332,907,139 atoms**, zero surplus.
+Both isolated Anchor clients match 3,332 clearing instructions / 4,368 clearing
+events, plus 378 maker instructions / 384 maker events. This run adds no account
+decode vectors. The separate independent worker audit passes; end tracked tree is
+clean. Raw files remain in `.local/scalable-settlement/runs/p56-populated-128-parity`.
+
+Pre-funded recovery has **99 accounts / 192,661 data bytes / 1,043,091,640 rent
+lamports**. All clearing accounts before resolution total **404 / 352,526 bytes /
+2,053,529,040 rent lamports**. Rent is separate from transaction fees and collateral;
+these are local test-lamport measurements with zero priority bids. Worst-width
+storage is provisioned; this financially populated sample is not an adversarial
+maximum-denominator latency proof. The finite work/storage bounds remain checked.
+Larger compiled workloads, including 1,024 Financial roots, require separate
+measurement before enablement; no unlimited population or profitability is claimed.
+
+Normal runtime selection binds SDK, indexer, services and launcher to the same
+accepted artifact set, with helper version 2, at most 32 resource-bounded
+continuation instructions, and 128-root pre-funded recovery capacity. The 51
+affected client/artifact/risk/batch/binding checks, typecheck, shell syntax and
+artifact/helper identity checks pass. No new SBF build is needed for selection.
+
+Clean **`6b92665d5561ac547595a9f4211b567d7e144c30`** passes the normal launcher
+and installed Chrome **157.0.8103.39** browser lifecycle: **13 successful signed
+originals, zero rejected originals and zero page errors in this complete run**.
+Actual local wallet creation/faucet, portfolio, cross/isolated activation and
+deposits, sibling allocation, BTC/ETH fills, TP/SL/cancel, both reduce-only closes,
+a **1,000,000-atom SPL withdrawal**, decline without submission, reload and indexed
+fills all pass. Every wallet original is independently fetched at finalized RPC
+and matched to its saved wire. Indexer RPC/WS and actual PostgreSQL are active.
+End tracked tree is clean; owned server/database processes stop normally. Raw
+results stay in `.local/scalable-settlement/p56-normal-demo-wallet-final` and the
+owned session in `.local/interactive-demo-p56-selected-5`. This is an internal
+wallet check, not external-wallet or continuous-availability qualification.
+
+Earlier partial attempts exposed and fixed the publisher's initialization-slot
+wait and the cross/isolated selection snapshot race. The latter reproduces before
+the fix; all four focused component cases pass afterward. Other attempts retain
+a low-disk shutdown, an independently proven expired route, and a finalized
+OraclePolicy refusal inside the route's slot lifetime. They are not counted as
+complete acceptance or hidden from availability results. The browser permits at
+most three new reviews after a finalized version/source refusal or proven expiry;
+unknown originals and unrelated errors still stop. Source/financial safeguards
+and publication cadence remain unchanged. Only generated Rust build caches were
+reclaimed; all databases, keys and raw evidence remain intact.
+
+The earlier 128-root resource/capture failures remain in validation. Clean
+`ad19215` passes hosted CI run 43157071365; the final publication's hosted status
+is reported separately on PR #85, without inferring it from local acceptance.
+Publication `6c4652c` passes scope/report/shell and 403 client checks, but three
+launcher hash-rejection fixtures still declare schema 8. They now declare the
+current schema 10/profile 6 and all three scoped launcher checks pass locally,
+reaching the intended unqualified-hash rejection before any runtime starts.
+This fixture-only correction requires no repeated program or financial run.
+P56 is ready for Review and remains open, not integrated. Stop after final PR
+publication/checks for the user's scalability discussion; do not begin P57.
 
 ## Deployment and operational limits
 

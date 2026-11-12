@@ -2,13 +2,13 @@
 
 ## Scalable exact resolution candidate (P51B)
 
-This section specifies the selected **native successor kernel**, not the
-implemented schema-8 default path documented below. P54B now qualifies authenticated
-bounded SBF valuation/rate continuations. P54C qualifies conserving rounding and
-application through the existing-size source bridge; P56B owns expanded local
-activation. See the
-[account contract](accounts.md#account-scale-successor-contract-p51b) for membership,
-authority and deployment. No payer, keeper or off-chain solver becomes trusted.
+This section specifies the implemented paged settlement kernel and authenticated
+schema-10/profile-6 local path. P54 supplies exact arithmetic/rounding; P55 supplies
+complete paged membership and maintained ordinary backing; P56 integrates durable
+continuation and larger-cohort acceptance. Historical fixed-width descriptions
+below preserve predecessor rationale only where superseded by this contract.
+The [account contract](accounts.md#account-scale-successor-contract-p51b) owns
+membership, authority and deployment. No off-chain solver becomes trusted.
 
 ### Exact arithmetic and work representation
 
@@ -163,6 +163,20 @@ pins, actual counts and omissions. Neither native driver is a program instructio
 No account/PDA layout, selected artifact, enabled account count or default path
 changes. P54B/P54C own authentication, physical paging, replay/recovery, actual
 signed continuation costs and token effects before P56B can activate any expansion.
+
+### Bounded plan-window candidate (P56)
+
+D108 adds one permissionless continuation over at most eight canonical scratch
+pages and 128 existing exact kernel steps. The caller proposes I/O descriptors;
+owned frozen source, verified rates and plan checkpoint remain authoritative.
+Every supplied page retains owner/PDA/epoch/attempt/revision/capacity checks.
+Registers 0–24 cannot be writable; only plan scratch 25–45 and 64–70 can change.
+The first access must be covered; subsequent missing I/O stops before mutation,
+and zero progress rejects. Work/page changes share one atomic scoped-history
+commit. No change to exact remainder ordering, graph construction, circulation,
+Apply, insurance attribution or complete-cohort reconciliation is introduced.
+The original three-descriptor continuation remains supported unchanged. The
+larger I/O window requires new compiled and populated acceptance before promotion.
 
 ### Authenticated paged verification (P54B)
 

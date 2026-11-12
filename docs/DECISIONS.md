@@ -838,3 +838,162 @@ publication. Journal readonly comparison ignores only object-key order. Risk/sou
 default/devnet activation gates and external/deferred gates are unchanged. This
 records local qualification, not stack integration, independent review or funded
 deployment authority.
+
+
+## D103 — Bounded native descriptors and durable paged default services
+
+12 November 2026. P56A1 packages a production native page-descriptor helper using
+the same checked public checkpoint parsers as clearing. The service passes only
+three fixed-size authenticated RPC headers and an operation/optional ordinal,
+with a 32 KiB input ceiling, five-second process timeout and at most three canonical
+page descriptors returned. It invokes a fixed local binary verified against its
+build manifest; no shell command, test executable or Python financial oracle enters
+the production path. The helper supplies account metas, never signed authority,
+rates, graph edges or final balances. Clearing independently derives the required
+pages and verifies all arithmetic, membership and revision guards.
+
+This avoids a second hand-maintained decoder for nested arithmetic/graph cursors.
+Exact rate and complete-order proposals remain untrusted TypeScript calculations;
+independent financial expected values remain in tests. The controller reads bounded
+workspaces/pages, resumes actual committed stage/cursors, and uses the existing
+immutable-original queue. Unknown originals retain reservations and block new wire.
+Foreign incomplete proposals respect the existing 64-slot recovery rules; no new
+expiry proof or liveness timeout awards money. Frozen continuation does not require
+fresh live prices after valuation, but recovery retains the existing source hold.
+
+API/budget version 4 is explicitly distinct from on-chain schema 10/profile 6.
+Only the fixed candidate artifact binding opts into this controller; the selected
+runtime is unchanged until P56B qualification. P56A2 owns full wallet/discovery
+acceptance. No economics, on-chain ABI, larger-population admission or deployment
+promotion changes here. Acceptance is established only when STATUS/validation record
+actual signed default, upload/Apply crash recovery and exact PostgreSQL replay.
+
+
+## D104 — Explicit candidate wallet binding and atomic financial entry
+
+12 November 2026. P56A2 shares the exact account-scale candidate binding across
+SDK, services and indexer; wallet configuration selects it explicitly. This does
+not promote the selected runtime or migrate a retained journal/original.
+Owner discovery uses one bounded portfolio-plus-children snapshot and returns
+permanent tombstones, preserving stable u64 identity and the current child policy.
+
+The only added multi-action retail envelope is owner-signed activation followed
+by a positive deposit into that same empty account, with identical venue/root/
+safety/event bindings and the complete bounded index path. On-chain membership,
+storage, custody and token checks remain authoritative and both actions roll back
+on failure. Rent/storage provisioning remains explicit and separate from collateral.
+No invented pre-state expiry proof authorizes replacement of an ambiguous original.
+Registered roots are not projected as Financial; retired slots cannot be reused.
+This changes the client integration surface, not margin, fees, funded-versus-unpaid
+ownership, default coverage, Financial admission capacity or default/devnet gates.
+Acceptance remains pending until the signed client/browser/SQL run is recorded.
+
+## D105 — Atomic transport batching preserves scalar settlement authority
+
+12 November 2026. The qualified eight-root default worker spends 1,266.843 seconds
+on 665 scalar originals; its per-step finality overhead already exceeds G1's
+128-root time target. P56 therefore adds opt-in bounded atomic continuation batches
+before larger-cohort activation. This changes transport scheduling, not exact
+settlement, membership, insurance, fractional ownership or recovery rules.
+
+Unsigned simulations propose guarded sequential instructions using only returned
+poststates and authenticated bounded reads. Clearing repeats every check at landing;
+no simulation result awards money or advances the public journal. The complete
+batch is a single immutable queued original with all access locks and one fee
+reservation. Ambiguity blocks replacement exactly as before. Counts, actual wire
+size, measured CU and returned data are bounded by the durability contract.
+Default operation stays scalar until the changed signed crash/replay and resource
+checks pass. Larger population and selected runtime promotion retain their own
+P56 acceptance gates; simulation or unit tests do not satisfy them.
+
+## D106 — Financial capacity follows authenticated recovery storage
+
+12 November 2026. Within the already approved P51–P56 direction, P56 removes the
+temporary fixed 64-Financial check from the next candidate source. D100's complete
+physical recovery proof remains mandatory and becomes the population admission
+boundary. A caller-supplied count, rent balance, partially provisioned workspace or
+empty identity cannot substitute for that proof. Stable IDs, exact index paths,
+lifecycle generations, source/default locks and complete-cohort settlement remain.
+
+This deliberately retires the transitional numeric gate retained by P55 while
+keeping its original purpose: no larger selected runtime without actual populated
+qualification. The next binary is separately pinned; existing selected artifacts
+and their retained original transactions are untouched. G1 resource/recovery,
+independent money and real RPC/WS/PostgreSQL acceptance precede promotion. The
+128/1,024 targets do not become replacement protocol ceilings. Default/devnet
+trading and independent external gates remain unchanged.
+
+P56 resource refinement (12 November): the first populated 128-root, eight-step
+run exceeds the 900-second G1 time target while preparing exact payouts. More
+than 64 funded participants, actual stressed actions and the first crash recovery
+have executed, but the ongoing run is not full acceptance. Extend the explicit
+transport option to at most 32 guarded instructions, retaining the same 900k
+simulated-CU, 1m requested-CU, 64-account, 8 MiB and v0/v1 wire limits. The measured
+resource limit may end a batch earlier. Scalar remains the default until acceptance.
+This changes neither on-chain page/word limits nor any financial computation;
+program rebuilds and altered settlement economics are unnecessary for this change.
+
+
+## D107 — Reuse checked settlement work within one invocation
+
+12 November 2026. The populated recovery trace exposes repeated restoration of the
+same persisted arithmetic checkpoint: scope-page discovery restores it, then the
+handler restores it again (and denominator/rate page discovery restores it a third
+time). A private, boxed continuation now carries the checked cursor and derived
+page plan from the entrypoint through scope capture into that one handler.
+Scope capture does not mutate state. There is no cross-instruction cache or trusted
+keeper output; source identity, frozen balances, current revisions/attempts, page
+ownership/PDA/capacity and every arithmetic step remain checked. Scoped revisions
+and events still commit once, atomically. Inputs, account metas, layouts, PDA seeds,
+errors and signed domains are unchanged. Native literal/adversarial controller
+checks precede a new clean SBF pin and actual populated RPC/WS/PostgreSQL acceptance;
+prior binaries do not establish a compute saving for this implementation.
+
+## D108 — Bounded settlement-plan I/O windows
+
+12 November 2026. P56's populated traces show that the one-next-access page plan
+repeats authenticated instruction setup at each scratch-register transition.
+Keep that entrypoint and add `continue_settlement_plan_window` with at most eight
+sorted, unique `(register, page_index, writable, revision)` descriptors. This is an
+I/O proposal, never caller-supplied work, graph edges, rates or payouts. The program
+restores its owned cursor, authenticates every page's owner/PDA/venue/schema/epoch/
+attempt/revision/count-derived capacity, and allows only plan scratch writes
+(registers 25–45 and 64–70). Verified input registers 0–24 stay read-only.
+The first required access must be covered. Execute at most 128 unchanged kernel
+steps, stop before a missing page, and reject zero progress. Commit owned work and
+scoped revisions atomically. Extra supplied pages cannot authorize financial writes.
+Eight bounds I/O and scoped-history size, not account population; compiled CU and
+frame/wire checks are required before qualification.
+
+The version-2 native helper previews at most 128 steps using copies of at most
+eight fetched pages to propose the window. It returns descriptors only; every
+step repeats on chain. Requests are bounded at 64 KiB and a five-second deadline.
+Legacy three-descriptor calls retain their ABI; the new instruction and descriptor
+layout are pinned against exact `0ca9927`, with regenerated IDL/SDK and lock inventory.
+No account layout, seed, error number, money allocation or trust boundary changes.
+Local runtime promotion remains gated on actual populated RPC/WS/SQL acceptance.
+
+## D109 — Account-scale local runtime selection
+
+12 November 2026. After the populated P56 acceptance gate, select the same exact
+D108 schema-10/profile-6 binaries across normal SDK, indexer, services and local
+launcher. `selected` and the explicit `account-scale-candidate` alias bind the same
+artifact set; public configuration never supplies replacement code hashes. Preserve
+old binaries, databases, keys and unresolved originals with their original executor.
+A fresh local domain/genesis/database is mandatory. No in-place upgrade is implied.
+
+The normal launcher pre-funds recovery capacity for 128 Financial roots and a second
+64-entry identity page with explicit operator SOL. These are separately measured
+operating allocations, not a new protocol registration ceiling. Require independent
+compiled resource/default acceptance before enabling a larger workload. The native
+version-2 descriptor helper is a checked local dependency of default workers, not a
+retail signing dependency or financial authority. The launcher checks it up front.
+
+Use the qualified resource-bounded default batch limit of 32; measured CU, wire,
+account data and original-signature constraints can stop a batch earlier. Explicit
+scalar mode remains available. This supersedes D105's interim default-one schedule,
+not its financial or retry contract. Normal operations qualification uses the paged
+worker; the incompatible schema-8 runner is retained in Git rather than activated
+by changing a readiness flag. P56's populated and normal launcher/wallet acceptance
+pins are recorded in validation; PR integration remains separate. Default/devnet
+and external P15B/P16B gates are unchanged.

@@ -44,3 +44,22 @@ it('rejects mixed latest/cursor reads before querying history on both account en
     expect((await app.inject('/v4/events?after=3')).statusCode).toBe(503);expect(connections).toBe(4);
   }finally{await app.close();}
 });
+
+it('exposes Registered, frozen Apply and permanent retired identities from one published fence',async()=>{
+  const owner='11111111111111111111111111111111',venue='11111111111111111111111111111112',margin='11111111111111111111111111111113',retired='11111111111111111111111111111114';
+  const id='9007199254740993',root={id,portfolio:venue,owner,lifecycle:1,cash:'0'};
+  const state={sequence:'42',portfolios:{[venue]:{owner,index:0}},roots:{[margin]:root},tombstones:{[retired]:{id:'9007199254740994',portfolio:venue,owner,child:2}},
+    safety:{mode:1},resolution:{epoch:'7',stage:14,cursor:'0',count:'2',rows:{[id]:{applied:true}}},pagedSettlement:{stage:10,cursor:'1'}};
+  const row={binding:{venue,profile:'liquidity-execution-qualification'},state,checkpoint:'fence',checkpoint_slot:'99'};
+  const indexer={healthy:true,ws:{error:null},config:{runId:'lifecycle-api'},store:{published:async()=>row}};
+  const app=accountApi(indexer as unknown as LiquidityIndexer);
+  try {
+    expect((await app.inject(`/v4/accounts/${margin}`)).json()).toMatchObject({lifecycle:'Registered',admission:'RequiresFinancialActivation',account:{id}});
+    root.lifecycle=2;state.safety.mode=2;
+    expect((await app.inject(`/v4/accounts/${margin}`)).json()).toMatchObject({lifecycle:'Financial',admission:'FrozenUntilCompleteResolution',
+      resolution:{epoch:'7',stage:14,planStage:10,cursor:'1',count:'2',applied:true}});
+    expect((await app.inject(`/v4/accounts/${retired}`)).json()).toMatchObject({account:null,lifecycle:'Retired',admission:'UnavailableRetiredNamespace',tombstone:{child:2}});
+    const portfolios=(await app.inject(`/v4/portfolios/${owner}`)).json();
+    expect(portfolios.portfolios[0].accounts[0].id).toBe(id);expect(portfolios.portfolios[0].retired[0].id).toBe('9007199254740994');
+  }finally{await app.close();}
+});

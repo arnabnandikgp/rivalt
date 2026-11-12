@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "69b3414601c53b40aba19e7bfbf5d97c3b22e67aa5f7be775fe3746ca2b39bc4",
+    "clearing": "a280d44822627525f06e6dfd3e15078219e22ac932302b485cf2f2aa0decbacb",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -547,6 +547,32 @@
     {
       "program": "clearing",
       "name": "continue_settlement_plan",
+      "write": [
+        "plan"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "rates",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "continue_settlement_plan_window",
       "write": [
         "plan"
       ],

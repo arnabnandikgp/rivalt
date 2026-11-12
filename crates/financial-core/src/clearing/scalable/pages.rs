@@ -6,6 +6,8 @@ use crate::{Error, Result};
 /// Two KiB of words per I/O page. This bounds a single page's encoding/context;
 /// the number of pages follows the count-derived width, never a venue cap.
 pub const PAGE_WORDS: u64 = 256;
+/// Bounded I/O window, independent of cohort size.
+pub const MAX_WINDOW_PAGES: usize = 8;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct PageRequest {
@@ -16,11 +18,30 @@ pub struct PageRequest {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PagePlan {
-    requests: [PageRequest; 3],
+    requests: [PageRequest; MAX_WINDOW_PAGES],
     count: u8,
     capacity: u64,
 }
 impl PagePlan {
+    /// An untrusted I/O proposal. The owning adapter must authenticate every
+    /// descriptor and restrict its registers/permissions before granting access.
+    pub fn window(requests: &[PageRequest], capacity: u64) -> Result<Self> {
+        if capacity == 0 || requests.len() > MAX_WINDOW_PAGES {
+            return Err(Error::Bounds);
+        }
+        let mut plan = Self::metadata_only(capacity)?;
+        for (index, request) in requests.iter().enumerate() {
+            if request.index.checked_mul(PAGE_WORDS).ok_or(Error::Overflow)? >= capacity
+                || index > 0 && (requests[index - 1].register, requests[index - 1].index)
+                    >= (request.register, request.index) {
+                return Err(Error::Bounds);
+            }
+            plan.requests[index] = *request;
+        }
+        plan.count = requests.len() as u8;
+        Ok(plan)
+    }
+
     /// A normalized zero-tail step can advance owned scalar work without any
     /// physical I/O. Its context must contain no remaining accounts.
     pub fn metadata_only(capacity: u64) -> Result<Self> {
@@ -28,7 +49,7 @@ impl PagePlan {
             return Err(Error::Bounds);
         }
         Ok(Self {
-            requests: [PageRequest::default(); 3],
+            requests: [PageRequest::default(); MAX_WINDOW_PAGES],
             count: 0,
             capacity,
         })
@@ -41,7 +62,7 @@ impl PagePlan {
             return Err(Error::Bounds);
         }
         let mut plan = Self {
-            requests: [PageRequest::default(); 3],
+            requests: [PageRequest::default(); MAX_WINDOW_PAGES],
             count: 0,
             capacity,
         };

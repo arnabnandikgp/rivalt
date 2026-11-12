@@ -1,6 +1,5 @@
 //! Bounded immutable identities shared by current and compatibility decoders.
 pub const MARKET_COUNT: usize = 2;
-pub const MAX_MEMBERS: usize = 64;
 pub const MAX_PORTFOLIOS: u32 = 4;
 pub const MAX_SUBACCOUNT: u32 = 8;
 pub const CROSS_MARKET_SENTINEL: u8 = u8::MAX;

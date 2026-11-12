@@ -180,7 +180,7 @@ class ClearingNetworkContract(unittest.TestCase):
         self.assertEqual(swapped.rates, original.rates[::-1])
         self.assertEqual(swapped.insurance_spent, original.insurance_spent[::-1])
 
-    def test_maximum_cohort_and_capped_branch_budget(self):
+    def test_sixty_four_row_branch_diagnostic_extends_without_a_population_cap(self):
         accounts = []
         for amount in range(1, 33):
             positive, negative = (amount, amount + 1) if amount % 2 else (amount + 1, amount)
@@ -189,8 +189,9 @@ class ClearingNetworkContract(unittest.TestCase):
         self.assertEqual(len(result.cash_entitlements), 64)
         self.assertEqual(sum(result.cash_entitlements), 0)
         self.assertLessEqual(result.segment_pairs, 1156)
-        with self.assertRaises(InvalidTransition):
-            clear_rational_cohort(tuple(accounts) + (Account(0, (0, 0)),))
+        larger = clear_rational_cohort(tuple(accounts) + (Account(17, (0, 0)),))
+        self.assertEqual(larger.cash_entitlements, result.cash_entitlements + (17,))
+        self.assertEqual(larger.rates, result.rates)
 
     def test_incomplete_or_fabricated_market_ledger_rejects(self):
         for clear in (clear_rational_cohort, clear_atom_cohort):
