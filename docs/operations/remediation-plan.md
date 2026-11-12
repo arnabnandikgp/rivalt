@@ -355,10 +355,12 @@ limits separately from logical account scalability. No activation on a partial p
 
 P56 acceptance checkpoint (12 November): the 128-root D108 run at clean `ad19215`
 passes G1 and complete financial/recovery/replay checks. The launcher provisions
-128 Financial capacity separately from stable identity pages. Normal selected
-runtime/wallet acceptance remains before P56 moves to Review; larger compiled
-workloads remain separately gated. See STATUS and validation for exact counts,
-costs, artifact pins and limitations.
+128 Financial capacity separately from stable identity pages. Clean `6b92665`
+also passes the normal selected launcher and all 13 internal-wallet originals,
+including both markets, protections, closes and a token-reconciled withdrawal.
+P56 is in Review; larger compiled workloads remain separately gated. The user's
+latest instruction is to stop after P56 for a scalability discussion before P57.
+See STATUS and validation for exact pins, costs and limitations.
 
 ## Maker and economic deliverables
 

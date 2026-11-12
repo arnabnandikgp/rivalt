@@ -26,8 +26,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
-| P56 account-scale services, clients and activation | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 financially populated roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. G1 passes. Normal selected-runtime launcher/wallet acceptance remains; focused promotion checks pass |
-| P57–P62 successor implementation | Planned | One ready PR per numbered phase, following the user's 12 November granularity update; internal lettered checkpoints retain their gates without separate PRs |
+| P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
+| P57–P62 successor implementation | Planned | Retained roadmap; the user's latest 12 November instruction stops implementation after P56 for a scalability discussion. No P57 branch or implementation has started |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -59,10 +59,9 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: finish the normal local launcher/browser acceptance against
-the accepted D108 binaries, then publish P56's final result in open PR #85. The
-user's latest 12 November direction is to finish P56 and stop for the account-scale
-discussion before P57; the remaining roadmap is retained, not started.
+Next exact action: publish the final P56 acceptance in open PR #85 and inspect its
+hosted checks; then stop for the user's account-scale discussion before P57. The
+remaining roadmap is retained, not started. No local acceptance blocker remains.
 
 ## Remediation planning
 
@@ -861,43 +860,41 @@ maximum-denominator latency proof. The finite work/storage bounds remain checked
 Larger compiled workloads, including 1,024 Financial roots, require separate
 measurement before enablement; no unlimited population or profitability is claimed.
 
-Normal runtime selection now binds SDK, indexer, services and launcher to the same
-accepted artifact set, with version-2 helper preflight, at most 32 resource-bounded
-continuation instructions, and 128-root pre-funded recovery capacity. Old files,
-keys, databases and originals remain separate. The new source selection has passed
-51 distinct affected client/artifact/risk/batch/binding checks, typecheck, shell
-syntax, artifact/helper hash checks and changed-document paths. Browser preflight
-passes on installed Chrome 157.0.8103.39; actual normal-launcher acceptance is next.
-No new SBF build is required for these client/launcher changes.
+Normal runtime selection binds SDK, indexer, services and launcher to the same
+accepted artifact set, with helper version 2, at most 32 resource-bounded
+continuation instructions, and 128-root pre-funded recovery capacity. The 51
+affected client/artifact/risk/batch/binding checks, typecheck, shell syntax and
+artifact/helper identity checks pass. No new SBF build is needed for selection.
 
-Normal-launcher `c6435ce` initially rejects the first report's initialization-slot
-fence; `7c8cb4a` waits for authenticated Clock progress and passes provisioning.
-A subsequent attempt stops on the disk guard; only generated Rust build caches
-are reclaimed, preserving every database/key/evidence file. The fresh third
-session reaches indexed/WS-connected readiness and six finalized wallet actions,
-then exposes a UI account-switch crash: discovery identifies cross while the
-snapshot still contains only isolated. A focused regression reproduces the crash;
-the fix withholds financial calculation/actions until the selected root snapshot
-arrives. All four component tests and typecheck pass. Fresh normal-launcher/browser
-`30b2c2d` passes the account switch and seven wallet actions, then stops on an
-expired ETH route (signed expiry slot 4,118; finalized landing 4,138). MakerQuote
-rejects before the route-intent guard. The browser verifier now allows its bounded
-fresh review only after the same independently proven signed expiry; it never
-retries an uncertain original or treats the broad error alone as transient.
-Complete browser acceptance remains next; partial sessions/results are retained.
-The following `204cac8` browser attempt records six successes and a finalized
-OraclePolicy rejection on its first trade, within the signed slot lifetime. It is
-not reclassified as expiry. The verifier now models at most three new reviews
-after a finalized source-policy refusal, waiting for current source admission each
-time and retaining every original/fee/rejection. No program, source-age rule,
-publication cadence or unknown-original retry behavior changes. The owned demo
-is stopped; the next attempt uses a fresh session and internal wallet.
+Clean **`6b92665d5561ac547595a9f4211b567d7e144c30`** passes the normal launcher
+and installed Chrome **157.0.8103.39** browser lifecycle: **13 successful signed
+originals, zero rejected originals and zero page errors in this complete run**.
+Actual local wallet creation/faucet, portfolio, cross/isolated activation and
+deposits, sibling allocation, BTC/ETH fills, TP/SL/cancel, both reduce-only closes,
+a **1,000,000-atom SPL withdrawal**, decline without submission, reload and indexed
+fills all pass. Every wallet original is independently fetched at finalized RPC
+and matched to its saved wire. Indexer RPC/WS and actual PostgreSQL are active.
+End tracked tree is clean; owned server/database processes stop normally. Raw
+results stay in `.local/scalable-settlement/p56-normal-demo-wallet-final` and the
+owned session in `.local/interactive-demo-p56-selected-5`. This is an internal
+wallet check, not external-wallet or continuous-availability qualification.
 
-The earlier 128-root attempts remain failed/partial evidence in validation: an old
-reference ceiling, omitted fixture generation, the 997-original budget/time miss,
-negative-probe headroom and final conformance stdout/meta capture problems. None is
-counted as complete acceptance. `ad19215` fixes the final capture and passes hosted
-CI (43157071365). CI for the following runtime-selection commit is not yet observed.
+Earlier partial attempts exposed and fixed the publisher's initialization-slot
+wait and the cross/isolated selection snapshot race. The latter reproduces before
+the fix; all four focused component cases pass afterward. Other attempts retain
+a low-disk shutdown, an independently proven expired route, and a finalized
+OraclePolicy refusal inside the route's slot lifetime. They are not counted as
+complete acceptance or hidden from availability results. The browser permits at
+most three new reviews after a finalized version/source refusal or proven expiry;
+unknown originals and unrelated errors still stop. Source/financial safeguards
+and publication cadence remain unchanged. Only generated Rust build caches were
+reclaimed; all databases, keys and raw evidence remain intact.
+
+The earlier 128-root resource/capture failures remain in validation. Clean
+`ad19215` passes hosted CI run 43157071365; the final publication's hosted status
+is reported separately on PR #85, without inferring it from local acceptance.
+P56 is ready for Review and remains open, not integrated. Stop after final PR
+publication/checks for the user's scalability discussion; do not begin P57.
 
 ## Deployment and operational limits
 

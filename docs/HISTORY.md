@@ -19,6 +19,11 @@ paged default-worker, recovery, token-exit and fresh-SQL qualification. The old
 `ad19215`; its current entrypoint rejects explicitly rather than using incompatible
 raw layout offsets. Existing raw evidence and databases are preserved. This source
 retirement is not a claim that historical full-drain measurements qualify P56.
+The selected schema-10/profile-6 runtime is qualified on D108 SBF/helper `ed46603`,
+populated-cohort harness `ad19215` and normal launcher/browser `6b92665`. The latter
+passes all 13 wallet originals after fixing initialization-fence waiting and an
+account-switch snapshot mismatch. Validation records the separate failed attempts
+and exact resource limits. PR #85 remains open; this is not a merged milestone.
 
 ## Quantity expansion and constraint audit integration
 

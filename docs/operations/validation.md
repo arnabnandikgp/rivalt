@@ -32,29 +32,41 @@ maximum-denominator latency proof. The finite work/storage bounds remain checked
 Larger compiled workloads, including 1,024 Financial roots, require separate
 measurement before enablement; no unlimited population or profitability is claimed.
 
-The normal launcher/client selection is being qualified against these same bytes;
-P56 remains In progress until that final check passes.
-The `7c8cb4a` launcher corrects the initial publisher-fence wait and reaches normal
-readiness, after one separate low-disk shutdown. Its browser check finalizes six
-wallet actions before a view crash when switching between existing accounts:
-discovery has selected the new root but the snapshot still contains the old one.
-The focused regression fails before the selected-snapshot guard and all four
-component cases pass after it; typecheck passes. This partial browser run is not
-acceptance. Raw failed sessions and wallet originals remain local and intact.
-At `30b2c2d`, the account switch succeeds and seven wallet actions finalize. The
-eighth is rejected with MakerQuote after signed route expiry: expiry slot 4,118,
-independently fetched finalized slot 4,138. The existing bounded fresh-review rule
-now recognizes that the quote-lifetime check can reject before RouteIntent, but
-still requires actual signed expiry proof. Error number alone is insufficient;
-unknown/ambiguous originals remain non-retriable. This partial run is retained at
-`.local/scalable-settlement/p56-normal-demo-wallet-selected`.
-The next `204cac8` attempt has six successes and a finalized OraclePolicy refusal
-at slot 9,553 within signed expiry 9,615. This is a source-policy refusal, not
-proven route expiry. The browser's bounded new-review flow now accepts that
-explicit finalized rejection class and rechecks source admission before preparing
-another transaction; unknown outcomes and unrelated financial errors still stop.
-Raw originals remain in `.local/scalable-settlement/p56-normal-demo-wallet-complete`.
-No continuous-availability or all-quotes-fill claim follows from this UI check.
+### Selected normal launcher and wallet
+
+Clean **`6b92665d5561ac547595a9f4211b567d7e144c30`** passes the actual normal
+launcher on the same D108 binaries/helper and installed Chrome **157.0.8103.39**.
+The complete run has **13 successful wallet originals, zero rejected originals
+and zero page errors**. Every signed wire matches independently fetched finalized
+RPC history. Actual Surfpool RPC/WS and PostgreSQL serve the app and indexer.
+
+Checks cover a fresh internal browser wallet and faucet, origin/stop denial,
+portfolio and both account modes, atomic activation/deposits, sibling allocation,
+wallet decline with no original, BTC/ETH fills, TP/SL/cancel, both reduce-only
+closes, an actual **1,000,000-atom token withdrawal**, reload with retained originals
+and reconciled indexed fills. The tracked tree is clean at completion. The owned
+server and database stop normally. Captures remain at
+`.local/scalable-settlement/p56-normal-demo-wallet-final`; runtime/keys/database
+remain at `.local/interactive-demo-p56-selected-5`.
+
+Earlier normal-launcher attempts are partial evidence: an initialization-slot
+publisher fence (fixed by waiting before refreshing inputs), a low-disk shutdown,
+and a cross/isolated selection render crash (fixed by requiring the selected root
+in the snapshot before financial calculation/actions). The crash reproduces in a
+focused regression before the fix; all four component cases and typecheck pass
+afterward. The 51 prior selection/client/batch/binding checks also pass.
+
+Other browser attempts preserve a MakerQuote rejection after signed route expiry
+(expiry 4,118; finalized landing 4,138), and an OraclePolicy refusal inside its
+signed lifetime (landing 9,553; expiry 9,615). The latter is not relabelled expiry.
+The verifier models at most three fresh user reviews after finalized version/source
+refusals or independently proven expiry, waiting for current source admission each
+time. Unknown originals and unrelated financial errors stop; every failure and fee
+is retained. Neither partial run is counted as complete acceptance. The passing
+run required no such retries. No program guard or publication cadence was relaxed.
+
+This closes P56's local acceptance, not PR integration, external-wallet acceptance,
+continuous availability, production throughput or a larger-population cost claim.
 
 ## Maintained backing integration (P55B2)
 

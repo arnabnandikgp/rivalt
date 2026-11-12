@@ -994,5 +994,6 @@ account data and original-signature constraints can stop a batch earlier. Explic
 scalar mode remains available. This supersedes D105's interim default-one schedule,
 not its financial or retry contract. Normal operations qualification uses the paged
 worker; the incompatible schema-8 runner is retained in Git rather than activated
-by changing a readiness flag. P56 remains In progress until the normal launcher
-and wallet check pass. Default/devnet and external P15B/P16B gates are unchanged.
+by changing a readiness flag. P56's populated and normal launcher/wallet acceptance
+pins are recorded in validation; PR integration remains separate. Default/devnet
+and external P15B/P16B gates are unchanged.
