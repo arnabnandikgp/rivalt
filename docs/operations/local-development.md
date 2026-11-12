@@ -51,6 +51,9 @@ select `.tools/anchor-v2-rc2/bin/anchor`. Install the isolated test client with
 `pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile`.
 Fresh schema-10 domains/databases are required; no old accounts or signed originals
 are relabeled. [STATUS](../STATUS.md) distinguishes qualification and PR integration.
+Signed provisioning waits for Clock to pass both publishers' initialization fences
+before refreshing inputs and preparing the first funding reports. This does not
+relax report freshness, the two-second sample interval or monotone observation slots.
 The demo starts workers only after a coherent published finalized provisioning
 journal, waiting across bounded recovery cycles for up to 60 seconds. A completed
 catch-up cycle alone is not readiness.

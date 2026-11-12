@@ -870,6 +870,14 @@ syntax, artifact/helper hash checks and changed-document paths. Browser prefligh
 passes on installed Chrome 157.0.8103.39; actual normal-launcher acceptance is next.
 No new SBF build is required for these client/launcher changes.
 
+The first normal-launcher attempt at `c6435ce` stops during signed provisioning:
+its first report snapshot is still in the publisher initialization slot. The SDK
+correctly rejects the observation fence; no report is submitted. Setup now waits
+for the authenticated Clock boundary before refreshing report inputs. That scoped
+fix awaits a fresh normal-launcher/browser run; the failed session is retained at
+`.local/interactive-demo-p56-selected`. Reclaimed only generated Rust incremental
+build cache to restore disk headroom; databases, keys and evidence are retained.
+
 The earlier 128-root attempts remain failed/partial evidence in validation: an old
 reference ceiling, omitted fixture generation, the 997-original budget/time miss,
 negative-probe headroom and final conformance stdout/meta capture problems. None is

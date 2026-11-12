@@ -64,7 +64,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       data: Buffer.concat([discriminator('initialize'), id]) }], [authority]);
     feeds.push({ index, feed, authority });
   }
-  const configurations = [];
+  const configurations: Address[] = [];
   for (const index of [0, 1]) {
     await h.send('initialize canonical source bindings', [sdk.getInitializeLiquidityOracleInstruction({ ...common,
       authority: payer, market: markets[index], primary: primary.address, guard: guard.address })]);
@@ -103,7 +103,17 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   }
   async function sample() {
     const previous = await Promise.all([0, 1].map(marketState));
-    await waitUntil(previous.reduce((latest, market) => market.oracle.sampledAt > latest ? market.oracle.sampledAt : latest, 0n) + 2n);
+    const publishers = await Promise.all(configurations.map(async configuration =>
+      sdk.getFundingPublisherDecoder().decode((await h.read(configuration))!)));
+    const sampleTime = previous.reduce((latest, market) => market.oracle.sampledAt > latest ? market.oracle.sampledAt : latest, 0n) + 2n;
+    const fenceTime = publishers.reduce((latest, publisher) => publisher.lastObservedTime > latest ? publisher.lastObservedTime : latest, 0n);
+    const fenceSlot = publishers.reduce((latest, publisher) => publisher.lastObservedSlot > latest ? publisher.lastObservedSlot : latest, 0n);
+    await waitUntil(sampleTime > fenceTime ? sampleTime : fenceTime);
+    // Fast confirmed provisioning can still be in the publisher's initialization
+    // slot. Wait before refreshing inputs; never re-date a report or relax its
+    // strictly newer-slot fence. No signed original exists at this point.
+    const deadline = Date.now() + 20_000;
+    while (await slot() <= fenceSlot) { assert(Date.now() < deadline, 'Publisher fence Clock progress'); await delay(100); }
     await fresh();
     const reports: Instruction[] = [];
     for (const index of [0, 1] as const) {

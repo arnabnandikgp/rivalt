@@ -19,6 +19,12 @@ D93–D108 implement the scalable account contract described here. The 64-entry
 **page** is a storage unit, not a venue population cap. Financial entry requires
 complete, rent-funded recovery capacity; the local launcher provisions 128 roots.
 Larger workloads require their own measured acceptance before enabling them.
+These are distinct gates: the program checks actual funded storage against the
+resulting Financial count; operator qualification measures an intended capacity
+and workload, not each new registration. There is no on-chain test-certificate
+flag. Ordinary fills do not enumerate the population. Complete default does, and
+its exact arithmetic cost also depends on claim denominators; paged storage alone
+does not prove practical recovery time at a larger population.
 The following gap matrix records the replaced predecessor; the membership and
 maintained-backing sections describe the current source.
 
