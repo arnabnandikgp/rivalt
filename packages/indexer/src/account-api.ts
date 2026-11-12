@@ -30,14 +30,23 @@ export function accountApi(indexer:LiquidityIndexer) {
     ...(version===4?{liquidity:row.state.liquidity,fundingTrust:'restricted-publisher-attestation',makerScope:'internal-reference-makers'}:{})};});
   app.get<{Params:{owner:string}}>(`${prefix}/portfolios/:owner`,{schema:{params:{type:'object',required:['owner'],additionalProperties:false,properties:{owner:publicKey}}}},async request=>{
     const row=await indexer.store.published();return {...envelope(row),portfolios:Object.entries(row.state.portfolios).filter(([,portfolio])=>portfolio.owner===request.params.owner)
-      .map(([key,portfolio])=>({address:key,...portfolio,accounts:Object.entries(row.state.roots).filter(([,root])=>root.portfolio===key).map(([key,root])=>({address:key,...root}))}))};
+      .map(([key,portfolio])=>({address:key,...portfolio,accounts:Object.entries(row.state.roots).filter(([,root])=>root.portfolio===key).map(([key,root])=>({address:key,...root})),
+        retired:Object.entries(row.state.tombstones).filter(([,root])=>root.portfolio===key).map(([key,root])=>({address:key,...root}))}))};
   });
   app.get<{Params:{margin:string}}>(`${prefix}/accounts/:margin`,{schema:{params:{type:'object',required:['margin'],additionalProperties:false,properties:{margin:publicKey}}}},async(request,reply)=>{
     const row=await indexer.store.published(),account=row.state.roots[request.params.margin];
-    if(!account)return reply.code(404).send({error:'UnknownMarginAccount'});
-    return {...envelope(row),account,fundedCash:account.cash,positiveUnpaidMarginCredit:'0',correlationDiscount:'0',
-      admission:'RequiresCurrentAccountChecksAndSimulation',resolution:row.state.safety?.mode===2?{stage:row.state.resolution!.stage,
-        row:row.state.resolution!.rows[account.id]??null}:null};
+    if(!account) {
+      const tombstone=row.state.tombstones[request.params.margin];
+      return tombstone?{...envelope(row),account:null,tombstone,lifecycle:'Retired',admission:'UnavailableRetiredNamespace'}:
+        reply.code(404).send({error:'UnknownMarginAccount'});
+    }
+    const frozen=account.lifecycle===2&&row.state.safety?.mode===2,current=row.state.resolution;
+    return {...envelope(row),account,lifecycle:account.lifecycle===1?'Registered':'Financial',fundedCash:account.cash,
+      positiveUnpaidMarginCredit:'0',correlationDiscount:'0',
+      admission:account.lifecycle===1?'RequiresFinancialActivation':frozen?'FrozenUntilCompleteResolution':'RequiresCurrentAccountChecksAndSimulation',
+      resolution:frozen&&current?{epoch:current.epoch,stage:current.stage,planStage:row.state.pagedSettlement?.stage??null,
+        cursor:row.state.pagedSettlement?.cursor??current.cursor,count:current.count,
+        applied:current.rows[account.id]?.applied===true,row:current.rows[account.id]??null}:null};
   });
   for(const endpoint of ['events','trades'] as const)app.get<{Querystring:{after?:string;limit?:number;latest?:boolean}}>(`${prefix}/${endpoint}`,
     {schema:{querystring:{type:'object',additionalProperties:false,properties:{latest:{type:'boolean'},after:{type:'string',pattern:'^(0|[1-9][0-9]{0,19})$'},limit:{type:'integer',minimum:1,maximum:100}}}}},async(request,reply)=>{

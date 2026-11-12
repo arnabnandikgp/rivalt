@@ -36,7 +36,7 @@ export async function accountFixture() {
   const batches:Address[][]=[],rpc={call:async(method:string,params:unknown[]=[])=>{
     expect(method).toBe('getMultipleAccounts');const keys=params[0] as Address[];batches.push(keys);return {context:{slot:100},value:keys.map(key=>accounts.get(key)??null)};
   }};
-  const config:sdk.AccountUserConfig={version:4,accountSchema:10 as const,chain:'solana:localnet',profile:'liquidity-execution-qualification',rpcUrl:'http://127.0.0.1:1',wsUrl:'ws://127.0.0.1:2',
+  const config:sdk.AccountUserConfig={version:4,accountSchema:10 as const,deployment:'account-scale-candidate' as const,chain:'solana:localnet',profile:'liquidity-execution-qualification',rpcUrl:'http://127.0.0.1:1',wsUrl:'ws://127.0.0.1:2',
     genesis:mint,anchor:'1'.repeat(88),anchorHash:'00'.repeat(32),venue,mint,domain};
   return {config,accounts,put,rpc,batches,margins:margins.map(([key])=>key),owner,portfolio,custody,safety,empty,marketPdas};
 }

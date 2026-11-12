@@ -189,3 +189,18 @@ not a deployment or financial qualification. Select the same explicit
 `RIVALT_ACCOUNT_DEPLOYMENT=account-scale-candidate` on worker and executor only with
 its fixed schema-10 artifact/database binding. Default selection and runtime
 promotion remain unchanged; see [durability](../application/durability.md#paged-default-controller-p56a1-candidate).
+
+
+### Account-scale wallet candidate
+
+P56A2's dedicated local probe uses `RIVALT_SETTLEMENT_PROBE=account-clients` with
+`ops/scalable-settlement-smoke.sh` and the explicitly pinned candidate artifact
+directory. It builds the trader UI and runs an internal Wallet Standard browser
+against real Surfpool RPC/WS and owned PostgreSQL. It does not promote
+`.local/anchor-rc2/current`; normal runtime activation remains P56B.
+
+Candidate wallet configuration requires `accountSchema: 10` and
+`deployment: "account-scale-candidate"`. Candidate service and indexer processes
+both require `RIVALT_ACCOUNT_DEPLOYMENT=account-scale-candidate`. Exact executable,
+anchor, genesis and domain checks reject mismatched deployments. The browser
+qualifies an internal test signer; it does not claim new external-wallet review.

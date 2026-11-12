@@ -1,5 +1,5 @@
 import {address} from '@solana/kit';
-import {LiquidityArtifactVerifier,LIQUIDITY_ARTIFACT_SET} from '@rivalt/sdk';
+import {ArtifactVerifier,accountDeployment,type AccountDeployment} from '@rivalt/sdk';
 import {FinalizedIndexer,type TransportConfig} from './finalized-indexer.js';
 import {LiquidityStore,type LiquidityBinding} from './liquidity-store.js';
 import {decodeAccountInvocations,eventDomain,type AccountEvent} from './account-events.js';
@@ -8,14 +8,17 @@ import {hash} from './events.js';
 import {integer} from './rpc.js';
 import {captureAccountReconciliation,reconcileAccountSnapshot} from './account-reconcile.js';
 
-export type LiquidityConfig=Omit<TransportConfig,'chain'|'maxTransactionVersion'>&{venue:string;profile:'liquidity-execution-qualification'};
+export type LiquidityConfig=Omit<TransportConfig,'chain'|'maxTransactionVersion'>&{venue:string;profile:'liquidity-execution-qualification';deployment?:AccountDeployment};
 export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBinding,AccountEvent> {
-  private readonly artifacts=new LiquidityArtifactVerifier(this.rpc);
+  private readonly selected:ReturnType<typeof accountDeployment>;
+  private readonly artifacts:ArtifactVerifier;
   declare readonly config:LiquidityConfig;
   constructor(config:LiquidityConfig) {
     if(config.profile!=='liquidity-execution-qualification')throw new Error('Explicit qualified local liquidity profile required');
     address(config.venue);
     super({...config,chain:'solana:localnet',maxTransactionVersion:1},new LiquidityStore(config.databaseUrl,config.runId));
+    this.selected=accountDeployment(config.deployment??'selected');
+    this.artifacts=new ArtifactVerifier(this.rpc,this.selected.artifacts);
   }
   protected get historyAddress(){return this.config.venue;}
   protected decodeTransaction(signature:string,transaction:any,transactionIndex:number,binding:LiquidityBinding) {
@@ -27,20 +30,20 @@ export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBin
     const invocations=decodeAccountInvocations(this.config.anchor,anchor,0,{program:this.deployment.clearing,eventAuthority:this.eventAuthority,venue:this.config.venue,domain});
     const initialization=invocations.find(value=>value.writes.some(write=>write.account===this.config.venue&&write.kind===0&&write.before==='0'));
     const init=initialization?.events.find(event=>event.type==='AccountCustodyChangedV3'&&event.data.kind===0);
-    if(!init)throw new Error('Invalid liquidity initialization anchor');
+    if(!init||this.selected.schema!==10||init.data.profileVersion!==this.selected.programProfile)throw new Error('Invalid liquidity initialization anchor or deployment selection');
     await this.artifacts.verify(address(init.data.authority));
-    return {schema:10,venue:this.config.venue,profile:this.config.profile,artifactSet:LIQUIDITY_ARTIFACT_SET,genesis,domain:init.data.domain,
+    return {schema:10,venue:this.config.venue,profile:this.config.profile,artifactSet:this.selected.artifactSet,genesis,domain:init.data.domain,
       anchor:this.config.anchor,anchorHash:hash(anchor.transaction),program:this.deployment.clearing};
   }
   async reconcile(snapshot?:{state:AccountState;binding:LiquidityBinding}) {
     const row=snapshot??await this.store.snapshot();
-    if(row.binding.artifactSet!==LIQUIDITY_ARTIFACT_SET||row.state.venue?.profileVersion!==6||!row.state.liquidity)
+    if(row.binding.artifactSet!==this.selected.artifactSet||row.state.venue?.profileVersion!==6||!row.state.liquidity)
       throw new Error('Unqualified liquidity journal deployment');
     await this.artifacts.verify(address(row.state.venue.authority));
     return reconcileAccountSnapshot(row.state,row.binding,keys=>this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]));
   }
   protected async capture(snapshot:{state:AccountState;binding:LiquidityBinding},minimumSlot:number) {
-    if(snapshot.binding.artifactSet!==LIQUIDITY_ARTIFACT_SET||snapshot.state.venue?.profileVersion!==6||!snapshot.state.liquidity)
+    if(snapshot.binding.artifactSet!==this.selected.artifactSet||snapshot.state.venue?.profileVersion!==6||!snapshot.state.liquidity)
       throw new Error('Unqualified liquidity journal deployment');
     await this.artifacts.verify(address(snapshot.state.venue.authority));
     const witness=await captureAccountReconciliation(snapshot.state,snapshot.binding,keys=>this.rpc.call('getMultipleAccounts',

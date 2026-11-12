@@ -36,10 +36,11 @@ export function useAccountController(config: AccountTraderConfig) {
   const venue = useAccountVenue(config, `${portfolioIndex}:${subaccount}:${marketIndex}`, portfolioIndex, subaccount),
     snapshot = venue.snapshot;
   const { accounts } = venue;
+  const retired = venue.retired??[],retiredSelection=retired.some(([,entry])=>entry.child===subaccount);
   const portfolio = venue.ownerPortfolio?.account ? venue.ownerPortfolio.address : undefined;
   const selected = accounts.find(([, root]) => root.subaccountIndex === subaccount),
     margin = selected?.[0] as Address | undefined,
-    root = margin ? snapshot?.roots[margin] : undefined;
+    root = margin ? snapshot?.roots[margin]??selected?.[1] : undefined;
   const [collateral, setCollateral] = useState(''),
     [amount, setAmount] = useState('1'),
     [recipient, setRecipient] = useState('');
@@ -60,10 +61,10 @@ export function useAccountController(config: AccountTraderConfig) {
   const [delegate, setDelegate] = useState(''),
     [delegateSlots, setDelegateSlots] = useState('1200');
   const selectedMarket = MARKETS[marketIndex];
-  const view = root && snapshot ? venue.client.balance(snapshot, margin!) : undefined;
+  const view = root?.lifecycle===2 && snapshot ? venue.client.balance(snapshot, margin!) : undefined;
   const disabled = Boolean(venue.busy) || !venue.canSign || Boolean(venue.rpcError);
   const financialDisabled =
-    disabled || !root || Boolean(snapshot?.safetyState.paused) || snapshot?.safetyState.mode === 2;
+    disabled || root?.lifecycle!==2 || !snapshot || Boolean(snapshot?.safetyState.paused) || snapshot?.safetyState.mode === 2;
   const marketAllowed = Boolean(
     root && root.role === 0 && snapshot?.safetyState.mode === 1 &&
     (root.mode === 0 || root.isolatedMarketIndex === marketIndex),
@@ -132,6 +133,25 @@ export function useAccountController(config: AccountTraderConfig) {
     ], [portfolio ? `Create immutable ${subaccount === 0 ? 'cross' : `isolated ${selectedMarket.name}`} account ${subaccount} in portfolio ${portfolioIndex}.`
       : `Create portfolio ${portfolioIndex}. No collateral is moved.`]), via: 'rpc',
   }));
+  const activateAndDeposit=()=>venue.preview(async(_state,owner)=>{
+    if(!margin||root?.lifecycle!==1)throw new Error('Select a Registered account.');
+    const atoms=units(amount,6,'Collateral'),plan=await venue.client.activateAndDeposit(owner,margin,token(),atoms);
+    return {...await venue.client.prepare('Activate and deposit',owner,plan.instructions,[
+      `Activate this account and deposit ${fixed(atoms)} test USD atomically.`,
+      'If admission or the token transfer fails, neither action takes effect. Recovery storage is funded separately by the venue.',
+    ]),via:'rpc'};
+  });
+  const membership=(retire:boolean)=>venue.preview(async(_state,owner)=>{
+    if(!margin)throw new Error('Select an owned margin account.');
+    const instruction=retire?await venue.client.retire(owner,margin):await venue.client.changeMembership(owner,margin,false);
+    return {...await venue.client.prepare(retire?'Retire account':'Deactivate account',owner,[instruction],[retire?
+      `Permanently retire account ${subaccount}. This address and child slot cannot be reused. Excess account rent returns to your wallet.`:
+      'Leave the financial cohort after all cash, claims, positions, orders and delegated authority are cleared. This account can be activated again.']),via:'rpc'};
+  });
+  const emptyForMembership=Boolean(root&&root.cash===0n&&root.reserved===0n&&root.delegate===zero&&root.delegateExpirySlot===0n
+    &&root.positions.every(position=>position.lots===0n&&position.virtualScaled===0n)
+    &&root.book.orders.every(entry=>![1,2].includes(entry.order.state)&&entry.order.reserve===0n)
+    &&root.book.protections.every(entry=>entry.protection.remaining===0n));
   const cash = (withdraw: boolean) =>
     prepare(withdraw ? 'Withdraw' : 'Deposit', async (state, owner) => {
       currentRoot(state, owner);
@@ -373,6 +393,11 @@ export function useAccountController(config: AccountTraderConfig) {
     snapshot,
     portfolio,
     accounts,
+    retired,
+    retiredSelection,
+    activateAndDeposit,
+    membership,
+    emptyForMembership,
     margin,
     root,
     collateral,

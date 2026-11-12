@@ -867,3 +867,23 @@ runtime is unchanged until P56B qualification. P56A2 owns full wallet/discovery
 acceptance. No economics, on-chain ABI, larger-population admission or deployment
 promotion changes here. Acceptance is established only when STATUS/validation record
 actual signed default, upload/Apply crash recovery and exact PostgreSQL replay.
+
+
+## D104 — Explicit candidate wallet binding and atomic financial entry
+
+12 November 2026. P56A2 shares the exact account-scale candidate binding across
+SDK, services and indexer; wallet configuration selects it explicitly. This does
+not promote the selected runtime or migrate a retained journal/original.
+Owner discovery uses one bounded portfolio-plus-children snapshot and returns
+permanent tombstones, preserving stable u64 identity and the current child policy.
+
+The only added multi-action retail envelope is owner-signed activation followed
+by a positive deposit into that same empty account, with identical venue/root/
+safety/event bindings and the complete bounded index path. On-chain membership,
+storage, custody and token checks remain authoritative and both actions roll back
+on failure. Rent/storage provisioning remains explicit and separate from collateral.
+No invented pre-state expiry proof authorizes replacement of an ambiguous original.
+Registered roots are not projected as Financial; retired slots cannot be reused.
+This changes the client integration surface, not margin, fees, funded-versus-unpaid
+ownership, default coverage, Financial admission capacity or default/devnet gates.
+Acceptance remains pending until the signed client/browser/SQL run is recorded.

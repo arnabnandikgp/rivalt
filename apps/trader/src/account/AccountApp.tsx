@@ -18,13 +18,17 @@ function Selection({controller}: {controller: AccountController}) {
     <Field label="Margin account"><select value={subaccount} onChange={event=>setSubaccount(Number(event.target.value))}>
       {controller.offeredChoices.map(index=>{
         const account=accounts.find(([,value])=>value.subaccountIndex===index)?.[1];
-        return <option key={index} value={index}>{account?accountLabel(account):index===0?'Cross · not registered':`Isolated ${index} · not registered`}</option>;
+        const retired=controller.retired.some(([,entry])=>entry.child===index);
+        return <option key={index} value={index}>{account?`${accountLabel(account)}${account.lifecycle===1?' · inactive':''}`:retired?`${index===0?'Cross':`Isolated ${index}`} · retired`:index===0?'Cross · not registered':`Isolated ${index} · not registered`}</option>;
       })}
     </select></Field>
     <Field label="Market"><select value={marketIndex} disabled={root?.mode===1} onChange={event=>setMarketIndex(Number(event.target.value) as 0|1)}>
       {MARKETS.map((market,index)=><option key={market.name} value={index}>{market.name}</option>)}
     </select></Field>
-    {!root&&<button disabled={disabled} onClick={()=>void create()}>{portfolio?'Register account':'Create portfolio'}</button>}
+    {!root&&!controller.retiredSelection&&<button disabled={disabled} onClick={()=>void create()}>{portfolio?'Register account':'Create portfolio'}</button>}
+    {controller.retiredSelection&&<p role="status">This account is permanently retired. Choose another unused account slot.</p>}
+    {root&&<div className="button-row"><button disabled={disabled||!controller.emptyForMembership} onClick={()=>void controller.membership(root.lifecycle===1)}>
+      {root.lifecycle===1?'Retire account':'Deactivate account'}</button></div>}
     <p className="caption">Cross shares this account’s cash across BTC and ETH. Isolated uses only its selected market. Sibling accounts never supply collateral automatically. Account mode is fixed at creation.</p>
   </section>;
 }
@@ -47,13 +51,14 @@ function Balances({controller}: {controller: AccountController}) {
       <Field label="Collateral amount"><input value={amount} inputMode="decimal" onChange={event=>setAmount(event.target.value)}/></Field>
     </div>
     <div className="button-row">
-      <button disabled={financialDisabled||!collateral||![0,1].includes(snapshot?.safetyState.mode??-1)} onClick={()=>void cash(false)}>Deposit</button>
+      {root?.lifecycle===1?<button disabled={controller.disabled||!collateral} onClick={()=>void controller.activateAndDeposit()}>Activate and deposit</button>:
+        <button disabled={financialDisabled||!collateral||![0,1].includes(snapshot?.safetyState.mode??-1)} onClick={()=>void cash(false)}>Deposit</button>}
       <button disabled={financialDisabled||!collateral} onClick={()=>void cash(true)}>Withdraw</button>
       <button disabled={financialDisabled||root?.mode!==0||snapshot?.safetyState.mode!==1} onClick={()=>void net()}>Net closed claims</button>
     </div>
     <p className="caption">Netting is explicit and flat-only. It uses the amount above and the selected market’s positive closed claim, subject to available certified backing.</p>
     <Field label="Allocate to account"><select value={recipient} onChange={event=>setRecipient(event.target.value)}>
-      <option value="">Choose recipient</option>{accounts.filter(([key])=>key!==margin).map(([key,account])=><option key={key} value={key}>{accountLabel(account)}</option>)}
+      <option value="">Choose recipient</option>{accounts.filter(([key,account])=>key!==margin&&account.lifecycle===2).map(([key,account])=><option key={key} value={key}>{accountLabel(account)}</option>)}
     </select></Field>
     <button disabled={financialDisabled||!recipient||![0,1].includes(snapshot?.safetyState.mode??-1)} onClick={()=>void allocate()}>Allocate collateral</button>
   </section>;

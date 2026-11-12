@@ -48,3 +48,18 @@ it('renders occupied operator slots and funded cash without offering trader acti
     if(role!==0)expect(html).toContain(role===1?'Maker capital':'Liquidation receiver');
   }
 });
+
+it('shows Registered activation and permanent retirement without pretending either is a financial snapshot',async()=>{
+  const test=await accountTradeFixture(),client=new sdk.AccountUserClient(test.config),margin=test.margins[0];
+  const root=sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(margin).data[0],'base64'));
+  root.lifecycle=1;root.cash=0n;
+  vi.stubGlobal('localStorage',{getItem:()=>null});
+  fixture.venue={client,snapshot:undefined,accounts:[[margin,root]],retired:[],ownerPortfolio:{address:test.portfolio,account:{}},tokens:[],
+    canSign:true,busy:'',rpcError:'',records:[],feed:{trades:[],events:[],ready:false}};
+  const config={...test.config,readBase:'/read' as const,apiBase:'/api' as const};
+  let html=renderToStaticMarkup(<AccountApp config={config}/>);
+  expect(html).toContain('Activate and deposit');expect(html).toContain('Retire account');expect(html).not.toContain('>Register account<');
+  fixture.venue.accounts=[];fixture.venue.retired=[[margin,{child:0,id:'9007199254740993'}]];
+  html=renderToStaticMarkup(<AccountApp config={config}/>);
+  expect(html).toContain('permanently retired');expect(html).not.toContain('>Register account<');expect(html).not.toContain('Activate and deposit');
+});

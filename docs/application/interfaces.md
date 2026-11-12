@@ -1,33 +1,35 @@
 # SDK, API and wallet contracts
 
-## Planned account-scale interface (P51B)
+## Account-scale candidate interfaces
 
-The schema-9/profile-5 [account contract](../clearing/accounts.md#account-scale-successor-contract-p51b)
-is implemented in the P55A2 source and generated codecs. The
-selected, qualified artifact remains schema 8; these clients cannot reinterpret
-that deployment. P55A2 has a pinned schema-9 candidate and signed lifecycle/default evidence;
-complete UI/worker acceptance and runtime promotion remain P56A/P56B in STATUS.
-P56A owns complete UI and restartable worker integration before expanded financial
-activation. u64 member IDs/cursors are decimal strings
-in JSON and bigint internally; u32 portfolio/child keys have explicit bounds.
-Never cast a member ID into a JS number or confuse a page slot with a global ID.
+The schema-10/profile-6 account candidate uses stable u64 identities, Registered /
+Financial / Retired lifecycle states, paged membership and maintained backing.
+The selected artifact remains schema 8 pending P56B qualification; current codecs
+cannot reinterpret that deployment. P56A qualification and remaining limits are
+recorded in STATUS and validation, separately from source implementation.
+Member IDs/cursors are decimal strings in JSON and bigint internally; u32
+portfolio/child keys have explicit bounds. Never cast a member ID into a JS number
+or confuse a page slot with a global ID.
 
-Paginate authenticated identities separately from the live financial index.
-Responses distinguish Registered, Financial, Retired and frozen/apply-pending
-state. A retired namespace is unavailable for reuse; a hidden zero balance does
-not prove retirement eligibility. Display funding cash and fractional/unpaid claims
-as before. SDK activation must name its storage/rent payer and include the actual
-atomic activation/deposit instructions; a provisioned page is not a funded account.
-Do not claim a complete portfolio/venue from one page or a partially caught-up DB.
+Owner discovery reads the portfolio and its nine currently supported child PDAs
+in one finalized RPC batch. It validates the complete active-child count, canonical
+keys, owner/domain, schemas, generations and distinct stable identities. Returned
+retired tombstones reserve their child slots permanently. Registered roots are
+identity/lifecycle facts; financial snapshots still require Financial roots.
+The owner namespace policy remains separate from the venue's scalable member index.
+
+The published API lists active roots and retired children separately per portfolio.
+Account reads distinguish Registered, Financial and Retired; a frozen Financial
+account also includes the source epoch/stage, adopted plan stage/cursor and its
+actual Apply status. No partially applied root becomes withdrawable until complete
+resolution. A missing root is distinct from a permanent tombstone.
 
 Default workers follow authenticated epoch/stage/cursors and upload untrusted rate/
 order proposals in bounded transactions. Retry the same persisted signed original
 after ambiguity, and reconcile its actual finalized transition before new work.
-Expose classified missing-storage, proposal-rejected, in-progress, invalidated-
-region and genuinely unbacked payment states. Neither a solver's model nor a local
-database can declare a root applied or a creditor paid. P52's staged indexer may
-land first with the current schema; it must preserve that schema's financial
-readiness rules rather than invent the future layout.
+Neither a solver's model nor a local database can declare a root applied or a
+creditor paid. P56A1 owns durable default; P56A2 owns wallet/discovery integration.
+Neither enables a larger Financial population; P56B owns that activation.
 
 ## Explicit deployment identity
 
@@ -35,8 +37,8 @@ readiness rules rather than invent the future layout.
 pins, genesis and the actual initialization signature/hash. Configuration includes
 RPC/WS URLs, venue, mint and domain. Never infer a deployment from a port or retained
 acceptance dump. The fresh RC2 deployment requires explicit
-`accountSchema: 9` in addition to transport `version: 4` and the local profile;
-missing/old schema selection rejects. The in-progress clearing-owned decoders use schema 9 / on-chain profile 5,
+`accountSchema: 10`, `deployment: "account-scale-candidate"`, transport `version: 4` and the local profile;
+missing/old schema or deployment selection rejects. Clearing-owned decoders use schema 10 / on-chain profile 6,
 while maker-owned curve/price schemas advance to 5; quote/report protocol versions remain unchanged. This is a fresh-domain/client change,
 not permission to upgrade retained state or replay old signed originals. [Deployment](../operations/deployment.md) owns
 artifact and key configuration; [routing](../liquidity/routing.md) owns snapshots.
@@ -49,9 +51,19 @@ funded index/storage accounts. Owner discovery reads the current bounded child
 namespace and validates tombstones rather than interpreting `activeChildren` as a
 bitmap. Ordinary money/trade snapshots require Financial roots with nonzero
 activation generation. These are client checks; landed clearing admission remains
-authoritative. Complete wallet/UI flow acceptance remains P56A work.
+authoritative. Activation plus deposit is atomic; admission failure or a failed token transfer
+rolls back both. Recovery capacity and member/index storage must be provisioned
+with an explicitly identified SOL payer before admission; this wallet action
+does not silently pay operator storage rent. Deactivation requires no cash,
+claims, reservations, positions, orders or live delegate. Retirement is owner
+signed, permanent, and refunds only excess account rent. Historical counters
+are preserved rather than erased to manufacture emptiness. STATUS records the
+actual wallet/UI acceptance scope.
 
-P47 qualifies the exact C0 local artifacts. Normal launchers use the separate
+The shared SDK deployment table binds client, service and indexer to the exact
+candidate executable hashes. `RIVALT_ACCOUNT_DEPLOYMENT=account-scale-candidate`
+is required for candidate service/indexer entrypoints; it cannot select arbitrary
+hashes or reinterpret existing journals. Normal launchers retain the separate
 `.local/anchor-rc2/current` directory; deployment binding and executable hash checks
 remain mandatory.
 
@@ -121,9 +133,12 @@ bounded search metrics, distinct from insufficient depth or failed account healt
 It supplies no provisional winning allocation or transaction to sign. Direct SDK
 callers receive `LiquiditySearchLimitError` for the same condition.
 
-Public submission accepts one allowlisted measured wallet action, one wallet
-signer, exact decoded venue/actor/owner identity and explicit resource/zero-priority
-policy. No arbitrary operator instruction or implicit sponsorship. The executor
+Public submission accepts one allowlisted wallet action, or exactly activation
+followed by a positive deposit into the same root. Both instructions must bind
+the same owner, venue, margin, safety and event authority; activation supplies
+exactly fifteen writable index nodes. No arbitrary financial batching is accepted.
+Every envelope has one wallet signer, exact decoded identity and explicit
+resource/zero-priority policy (400,000 CU for membership/cash, 800,000 for routing). No arbitrary operator instruction or implicit sponsorship. The executor
 stores and submits the exact signed original; shared account contexts are parsed
 with the correct current IDL, never legacy account-index assumptions.
 
@@ -154,8 +169,8 @@ Never describe insurance as guaranteed profit backing, reference makers as
 independent operators, or assumed hedges as observed costs. Instrumented local
 Wallet Standard browser evidence is distinct from external-provider compatibility.
 
-The current RC2 account-schema-8 deployment retains API version 4 but requires
-`accountSchema: 9` in deployment configuration and API envelopes. `asOf.cursor`
+The schema-10 candidate retains API version 4 and reports `accountSchema: 10`
+in configuration and API envelopes. The selected older artifacts remain separate. `asOf.cursor`
 is the journal-local financial-payload cursor, `asOf.cursorScope` identifies that
 scope, and `asOf.blockhash`/`slot` identify its complete finalized block fence.
 Scoped revisions authenticate protocol history; UI pagination cursors do not.
