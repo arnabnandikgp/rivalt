@@ -211,3 +211,10 @@ scalar path. The option accepts only integers 1–8 and is honored solely within
 explicit account-scale candidate. The same actual default/independent money,
 upload/Apply crash recovery, RPC/WS and fresh PostgreSQL assertions remain required.
 This resource experiment does not select new binaries or expand admission.
+
+The populated default probe accepts `RIVALT_DEFAULT_POPULATION=128` (or the extended
+`1024` diagnostic) with explicitly pinned D106 candidate artifacts. It creates real
+funded isolated/cross accounts, trades both signs, freezes the complete Financial
+cohort and checks independent exact payouts. The 128 case asserts G1's transaction,
+time, test-fee and recovery-state budgets. Omitting the option retains the eight-root
+comparison. Old D102 binaries cannot admit the larger cohort and are not substitutes.

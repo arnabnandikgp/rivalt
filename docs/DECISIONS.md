@@ -905,3 +905,20 @@ size, measured CU and returned data are bounded by the durability contract.
 Default operation stays scalar until the changed signed crash/replay and resource
 checks pass. Larger population and selected runtime promotion retain their own
 P56 acceptance gates; simulation or unit tests do not satisfy them.
+
+## D106 — Financial capacity follows authenticated recovery storage
+
+12 November 2026. Within the already approved P51–P56 direction, P56 removes the
+temporary fixed 64-Financial check from the next candidate source. D100's complete
+physical recovery proof remains mandatory and becomes the population admission
+boundary. A caller-supplied count, rent balance, partially provisioned workspace or
+empty identity cannot substitute for that proof. Stable IDs, exact index paths,
+lifecycle generations, source/default locks and complete-cohort settlement remain.
+
+This deliberately retires the transitional numeric gate retained by P55 while
+keeping its original purpose: no larger selected runtime without actual populated
+qualification. The next binary is separately pinned; existing selected artifacts
+and their retained original transactions are untouched. G1 resource/recovery,
+independent money and real RPC/WS/PostgreSQL acceptance precede promotion. The
+128/1,024 targets do not become replacement protocol ceilings. Default/devnet
+trading and independent external gates remain unchanged.

@@ -747,3 +747,20 @@ error numbers remain unchanged against P55B1. `check_market_backing` makes its
 existing selected ledger writable and writes a member root only for a member step.
 Fresh deployments and journal databases are mandatory; selected schema-8 and
 accepted P55A2 schema-9 evidence do not qualify schema 10. See [accounting](accounting.md#on-chain-maintained-proof-p55b2-candidate).
+
+### Workspace-backed population candidate (P56)
+
+D106 removes the temporary `MAX_MEMBERS=64` check from the next explicit local
+candidate. Financial entry still authenticates the root lifecycle, exact registry
+membership epoch, all fifteen path revisions and the fully rent-funded reusable
+workspace. `RecoveryStorage.ready_capacity` must cover the resulting Financial
+count; a partial larger proof cannot supply capacity. Frozen storage excludes
+membership changes. Empty registration and permanent IDs never consume financial
+workspace capacity. No account layout, discriminator, seed or permission changes.
+
+This source change requires a newly pinned clearing binary and the 128-populated-
+root resource/recovery acceptance before selected runtime promotion. Previously
+qualified D102 binaries retain their 64-Financial gate. Native models, empty
+registration beyond 64, and the eight-root batch run do not qualify expansion.
+The G1 128/1,024 cohorts are measured acceptance cases, not new fixed protocol caps;
+operators must provision and qualify the capacity they intend to enable.

@@ -5,6 +5,9 @@ import {execFileSync} from 'node:child_process';
 import {writeFileSync,readFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
 import {VersionedTransaction} from '@solana/web3.js';
+import {AccountRole} from '@solana/kit';
+import {populateDefaultCohort,defaultStorageResources} from './scaled-default-setup.js';
+import {transactionLocks} from '../performance/lock-model.js';
 import * as sdk from '@rivalt/sdk';
 import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
 import {json} from '../../packages/indexer/src/events.js';
@@ -21,6 +24,8 @@ const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATAB
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const build=verifyBackingBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
+const population=Number(process.env.RIVALT_DEFAULT_POPULATION??'8');
+assert([8,128,1024].includes(population),'Explicit default population required');
 const helper=JSON.parse(readFileSync('.local/settlement-helper/manifest.json','utf8'));assert.equal(helper.trackedDirty,false);
 process.env.RIVALT_ACCOUNT_DEPLOYMENT='account-scale-candidate';
 const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(rpcUrl,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:()=>1_000_000});
@@ -28,7 +33,8 @@ let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,runtime:
 const originals:any[]=[],faults:any[]=[],outcomes:any[]=[],stages:any[]=[];
 const persist=()=>writeFileSync(`${directory}/worker-progress.json`,json({revision,build,helper,originals,faults,outcomes,stages}));
 try {
-  const setup=await liquidityExecutionSetup(h,rpc,{verifyRejections:false});
+  const setup=await liquidityExecutionSetup(h,rpc,{verifyRejections:false,...(population>8?{makerCash:50_000_000n}: {})});
+  const populated=population>8?await populateDefaultCohort(h,setup,population as 128|1024):null;
   const {root,guard,route}=executionTestHelpers(h,setup),trader=setup.roots[0],owner=setup.traderOwner;
   await h.send('bound actual cross cash before default exposure',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
     btc:setup.markets[0],eth:setup.markets[1],owner,margin:trader,quoteMint:setup.mint.address,userToken:setup.traderToken.address,
@@ -54,6 +60,7 @@ try {
   const expected=JSON.parse(execFileSync('python3',['tests/financial/settlement_rpc_reference.py'],{
     input:json({rows,pools:initial.poolsBefore,insurance:initial.insuranceBefore}),encoding:'utf8'}));
   writeFileSync(`${directory}/independent-default.json`,json({rows,initial,expected}));
+  const storageResources=await defaultStorageResources(rpc);
   await flush();journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)));
   await journal.checkpoint('default-worker-start',true);
   const open=async()=>{const result=new AccountRuntime(databaseUrl,'p55b2-application',rpcUrl,4,'account-scale-candidate');await result.open();return result;};
@@ -69,7 +76,8 @@ try {
   };
   captureSimulation(runtime);
   while((await source()).stage!==11) {
-    assert(originals.length<1200,'Bounded worker continuation safety budget');
+    const stepStarted=performance.now();
+    assert(originals.length<(population===8?1200:2000),'Bounded worker continuation safety budget');
     const outcome=await runtime.riskWork(setup.payer);outcomes.push(outcome);persist();
     assert.equal(outcome.status,'queued',json(outcome));
     const pending:any[]=(await runtime.store.pool.query("SELECT * FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[runtime.runId])).rows;
@@ -79,6 +87,16 @@ try {
     const wire=VersionedTransaction.deserialize(Buffer.from(original.wire,'base64'));
     const actions=wire.message.compiledInstructions.filter(instruction=>wire.message.staticAccountKeys[instruction.programIdIndex].address===sdk.CLEARING_PROGRAM_ADDRESS);
     const matching=(tag:Parameters<typeof sdk.hex>[0])=>actions.filter(instruction=>sdk.hex(instruction.data.slice(0,8))===sdk.hex(tag));
+    if(population>8&&originals.length===0) {
+      const actionsWithMetas=actions.map(instruction=>({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data:instruction.data,
+        accounts:instruction.accountKeyIndexes.map(index=>({address:wire.message.staticAccountKeys[index].address,
+          role:wire.message.isAccountSigner(index)?(wire.message.isAccountWritable(index)?AccountRole.WRITABLE_SIGNER:AccountRole.READONLY_SIGNER):
+            wire.message.isAccountWritable(index)?AccountRole.WRITABLE:AccountRole.READONLY}))}));
+      const writable=transactionLocks(Buffer.from(original.wire,'base64')).write.filter(key=>key!==setup.payer.address);
+      const before=await Promise.all(writable.map(key=>h.read(key as typeof setup.venue)));
+      await h.send('replayed final instruction rolls back entire default batch',[...actionsWithMetas,actionsWithMetas[0]],[],sdk.CLEARING_ERROR__RESOLUTION);
+      assert.deepEqual(await Promise.all(writable.map(key=>h.read(key as typeof setup.venue))),before);
+    }
     const applications=matching(sdk.APPLY_SETTLEMENT_MARGIN_DISCRIMINATOR).map(instruction=>sdk.getApplySettlementMarginInstructionDataDecoder().decode(instruction.data));
     const faultKind=matching(sdk.UPLOAD_SETTLEMENT_RATE_DISCRIMINATOR).length?'upload':applications.length?'apply':undefined;
     if(faultKind&&!faults.some(fault=>fault.kind===faultKind)) {
@@ -96,7 +114,7 @@ try {
     assert(transaction.meta.computeUnitsConsumed<=1_000_000);
     const history=await rpc.call('getTransaction',[original.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     conformance.record([],history);
-    originals.push({requestId:original.request_id,reason:outcome.reason,actionCount:actions.length,appliedOrdinals:applications.map(value=>value.ordinal),signature:original.signature,wire:original.wire,receipt,transaction,notification});
+    originals.push({elapsedMs:performance.now()-stepStarted,requestId:original.request_id,reason:outcome.reason,actionCount:actions.length,appliedOrdinals:applications.map(value=>value.ordinal),signature:original.signature,wire:original.wire,receipt,transaction,notification});
     const current=await source();stages.push({step:originals.length,source:current.stage,revision:current.revision});persist();
     for(const application of applications) {
       const ordinal=Number(application.ordinal);
@@ -129,7 +147,15 @@ try {
   await h.send('explicit recovery to custody',[sdk.getRecoverAccountsInstruction({...setup.safetyCommon,...sources,caller:setup.payer,epoch:initial.epoch,resume:true})]);
   await flush();await journal.checkpoint('default-worker-recovered',true);const sql=await journal.finish();
   const parity=await conformance.finish(directory,[],h.read);
-  writeFileSync(`${directory}/result.json`,json({revision,build,helper,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,defaultBatchSteps:runtime.defaultContinuationSteps,
+  const latency=originals.map(value=>value.elapsedMs).sort((left,right)=>left-right);
+  const resources={elapsedMs,continuationTransactions:originals.length,financialInstructions:originals.reduce((sum,value)=>sum+value.actionCount,0),
+    p50OriginalMs:latency[Math.ceil(latency.length*0.5)-1],p95OriginalMs:latency[Math.ceil(latency.length*0.95)-1],
+    feeLamports:budget[0].spent,peakCu:Math.max(...originals.map(value=>value.transaction.meta.computeUnitsConsumed)),
+    peakWireBytes:Math.max(...originals.map(value=>Buffer.from(value.wire,'base64').length)),storageResources};
+  const operatingEnvelope=population!==128||originals.length<=2000&&elapsedMs<=900_000&&BigInt(budget[0].spent)<=10_000_000n
+    &&storageResources.recoveryBytes<=16*1024*1024;
+  writeFileSync(`${directory}/result.json`,json({revision,build,helper,populated,resources,operatingEnvelope,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,defaultBatchSteps:runtime.defaultContinuationSteps,
     endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
-    limitations:['eight Financial roots; larger population and selected runtime promotion remain P56B','internal makers and synthetic oracle inputs']}));
+    limitations:[`${population} Financial roots; selected runtime promotion remains gated pending complete P56 acceptance`,'internal makers and synthetic oracle inputs']}));
+  assert(operatingEnvelope,'P56 populated cohort exceeds G1 resource envelope; retained results are not acceptance');
 } finally {persist();await runtime?.close();await journal?.close();try{await flush();}finally{ws.close();}}
