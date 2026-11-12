@@ -160,7 +160,7 @@ export async function exercisePopulatedConcurrency(h:CanonicalHarness,setup:Setu
     const owner=await fixtureKey(`p56-scale-owner-${Math.floor(item.ordinal/16)}`),before=await root(item.margin);
     const side=before.positions[index].lots>0n?1:0;
     return {item,owner,before,side,instruction:await route({trader:item.margin,actor:owner,marketIndex:index as 0|1,
-      side,makers:[setup.instances[index*3+item.ordinal%3]],lots:[1n],reduceOnly:true,minimalMarkets:true})};
+      side,makers:[setup.instances[index*3+item.ordinal%3]],lots:[1n],reduceOnly:true,generation:before.positions[index].generation,minimalMarkets:true})};
   }));
   const labels=['populated concurrent isolated BTC','populated concurrent isolated ETH'];
   await Promise.all(instructions.map((value,index)=>h.send(labels[index],[value.instruction],[value.owner])));

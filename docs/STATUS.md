@@ -897,8 +897,12 @@ jobs pass on `74484ea` (run 43135017367). The resource-only successor permits up
 32 instructions per explicit batch under unchanged measured CU/wire/data limits;
 15 scoped planner tests and typecheck pass in the separate preparation checkout.
 It also uses minimal market dependencies and adds independently paid concurrent
-isolated BTC/ETH closes. This pending signed run changes no program binary, risks
-or payouts. Selected schema-8 runtime remains unpromoted.
+isolated BTC/ETH closes. The first resource run stops before any default original because its new reduce-only
+concurrency fixture omitted the required position generation; the program correctly
+rejects it as RouteIntent. The fixture now binds the actual generation. Earlier
+absolute run-directory startup failed before financial provisioning and is retained.
+Neither attempt counts as larger-batch acceptance. Selected schema-8 runtime remains
+unpromoted.
 
 ## Deployment and operational limits
 
