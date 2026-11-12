@@ -26,7 +26,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
-| P56 account-scale services, clients and activation | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above #84; internal A1 passes on clean `25ed94a`: 665 durable originals, two actual SIGKILL/same-original recoveries, independent exact payouts, token exit, sustained recovery and 109-event identical PostgreSQL replay. A2 wallet/client implementation passes 30 focused checks/typecheck/build; clean `10b55aa` signs registration beyond 64 identities and reaches candidate indexer publication, then stops because the default Playwright binary is missing. Installed Chrome is selected explicitly, with early preflight; complete browser acceptance remains pending. B larger-cohort acceptance and scalar-continuation cost reduction remain required before activation |
+| P56 account-scale services, clients and activation | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above #84; internal A1 passes on clean `25ed94a`: 665 durable originals, two actual SIGKILL/same-original recoveries, independent exact payouts, token exit, sustained recovery and 109-event identical PostgreSQL replay. A2 passes on clean `b9d2a21`: 23 signed browser actions, 412 provisioning/publication outcomes, 77 identities / ten Financial roots / one retired slot, identical 248-event fresh replay and 304 reconciled accounts; actual/allocated vault 10,010,000 atoms. Internal wallet only. B larger-cohort acceptance and scalar-continuation cost reduction remain required before activation |
 | P57–P62 successor implementation | Planned | One ready PR per numbered phase, following the user's 12 November granularity update; internal lettered checkpoints retain their gates without separate PRs |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -59,7 +59,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: qualify the P56 wallet/client lifecycle against actual signed Surfpool/RPC/WS/PostgreSQL, then optimize and qualify larger-cohort continuation within the same PR #85;
+Next exact action: qualify bounded atomic default continuation batches, then the 128-Financial-root resource envelope within the same PR #85;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -847,6 +847,28 @@ transport overhead and meet the agreed populated-cohort envelope before activati
 The temporary 64-Financial gate and selected schema-8 artifact directory stay unchanged.
 Five hosted jobs pass at `25ed94a` (run 43126999240); automated review is neutral.
 No independent review, larger population or live deployment is claimed.
+
+Client checkpoint A2 passes at clean **`b9d2a21beffc7f551ebc0d078cc65d15f5aa4677`**
+on the same D102 SBF: **23 actual browser-signed originals**, independently fetched
+and matched to finalized WebSocket notifications, plus **412 setup/publication
+outcomes**. Registration crosses 64 identities; activation/deposit rollback,
+isolated/cross BTC/ETH trades, reservations/cancellation, TP/SL, transfers, exits,
+deactivation and permanent retirement pass. The internal wallet reloads its exact
+originals and exits with both HTTP APIs blocked. Fresh PostgreSQL replay reproduces
+**248 events / 304 accounts / ten Financial roots**; actual and allocated vault are
+**10,010,000 atoms**, zero surplus. There are 77 identities, 76 non-retired roots
+and one tombstone. Trading accounts retain actual closed/fractional claims;
+retirement qualifies a separate collateral-only child. Browser Chrome 157.0.8103.39
+is explicitly selected; this is not new Phantom or external-wallet evidence.
+
+The preceding clean `10b55aa` attempt stopped before browser launch because its
+Playwright binary was missing. Early executable preflight now catches that before
+provisioning. Both attempts remain local; only the completed clean run at
+`.local/scalable-settlement/runs/p56-account-clients-chrome` is acceptance. Thirty
+focused client/SDK/API checks, typecheck and UI build passed on the implementation;
+A2 needed no SBF rebuild or unrelated regression suite. All remaining P56 work
+continues in #85. No input/access blocker remains; larger-cohort cost acceptance,
+activation and selected runtime promotion are still pending.
 
 ## Deployment and operational limits
 

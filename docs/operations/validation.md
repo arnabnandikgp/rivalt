@@ -2000,3 +2000,42 @@ no larger Financial population, selected runtime promotion, external wallet, soa
 or independent review. This 21.1-minute scalar path does not meet larger-cohort G1
 latency acceptance; P56 owns continuation optimization and populated-cohort costs.
 Raw evidence remains at `.local/scalable-settlement/runs/p56a1-default-complete`.
+
+## Account lifecycle clients (P56 internal A2)
+
+Clean **`b9d2a21beffc7f551ebc0d078cc65d15f5aa4677`** passes
+`RIVALT_SETTLEMENT_PROBE=account-clients bash ops/scalable-settlement-smoke.sh`
+with the unchanged D102 binaries, actual Surfpool RPC/WS, PostgreSQL and explicitly
+selected Chrome **157.0.8103.39**. Evidence is local at
+`.local/scalable-settlement/runs/p56-account-clients-chrome`; `result.json` records
+a clean final tree, 412 separately fetched setup/publication outcomes and 23
+browser-signed originals, all matched to their exact RPC bytes and finalized
+signature notifications. No indexer recovery exception was recorded.
+
+The UI creates a portfolio and Registered accounts beyond stable ID 64, atomically
+activates/deposits, trades BTC/ETH in cross and isolated accounts, places/cancels a
+reserved order and existing-position TP/SL, allocates collateral, withdraws,
+deactivates an empty child and permanently retires its namespace. An actual
+activation followed by zero deposit rejects and restores membership, fifteen index
+nodes and custody/vault bytes. Reload preserves retired slots and signed receipts;
+RPC deposit/exit succeeds with both HTTP service surfaces blocked. Trading roots
+retain their true closed/fractional claims; the retirement case is collateral-only.
+
+Final discovery has **77 identities / 76 non-retired roots / ten Financial roots /
+one retired slot**. Actual/allocated vault is **10,010,000 atoms**, wallet tokens
+**1,990,000 atoms**, zero surplus. An independent fresh PostgreSQL database replays
+**248 identical events**, with **304 accounts** reconciled at one finalized fence.
+Browser transactions use **16,550–160,492 CU / 443–1,329 bytes**, each costing
+5,000 test lamports; atomic activation/deposit uses v1. The two isolated Anchor
+clients agree on **392 clearing setup/publication instructions / 612 events**,
+196 maker-A instructions / 200 events and 98 maker-B instructions / 100 events.
+Those counts exclude wallet instruction parity; wallet evidence is independently
+fetched signed wire and decoded/reconciled state, not a second Anchor-client claim.
+
+Thirty focused discovery/activation-envelope/ingress/API/UI checks, typecheck and
+UI build pass on the implementation. The earlier clean `10b55aa` run provisioned
+identities but stopped at a missing Playwright binary; it is retained as a failed
+attempt. Early browser preflight now selects an installed executable before signed
+provisioning. No new SBF build, unrelated native regression, devnet, Phantom,
+external wallet or larger Financial population is qualified here. P56 still owns
+continuation batching and G1's populated-cohort resource gate before promotion.
