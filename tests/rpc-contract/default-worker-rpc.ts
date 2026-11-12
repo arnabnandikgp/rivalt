@@ -101,6 +101,7 @@ try {
       assert.equal(actual.book.lastGroupId,rows[ordinal].root.book.lastGroupId);
       if(ordinal===0){await flush();await journal.checkpoint('worker-partial-apply',true);}
     }
+    if(outcome.reason==='distribute'){await flush();await journal.checkpoint('worker-distribution',true);}
     if(current.stage!==previousStage) {
       await flush();await journal.checkpoint(`worker-stage-${current.stage}`,true);previousStage=current.stage;
     }

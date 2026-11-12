@@ -48,7 +48,7 @@ export async function readAccountResolution(rpc:Pick<Rpc,'call'>,venue:Address) 
   decoded.forEach((value,index)=>assert(value.schemaVersion===10&&value.venue===venue&&value.bump===bumps[index][1]&&value.revision>0n,'Foreign resolution continuation'));
   assert(registry.financialCount<=registry.registeredCount&&registry.registeredCount<=registry.nextId&&registry.membershipEpoch>0n
     &&registry.liveIndex===(await sdk.deriveMemberIndex(venue,14,0n))[0],'Invalid Financial registry');
-  if([1,2,14,15,16].includes(header.stage)) {
+  if([1,2,14].includes(header.stage)) {
     assert(header.count>0n&&header.count===registry.financialCount&&header.membershipEpoch===registry.membershipEpoch&&header.liveIndex===registry.liveIndex
       &&sdk.hex(header.registryHash)===sdk.hex(financialMembershipHash(registry))&&storage.lockedEpoch===header.epoch
       &&storage.readyCapacity>=header.count,'Frozen membership/workspace mismatch');
@@ -67,7 +67,7 @@ export function accountRiskSources(snapshot:sdk.AccountSnapshot) {
  * publication freshness. The program authenticates every derived account again. */
 export async function accountDefaultContext(rpc:Pick<Rpc,'call'>,state:Awaited<ReturnType<typeof readAccountResolution>>) {
   const venue=state.registryState.venue;
-  assert([2,14,15,16].includes(state.header.stage),'No authenticated frozen continuation');
+  assert([2,14].includes(state.header.stage),'No authenticated frozen continuation');
   const [[custody],[safety],[vault],[btc],[eth]]=await Promise.all([
     sdk.deriveVenueComponent(venue,'custody'),sdk.deriveVenueComponent(venue,'safety'),sdk.deriveVenueComponent(venue,'vault'),
     sdk.deriveAccountMarket(venue,0),sdk.deriveAccountMarket(venue,1)]);

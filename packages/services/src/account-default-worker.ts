@@ -141,6 +141,13 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     return ready('plan-work',withPages(sdk.getContinueSettlementPlanInstruction({...guarded,steps:128}),current.metas));
   }
   if(header.stage===14) {
+    assert(prepared.epoch===epoch&&rates.epoch===epoch&&plan.epoch===epoch&&plan.adoptionRevision===header.revision,
+      'Adopted settlement binding mismatch');
+    assert([9,10,11].includes(plan.stage),'Unsupported adopted plan stage');
+  }
+  // The source remains PAGED_APPLY throughout all three plan stages. Only
+  // complete_plan changes it to COMPLETE; distribution never changes it.
+  if(header.stage===14&&plan.stage===9) {
     if(plan.cursor===header.count)return ready('distribute',sdk.getCompleteSettlementApplicationInstruction({...args,revision:plan.revision}));
     const row=await frozen(plan.cursor);assert(row.row&&plan.cursor%8n<BigInt(row.row.rowCount),'Missing frozen application row');
     const current=await pages(await transport(runtime).requests(state,'application'));if(current.step)return current.step;
@@ -148,12 +155,12 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     return ready('apply-member',withPages(sdk.getApplySettlementMarginInstruction({...args,revision:plan.revision,ordinal:plan.cursor,
       page:row.page,margin:row.row.rows[Number(plan.cursor%8n)].member,flowPage,revisions:current.revisions}),current.metas));
   }
-  if(header.stage===15) {
+  if(header.stage===14&&plan.stage===10) {
     const row=await frozen(plan.cursor);assert(row.row&&plan.cursor%8n<BigInt(row.row.rowCount),'Missing reconciliation row');
     const [flowPage]=await sdk.deriveSettlementLimbPage(venue,64,plan.cursor/36n);
     return ready('reconcile-member',sdk.getReconcileSettlementMarginInstruction({...args,revision:plan.revision,ordinal:plan.cursor,
       page:row.page,margin:row.row.rows[Number(plan.cursor%8n)].member,flowPage}));
   }
-  if(header.stage===16)return ready('complete',sdk.getCompleteSettlementPlanInstruction({...args,revision:plan.revision}));
+  if(header.stage===14&&plan.stage===11)return ready('complete',sdk.getCompleteSettlementPlanInstruction({...args,revision:plan.revision}));
   return blocked('unsupported-default-stage');
 }

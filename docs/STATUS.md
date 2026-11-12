@@ -26,7 +26,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
-| P56A1 durable default services | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above corrected #84; bounded page transport, explicit candidate binding and complete controller implemented; nine focused service tests, two literal native descriptor tests and typecheck pass; first signed probe stopped after five finalized steps because live publication freshness incorrectly gated frozen continuation; direct authenticated frozen continuation implemented, corrected signed run pending |
+| P56A1 durable default services | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above #84; both branches' five hosted CI jobs pass at `6752a36` / `817fa9d`. Signed `6752a36` reaches 656 durable originals with both real SIGKILL recoveries and independent per-root Apply checks, but stops after distribution because the worker used the source stage instead of the adopted plan stage. The controller correction and publication-lag/stage regressions pass; complete corrected RPC/WS/PostgreSQL qualification is next |
 | P56A2–P62 successor implementation | Planned | Wallet/discovery integration, expanded activation and later remediation follow their existing gates |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -59,7 +59,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: implement and qualify P56A1 durable default continuation above ready #84;
+Next exact action: rerun complete P56A1 default-worker qualification with corrected adopted-plan stage selection;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -813,8 +813,8 @@ change is the intended writable backing ledger; SBF/financial semantics are unch
 Hosted run 43122151935 passes financial/scope/report/shell and exposes the
 remaining frozen-proposal reader still expecting profile 5. Clean `f560b05` binds
 that reader to profile 6; all three focused proposal checks pass. No program or
-financial semantics changed. A new hosted client result is pending. Next exact action:
-start P56A above #84 without waiting for merge.
+financial semantics changed. All five hosted jobs pass at `817fa9d` (run 43123083610). Next exact action:
+finish P56A1 signed default-worker acceptance above #84.
 No user decision or access blocker is known. Expanded population and runtime
 promotion remain P56B; automatic default continuation and wallet/UI acceptance
 remain P56A. P15B/P16B remain Open and 24-hour endurance Deferred.

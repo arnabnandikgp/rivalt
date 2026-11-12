@@ -627,3 +627,9 @@ storage, foreign active proposals, unavailable input and failed preflight remain
 classified failures. No continuation can skip Apply or complete reconciliation.
 Selected-runtime automatic default and full UI qualification remain gated until
 the owning acceptance phases; candidate service qualification is recorded separately.
+
+The frozen source stays in `PAGED_APPLY` (14) while the adopted plan advances
+through Apply (9), reconciliation (10), and reconciled (11). The controller uses
+that plan stage and cursor, bound to the source's adoption revision; only verified
+completion changes the source to Complete (11). Distribution does not independently
+advance the source stage. Unsupported or mismatched checkpoints fail closed.

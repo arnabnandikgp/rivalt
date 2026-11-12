@@ -28,7 +28,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   // it needs immutable deployment binding, not fresh live candidate discovery.
   if(runtime.deploymentSelection==='account-scale-candidate') {
     const binding=await runtime.environment(),frozen=await readAccountResolution(runtime.rpc,address(binding.venue));
-    if([2,14,15,16].includes(frozen.header.stage)) {
+    if([2,14].includes(frozen.header.stage)) {
       const step=await accountDefaultStep(runtime,key,frozen,await accountDefaultContext(runtime.rpc,frozen));
       if(step.status==='blocked')return step;
       return await submit(step.id,step.instruction,true)?{status:'queued',reason:step.reason}:
@@ -41,7 +41,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   if(snapshot.safetyState.mode===2) {
     if(header.stage===1)return await submit(`value:${header.epoch}`,sdk.getValueAccountResolutionInstruction({...common,epoch:header.epoch}),true)?
       {status:'queued',reason:'awaited-complete-cohort-valuation'}:{status:'blocked',reason:'closeout-sources-unavailable'};
-    if([2,14,15,16].includes(header.stage))return {status:'blocked',reason:'default-candidate-binding-required'};
+    if([2,14].includes(header.stage))return {status:'blocked',reason:'default-candidate-binding-required'};
     return {status:'blocked',reason:'unsupported-frozen-stage'};
   }
   if(snapshot.safetyState.mode===3&&header.stage===11) {

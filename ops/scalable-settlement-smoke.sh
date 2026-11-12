@@ -49,7 +49,8 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
   maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;
   backing-worker) node --import tsx tests/rpc-contract/maintained-backing-worker-rpc.ts ;;
-  default-worker) node --import tsx tests/rpc-contract/default-worker-rpc.ts ;;
+  default-worker) node --import tsx tests/rpc-contract/default-worker-rpc.ts
+    python3 tests/financial/check_default_worker.py "$RIVALT_RUN_DIR" > "$RIVALT_RUN_DIR/independent-worker-audit.json" ;;
   membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;
   *) echo 'Unknown settlement probe' >&2; exit 1 ;;
 esac
