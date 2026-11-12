@@ -59,8 +59,8 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: build/pin D108's bounded plan-window candidate and version-2
-helper, then run the corrected populated RPC/WS/PostgreSQL qualification. Keep
+Next exact action: run the corrected 128-root RPC/WS/PostgreSQL qualification
+on pinned D108 SBF `ed46603` with its version-2 helper. Keep
 PR #85 open and selected runtime promotion gated.
 Continue through P57–P62 once complete P56 acceptance passes.
 
@@ -958,3 +958,14 @@ coordinated unpaid-profit certificates remain explicit. Historical latency resul
 are not new P37 measurements. See [deployment](operations/deployment.md) and
 [validation](operations/validation.md). No funded pilot, paid service, outreach or
 external hedge is authorized by consolidation.
+
+Clean D108 SBF **`ed466030eccd485b8552b378815bf3f4e28fb658`** builds all
+qualification/default programs without oversized-stack diagnostics. Clearing is
+**2,389,840 bytes**, SHA-256
+`2637469c4a8b1761c7cefc4c931d38611ebb651e05c60065e9617bbf3af13d3e`.
+Its separately retained version-2 helper is 588,816 bytes, SHA-256
+`3b378f41a508cbed8689211a67028e8648fe45157f53f52af21ff54203bfcafa`;
+both manifests record clean source. The 16 ABI-guard checks and 91-entrypoint
+inventory pass. Candidate bindings are pinned to these bytes. Actual populated
+RPC/WS/reconciliation and resource acceptance are still pending; selected runtime
+and historical helper binaries remain unchanged.

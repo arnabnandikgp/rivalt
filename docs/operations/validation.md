@@ -2131,3 +2131,14 @@ Only three native roots carry claims in that boundary fixture. Generated clearin
 IDL/SDK and the explicit additive ABI guard pass; the 91-entrypoint lock inventory
 adds the window context only. Compiled CU/frames, populated signed outcomes,
 crash recovery and SQL reconciliation remain required before promotion.
+
+Clean D108 SBF **`ed466030eccd485b8552b378815bf3f4e28fb658`** builds all
+qualification/default programs without oversized-stack diagnostics. Clearing is
+**2,389,840 bytes**, SHA-256
+`2637469c4a8b1761c7cefc4c931d38611ebb651e05c60065e9617bbf3af13d3e`.
+Its separately retained version-2 helper is 588,816 bytes, SHA-256
+`3b378f41a508cbed8689211a67028e8648fe45157f53f52af21ff54203bfcafa`;
+both manifests record clean source. The 16 ABI-guard checks and 91-entrypoint
+inventory pass. Candidate bindings are pinned to these bytes. Actual populated
+RPC/WS/reconciliation and resource acceptance are still pending; selected runtime
+and historical helper binaries remain unchanged.
