@@ -184,14 +184,15 @@ pub mod clearing {
         steps: u16,
         revisions: [u64; 3],
     ) -> Result<()> {
-        let plan = account_safety::settlement::denominator_plan(&ctx.accounts.prepared)?;
+        let continuation = account_safety::settlement::prepare_denominator_continuation(&ctx.accounts.prepared)?;
+        let plan = continuation.pages();
         scoped_history::run_pages(
             ctx,
             [160, 108, 231, 235, 16, 93, 96, 125],
             plan,
             |ctx, _events| {
                 account_safety::settlement::continue_denominator(
-                    ctx, epoch, revision, steps, revisions,
+                    ctx, epoch, revision, steps, revisions, continuation,
                 )
             },
         )
@@ -295,15 +296,15 @@ pub mod clearing {
         steps: u16,
         revisions: [u64; 3],
     ) -> Result<()> {
-        let plan =
-            account_safety::settlement::rate_plan(&ctx.accounts.prepared, &ctx.accounts.rates)?;
+        let continuation = account_safety::settlement::prepare_rate_continuation(&ctx.accounts.prepared, &ctx.accounts.rates)?;
+        let plan = continuation.pages();
         scoped_history::run_pages(
             ctx,
             [183, 223, 168, 83, 201, 143, 99, 138],
             plan,
             |ctx, _events| {
                 account_safety::settlement::continue_rates(
-                    ctx, epoch, revision, attempt, steps, revisions,
+                    ctx, epoch, revision, attempt, steps, revisions, continuation,
                 )
             },
         )
@@ -394,18 +395,19 @@ pub mod clearing {
         steps: u16,
         revisions: [u64; 3],
     ) -> Result<()> {
-        let plan = account_safety::settlement::settlement_plan_pages(
+        let continuation = account_safety::settlement::prepare_plan_continuation(
             &ctx.accounts.prepared,
             &ctx.accounts.rates,
             &ctx.accounts.plan,
         )?;
+        let plan = continuation.pages();
         scoped_history::run_pages(
             ctx,
             [244, 56, 133, 188, 70, 13, 9, 96],
             plan,
             |ctx, _events| {
                 account_safety::settlement::continue_plan(
-                    ctx, epoch, revision, attempt, steps, revisions,
+                    ctx, epoch, revision, attempt, steps, revisions, continuation,
                 )
             },
         )

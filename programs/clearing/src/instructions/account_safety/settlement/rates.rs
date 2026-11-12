@@ -90,15 +90,27 @@ pub(super) fn verified_rates(
     );
     Ok((arithmetic(work.verified_values())?, spent))
 }
-pub fn rate_plan(header: &PreparedSettlement, rates: &SettlementRates) -> Result<PagePlan> {
+pub(crate) struct RateContinuation {
+    work: RateWork,
+    pages: PagePlan,
+}
+impl RateContinuation {
+    pub(crate) fn pages(&self) -> PagePlan { self.pages }
+}
+#[inline(never)]
+pub(crate) fn prepare_rate_continuation(header: &PreparedSettlement, rates: &SettlementRates) -> Result<Box<RateContinuation>> {
     let work = cursor(header, rates)?;
     let accesses = arithmetic(work.accesses())?;
     let capacity = arithmetic(required_limbs(header.count))?;
-    arithmetic(if accesses.iter().all(Option::is_none) {
+    let pages = arithmetic(if accesses.iter().all(Option::is_none) {
         PagePlan::metadata_only(capacity)
     } else {
         PagePlan::next(accesses, capacity)
-    })
+    })?;
+    Ok(Box::new(RateContinuation { work, pages }))
+}
+pub fn rate_plan(header: &PreparedSettlement, rates: &SettlementRates) -> Result<PagePlan> {
+    Ok(prepare_rate_continuation(header, rates)?.pages())
 }
 pub fn initialize_rates(ctx: &mut Context<InitializeSettlementRates>, _epoch: u64) -> Result<()> {
     require!(
@@ -339,13 +351,14 @@ pub fn accept_rate_row(
         Clock::get()?.slot,
     )
 }
-pub fn continue_rates(
+pub(crate) fn continue_rates(
     ctx: &mut Context<ContinueSettlementRates>,
     _epoch: u64,
     revision: u64,
     attempt: u64,
     steps: u16,
     revisions: [u64; 3],
+    mut continuation: Box<RateContinuation>,
 ) -> Result<()> {
     require!(steps > 0 && steps <= 128, ClearingError::Resolution);
     let mut remaining = ctx.remaining_accounts()?;
@@ -355,8 +368,8 @@ pub fn continue_rates(
         accounts.rates.revision == revision && accounts.rates.attempt == attempt,
         ClearingError::Resolution
     );
-    let mut work = cursor(&accounts.prepared, &accounts.rates)?;
-    let plan = rate_plan(&accounts.prepared, &accounts.rates)?;
+    let plan = continuation.pages();
+    let work = &mut continuation.work;
     let length = plan.requests().len();
     require!(
         revisions[length..].iter().all(|revision| *revision == 0),

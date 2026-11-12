@@ -252,8 +252,9 @@ pub(super) fn advance(
     budget: u16,
 ) {
     let layout = Layout::new(header.count).unwrap();
-    let request = settlement_plan_pages(header, rates, plan).unwrap();
-    let mut work = Work::restore(header, rates, plan).unwrap();
+    let mut continuation = prepare_plan_continuation(header, rates, plan).unwrap();
+    let request = continuation.pages();
+    let work = &mut continuation.work;
     let steps = pages.execute(header, plan, request, |window| {
         let mut progressed = 0;
         for _ in 0..budget {

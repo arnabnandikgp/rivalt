@@ -658,3 +658,12 @@ ambiguous. Upload/Apply crash tests identify actual instructions inside the sign
 wire, and every applied ordinal is checked against independent expected payouts.
 Qualification must record actual cost, runtime and fresh SQL replay before enabling
 this option by default or promoting larger Financial admission.
+
+
+Inside one on-chain continuation, scope discovery and execution reuse the same
+checked arithmetic cursor and derived page plan (D107). This private boxed value
+exists only within that invocation; remaining-account scope capture changes no
+state before execution. Frozen source, revision/attempt and actual page guards
+still run. No decoder state is reused across transactions, and the wire/scoped
+history contract is unchanged. A new program artifact needs independent resource
+and financial acceptance before selection.

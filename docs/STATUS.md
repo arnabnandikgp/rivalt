@@ -59,9 +59,9 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: finish the eight-step 128-root baseline, then qualify the
-resource-bounded 32-step option and independently paid isolated BTC/ETH concurrency
-on the same pinned D106 binary; keep PR #85 open and runtime promotion gated.
+Next exact action: build and pin D107’s single-restoration continuation, then
+qualify it with resource-bounded 32-step batches and independently paid isolated
+BTC/ETH concurrency; retain the earlier measured misses and failed fixtures; keep PR #85 open and runtime promotion gated.
 Continue through P57–P62 once complete P56 acceptance passes.
 
 ## Remediation planning
@@ -903,6 +903,15 @@ rejects it as RouteIntent. The fixture now binds the actual generation. Earlier
 absolute run-directory startup failed before financial provisioning and is retained.
 Neither attempt counts as larger-batch acceptance. Selected schema-8 runtime remains
 unpromoted.
+
+A further P56 compute change (D107) removes duplicate decoding/validation of the
+same arithmetic checkpoint within one instruction. Scope discovery passes its
+private checked cursor and page plan to execution; every source/page/replay guard
+and financial step remains. Fourteen focused native controller cases pass before
+the clean pin, including literal atom ownership, adversarial ordering, restarts and
+exclusive Apply/reconciliation. ABI and exact arithmetic are unchanged. A new SBF
+build and populated financial/resource run are pending; no CU improvement or
+promotion is claimed from native tests.
 
 ## Deployment and operational limits
 

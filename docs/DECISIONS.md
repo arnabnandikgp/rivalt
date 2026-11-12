@@ -932,3 +932,19 @@ simulated-CU, 1m requested-CU, 64-account, 8 MiB and v0/v1 wire limits. The meas
 resource limit may end a batch earlier. Scalar remains the default until acceptance.
 This changes neither on-chain page/word limits nor any financial computation;
 program rebuilds and altered settlement economics are unnecessary for this change.
+
+
+## D107 — Reuse checked settlement work within one invocation
+
+12 November 2026. The populated recovery trace exposes repeated restoration of the
+same persisted arithmetic checkpoint: scope-page discovery restores it, then the
+handler restores it again (and denominator/rate page discovery restores it a third
+time). A private, boxed continuation now carries the checked cursor and derived
+page plan from the entrypoint through scope capture into that one handler.
+Scope capture does not mutate state. There is no cross-instruction cache or trusted
+keeper output; source identity, frozen balances, current revisions/attempts, page
+ownership/PDA/capacity and every arithmetic step remain checked. Scoped revisions
+and events still commit once, atomically. Inputs, account metas, layouts, PDA seeds,
+errors and signed domains are unchanged. Native literal/adversarial controller
+checks precede a new clean SBF pin and actual populated RPC/WS/PostgreSQL acceptance;
+prior binaries do not establish a compute saving for this implementation.

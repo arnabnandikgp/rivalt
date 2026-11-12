@@ -205,16 +205,33 @@ fn page_plan(accesses: [Option<WordAccess>; 3], layout: Layout) -> Result<PagePl
         PagePlan::next(accesses, capacity)
     })
 }
+/// Scope discovery and the handler consume one checked restoration. Scope capture
+/// does not mutate account data; no cross-invocation checkpoint cache is involved.
+pub(crate) struct PlanContinuation {
+    layout: Layout,
+    work: Work,
+    pages: PagePlan,
+}
+impl PlanContinuation {
+    pub(crate) fn pages(&self) -> PagePlan { self.pages }
+}
+#[inline(never)]
+pub(crate) fn prepare_plan_continuation(
+    header: &PreparedSettlement,
+    rates: &SettlementRates,
+    plan: &SettlementPlan,
+) -> Result<Box<PlanContinuation>> {
+    let layout = exact(Layout::new(header.count))?;
+    let work = Work::restore(header, rates, plan)?;
+    let pages = page_plan(work.accesses(layout)?, layout)?;
+    Ok(Box::new(PlanContinuation { layout, work, pages }))
+}
 pub fn settlement_plan_pages(
     header: &PreparedSettlement,
     rates: &SettlementRates,
     plan: &SettlementPlan,
 ) -> Result<PagePlan> {
-    let layout = exact(Layout::new(header.count))?;
-    page_plan(
-        Work::restore(header, rates, plan)?.accesses(layout)?,
-        layout,
-    )
+    Ok(prepare_plan_continuation(header, rates, plan)?.pages())
 }
 pub fn settlement_plan_row_pages(
     header: &PreparedSettlement,
@@ -593,13 +610,14 @@ fn reset_order(
     save(plan, &[]);
     Ok(())
 }
-pub fn continue_plan(
+pub(crate) fn continue_plan(
     ctx: &mut Context<ContinueSettlementPlan>,
     _epoch: u64,
     revision: u64,
     attempt: u64,
     steps: u16,
     revisions: [u64; 3],
+    mut continuation: Box<PlanContinuation>,
 ) -> Result<()> {
     require!(steps > 0 && steps <= 128, ClearingError::Resolution);
     let mut remaining = ctx.remaining_accounts()?;
@@ -610,9 +628,9 @@ pub fn continue_plan(
         ClearingError::Resolution
     );
     let header = &accounts.prepared;
-    let layout = exact(Layout::new(header.count))?;
-    let mut work = Work::restore(header, &accounts.rates, &accounts.plan)?;
-    let page_plan = page_plan(work.accesses(layout)?, layout)?;
+    let layout = continuation.layout;
+    let page_plan = continuation.pages();
+    let work = &mut continuation.work;
     let mut window = window(header, &accounts.plan, page_plan, revisions, &mut remaining)?;
     let mut progressed = 0;
     for _ in 0..steps {
