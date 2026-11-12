@@ -2,10 +2,10 @@
 
 ## Account-scale candidate interfaces
 
-The schema-10/profile-6 account candidate uses stable u64 identities, Registered /
+The schema-10/profile-6 account runtime uses stable u64 identities, Registered /
 Financial / Retired lifecycle states, paged membership and maintained backing.
-The selected artifact remains schema 8 pending P56B qualification; current codecs
-cannot reinterpret that deployment. P56A qualification and remaining limits are
+The selected artifact uses a fresh domain/database; current codecs cannot
+reinterpret retained schema-8 deployments. Qualification and remaining limits are
 recorded in STATUS and validation, separately from source implementation.
 Member IDs/cursors are decimal strings in JSON and bigint internally; u32
 portfolio/child keys have explicit bounds. Never cast a member ID into a JS number
@@ -29,7 +29,8 @@ order proposals in bounded transactions. Retry the same persisted signed origina
 after ambiguity, and reconcile its actual finalized transition before new work.
 Neither a solver's model nor a local database can declare a root applied or a
 creditor paid. P56A1 owns durable default; P56A2 owns wallet/discovery integration.
-Neither enables a larger Financial population; P56B owns that activation.
+The selected account-scale deployment integrates these checkpoints; validation
+records its actual populated acceptance and remaining operational limits.
 
 ## Explicit deployment identity
 
@@ -37,7 +38,8 @@ Neither enables a larger Financial population; P56B owns that activation.
 pins, genesis and the actual initialization signature/hash. Configuration includes
 RPC/WS URLs, venue, mint and domain. Never infer a deployment from a port or retained
 acceptance dump. The fresh RC2 deployment requires explicit
-`accountSchema: 10`, `deployment: "account-scale-candidate"`, transport `version: 4` and the local profile;
+`accountSchema: 10`, `deployment: "selected"` (or the retained explicit alias
+`"account-scale-candidate"`), transport `version: 4` and the local profile;
 missing/old schema or deployment selection rejects. Clearing-owned decoders use schema 10 / on-chain profile 6,
 while maker-owned curve/price schemas advance to 5; quote/report protocol versions remain unchanged. This is a fresh-domain/client change,
 not permission to upgrade retained state or replay old signed originals. [Deployment](../operations/deployment.md) owns
@@ -61,11 +63,11 @@ are preserved rather than erased to manufacture emptiness. STATUS records the
 actual wallet/UI acceptance scope.
 
 The shared SDK deployment table binds client, service and indexer to the exact
-candidate executable hashes. `RIVALT_ACCOUNT_DEPLOYMENT=account-scale-candidate`
-is required for candidate service/indexer entrypoints; it cannot select arbitrary
-hashes or reinterpret existing journals. Normal launchers retain the separate
-`.local/anchor-rc2/current` directory; deployment binding and executable hash checks
-remain mandatory.
+schema-10/profile-6 executable hashes. `selected` is the normal launcher binding;
+`account-scale-candidate` is an explicit alias for the same qualified bytes, not a
+caller-selected hash or historical decoder. Default launchers use
+`.local/anchor-rc2/current`; an explicit artifact directory must pass the same hash
+checks. No existing journal or signed original is relabeled during promotion.
 
 Public amounts are integer decimal strings with units; internal arithmetic uses
 bigint. Never serialize a monetary bigint as an IEEE-754 number. Keep cash,

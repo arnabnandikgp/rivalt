@@ -10,9 +10,8 @@ import {accountRiskSources,readAccountResolution,accountDefaultContext} from './
 import {accountDefaultStep} from './account-default-worker.js';
 import {accountDefaultBatch,defaultBatchComputeBudget} from './account-default-batch.js';
 
-/** The selected baseline remains gated; the explicit schema-10 candidate alone
- * enables the new controller pending P56A acceptance and P56B promotion. */
-export const CANONICAL_DEFAULT_AUTOMATION_READY=false;
+/** Exact schema-10 bindings qualify the paged controller; old journals reject. */
+export const CANONICAL_DEFAULT_AUTOMATION_READY=true;
 
 export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receiver?:Address):Promise<AccountWorkerOutcome> {
   const budget=await runtime.budget('risk',key);
@@ -27,7 +26,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   };
   // An already frozen source supplies complete membership authority. Continuing
   // it needs immutable deployment binding, not fresh live candidate discovery.
-  if(runtime.deploymentSelection==='account-scale-candidate') {
+  if(runtime.deploymentSelection==='account-scale-candidate'||runtime.deploymentSelection==='selected') {
     const binding=await runtime.environment(),frozen=await readAccountResolution(runtime.rpc,address(binding.venue));
     if([2,14].includes(frozen.header.stage)) {
       const step=await accountDefaultStep(runtime,key,frozen,await accountDefaultContext(runtime.rpc,frozen));

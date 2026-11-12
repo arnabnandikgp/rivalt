@@ -20,11 +20,12 @@ it('rejects duplicate, oversized, noncanonical or future helper responses',()=>{
     encode([{...page,index:String(2n**64n)}]),encode([{...page,register:71}]),encode([{...page,writable:1}]),
     encode(Array(4).fill(page))])expect(()=>decodeSettlementPages(value)).toThrow();
 });
-it('keeps candidate artifacts explicit and separate from API budget version',()=>{
-  expect(accountDeployment('selected')).toMatchObject({schema:8,programProfile:4});
+it('binds selected and candidate names to the qualified schema independently of API budget version',()=>{
+  expect(accountDeployment('selected')).toMatchObject({schema:10,programProfile:6});
   const candidate=accountDeployment(accountDeploymentSelection('account-scale-candidate'));
   expect(candidate).toMatchObject({schema:10,programProfile:6,artifactSet:'p56-window-ed46603'});
   expect(candidate.artifacts.find(value=>value.name==='clearing')?.sha256).toBe('2637469c4a8b1761c7cefc4c931d38611ebb651e05c60065e9617bbf3af13d3e');
+  expect(accountDeployment('selected')).toEqual(candidate);
   expect(()=>accountDeploymentSelection('anything')).toThrow();
 });
 

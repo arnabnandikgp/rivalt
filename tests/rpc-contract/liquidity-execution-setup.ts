@@ -1,4 +1,4 @@
-// Fresh signed schema-9/profile-5 provisioning. No injected financial state or retained
+// Fresh signed schema-10/profile-6 provisioning. No injected financial state or retained
 // acceptance dump is used as a deployment configuration.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';

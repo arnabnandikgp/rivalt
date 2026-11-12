@@ -2,12 +2,12 @@
 
 ## Incremental backing candidate (P51B)
 
-**Candidate source, signed acceptance pending.** The selected schema-8 runtime still
-uses the restartable certificate below. D102 implements the maintained successor in
-fresh schema 10 / profile 6; it has not been promoted into that selected runtime. G3 recommends maintaining proof contributions
-as financial state changes, while separating an arithmetic validity region from
-the freshness of the actual source accounts. This requires no user-visible pause
-and does not make positive profit spendable without complete backing/pool cash.
+The schema-10/profile-6 local runtime uses D102's maintained backing proof.
+It updates proof contributions as financial state changes while separating an
+arithmetic validity region from actual source freshness. It requires no coordinated
+pause and gives no positive unpaid-profit margin credit. Payment still requires
+complete backing, current source/held-funding checks and actual pool cash.
+The older restart-on-observation certificate is historical rationale only.
 
 For each market, a certificate epoch specifies a conservative rectangular range of
 price and funding endpoints for **both** markets. The range includes the currently
@@ -233,13 +233,15 @@ Insufficient liquidity still limits each payout, even if every debtor is solvent
 An unrelated insolvent ETH-only account does not block a fully backed BTC payment.
 An underfunded debtor to both markets blocks ordinary payments in both.
 
-Bind certificate progress/completion to membership version, safety epoch, relevant
-liability versions and all price/funding observations required by that scan. Pages
-are canonical read-only roots; a changed stamp restarts, never silently continues.
-Normal payment remains first-admissible landed order, not a FIFO/pro-rata queue.
-Already paid cash is not clawed back for a later price gap. Scoped certificates may
-still be invalidated by relevant activity; funded withdrawals do not depend on them.
-This preserves the distinction between profit-payment timing and funded-cash exit.
+The current maintained certificate binds membership, safety, terms and its
+conservative region/processed epochs. Admitted changes replace processed
+contributions atomically. Fresh in-region observations do not restart coverage;
+new Financial membership or incompatible terms invalidate it. Complete proofs
+still check current sources and every held-funding endpoint at payment. The
+restart-on-every-observation behavior belonged to the schema-8 predecessor.
+Payment remains first-admissible landed order, not a FIFO/pro-rata queue, and
+already paid cash is not clawed back for a later gap. Funded exits use their own
+whole-account admission below, not this ordinary profit-payment certificate.
 
 
 ## Funded-exit proof and checks

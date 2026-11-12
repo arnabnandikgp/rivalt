@@ -6,7 +6,7 @@ import {testRpcUrl} from './test-deployment.js';
 import {ACCOUNT_PROFILE,readMembershipRegistry,readMarginMembership} from './account-membership.js';
 import {deriveMemberPage,deriveMemberIndex,deriveStorageFunding} from './account-addresses.js';
 import {ArtifactVerifier} from './artifacts.js';
-import {accountDeployment} from './account-deployment.js';
+import {accountDeployment,type AccountDeployment} from './account-deployment.js';
 import {readOwnerAccounts} from './account-owner-discovery.js';
 import {validateActivationDeposit} from './account-wallet-envelope.js';
 import {compileCanonicalTransaction} from './canonical-transport.js';
@@ -19,10 +19,10 @@ import {accountBalanceView} from './account-balance.js';
 import {accountMarketMetas,accountLiabilityMetas} from './account-markets.js';
 import type {LiquidityRouteInput} from './liquidity-route.js';
 
-export type AccountUserConfig={version:4;accountSchema:10;deployment:'account-scale-candidate';chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
+export type AccountUserConfig={version:4;accountSchema:10;deployment:AccountDeployment;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
   genesis:string;anchor:string;anchorHash:string;venue:Address;mint:Address;domain:string};
 export function accountUserConfig(value:AccountUserConfig):AccountUserConfig {
-  requireValue(value?.version===4&&value.accountSchema===10&&value.deployment==='account-scale-candidate'&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
+  requireValue(value?.version===4&&value.accountSchema===10&&(value.deployment==='selected'||value.deployment==='account-scale-candidate')&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
   return validateAccountConfig(value);
 }
 function validateAccountConfig<Config extends AccountUserConfig>(value:Config):Config {

@@ -24,7 +24,7 @@ function fixture(){
     binaries[`${name}.so`]='ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
   }
   const manifest={trackedDirty:false,profile:'liquidity-execution-qualification',framework:'anchor-2.0.0-rc.2',
-    accountSchema:8,makerAccountSchema:5,binaries};
+    accountSchema:10,profileVersion:6,makerAccountSchema:5,binaries};
   const save=()=>writeFileSync(join(directory,'build-manifest.json'),JSON.stringify(manifest));
   save();return {directory,manifest,save};
 }
@@ -50,7 +50,7 @@ it('rejects inconsistent manifests even for admitted bytes',()=>{
 });
 it.each([
   ['trackedDirty',true],['profile','devnet-test-profile'],['framework','anchor-1.2.1'],
-  ['accountSchema',7],['makerAccountSchema',4],
+  ['accountSchema',8],['profileVersion',4],['makerAccountSchema',4],
 ])('rejects incompatible build metadata: %s',(key,value)=>{
   const {directory}=fixture(),path=join(directory,'build-manifest.json');
   const manifest=JSON.parse(readFileSync(path,'utf8'));manifest[key as string]=value;

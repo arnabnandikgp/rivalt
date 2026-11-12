@@ -2,13 +2,13 @@
 
 ## Scalable exact resolution candidate (P51B)
 
-This section specifies the selected **native successor kernel**, not the
-implemented schema-8 default path documented below. P54B now qualifies authenticated
-bounded SBF valuation/rate continuations. P54C qualifies conserving rounding and
-application through the existing-size source bridge; P56B owns expanded local
-activation. See the
-[account contract](accounts.md#account-scale-successor-contract-p51b) for membership,
-authority and deployment. No payer, keeper or off-chain solver becomes trusted.
+This section specifies the implemented paged settlement kernel and authenticated
+schema-10/profile-6 local path. P54 supplies exact arithmetic/rounding; P55 supplies
+complete paged membership and maintained ordinary backing; P56 integrates durable
+continuation and larger-cohort acceptance. Historical fixed-width descriptions
+below preserve predecessor rationale only where superseded by this contract.
+The [account contract](accounts.md#account-scale-successor-contract-p51b) owns
+membership, authority and deployment. No off-chain solver becomes trusted.
 
 ### Exact arithmetic and work representation
 

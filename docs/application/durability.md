@@ -22,8 +22,8 @@ and successor kinds, preserving read-before-retire and read-after-retire edges.
 Any other kind change, tombstone recreation or missing predecessor rejects the
 whole transaction. The immutable rent receipt stays separate from financial cash.
 Pinned signed lifecycle/default/custody/race checks and fresh PostgreSQL replay
-pass within P55A2's scope; see STATUS/validation. Durable automatic continuation
-and full UI acceptance remain P56A work.
+pass within P55A2's scope; see STATUS/validation. P56 integrates durable automatic continuation and wallet clients; see the
+exact acceptance pins and limitations in validation.
 
 ## Bounded-progress successor contract (P52)
 
@@ -595,12 +595,11 @@ gated full default worker or promote the selected deployment.
 
 ## Paged default controller (P56A1 candidate)
 
-The explicit `account-scale-candidate` service binding recognizes only the accepted
-schema-10/profile-6 binary set. It does not reinterpret old databases or replace the
-selected runtime. `RIVALT_ACCOUNT_PROFILE=liquidity-execution-qualification` retains
-API/budget policy 4; `RIVALT_ACCOUNT_DEPLOYMENT=account-scale-candidate` selects the
-separate exact program binding for the producer and executor. All initialization,
-genesis, owner and executable hash checks remain mandatory.
+The selected service binding and explicit `account-scale-candidate` alias recognize
+only the qualified schema-10/profile-6 binary set. They never reinterpret old
+databases. `RIVALT_ACCOUNT_PROFILE=liquidity-execution-qualification` retains
+API/budget policy 4; account schema and on-chain profile remain separate identities.
+All initialization, genesis, owner and executable hash checks remain mandatory.
 
 `account-default-worker.ts` proposes one bounded current transition after checking
 that no unresolved risk original owns the budget. The source, prepared, rates and
@@ -627,8 +626,8 @@ A restarted producer rereads committed stages and cannot replace a pending origi
 an executor recovers the same signature/wire after a lost acknowledgement. Missing
 storage, foreign active proposals, unavailable input and failed preflight remain
 classified failures. No continuation can skip Apply or complete reconciliation.
-Selected-runtime automatic default and full UI qualification remain gated until
-the owning acceptance phases; candidate service qualification is recorded separately.
+The selected runtime includes this controller; acceptance is recorded on its
+exact program/helper/client revisions, never inherited from historical runs.
 
 The frozen source stays in `PAGED_APPLY` (14) while the adopted plan advances
 through Apply (9), reconciliation (10), and reconciled (11). The controller uses
@@ -638,9 +637,9 @@ advance the source stage. Unsupported or mismatched checkpoints fail closed.
 
 ### Bounded atomic continuation candidate (P56)
 
-`RIVALT_DEFAULT_BATCH_STEPS=1` retains the qualified scalar producer. An explicit
-integer 2–32 enables the candidate batch planner within the exact account-scale
-binding. It simulates each unsigned prefix, requests all writable poststates and reads unchanged headers through checked RPC, then uses the ordinary authenticated continuation reader
+`RIVALT_DEFAULT_BATCH_STEPS` defaults to **32** after populated acceptance and
+accepts only integers 1–32; `1` retains the scalar producer. Both selected and
+explicit alias bindings use the same qualified planner. It simulates each unsigned prefix, requests all writable poststates and reads unchanged headers through checked RPC, then uses the ordinary authenticated continuation reader
 and descriptor helper to propose the next instruction. Simulation is untrusted
 proposal material, never committed progress or financial authority. A separate
 speculative cache cannot pollute committed rate proposals.
@@ -658,8 +657,8 @@ The whole batch becomes one persisted original, one budget reservation and the
 union of its dispatch locks. No next batch is created while that original remains
 ambiguous. Upload/Apply crash tests identify actual instructions inside the signed
 wire, and every applied ordinal is checked against independent expected payouts.
-Qualification must record actual cost, runtime and fresh SQL replay before enabling
-this option by default or promoting larger Financial admission.
+Validation records actual costs, runtime and fresh SQL replay. These are local
+measurements, not a network latency or low-priority-fee guarantee.
 
 
 Inside one on-chain continuation, scope discovery and execution reuse the same

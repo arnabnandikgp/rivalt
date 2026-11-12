@@ -17,7 +17,7 @@ node --import tsx --input-type=module -e '
   import {readFileSync} from "node:fs";
   import {ACCOUNT_SCHEMA} from "./packages/sdk/src/account-membership.ts";
   const manifest=JSON.parse(readFileSync(process.env.RIVALT_ARTIFACT_DIR+"/build-manifest.json","utf8"));
-  assert.equal(manifest.accountSchema,ACCOUNT_SCHEMA,"Selected runtime predates this SDK. Schema-9 canonical runtime qualification/promotion is pending P56; use the explicitly pinned membership/default probes.");
+  assert.equal(manifest.accountSchema,ACCOUNT_SCHEMA,"Selected runtime does not match this SDK; use the exact admitted artifacts and a fresh deployment.");
 '
 test "$(surfpool --version)" = 'surfpool 1.7.0'
 # Browser qualification must consume this checkout's schema/SDK, never a stale

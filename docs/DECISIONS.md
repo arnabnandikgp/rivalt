@@ -972,3 +972,27 @@ Legacy three-descriptor calls retain their ABI; the new instruction and descript
 layout are pinned against exact `0ca9927`, with regenerated IDL/SDK and lock inventory.
 No account layout, seed, error number, money allocation or trust boundary changes.
 Local runtime promotion remains gated on actual populated RPC/WS/SQL acceptance.
+
+## D109 — Account-scale local runtime selection
+
+12 November 2026. After the populated P56 acceptance gate, select the same exact
+D108 schema-10/profile-6 binaries across normal SDK, indexer, services and local
+launcher. `selected` and the explicit `account-scale-candidate` alias bind the same
+artifact set; public configuration never supplies replacement code hashes. Preserve
+old binaries, databases, keys and unresolved originals with their original executor.
+A fresh local domain/genesis/database is mandatory. No in-place upgrade is implied.
+
+The normal launcher pre-funds recovery capacity for 128 Financial roots and a second
+64-entry identity page with explicit operator SOL. These are separately measured
+operating allocations, not a new protocol registration ceiling. Require independent
+compiled resource/default acceptance before enabling a larger workload. The native
+version-2 descriptor helper is a checked local dependency of default workers, not a
+retail signing dependency or financial authority. The launcher checks it up front.
+
+Use the qualified resource-bounded default batch limit of 32; measured CU, wire,
+account data and original-signature constraints can stop a batch earlier. Explicit
+scalar mode remains available. This supersedes D105's interim default-one schedule,
+not its financial or retry contract. Normal operations qualification uses the paged
+worker; the incompatible schema-8 runner is retained in Git rather than activated
+by changing a readiness flag. P56 remains In progress until the normal launcher
+and wallet check pass. Default/devnet and external P15B/P16B gates are unchanged.

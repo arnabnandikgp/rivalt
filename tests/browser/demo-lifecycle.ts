@@ -99,13 +99,13 @@ try{
   await button('Get test funds').click();await page.getByText('Sent 1 local SOL and 1,000 test USD. Wait for finalized balances, then create your portfolio.',{exact:true}).waitFor();
   await delay(2000);await action('Create portfolio');const registration=await action('Register account');
   const owner=registration.owner,[portfolio]=await sdk.deriveAccountPortfolio(config.venue,owner,0),[cross]=await sdk.deriveMarginAccount(portfolio,0),[isolated]=await sdk.deriveMarginAccount(portfolio,1);
-  await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Deposit');
+  await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Activate and deposit');
   assert.equal((await client.snapshot([cross])).roots[cross].cash,10_000_000n);
   // Declining the actual demo wallet confirmation creates no saved original.
   const originals=(await receipts()).length;await button('Deposit').click();await page.getByRole('region',{name:'Review transaction'}).waitFor();decline=true;await button('Sign transaction').click();
   await page.getByText('Signature declined or wallet unavailable. Nothing was sent.',{exact:true}).waitFor();assert.equal((await receipts()).length,originals);
   await select('Margin account','1');await select('Market','1');await action('Register account');
-  await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Deposit');
+  await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Activate and deposit');
   await page.getByLabel('Collateral amount',{exact:true}).fill('0.5');await select('Allocate to account',cross);await action('Allocate collateral');
   const allocated=await client.snapshot([cross,isolated]);assert.equal(allocated.roots[cross].cash,10_500_000n);assert.equal(allocated.roots[isolated].cash,9_500_000n);
   assert.equal(allocated.roots[isolated].isolatedMarketIndex,1);

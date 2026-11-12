@@ -87,7 +87,7 @@ it('proposes a large liquidation without the former operational 64-lot batch cap
   expect(wire.lots).toBe(1_000_000n);
 });
 
-it('continues authenticated frozen work during publication lag while live discovery remains fenced',async()=>{
+it.each(['selected','account-scale-candidate'])('continues authenticated frozen work during publication lag with %s binding',async deploymentSelection=>{
   const test=await fixture(true),venue=test.config.venue,{keys}=test;
   test.submissions.length=0;
   const bytes=(key:string)=>Buffer.from(test.accounts.get(key).data[0],'base64');
@@ -98,7 +98,7 @@ it('continues authenticated frozen work during publication lag while live discov
   test.put(keys.storage,sdk.getRecoveryStorageEncoder().encode({...sdk.getRecoveryStorageDecoder().decode(bytes(keys.storage)),
     lockedEpoch:1n,readyCapacity:2n}));
   const call=test.rpc.call.bind(test.rpc);
-  const candidate={...test.runtime,deploymentSelection:'account-scale-candidate',
+  const candidate={...test.runtime,deploymentSelection,
     environment:async()=>({venue}),rpc:{call:async(method:string,params:any[]=[])=>method==='getSlot'?1_000_000:method==='getAccountInfo'?{context:{slot:1_000_000},value:test.accounts.get(params[0])??null}:call(method,params)},
     discovery:async()=>{throw new Error('live publication stale');},snapshot:async()=>{throw new Error('live publication stale');}};
   const run=()=>accountRiskWork(candidate as unknown as AccountRuntime,createNoopSigner(test.owner) as Keypair);

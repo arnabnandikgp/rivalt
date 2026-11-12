@@ -353,6 +353,13 @@ resolution costs, rent, completion time, contention and independent exact payout
 Fresh SQL replay and wallet exit must pass. Report tested capacity and resource
 limits separately from logical account scalability. No activation on a partial pass.
 
+P56 acceptance checkpoint (12 November): the 128-root D108 run at clean `ad19215`
+passes G1 and complete financial/recovery/replay checks. The launcher provisions
+128 Financial capacity separately from stable identity pages. Normal selected
+runtime/wallet acceptance remains before P56 moves to Review; larger compiled
+workloads remain separately gated. See STATUS and validation for exact counts,
+costs, artifact pins and limitations.
+
 ## Maker and economic deliverables
 
 ### P57A — maker admission and lifecycle

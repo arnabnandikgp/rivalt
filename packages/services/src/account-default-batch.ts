@@ -17,7 +17,7 @@ export function defaultBatchComputeBudget():Instruction {
   const budget=ComputeBudgetProgram.setComputeUnitLimit({units:1_000_000});
   return {programAddress:address(budget.programId.toBase58()),accounts:[],data:budget.data};
 }
-export function defaultBatchSteps(value=process.env.RIVALT_DEFAULT_BATCH_STEPS??'1'):number {
+export function defaultBatchSteps(value=process.env.RIVALT_DEFAULT_BATCH_STEPS??'32'):number {
   assert(/^(?:[1-9]|[12][0-9]|3[0-2])$/.test(value),'Default batch steps must be 1–32');return Number(value);
 }
 export type DefaultBatch={steps:ReadyStep[];simulatedUnits:number;wireBytes:number;stop:string};

@@ -14,9 +14,11 @@ import {accountApi} from '../../indexer/src/account-api.js';
 import {AccountRuntime} from '../../services/src/account-runtime.js';
 import {accountServiceApi} from '../../services/src/account-service-api.js';
 import {liquidityExecutionSetup} from '../../../tests/rpc-contract/liquidity-execution-setup.js';
+import {provisionRecoveryWorkspace} from '../../../tests/rpc-contract/account-membership-setup.js';
 import {DemoProcesses} from './processes.js';
 import {demoTransport,until} from './transport.js';
 import {DemoFaucet,FaucetUnavailable} from './faucet.js';
+import {SettlementPages} from '../../services/src/settlement-pages.js';
 import {CONTAINER,IMAGE,RUNTIME,DEMO_ROOT,UI,json,publicRequest,ARTIFACT_DIRECTORY} from './config.js';
 
 process.umask(0o077);
@@ -97,6 +99,7 @@ try {
     const file=readFileSync(`${ARTIFACT_DIRECTORY}/${artifact.name.replaceAll('-','_')}.so`);
     assert.equal(file.length,artifact.bytes);assert.equal(createHash('sha256').update(file).digest('hex'),artifact.sha256,`Unqualified ${artifact.name}`);
   }
+  new SettlementPages(); // Fail before provisioning if default continuation cannot run.
   const disk=statfsSync(DEMO_ROOT);assert(disk.bavail*disk.bsize>1024**3,'At least 1 GiB free disk is required');
   stage='production UI build';
   await processes.run('ui-build','pnpm',['build:trader']);
@@ -123,6 +126,13 @@ try {
   await until(async()=>{try{execFileSync('container',['exec',CONTAINER,'pg_isready','-h','127.0.0.1','-U','rivalt','-d','rivalt'],{stdio:'pipe',timeout:2000});return true;}catch{return false;}},Boolean,'PostgreSQL');
   const databaseUrl=`postgresql://rivalt:${password}@127.0.0.1:15443/rivalt`;
   stage='signed venue provisioning';setup=await liquidityExecutionSetup(transport.h,transport.rpc,{verifyRejections:false,makerCash:500_000_000n});
+  await provisionRecoveryWorkspace(transport.h,setup.common,setup.payer,128n);
+  // Prepay the first 128 registration slots; new identity pages remain an explicit
+  // operator responsibility, separate from financial workspace and collateral.
+  const [nextMemberPage]=await sdk.deriveMemberPage(setup.venue,1n);
+  const [pageReceipt]=await sdk.deriveStorageFunding(setup.venue,nextMemberPage);
+  await transport.h.send('fund demo registration page 1',[await sdk.getFundMemberPageInstructionAsync({...setup.common,
+    payer:setup.payer,allocation:nextMemberPage,receipt:pageReceipt,pageIndex:1n})]);
   // Match the qualified service topology: an updater promoted to fee payer is
   // writable even when its maker accounts are independent. Sharing it across
   // all eight producers serializes publication behind finalized reservations.
@@ -152,7 +162,7 @@ try {
   // cycle can still be pending; it is not a readiness signal.
   await until(async()=>{await indexer!.cycle();return indexer!.healthy;},Boolean,'finalized provisioning fence',60000);
   const {binding}=await indexer.store.published();
-  publicConfig={version:4,accountSchema:10 as const,deployment:'account-scale-candidate' as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
+  publicConfig={version:4,accountSchema:10 as const,deployment:'selected' as const,chain:'solana:localnet',profile:config.profile,rpcUrl,wsUrl,genesis:binding.genesis,anchor,
     anchorHash:binding.anchorHash,venue:setup.venue,mint:setup.mint.address,domain:binding.domain};
   writeFileSync(RUNTIME+'/deployment.json',json(publicConfig),{mode:0o600});
   writeFileSync(RUNTIME+'/private-config.json',json(config),{mode:0o600});

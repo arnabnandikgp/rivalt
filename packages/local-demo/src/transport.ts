@@ -58,7 +58,7 @@ export async function demoTransport(url:string,journal:string){
       // history before releasing an allowance for a failed on-chain transaction.
       if(commitment==='finalized'&&history.meta?.err!=null)outcome='rejected';
       assert.equal(history.meta.err,null,`${label}: ${JSON.stringify(history.meta.err)}`);
-      if(label==='initialize fresh profile4 custody')anchor=signature;
+      if(label==='initialize fresh profile6 custody')anchor=signature;
       return history;
     }catch(error){
       throw new DemoSendError(error instanceof Error?error.message:`Demo submission failed: ${label}`,outcome,{cause:error});

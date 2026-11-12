@@ -1,5 +1,40 @@
 # Validation and measured limits
 
+## Account-scale populated qualification (P56)
+
+Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper
+**`ed466030eccd485b8552b378815bf3f4e28fb658`**, passes the actual populated
+128-Financial-root run. The cohort includes six makers, 16 cross roots, 120 exposed
+roots, 65 debtors, 70 creditors and 15 roots with opposite-sign market claims.
+There are **175 durable originals / 2,317 guarded instructions**, **506.428 seconds**
+through complete resolution, **875,000 test lamports**, peak **897,380 CU / 3,348
+wire bytes**. Original p50/p95 processing is 2.328 / 2.751 seconds. G1 passes.
+
+Both actual upload/Apply SIGKILLs recover the same signed originals with one observed
+broadcast each. Independent Fraction/graph payouts and market insurance consumption
+(**6,792 / 3,252 atoms**), complete application, one-atom SPL exit, sustained recovery
+and explicit resume pass. All 1,023 setup/recovery outcomes (eight deliberate
+rejections) are fetched over RPC and matched to WS. Independently paid BTC/ETH fills
+have disjoint actual signed lock sets; this is not a validator-throughput claim.
+Fresh PostgreSQL replay reproduces **1,074 events / 405 accounts / 128 Financial
+members**. Actual and allocated vault equal **332,907,139 atoms**, zero surplus.
+Both isolated Anchor clients match 3,332 clearing instructions / 4,368 clearing
+events, plus 378 maker instructions / 384 maker events. This run adds no account
+decode vectors. The separate independent worker audit passes; end tracked tree is
+clean. Raw files remain in `.local/scalable-settlement/runs/p56-populated-128-parity`.
+
+Pre-funded recovery has **99 accounts / 192,661 data bytes / 1,043,091,640 rent
+lamports**. All clearing accounts before resolution total **404 / 352,526 bytes /
+2,053,529,040 rent lamports**. Rent is separate from transaction fees and collateral;
+these are local test-lamport measurements with zero priority bids. Worst-width
+storage is provisioned; this financially populated sample is not an adversarial
+maximum-denominator latency proof. The finite work/storage bounds remain checked.
+Larger compiled workloads, including 1,024 Financial roots, require separate
+measurement before enablement; no unlimited population or profitability is claimed.
+
+The normal launcher/client selection is being qualified against these same bytes;
+P56 remains In progress until that final check passes.
+
 ## Maintained backing integration (P55B2)
 
 The gated schema-10/profile-6 candidate has source-derived IDL/SDK outputs and an
@@ -11,7 +46,7 @@ The changed kernel passes the independent five-method reference again (1,274
 corner contributions and 89,720 summary/restoration prefixes; native only).
 The worker completes an unpayable cohort's scan without attaching a doomed payment.
 
-The selected runtime remains schema 8. Candidate manifests now read actual source
+At the P55B2 checkpoint, the selected runtime remained schema 8. Candidate manifests now read actual source
 schema/profile constants; they do not bypass the selected runtime hash allowlist.
 Candidate `bbd3398` is rejected by the SBF guard: backing-event construction has
 maximum stack offset 4,192, 96 bytes over the allowed frame. It was not deployed.

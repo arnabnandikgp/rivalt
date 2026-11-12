@@ -1,4 +1,4 @@
-import {expect,it} from 'vitest';
+import {expect,it,vi} from 'vitest';
 import {AccountRole} from '@solana/kit';
 import {Keypair,VersionedTransaction} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
@@ -91,4 +91,10 @@ it.each([16,32])('uses up to %i low-cost steps while retaining the same measured
   const high=await fixture({units:100_000}),bounded=await high.run(limit);
   expect(bounded.steps).toHaveLength(9);expect(bounded.simulatedUnits).toBe(900_000);
   expect(bounded.stop).toBe('compute-bound');expect(high.simulations).toHaveLength(10);
+});
+
+it('uses the qualified resource-bounded batch by default while retaining explicit scalar recovery',()=>{
+  vi.stubEnv('RIVALT_DEFAULT_BATCH_STEPS',undefined);
+  try {expect(defaultBatchSteps()).toBe(32);expect(defaultBatchSteps('1')).toBe(1);}
+  finally {vi.unstubAllEnvs();}
 });

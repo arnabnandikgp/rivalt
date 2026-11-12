@@ -12,8 +12,8 @@ bytes supply all quoted financial and pricing values.
 
 The final discovery read has a hard ceiling of 48 distinct RPC keys. This includes
 unselected candidates and code authentication and is **not** an increase to G22's
-32 loaded-account ceiling for a submitted transaction. Profile 3 readers/builders
-remain separate and reject profile 4. Snapshot construction itself grants no execution authority.
+32 loaded-account ceiling for a submitted transaction. Historical readers stay at their original revisions; the current reader requires
+schema 10/profile 6. Snapshot construction itself grants no execution authority.
 
 `authenticateLiquidityMarket` checks exact owners/layouts, canonical PDAs, sealed
 membership, one capital per instance, isolated-market ownership, controller/domain
@@ -47,7 +47,7 @@ Every potentially superior candidate still receives full trader admission. This
 guarantees the best admissible result only within the authenticated candidate set
 and snapshot. Actual landing may differ; clearing revalidates it on chain.
 
-`previewLiquidityRoute` binds the pure allocator to the coherent profile-4 reader
+`previewLiquidityRoute` binds the pure allocator to the coherent profile-6 reader
 and authenticated source/funding policy. `buildLiquidityRoute` constructs the
 bounded route intent; the wallet or durable worker signs the resulting transaction.
 The 2 bps/zero-provider fee, insurance share, loss ownership and V1–V3 economics
@@ -56,13 +56,13 @@ are unchanged. P15B/P16B remain Open; continuous 24-hour endurance remains Defer
 
 ## Signed execution contract
 
-**Execution:** `execute_liquidity_route_v4` uses existing V3 intent order except
+**Execution:** `execute_liquidity_route` uses existing V3 intent order except
 each leg is `(lots,authority_epoch,control_epoch,shape_epoch,depth_epoch):[u64;5]`.
 Retain AccountGuard, domain, terms/config epochs, validity, side, total lots,
 all-in limit, max fee, reduce-only and optional generation. It does not sign a
 price sequence or consumption prefix. Vec length exactly1/2, sum exact, identities
 bound by signed transaction account keys. Max serialized args incl discriminator223
-bytes. `execute_liquidity_order_v4` retains V3 stored-order execution authority/id/
+bytes. `execute_liquidity_order` retains V3 stored-order execution authority/id/
 version/filled/start/expiry/lots with these legs (≤172 bytes). Existing transaction
 signatures cover exact account identities; no substitution or resplit on landing.
 Accounts retain V3 identity order, add registry, and per leg capital writable,
@@ -81,17 +81,17 @@ sequences and consumption prefixes; signed intents bind structural epochs instea
 The SDK preserves caller-supplied limits and returns an explicit 800k CU budget for
 the existing measured-size v0/v1 compiler. Current measured resource results are recorded in validation.
 
-Safety integration uses schema-8 account financial instructions/layouts for
-profile4 only under `liquidity-execution-qualification`. Order authority, cash,
+Safety integration uses schema-10 account financial instructions/layouts for
+profile6 only under `liquidity-execution-qualification`. Order authority, cash,
 liquidation, complete-cohort resolution, recovery and terminal exits share their
 existing implementation. Earlier runtime APIs are retired in source and remain
 reproducible at their historical revisions. Default/devnet artifacts cannot
-activate profile4 or execute its financial operations.
+activate profile6 or execute its financial operations.
 
-`activate_liquidity_v4()` uses the existing `ActivateAccounts` account layout:
+`activate_liquidity()` uses the existing `ActivateAccounts` account layout:
 venue-authorized qualification identity plus resolution header, no extra accounts.
-It requires the explicit local qualification feature, immutable profile4, unpaused
-custody mode, all 32 precreated safety pages, a fresh zero-epoch resolution header,
+It requires the explicit local qualification feature, immutable profile6, unpaused
+custody mode, an unlocked, completely funded recovery workspace covering Financial membership, a fresh zero-epoch resolution header,
 zero market gross/funding and settlement/collected fees/carry, reconciled collateral
 and both markets' existing fresh Normal qualification. Only D76 reports can produce
 that profile's qualification; publisher initialization required sealed three-maker

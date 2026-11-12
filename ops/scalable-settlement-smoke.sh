@@ -8,6 +8,10 @@ export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
 node --import tsx --input-type=module -e 'import {verifyBackingBuild} from "./tests/rpc-contract/backing-artifacts.ts"; verifyBackingBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
 
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker ]]; then
+  node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts"; new SettlementPages();'
+fi
+
 if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then
   node --import tsx tests/browser/preflight.ts
 fi

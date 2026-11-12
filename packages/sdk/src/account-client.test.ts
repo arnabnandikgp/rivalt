@@ -99,11 +99,12 @@ it('discovers only canonical children of the selected owner portfolio and reject
   await expect(client.ownerAccounts(fixture.owner,0)).rejects.toThrow('Owner account identity mismatch');
 });
 
-it('requires explicit schema-10 candidate selection independently of profile version', async () => {
+it('requires explicit schema-10 deployment selection independently of profile version', async () => {
   const fixture = await environment();
   expect(sdk.accountUserConfig(fixture.config).accountSchema).toBe(10);
   expect(() => sdk.accountUserConfig({...fixture.config, accountSchema: 9 as 10})).toThrow(/Explicit qualified/);
-  expect(()=>sdk.accountUserConfig({...fixture.config,deployment:'selected'} as unknown as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
+  expect(sdk.accountUserConfig({...fixture.config,deployment:'selected'}).deployment).toBe('selected');
+  expect(()=>sdk.accountUserConfig({...fixture.config,deployment:'old-baseline'} as unknown as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
   const {accountSchema: _schema, ...missing} = fixture.config;
   expect(() => sdk.accountUserConfig(missing as sdk.AccountUserConfig)).toThrow(/Explicit qualified/);
 });
