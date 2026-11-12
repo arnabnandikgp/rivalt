@@ -59,9 +59,10 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: publish the final P56 acceptance in open PR #85 and inspect its
-hosted checks; then stop for the user's account-scale discussion before P57. The
-remaining roadmap is retained, not started. No local acceptance blocker remains.
+P56's final acceptance is published in open PR #85; its exact hosted check status
+is tracked there. Next exact action after those checks: discuss account-scale
+recovery with the user before any P57 work. The roadmap is retained, not started.
+No local acceptance blocker remains.
 
 ## Remediation planning
 
@@ -893,6 +894,11 @@ reclaimed; all databases, keys and raw evidence remain intact.
 The earlier 128-root resource/capture failures remain in validation. Clean
 `ad19215` passes hosted CI run 43157071365; the final publication's hosted status
 is reported separately on PR #85, without inferring it from local acceptance.
+Publication `6c4652c` passes scope/report/shell and 403 client checks, but three
+launcher hash-rejection fixtures still declare schema 8. They now declare the
+current schema 10/profile 6 and all three scoped launcher checks pass locally,
+reaching the intended unqualified-hash rejection before any runtime starts.
+This fixture-only correction requires no repeated program or financial run.
 P56 is ready for Review and remains open, not integrated. Stop after final PR
 publication/checks for the user's scalability discussion; do not begin P57.
 

@@ -67,6 +67,11 @@ run required no such retries. No program guard or publication cadence was relaxe
 
 This closes P56's local acceptance, not PR integration, external-wallet acceptance,
 continuous availability, production throughput or a larger-population cost claim.
+Hosted run 43162914676 on `6c4652c` passes 403 client checks but exposes three
+launcher fixtures with schema-8 manifests. The fixture-only correction declares
+schema 10/profile 6; all three focused checks now reach their intended bad-hash
+rejection before runtime creation. No program, launcher guard or qualified binary
+changes, and the signed financial/browser acceptance is not rerun for this fix.
 
 ## Maintained backing integration (P55B2)
 
