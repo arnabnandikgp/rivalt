@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {writeFileSync,readFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
+import {VersionedTransaction} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
 import {json} from '../../packages/indexer/src/events.js';
@@ -74,7 +75,11 @@ try {
     assert.equal(pending.length,1);const original=pending[0];
     assert.deepEqual(await runtime.riskWork(setup.payer),{status:'blocked',reason:'original-risk-intent-pending'});
     const subscription=await ws.call('signatureSubscribe',[original.signature,{commitment:'finalized',enableReceivedNotification:false}]);
-    const faultKind=outcome.reason.startsWith('upload-rate-')?'upload':outcome.reason==='apply-member'?'apply':undefined;
+    const wire=VersionedTransaction.deserialize(Buffer.from(original.wire,'base64'));
+    const actions=wire.message.compiledInstructions.filter(instruction=>wire.message.staticAccountKeys[instruction.programIdIndex].address===sdk.CLEARING_PROGRAM_ADDRESS);
+    const matching=(tag:Parameters<typeof sdk.hex>[0])=>actions.filter(instruction=>sdk.hex(instruction.data.slice(0,8))===sdk.hex(tag));
+    const applications=matching(sdk.APPLY_SETTLEMENT_MARGIN_DISCRIMINATOR).map(instruction=>sdk.getApplySettlementMarginInstructionDataDecoder().decode(instruction.data));
+    const faultKind=matching(sdk.UPLOAD_SETTLEMENT_RATE_DISCRIMINATOR).length?'upload':applications.length?'apply':undefined;
     if(faultKind&&!faults.some(fault=>fault.kind===faultKind)) {
       const fault=await liquidityQueueFault(runtime,{databaseUrl,rpcUrl,directory},original.request_id);
       assert.equal(fault.receipt.status,'finalized');faults.push({kind:faultKind,...fault});persist();
@@ -90,18 +95,17 @@ try {
     assert(transaction.meta.computeUnitsConsumed<=1_000_000);
     const history=await rpc.call('getTransaction',[original.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     conformance.record([],history);
-    originals.push({requestId:original.request_id,reason:outcome.reason,signature:original.signature,wire:original.wire,receipt,transaction,notification});
+    originals.push({requestId:original.request_id,reason:outcome.reason,actionCount:actions.length,appliedOrdinals:applications.map(value=>value.ordinal),signature:original.signature,wire:original.wire,receipt,transaction,notification});
     const current=await source();stages.push({step:originals.length,source:current.stage,revision:current.revision});persist();
-    if(outcome.reason==='apply-member') {
-      const [plan]=await sdk.deriveSettlementWorkspace(setup.venue,'plan');
-      const progress=sdk.getSettlementPlanDecoder().decode((await h.read(plan))!);const ordinal=Number(progress.cursor-1n);
+    for(const application of applications) {
+      const ordinal=Number(application.ordinal);
       const actual=await root(rows[ordinal].key);assert.equal(actual.cash,BigInt(expected.plan.cash[ordinal]));
       assert(actual.positions.every(position=>position.lots===0n&&position.virtualScaled===0n));
       assert.equal(actual.book.lastOrderId,rows[ordinal].root.book.lastOrderId);
       assert.equal(actual.book.lastGroupId,rows[ordinal].root.book.lastGroupId);
       if(ordinal===0){await flush();await journal.checkpoint('worker-partial-apply',true);}
     }
-    if(outcome.reason==='distribute'){await flush();await journal.checkpoint('worker-distribution',true);}
+    if(matching(sdk.COMPLETE_SETTLEMENT_APPLICATION_DISCRIMINATOR).length){await flush();await journal.checkpoint('worker-distribution',true);}
     if(current.stage!==previousStage) {
       await flush();await journal.checkpoint(`worker-stage-${current.stage}`,true);previousStage=current.stage;
     }
@@ -124,7 +128,7 @@ try {
   await h.send('explicit recovery to custody',[sdk.getRecoverAccountsInstruction({...setup.safetyCommon,...sources,caller:setup.payer,epoch:initial.epoch,resume:true})]);
   await flush();await journal.checkpoint('default-worker-recovered',true);const sql=await journal.finish();
   const parity=await conformance.finish(directory,[],h.read);
-  writeFileSync(`${directory}/result.json`,json({revision,build,helper,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,
+  writeFileSync(`${directory}/result.json`,json({revision,build,helper,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,defaultBatchSteps:runtime.defaultContinuationSteps,
     endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     limitations:['eight Financial roots; larger population and selected runtime promotion remain P56B','internal makers and synthetic oracle inputs']}));
 } finally {persist();await runtime?.close();await journal?.close();try{await flush();}finally{ws.close();}}

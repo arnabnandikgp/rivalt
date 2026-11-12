@@ -887,3 +887,21 @@ Registered roots are not projected as Financial; retired slots cannot be reused.
 This changes the client integration surface, not margin, fees, funded-versus-unpaid
 ownership, default coverage, Financial admission capacity or default/devnet gates.
 Acceptance remains pending until the signed client/browser/SQL run is recorded.
+
+## D105 — Atomic transport batching preserves scalar settlement authority
+
+12 November 2026. The qualified eight-root default worker spends 1,266.843 seconds
+on 665 scalar originals; its per-step finality overhead already exceeds G1's
+128-root time target. P56 therefore adds opt-in bounded atomic continuation batches
+before larger-cohort activation. This changes transport scheduling, not exact
+settlement, membership, insurance, fractional ownership or recovery rules.
+
+Unsigned simulations propose guarded sequential instructions using only returned
+poststates and authenticated bounded reads. Clearing repeats every check at landing;
+no simulation result awards money or advances the public journal. The complete
+batch is a single immutable queued original with all access locks and one fee
+reservation. Ambiguity blocks replacement exactly as before. Counts, actual wire
+size, measured CU and returned data are bounded by the durability contract.
+Default operation stays scalar until the changed signed crash/replay and resource
+checks pass. Larger population and selected runtime promotion retain their own
+P56 acceptance gates; simulation or unit tests do not satisfy them.

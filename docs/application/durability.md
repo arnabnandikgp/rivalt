@@ -633,3 +633,29 @@ through Apply (9), reconciliation (10), and reconciled (11). The controller uses
 that plan stage and cursor, bound to the source's adoption revision; only verified
 completion changes the source to Complete (11). Distribution does not independently
 advance the source stage. Unsupported or mismatched checkpoints fail closed.
+
+### Bounded atomic continuation candidate (P56)
+
+`RIVALT_DEFAULT_BATCH_STEPS=1` retains the qualified scalar producer. An explicit
+integer 2–8 enables the candidate batch planner within the exact account-scale
+binding. It simulates each unsigned prefix, requests six canonical headers and
+all writable poststates, then uses the ordinary authenticated continuation reader
+and descriptor helper to propose the next instruction. Simulation is untrusted
+proposal material, never committed progress or financial authority. A separate
+speculative cache cannot pollute committed rate proposals.
+
+Each prefix has at most eight instructions, 64 returned accounts and 8 MiB returned
+account bytes; v0/v1 remain within 1,232/4,096 wire bytes. A 1m CU transaction budget
+and at most 900k measured simulation CU bound batching. Rejection or resource
+exhaustion retains only the preceding admissible unsigned prefix; malformed RPC
+poststates fail closed. New read-only dependencies are fetched no earlier than the
+simulation slot and pass existing decoders. A concurrent change can invalidate the
+proposal, so final signed preflight and every program revision/epoch/attempt guard
+remain mandatory. No financial computation, authority or SBF ABI changes.
+
+The whole batch becomes one persisted original, one budget reservation and the
+union of its dispatch locks. No next batch is created while that original remains
+ambiguous. Upload/Apply crash tests identify actual instructions inside the signed
+wire, and every applied ordinal is checked against independent expected payouts.
+Qualification must record actual cost, runtime and fresh SQL replay before enabling
+this option by default or promoting larger Financial admission.

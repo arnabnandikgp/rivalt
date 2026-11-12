@@ -8,6 +8,7 @@ import type {AccountAuthority} from './account-authority.js';
 import {accountRiskSources,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
 
 import {accountDefaultStep} from './account-default-worker.js';
+import {accountDefaultBatch,defaultBatchComputeBudget} from './account-default-batch.js';
 
 /** The selected baseline remains gated; the explicit schema-10 candidate alone
  * enables the new controller pending P56A acceptance and P56B promotion. */
@@ -16,11 +17,11 @@ export const CANONICAL_DEFAULT_AUTOMATION_READY=false;
 export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receiver?:Address):Promise<AccountWorkerOutcome> {
   const budget=await runtime.budget('risk',key);
   if(await runtime.pendingBudget(budget))return {status:'blocked',reason:'original-risk-intent-pending'};
-  const submit=async(id:string,instruction:Instruction,resolution=false,authority:AccountAuthority|null=null)=>{
+  const submit=async(id:string,instruction:Instruction|Instruction[],resolution=false,authority:AccountAuthority|null=null)=>{
     try {
       // Frozen continuation has no invented expiry proof. Unknown originals hold
       // the budget; history/reconciliation must resolve them before any new wire.
-      await runtime.enqueue(`risk:${id}`,[resolution?sdk.resolutionComputeBudget():sdk.liquidationComputeBudget(),instruction],key,budget,authority,true);
+      await runtime.enqueue(`risk:${id}`,[resolution?(Array.isArray(instruction)?defaultBatchComputeBudget():sdk.resolutionComputeBudget()):sdk.liquidationComputeBudget(),...(Array.isArray(instruction)?instruction:[instruction])],key,budget,authority,true);
       return true;
     } catch(error) {if(error instanceof Error&&error.message==='Risk action presently unavailable')return false;throw error;}
   };
@@ -31,6 +32,12 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
     if([2,14].includes(frozen.header.stage)) {
       const step=await accountDefaultStep(runtime,key,frozen,await accountDefaultContext(runtime.rpc,frozen));
       if(step.status==='blocked')return step;
+      if((runtime.defaultContinuationSteps??1)>1) {
+        const batch=await accountDefaultBatch(runtime,key,frozen,step,runtime.defaultContinuationSteps);
+        if(!batch.steps.length)return {status:'blocked',reason:`default-batch-${batch.stop}`};
+        return await submit(`${step.id}:batch:${batch.steps.length}`,batch.steps.map(value=>value.instruction),true)?
+          {status:'queued',reason:`${step.reason}:batch:${batch.steps.length}`}:{status:'blocked',reason:'default-batch-presently-unavailable'};
+      }
       return await submit(step.id,step.instruction,true)?{status:'queued',reason:step.reason}:
         {status:'blocked',reason:'default-step-presently-unavailable'};
     }

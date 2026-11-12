@@ -204,3 +204,10 @@ Candidate wallet configuration requires `accountSchema: 10` and
 both require `RIVALT_ACCOUNT_DEPLOYMENT=account-scale-candidate`. Exact executable,
 anchor, genesis and domain checks reject mismatched deployments. The browser
 qualifies an internal test signer; it does not claim new external-wallet review.
+
+For P56's candidate continuation comparison, run the existing `default-worker`
+probe with `RIVALT_DEFAULT_BATCH_STEPS=8`; omit it (or use `1`) for the qualified
+scalar path. The option accepts only integers 1–8 and is honored solely within the
+explicit account-scale candidate. The same actual default/independent money,
+upload/Apply crash recovery, RPC/WS and fresh PostgreSQL assertions remain required.
+This resource experiment does not select new binaries or expand admission.
