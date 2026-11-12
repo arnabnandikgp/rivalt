@@ -41,6 +41,13 @@ discovery has selected the new root but the snapshot still contains the old one.
 The focused regression fails before the selected-snapshot guard and all four
 component cases pass after it; typecheck passes. This partial browser run is not
 acceptance. Raw failed sessions and wallet originals remain local and intact.
+At `30b2c2d`, the account switch succeeds and seven wallet actions finalize. The
+eighth is rejected with MakerQuote after signed route expiry: expiry slot 4,118,
+independently fetched finalized slot 4,138. The existing bounded fresh-review rule
+now recognizes that the quote-lifetime check can reject before RouteIntent, but
+still requires actual signed expiry proof. Error number alone is insufficient;
+unknown/ambiguous originals remain non-retriable. This partial run is retained at
+`.local/scalable-settlement/p56-normal-demo-wallet-selected`.
 
 ## Maintained backing integration (P55B2)
 

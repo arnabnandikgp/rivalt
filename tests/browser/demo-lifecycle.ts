@@ -74,10 +74,11 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     assert.equal(name,'Review atomic trade',JSON.stringify(receipt.error));
     const code=history.meta.err?.InstructionError?.[1]?.Custom;
     assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:code}]});
-    assert(code===6122||code===6117,JSON.stringify(history.meta.err));
-    if(code===6117){
-      // RouteIntent is a broad error. Retry only independently proven expiry,
-      // never an unexplained authority/quantity/generation mismatch.
+    assert(code===6122||code===6117||code===6115,JSON.stringify(history.meta.err));
+    if(code===6117||code===6115){
+      // Quote lifetime can reject before the route-intent check. Both errors
+      // are broad: require independently proven signed route expiry, never
+      // infer a transient failure from the error number alone.
       const transaction=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
       const instruction=transaction.message.compiledInstructions[3];
       assert.equal(transaction.message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);

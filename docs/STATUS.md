@@ -879,7 +879,12 @@ then exposes a UI account-switch crash: discovery identifies cross while the
 snapshot still contains only isolated. A focused regression reproduces the crash;
 the fix withholds financial calculation/actions until the selected root snapshot
 arrives. All four component tests and typecheck pass. Fresh normal-launcher/browser
-acceptance remains next; partial sessions/results are retained locally.
+`30b2c2d` passes the account switch and seven wallet actions, then stops on an
+expired ETH route (signed expiry slot 4,118; finalized landing 4,138). MakerQuote
+rejects before the route-intent guard. The browser verifier now allows its bounded
+fresh review only after the same independently proven signed expiry; it never
+retries an uncertain original or treats the broad error alone as transient.
+Complete browser acceptance remains next; partial sessions/results are retained.
 
 The earlier 128-root attempts remain failed/partial evidence in validation: an old
 reference ceiling, omitted fixture generation, the 997-original budget/time miss,
