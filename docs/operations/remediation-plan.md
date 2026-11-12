@@ -85,11 +85,12 @@ this work. Internal makers and synthetic inputs remain labelled.
 
 ## PR sequence and dependencies
 
-Each row is one intended ready PR with a cohesive acceptance boundary. P51A is this
-planning PR. Phase IDs are not GitHub PR numbers. Do not precreate empty PRs for
-later rows. Refine a scope into numbered
-subphases before implementation if the chosen design cannot be reviewed coherently;
-update this table and STATUS rather than silently combining unrelated work.
+PR granularity update (12 November 2026, user direction): **one ready PR per
+numbered phase from P56 through P62**. Existing published P51–P55 PRs retain their
+review history. P56 continues in existing PR #85. Lettered scopes below are internal
+implementation/acceptance checkpoints, not separate branches or PRs; their safety
+and dependency gates remain mandatory. Use reviewable commits within each phase.
+Do not precreate empty PRs or repeatedly run inherited suites at checkpoint boundaries.
 
 | PR phase | Deliverable | Technical prerequisites |
 |---|---|---|
@@ -105,21 +106,11 @@ update this table and STATUS rather than silently combining unrelated work.
 | P55A2 | On-chain membership, recovery storage and safe account lifecycle | P55A1 |
 | P55B1 | Checked maintained-backing arithmetic and complete mutation contract | P55A2, G3 |
 | P55B2 | On-chain maintained backing and signed payment-progress acceptance | P55B1 |
-| P56A1 | Durable paged default controller and explicit candidate service binding | P52, P55A–P55B |
-| P56A2 | Account discovery, SDK/API and wallet lifecycle integration | P56A1 |
-| P56B | Larger-cohort acceptance and local activation | P53–P56A2 |
-| P57A | General maker admission/lifecycle | P56B |
-| P57B | Larger maker discovery/routing/funding coverage | P57A, G4 |
-| P58A | Impact notional and scalable funding search | P53, P57B, G5 |
-| P58B | Funded liquidation incentive policy | P56B, P57B, G5 |
-| P58C | Margin, concentration and OI policy | P53, P58B, G5 |
-| P58D | Exact funding-index lifetime maintenance | P51B index contract, P58A–P58C |
-| P59A | Reviewed fee bidding and resource budgets | P56B; current per-action measurements |
-| P59B | Due-driven maker/publisher scheduling | P57B, P58A, P59A, G6 |
-| P59C | Fair worker discovery and durable concurrency | P52, P55B, P59A–P59B |
-| P60A | Portfolio/subaccount namespace capacity | P55A, P56A |
-| P60B | Order/protection capacity and reservations | P54C, P58C, P60A |
-| P60C | Order and delegate lifetime semantics | P58D, P60B, G6 |
+| P56 | Durable default, account discovery/wallet lifecycle, larger-cohort qualification and local activation | P52–P55; internal A1 → A2 → B acceptance |
+| P57 | General maker admission/lifecycle plus discovery, routing and complete funding coverage | P56, G4; internal A → B |
+| P58 | Funding impact policy, liquidation incentives, margin/OI policy and exact index lifetime | P53, P56–P57, G5/G6; internal A → B → C → D |
+| P59 | Reviewed fee bids, due-driven publication and fair durable workers | P56–P58, G6; internal A → B → C |
+| P60 | Portfolio namespaces, order/protection capacity and lifetime semantics | P55–P59, G6; internal A → B → C |
 | P61 | Reference-code/configuration retirement | P52, P58A; final call-site audit |
 | P62 | Consolidated successor qualification | All preceding enabled changes |
 
@@ -342,7 +333,9 @@ account metas only; clearing authenticates pages and verifies all financial effe
 No test oracle or test executable is a production dependency. A fixed supported
 candidate binding is explicit and does not replace the selected runtime. P56A2 then
 owns coherent discovery, lifecycle API/builders and complete wallet/UI qualification.
-Both are required before P56B; neither activates a larger Financial population.
+Both are required before checkpoint P56B; neither activates a larger Financial
+population. Following the user’s PR-granularity update, all three checkpoints
+ship together in P56 PR #85. Their names persist for acceptance provenance only.
 
 ### P56B — larger-cohort qualification and activation
 
@@ -604,7 +597,9 @@ These IDs label findings for this plan; they do not replace historical decision 
   binaries, heap/stack, serialized wire, read/write sets, priority bids, rent, RPC
   load and recovery time where changed. New global writable summaries need explicit
   contention analysis. Existing matched baselines are not new evidence.
-- Run affected checks per PR; broader supported regression belongs in CI. P62 is
+- Run checks when a changed path or acceptance gate requires them, and reuse their
+  exact unchanged revision/artifact evidence across internal checkpoints. Broader
+  supported regression belongs in CI; checkpoint labels do not trigger full suites. P62 is
   the deliberate combined qualification, not a reason to rerun every suite at each
   intermediate step. No raw evidence, per-run document or required archive enters
   Git; retain existing ignored local paths and track concise claims.

@@ -26,8 +26,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
-| P56A1 durable default services | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above #84; both branches' five hosted CI jobs pass at `6752a36` / `817fa9d`. Signed `6752a36` reaches 656 durable originals with both real SIGKILL recoveries and independent per-root Apply checks, but stops after distribution because the worker used the source stage instead of the adopted plan stage. The controller correction and publication-lag/stage regressions pass; complete corrected RPC/WS/PostgreSQL qualification is next |
-| P56A2–P62 successor implementation | Planned | Wallet/discovery integration, expanded activation and later remediation follow their existing gates |
+| P56 account-scale services, clients and activation | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above #84; internal A1 passes on clean `25ed94a`: 665 durable originals, two actual SIGKILL/same-original recoveries, independent exact payouts, token exit, sustained recovery and 109-event identical PostgreSQL replay. A2 wallet/client draft passes 30 focused checks/typecheck/build; signed browser acceptance is next. B larger-cohort acceptance and scalar-continuation cost reduction remain required before activation |
+| P57–P62 successor implementation | Planned | One ready PR per numbered phase, following the user's 12 November granularity update; internal lettered checkpoints retain their gates without separate PRs |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -59,7 +59,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: rerun complete P56A1 default-worker qualification with corrected adopted-plan stage selection;
+Next exact action: qualify the P56 wallet/client lifecycle against actual signed Surfpool/RPC/WS/PostgreSQL, then optimize and qualify larger-cohort continuation within the same PR #85;
 leave every PR open and continue through the P62 dependencies.
 
 ## Remediation planning
@@ -818,6 +818,35 @@ finish P56A1 signed default-worker acceptance above #84.
 No user decision or access blocker is known. Expanded population and runtime
 promotion remain P56B; automatic default continuation and wallet/UI acceptance
 remain P56A. P15B/P16B remain Open and 24-hour endurance Deferred.
+
+## P56 internal checkpoint
+
+User direction on 12 November consolidates all remaining work into one ready PR
+per numbered phase P56–P62. Existing #85 owns durable default, wallet/discovery,
+resource optimization and larger-cohort acceptance. Lettered checkpoints remain
+provenance/acceptance labels; completing one does not mark the whole phase Review.
+
+Clean **`25ed94a832e66c8986554b53be6cb59d9c5b7139`**, unchanged D102 SBF `bc9f029`
+and the bounded native helper pass the complete scalar default-worker lifecycle:
+**665 durable originals**, 271 separately fetched provisioning/recovery outcomes,
+both real executor SIGKILL boundaries, identical-original recovery with one observed
+broadcast each, all eight independently computed payouts, exact **120 / 30 atoms**
+of market insurance, a one-atom SPL exit, six-second sustained recovery and explicit
+resume. Fresh SQL replay matches **109 events / 224 accounts / eight members**;
+actual and allocated vault both equal **7,399,999 atoms**, zero surplus. The captured
+end tree is clean. Raw files stay in `.local/scalable-settlement/runs/p56a1-default-complete`.
+The earlier five-step freshness failure and 656-step phase-selection failure remain
+retained locally; neither was counted as a successful full qualification.
+
+The scalar worker spends **3,325,000 test lamports**, with zero remaining budget
+reservation/access rows, peak **116,191 CU / 915 bytes**, and **1,266.843 seconds**
+from first worker processing through resolution completion. This is functional and
+crash-recovery acceptance, not G1 larger-population cost acceptance: even eight roots
+take 21.1 minutes with one continuation per finality wait. P56 must reduce continuation
+transport overhead and meet the agreed populated-cohort envelope before activation.
+The temporary 64-Financial gate and selected schema-8 artifact directory stay unchanged.
+Five hosted jobs pass at `25ed94a` (run 43126999240); automated review is neutral.
+No independent review, larger population or live deployment is claimed.
 
 ## Deployment and operational limits
 

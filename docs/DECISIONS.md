@@ -865,5 +865,5 @@ API/budget version 4 is explicitly distinct from on-chain schema 10/profile 6.
 Only the fixed candidate artifact binding opts into this controller; the selected
 runtime is unchanged until P56B qualification. P56A2 owns full wallet/discovery
 acceptance. No economics, on-chain ABI, larger-population admission or deployment
-promotion changes here. Acceptance remains pending until STATUS/validation record
+promotion changes here. Acceptance is established only when STATUS/validation record
 actual signed default, upload/Apply crash recovery and exact PostgreSQL replay.

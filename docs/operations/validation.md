@@ -1950,3 +1950,53 @@ faults separately checked. Retired-profile suites, new comparative load, 24-hour
 endurance, external wallet/devnet and independent/funded gates are not rerun or
 claimed. Hosted CI supplies broad supported client/native regression after PR
 publication; local acceptance does not imply an unobserved CI result.
+
+
+## Durable paged default worker (P56 internal A1)
+
+Clean `25ed94a832e66c8986554b53be6cb59d9c5b7139` passes the actual production
+candidate controller/queue against unchanged D102 SBF `bc9f029`. Native page helper
+build `2d7337f` has identical helper source at the tested revision; its 547,184-byte
+executable hashes to `246a3e09925c3f04bf91ec528a0d7a6c07b32c414c067af60f0466887a0659fe`.
+The helper returns bounded account descriptors, never financial authority.
+
+Run `RIVALT_SETTLEMENT_PROBE=default-worker` with the pinned artifact directory
+through `ops/scalable-settlement-smoke.sh`. Actual signed trades create the
+bankrupt cross debtor and opposing maker claims. The pre-execution independent
+Python Fraction/graph reference supplies expected cash/insurance; post-run
+`tests/financial/check_default_worker.py` checks every final owner, protected fee
+carry, all insurance/pools, the one-atom token exit, exact original bytes and fees.
+
+| Measured result | Observed |
+|---|---|
+| Financial population / durable worker originals | 8 / 665 |
+| Separate provisioning/recovery RPC/WS outcomes | 271 |
+| Upload and Apply executor faults | Actual SIGKILL after RPC acceptance, before acknowledgement; same signature/bytes and one observed broadcast each |
+| Maximum worker CU / serialized bytes | 116,191 / 915 |
+| Worker fees / remaining fee reservation | 3,325,000 test lamports / 0 |
+| Worker elapsed through completion | 1,266.843 seconds; serial finality after each original |
+| Insurance consumed BTC / ETH | 120 / 30 collateral atoms |
+| Fresh SQL replay | 109 identical events, 224 reconciled accounts, 8 members |
+| Actual / allocated collateral / surplus after exit | 7,399,999 / 7,399,999 / 0 atoms |
+
+SQL checkpoints cover partial Apply, distribution, complete settlement and recovered
+custody. All payouts match the independent model; reservations/delegates/positions
+clear and historical order/group IDs remain. An actual SPL withdrawal is followed
+by sustained source recovery and explicit resume. End tracked tree is clean.
+Both isolated Anchor clients match 249 setup/recovery clearing instructions and
+1,023 clearing events (plus maker events); worker instructions are fetched as exact
+persisted wire but are not claimed as an additional legacy instruction-parity run.
+Nineteen focused service tests, two native descriptor tests, typecheck and all five
+hosted jobs pass at the recorded revisions. Hosted run: 43126999240 at `25ed94a`.
+
+Earlier stopped runs are retained, not accepted: `bd61659` incorrectly required
+fresh publication for frozen continuation; `6752a36` reached 656 originals but used
+the source stage instead of the plan stage after distribution. Regression checks
+cover live-discovery fencing, frozen progress during publication lag, adopted-plan
+reconciliation/completion and mismatched checkpoint rejection.
+
+Limits: internal makers/synthetic sources, eight roots and one insurance evaluation;
+no larger Financial population, selected runtime promotion, external wallet, soak
+or independent review. This 21.1-minute scalar path does not meet larger-cohort G1
+latency acceptance; P56 owns continuation optimization and populated-cohort costs.
+Raw evidence remains at `.local/scalable-settlement/runs/p56a1-default-complete`.
