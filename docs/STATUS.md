@@ -810,7 +810,10 @@ native fixture literals and the generated lock inventory. Clean `1b42a2c` fixes
 only those fixtures/baselines: 14 affected qualification tests, two disabled-default
 activation tests and the 90-entrypoint inventory check pass. The only access-set
 change is the intended writable backing ledger; SBF/financial semantics are unchanged.
-A new hosted result is pending. Next exact action:
+Hosted run 43122151935 passes financial/scope/report/shell and exposes the
+remaining frozen-proposal reader still expecting profile 5. Clean `f560b05` binds
+that reader to profile 6; all three focused proposal checks pass. No program or
+financial semantics changed. A new hosted client result is pending. Next exact action:
 start P56A above #84 without waiting for merge.
 No user decision or access blocker is known. Expanded population and runtime
 promotion remain P56B; automatic default continuation and wallet/UI acceptance
