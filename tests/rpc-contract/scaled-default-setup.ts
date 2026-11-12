@@ -75,3 +75,77 @@ export async function defaultStorageResources(rpc:{call(method:string,params?:un
   return {contextSlot:String(response.context.slot),recoveryBytes,recoveryAccounts,recoveryRentLamports:recoveryRent.toString(),
     allClearingBytes:allBytes,allClearingAccounts:response.value.length,allClearingRentLamports:allRent.toString()};
 }
+
+/** Per-account actions while the real 128-root cohort is present. Expected cash
+ * movements and the 27-atom reward are literal independent values. */
+export async function exercisePopulatedActions(h:CanonicalHarness,setup:Setup,cohort:Awaited<ReturnType<typeof populateDefaultCohort>>) {
+  const {root,guard,route}=executionTestHelpers(h,setup),[cross,receiver]=setup.roots,owner=setup.traderOwner;
+  const common={...setup.common,btc:setup.markets[0],eth:setup.markets[1]};
+  const withdraw=async(amount:bigint)=>sdk.getWithdrawFundedAccountInstruction({...common,owner,margin:cross,
+    quoteMint:setup.mint.address,userToken:setup.traderToken.address,guard:await guard(cross),amount});
+  const reject=async(label:string,instructions:Parameters<typeof h.send>[1],keys:Address[],error:number)=>{
+    const before=await Promise.all(keys.map(h.read));await h.send(label,instructions,[owner],error);
+    assert.deepEqual(await Promise.all(keys.map(h.read)),before);
+  };
+  await setup.sample();
+  const before=await root(cross),slot=await setup.slot(),orderId=before.book.lastOrderId+1n,oldExit=await withdraw(1n);
+  const terms={side:1,lots:2n,limit:58_000n,feeBudget:500n,startSlot:slot,expirySlot:slot+2000n,
+    reduceOnly:true,generation:before.positions[0].generation};
+  await h.send('populated whole-account existing-position TP/SL',[sdk.getManageAccountOrderInstruction({...common,actor:owner,margin:cross,
+    guard:await guard(cross),marketIndex:0,operation:{__kind:'Protect',expectedId:orderId,
+      takeProfit:{...terms,trigger:1,threshold:60_100n},stopLoss:{...terms,trigger:2,threshold:59_900n}}})],[owner]);
+  const protectedRoot=await root(cross);assert(protectedRoot.reserved>0n);
+  await reject('populated reservation invalidates prepared exit',[oldExit],[cross,setup.custody,setup.vault,...setup.ledgers],sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
+  await reject('populated exit preserves whole-account margin',[await withdraw(protectedRoot.cash-1n)],
+    [cross,setup.custody,setup.vault,...setup.ledgers],sdk.CLEARING_ERROR__ARITHMETIC);
+  setup.sourcePrices.btc=59_800_000_000n;await setup.qualify();
+  const stop=(await root(cross)).book.orders.find(entry=>entry.order.id===orderId+1n)!.order;
+  const filled=await route({trader:cross,actor:setup.payer,marketIndex:0,side:1,makers:[setup.instances[0]],lots:[1n],
+    stored:{id:stop.id,version:stop.version,filled:stop.filled}});
+  await h.send('populated reduce-only stop partial fill',[filled]);
+  assert.equal((await root(cross)).positions[0].lots,before.positions[0].lots-1n);
+  const current=await root(cross),group=current.book.protections[0].protection;
+  await h.send('populated cancellation preserves remaining position',[sdk.getManageAccountOrderInstruction({...common,actor:owner,margin:cross,
+    guard:await guard(cross),marketIndex:0,operation:{__kind:'Cancel',id:group.id,version:group.version,protectionGroup:true}})],[owner]);
+  assert.equal((await root(cross)).reserved,0n);
+  const donorBefore=await root(cross),receiverBefore=await root(receiver);
+  await h.send('populated guarded funded transfer',[sdk.getTransferFundedAccountInstruction({...common,owner,donor:cross,recipient:receiver,
+    amount:2n,guard:await guard(cross)})],[owner]);
+  assert.equal((await root(cross)).cash,donorBefore.cash-2n);assert.equal((await root(receiver)).cash,receiverBefore.cash+2n);
+  await h.send('populated guarded token withdrawal',[await withdraw(1n)],[owner]);
+  await h.send('populated actual token redeposit',[await sdk.getDepositAccountInstructionAsync({...setup.common,owner,margin:cross,
+    quoteMint:setup.mint.address,userToken:setup.traderToken.address,amount:1n})],[owner]);
+  assert.equal((await root(cross)).cash,donorBefore.cash-2n);
+
+  const target=cohort.additional.find(item=>item.ordinal>=64&&item.mode===1&&item.market===0&&!item.receiver&&Math.floor(item.ordinal/2)%2===0)!.margin;
+  assert((await root(target)).id>64n);
+  setup.sourcePrices.btc=53_500_000_000n;await setup.qualify();
+  const targetBefore=await root(target),capitalBefore=await root(receiver);
+  const liquidation=async(price=53_500n,lots=1n)=>sdk.getLiquidateAccountInstruction({...common,target,receiver,receiverOwner:owner,
+    targetGuard:await guard(target),receiverGuard:await guard(receiver),marketIndex:0,price,lots});
+  await reject('populated liquidation cannot flip target',[await liquidation(53_500n,targetBefore.positions[0].lots+1n)],
+    [target,receiver,...setup.ledgers],sdk.CLEARING_ERROR__ARITHMETIC);
+  await reject('populated liquidation requires post-fee deficit progress',[await liquidation(48_150n)],
+    [target,receiver,...setup.ledgers],sdk.CLEARING_ERROR__ARITHMETIC);
+  const instruction=await liquidation();await h.send('populated consenting funded partial liquidation',[instruction],[owner]);
+  const targetAfter=await root(target),capitalAfter=await root(receiver);
+  assert.equal(targetAfter.positions[0].lots,targetBefore.positions[0].lots-1n);
+  assert.equal(capitalAfter.positions[0].lots,capitalBefore.positions[0].lots+1n);
+  assert.equal(targetAfter.cash,targetBefore.cash-27n);assert.equal(capitalAfter.cash,capitalBefore.cash+27n);
+  // Evaluate both target states at the very same executed funding checkpoint.
+  // With one BTC lot removed at 53,500, MM falls 2,675 atoms; the funded
+  // ceil(53,500 * 5 / 10,000)=27 reward leaves 2,648 atoms strict progress.
+  const scale=1_000_000_000n,positionBefore=targetBefore.positions[0],positionAfter=targetAfter.positions[0];
+  const claimBefore=positionBefore.lots*53_500n*scale+positionBefore.virtualScaled
+    -positionBefore.lots*(positionAfter.fundingCheckpointScaled-positionBefore.fundingCheckpointScaled);
+  const claimAfter=positionAfter.lots*53_500n*scale+positionAfter.virtualScaled;
+  assert(claimBefore<0n&&claimAfter===claimBefore);
+  const deficitBefore=((positionBefore.lots*53_500n+19n)/20n-targetBefore.cash)*scale-claimBefore;
+  const deficitAfter=((positionAfter.lots*53_500n+19n)/20n-targetAfter.cash)*scale-claimAfter;
+  assert(deficitBefore>0n&&deficitAfter>=0n);assert.equal(deficitBefore-deficitAfter,2648n*scale);
+
+  await reject('populated liquidation guards cannot replay',[instruction],[target,receiver,...setup.ledgers],sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
+  setup.sourcePrices.btc=60_000_000_000n;await setup.qualify();
+  return {reservation:protectedRoot.reserved.toString(),reducedLots:'1',transferredAtoms:'2',tokenRoundTripAtoms:'1',
+    liquidation:{target,targetBefore,targetAfter,capitalBefore,capitalAfter,rewardAtoms:'27'}};
+}

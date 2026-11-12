@@ -6,7 +6,7 @@ import {writeFileSync,readFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
 import {VersionedTransaction} from '@solana/web3.js';
 import {AccountRole} from '@solana/kit';
-import {populateDefaultCohort,defaultStorageResources} from './scaled-default-setup.js';
+import {populateDefaultCohort,defaultStorageResources,exercisePopulatedActions} from './scaled-default-setup.js';
 import {transactionLocks} from '../performance/lock-model.js';
 import * as sdk from '@rivalt/sdk';
 import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
@@ -43,6 +43,7 @@ try {
     await setup.sample();
     await h.send('open actual cross default exposure',[await route({trader,actor:owner,marketIndex,side:0,makers:[setup.instances[marketIndex*3]],lots:[lots]})],[owner]);
   }
+  const populatedActions=populated?await exercisePopulatedActions(h,setup,populated):null;
   const source=async()=>sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   const safety=async()=>sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
   const sources={primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
@@ -57,6 +58,7 @@ try {
     const value=await root(key);return {key,id:value.id,root:value,cash:value.cash,claims:value.positions.map((position,index)=>
       position.lots*initial.prices[index]*1_000_000_000n+position.virtualScaled-position.lots*(initial.funding[index]-position.fundingCheckpointScaled))};
   }));
+  writeFileSync(`${directory}/independent-default-input.json`,json({rows,pools:initial.poolsBefore,insurance:initial.insuranceBefore}));
   const expected=JSON.parse(execFileSync('python3',['tests/financial/settlement_rpc_reference.py'],{
     input:json({rows,pools:initial.poolsBefore,insurance:initial.insuranceBefore}),encoding:'utf8'}));
   writeFileSync(`${directory}/independent-default.json`,json({rows,initial,expected}));
@@ -154,7 +156,7 @@ try {
     peakWireBytes:Math.max(...originals.map(value=>Buffer.from(value.wire,'base64').length)),storageResources};
   const operatingEnvelope=population!==128||originals.length<=2000&&elapsedMs<=900_000&&BigInt(budget[0].spent)<=10_000_000n
     &&storageResources.recoveryBytes<=16*1024*1024;
-  writeFileSync(`${directory}/result.json`,json({revision,build,helper,populated,resources,operatingEnvelope,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,defaultBatchSteps:runtime.defaultContinuationSteps,
+  writeFileSync(`${directory}/result.json`,json({revision,build,helper,populated,populatedActions,resources,operatingEnvelope,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,defaultBatchSteps:runtime.defaultContinuationSteps,
     endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     limitations:[`${population} Financial roots; selected runtime promotion remains gated pending complete P56 acceptance`,'internal makers and synthetic oracle inputs']}));
   assert(operatingEnvelope,'P56 populated cohort exceeds G1 resource envelope; retained results are not acceptance');

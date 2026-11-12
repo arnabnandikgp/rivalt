@@ -2083,3 +2083,14 @@ is `p56-population-0cc21b8`, schema 10/profile 6, retained at
 Eleven affected native membership checks and typecheck pass. No larger Financial
 population or G1 acceptance is implied by compilation; the new signed populated
 probe must establish that independently.
+
+The first clean populated harness **`46462fd`** creates, funds and trades all 128
+Financial accounts and freezes them, but stops before any default original: the
+independent Python branch reference still imposed its historical 64-row fixture
+ceiling. This is a failed qualification, retained at
+`.local/scalable-settlement/runs/p56-populated-128`; no settlement or G1 result is
+claimed. That reference-only ceiling is removed without changing its conservation,
+fixed-point, insurance or rounding equations. Thirty affected reference checks now
+pass, including literal 65/128-row cash/haircut and cashless-cycle cases compared
+against the actual compiled Rust kernel. Frozen inputs are now captured before
+reference execution so a diagnostic failure retains its exact proposed inputs.

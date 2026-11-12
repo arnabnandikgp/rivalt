@@ -122,7 +122,9 @@ def clear_rational_cohort(accounts, pools=(0, 0), insurance=(0, 0), fees=(0, 0),
     terminal-clearing benchmark after complete frozen valuation, not live margin
     netting or an instruction that can borrow/advance unpaid profit.
     """
-    require(type(accounts) is tuple and 0 < len(accounts) <= 64 and
+    # Population is a transport/storage concern, not a bound on exact Python
+    # Fraction economics. The historical 64-row fixture ceiling is retired.
+    require(type(accounts) is tuple and len(accounts) > 0 and
             all(type(account) is Account for account in accounts), "invalid complete cohort")
     for balances in (pools, insurance, fees):
         require(type(balances) is tuple and len(balances) == 2 and
