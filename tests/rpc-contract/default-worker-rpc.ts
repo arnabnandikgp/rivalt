@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {writeFileSync,readFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
 import {VersionedTransaction} from '@solana/web3.js';
-import {AccountRole} from '@solana/kit';
+import type {Instruction} from '@solana/kit';
 import {populateDefaultCohort,defaultStorageResources,exercisePopulatedActions,exercisePopulatedConcurrency} from './scaled-default-setup.js';
 import {transactionLocks,conflicts} from '../performance/lock-model.js';
 import {fixtureKey} from './harness.js';
@@ -82,7 +82,12 @@ try {
   await journal.checkpoint('default-worker-start',true);
   const open=async()=>{const result=new AccountRuntime(databaseUrl,'p55b2-application',rpcUrl,4,'account-scale-candidate');await result.open();return result;};
   runtime=await open();const started=performance.now();let previousStage=2,windowRejected=false;
+  let pendingInstructions:Instruction[]=[];
   const captureSimulation=(value:AccountRuntime)=>{
+    const enqueue=value.enqueue.bind(value);
+    value.enqueue=async(...args)=>{
+      await enqueue(...args);pendingInstructions=[...args[1]];
+    };
     const call=value.rpc.call.bind(value.rpc);
     value.rpc.call=async(method:string,params:any[]=[])=>{
       const result=await call(method,params);
@@ -105,10 +110,8 @@ try {
     const actions=wire.message.compiledInstructions.filter(instruction=>wire.message.staticAccountKeys[instruction.programIdIndex].address===sdk.CLEARING_PROGRAM_ADDRESS);
     const matching=(tag:Parameters<typeof sdk.hex>[0])=>actions.filter(instruction=>sdk.hex(instruction.data.slice(0,8))===sdk.hex(tag));
     if(population>8&&originals.length===0) {
-      const actionsWithMetas=actions.map(instruction=>({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data:instruction.data,
-        accounts:instruction.accountKeyIndexes.map(index=>({address:wire.message.staticAccountKeys[index].address,
-          role:wire.message.isAccountSigner(index)?(wire.message.isAccountWritable(index)?AccountRole.WRITABLE_SIGNER:AccountRole.READONLY_SIGNER):
-            wire.message.isAccountWritable(index)?AccountRole.WRITABLE:AccountRole.READONLY}))}));
+      const actionsWithMetas=pendingInstructions.filter(instruction=>instruction.programAddress===sdk.CLEARING_PROGRAM_ADDRESS);
+      assert.deepEqual(actionsWithMetas.map(instruction=>sdk.hex(instruction.data!)),actions.map(instruction=>sdk.hex(instruction.data)));
       const writable=transactionLocks(Buffer.from(original.wire,'base64')).write.filter(key=>key!==setup.payer.address);
       const before=await Promise.all(writable.map(key=>h.read(key as typeof setup.venue)));
       await h.send('replayed final instruction rolls back entire default batch',[...actionsWithMetas,actionsWithMetas[0]],[],sdk.CLEARING_ERROR__RESOLUTION);
@@ -119,10 +122,8 @@ try {
       const position=actions.findIndex(instruction=>sdk.hex(instruction.data.slice(0,8))===sdk.hex(sdk.CONTINUE_SETTLEMENT_PLAN_WINDOW_DISCRIMINATOR));
       const decoded=sdk.getContinueSettlementPlanWindowInstructionDataDecoder().decode(actions[position].data);
       assert(decoded.pages.length>0);
-      const prefix=actions.slice(0,position+1).map(instruction=>({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data:instruction.data,
-        accounts:instruction.accountKeyIndexes.map(index=>({address:wire.message.staticAccountKeys[index].address,
-          role:wire.message.isAccountSigner(index)?(wire.message.isAccountWritable(index)?AccountRole.WRITABLE_SIGNER:AccountRole.READONLY_SIGNER):
-            wire.message.isAccountWritable(index)?AccountRole.WRITABLE:AccountRole.READONLY}))}));
+      const prefix=pendingInstructions.filter(instruction=>instruction.programAddress===sdk.CLEARING_PROGRAM_ADDRESS).slice(0,position+1);
+      assert.deepEqual(prefix.map(instruction=>sdk.hex(instruction.data!)),actions.slice(0,position+1).map(instruction=>sdk.hex(instruction.data)));
       const writable=transactionLocks(Buffer.from(original.wire,'base64')).write.filter(key=>key!==setup.payer.address);
       const before=await Promise.all(writable.map(key=>h.read(key as typeof setup.venue)));
       for(const [label,pages] of [
@@ -151,7 +152,8 @@ try {
     assert.equal(transaction.transaction[0],original.wire);assert.equal(transaction.meta.err,null);
     assert(transaction.meta.computeUnitsConsumed<=1_000_000);
     const history=await rpc.call('getTransaction',[original.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
-    conformance.record([],history);
+    // Compare the actual builders, not transaction-wide promoted account flags.
+    conformance.record(pendingInstructions,history);
     originals.push({elapsedMs:performance.now()-stepStarted,requestId:original.request_id,reason:outcome.reason,actionCount:actions.length,appliedOrdinals:applications.map(value=>value.ordinal),signature:original.signature,wire:original.wire,receipt,transaction,notification});
     const current=await source();stages.push({step:originals.length,source:current.stage,revision:current.revision});persist();
     for(const application of applications) {
@@ -185,7 +187,6 @@ try {
     await h.send('sustained post-default source recovery',[sdk.getRecoverAccountsInstruction({...setup.safetyCommon,...sources,caller:setup.payer,epoch:initial.epoch,resume:false})]);}
   await h.send('explicit recovery to custody',[sdk.getRecoverAccountsInstruction({...setup.safetyCommon,...sources,caller:setup.payer,epoch:initial.epoch,resume:true})]);
   await flush();await journal.checkpoint('default-worker-recovered',true);const sql=await journal.finish();
-  const parity=await conformance.finish(directory,[],h.read);
   const latency=originals.map(value=>value.elapsedMs).sort((left,right)=>left-right);
   const resources={elapsedMs,continuationTransactions:originals.length,financialInstructions:originals.reduce((sum,value)=>sum+value.actionCount,0),
     p50OriginalMs:latency[Math.ceil(latency.length*0.5)-1],p95OriginalMs:latency[Math.ceil(latency.length*0.95)-1],
@@ -193,8 +194,13 @@ try {
     peakWireBytes:Math.max(...originals.map(value=>Buffer.from(value.wire,'base64').length)),storageResources};
   const operatingEnvelope=population!==128||originals.length<=2000&&elapsedMs<=900_000&&BigInt(budget[0].spent)<=10_000_000n
     &&storageResources.recoveryBytes<=16*1024*1024;
-  writeFileSync(`${directory}/result.json`,json({revision,build,helper,populated,populatedActions,contention,resources,operatingEnvelope,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,defaultBatchSteps:runtime.defaultContinuationSteps,
+  const financialResult={revision,build,helper,populated,populatedActions,contention,resources,operatingEnvelope,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,defaultBatchSteps:runtime.defaultContinuationSteps,
     endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
-    limitations:[`${population} Financial roots; selected runtime promotion remains gated pending complete P56 acceptance`,'internal makers and synthetic oracle inputs']}));
+    limitations:[`${population} Financial roots; selected runtime promotion remains gated pending complete P56 acceptance`,'internal makers and synthetic oracle inputs']};
+  // Preserve completed financial/replay checks even if a separate compatibility
+  // reporter fails. Only result.json represents completion of every acceptance.
+  writeFileSync(`${directory}/financial-result.json`,json(financialResult));
+  const parity=await conformance.finish(directory,[],h.read);
+  writeFileSync(`${directory}/result.json`,json({...financialResult,parity}));
   assert(operatingEnvelope,'P56 populated cohort exceeds G1 resource envelope; retained results are not acceptance');
 } finally {persist();await runtime?.close();await journal?.close();try{await flush();}finally{ws.close();}}

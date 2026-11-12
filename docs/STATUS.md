@@ -59,10 +59,12 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: run the corrected 128-root RPC/WS/PostgreSQL qualification
-on pinned D108 SBF `ed46603` with its version-2 helper. Keep
-PR #85 open and selected runtime promotion gated.
-Continue through P57–P62 once complete P56 acceptance passes.
+Next exact action: rerun the 128-root candidate with file-backed Anchor output
+and captured original instruction metas. The `faf5427` financial lifecycle and
+fresh SQL replay completed; final reporting failed after exceeding its stdout
+buffer, then offline comparison identified two transaction-promoted read-only
+metas in the negative replay probe. Runtime promotion remains gated. Continue
+through P57–P62 after complete P56 acceptance; keep #85 open.
 
 ## Remediation planning
 
@@ -969,3 +971,17 @@ both manifests record clean source. The 16 ABI-guard checks and 91-entrypoint
 inventory pass. Candidate bindings are pinned to these bytes. Actual populated
 RPC/WS/reconciliation and resource acceptance are still pending; selected runtime
 and historical helper binaries remain unchanged.
+
+The clean `faf5427` D108 run reaches complete 128-root settlement with **175
+worker originals / 2,317 guarded instructions**, both same-original SIGKILL
+recoveries, exact payouts, an actual one-atom exit and sustained recovery. Final
+reconciliation has **405 accounts / 128 members**, actual/allocated vault
+**332,907,139 atoms**, zero surplus. Original-processing durations sum to 417.979
+seconds (not total wall time); peak CU is 897,380 and worker fees 875,000 lamports.
+Fresh SQL replay assertions complete before the Anchor reporter fails with ENOBUFS
+at its 8 MiB stdout limit. Offline capture exposes two read-only meta promotions
+in the deliberately replayed compiled batch, not a program/IDL mismatch. The
+harness now retains file-backed client output, compares original builder metas
+for all worker instructions, and checkpoints financial results before compatibility
+reporting. Full G1 timing/storage acceptance and runtime promotion are still pending.
+CI for `faf5427` completed successfully (43154821985).

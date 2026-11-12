@@ -2142,3 +2142,17 @@ both manifests record clean source. The 16 ABI-guard checks and 91-entrypoint
 inventory pass. Candidate bindings are pinned to these bytes. Actual populated
 RPC/WS/reconciliation and resource acceptance are still pending; selected runtime
 and historical helper binaries remain unchanged.
+
+The D108 run at clean `faf5427` completes actual 128-root default, both upload/Apply
+SIGKILL recoveries, independent payouts, token exit, recovery and fresh SQL replay
+assertions, then fails final compatibility reporting on an 8 MiB stdout buffer.
+It retains 175 worker originals / 2,317 instructions / 875,000 test lamports, peak
+897,380 CU, and 417.979 seconds summed original-processing time. Final reconciliation
+is 405 accounts / 128 members and 332,907,139 actual/allocated atoms, zero surplus.
+Total wall time/storage were not persisted before the reporting error: this is
+not yet full G1 acceptance. Raw capture remains in
+`.local/scalable-settlement/runs/p56-populated-128-window`. File-backed isolated
+client output removes the capture buffer; original builder metas replace compiled
+transaction privilege unions in the negative probe and all worker parity checks.
+Offline comparison classified exactly two promoted read-only metas; no program
+layout or economic rule changed. A complete corrected run is required.
