@@ -62,6 +62,7 @@ try {
     const call=value.rpc.call.bind(value.rpc);
     value.rpc.call=async(method:string,params:any[]=[])=>{
       const result=await call(method,params);
+      if(method==='simulateTransaction'&&params[1]?.sigVerify===false)writeFileSync(`${directory}/latest-batch-simulation.json`,json({request:params,result}));
       if(method==='simulateTransaction'&&result.value?.err)writeFileSync(`${directory}/failed-simulation.json`,json({request:params,result}));
       return result;
     };

@@ -30,7 +30,7 @@ async function fixture(options:{reject?:number;units?:number;malformed?:string;b
     if(options.malformed==='backwards-slot')result.context.slot=98;
     return result;
   }};
-  const run=(limit=8)=>planDefaultBatch({rpc,payer,first:step(1),headers:[target],minSlot:99n,limit,
+  const run=(limit=8)=>planDefaultBatch({rpc,payer,first:step(1),minSlot:99n,limit,
     next:async reader=>{
       const response=await reader.call('getMultipleAccounts',[[target,extra],{encoding:'base64'}]);
       expect(response.context.slot).toBe(101);
@@ -70,13 +70,13 @@ it.each(['missing-account','short-account-list','missing-units','backwards-slot'
 });
 it('bounds returned account requests before simulation',async()=>{
   const test=await fixture(),headers=await Promise.all(Array.from({length:65},(_,index)=>sdk.deriveFrozenMarginPage(test.payer.address,BigInt(index))));
-  const result=await planDefaultBatch({rpc:test.rpc,payer:test.payer,first:test.step(1),headers:headers.map(([key])=>key),minSlot:99n,limit:8,
+  const result=await planDefaultBatch({rpc:test.rpc,payer:test.payer,first:{...test.step(1),instruction:{...test.step(1).instruction,accounts:headers.map(([address])=>({address,role:AccountRole.WRITABLE}))}},minSlot:99n,limit:8,
     next:async()=>{throw new Error('must not plan an inadmissible prefix');}});
   expect(result.steps).toEqual([]);expect(result.stop).toBe('account-bound');expect(test.simulations).toEqual([]);
 });
 it('cannot use the speculative reader to submit, simulate or mutate',async()=>{
   const test=await fixture();
-  await expect(planDefaultBatch({rpc:test.rpc,payer:test.payer,first:test.step(1),headers:[test.target],minSlot:99n,limit:2,
+  await expect(planDefaultBatch({rpc:test.rpc,payer:test.payer,first:test.step(1),minSlot:99n,limit:2,
     next:async reader=>{await reader.call('sendTransaction',[]);return test.step(2);}})).rejects.toThrow('Unsupported speculative RPC');
 });
 it('rejects invalid operator batch settings',()=>{

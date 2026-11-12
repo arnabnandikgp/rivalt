@@ -1,7 +1,7 @@
 /** Simulation proposes a bounded atomic prefix; it never publishes progress or
  * changes a persisted original. Every instruction retains its on-chain guards. */
 import assert from 'node:assert/strict';
-import {AccountRole,address,type Address,type Instruction} from '@solana/kit';
+import {AccountRole,address,type Instruction} from '@solana/kit';
 import {ComputeBudgetProgram,type Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {Rpc} from '../../indexer/src/rpc.js';
@@ -27,15 +27,20 @@ export type DefaultBatch={steps:ReadyStep[];simulatedUnits:number;wireBytes:numb
  * A changed live dependency may invalidate the unsigned prefix at preflight; it
  * can never authorize an unchecked write or replace an unresolved original. */
 function proposalReader(base:Reader,poststates:Map<string,any>,slot:number):Reader {
+  let contextSlot=slot;
   return {call:async(method,params=[])=>{
-    if(method==='getSlot')return slot;
+    if(method==='getSlot') {
+      const current=await base.call(method,[{commitment:'confirmed',minContextSlot:contextSlot}]);
+      assert(Number.isSafeInteger(current)&&current>=contextSlot,'Speculative clock moved backwards');
+      contextSlot=current;return current;
+    }
     assert(method==='getAccountInfo'||method==='getMultipleAccounts','Unsupported speculative RPC method');
     const keys=method==='getAccountInfo'?[String(params[0])]:params[0] as string[];
     const missing=keys.filter(key=>!poststates.has(key));
-    let contextSlot=slot;const values=new Map(poststates);
+    const values=new Map(poststates);
     if(missing.length) {
-      const result=await base.call('getMultipleAccounts',[missing,{...(params[1] as object),encoding:'base64',commitment:'confirmed',minContextSlot:slot}]);
-      assert(Number.isSafeInteger(result.context?.slot)&&result.context.slot>=slot&&result.value?.length===missing.length,'Incomplete speculative dependencies');
+      const result=await base.call('getMultipleAccounts',[missing,{...(params[1] as object),encoding:'base64',commitment:'confirmed',minContextSlot:contextSlot}]);
+      assert(Number.isSafeInteger(result.context?.slot)&&result.context.slot>=contextSlot&&result.value?.length===missing.length,'Incomplete speculative dependencies');
       contextSlot=result.context.slot;missing.forEach((key,index)=>values.set(key,result.value[index]));
     }
     return {context:{slot:contextSlot},value:method==='getAccountInfo'?values.get(keys[0]):keys.map(key=>values.get(key))};
@@ -44,7 +49,7 @@ function proposalReader(base:Reader,poststates:Map<string,any>,slot:number):Read
 
 /** Exposed separately to test resource and malformed-RPC boundaries without
  * pretending mocked poststates are financial implementation evidence. */
-export async function planDefaultBatch(input:{rpc:Reader;payer:Keypair;first:ReadyStep;headers:Address[];minSlot:bigint;
+export async function planDefaultBatch(input:{rpc:Reader;payer:Keypair;first:ReadyStep;minSlot:bigint;
   limit:number;next(reader:Reader):Promise<DefaultStep>}):Promise<DefaultBatch> {
   assert(Number.isInteger(input.limit)&&input.limit>=1&&input.limit<=DEFAULT_BATCH_MAX_STEPS,'Invalid default batch bound');
   const lifetime=await input.rpc.call('getLatestBlockhash',[{commitment:'confirmed',minContextSlot:Number(input.minSlot)}]);
@@ -54,8 +59,10 @@ export async function planDefaultBatch(input:{rpc:Reader;payer:Keypair;first:Rea
     if(ids.has(next.id)){stop='repeated-step';break;}
     const candidate=[...steps,next],instructions=candidate.map(step=>step.instruction);
     assert(instructions.every(instruction=>instruction.programAddress===sdk.CLEARING_PROGRAM_ADDRESS),'Foreign default instruction');
-    const requested=[...new Set([...input.headers,...instructions.flatMap(instruction=>instruction.accounts??[])
-      .filter(meta=>meta.role===AccountRole.WRITABLE||meta.role===AccountRole.WRITABLE_SIGNER).map(meta=>meta.address)])];
+    // Only changed accounts require speculative poststates. Unchanged headers
+    // use ordinary checked reads; never replace a missing write with live data.
+    const requested=[...new Set(instructions.flatMap(instruction=>instruction.accounts??[])
+      .filter(meta=>meta.role===AccountRole.WRITABLE||meta.role===AccountRole.WRITABLE_SIGNER).map(meta=>meta.address))];
     if(requested.length>MAX_ACCOUNTS){stop='account-bound';break;}
     let compiled:ReturnType<typeof sdk.compileCanonicalTransaction>;
     try {
@@ -72,8 +79,8 @@ export async function planDefaultBatch(input:{rpc:Reader;payer:Keypair;first:Rea
     if(simulation.unitsConsumed>MAX_COMPUTE){stop='compute-bound';break;}
     assert(Array.isArray(simulation.accounts)&&simulation.accounts.length===requested.length,'Incomplete simulation poststates');
     let returnedBytes=0;
-    simulation.accounts.forEach((account:any)=>{
-      assert(account&&typeof account.owner==='string'&&account.data?.[1]==='base64'&&typeof account.data[0]==='string','Missing simulation poststate');
+    simulation.accounts.forEach((account:any,index:number)=>{
+      assert(account&&typeof account.owner==='string'&&account.data?.[1]==='base64'&&typeof account.data[0]==='string',`Missing simulation poststate: ${requested[index]}`);
       returnedBytes+=Buffer.byteLength(account.data[0],'base64');
     });
     assert(returnedBytes<=MAX_RETURNED_BYTES,'Simulation poststates exceed byte bound');
@@ -93,7 +100,6 @@ export async function accountDefaultBatch(runtime:AccountRuntime,payer:Keypair,s
   // runtime's cache of actual committed frozen inputs.
   const proposedRuntime=Object.create(runtime) as AccountRuntime;
   return planDefaultBatch({rpc:runtime.rpc,payer,first,limit,minSlot:state.contextSlot,
-    headers:[state.registry,state.resolution,state.storage,state.prepared,state.rates,state.plan],
     next:async reader=>{
       Object.defineProperty(proposedRuntime,'rpc',{value:reader,configurable:true});
       const continuation=await readAccountResolution(reader,state.registryState.venue);
