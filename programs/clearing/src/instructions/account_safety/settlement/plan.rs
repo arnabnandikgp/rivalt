@@ -8,7 +8,7 @@ use financial_core::clearing::scalable::{
     graph_pages::{FlowRecord, GraphPages, Layout},
     graph_work::{Access, GraphWork, Record},
     order_work::OrderWork,
-    pages::{PagePlan, PAGE_WORDS},
+    pages::{PagePlan, PageRequest, PAGE_WORDS, MAX_WINDOW_PAGES},
     rate_work::VerifiedRateValues,
     wide::{LimbStorage, WordAccess},
 };
@@ -226,6 +226,9 @@ pub(crate) fn prepare_plan_continuation(
     let pages = page_plan(work.accesses(layout)?, layout)?;
     Ok(Box::new(PlanContinuation { layout, work, pages }))
 }
+mod page_window;
+pub use page_window::*;
+
 pub fn settlement_plan_pages(
     header: &PreparedSettlement,
     rates: &SettlementRates,
@@ -286,20 +289,20 @@ fn window<'a>(
     header: &PreparedSettlement,
     plan: &SettlementPlan,
     page_plan: PagePlan,
-    revisions: [u64; 3],
+    revisions: &[u64],
     accounts: &'a mut [AccountView],
 ) -> Result<PageWindow<'a>> {
     let length = page_plan.requests().len();
     require!(
-        revisions[length..].iter().all(|value| *value == 0),
+        revisions.len() >= length && revisions[length..].iter().all(|value| *value == 0),
         ClearingError::Resolution
     );
     let layout = exact(Layout::new(header.count))?;
-    let mut capacities = [0; 3];
+    let mut capacities = [0; MAX_WINDOW_PAGES];
     let mut versions = [PageVersion {
         attempt: plan.rates_attempt,
         revision: 0,
-    }; 3];
+    }; MAX_WINDOW_PAGES];
     for (index, request) in page_plan.requests().iter().enumerate() {
         versions[index].revision = revisions[index];
         if request.register <= 1 {
@@ -409,7 +412,7 @@ pub fn accept_plan_row(
     let values = binding(header, &accounts.rates, &accounts.plan)?;
     let page_plan = settlement_plan_row_pages(header, &accounts.rates, &accounts.plan, ordinal)?;
     let frozen = frozen_row(header, &accounts.page, ordinal)?;
-    let mut window = window(header, &accounts.plan, page_plan, revisions, &mut remaining)?;
+    let mut window = window(header, &accounts.plan, page_plan, &revisions, &mut remaining)?;
     let layout = exact(Layout::new(header.count))?;
     accept_row(
         header,
@@ -617,7 +620,22 @@ pub(crate) fn continue_plan(
     attempt: u64,
     steps: u16,
     revisions: [u64; 3],
-    mut continuation: Box<PlanContinuation>,
+    continuation: Box<PlanContinuation>,
+) -> Result<()> {
+    continue_plan_with_window(ctx, revision, attempt, steps, &revisions, continuation)
+}
+
+pub(crate) fn continue_plan_window(
+    ctx: &mut Context<ContinueSettlementPlan>, revision: u64, attempt: u64,
+    steps: u16, pages: &[SettlementPageAccess], continuation: Box<PlanContinuation>,
+) -> Result<()> {
+    let revisions: Vec<_> = pages.iter().map(|page| page.revision).collect();
+    continue_plan_with_window(ctx, revision, attempt, steps, &revisions, continuation)
+}
+
+fn continue_plan_with_window(
+    ctx: &mut Context<ContinueSettlementPlan>, revision: u64, attempt: u64,
+    steps: u16, revisions: &[u64], mut continuation: Box<PlanContinuation>,
 ) -> Result<()> {
     require!(steps > 0 && steps <= 128, ClearingError::Resolution);
     let mut remaining = ctx.remaining_accounts()?;
@@ -631,7 +649,7 @@ pub(crate) fn continue_plan(
     let layout = continuation.layout;
     let page_plan = continuation.pages();
     let work = &mut continuation.work;
-    let mut window = window(header, &accounts.plan, page_plan, revisions, &mut remaining)?;
+    let mut window = window(header, &accounts.plan, page_plan, &revisions, &mut remaining)?;
     let mut progressed = 0;
     for _ in 0..steps {
         let Ok(accesses) = work.accesses(layout) else {

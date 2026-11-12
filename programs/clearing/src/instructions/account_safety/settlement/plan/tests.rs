@@ -69,7 +69,7 @@ impl Pages {
         request: PagePlan,
         run: impl FnOnce(&mut PageWindow<'_>) -> T,
     ) -> T {
-        let mut revisions = [0; 3];
+        let mut revisions = [0; MAX_WINDOW_PAGES];
         let mut backing: Vec<_> = request
             .requests()
             .iter()
@@ -81,7 +81,7 @@ impl Pages {
             })
             .collect();
         let mut views: Vec<_> = backing.iter_mut().map(TestAccount::view).collect();
-        let mut window = window(header, plan, request, revisions, &mut views).unwrap();
+        let mut window = window(header, plan, request, &revisions, &mut views).unwrap();
         let result = run(&mut window);
         window.commit().unwrap();
         for (index, page) in request.requests().iter().enumerate() {
@@ -244,6 +244,36 @@ pub(super) fn round_trip(plan: &mut SettlementPlan) {
     assert_eq!(8 + SettlementPlan::INIT_SPACE, 1181);
     *plan = SettlementPlan::try_deserialize(&mut bytes.as_slice()).unwrap();
 }
+fn window_continuation(
+    header: &PreparedSettlement, rates: &SettlementRates, plan: &SettlementPlan, pages: &Pages,
+) -> Box<PlanContinuation> {
+    let mut loaded = BTreeMap::<(u32, u64), Vec<u8>>::new();
+    for _ in 0..=MAX_WINDOW_PAGES {
+        let inputs = loaded.values().map(|bytes| SettlementLimbPage::try_deserialize(&mut bytes.as_slice()).unwrap()).collect();
+        let request = preview_plan_window(header, rates, plan, inputs).unwrap();
+        let missing: Vec<_> = request.requests().iter().filter(|request| !loaded.contains_key(&(request.register, request.index))).copied().collect();
+        if missing.is_empty() {
+            let proposed: Vec<_> = request.requests().iter().map(|request| SettlementPageAccess {
+                register: request.register, page_index: request.index, writable: request.writable,
+                revision: u64::from_le_bytes(loaded[&(request.register, request.index)][10..18].try_into().unwrap()),
+            }).collect();
+            return prepare_plan_window(header, rates, plan, &proposed).unwrap();
+        }
+        for request in missing {
+            loaded.insert((request.register, request.index), pages.bytes[&(request.register, request.index)].1.clone());
+        }
+        assert!(loaded.len() <= MAX_WINDOW_PAGES);
+    }
+    panic!("bounded preview failed to converge");
+}
+fn advance_window(
+    header: &PreparedSettlement, rates: &SettlementRates, plan: &mut SettlementPlan,
+    pages: &mut Pages, budget: u16,
+) {
+    let continuation = window_continuation(header, rates, plan, pages);
+    advance_continuation(header, rates, plan, pages, budget, continuation);
+}
+
 pub(super) fn advance(
     header: &PreparedSettlement,
     rates: &SettlementRates,
@@ -251,8 +281,14 @@ pub(super) fn advance(
     pages: &mut Pages,
     budget: u16,
 ) {
+    let continuation = prepare_plan_continuation(header, rates, plan).unwrap();
+    advance_continuation(header, rates, plan, pages, budget, continuation);
+}
+fn advance_continuation(
+    header: &PreparedSettlement, rates: &SettlementRates, plan: &mut SettlementPlan,
+    pages: &mut Pages, budget: u16, mut continuation: Box<PlanContinuation>,
+) {
     let layout = Layout::new(header.count).unwrap();
-    let mut continuation = prepare_plan_continuation(header, rates, plan).unwrap();
     let request = continuation.pages();
     let work = &mut continuation.work;
     let steps = pages.execute(header, plan, request, |window| {
@@ -344,9 +380,17 @@ pub(super) fn begin_order(
 #[test]
 fn owned_controller_and_real_page_adapter_conserve_literal_atoms_across_restarts_and_page_boundaries(
 ) {
-    for (count, budget) in [(3, 1), (3, 7), (65, 128)] {
+    for (count, budget, expanded) in [(3, 1, false), (3, 7, false), (65, 128, false), (65, 128, true), (128, 128, true)] {
         let (header, rates, mut plan, rows, mut pages) = fixture(count);
-        flows(&header, &rates, &mut plan, &rows, &mut pages, budget);
+        let advance = if expanded { advance_window } else { advance };
+        let mut continuations = 0;
+        for ordinal in 0..count {
+            accept(&header, &rates, &mut plan, &rows, &mut pages, ordinal).unwrap();
+            while plan.stage == PLAN_FLOW_WORK {
+                advance(&header, &rates, &mut plan, &mut pages, budget); continuations += 1;
+            }
+            accept(&header, &rates, &mut plan, &rows, &mut pages, ordinal).unwrap();
+        }
         begin_order(&header, &rates, &mut plan);
         for market in 0..2 {
             for ordinal in 0..count {
@@ -360,17 +404,18 @@ fn owned_controller_and_real_page_adapter_conserve_literal_atoms_across_restarts
                         .position()
                         .is_err()
                 {
-                    advance(&header, &rates, &mut plan, &mut pages, budget);
+                    advance(&header, &rates, &mut plan, &mut pages, budget); continuations += 1;
                 }
                 round_trip(&mut plan);
             }
         }
         assert_eq!(plan.stage, PLAN_BUILD);
         while plan.stage != PLAN_READY {
-            advance(&header, &rates, &mut plan, &mut pages, budget);
+            advance(&header, &rates, &mut plan, &mut pages, budget); continuations += 1;
         }
         assert!(settlement_plan_pages(&header, &rates, &plan).is_err());
         assert!(settlement_plan_row_pages(&header, &rates, &plan, 0).is_err());
+        println!("count={count} budget={budget} expanded={expanded} continuations={continuations}");
         let mut words = pages.words();
         let graph = GraphPages {
             layout: Layout::new(count).unwrap(),
@@ -465,4 +510,23 @@ fn order_recovery_is_revision_attempt_and_progress_fenced_and_stops_at_construct
         plan.stage = stage;
         assert!(reset_order(&mut plan, 0, 2, owner, 1_000).is_err());
     }
+}
+
+#[test]
+fn window_proposals_cannot_write_verified_inputs_or_omit_first_access() {
+    let (header, rates, mut plan, rows, mut pages) = fixture(3);
+    accept(&header, &rates, &mut plan, &rows, &mut pages, 0).unwrap();
+    let legitimate = window_continuation(&header, &rates, &plan, &pages);
+    let proposed: Vec<_> = legitimate.pages().requests().iter().map(|request| SettlementPageAccess {
+        register: request.register, page_index: request.index, writable: request.writable, revision: 1,
+    }).collect();
+    assert!(prepare_plan_window(&header, &rates, &plan, &proposed).is_ok());
+    for register in [0, 1, 3, 4, 24, 46, 71] {
+        let invalid = [SettlementPageAccess { register, page_index: 0, writable: true, revision: 1 }];
+        assert!(prepare_plan_window(&header, &rates, &plan, &invalid).is_err());
+    }
+    let duplicate = [proposed[0].clone(), proposed[0].clone()];
+    assert!(prepare_plan_window(&header, &rates, &plan, &duplicate).is_err());
+    assert!(prepare_plan_window(&header, &rates, &plan, &vec![proposed[0].clone(); 9]).is_err());
+    assert!(prepare_plan_window(&header, &rates, &plan, &[]).is_err());
 }

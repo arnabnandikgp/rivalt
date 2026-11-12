@@ -26,7 +26,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
-| P56 account-scale services, clients and activation | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85) above #84; internal A1 passes on clean `25ed94a`: 665 durable originals, two actual SIGKILL/same-original recoveries, independent exact payouts, token exit, sustained recovery and 109-event identical PostgreSQL replay. A2 passes on clean `b9d2a21`: 23 signed browser actions, 412 provisioning/publication outcomes, 77 identities / ten Financial roots / one retired slot, identical 248-event fresh replay and 304 reconciled accounts; actual/allocated vault 10,010,000 atoms. Internal wallet only. Bounded atomic continuation batching is implemented behind an explicit resource-bounded 1–32-step option (default 1; eight-step acceptance recorded below); 18 focused batch/risk checks pass. Clean `2521b21` passes all 665 guarded steps in 84 atomic originals / 189.010 seconds / 420,000 test lamports, both real crash recoveries and 109-event fresh replay. D106 candidate source now replaces the temporary fixed population gate with complete authenticated recovery capacity; the populated harness creates actual mixed claims and checks atomic rejection, cost, restarts and replay. Eleven affected native membership checks/typecheck pass; clean SBF `0cc21b8` builds without oversized frames (2,374,816-byte clearing; default/makers byte-identical). The new exact candidate binding is pinned; the first clean 128-root attempt `46462fd` creates/funds/trades the larger cohort and freezes it, then stops before default originals because the independent reference retained a 64-row fixture guard. That reference-only ceiling is removed; 30 affected reference checks pass, including literal 65/128-row comparisons against the actual compiled kernel. The next populated run also checks reservations, TP/SL, cash actions and funded liquidation with literal post-fee progress; full G1 acceptance remains pending before promotion |
+| P56 account-scale services, clients and activation | In progress | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; durable default and wallet/discovery checkpoints pass on their recorded revisions. Eight-root batching passes 84 originals / 189.010 seconds with exact payouts and fresh SQL replay. Actual 128-root setup, stressed actions and disjoint BTC/ETH fills pass within partial attempts; complete resource/recovery acceptance remains pending. D107 SBF `1c08778` and clean harness `0ca9927` expose a rollback-probe headroom mismatch and excessive continuation granularity. D108's bounded plan-window candidate passes 23 focused native checks, two helper tests, 19 transport/binding checks and its explicit ABI delta; compiled/signed acceptance and runtime promotion remain gated |
 | P57–P62 successor implementation | Planned | One ready PR per numbered phase, following the user's 12 November granularity update; internal lettered checkpoints retain their gates without separate PRs |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -59,8 +59,9 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: qualify pinned D107 SBF `1c08778` with resource-bounded 32-step batches and independently paid isolated
-BTC/ETH concurrency; retain the earlier measured misses and failed fixtures; keep PR #85 open and runtime promotion gated.
+Next exact action: build/pin D108's bounded plan-window candidate and version-2
+helper, then run the corrected populated RPC/WS/PostgreSQL qualification. Keep
+PR #85 open and selected runtime promotion gated.
 Continue through P57–P62 once complete P56 acceptance passes.
 
 ## Remediation planning
@@ -927,6 +928,25 @@ without oversized-stack diagnostics. Its clearing binary is **2,378,392 bytes**,
 SHA-256 `60c3bb23a550723dd0958fc6b34dcde72ed742f3dde4075bf1b6eab5a01e3790`.
 The candidate allowlist now pins that build. No CU saving or 128-root completion
 is claimed until the actual rerun; selected schema-8 runtime stays unchanged.
+
+The D107 run at clean `0ca9927` stopped after 146 finalized worker originals /
+2,854 instructions. The first deliberate full-batch replay correctly rejected
+with 908,178 CU, but its deferred harness check required 20% headroom within a
+1m request. The corrected negative probe requests 1.2m; actual worker originals
+remain capped at 1m / 900k simulated CU. Immediate flush now reports this probe
+failure before further default work. The 977.9-second observed worker total
+includes one 597.06-second interval; no steady-runtime or completed financial
+claim is inferred. Both independently paid isolated market fills had disjoint
+actual signed lock sets. Apply/final payouts/exit/replay were not reached.
+All five hosted jobs pass at `0ca9927` (run 43140168900).
+
+D108's native literal payout case reduces plan continuations from 1,792 to 89
+at 65 roots; its 128-root native case uses 166. Only three of these native roots
+carry the literal one-atom debtor/creditor case: this is a page-boundary and exact
+ownership check, not populated performance acceptance. The full actual 128-root
+cohort must still qualify. Initial descriptor allowlist omitted valid read-only
+rate registers; native rejection exposed it, and all verified inputs 0–24 now
+remain allowed strictly read-only. No selected artifact is changed.
 
 ## Deployment and operational limits
 

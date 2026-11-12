@@ -13,7 +13,7 @@ it('orders literal fractions, stable u64 ties and a complete nonpositive tail',(
   expect(()=>proposeMarketOrder([...rows,rows[0]],0,{numerator:1n,denominator:1n})).toThrow(/Duplicate/);
 });
 it('rejects duplicate, oversized, noncanonical or future helper responses',()=>{
-  const encode=(pages:any[],extra={})=>JSON.stringify({version:1,schema:10,pages,...extra});
+  const encode=(pages:any[],extra={})=>JSON.stringify({version:2,schema:10,pages,...extra});
   const page={register:3,index:'9007199254740993',writable:false};
   expect(decodeSettlementPages(encode([page]))).toEqual([{...page,index:9007199254740993n}]);
   for(const value of [encode([page,page]),encode([page],{schema:11}),encode([{...page,index:'01'}]),
@@ -26,4 +26,13 @@ it('keeps candidate artifacts explicit and separate from API budget version',()=
   expect(candidate).toMatchObject({schema:10,programProfile:6,artifactSet:'p56-continuation-1c08778'});
   expect(candidate.artifacts.find(value=>value.name==='clearing')?.sha256).toBe('60c3bb23a550723dd0958fc6b34dcde72ed742f3dde4075bf1b6eab5a01e3790');
   expect(()=>accountDeploymentSelection('anything')).toThrow();
+});
+
+it('bounds extended descriptors separately and rejects old helper output',()=>{
+  const pages=Array.from({length:8},(_,index)=>({register:25+index,index:'0',writable:true}));
+  const output=JSON.stringify({version:2,schema:10,pages});
+  expect(decodeSettlementPages(output,8)).toHaveLength(8);
+  expect(()=>decodeSettlementPages(output)).toThrow();
+  expect(()=>decodeSettlementPages(JSON.stringify({version:1,schema:10,pages:[]}))).toThrow();
+  expect(()=>decodeSettlementPages(JSON.stringify({version:2,schema:10,pages:[...pages,{register:33,index:'0',writable:true}]}),8)).toThrow();
 });

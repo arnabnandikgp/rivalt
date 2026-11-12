@@ -27,10 +27,10 @@ assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],
 const build=verifyBackingBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
 const population=Number(process.env.RIVALT_DEFAULT_POPULATION??'8');
 assert([8,128,1024].includes(population),'Explicit default population required');
-const helper=JSON.parse(readFileSync('.local/settlement-helper/manifest.json','utf8'));assert.equal(helper.trackedDirty,false);
+const helper=JSON.parse(readFileSync(`${process.env.RIVALT_SETTLEMENT_HELPER_DIR??'.local/settlement-helper'}/manifest.json`,'utf8'));assert.equal(helper.trackedDirty,false);
 process.env.RIVALT_ACCOUNT_DEPLOYMENT='account-scale-candidate';
 const concurrentPayers=await Promise.all([0,1].map(index=>fixtureKey(`p56-scale-owner-${index}`)));
-const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(rpcUrl,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:()=>1_000_000,
+const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(rpcUrl,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:label=>label==='replayed final instruction rolls back entire default batch'||label.startsWith('invalid plan window ')?1_200_000:1_000_000,
   payerFor:label=>label==='populated concurrent isolated BTC'?concurrentPayers[0]:label==='populated concurrent isolated ETH'?concurrentPayers[1]:undefined});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,runtime:AccountRuntime|undefined;
 const originals:any[]=[],faults:any[]=[],outcomes:any[]=[],stages:any[]=[];
@@ -81,7 +81,7 @@ try {
   await flush();journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)));
   await journal.checkpoint('default-worker-start',true);
   const open=async()=>{const result=new AccountRuntime(databaseUrl,'p55b2-application',rpcUrl,4,'account-scale-candidate');await result.open();return result;};
-  runtime=await open();const started=performance.now();let previousStage=2;
+  runtime=await open();const started=performance.now();let previousStage=2,windowRejected=false;
   const captureSimulation=(value:AccountRuntime)=>{
     const call=value.rpc.call.bind(value.rpc);
     value.rpc.call=async(method:string,params:any[]=[])=>{
@@ -113,6 +113,27 @@ try {
       const before=await Promise.all(writable.map(key=>h.read(key as typeof setup.venue)));
       await h.send('replayed final instruction rolls back entire default batch',[...actionsWithMetas,actionsWithMetas[0]],[],sdk.CLEARING_ERROR__RESOLUTION);
       assert.deepEqual(await Promise.all(writable.map(key=>h.read(key as typeof setup.venue))),before);
+      await flush(); // Fail this probe promptly rather than deferring its resource audit to Apply.
+    }
+    if(!windowRejected&&matching(sdk.CONTINUE_SETTLEMENT_PLAN_WINDOW_DISCRIMINATOR).length) {
+      const position=actions.findIndex(instruction=>sdk.hex(instruction.data.slice(0,8))===sdk.hex(sdk.CONTINUE_SETTLEMENT_PLAN_WINDOW_DISCRIMINATOR));
+      const decoded=sdk.getContinueSettlementPlanWindowInstructionDataDecoder().decode(actions[position].data);
+      assert(decoded.pages.length>0);
+      const prefix=actions.slice(0,position+1).map(instruction=>({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data:instruction.data,
+        accounts:instruction.accountKeyIndexes.map(index=>({address:wire.message.staticAccountKeys[index].address,
+          role:wire.message.isAccountSigner(index)?(wire.message.isAccountWritable(index)?AccountRole.WRITABLE_SIGNER:AccountRole.READONLY_SIGNER):
+            wire.message.isAccountWritable(index)?AccountRole.WRITABLE:AccountRole.READONLY}))}));
+      const writable=transactionLocks(Buffer.from(original.wire,'base64')).write.filter(key=>key!==setup.payer.address);
+      const before=await Promise.all(writable.map(key=>h.read(key as typeof setup.venue)));
+      for(const [label,pages] of [
+        ['duplicate page',[...decoded.pages,decoded.pages[0]]],
+        ['stale page revision',decoded.pages.map((page,index)=>index? page:{...page,revision:page.revision+1n})],
+      ] as const) {
+        const altered={...prefix[position],data:sdk.getContinueSettlementPlanWindowInstructionDataEncoder().encode({...decoded,pages:[...pages]})};
+        await h.send(`invalid plan window ${label} rolls back prefix`,[...prefix.slice(0,position),altered],[],sdk.CLEARING_ERROR__RESOLUTION);
+        assert.deepEqual(await Promise.all(writable.map(key=>h.read(key as typeof setup.venue))),before);
+      }
+      await flush();windowRejected=true;
     }
     const applications=matching(sdk.APPLY_SETTLEMENT_MARGIN_DISCRIMINATOR).map(instruction=>sdk.getApplySettlementMarginInstructionDataDecoder().decode(instruction.data));
     const faultKind=matching(sdk.UPLOAD_SETTLEMENT_RATE_DISCRIMINATOR).length?'upload':applications.length?'apply':undefined;
@@ -147,6 +168,7 @@ try {
     }
   }
   assert.deepEqual(faults.map(fault=>fault.kind),['upload','apply']);
+  assert(windowRejected,'Missing signed window rejection coverage');
   for(const [ordinal,row] of rows.entries())assert.equal((await root(row.key)).cash,BigInt(expected.plan.cash[ordinal]));
   const budget=(await runtime.store.pool.query('SELECT * FROM service_budgets WHERE run_id=$1',[runtime.runId])).rows;
   assert.equal(budget.length,1);assert.equal(budget[0].committed,'0');

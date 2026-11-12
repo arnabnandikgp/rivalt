@@ -615,7 +615,9 @@ checks normalized uploads, greatest rates, exact remainder order and full member
 
 The native `rivalt-settlement-pages` helper returns only the next bounded page
 metas. Build it using `bash ops/build-settlement-helper.sh`; its local binary and
-SHA-256 manifest live in ignored `.local/settlement-helper/`. Input/output limits,
+SHA-256 manifest live in ignored `.local/settlement-helper/` (or the explicit
+`RIVALT_SETTLEMENT_HELPER_DIR`). Version 2 supports plan windows; older helpers
+reject before this controller can operate. Input/output limits,
 exact schema/size, canonical page ordering and a five-second process deadline fail
 closed. A changed manifest or native error cannot declare financial progress.
 The helper is not needed for retail transactions and requires no signing key.
@@ -667,3 +669,13 @@ state before execution. Frozen source, revision/attempt and actual page guards
 still run. No decoder state is reused across transactions, and the wire/scoped
 history contract is unchanged. A new program artifact needs independent resource
 and financial acceptance before selection.
+
+The D108 candidate adds a bounded plan-window instruction. The helper previews
+at most 128 unchanged kernel steps over copies of up to eight authenticated RPC
+pages, requesting missing pages through at most nine bounded preview calls. Input
+is at most 64 KiB, output at most 16 KiB. It returns only sorted unique descriptors
+and permissions. Clearing rechecks every descriptor and repeats the actual work;
+verified input registers remain read-only, and missing I/O stops before the next
+step. No preview result or simulation is uploaded as a trusted financial effect.
+The existing three-descriptor instructions retain their wire contract. Windowed
+source/build/runtime acceptance is separate from prior scalar/batched evidence.

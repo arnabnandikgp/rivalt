@@ -44,6 +44,7 @@ pub use error::ClearingError;
 pub use events::*;
 pub use instructions::*;
 pub use state::*;
+pub use state::accounts::SettlementPageAccess;
 
 #[cfg(not(feature = "devnet-test-profile"))]
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
@@ -411,6 +412,22 @@ pub mod clearing {
                 )
             },
         )
+    }
+    pub fn continue_settlement_plan_window(
+        ctx: &mut Context<ContinueSettlementPlan>,
+        epoch: u64,
+        revision: u64,
+        attempt: u64,
+        steps: u16,
+        pages: Vec<SettlementPageAccess>,
+    ) -> Result<()> {
+        let continuation = account_safety::settlement::prepare_plan_window(
+            &ctx.accounts.prepared, &ctx.accounts.rates, &ctx.accounts.plan, &pages,
+        )?;
+        let page_plan = continuation.pages();
+        scoped_history::run_pages(ctx, [113, 145, 71, 236, 95, 105, 254, 221], page_plan, |ctx, _events| {
+            account_safety::settlement::continue_plan_window(ctx, revision, attempt, steps, &pages, continuation)
+        })
     }
     pub fn adopt_settlement_plan(
         ctx: &mut Context<AdoptSettlementPlan>,

@@ -39,7 +39,8 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
   };
   const limb=async(request:SettlementPageRequest)=>{
     const [page,bump]=await sdk.deriveSettlementLimbPage(venue,request.register,request.index);
-    const value=decodeAccountWorker(await read(page),sdk.SETTLEMENT_LIMB_PAGE_DISCRIMINATOR,sdk.getSettlementLimbPageDecoder());
+    const account=await read(page);
+    const value=decodeAccountWorker(account,sdk.SETTLEMENT_LIMB_PAGE_DISCRIMINATOR,sdk.getSettlementLimbPageDecoder());
     assert(value.schemaVersion===10&&value.venue===venue&&value.register===request.register&&value.pageIndex===request.index
       &&value.bump===bump&&value.revision>0n,'Foreign settlement limb page');
     if(value.epoch!==epoch) {
@@ -51,7 +52,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     if(request.register>=5&&request.register<=24&&value.attempt!==rates.attempt)
       return {page,value,step:ready(`scratch-${request.register}-${request.index}`,sdk.getPrepareSettlementRateScratchInstruction({...args,
         page,attempt:rates.attempt}))};
-    return {page,value};
+    return {page,value,encoded:Buffer.from(account.data[0],'base64').toString('hex')};
   };
   const pages=async(requests:SettlementPageRequest[])=>{
     const metas:{address:Address;role:AccountRole}[]=[],revisions:bigint[]=[];
@@ -132,13 +133,30 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(position<header.count,'Invalid market order position');
       ordinal=proposeMarketOrder(proposed.rows,plan.orderMarket,proposed.proposal.rates[plan.orderMarket])[Number(position)];
     } else assert([1,4,6,7].includes(plan.stage),'Unsupported conserving plan stage');
-    const current=await pages(await transport(runtime).requests(state,ordinal===undefined?'plan':'plan-row',ordinal));if(current.step)return current.step;
-    const guarded={...args,revision:plan.revision,attempt:plan.orderAttempt,revisions:current.revisions};
-    if(ordinal!==undefined) {
-      const row=await frozen(ordinal);
-      return ready('plan-row',withPages(sdk.getAcceptSettlementPlanRowInstruction({...guarded,actor:key,ordinal,page:row.page}),current.metas));
+    if(ordinal===undefined) {
+      const loaded=new Map<string,{page:Address;value:sdk.SettlementLimbPage;encoded:string}>();
+      for(let round=0;round<=8;round++) {
+        const requested=await transport(runtime).requests(state,'plan-window',undefined,[...loaded.values()].map(value=>value.encoded));
+        const missing=requested.filter(request=>!loaded.has(`${request.register}:${request.index}`));
+        if(!missing.length) {
+          const metas=requested.map(request=>({address:loaded.get(`${request.register}:${request.index}`)!.page,
+            role:request.writable?AccountRole.WRITABLE:AccountRole.READONLY}));
+          return ready('plan-window',withPages(sdk.getContinueSettlementPlanWindowInstruction({...args,
+            revision:plan.revision,attempt:plan.orderAttempt,steps:128,pages:requested.map(request=>({register:request.register,
+              pageIndex:request.index,writable:request.writable,revision:loaded.get(`${request.register}:${request.index}`)!.value.revision}))}),metas));
+        }
+        for(const request of missing) {
+          const result=await limb(request);if(result.step)return result.step;
+          loaded.set(`${request.register}:${request.index}`,{page:result.page,value:result.value,encoded:result.encoded!});
+        }
+        assert(loaded.size<=8,'Oversized default scratch preview');
+      }
+      throw new Error('Default scratch preview failed to converge');
     }
-    return ready('plan-work',withPages(sdk.getContinueSettlementPlanInstruction({...guarded,steps:128}),current.metas));
+    const current=await pages(await transport(runtime).requests(state,'plan-row',ordinal));if(current.step)return current.step;
+    const guarded={...args,revision:plan.revision,attempt:plan.orderAttempt,revisions:current.revisions};
+    const row=await frozen(ordinal);
+    return ready('plan-row',withPages(sdk.getAcceptSettlementPlanRowInstruction({...guarded,actor:key,page:row.page,ordinal}),current.metas));
   }
   if(header.stage===14) {
     assert(prepared.epoch===epoch&&rates.epoch===epoch&&plan.epoch===epoch&&plan.adoptionRevision===header.revision,

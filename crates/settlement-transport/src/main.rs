@@ -5,14 +5,14 @@ use anchor_lang::{AccountDeserialize, Space};
 use clearing::{
     instructions::account_safety::settlement::{
         denominator_plan, rate_plan, settlement_application_pages, settlement_plan_pages,
-        settlement_plan_row_pages,
+        settlement_plan_row_pages, preview_plan_window,
     },
-    state::accounts::{PreparedSettlement, SettlementPlan, SettlementRates, SCHEMA_VERSION},
+    state::accounts::{PreparedSettlement, SettlementPlan, SettlementRates, SettlementLimbPage, SCHEMA_VERSION},
 };
 use serde::{Deserialize, Serialize};
 use std::io::{self, Read};
 
-const MAX_INPUT: u64 = 32 * 1024;
+const MAX_INPUT: u64 = 64 * 1024;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Request {
@@ -22,6 +22,8 @@ struct Request {
     rates: String,
     plan: String,
     ordinal: Option<String>,
+    #[serde(default)]
+    pages: Vec<String>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -30,6 +32,7 @@ enum Operation {
     Rate,
     Plan,
     PlanRow,
+    PlanWindow,
     Application,
 }
 #[derive(Serialize)]
@@ -62,7 +65,7 @@ fn decode<T: AccountDeserialize + Space>(text: &str) -> Result<T, String> {
 }
 fn describe(input: &str) -> Result<Response, String> {
     let request: Request = serde_json::from_str(input).map_err(|_| "invalid request")?;
-    if request.version != 1 {
+    if request.version != 2 {
         return Err("unsupported transport version".into());
     }
     let prepared: PreparedSettlement = decode(&request.prepared)?;
@@ -79,6 +82,9 @@ fn describe(input: &str) -> Result<Response, String> {
         || prepared.epoch == 0
     {
         return Err("foreign or uninitialized checkpoint".into());
+    }
+    if request.pages.len() > 8 || !matches!(request.operation, Operation::PlanWindow) && !request.pages.is_empty() {
+        return Err("unexpected or oversized scratch window".into());
     }
     let pages = match request.operation {
         Operation::PlanRow => {
@@ -97,6 +103,10 @@ fn describe(input: &str) -> Result<Response, String> {
                 Operation::Denominator => denominator_plan(&prepared),
                 Operation::Rate => rate_plan(&prepared, &rates),
                 Operation::Plan => settlement_plan_pages(&prepared, &rates, &plan),
+                Operation::PlanWindow => {
+                    let pages = request.pages.iter().map(|text| decode::<SettlementLimbPage>(text)).collect::<Result<Vec<_>, _>>()?;
+                    preview_plan_window(&prepared, &rates, &plan, pages)
+                },
                 Operation::Application => {
                     if plan.epoch != prepared.epoch {
                         return Err("foreign application epoch".into());
@@ -109,7 +119,7 @@ fn describe(input: &str) -> Result<Response, String> {
     }
     .map_err(|_| "checkpoint cannot request this operation")?;
     Ok(Response {
-        version: 1,
+        version: 2,
         schema: SCHEMA_VERSION,
         pages: pages
             .requests()
@@ -189,19 +199,19 @@ mod tests {
             cursor: 3,
             ..Default::default()
         };
-        let mut input = serde_json::json!({"version":1,"operation":"denominator","prepared":encoded(&prepared),
+        let mut input = serde_json::json!({"version":2,"operation":"denominator","prepared":encoded(&prepared),
             "rates":encoded(&rates),"plan":encoded(&plan),"ordinal":null});
         let initial = describe(&input.to_string()).unwrap();
         assert_eq!(
             serde_json::to_value(initial).unwrap(),
-            serde_json::json!({"version":1,"schema":10,
+            serde_json::json!({"version":2,"schema":10,
             "pages":[{"register":0,"index":"0","writable":true}]})
         );
         input["operation"] = "application".into();
         let application = describe(&input.to_string()).unwrap();
         assert_eq!(
             serde_json::to_value(application).unwrap(),
-            serde_json::json!({"version":1,"schema":10,
+            serde_json::json!({"version":2,"schema":10,
             "pages":[{"register":66,"index":"0","writable":false}]})
         );
         input["ordinal"] = "0".into();
@@ -212,8 +222,8 @@ mod tests {
         for input in [
             "",
             "{}",
-            r#"{"version":2,"operation":"plan","prepared":"","rates":"","plan":"","ordinal":null}"#,
-            r#"{"version":1,"operation":"unknown","prepared":"","rates":"","plan":"","ordinal":null}"#,
+            r#"{"version":1,"operation":"plan","prepared":"","rates":"","plan":"","ordinal":null}"#,
+            r#"{"version":2,"operation":"unknown","prepared":"","rates":"","plan":"","ordinal":null}"#,
         ] {
             assert!(describe(input).is_err());
         }

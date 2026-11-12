@@ -42,4 +42,5 @@ export * from "./protectiveGroup.js";
 export * from "./rateCheckpoints.js";
 export * from "./scopedRead.js";
 export * from "./scopedWrite.js";
+export * from "./settlementPageAccess.js";
 export * from "./storedOrder.js";

@@ -7,7 +7,7 @@ use crate::{
 };
 use anchor_lang::prelude::*;
 use financial_core::clearing::scalable::{
-    pages::{PagePlan, PAGE_WORDS},
+    pages::{PagePlan, PAGE_WORDS, MAX_WINDOW_PAGES},
     wide::{LimbStorage, WordAccess},
 };
 
@@ -20,8 +20,8 @@ pub(crate) struct PageVersion {
 pub(crate) struct PageWindow<'a> {
     accounts: &'a mut [AccountView],
     plan: PagePlan,
-    capacities: [u64; 3],
-    dirty: [bool; 3],
+    capacities: [u64; MAX_WINDOW_PAGES],
+    dirty: [bool; MAX_WINDOW_PAGES],
 }
 
 impl<'a> PageWindow<'a> {
@@ -37,7 +37,7 @@ impl<'a> PageWindow<'a> {
             epoch,
             plan,
             versions,
-            &[plan.capacity(); 3][..plan.requests().len()],
+            &[plan.capacity(); MAX_WINDOW_PAGES][..plan.requests().len()],
             accounts,
         )
     }
@@ -113,13 +113,13 @@ impl<'a> PageWindow<'a> {
             .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
             require_keys_eq!(*account.address(), expected, ClearingError::Resolution);
         }
-        let mut capacity_limits = [0; 3];
+        let mut capacity_limits = [0; MAX_WINDOW_PAGES];
         capacity_limits[..capacities.len()].copy_from_slice(capacities);
         Ok(Self {
             accounts,
             plan,
             capacities: capacity_limits,
-            dirty: [false; 3],
+            dirty: [false; MAX_WINDOW_PAGES],
         })
     }
 

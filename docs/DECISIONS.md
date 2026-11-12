@@ -948,3 +948,27 @@ and events still commit once, atomically. Inputs, account metas, layouts, PDA se
 errors and signed domains are unchanged. Native literal/adversarial controller
 checks precede a new clean SBF pin and actual populated RPC/WS/PostgreSQL acceptance;
 prior binaries do not establish a compute saving for this implementation.
+
+## D108 — Bounded settlement-plan I/O windows
+
+12 November 2026. P56's populated traces show that the one-next-access page plan
+repeats authenticated instruction setup at each scratch-register transition.
+Keep that entrypoint and add `continue_settlement_plan_window` with at most eight
+sorted, unique `(register, page_index, writable, revision)` descriptors. This is an
+I/O proposal, never caller-supplied work, graph edges, rates or payouts. The program
+restores its owned cursor, authenticates every page's owner/PDA/venue/schema/epoch/
+attempt/revision/count-derived capacity, and allows only plan scratch writes
+(registers 25–45 and 64–70). Verified input registers 0–24 stay read-only.
+The first required access must be covered. Execute at most 128 unchanged kernel
+steps, stop before a missing page, and reject zero progress. Commit owned work and
+scoped revisions atomically. Extra supplied pages cannot authorize financial writes.
+Eight bounds I/O and scoped-history size, not account population; compiled CU and
+frame/wire checks are required before qualification.
+
+The version-2 native helper previews at most 128 steps using copies of at most
+eight fetched pages to propose the window. It returns descriptors only; every
+step repeats on chain. Requests are bounded at 64 KiB and a five-second deadline.
+Legacy three-descriptor calls retain their ABI; the new instruction and descriptor
+layout are pinned against exact `0ca9927`, with regenerated IDL/SDK and lock inventory.
+No account layout, seed, error number, money allocation or trust boundary changes.
+Local runtime promotion remains gated on actual populated RPC/WS/SQL acceptance.

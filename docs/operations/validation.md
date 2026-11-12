@@ -2113,3 +2113,21 @@ oversized-stack diagnostics; clearing is 2,378,392 bytes / SHA-256
 `60c3bb23a550723dd0958fc6b34dcde72ed742f3dde4075bf1b6eab5a01e3790`.
 This only qualifies the build and native checks; signed resource improvement and
 populated completion remain pending. Selected runtime has not been promoted.
+
+D107's clean `0ca9927` populated attempt retained 146 finalized worker originals /
+2,854 instructions, peak 899,903 CU, one upload SIGKILL recovery and two actual
+disjoint-lock BTC/ETH fills. The negative full-batch replay correctly rejected
+at 908,178 CU but violated its harness's 20%-headroom assertion. The fix budgets
+that negative probe at 1.2m and flushes immediately; worker limits stay unchanged.
+The observed 977.9-second sum contains one 597.06-second interval; neither full
+recovery nor steady-state elapsed time is qualified. Raw run remains under
+`.local/scalable-settlement/runs/p56-populated-128-continuation`.
+
+D108 candidate native checks pass: 23 settlement/page-authentication cases, two
+helper transport cases and 19 batch/descriptor/binding checks. Its literal
+one-atom debtor/equal-creditor test preserves exact ownership across restarts;
+65-root plan continuations decrease from 1,792 to 89, and 128 roots take 166.
+Only three native roots carry claims in that boundary fixture. Generated clearing
+IDL/SDK and the explicit additive ABI guard pass; the 91-entrypoint lock inventory
+adds the window context only. Compiled CU/frames, populated signed outcomes,
+crash recovery and SQL reconciliation remain required before promotion.
