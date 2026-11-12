@@ -59,8 +59,7 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
-Next exact action: build and pin D107’s single-restoration continuation, then
-qualify it with resource-bounded 32-step batches and independently paid isolated
+Next exact action: qualify pinned D107 SBF `1c08778` with resource-bounded 32-step batches and independently paid isolated
 BTC/ETH concurrency; retain the earlier measured misses and failed fixtures; keep PR #85 open and runtime promotion gated.
 Continue through P57–P62 once complete P56 acceptance passes.
 
@@ -912,6 +911,22 @@ the clean pin, including literal atom ownership, adversarial ordering, restarts 
 exclusive Apply/reconciliation. ABI and exact arithmetic are unchanged. A new SBF
 build and populated financial/resource run are pending; no CU improvement or
 promotion is claimed from native tests.
+
+The completed eight-step 128-root attempt at clean `74484ea` stopped at the
+operator budget guard after **997 originals / 7,976 guarded instructions / 4,985,000
+lamports / 2,073.172 seconds**. Upload SIGKILL recovery passed; Apply, final payouts,
+exit and fresh replay were not reached. Peak observed CU was 751,785. This misses
+G1 and is not populated acceptance. The first resource-bounded rerun at `0d265a3`
+stopped before default when its new concurrency fixture omitted the current
+position generation; `0d01a11` fixes that signed-intent field without weakening
+admission. Both raw attempts are retained locally.
+
+D107's clean source **`1c08778fde3359b003f744654220946bc56e6f83`** passes all 14
+focused native settlement tests and builds the qualification/default programs
+without oversized-stack diagnostics. Its clearing binary is **2,378,392 bytes**,
+SHA-256 `60c3bb23a550723dd0958fc6b34dcde72ed742f3dde4075bf1b6eab5a01e3790`.
+The candidate allowlist now pins that build. No CU saving or 128-root completion
+is claimed until the actual rerun; selected schema-8 runtime stays unchanged.
 
 ## Deployment and operational limits
 

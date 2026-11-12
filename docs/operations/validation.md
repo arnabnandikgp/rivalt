@@ -2094,3 +2094,22 @@ fixed-point, insurance or rounding equations. Thirty affected reference checks n
 pass, including literal 65/128-row cash/haircut and cashless-cycle cases compared
 against the actual compiled Rust kernel. Frozen inputs are now captured before
 reference execution so a diagnostic failure retains its exact proposed inputs.
+
+### P56 populated recovery resource follow-up
+
+Clean `74484ea`, D106 SBF `0cc21b8`, eight-step batches and 128 actual Financial
+roots reached 997 originals / 7,976 instructions before the operator fee-budget
+guard rejected further work. Measured originals cost 4,985,000 test lamports and
+2,073.172 seconds; peak CU 751,785. Upload same-original SIGKILL recovery passed.
+No Apply, complete payouts, exit or fresh replay acceptance is claimed. This
+misses G1's 900-second target. Raw run: existing ignored
+`.local/scalable-settlement/runs/p56-populated-128-cases`.
+
+The resource-bound 32-step attempt at `0d265a3` correctly rejected the concurrent
+reduce-only fixture's omitted position generation before any default original.
+`0d01a11` supplies the actual generation. Clean D107 source `1c08778` passes 14
+focused native settlement tests and all qualification/default SBF builds without
+oversized-stack diagnostics; clearing is 2,378,392 bytes / SHA-256
+`60c3bb23a550723dd0958fc6b34dcde72ed742f3dde4075bf1b6eab5a01e3790`.
+This only qualifies the build and native checks; signed resource improvement and
+populated completion remain pending. Selected runtime has not been promoted.
