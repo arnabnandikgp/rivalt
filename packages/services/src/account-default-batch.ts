@@ -11,14 +11,14 @@ import {accountDefaultContext,readAccountResolution} from './account-worker-stat
 
 type Reader=Pick<Rpc,'call'>;
 type ReadyStep=Extract<DefaultStep,{status:'ready'}>;
-export const DEFAULT_BATCH_MAX_STEPS=8;
+export const DEFAULT_BATCH_MAX_STEPS=32;
 const MAX_ACCOUNTS=64,MAX_COMPUTE=900_000,MAX_RETURNED_BYTES=8*1024*1024;
 export function defaultBatchComputeBudget():Instruction {
   const budget=ComputeBudgetProgram.setComputeUnitLimit({units:1_000_000});
   return {programAddress:address(budget.programId.toBase58()),accounts:[],data:budget.data};
 }
 export function defaultBatchSteps(value=process.env.RIVALT_DEFAULT_BATCH_STEPS??'1'):number {
-  assert(/^[1-8]$/.test(value),'Default batch steps must be 1–8');return Number(value);
+  assert(/^(?:[1-9]|[12][0-9]|3[0-2])$/.test(value),'Default batch steps must be 1–32');return Number(value);
 }
 export type DefaultBatch={steps:ReadyStep[];simulatedUnits:number;wireBytes:number;stop:string};
 

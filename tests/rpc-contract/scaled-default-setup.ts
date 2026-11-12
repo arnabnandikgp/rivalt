@@ -50,7 +50,7 @@ export async function populateDefaultCohort(h:CanonicalHarness,setup:Setup,popul
     for(const marketIndex of markets) {
       const side=(item.mode===0?(Math.floor(item.ordinal/8)+marketIndex)%2:Math.floor(item.ordinal/2)%2) as 0|1;
       const lots=BigInt((marketIndex===0?35:30)+item.ordinal%5),maker=setup.instances[marketIndex*3+item.ordinal%3];
-      await h.send('open actual populated-cohort exposure',[await route({trader:item.margin,actor:item.owner,marketIndex,side,makers:[maker],lots:[lots]})],[item.owner]);
+      await h.send('open actual populated-cohort exposure',[await route({trader:item.margin,actor:item.owner,marketIndex,side,makers:[maker],lots:[lots],minimalMarkets:true})],[item.owner]);
       trades++;
     }
     const actual=await root(item.margin);
@@ -148,4 +148,26 @@ export async function exercisePopulatedActions(h:CanonicalHarness,setup:Setup,co
   setup.sourcePrices.btc=60_000_000_000n;await setup.qualify();
   return {reservation:protectedRoot.reserved.toString(),reducedLots:'1',transferredAtoms:'2',tokenRoundTripAtoms:'1',
     liquidation:{target,targetBefore,targetAfter,capitalBefore,capitalAfter,rewardAtoms:'27'}};
+}
+
+/** Distinct-owner/payer isolated fills overlap with all 128 roots active. This
+ * checks one real scheduler pair, not a saturated throughput benchmark. */
+export async function exercisePopulatedConcurrency(h:CanonicalHarness,setup:Setup,cohort:Awaited<ReturnType<typeof populateDefaultCohort>>) {
+  const {root,route}=executionTestHelpers(h,setup);
+  const candidates=[cohort.additional.find(item=>item.ordinal===2)!,cohort.additional.find(item=>item.ordinal===17)!];
+  const instructions=await Promise.all(candidates.map(async(item,index)=>{
+    assert(item.mode===1&&item.market===index&&!item.receiver);
+    const owner=await fixtureKey(`p56-scale-owner-${Math.floor(item.ordinal/16)}`),before=await root(item.margin);
+    const side=before.positions[index].lots>0n?1:0;
+    return {item,owner,before,side,instruction:await route({trader:item.margin,actor:owner,marketIndex:index as 0|1,
+      side,makers:[setup.instances[index*3+item.ordinal%3]],lots:[1n],reduceOnly:true,minimalMarkets:true})};
+  }));
+  const labels=['populated concurrent isolated BTC','populated concurrent isolated ETH'];
+  await Promise.all(instructions.map((value,index)=>h.send(labels[index],[value.instruction],[value.owner])));
+  for(const [index,value] of instructions.entries()) {
+    const after=await root(value.item.margin);
+    assert.equal(after.positions[index].lots,value.before.positions[index].lots+(value.side===0?1n:-1n));
+    assert.equal(after.stateVersion,value.before.stateVersion+1n);
+  }
+  return {labels,margins:instructions.map(value=>value.item.margin),owners:instructions.map(value=>value.owner.address)};
 }

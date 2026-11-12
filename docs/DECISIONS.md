@@ -922,3 +922,13 @@ and their retained original transactions are untouched. G1 resource/recovery,
 independent money and real RPC/WS/PostgreSQL acceptance precede promotion. The
 128/1,024 targets do not become replacement protocol ceilings. Default/devnet
 trading and independent external gates remain unchanged.
+
+P56 resource refinement (12 November): the first populated 128-root, eight-step
+run exceeds the 900-second G1 time target while preparing exact payouts. More
+than 64 funded participants, actual stressed actions and the first crash recovery
+have executed, but the ongoing run is not full acceptance. Extend the explicit
+transport option to at most 32 guarded instructions, retaining the same 900k
+simulated-CU, 1m requested-CU, 64-account, 8 MiB and v0/v1 wire limits. The measured
+resource limit may end a batch earlier. Scalar remains the default until acceptance.
+This changes neither on-chain page/word limits nor any financial computation;
+program rebuilds and altered settlement economics are unnecessary for this change.

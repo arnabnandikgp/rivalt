@@ -80,6 +80,15 @@ it('cannot use the speculative reader to submit, simulate or mutate',async()=>{
     next:async reader=>{await reader.call('sendTransaction',[]);return test.step(2);}})).rejects.toThrow('Unsupported speculative RPC');
 });
 it('rejects invalid operator batch settings',()=>{
-  expect(defaultBatchSteps('1')).toBe(1);expect(defaultBatchSteps('8')).toBe(8);
-  for(const value of ['0','9','-1','2.5','08','Infinity',''])expect(()=>defaultBatchSteps(value)).toThrow();
+  expect(defaultBatchSteps('1')).toBe(1);expect(defaultBatchSteps('8')).toBe(8);expect(defaultBatchSteps('16')).toBe(16);expect(defaultBatchSteps('32')).toBe(32);
+  for(const value of ['0','33','-1','2.5','08','Infinity',''])expect(()=>defaultBatchSteps(value)).toThrow();
+});
+
+it.each([16,32])('uses up to %i low-cost steps while retaining the same measured compute ceiling',async limit=>{
+  const low=await fixture({units:20_000}),batch=await low.run(limit);
+  expect(batch.steps).toHaveLength(limit);expect(batch.simulatedUnits).toBe(limit*20_000);
+  expect(batch.stop).toBe('step-bound');expect(low.simulations).toHaveLength(limit);
+  const high=await fixture({units:100_000}),bounded=await high.run(limit);
+  expect(bounded.steps).toHaveLength(9);expect(bounded.simulatedUnits).toBe(900_000);
+  expect(bounded.stop).toBe('compute-bound');expect(high.simulations).toHaveLength(10);
 });

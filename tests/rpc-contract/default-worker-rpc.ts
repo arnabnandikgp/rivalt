@@ -6,8 +6,9 @@ import {writeFileSync,readFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
 import {VersionedTransaction} from '@solana/web3.js';
 import {AccountRole} from '@solana/kit';
-import {populateDefaultCohort,defaultStorageResources,exercisePopulatedActions} from './scaled-default-setup.js';
-import {transactionLocks} from '../performance/lock-model.js';
+import {populateDefaultCohort,defaultStorageResources,exercisePopulatedActions,exercisePopulatedConcurrency} from './scaled-default-setup.js';
+import {transactionLocks,conflicts} from '../performance/lock-model.js';
+import {fixtureKey} from './harness.js';
 import * as sdk from '@rivalt/sdk';
 import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
 import {json} from '../../packages/indexer/src/events.js';
@@ -28,7 +29,9 @@ const population=Number(process.env.RIVALT_DEFAULT_POPULATION??'8');
 assert([8,128,1024].includes(population),'Explicit default population required');
 const helper=JSON.parse(readFileSync('.local/settlement-helper/manifest.json','utf8'));assert.equal(helper.trackedDirty,false);
 process.env.RIVALT_ACCOUNT_DEPLOYMENT='account-scale-candidate';
-const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(rpcUrl,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:()=>1_000_000});
+const concurrentPayers=await Promise.all([0,1].map(index=>fixtureKey(`p56-scale-owner-${index}`)));
+const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(rpcUrl,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:()=>1_000_000,
+  payerFor:label=>label==='populated concurrent isolated BTC'?concurrentPayers[0]:label==='populated concurrent isolated ETH'?concurrentPayers[1]:undefined});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,runtime:AccountRuntime|undefined;
 const originals:any[]=[],faults:any[]=[],outcomes:any[]=[],stages:any[]=[];
 const persist=()=>writeFileSync(`${directory}/worker-progress.json`,json({revision,build,helper,originals,faults,outcomes,stages}));
@@ -44,6 +47,18 @@ try {
     await h.send('open actual cross default exposure',[await route({trader,actor:owner,marketIndex,side:0,makers:[setup.instances[marketIndex*3]],lots:[lots]})],[owner]);
   }
   const populatedActions=populated?await exercisePopulatedActions(h,setup,populated):null;
+  const concurrent=populated?await exercisePopulatedConcurrency(h,setup,populated):null;
+  let contention:null|{labels:string[];signatures:string[];locks:ReturnType<typeof transactionLocks>[]} = null;
+  if(concurrent) {
+    await flush();
+    const wires=concurrent.labels.map(label=>{
+      const index=checks.findIndex(check=>check.label===label);assert(index>=0);
+      return JSON.parse(readFileSync(`${directory}/wire-${index}.json`,'utf8'));
+    });
+    const locks=wires.map(wire=>transactionLocks(Buffer.from(wire.wireBase64,'base64')));
+    assert.deepEqual(conflicts(locks[0],locks[1]),[],'Independent isolated markets share no writable lock, including fee payers');
+    contention={labels:concurrent.labels,signatures:wires.map(wire=>wire.signature),locks};
+  }
   const source=async()=>sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   const safety=async()=>sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
   const sources={primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
@@ -156,7 +171,7 @@ try {
     peakWireBytes:Math.max(...originals.map(value=>Buffer.from(value.wire,'base64').length)),storageResources};
   const operatingEnvelope=population!==128||originals.length<=2000&&elapsedMs<=900_000&&BigInt(budget[0].spent)<=10_000_000n
     &&storageResources.recoveryBytes<=16*1024*1024;
-  writeFileSync(`${directory}/result.json`,json({revision,build,helper,populated,populatedActions,resources,operatingEnvelope,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,defaultBatchSteps:runtime.defaultContinuationSteps,
+  writeFileSync(`${directory}/result.json`,json({revision,build,helper,populated,populatedActions,contention,resources,operatingEnvelope,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,parity,defaultBatchSteps:runtime.defaultContinuationSteps,
     endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     limitations:[`${population} Financial roots; selected runtime promotion remains gated pending complete P56 acceptance`,'internal makers and synthetic oracle inputs']}));
   assert(operatingEnvelope,'P56 populated cohort exceeds G1 resource envelope; retained results are not acceptance');

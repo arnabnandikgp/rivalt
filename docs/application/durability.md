@@ -637,13 +637,13 @@ advance the source stage. Unsupported or mismatched checkpoints fail closed.
 ### Bounded atomic continuation candidate (P56)
 
 `RIVALT_DEFAULT_BATCH_STEPS=1` retains the qualified scalar producer. An explicit
-integer 2–8 enables the candidate batch planner within the exact account-scale
+integer 2–32 enables the candidate batch planner within the exact account-scale
 binding. It simulates each unsigned prefix, requests all writable poststates and reads unchanged headers through checked RPC, then uses the ordinary authenticated continuation reader
 and descriptor helper to propose the next instruction. Simulation is untrusted
 proposal material, never committed progress or financial authority. A separate
 speculative cache cannot pollute committed rate proposals.
 
-Each prefix has at most eight instructions, 64 returned accounts and 8 MiB returned
+Each prefix has at most 32 instructions, 64 returned accounts and 8 MiB returned
 account bytes; v0/v1 remain within 1,232/4,096 wire bytes. A 1m CU transaction budget
 and at most 900k measured simulation CU bound batching. Rejection or resource
 exhaustion retains only the preceding admissible unsigned prefix; malformed RPC
