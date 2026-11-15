@@ -997,3 +997,33 @@ worker; the incompatible schema-8 runner is retained in Git rather than activate
 by changing a readiness flag. P56's populated and normal launcher/wallet acceptance
 pins are recorded in validation; PR integration remains separate. Default/devnet
 and external P15B/P16B gates are unchanged.
+
+## D110 — Successor loss-handling direction
+
+16 November 2026. Following the source-pinned architecture review and worked
+liquidation/insurance examples, the user accepted debtor resources first, then
+market insurance, explicit residual-loss treatment and a last-resort ADL role.
+This approves the direction for a successor contract; the current implementation
+and its complete-resolution economics remain unchanged.
+
+Exposure removal (maker route, consenting funded receiver, ADL) and loss allocation
+(debtor resources, attributable insurance, residual impairment) are coordinated
+mechanisms, not permission to charge the same deficit twice. Insurance is funded
+cash, not a position-holding backstop by default. It may cover an entire eligible
+shortfall when sufficient funds exist; the 25% fee contribution is not a limit on
+the percentage of each loss covered.
+
+The [review's remaining choices](clearing/architecture-review.md#accepted-direction-and-remaining-choices)
+own the contract agenda: creditor membership/epoch, cross-market attribution, ADL
+eligibility/pricing/selection, exact versus bounded-precision allocation, freeze
+scope/progress and funded compensation. Proportional unpaid-creditor treatment is
+the proposed baseline; no exact eligibility boundary, rounding change or ranked
+ADL loss policy is inferred from the high-level acceptance. Healthy funded cash,
+market-specific insurance and existing fee boundaries remain protected.
+
+Do not weaken the current safeguards before a replacement is specified and
+qualified. P57–P62 implementation remains paused for the revised contract/roadmap;
+retain its outstanding maker, calibration, operational and capacity deliverables.
+This record supersedes the review's statement that all direction was unaccepted,
+not any implemented financial decision. External P15B/P16B, deferred endurance
+and separate authorization for funded/external operations remain unchanged.

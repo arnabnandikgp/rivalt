@@ -5,6 +5,34 @@ contract.** Rivalt source inspected: `07822f49dc9785989897f69d5361ea90717fdc11`
 (accepted P56 source on the open stack). No program, account layout, economic
 parameter, deployment or qualification result changes with this document.
 
+## Accepted direction and remaining choices
+
+On 16 November, the user accepted debtor resources first, then the attributable
+market's insurance, explicit residual-loss treatment and a last-resort ADL role.
+[D110](../DECISIONS.md#d110--successor-loss-handling-direction) records this design
+direction. It is not acceptance of an unspecified ADL algorithm or changed payouts.
+
+Keep two coordinated mechanisms distinct: maker execution / funded takeover / ADL
+remove exposure; debtor resources / insurance / residual impairment allocate loss.
+These are not a mandatory chronological sequence in which a completed haircut is
+followed by charging the same deficit again through ADL. Their combined transition
+must conserve cash and obligations and account for each loss exactly once.
+
+The next contract/model deliverable must resolve:
+
+| Choice | Recommended starting point / required comparison |
+|---|---|
+| Creditor eligibility and loss epoch | Proportional eligible unpaid claims in the affected market, including maker claims and open/closed claims at a defined valuation boundary. Preserve healthy funded cash and prohibit escaping an already-bound loss by closing, transferring or claiming first. Specify exactly when the boundary becomes binding |
+| Cross-account loss attribution | Count debtor cash once; use actual recoveries, not positive face value. Preserve explicit market attribution and no discretionary foreign-insurance raid. Demonstrate mixed-sign claims, shared debtors and cycles before promising local resolution |
+| ADL execution contract | Define permissionless activation, independently authenticated prices, partial sizing, compatible opposite-position selection, health/progress and source-outage behavior. Selection of exposure to close must not silently select who bears disproportionate loss; compare that policy explicitly if proposed |
+| Accounting precision | Compare today's exact simultaneous/fractional allocation with any bounded fixed-precision or loss-index candidate. Publish differences, rounding bounds/ownership and conservation. No alternative is approved merely because it is faster |
+| Freeze scope and continuation | Target the smallest provably complete affected scope, with authenticated bounded continuation. Shared claims may enlarge it. Distinguish illiquid closed claims from actual shortfall; a timeout or failed quote alone is not proof of insolvency |
+| Compensation and capital | Define keeper/backstop fees, payer and post-fee progress together. Preserve the agreed trading fee/insurance share. Do not assume insurance also funds operator rewards or later backstop inventory losses |
+
+These belong in the first design/model phase of one revised roadmap. Source-file
+boundaries and routine implementation details do not require new economic votes.
+Neither this approval nor prior P56 acceptance qualifies a new financial path.
+
 The question is whether competing maker programs with common clearing remain a
 sound product foundation. The answer is yes, but the liquidation/settlement
 lifecycle deserves redesign before increasing the operating envelope. Adding a
@@ -187,8 +215,9 @@ cannot be labelled a mechanical optimization with identical payouts.
 
 ## Recommended successor lifecycle
 
-The following is a proposal. Keep current rejecting/terminal safeguards until a
-replacement is specified, independently tested and qualified.
+The user accepted the broad direction below, with the exact mechanisms still
+proposed. Keep current rejecting/terminal safeguards until a replacement is
+specified, independently tested and qualified.
 
 ```mermaid
 flowchart TD
@@ -347,8 +376,8 @@ remain independent of the implementation reused by the SDK.
 
 ## Next deliverable and acceptance
 
-Keep P57–P62 paused for this architecture decision. Do not quietly append a second
-implementation roadmap or reinterpret accepted P56 evidence as qualification of a
+Keep P57–P62 implementation paused while specifying this accepted direction. Do not
+quietly append a second implementation roadmap or reinterpret accepted P56 evidence as qualification of a
 new loss mechanism. The recommended next deliverable is **one coherent current
 accounting/liquidation contract and executable adversarial reference model**, with:
 
@@ -371,8 +400,9 @@ ownership changes and remeasure actual RPC/WS/PostgreSQL lifecycles and contenti
 Rebase the remaining numbered roadmap around those approved dependencies rather
 than creating many speculative micro-phases now.
 
-This review does not authorize new credit, ADL loss allocation, insurance subsidies,
-LP pooling, risk relaxation or funded deployment. P15B/P16B remain separate external
+The accepted direction does not select an ADL loss-allocation algorithm or authorize
+new credit, insurance subsidies, LP pooling, risk relaxation or funded deployment.
+P15B/P16B remain separate external
 gates and continuous 24-hour endurance remains Deferred. Only document/source/link
 checks were performed for this research change; no new financial, load or
 integration acceptance is claimed.
