@@ -42,6 +42,9 @@ STATUS distinguishes accepted open PRs from the integrated baseline.
 The [audit remediation plan](operations/remediation-plan.md) defines the P51–P62
 successor PR sequence, acceptance gates and coverage of inherited constraints;
 planned behavior does not replace the current component contracts.
+The [clearing architecture review](clearing/architecture-review.md) compares the
+current liquidation, settlement, contention and code boundaries with external
+designs. Its recommendations are proposals; P57 onward remains paused for discussion.
 
 ## Product boundaries
 

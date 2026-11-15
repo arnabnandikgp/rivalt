@@ -20,6 +20,8 @@ Read [accounts](accounts.md) for identities, layouts and authority;
 [accounting](accounting.md) for money, funding, fees and ordinary exits;
 [risk and resolution](risk-and-resolution.md) for sources, orders, liquidation and
 complete default. Maker execution pricing belongs to [liquidity](../liquidity/README.md).
+The [architecture review](architecture-review.md) records the November 2026
+comparison and proposed functional boundaries; it does not replace these contracts.
 
 ## Source map
 

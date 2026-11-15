@@ -12,6 +12,13 @@ claim changes here. P51B is the next executable design/prototype deliverable. La
 PR scopes are planned, with the economic and architectural decisions below still
 explicit. A plan, native model or passing sample is not acceptance of deployed code.
 
+16 November discussion checkpoint: P56 local acceptance is complete and its PR
+remains open. P57–P62 remain paused while the user evaluates the
+[clearing architecture review](../clearing/architecture-review.md), including
+liquidation/default policy, same-market contention and functional code ownership.
+The review proposes a successor contract; it does not approve economic changes or
+renumber/start the remaining implementation phases.
+
 Implementation authorization (10 November 2026): the user accepted this roadmap.
 P51B's D93 candidate now lives in the existing [account](../clearing/accounts.md#account-scale-successor-contract-p51b),
 [resolution](../clearing/risk-and-resolution.md#scalable-exact-resolution-candidate-p51b),

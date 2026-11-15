@@ -1,6 +1,6 @@
 # Current status
 
-Updated 12 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 16 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -27,7 +27,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
 | P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
-| P57–P62 successor implementation | Planned | Retained roadmap; the user's latest 12 November instruction stops implementation after P56 for a scalability discussion. No P57 branch or implementation has started |
+| Clearing architecture review | Discussion | [Source-pinned review](clearing/architecture-review.md) of `07822f49`: current liquidation/default, same-market locks, accounting rigor, Flint/Percolator differences and functional code boundaries. Research only; no economic or program changes |
+| P57–P62 successor implementation | Planned — paused for discussion | Retained roadmap; the 16 November request expands the post-P56 discussion to clearing architecture and code organization. No P57 branch or implementation has started |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -60,9 +61,19 @@ at that closeout returned none. The fetched merge has the accepted tip's exact t
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
 P56's final acceptance is published in open PR #85; its exact hosted check status
-is tracked there. Next exact action after those checks: discuss account-scale
-recovery with the user before any P57 work. The roadmap is retained, not started.
-No local acceptance blocker remains.
+is tracked there. Next exact action: review the proposed liquidation/closed-claim
+loss-allocation boundaries with the user before specifying a successor contract or
+starting P57. The roadmap is retained, not started. No P56 local acceptance blocker
+remains; any new economic policy needs its own decision and qualification.
+
+The 16 November architecture review inspected source at
+`07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator
+`5e3af0710ec7e9b7077393012f8a94a31b2f07ef` (spec v16.9.1), plus primary
+Phoenix/GMX mechanism documentation. It distinguishes existing code, research
+claims and proposals, including the user's requested functional module/crate
+boundaries. Validation for this documentation change is limited to source/link and
+whitespace checks; no build, financial suite, external implementation tests or new
+performance run is claimed. P15B/P16B stay Open and 24-hour endurance stays Deferred.
 
 ## Remediation planning
 
