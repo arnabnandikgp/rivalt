@@ -128,6 +128,51 @@ guarantee or a substitute for a bankruptcy contract.
 
 ## Current risk and money contract
 
+### Atomic close versus funded settlement
+
+The 17 November follow-up distinguishes economic conditions, not three mandatory
+transaction stages or partially committed execution. A route is atomic. Its fill
+changes paired quantities and virtual quote balances; closing q to zero can leave
+a fixed positive or negative claim. It does not automatically pay that claim in
+cash. See [`quoted_fill`](../../crates/financial-core/src/lib.rs) and the
+[route commit](../../programs/clearing/src/instructions/maker_liquidity/routes/commit.rs).
+
+Ignoring fees/funding, a trader with 100 cash who buys one unit at 80 and sells at
+100 can finish with q=0, cash=100 and a +20 claim. An admissible subsequent payment
+changes cash to 120 and the claim to zero. If the opening seller A remains short
+and the closing buyer B opens at 100, A has the corresponding -20 claim; B did not
+incur the trader's historical gain. Loss collection debits debtor cash into the
+market settlement bucket, then gain payment moves that bucket into creditor cash.
+These are internal entitlements in shared custody, not necessarily SPL transfers
+between wallets. Withdrawal is a separate token exit.
+
+[Claim arithmetic](../../programs/clearing/src/instructions/account_cash/engine.rs)
+requires actual settlement cash; the [handler](../../programs/clearing/src/instructions/account_cash/claims.rs)
+also requires a complete valid backing certificate for payment. Thus even solvent
+claims may await collection/proof, while a true deficit requires resolution.
+Putting close and payment instructions in one transaction would make their combined
+result atomic, but would not supply missing cash or bypass the certificate. No new
+combined transaction was built or tested in this research.
+
+The next contract should compare an ordinary close-and-pay path backed by timely
+loss collection/dedicated settlement liquidity with explicit distressed closeout.
+Do not require payout availability to preserve risk reduction, silently spend
+insurance on ordinary profit, or describe flat-but-unsettled as fully settled.
+
+### Insurance and active backstop capital
+
+The recommended near-term boundary remains cash insurance separate from a funded
+inventory receiver. Existing fee contributions and authorized seed/retained-fee
+allocations already replenish reserves. A future backstop could contribute a
+defined portion of realized surplus after costs and its capital requirement; this
+is a proposed economic rule, not an implemented fee or an approved allocation.
+Model its losses and incentives alongside liquidation before enabling it. Defer
+lending or market making with insurance itself: this would put reserve liquidity
+and capital at risk precisely when simultaneous market stress may require payouts.
+No additional investment strategy or public deposit vault is authorized here.
+
+### Accounting identities
+
 Let `C_a` be funded collateral atoms, `q_a,m` signed lots, `p_m` atoms per lot,
 `v_a,m` the scaled virtual quote balance, `F_m` the funding index and `S=10^9`.
 At a common fully accrued snapshot:

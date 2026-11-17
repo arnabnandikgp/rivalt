@@ -80,6 +80,14 @@ It changes the recommendation, not current financial behavior. Documentation bas
 revision: `324e5e3`; the research-only diff passes 114 local links/anchors across
 five changed Markdown files, whitespace and tracked-evidence policy checks. No
 runtime tests are needed for this change.
+Follow-up source inspection at `013655e` clarifies that a close atomically commits
+position/claim changes, while funded claim payment is separately gated by cash
+and backing. The review records the exact code paths and recommends comparing
+normal close-and-pay with explicit distressed resolution, keeping active backstop
+capital separate from insurance. No combined transaction or new economic policy
+has been implemented or qualified.
+Follow-up documentation checks pass for 56 local links/anchors in two changed
+files and whitespace; no runtime suite was run for this explanation.
 Validation for these documentation changes is limited to source/link and
 whitespace checks; no build, financial suite, external implementation tests or new
 performance run is claimed. P15B/P16B stay Open and 24-hour endurance stays Deferred.
