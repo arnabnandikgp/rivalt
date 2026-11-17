@@ -30,6 +30,7 @@ python3 tests/financial/test_paged_rounding.py
 python3 tests/financial/test_cohort_denominator.py
 python3 tests/financial/test_scalable_snapshot.py
 python3 tests/financial/test_scalable_settlement.py
+python3 tests/financial/test_settlement_liquidation_model.py
 python3 tests/financial/test_scalable_clearing.py
 python3 tests/financial/test_incremental_backing.py
 cargo build --locked -p financial-core --bin backing-driver
