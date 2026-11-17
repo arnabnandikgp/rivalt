@@ -1000,11 +1000,15 @@ and external P15B/P16B gates are unchanged.
 
 ## D110 — Successor loss-handling direction
 
-16 November 2026. Following the source-pinned architecture review and worked
-liquidation/insurance examples, the user accepted debtor resources first, then
-market insurance, explicit residual-loss treatment and a last-resort ADL role.
-This approves the direction for a successor contract; the current implementation
-and its complete-resolution economics remain unchanged.
+16 November 2026, clarified 17 November. Following the architecture review and
+worked examples, the user's acknowledgment was initially recorded as acceptance
+of debtor resources, market insurance, explicit residual loss and last-resort ADL.
+The user subsequently clarified that loss allocation and ADL were not yet understood
+and asked for a digestible explanation and recommendations before deciding.
+The direction is therefore **under discussion, not approved successor policy**.
+Do not infer authorization for changed payouts, ADL or a revised implementation
+roadmap from the earlier acknowledgment. Current implementation and its previously
+approved insurance/fee and complete-resolution economics remain unchanged.
 
 Exposure removal (maker route, consenting funded receiver, ADL) and loss allocation
 (debtor resources, attributable insurance, residual impairment) are coordinated
@@ -1013,7 +1017,7 @@ cash, not a position-holding backstop by default. It may cover an entire eligibl
 shortfall when sufficient funds exist; the 25% fee contribution is not a limit on
 the percentage of each loss covered.
 
-The [review's remaining choices](clearing/architecture-review.md#accepted-direction-and-remaining-choices)
+The [review's remaining choices](clearing/architecture-review.md#direction-under-discussion-and-remaining-choices)
 own the contract agenda: creditor membership/epoch, cross-market attribution, ADL
 eligibility/pricing/selection, exact versus bounded-precision allocation, freeze
 scope/progress and funded compensation. Proportional unpaid-creditor treatment is
@@ -1024,6 +1028,6 @@ market-specific insurance and existing fee boundaries remain protected.
 Do not weaken the current safeguards before a replacement is specified and
 qualified. P57–P62 implementation remains paused for the revised contract/roadmap;
 retain its outstanding maker, calibration, operational and capacity deliverables.
-This record supersedes the review's statement that all direction was unaccepted,
+This clarification supersedes the earlier interpretation of design approval,
 not any implemented financial decision. External P15B/P16B, deferred endurance
 and separate authorization for funded/external operations remain unchanged.

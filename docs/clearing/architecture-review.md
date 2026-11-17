@@ -5,12 +5,15 @@ contract.** Rivalt source inspected: `07822f49dc9785989897f69d5361ea90717fdc11`
 (accepted P56 source on the open stack). No program, account layout, economic
 parameter, deployment or qualification result changes with this document.
 
-## Accepted direction and remaining choices
+## Direction under discussion and remaining choices
 
-On 16 November, the user accepted debtor resources first, then the attributable
-market's insurance, explicit residual-loss treatment and a last-resort ADL role.
-[D110](../DECISIONS.md#d110--successor-loss-handling-direction) records this design
-direction. It is not acceptance of an unspecified ADL algorithm or changed payouts.
+On 16 November, the user's acknowledgment was recorded as acceptance of debtor
+resources first, market insurance, explicit residual loss and a last-resort ADL
+role. On 17 November the user clarified that these mechanisms were not yet clear
+and requested a digestible explanation before making decisions. Accordingly,
+[D110](../DECISIONS.md#d110--successor-loss-handling-direction) now records the
+direction as under discussion. Do not use the earlier acknowledgment as approval
+of successor economics, ADL, a new algorithm or a revised implementation roadmap.
 
 Keep two coordinated mechanisms distinct: maker execution / funded takeover / ADL
 remove exposure; debtor resources / insurance / residual impairment allocate loss.
@@ -31,7 +34,7 @@ The next contract/model deliverable must resolve:
 
 These belong in the first design/model phase of one revised roadmap. Source-file
 boundaries and routine implementation details do not require new economic votes.
-Neither this approval nor prior P56 acceptance qualifies a new financial path.
+Neither these proposals nor prior P56 acceptance qualify a new financial path.
 
 The question is whether competing maker programs with common clearing remain a
 sound product foundation. The answer is yes, but the liquidation/settlement
@@ -215,8 +218,8 @@ cannot be labelled a mechanical optimization with identical payouts.
 
 ## Recommended successor lifecycle
 
-The user accepted the broad direction below, with the exact mechanisms still
-proposed. Keep current rejecting/terminal safeguards until a replacement is
+The direction below remains under discussion after the user's 17 November
+clarification. Keep current rejecting/terminal safeguards until a replacement is
 specified, independently tested and qualified.
 
 ```mermaid
@@ -376,7 +379,7 @@ remain independent of the implementation reused by the SDK.
 
 ## Next deliverable and acceptance
 
-Keep P57–P62 implementation paused while specifying this accepted direction. Do not
+Keep P57–P62 implementation paused while explaining and deciding this direction. Do not
 quietly append a second implementation roadmap or reinterpret accepted P56 evidence as qualification of a
 new loss mechanism. The recommended next deliverable is **one coherent current
 accounting/liquidation contract and executable adversarial reference model**, with:
@@ -400,7 +403,7 @@ ownership changes and remeasure actual RPC/WS/PostgreSQL lifecycles and contenti
 Rebase the remaining numbered roadmap around those approved dependencies rather
 than creating many speculative micro-phases now.
 
-The accepted direction does not select an ADL loss-allocation algorithm or authorize
+This discussion does not select an ADL loss-allocation algorithm or authorize
 new credit, insurance subsidies, LP pooling, risk relaxation or funded deployment.
 P15B/P16B remain separate external
 gates and continuous 24-hour endurance remains Deferred. Only document/source/link

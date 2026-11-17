@@ -1,6 +1,6 @@
 # Current status
 
-Updated 16 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 17 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -27,7 +27,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
 | P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
-| Clearing architecture review | Direction accepted — contract pending | User accepted debtor resources → market insurance → explicit residual loss, plus last-resort ADL. [D110](DECISIONS.md#d110--successor-loss-handling-direction) and the [review](clearing/architecture-review.md#accepted-direction-and-remaining-choices) distinguish exposure removal from loss allocation and list the remaining contract choices. Source baseline `07822f49`; no program changes |
+| Clearing architecture review | Discussion — approval clarification | On 17 November the user clarified that loss allocation and ADL were not yet understood and requested explanation before decisions. [D110](DECISIONS.md#d110--successor-loss-handling-direction) and the [review](clearing/architecture-review.md#direction-under-discussion-and-remaining-choices) record that the earlier acknowledgment is not successor-policy approval. Source baseline `07822f49`; no program changes |
 | P57–P62 successor implementation | Planned — paused for discussion | Retained roadmap; the 16 November request expands the post-P56 discussion to clearing architecture and code organization. No P57 branch or implementation has started |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -61,18 +61,19 @@ at that closeout returned none. The fetched merge has the accepted tip's exact t
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
 P56's final acceptance is published in open PR #85; its exact hosted check status
-is tracked there. Next exact action: turn the accepted loss-handling direction and
-the six remaining choices into a concrete contract/model deliverable and one revised
-roadmap before starting P57 implementation. No P56 local acceptance blocker remains;
-exact payout/ADL/precision policies still need explicit specification and qualification.
+is tracked there. Next exact action: explain loss payment and ADL using one worked
+example, then present the remaining choices and recommendations for the user's
+decision before adopting a successor contract or revised roadmap. P57 implementation
+remains paused. No P56 local acceptance blocker remains; exact payout/ADL/precision
+policies still need explicit specification and qualification.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator
 `5e3af0710ec7e9b7077393012f8a94a31b2f07ef` (spec v16.9.1), plus primary
 Phoenix/GMX mechanism documentation. It distinguishes existing code, research
 claims and proposals, including the user's requested functional module/crate
-boundaries. The later user acceptance is recorded as direction, not implemented
-ADL, altered payouts or approval of a particular loss-index algorithm.
+boundaries. The user's 17 November clarification supersedes the earlier acceptance
+interpretation; no successor economic/ADL policy is treated as approved.
 Validation for these documentation changes is limited to source/link and
 whitespace checks; no build, financial suite, external implementation tests or new
 performance run is claimed. P15B/P16B stay Open and 24-hour endurance stays Deferred.
