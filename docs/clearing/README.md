@@ -22,6 +22,8 @@ Read [accounts](accounts.md) for identities, layouts and authority;
 complete default. Maker execution pricing belongs to [liquidity](../liquidity/README.md).
 The [architecture review](architecture-review.md) records the November 2026
 comparison and proposed functional boundaries; it does not replace these contracts.
+Its [venue comparison](venue-comparison.md) separates documented liquidation,
+backstop and loss-allocation mechanisms from candidate Rivalt changes.
 
 ## Source map
 

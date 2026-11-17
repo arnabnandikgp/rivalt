@@ -27,7 +27,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
 | P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
-| Clearing architecture review | Discussion — approval clarification | On 17 November the user clarified that loss allocation and ADL were not yet understood and requested explanation before decisions. [D110](DECISIONS.md#d110--successor-loss-handling-direction) and the [review](clearing/architecture-review.md#direction-under-discussion-and-remaining-choices) record that the earlier acknowledgment is not successor-policy approval. Source baseline `07822f49`; no program changes |
+| Clearing architecture review | Discussion — six-venue research delivered | [Comparison](clearing/venue-comparison.md) covers Hyperliquid, BULK, Phoenix, Lighter, Variational and Pacifica using primary docs accessed 17 November. Distinguishes execution, backstop capital, insurance, ADL and settlement finality; revises the earlier proportional-loss recommendation to a comparison candidate. [D110](DECISIONS.md#d110--successor-loss-handling-direction) remains unapproved successor policy. Source baseline `07822f49`; no program changes |
 | P57–P62 successor implementation | Planned — paused for discussion | Retained roadmap; the 16 November request expands the post-P56 discussion to clearing architecture and code organization. No P57 branch or implementation has started |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -61,9 +61,9 @@ at that closeout returned none. The fetched merge has the accepted tip's exact t
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
 P56's final acceptance is published in open PR #85; its exact hosted check status
-is tracked there. Next exact action: explain loss payment and ADL using one worked
-example, then present the remaining choices and recommendations for the user's
-decision before adopting a successor contract or revised roadmap. P57 implementation
+is tracked there. Next exact action: compare settlement-finality and loss-membership
+contracts using independent mixed-market examples, then obtain the material policy
+decisions before adopting a successor contract or revised roadmap. P57 implementation
 remains paused. No P56 local acceptance blocker remains; exact payout/ADL/precision
 policies still need explicit specification and qualification.
 
@@ -73,7 +73,13 @@ The 16 November architecture review inspected source at
 Phoenix/GMX mechanism documentation. It distinguishes existing code, research
 claims and proposals, including the user's requested functional module/crate
 boundaries. The user's 17 November clarification supersedes the earlier acceptance
-interpretation; no successor economic/ADL policy is treated as approved.
+interpretation; no successor economic/ADL policy is treated as approved. The
+17 November six-venue follow-up distinguishes public mechanism descriptions from
+unverified reserve/terminal-failure details and adds targeted academic context.
+It changes the recommendation, not current financial behavior. Documentation base
+revision: `324e5e3`; the research-only diff passes 114 local links/anchors across
+five changed Markdown files, whitespace and tracked-evidence policy checks. No
+runtime tests are needed for this change.
 Validation for these documentation changes is limited to source/link and
 whitespace checks; no build, financial suite, external implementation tests or new
 performance run is claimed. P15B/P16B stay Open and 24-hour endurance stays Deferred.

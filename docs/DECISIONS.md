@@ -1020,9 +1020,11 @@ the percentage of each loss covered.
 The [review's remaining choices](clearing/architecture-review.md#direction-under-discussion-and-remaining-choices)
 own the contract agenda: creditor membership/epoch, cross-market attribution, ADL
 eligibility/pricing/selection, exact versus bounded-precision allocation, freeze
-scope/progress and funded compensation. Proportional unpaid-creditor treatment is
-the proposed baseline; no exact eligibility boundary, rounding change or ranked
-ADL loss policy is inferred from the high-level acceptance. Healthy funded cash,
+scope/progress and funded compensation. The 17 November
+[six-venue research](clearing/venue-comparison.md) revises the recommendation:
+proportional unpaid-creditor treatment is a comparison candidate, not the presumed
+baseline. Settlement finality and creditor eligibility must be decided together;
+no rounding change or ranked ADL loss policy is approved. Healthy funded cash,
 market-specific insurance and existing fee boundaries remain protected.
 
 Do not weaken the current safeguards before a replacement is specified and

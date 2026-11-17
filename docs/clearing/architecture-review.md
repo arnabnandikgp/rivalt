@@ -21,11 +21,18 @@ These are not a mandatory chronological sequence in which a completed haircut is
 followed by charging the same deficit again through ADL. Their combined transition
 must conserve cash and obligations and account for each loss exactly once.
 
+The [six-venue follow-up](venue-comparison.md), accessed 17 November, compares
+Hyperliquid, BULK, Phoenix, Lighter, Variational and Pacifica. It distinguishes
+position-taking backstops from cash insurance and capacity-driven ADL from deficit
+allocation. In particular, it does not establish proportional impairment of all
+closed unpaid claims as an industry norm. Settlement finality and creditor
+membership must be compared before selecting that policy.
+
 The next contract/model deliverable must resolve:
 
 | Choice | Recommended starting point / required comparison |
 |---|---|
-| Creditor eligibility and loss epoch | Proportional eligible unpaid claims in the affected market, including maker claims and open/closed claims at a defined valuation boundary. Preserve healthy funded cash and prohibit escaping an already-bound loss by closing, transferring or claiming first. Specify exactly when the boundary becomes binding |
+| Creditor eligibility and loss epoch | Compare position-targeted ADL and explicit unpaid-claim resolution; the earlier proportional open/closed-claim proposal is an alternative, not the presumed baseline. Define flat-but-unsettled versus fully settled, protect healthy funded cash and prohibit escaping an already-bound loss by closing, transferring or claiming first. Specify exactly when the boundary becomes binding |
 | Cross-account loss attribution | Count debtor cash once; use actual recoveries, not positive face value. Preserve explicit market attribution and no discretionary foreign-insurance raid. Demonstrate mixed-sign claims, shared debtors and cycles before promising local resolution |
 | ADL execution contract | Define permissionless activation, independently authenticated prices, partial sizing, compatible opposite-position selection, health/progress and source-outage behavior. Selection of exposure to close must not silently select who bears disproportionate loss; compare that policy explicitly if proposed |
 | Accounting precision | Compare today's exact simultaneous/fractional allocation with any bounded fixed-precision or loss-index candidate. Publish differences, rounding bounds/ownership and conservation. No alternative is approved merely because it is faster |
