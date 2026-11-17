@@ -43,22 +43,22 @@ with accounting types shared beneath the risk and settlement calculations.
 
 ## Initial model cases
 
-The design review can use two small examples to make the policy choice concrete.
-Amounts below are whole collateral units at one valuation, with zero fees and no
-other obligations or recoveries. They are illustrative expected values.
+The [executable comparison](architecture-review.md#executable-settlement-and-liquidation-comparison)
+reports the cash, inventory, insurance and unpaid claims under each alternative.
+Its starter cases use whole collateral atoms at one frozen valuation.
 
 - **Who bears a remaining loss?** BTC owes 60 to a flat but unpaid trader and 40
   to an eligible open winner. Debtor cash supplies 80 and BTC insurance supplies
   10. Equal recovery of unpaid claims gives them 54 and 36. A policy assigning the
   entire remaining 10 to the open winner gives them 60 and 30, assuming sufficient
-  eligible position and profit. Both pay 90. The model must also handle the case
-  where the open winner can absorb only 6 and explicitly account for the other 4.
+  eligible position and profit. Both pay 90. When the winner can absorb only 6,
+  proportional allocation of the remaining 4 produces whole payouts of 57 and 33.
 - **Which market bears a cross-account loss?** One account owes 80 BTC-market
   units and 40 ETH-market units, all denominated in the same collateral. Its 90
   cash covers 60 and 30 under current proportional own-cash collection in default.
   That leaves 20 and 10 respectively before market insurance. Cross-account cash
-  cannot be counted twice. Additional cases must include a collectible opposite-
-  market claim and a cashless cycle with an external creditor.
+  cannot be counted twice. Separate fixtures cover a collectible opposite-market
+  claim and a cashless cycle with an external creditor.
 
 The first policy decision is when a flat account's outstanding claim becomes
 final, and who can absorb a loss arising before that boundary. Show the effects

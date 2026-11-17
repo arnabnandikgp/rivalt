@@ -5,6 +5,102 @@ contract.** Rivalt source inspected: `07822f49dc9785989897f69d5361ea90717fdc11`
 (accepted P56 source on the open stack). No program, account layout, economic
 parameter, deployment or qualification result changes with this document.
 
+## Executable settlement and liquidation comparison
+
+18 November 2026. The [model](../../tests/financial/settlement_liquidation_model.py)
+compares who receives collateral under the current complete-cohort settlement and
+one candidate with auto-deleveraging (ADL). The [tests](../../tests/financial/test_settlement_liquidation_model.py)
+give literal expected outcomes and pass eight frozen inputs through the existing
+native Rust settlement kernel. The forced reductions themselves run only in the model.
+
+### When a profitable close becomes cash
+
+A trader buys one BTC lot from maker A at 80 and sells it to maker B at 100.
+All three start with 100 collateral atoms. The example fixes funding and omits
+ordinary trading fees to isolate the settlement entries. Each row is the state
+after the indicated action. Tuples follow trader, maker A, maker B.
+
+| Action | Net lots | Funded cash | BTC claims | BTC settlement cash |
+|---|---|---|---|---:|
+| Open at 80 | +1, −1, 0 | 100, 100, 100 | 0, 0, 0 | 0 |
+| Value at 100 | +1, −1, 0 | 100, 100, 100 | +20, −20, 0 | 0 |
+| Close at 100 | 0, −1, +1 | 100, 100, 100 | +20, −20, 0 | 0 |
+| Collect 20 from A | 0, −1, +1 | 100, 80, 100 | +20, 0, 0 | 20 |
+| Pay the trader 20 | 0, −1, +1 | 120, 80, 100 | 0, 0, 0 | 0 |
+
+A's open short survives collection. If the price returns to 80, A acquires a new
++20 claim and B owes 20. The trader keeps 120. This example needs no advance
+from insurance. It assumes current funding, qualified sources, a valid backing
+proof and sufficient debtor cash. It measures no time to obtain those inputs.
+
+| Transition | Who can initiate it | What changes or stops it |
+|---|---|---|
+| Ordinary close | Authorized trader through the route | Paired lots and claims change at execution. Actual routing admits the trader and each maker against their limits and margin. |
+| Collect and pay | Settlement worker or another eligible caller under program checks | Collection moves cash from a debtor that can cover all gross negative claims. Payment converts a whole claim into account cash against funded market settlement and a current backing proof. Only the owner can subsequently withdraw to an authorized destination under the exit rules. |
+| Partial liquidation | Consenting funded receiver under the current liquidation instruction | The target sheds lots, the receiver takes exposure and earns the bounded fee. Target maintenance deficit must fall after the fee and receiver initial margin must hold. The model checks a single-price, empty-order case. |
+| Freeze and terminal settlement | Permissionless qualifying freeze or the existing authorized emergency path, followed by the resolution worker | The current program fixes the cohort and qualified valuation, collects once, uses each market's insurance against its own loss and reconciles payouts. A proposed allocation cannot authorize a transfer. |
+| Candidate ADL within a freeze | Model supplies a debtor, an opposite position and its entry price | A forced paired close transfers part of an eligible winner's unpaid open gain to the debtor through its execution price. The same terminal solver then settles the adjusted claims from the original reserves. Authority, ranking and entry-basis provenance would need a separate contract. |
+
+The current [cash contract](accounting.md), [receiver handler](../../programs/clearing/src/instructions/account_safety/risk.rs)
+and [resolution contract](risk-and-resolution.md) define full eligibility.
+
+### Who bears ten missing atoms
+
+A BTC debtor owes 100. One flat creditor is owed 60 and one creditor with an
+open long is owed 40. The debtor supplies 80 and BTC insurance supplies 10. The
+table shows payment on claims only. The candidate gives the flat creditor
+priority to the extent that a forced close can recover unpaid open profit.
+
+| Rule at the same frozen price of 100 | Forced close | Flat creditor receives | Open creditor receives | Loss left for proportional allocation |
+|---|---|---:|---:|---:|
+| Current equal recovery | None | 54 | 36 | 10 |
+| Candidate, at least 10 of eligible profit | 1 lot at 90 | 60 | 30 | 0 |
+| Candidate, only 6 of eligible profit | 1 lot at 94 | 57 | 33 | 4 |
+| Candidate, both creditors flat | None | 54 | 36 | 10 |
+
+In the six-atom case, 34 of the open creditor's original 40 came from previously
+closed exposure. Giving up six on the forced sale leaves claims of 60 and 34.
+The remaining four are shared in those proportions, giving exact losses of
+120/47 and 68/47 before the existing conserving whole-atom rounding. This
+candidate still exposes flat unpaid creditors when eligible open profit runs out.
+With 27 in insurance and only 20 missing before insurance, both creditors receive
+their full claims, insurance spends 20 and no forced close occurs.
+
+**Payment timing matters.** In a separate fixture the open winner also owns
+20 in funded cash. Paying the flat creditor 20 while all obligations are covered,
+before the adverse price move, changes the current rule's final creditor balances
+from 54/56 to 55/55. Only the unpaid remainder participates at freeze. The
+candidate yields 60/50 in both orders in this fixture. Neither calculation
+reclaims previously funded cash from a creditor without a debt.
+
+**Cross-market debt.** A debtor owing 80 to BTC and 40 to ETH contributes its
+90 cash once, split 60/30. With BTC/ETH insurance budgets of 15/20, insurance
+spends 15/10, creditors receive 75/40 and ten atoms stay in ETH insurance.
+The tests also cover a collectible opposite-market claim, a cashless cycle with
+and without an external creditor, and fractional ownership of a single atom.
+These cases run under current terminal settlement. Cross-market ADL remains an
+open design question.
+
+### Reproduce and decide
+
+Run from the repository root with the pinned toolchain.
+
+```sh
+source ops/env.sh
+cargo build --locked -p financial-core --bin scalable-settlement-driver
+python3 tests/financial/settlement_liquidation_model.py
+python3 tests/financial/test_settlement_liquidation_model.py -v
+```
+
+The first decision for reviewers is whether closing a position should give its
+unpaid profit priority over an opposite open position's eligible gain. The second
+is whether the proportional residual above is acceptable once that gain runs out.
+Both affect who receives the same 90 atoms. The candidate assumes one eligible
+opposite, a fixed known entry price, whole lots and prices, and zero forced-close
+fees. It cannot select among multiple winners or establish incentives around
+close/reopen, keeper cost, on-chain work bounds or recovery time.
+Those choices require further evidence before implementing a successor rule.
+
 ## Direction under discussion and remaining choices
 
 On 16 November, the user's acknowledgment was recorded as acceptance of debtor
@@ -471,6 +567,6 @@ comparisons and the functional consolidation deliverable.
 This discussion does not select an ADL loss-allocation algorithm or authorize
 new credit, insurance subsidies, LP pooling, risk relaxation or funded deployment.
 P15B/P16B remain separate external
-gates and continuous 24-hour endurance remains Deferred. Only document/source/link
-checks were performed for this research change; no new financial, load or
-integration acceptance is claimed.
+gates and continuous 24-hour endurance remains Deferred. The executable comparison
+above adds native financial examples. Runtime and load qualification belong to the
+later implementation deliverables.

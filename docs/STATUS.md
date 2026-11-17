@@ -29,6 +29,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
 | Clearing architecture review | Discussion — six-venue research delivered | [Comparison](clearing/venue-comparison.md) covers Hyperliquid, BULK, Phoenix, Lighter, Variational and Pacifica using primary docs accessed 17 November. Distinguishes execution, backstop capital, insurance, ADL and settlement finality; revises the earlier proportional-loss recommendation to a comparison candidate. [D110](DECISIONS.md#d110--successor-loss-handling-direction) remains unapproved successor policy. Source baseline `07822f49`; no program changes |
 | Clearing engineering roadmap | Active planning | [Delivery order and functional ownership](clearing/roadmap.md). First deliverable is the executable settlement/liquidation comparison. The second is a dedicated domain extraction with a risk-engine crate. |
+| Settlement and liquidation comparison | Research for review | [Cash movements and policy outcomes](clearing/architecture-review.md#executable-settlement-and-liquidation-comparison). Model revision `11a6000` passes 11 focused tests, including eight frozen cohorts checked against the compiled Rust settlement kernel. Candidate ADL runs only in the model. Independent reproduction and economic selection are pending. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -60,13 +61,13 @@ integration. The user authorized this stack's review fixes and merge on
 10 November 2026; all three PRs independently report MERGED, and the open-PR query
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The 18 November scope decision supersedes the 10 November audit delivery sequence.
-P56 has recorded local acceptance in PR #85. Next action: build the first two
-independent reference-model cases from the [clearing roadmap](clearing/roadmap.md#initial-model-cases)
-and compare payout finality and cross-market attribution against today's exact
-settlement. The roadmap update on documentation base `f968def` passed 178 local
-link/path checks across nine documents, whitespace and evidence-policy checks.
-The crate extraction and executable model are pending. Material payout choices
-remain open.
+P56 has recorded local acceptance in PR #85. The research model now compares
+ordinary settlement, forced reduction and cross-market recovery. Next action:
+independently reproduce the 54/36, 60/30 and 57/33 payouts using the
+[model review commands](clearing/architecture-review.md#reproduce-and-decide).
+Reviewers can then decide whether a flat unpaid claim should have priority and
+who bears any residual loss. The next engineering PR owns the behavior-preserving
+risk-engine extraction. Multiple-winner selection and cross-market ADL remain open.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator

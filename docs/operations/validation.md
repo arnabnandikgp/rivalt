@@ -1,5 +1,14 @@
 # Validation and measured limits
 
+## Settlement and liquidation research
+
+Model revision `11a6000` passes 11 focused Python tests. Eight frozen inputs also
+pass through the compiled `financial-core` settlement driver and match independently
+specified final cash and insurance debits. The driver checks the terminal settlement
+on the original or adjusted claims. Candidate ADL pricing runs in Python. The
+[comparison and reproduction commands](../clearing/architecture-review.md#executable-settlement-and-liquidation-comparison)
+give the results and scope. This research adds no signed runtime or CU measurement.
+
 ## Account-scale populated qualification (P56)
 
 Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper

@@ -1043,3 +1043,7 @@ consolidation has a dedicated deliverable covering the risk engine, accounting,
 execution, liquidation, settlement, program adapters and worker responsibilities.
 D110's open economic choices go through the executable comparison. Accepted
 implementation and qualification records retain their original revision pins.
+
+Review the [executable settlement comparison](clearing/architecture-review.md#executable-settlement-and-liquidation-comparison)
+as a research PR. Merging a reproducible model records the alternatives and their
+outcomes. Selecting a successor payout rule requires a separate economic decision.
