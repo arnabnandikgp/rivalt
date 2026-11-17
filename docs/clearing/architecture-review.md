@@ -146,6 +146,25 @@ market settlement bucket, then gain payment moves that bucket into creditor cash
 These are internal entitlements in shared custody, not necessarily SPL transfers
 between wallets. Withdrawal is a separate token exit.
 
+**The losing maker does not need to close first.** Ordinary loss collection has
+no flat-position requirement. The [settlement worker](../../packages/services/src/account-settlement-worker.ts)
+already selects collectable open-account losses before gain payments. For a maker
+with 100 cash and a -20 claim, collection changes cash to 80 and the claim to zero,
+leaving quantity unchanged. At that valuation its equity remains 80; the adjusted
+claim prevents charging the same loss twice. Later price changes create new claims.
+Collection requires own cash to cover all gross negative market claims, not merely
+the selected debt. Positive unpaid receivables do not supply that cash.
+
+With deposited stablecoin collateral, payment delay can reflect entitlement
+allocation, worker latency or incomplete/stale backing proof even when sufficient
+tokens already exist in custody. Do not describe every unpaid gain as missing
+vault assets or wait for maker closure. First measure collection-to-payment latency
+and improve bounded settlement progress. An optional separately capitalized advance
+buffer would require explicit ownership, reimbursement priority and loss-bearing
+rules; adding arbitrary cash to the settlement pool without corresponding claim
+accounting violates its conservation identity. No such credit facility is approved.
+Actual debts exceeding collateral remain insolvency, not a scheduling problem.
+
 [Claim arithmetic](../../programs/clearing/src/instructions/account_cash/engine.rs)
 requires actual settlement cash; the [handler](../../programs/clearing/src/instructions/account_cash/claims.rs)
 also requires a complete valid backing certificate for payment. Thus even solvent
