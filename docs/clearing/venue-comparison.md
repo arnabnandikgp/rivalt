@@ -128,5 +128,5 @@ Research changes recommendations only. No program, IDL, reserve allocation, fee,
 runtime profile or activation changes. No new successor economic decision is
 approved. Next action: present a concrete settlement-finality/loss-membership
 comparison with independent mixed-market examples, then obtain the material
-policy decisions before revising the P57–P62 implementation sequence. Preserve
-its outstanding deliverables, P15B/P16B external gates and deferred endurance.
+policy decisions for the [clearing roadmap](roadmap.md). P15B/P16B remain external
+gates and continuous 24-hour endurance remains deferred.

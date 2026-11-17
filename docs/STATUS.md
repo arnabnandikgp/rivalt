@@ -1,6 +1,6 @@
 # Current status
 
-Updated 17 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 18 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -28,7 +28,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
 | P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
 | Clearing architecture review | Discussion — six-venue research delivered | [Comparison](clearing/venue-comparison.md) covers Hyperliquid, BULK, Phoenix, Lighter, Variational and Pacifica using primary docs accessed 17 November. Distinguishes execution, backstop capital, insurance, ADL and settlement finality; revises the earlier proportional-loss recommendation to a comparison candidate. [D110](DECISIONS.md#d110--successor-loss-handling-direction) remains unapproved successor policy. Source baseline `07822f49`; no program changes |
-| P57–P62 successor implementation | Planned — policy discussion | [Consolidated post-P56 priorities](operations/remediation-plan.md#post-p56-priorities) connect the proposed clearing contract, settlement, liquidation, code ownership and contention work to every retained phase. Next deliverable is the executable accounting comparison. |
+| Clearing engineering roadmap | Active planning | [Delivery order and functional ownership](clearing/roadmap.md). First deliverable is the executable settlement/liquidation comparison. The second is a dedicated domain extraction with a risk-engine crate. |
+| Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -58,15 +59,14 @@ Review means accepted work awaiting integration; Closed requires acceptance plus
 integration. The user authorized this stack's review fixes and merge on
 10 November 2026; all three PRs independently report MERGED, and the open-PR query
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
-The user subsequently requested and accepted the complete remediation roadmap,
-authorizing implementation through its dependencies. New PRs stay open and stacked.
-P56's final acceptance is published in open PR #85; its exact hosted check status
-is tracked there. Next exact action: implement the reference model for the proposed
-settlement and liquidation contract, starting with the two numerical payout and
-cross-debt cases in the consolidated plan. Use its reconciled outcomes for the
-economic decisions before selecting an implementation sequence. P57 implementation
-remains paused. No P56 local acceptance blocker remains; exact payout/ADL/precision
-policies still need explicit specification and qualification.
+The 18 November scope decision supersedes the 10 November audit delivery sequence.
+P56 has recorded local acceptance in PR #85. Next action: build the first two
+independent reference-model cases from the [clearing roadmap](clearing/roadmap.md#initial-model-cases)
+and compare payout finality and cross-market attribution against today's exact
+settlement. The roadmap update on documentation base `f968def` passed 178 local
+link/path checks across nine documents, whitespace and evidence-policy checks.
+The crate extraction and executable model are pending. Material payout choices
+remain open.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator

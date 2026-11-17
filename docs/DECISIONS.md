@@ -1028,8 +1028,18 @@ no rounding change or ranked ADL loss policy is approved. Healthy funded cash,
 market-specific insurance and existing fee boundaries remain protected.
 
 Do not weaken the current safeguards before a replacement is specified and
-qualified. P57–P62 implementation remains paused for the revised contract/roadmap;
-retain its outstanding maker, calibration, operational and capacity deliverables.
+qualified. The 17 November planning disposition paused P57–P62. D111 supersedes
+that disposition.
 This clarification supersedes the earlier interpretation of design approval,
 not any implemented financial decision. External P15B/P16B, deferred endurance
 and separate authorization for funded/external operations remain unchanged.
+
+## D111 — Clearing roadmap
+
+18 November 2026. The user retired the unstarted P57–P62 audit sequence and
+selected the recent clearing research as the basis for future work. The
+[clearing roadmap](clearing/roadmap.md) owns scope and order. Functional
+consolidation has a dedicated deliverable covering the risk engine, accounting,
+execution, liquidation, settlement, program adapters and worker responsibilities.
+D110's open economic choices go through the executable comparison. Accepted
+implementation and qualification records retain their original revision pins.

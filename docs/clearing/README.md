@@ -25,6 +25,9 @@ comparison and proposed functional boundaries; it does not replace these contrac
 Its [venue comparison](venue-comparison.md) separates documented liquidation,
 backstop and loss-allocation mechanisms from candidate Rivalt changes.
 
+The [clearing roadmap](roadmap.md#functional-ownership) maps today’s source to the
+planned risk engine and other financial domains.
+
 ## Source map
 
 - [State](../../programs/clearing/src/state/accounts/) and [maker/publisher state](../../programs/clearing/src/state/liquidity.rs).

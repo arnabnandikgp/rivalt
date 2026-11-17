@@ -450,10 +450,8 @@ remain independent of the implementation reused by the SDK.
 
 ## Next deliverable and acceptance
 
-Keep P57–P62 implementation paused while explaining and deciding this direction. Do not
-quietly append a second implementation roadmap or reinterpret accepted P56 evidence as qualification of a
-new loss mechanism. The recommended next deliverable is **one coherent current
-accounting/liquidation contract and executable adversarial reference model**, with:
+The next deliverable is a settlement and liquidation contract with an executable
+reference model. Review it against the following requirements.
 
 1. A precise state machine, authority table and accounting deltas for every stage.
 2. A decision table for ordinary liquidity versus insolvency, eligible insurance,
@@ -467,8 +465,8 @@ accounting/liquidation contract and executable adversarial reference model**, wi
    cross-market losses, partial liquidation fees, fractional owners, loss-epoch
    exits/reopens, duplicate/reordered work and concurrent quote/price changes.
 
-The [post-P56 priorities](../operations/remediation-plan.md#post-p56-priorities)
-own the proposed delivery order, first payout comparisons and mapping to P57–P62.
+The [clearing roadmap](roadmap.md) owns the delivery order, the first payout
+comparisons and the functional consolidation deliverable.
 
 This discussion does not select an ADL loss-allocation algorithm or authorize
 new credit, insurance subsidies, LP pooling, risk relaxation or funded deployment.

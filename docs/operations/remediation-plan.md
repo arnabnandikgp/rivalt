@@ -1,85 +1,13 @@
-# Audit remediation delivery plan
+# Historical audit remediation delivery plan
 
-Planning baseline: `e9eb320f65ca62f4bffefe9f1cd73a6f9feb4f1a`, 10 November 2026.
-P48–P50 are integrated. The [audit](constraints.md) records inspected behavior and
-provenance; this document owns the proposed delivery sequence and acceptance gates.
-[STATUS](../STATUS.md) owns progress and actual PR links. Component contracts remain
-normative until an implementation PR deliberately updates them.
-
-The user requested this complete roadmap after discussing the audit. P51A delivers
-planning only: no financial limit, parameter, authority, deployment or qualification
-claim changes here. P51B is the next executable design/prototype deliverable. Later
-PR scopes are planned, with the economic and architectural decisions below still
-explicit. A plan, native model or passing sample is not acceptance of deployed code.
-
-The [post-P56 priorities](#post-p56-priorities) consolidate the November clearing
-discussions. P56 is locally accepted and recorded in Review. The proposed clearing
-contract precedes the paused P57–P62 implementation.
-
-Implementation authorization (10 November 2026): the user accepted this roadmap.
-P51B's D93 candidate now lives in the existing [account](../clearing/accounts.md#account-scale-successor-contract-p51b),
-[resolution](../clearing/risk-and-resolution.md#scalable-exact-resolution-candidate-p51b),
-[ordinary backing](../clearing/accounting.md#incremental-backing-candidate-p51b) and
-[client](../application/interfaces.md#account-scale-candidate-interfaces) contracts.
-It selects exact compact arithmetic and maintained backing for feasibility, with
-compiled resource, complete mutation coverage and activation gates still explicit.
-See STATUS/validation for actual checked revisions; planned fields are not deployed
-layouts and native diagnostics do not enable a larger financial cohort.
-
-Read the [wave overview](#outcome-and-order), [decision gates](#boundaries-and-decision-gates)
-and [PR sequence](#pr-sequence-and-dependencies) first. The detailed scopes and
-[audit coverage matrix](#complete-audit-coverage) are the implementation handoff.
+18 November 2026. This document records the original audit plan and its acceptance
+criteria for historical reference. The completed and reviewed work through P56
+is recorded in [STATUS](../STATUS.md). The unstarted P57–P62 scopes were retired.
 
 ## Post-P56 priorities
 
-17 November 2026. The working baseline is common clearing for BTC and ETH with
-one collateral mint, isolated maker capital, independent index risk and at most
-two makers per atomic route. Taker/provider fees are 2/0 bps and each market's
-insurance receives 25% of its collected fees. P56 qualified a local population of
-128 Financial roots. The design decisions below are open under
-[D110](../DECISIONS.md#d110--successor-loss-handling-direction).
-
-| Order | Proposed deliverable | Evidence needed to proceed |
-|---|---|---|
-| 1 | **One settlement and liquidation contract with an executable reference model.** Specify who may initiate each transition, how positions and cash change, and when a payout is final. Compare current exact settlement with a candidate that uses forced closure of eligible opposite positions (ADL) and an explicit rule for residual claims. | Independently derived before/after ledgers for ordinary payout, price reversal, failed collection, cross-market debts and cycles, partial liquidation after fees, exhausted backstop/insurance, no ADL candidates and fractional payouts. Show precisely who pays under each policy. Bring the differences for a product decision. |
-| 2 | **Give the code functional owners and measure the existing paths.** Extract pure accounting, risk, execution/liquidation and settlement/resolution modules behind thin on-chain handlers. Baseline ordinary payment latency and concurrent same-market fills before changing either path. | Equivalent financial outputs, signed interfaces and account layouts for the extraction. Record when a gain first becomes payable and when cash lands. Classify delays due to collection, proof coverage, stale inputs, scheduling and actual underfunding. Record writable accounts, CU and landed throughput. |
-| 3 | **Improve ordinary payouts and liquidation.** Use posted collateral and the existing open-position collection path. Evaluate atomic payment where admissible. Add forced reduction through financially admitted maker quotes and integrate the existing consenting funded receiver as a limited backstop. | A trader can reduce exposure during payout delay. After fees, liquidation improves whole-account health and the receiver meets margin. Verify quote failure, receiver capacity, oracle gaps, retry and exact cash effects. Show funded cash, unpaid claims and pending/default status in the SDK, indexer and UI. |
-| 4 | **Implement the selected failure policy.** Apply debtor recoveries, market insurance and the approved residual treatment. Specify ADL eligibility, price, maximum charge and fallback, who can freeze which accounts, and how processing resumes. | Reconcile every obligation once across shared BTC/ETH debtors, retain fractional ownership, protect discharged balances and recover from interruption. Introduce a narrower freeze only with a proof of complete affected membership. |
-| 5 | **Relieve shared market/ledger writes, then verify under load.** Compare partitioning of fee accrual, exposure capacity, backing summaries and funding state where the baseline shows serialization. | Concurrent signed fills with distinct traders and makers, plus a shared-maker control. Recheck aggregate exposure caps, exact fee carry, complete payout backing and funding history. Compare before/after CU, locks, fees and successful throughput on the same workload. |
-| 6 | **Complete the retained numbered phases.** Map accepted prerequisite work into the existing phase scopes once the contract is selected. Keep one cohesive ready PR per numbered phase. | **P57** maker admission, lifecycle, routing/discovery and funding membership. **P58** impact size, liquidation incentives, margin, concentration, open interest and funding-index lifetime. **P59** fee bids, update scheduling and fair durable workers. **P60** account, order and TP/SL capacity and lifetimes. **P61** retire verified unused code/config. **P62** qualify the resulting profile with signed Surfpool RPC/WS, PostgreSQL replay, restart, exit and costs by participant. |
-
-The design review can use two small examples to make the policy choice concrete.
-Amounts below are whole collateral units at one valuation, with zero fees and no
-other obligations or recoveries. They are illustrative expected values.
-
-- **Who bears a remaining loss?** BTC owes 60 to a flat but unpaid trader and 40
-  to an eligible open winner. Debtor cash supplies 80 and BTC insurance supplies
-  10. Equal recovery of unpaid claims gives them 54 and 36. A policy assigning the
-  entire remaining 10 to the open winner gives them 60 and 30, assuming sufficient
-  eligible position and profit. Both pay 90. The model must also handle the case
-  where the open winner can absorb only 6 and explicitly account for the other 4.
-- **Which market bears a cross-account loss?** One account owes 80 BTC-market
-  units and 40 ETH-market units, all denominated in the same collateral. Its 90
-  cash covers 60 and 30 under current proportional own-cash collection in default.
-  That leaves 20 and 10 respectively before market insurance. Cross-account cash
-  cannot be counted twice. Additional cases must include a collectible opposite-
-  market claim and a cashless cycle with an external creditor.
-
-The first policy decision is when a flat account's outstanding claim becomes
-final, and who can absorb a loss arising before that boundary. Show the effects
-of closing, claiming or transferring immediately before and after the boundary.
-Use the model to decide ADL pricing, creditor eligibility, market attribution,
-precision, freeze scope and keeper/receiver compensation. The
-[architecture review](../clearing/architecture-review.md#next-deliverable-and-acceptance)
-contains the transition and adversarial-case checklist.
-
-Model ordinary payment from deposited collateral first. A settlement advance
-facility requires measured timing demand plus an identified funder, repayment
-priority and loss bearer. A separately funded receiver takes inventory risk.
-Consider sharing realized receiver surplus with insurance only after costs and
-capital needs are measured. Reserve investment, public LP capital and borrowing
-are deferred. P15B independent participation and P16B independent review/funded
-readiness remain external gates. Continuous 24-hour endurance remains deferred.
+Use the [clearing roadmap](../clearing/roadmap.md) for active delivery. Everything
+below describes the earlier audit plan as originally proposed on 10 November 2026.
 
 ## Outcome and order
 
