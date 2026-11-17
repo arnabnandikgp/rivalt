@@ -28,7 +28,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
 | P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
 | Clearing architecture review | Discussion — six-venue research delivered | [Comparison](clearing/venue-comparison.md) covers Hyperliquid, BULK, Phoenix, Lighter, Variational and Pacifica using primary docs accessed 17 November. Distinguishes execution, backstop capital, insurance, ADL and settlement finality; revises the earlier proportional-loss recommendation to a comparison candidate. [D110](DECISIONS.md#d110--successor-loss-handling-direction) remains unapproved successor policy. Source baseline `07822f49`; no program changes |
-| P57–P62 successor implementation | Planned — paused for discussion | Retained roadmap; the 16 November request expands the post-P56 discussion to clearing architecture and code organization. No P57 branch or implementation has started |
+| P57–P62 successor implementation | Planned — policy discussion | [Consolidated post-P56 priorities](operations/remediation-plan.md#post-p56-priorities) connect the proposed clearing contract, settlement, liquidation, code ownership and contention work to every retained phase. Next deliverable is the executable accounting comparison. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -61,9 +61,10 @@ at that closeout returned none. The fetched merge has the accepted tip's exact t
 The user subsequently requested and accepted the complete remediation roadmap,
 authorizing implementation through its dependencies. New PRs stay open and stacked.
 P56's final acceptance is published in open PR #85; its exact hosted check status
-is tracked there. Next exact action: compare settlement-finality and loss-membership
-contracts using independent mixed-market examples, then obtain the material policy
-decisions before adopting a successor contract or revised roadmap. P57 implementation
+is tracked there. Next exact action: implement the reference model for the proposed
+settlement and liquidation contract, starting with the two numerical payout and
+cross-debt cases in the consolidated plan. Use its reconciled outcomes for the
+economic decisions before selecting an implementation sequence. P57 implementation
 remains paused. No P56 local acceptance blocker remains; exact payout/ADL/precision
 policies still need explicit specification and qualification.
 
@@ -91,6 +92,9 @@ The recommendation prioritizes timely collection/payment before considering a
 separate advance facility, whose ownership and loss rules would need a new contract.
 Follow-up documentation checks pass for 57 local links/anchors in two changed
 files and whitespace; no runtime suite was run for this explanation.
+The roadmap consolidation on planning base `e792b3c` passes 74 local link/anchor
+checks across three files, whitespace and the evidence policy. Its two examples
+are hand calculations. Executable model and runtime qualification are pending.
 Validation for these documentation changes is limited to source/link and
 whitespace checks; no build, financial suite, external implementation tests or new
 performance run is claimed. P15B/P16B stay Open and 24-hour endurance stays Deferred.

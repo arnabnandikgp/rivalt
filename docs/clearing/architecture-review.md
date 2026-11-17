@@ -467,12 +467,8 @@ accounting/liquidation contract and executable adversarial reference model**, wi
    cross-market losses, partial liquidation fees, fractional owners, loss-epoch
    exits/reopens, duplicate/reordered work and concurrent quote/price changes.
 
-After that contract is agreed: make a behavior-preserving functional extraction;
-implement and qualify maker-route liquidation and backstop integration; implement
-only the approved bankruptcy/closed-claim policy; then apply the accepted account
-ownership changes and remeasure actual RPC/WS/PostgreSQL lifecycles and contention.
-Rebase the remaining numbered roadmap around those approved dependencies rather
-than creating many speculative micro-phases now.
+The [post-P56 priorities](../operations/remediation-plan.md#post-p56-priorities)
+own the proposed delivery order, first payout comparisons and mapping to P57–P62.
 
 This discussion does not select an ADL loss-allocation algorithm or authorize
 new credit, insurance subsidies, LP pooling, risk relaxation or funded deployment.
