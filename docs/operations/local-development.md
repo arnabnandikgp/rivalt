@@ -136,14 +136,14 @@ inspected. Observation times include sampling, finality and SQL publication.
 
 ## Maker liquidation demonstration
 
-Build the separately pinned candidate at source revision `4e07c1f` with
-`RIVALT_LIQUIDITY_ARTIFACTS=.local/anchor-rc2/maker-reduction-4e07c1f bash ops/build-liquidity-execution.sh`.
+Build the separately pinned candidate at source revision `ab3f6c6` with
+`RIVALT_LIQUIDITY_ARTIFACTS=.local/anchor-rc2/maker-reduction-ab3f6c6 bash ops/build-liquidity-execution.sh`.
 From the qualification revision, run the following with the normal selected
 artifacts still available. The launcher verifies both sets of hashes before
 deploying to a fresh loopback Surfpool instance.
 
 ```sh
-RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/anchor-rc2/maker-reduction-4e07c1f \
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/anchor-rc2/maker-reduction-ab3f6c6 \
 RIVALT_SETTLEMENT_PROBE=maker-liquidation RIVALT_PG_PORT=15452 \
 bash ops/scalable-settlement-smoke.sh
 ```
