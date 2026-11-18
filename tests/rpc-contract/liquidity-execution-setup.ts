@@ -16,7 +16,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; verifyRejections?: boolean } = {}) {
+  options: { marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; verifyRejections?: boolean } = {}) {
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
@@ -117,7 +117,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     await fresh();
     const reports: Instruction[] = [];
     for (const index of reportMarkets) {
-      const input = await sdk.readFundingReport(rpc, venue, index);
+      const input = await sdk.readFundingReport(rpc, venue, index,'confirmed',options.marginLayout);
       assert.equal(input.report.outcome, 0, input.coverageReason ?? 'available complete publication');
       const reference = index === 0 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n;
       assert.equal(input.report.referencePrice, reference);
@@ -133,7 +133,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   await h.send('activate storage-ready canonical candidate', [sdk.getActivateLiquidityInstruction(safetyCommon)]);
   if(options.verifyRejections!==false)await h.send('canonical activation cannot replay', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
   await qualify();
-  const identity = { venue, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
+  const identity = { venue, marginLayout:options.marginLayout, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readAccountTradeSnapshot(rpc, identity, root, marketIndex);
   return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, storage,
     safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, qualify, identity, snapshot };

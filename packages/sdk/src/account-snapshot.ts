@@ -1,3 +1,4 @@
+import {decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
 import {address,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
 import {getMintDecoder,getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
@@ -5,7 +6,7 @@ import {deriveAccountVenue,deriveAccountPortfolio,deriveVenueComponent,deriveAcc
 import {authenticateLiquidityMarket,discoverLiquidityAccounts} from './liquidity-adapter.js';
 import {fromBase64,hex,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
-export type AccountIdentity={venue:Address;mint:Address;domain:string};
+export type AccountIdentity={venue:Address;mint:Address;domain:string;marginLayout?:MarginLayout};
 export const ACCOUNT_CLOCK=address('SysvarC1ock11111111111111111111111111111111');
 
 /** Funded balances/exits read only selected roots and their complete market dependencies. */
@@ -48,7 +49,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const margins=[...new Set([...selectedMargins,...liquidityDiscovery?.capitals??[]])];
   const discovery=await rpc.call('getMultipleAccounts',[margins,{encoding:'base64',commitment,minContextSlot:Number(makerDiscoverySlot)}]);
   requireValue(discovery.value?.length===margins.length,'Incomplete account discovery.');
-  const discovered=discovery.value.map((account:any)=>decode(account,protocol.MARGIN_ACCOUNT_DISCRIMINATOR,protocol.getMarginAccountDecoder())) as protocol.MarginAccount[];
+  const discovered=discovery.value.map((account:any)=>decodeMarginForLayout(raw(account),identity.marginLayout)) as protocol.MarginAccount[];
   const portfolioKeys=[...new Set(discovered.map(root=>root.portfolio))];
   const keys=[venue,custody,safety,vault,identity.mint,ACCOUNT_CLOCK,...markets,...ledgers,...margins,...portfolioKeys,...new Set(makerKeys)];
   requireValue(new Set(keys).size===keys.length,'Aliased account dependencies.');
@@ -88,7 +89,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
     requireValue(value.schemaVersion===10&&value.venue===venue&&key===canonical&&value.bump===bump,'Portfolio identity mismatch.');portfolios[key]=value;
   }
   for(const [index,key] of margins.entries()) {
-    const value=decode(accounts.get(key),protocol.MARGIN_ACCOUNT_DISCRIMINATOR,protocol.getMarginAccountDecoder());
+    const value=decodeMarginForLayout(raw(accounts.get(key)),identity.marginLayout);
     const [canonical,bump]=await deriveMarginAccount(value.portfolio,value.subaccountIndex),portfolio=portfolios[value.portfolio];
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.lifecycle===2&&value.activationGeneration>0n&&value.portfolio===discovered[index].portfolio&&key===canonical&&value.bump===bump&&
       portfolio?.owner===value.owner&&portfolio.activeChildren>0&&[0,1,2].includes(value.role)&&
@@ -111,7 +112,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   // Preserve both observations: use actual Clock for expiry, and require RPC
   // contexts to be monotone above. Never substitute an older context for Clock.
   requireValue(now>=0n,'Invalid snapshot clock.');
-  const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,
+  const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,marginLayout:identity.marginLayout,
     market:markets[liquidityMarketIndex],marketIndex:liquidityMarketIndex,domain:venueState.domain,slot,now,contextSlot},accounts);
   return {commitment,venue,custody,safety,vault,markets,btc:markets[0],eth:markets[1],ledgers,btcLedger:ledgers[0],ethLedger:ledgers[1],
     venueState,custodyState,safetyState,marketStates,ledgerStates,roots,portfolios,actualVault:token.amount,liquidity,

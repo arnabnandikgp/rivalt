@@ -6,7 +6,9 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
-if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation ]]; then
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution ]]; then
+  node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts"; verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
+elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation ]]; then
   node --import tsx --input-type=module -e 'import {verifyLiquidationBuild} from "./tests/rpc-contract/maker-liquidation-build.ts"; verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk ]]; then
   node --import tsx --input-type=module -e 'import {verifyRiskBuild} from "./tests/rpc-contract/risk-build.ts"; verifyRiskBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
@@ -58,7 +60,7 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
-if [[ "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk || "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation || "${RIVALT_SETTLEMENT_PROBE:-default}" == freeze-cutoff || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution || "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk || "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation || "${RIVALT_SETTLEMENT_PROBE:-default}" == freeze-cutoff || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
 case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
   maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;
@@ -67,6 +69,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     python3 tests/financial/check_default_worker.py "$RIVALT_RUN_DIR" > "$RIVALT_RUN_DIR/independent-worker-audit.json" ;;
   account-clients) pnpm build:trader
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
+  profit-attribution) node --import tsx tests/rpc-contract/profit-attribution-rpc.ts ;;
   maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
   whole-account-risk) node --import tsx tests/rpc-contract/whole-account-risk-rpc.ts ;;
   freeze-cutoff) node --import tsx tests/rpc-contract/freeze-cutoff-rpc.ts ;;

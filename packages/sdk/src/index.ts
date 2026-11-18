@@ -34,3 +34,4 @@ export * from './price-policy.js';
 export * from './account-deployment.js';
 export * from './account-owner-discovery.js';
 export * from './account-wallet-envelope.js';
+export * from './profit-attribution.js';

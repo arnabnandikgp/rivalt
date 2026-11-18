@@ -1,3 +1,4 @@
+import type {MarginLayout} from './profit-attribution.js';
 import { BTC_LOTS_PER_UNIT, ETH_LOTS_PER_UNIT, FUNDING_REFERENCE_NOTIONAL } from './price-policy.js';
 import { type Address, type FixedSizeDecoder, type ReadonlyUint8Array } from '@solana/kit';
 import * as clearing from './generated/index.js';
@@ -32,7 +33,7 @@ export async function fundingSnapshotDigest(contextSlot: bigint, accounts: Liqui
  * A missing/invalid maker prevents complete coverage, even with zero capacity.
  * No caller-supplied quote, risk value or financial-admission predicate is used. */
 export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Address, marketIndex: 0 | 1,
-  commitment: 'confirmed' | 'finalized' = 'confirmed') {
+  commitment: 'confirmed' | 'finalized' = 'confirmed', marginLayout: MarginLayout = 'selected') {
   requireValue(marketIndex === 0 || marketIndex === 1, 'Unsupported funding market.');
   const [[market, marketBump], [safety, safetyBump], [custody]] = await Promise.all([
     deriveAccountMarket(venue, marketIndex), deriveVenueComponent(venue, 'safety'), deriveVenueComponent(venue, 'custody'),
@@ -98,7 +99,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
     report.outcome = 2;
     if (discovery) {
       try {
-        const { adapters } = await authenticateLiquidityMarket({ venue, market, marketIndex, domain: venueState.domain, slot, now, contextSlot }, accounts);
+        const { adapters } = await authenticateLiquidityMarket({ marginLayout, venue, market, marketIndex, domain: venueState.domain, slot, now, contextSlot }, accounts);
         const unavailable = adapters.find(maker => maker.unavailable !== null);
         if (unavailable) coverageReason = `${unavailable.registrationState.instance}:${unavailable.unavailable}`;
         else {

@@ -15,7 +15,7 @@ export type CapturedAccount={slot:number;value:AccountValue};
 
 /** Find a genuinely common historical revision fence, rather than assuming a
  * later overwritten snapshot proves an earlier version's financial fields. */
-export async function captureAccountReconciliation(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'>,
+export async function captureAccountReconciliation(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'> & Partial<Pick<LiquidityBinding,'artifactSet'>>,
   read:AccountBatch,minimumSlot:number) {
   const venue=address(binding.venue),program=address(binding.program);
   const [custody]=await sdk.deriveVenueComponent(venue,'custody',program),[vault]=await sdk.deriveVenueComponent(venue,'vault',program);
@@ -46,7 +46,7 @@ export async function captureAccountReconciliation(state:AccountState,binding:Pi
 /** Every entity is pinned to its authenticated journal revision. A second pass
  * fences all chunks before combining their financial fields. A newer relevant
  * revision requests only tail catch-up, never an unrelated historical rescan. */
-export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'>,read:AccountBatch,
+export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'> & Partial<Pick<LiquidityBinding,'artifactSet'>>,read:AccountBatch,
   captured?:ReadonlyMap<string,CapturedAccount>) {
   reconcileAccountLedger(state);
   const venue=address(binding.venue),program=address(binding.program);
@@ -117,7 +117,11 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       if(entity) {
         assert(current?.owner===program&&current.data[1]==='base64',`Scoped owner/encoding ${key}`);
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
-        assert(descriptor&&bytes.length===descriptor[1]&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
+        if(entity.kind===5 && binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET) {
+          sdk.decodeProfitAttribution(bytes);
+        } else {
+          assert(descriptor&&bytes.length===descriptor[1]&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
+        }
         assert.equal(bytes.readUInt16LE(8),scopedSchema(entity.kind));
         compareReconciliationRevision(bytes.readBigUInt64LE(10),BigInt(entity.revision));
         if(pass)assert.equal(current.data[0],observed.get(key)?.data[0],`Account changed without revision ${key}`);
