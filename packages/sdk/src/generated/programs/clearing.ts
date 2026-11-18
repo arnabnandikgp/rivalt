@@ -168,6 +168,7 @@ import {
   getInitializeSettlementRatesInstructionAsync,
   getInitializeVenueRegistryInstructionAsync,
   getLiquidateAccountInstructionAsync,
+  getLiquidateLiquidityRouteInstructionAsync,
   getManageAccountOrderInstructionAsync,
   getNetAccountClaimsInstructionAsync,
   getPauseVenueInstructionAsync,
@@ -251,6 +252,7 @@ import {
   parseInitializeSettlementRatesInstruction,
   parseInitializeVenueRegistryInstruction,
   parseLiquidateAccountInstruction,
+  parseLiquidateLiquidityRouteInstruction,
   parseManageAccountOrderInstruction,
   parseNetAccountClaimsInstruction,
   parsePauseVenueInstruction,
@@ -334,6 +336,7 @@ import {
   type InitializeSettlementRatesAsyncInput,
   type InitializeVenueRegistryAsyncInput,
   type LiquidateAccountAsyncInput,
+  type LiquidateLiquidityRouteAsyncInput,
   type ManageAccountOrderAsyncInput,
   type NetAccountClaimsAsyncInput,
   type ParsedAcceptDenominatorRowInstruction,
@@ -388,6 +391,7 @@ import {
   type ParsedInitializeSettlementRatesInstruction,
   type ParsedInitializeVenueRegistryInstruction,
   type ParsedLiquidateAccountInstruction,
+  type ParsedLiquidateLiquidityRouteInstruction,
   type ParsedManageAccountOrderInstruction,
   type ParsedNetAccountClaimsInstruction,
   type ParsedPauseVenueInstruction,
@@ -1250,6 +1254,7 @@ export enum ClearingInstruction {
   InitializeSettlementRates,
   InitializeVenueRegistry,
   LiquidateAccount,
+  LiquidateLiquidityRoute,
   ManageAccountOrder,
   NetAccountClaims,
   PauseVenue,
@@ -1863,6 +1868,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([201, 205, 162, 241, 160, 102, 201, 176]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.LiquidateLiquidityRoute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([69, 25, 199, 184, 146, 122, 14, 218]),
       ),
       0,
@@ -2366,6 +2382,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.LiquidateAccount;
     } & ParsedLiquidateAccountInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.LiquidateLiquidityRoute;
+    } & ParsedLiquidateLiquidityRouteInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ManageAccountOrder;
     } & ParsedManageAccountOrderInstruction<TProgram>)
   | ({
@@ -2826,6 +2845,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.LiquidateAccount,
         ...parseLiquidateAccountInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.LiquidateLiquidityRoute: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.LiquidateLiquidityRoute,
+        ...parseLiquidateLiquidityRouteInstruction(instruction),
       };
     }
     case ClearingInstruction.ManageAccountOrder: {
@@ -3377,6 +3403,11 @@ export type ClearingPluginInstructions = {
     input: LiquidateAccountAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getLiquidateAccountInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  liquidateLiquidityRoute: (
+    input: LiquidateLiquidityRouteAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getLiquidateLiquidityRouteInstructionAsync> &
     SelfPlanAndSendFunctions;
   manageAccountOrder: (
     input: ManageAccountOrderAsyncInput,
@@ -4081,6 +4112,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getLiquidateAccountInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          liquidateLiquidityRoute: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getLiquidateLiquidityRouteInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

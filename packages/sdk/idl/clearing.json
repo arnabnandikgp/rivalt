@@ -13093,6 +13093,223 @@
       ]
     },
     {
+      "name": "liquidate_liquidity_route",
+      "discriminator": [
+        201,
+        205,
+        162,
+        241,
+        160,
+        102,
+        201,
+        176
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "market",
+            "other_market",
+            "ledger",
+            "other_ledger",
+            "trader"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "ledger"
+          ]
+        },
+        {
+          "name": "other_market",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "other_ledger",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "trader",
+          "writable": true
+        },
+        {
+          "name": "registry"
+        },
+        {
+          "name": "first_capital",
+          "writable": true
+        },
+        {
+          "name": "first_registration",
+          "writable": true
+        },
+        {
+          "name": "first_program",
+          "docs": [
+            "CHECK: executable identity is bound to its loader metadata and approved hash."
+          ]
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config",
+          "docs": [
+            "CHECK: fixed read-only identity, ownership, code and quote verified before CPI."
+          ]
+        },
+        {
+          "name": "first_price",
+          "docs": [
+            "CHECK: fixed read-only publication validated against current inventory/depth."
+          ]
+        },
+        {
+          "name": "second_capital",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_registration",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_program",
+          "docs": [
+            "CHECK: executable identity is bound to its loader metadata and approved hash."
+          ],
+          "optional": true
+        },
+        {
+          "name": "second_program_data",
+          "optional": true
+        },
+        {
+          "name": "second_config",
+          "docs": [
+            "CHECK: same fixed read-only checks as the first leg; all-or-none optional tuple."
+          ],
+          "optional": true
+        },
+        {
+          "name": "second_price",
+          "docs": [
+            "CHECK: same fixed read-only checks as the first leg; no arbitrary remaining accounts."
+          ],
+          "optional": true
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "LiquidityRouteIntent"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "manage_account_order",
       "discriminator": [
         69,

@@ -58,6 +58,7 @@ export * from "./initializeSettlementPlanPage.js";
 export * from "./initializeSettlementRates.js";
 export * from "./initializeVenueRegistry.js";
 export * from "./liquidateAccount.js";
+export * from "./liquidateLiquidityRoute.js";
 export * from "./manageAccountOrder.js";
 export * from "./netAccountClaims.js";
 export * from "./pauseVenue.js";

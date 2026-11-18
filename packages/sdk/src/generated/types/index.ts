@@ -18,6 +18,7 @@ export * from "./fundingPublisherPayload.js";
 export * from "./fundingReport.js";
 export * from "./limbPayload.js";
 export * from "./liquidityRegistryPayload.js";
+export * from "./liquidityRouteIntent.js";
 export * from "./liquidityRouteLeg.js";
 export * from "./liquidityShape.js";
 export * from "./makerRegistrationPayload.js";
