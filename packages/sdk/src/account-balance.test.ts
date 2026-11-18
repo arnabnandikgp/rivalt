@@ -71,3 +71,15 @@ it('labels pause/freeze/terminal states without inventing spendable claims',asyn
   root.positions[0].virtualScaled=1n;expect(view()).toMatchObject({withdrawalStatus:'TerminalAccountNotSettled',indicativeCashHeadroom:null});
   snapshot.safetyState.paused=true;expect(view().withdrawalStatus).toBe('Paused');
 });
+
+it('describes ordinary settlement from the flat claim and the shared pool in whole atoms',()=>{
+  const normal={mode:1,paused:false};
+  const position={lots:'0',unpaidClaimScaled:'3000000001'};
+  expect(sdk.closedGainStatus(position,0n,normal)).toBe('Awaiting loss collection');
+  expect(sdk.closedGainStatus(position,2n,normal)).toBe('Market pool covers part of this claim');
+  expect(sdk.closedGainStatus(position,3n,normal)).toBe('Awaiting verified payment');
+  expect(sdk.closedGainStatus({...position,unpaidClaimScaled:'1'},0n,normal)).toBe('Below one payable atom');
+  expect(sdk.closedGainStatus(position,3n,{mode:2,paused:true})).toBe('Ordinary settlement suspended');
+  for(const claim of [null,'0','-1'])expect(sdk.closedGainStatus({...position,unpaidClaimScaled:claim},0n,normal)).toBeNull();
+  expect(sdk.closedGainStatus({...position,lots:'1'},0n,normal)).toBeNull();
+});
