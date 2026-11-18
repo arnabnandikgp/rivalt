@@ -90,7 +90,9 @@ class CrossMarketAttribution(unittest.TestCase):
             (choose(linked_winner(eth_insurance=25)), (0, 0, 36, 40), (0, 16)),
             (choose(linked_winner(winner_cash=40)), (0, 15, 45, 40), (0, 0)),
         )
-        for line, (_, cash, insurance) in zip(run([frozen_book_command(item.book) for item, _, _ in fixtures]), fixtures, strict=True):
+        commands = [frozen_book_command(pin_own_cash(item.book, item.payout.benchmark.collections))
+                    for item, _, _ in fixtures]
+        for line, (_, cash, insurance) in zip(run(commands), fixtures, strict=True):
             result = decode(line)
             self.assertEqual((result['cash'], result['spent']), (cash, insurance))
 

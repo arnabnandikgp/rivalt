@@ -6,13 +6,13 @@ from math import ceil, floor
 
 from account_contract_reference import Account, require
 from adl_eligibility_model import eligible_positions
-from clearing_network_reference import AtomClearingPlan
+from clearing_network_reference import AtomClearingPlan, InfeasiblePayoutFloor, clear_atom_cohort
 from market_settlement_reference import MarketBook
 from settlement_liquidation_model import MarketSnapshot, paired_reduction, terminal
 
 
-def pin_own_cash(book):
-    """Represent frozen own-cash collections once in the research working book.
+def pin_own_cash(book, collections=None):
+    """Encode an equivalent terminal input for the unmodified Rust kernel.
 
     The real program settles fractional flows together. Whole aggregate cash per
     market is necessary to encode this intermediate book in the current driver.
@@ -20,12 +20,11 @@ def pin_own_cash(book):
     require(book.frozen, "frozen cohort required")
     accounts = []
     pools = list(book.pools)
-    for account in book.accounts:
-        debts = tuple(max(-claim, 0) for claim in account.claims)
-        total = sum(debts)
-        available = min(account.cash, floor(total))
-        collected = tuple(Fraction(available * debt, total) if total else 0 for debt in debts)
-        accounts.append(Account(account.cash - available, tuple(
+    allocations = terminal(book).benchmark.collections if collections is None else collections
+    for account, collected in zip(book.accounts, allocations, strict=True):
+        available = sum(collected)
+        require(Fraction(available).denominator == 1, "account collection must be whole")
+        accounts.append(Account(account.cash - int(available), tuple(
             claim + amount for claim, amount in zip(account.claims, collected, strict=True))))
         for market, amount in enumerate(collected):
             pools[market] += amount
@@ -48,7 +47,7 @@ class Candidate:
     payout: AtomClearingPlan
 
 
-def compare(state, debtor, unpaid_open, *, pin_cash, protect_eth):
+def compare(state, debtor, unpaid_open, *, pin_cash, protect_eth, protected_rounding=False):
     """Enumerate whole-atom BTC charges with one named debtor and an explicit D113 gain per root.
 
     Maximize recovered BTC shortfall, then approximate equal percentages of eligible
@@ -58,7 +57,9 @@ def compare(state, debtor, unpaid_open, *, pin_cash, protect_eth):
             "a frozen BTC debtor is required")
     baseline = terminal(state.book)
     initial_losses = market_losses(baseline)
-    starting = replace(state, book=pin_own_cash(state.book)) if pin_cash else state
+    require(not protected_rounding or protect_eth, "protected rounding requires creditor protection")
+    floors = {(index, 1): baseline.claim_cash_movements[index][1]
+              for index, account in enumerate(state.book.accounts) if account.claims[1] > 0}
     loss_budget = floor(baseline.benchmark.debtor_writeoffs[debtor][0])
     eligible = eligible_positions(state, debtor, unpaid_open)
     capacity = sum(position.cap for position in eligible)
@@ -75,11 +76,14 @@ def compare(state, debtor, unpaid_open, *, pin_cash, protect_eth):
         # cash is recalculated. Compare deviations from each plan's own shares.
         cost = sum((charge - Fraction(total * position.cap, capacity)) ** 2 / position.cap
                    for position, charge in zip(eligible, charges, strict=True))
-        adjusted = starting
+        adjusted = state
         for position, charge in zip(eligible, charges, strict=True):
             if charge:
                 adjusted, _ = paired_reduction(adjusted, debtor, position.member, position.gain_per_lot, charge)
-        payout = terminal(adjusted.book)
+        book = adjusted.book
+        inputs = (book.accounts, book.pools, book.insurance, book.fees)
+        collections = baseline.benchmark.collections if pin_cash else None
+        payout = clear_atom_cohort(*inputs, frozen_collections=collections)
         losses = market_losses(payout)
         # Compare the actual decline in BTC creditor impairment. Reallocating
         # shared collateral can make this smaller than the nominal BTC charge.
@@ -87,6 +91,14 @@ def compare(state, debtor, unpaid_open, *, pin_cash, protect_eth):
         if protect_eth and (losses[1] > initial_losses[1]
                             or payout.insurance_spent[1] > baseline.insurance_spent[1]):
             continue
+        if protect_eth and any(payout.claim_cash_movements[index][market] < minimum
+                               for (index, market), minimum in floors.items()):
+            if not protected_rounding:
+                continue
+            try:
+                payout = clear_atom_cohort(*inputs, frozen_collections=collections, creditor_floors=floors)
+            except InfeasiblePayoutFloor:
+                continue
         key = (-recovered, cost, total, lots, tuple(-charge for charge in charges))
         if best_key is not None and key >= best_key:
             continue
