@@ -10,10 +10,20 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getArrayDecoder,
+  getArrayEncoder,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU64Decoder,
+  getU64Encoder,
+  getU8Decoder,
+  getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -26,6 +36,8 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
@@ -47,10 +59,14 @@ import {
 } from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
-  getLiquidityRouteIntentDecoder,
-  getLiquidityRouteIntentEncoder,
-  type LiquidityRouteIntent,
-  type LiquidityRouteIntentArgs,
+  getAccountGuardDecoder,
+  getAccountGuardEncoder,
+  getLiquidityRouteLegDecoder,
+  getLiquidityRouteLegEncoder,
+  type AccountGuard,
+  type AccountGuardArgs,
+  type LiquidityRouteLeg,
+  type LiquidityRouteLegArgs,
 } from "../types/index.js";
 
 export const EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR: ReadonlyUint8Array =
@@ -168,18 +184,54 @@ export type ExecuteLiquidityRouteInstruction<
 
 export type ExecuteLiquidityRouteInstructionData = {
   discriminator: ReadonlyUint8Array;
-  args: LiquidityRouteIntent;
+  guard: AccountGuard;
+  domain: ReadonlyUint8Array;
+  termsEpoch: bigint;
+  configEpoch: bigint;
+  startSlot: bigint;
+  expirySlot: bigint;
+  side: number;
+  lots: bigint;
+  allInLimit: bigint;
+  maxFee: bigint;
+  reduceOnly: boolean;
+  generation: Option<bigint>;
+  legs: Array<LiquidityRouteLeg>;
 };
 
 export type ExecuteLiquidityRouteInstructionDataArgs = {
-  args: LiquidityRouteIntentArgs;
+  guard: AccountGuardArgs;
+  domain: ReadonlyUint8Array;
+  termsEpoch: number | bigint;
+  configEpoch: number | bigint;
+  startSlot: number | bigint;
+  expirySlot: number | bigint;
+  side: number;
+  lots: number | bigint;
+  allInLimit: number | bigint;
+  maxFee: number | bigint;
+  reduceOnly: boolean;
+  generation: OptionOrNullable<number | bigint>;
+  legs: Array<LiquidityRouteLegArgs>;
 };
 
 export function getExecuteLiquidityRouteInstructionDataEncoder(): Encoder<ExecuteLiquidityRouteInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["args", getLiquidityRouteIntentEncoder()],
+      ["guard", getAccountGuardEncoder()],
+      ["domain", fixEncoderSize(getBytesEncoder(), 32)],
+      ["termsEpoch", getU64Encoder()],
+      ["configEpoch", getU64Encoder()],
+      ["startSlot", getU64Encoder()],
+      ["expirySlot", getU64Encoder()],
+      ["side", getU8Encoder()],
+      ["lots", getU64Encoder()],
+      ["allInLimit", getU64Encoder()],
+      ["maxFee", getU64Encoder()],
+      ["reduceOnly", getBooleanEncoder()],
+      ["generation", getOptionEncoder(getU64Encoder())],
+      ["legs", getArrayEncoder(getLiquidityRouteLegEncoder())],
     ]),
     (value) => ({
       ...value,
@@ -191,7 +243,19 @@ export function getExecuteLiquidityRouteInstructionDataEncoder(): Encoder<Execut
 export function getExecuteLiquidityRouteInstructionDataDecoder(): Decoder<ExecuteLiquidityRouteInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["args", getLiquidityRouteIntentDecoder()],
+    ["guard", getAccountGuardDecoder()],
+    ["domain", fixDecoderSize(getBytesDecoder(), 32)],
+    ["termsEpoch", getU64Decoder()],
+    ["configEpoch", getU64Decoder()],
+    ["startSlot", getU64Decoder()],
+    ["expirySlot", getU64Decoder()],
+    ["side", getU8Decoder()],
+    ["lots", getU64Decoder()],
+    ["allInLimit", getU64Decoder()],
+    ["maxFee", getU64Decoder()],
+    ["reduceOnly", getBooleanDecoder()],
+    ["generation", getOptionDecoder(getU64Decoder())],
+    ["legs", getArrayDecoder(getLiquidityRouteLegDecoder())],
   ]);
 }
 
@@ -271,7 +335,19 @@ export type ExecuteLiquidityRouteAsyncInput<
   eventAuthority?: TAccountEventAuthority;
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
-  args: ExecuteLiquidityRouteInstructionDataArgs["args"];
+  guard: ExecuteLiquidityRouteInstructionDataArgs["guard"];
+  domain: ExecuteLiquidityRouteInstructionDataArgs["domain"];
+  termsEpoch: ExecuteLiquidityRouteInstructionDataArgs["termsEpoch"];
+  configEpoch: ExecuteLiquidityRouteInstructionDataArgs["configEpoch"];
+  startSlot: ExecuteLiquidityRouteInstructionDataArgs["startSlot"];
+  expirySlot: ExecuteLiquidityRouteInstructionDataArgs["expirySlot"];
+  side: ExecuteLiquidityRouteInstructionDataArgs["side"];
+  lots: ExecuteLiquidityRouteInstructionDataArgs["lots"];
+  allInLimit: ExecuteLiquidityRouteInstructionDataArgs["allInLimit"];
+  maxFee: ExecuteLiquidityRouteInstructionDataArgs["maxFee"];
+  reduceOnly: ExecuteLiquidityRouteInstructionDataArgs["reduceOnly"];
+  generation: ExecuteLiquidityRouteInstructionDataArgs["generation"];
+  legs: ExecuteLiquidityRouteInstructionDataArgs["legs"];
 };
 
 export async function getExecuteLiquidityRouteInstructionAsync<
@@ -760,7 +836,19 @@ export type ExecuteLiquidityRouteInput<
   eventAuthority: TAccountEventAuthority;
   /** CHECK: Kept for v1-compatible account ordering and IDL shape */
   program: TAccountProgram;
-  args: ExecuteLiquidityRouteInstructionDataArgs["args"];
+  guard: ExecuteLiquidityRouteInstructionDataArgs["guard"];
+  domain: ExecuteLiquidityRouteInstructionDataArgs["domain"];
+  termsEpoch: ExecuteLiquidityRouteInstructionDataArgs["termsEpoch"];
+  configEpoch: ExecuteLiquidityRouteInstructionDataArgs["configEpoch"];
+  startSlot: ExecuteLiquidityRouteInstructionDataArgs["startSlot"];
+  expirySlot: ExecuteLiquidityRouteInstructionDataArgs["expirySlot"];
+  side: ExecuteLiquidityRouteInstructionDataArgs["side"];
+  lots: ExecuteLiquidityRouteInstructionDataArgs["lots"];
+  allInLimit: ExecuteLiquidityRouteInstructionDataArgs["allInLimit"];
+  maxFee: ExecuteLiquidityRouteInstructionDataArgs["maxFee"];
+  reduceOnly: ExecuteLiquidityRouteInstructionDataArgs["reduceOnly"];
+  generation: ExecuteLiquidityRouteInstructionDataArgs["generation"];
+  legs: ExecuteLiquidityRouteInstructionDataArgs["legs"];
 };
 
 export function getExecuteLiquidityRouteInstruction<
