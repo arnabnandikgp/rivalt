@@ -391,6 +391,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "default-proof-probe"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "solana-sha256-hasher",
+]
+
+[[package]]
 name = "derivation-path"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

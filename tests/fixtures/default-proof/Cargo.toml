@@ -1,0 +1,19 @@
+[package]
+name = "default-proof-probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "default_proof_probe"
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+[dependencies]
+anchor-lang = { workspace = true }
+solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
