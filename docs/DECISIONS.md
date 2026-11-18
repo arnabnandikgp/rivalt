@@ -1107,7 +1107,7 @@ and funding at freeze even when a required closeout price arrives later. That pr
 values the frozen positions. It does not reopen eligibility. The
 [cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding)
 quantifies the effect of a late proof. Bundling a source update and proof still needs
-signed runtime measurements. Priority among eligible winners remains open.
+signed runtime measurements. [The signed comparison](operations/validation.md#signed-source-publication-and-freeze) records the subsequent result. D116 sets priority among eligible winners.
 
 ## D115 — Separate position accounting and whole-account risk
 
@@ -1121,3 +1121,21 @@ transitions. This dependency order lets all callers use the same equations.
 The [source map](clearing/risk-and-resolution.md#risk-equations-in-code) traces
 withdrawal and liquidation. The [matched comparison](operations/validation.md#whole-account-risk-engine-extraction)
 records the cost of moving the existing rules.
+
+## D116 — Maximize recovery, then share the charge proportionally
+
+18 November 2026. For the D112 successor, the user selected the rule for several
+eligible winners. At the D114 freeze, recover as much verified shortfall as the
+feasible paired whole-lot reductions allow. Among plans achieving that recovery,
+share the charge in proportion to eligible unpaid open gains, subject to each
+position’s caps and D113 payment attribution. A maker or trader can lose more
+lots under this rule than under member-order priority. The
+[single-market comparison](clearing/architecture-review.md#eligibility-at-the-freeze)
+shows a 5/5 charge for two equal winners and better recovery with scarce lots.
+
+The research allocator uses exact weighted squared deviations and deterministic
+ties. Its search is an offline benchmark. Cross-market eligibility, fractional
+ownership through a multi-stage plan and a bounded execution proof require
+separate qualification. The [cross-market comparison](clearing/architecture-review.md#who-bears-the-cross-market-effect)
+asks which pairings can count as feasible when an ETH creditor depends on the
+BTC winner’s recovery.

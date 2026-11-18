@@ -30,11 +30,12 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Clearing architecture review | Research delivered | [Comparison](clearing/venue-comparison.md) covers six venues using primary docs accessed 17 November. Source baseline `07822f49`. [D112](DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery) records the subsequent loss-policy choice. |
 | Clearing engineering roadmap | Active planning | [Delivery order and functional ownership](clearing/roadmap.md). First deliverable is the executable settlement/liquidation comparison. The second is a dedicated domain extraction with a risk-engine crate. |
 | Settlement and liquidation comparison | In review | [Ready PR #86](https://github.com/arnabnandikgp/rivalt/pull/86) above #85. The user reported independently reproducing its payout cases and selected capped ADL followed by proportional residual recovery. |
-| Capped ADL eligibility | In review | [Ready PR #87](https://github.com/arnabnandikgp/rivalt/pull/87) above #86. [Multi-maker and freeze comparisons](clearing/architecture-review.md#eligibility-at-the-freeze). Model `bd5b40e` passes 12 new and 11 existing focused tests. Eight new adjusted cohorts match native Rust terminal cash and insurance. D113 settles payment attribution and D114 sets the freeze cutoff. Priority among eligible winners remains open. |
+| Capped ADL eligibility | In review | [Ready PR #87](https://github.com/arnabnandikgp/rivalt/pull/87) above #86. [Multi-maker and freeze comparisons](clearing/architecture-review.md#eligibility-at-the-freeze). Model `bd5b40e` passes 12 new and 11 existing focused tests. Eight new adjusted cohorts match native Rust terminal cash and insurance. D113 settles payment attribution and D114 sets the freeze cutoff. D116 sets priority among eligible winners. |
 | Ordinary gain payment attribution | In review | [Ready PR #88](https://github.com/arnabnandikgp/rivalt/pull/88) above #87. [Payment comparison](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles). Model `1ab1eaf` passes nine new and 23 preceding focused tests. Ten frozen outcomes and 15 funding accruals match native Rust. [D113](DECISIONS.md#d113--closed-first-payment-attribution) records user approval of closed-first for the successor. |
 | Default eligibility cutoff | In review | [Ready PR #89](https://github.com/arnabnandikgp/rivalt/pull/89) above #88. [Cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding). Model `8cbbb31` passes 11 focused tests, including 18 native terminal comparisons. Four existing Rust resolution tests pass. [D114](DECISIONS.md#d114--verified-freeze-cutoff-for-loss-eligibility) records the approved prospective cutoff. |
 | Signed freeze delivery | In review | [Ready PR #90](https://github.com/arnabnandikgp/rivalt/pull/90) above #89. Clean harness `bc816d4`, local SBF `ed46603`. [Four signed outcomes](operations/validation.md#signed-source-publication-and-freeze), including complete atomic rollback and a successful freeze three slots after source publication. Fresh PostgreSQL replay matched 72 events. |
 | Whole-account risk-engine extraction | In review | [Ready PR #91](https://github.com/arnabnandikgp/rivalt/pull/91) above #90. Candidate SBF `6775e13`, harness `8b5dda2`. [Matched financial and resource results](operations/validation.md#whole-account-risk-engine-extraction) for nine signed transactions per build, 90-event SQL replay per build and 30 native tests. The normal launcher selects P56. |
+| Cross-market ADL attribution | In review | [Linked creditor comparison](clearing/architecture-review.md#who-bears-the-cross-market-effect). Model `9bfd68f` passes nine new and 12 existing focused tests. Seven terminal cash/insurance vectors match native Rust. D116 records the winner-selection decision. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -71,10 +72,11 @@ successor payment rule. The qualified local program uses proportional terminal
 settlement. D114 binds successor loss eligibility at the first verified on-chain
 freeze that commits for the episode. The [cutoff results](clearing/architecture-review.md#when-default-eligibility-becomes-binding)
 quantify the tradeoff for late proofs and temporary insolvency. Clearing accepted
-the named-debtor proof against already-published feeds. The remaining economic
-decision is priority among eligible winners when whole lots are scarce.
+the named-debtor proof against already-published feeds. D116 selects maximum
+recovery and proportional charges among eligible winners.
 The risk engine and shared position accounting now have separate crate owners.
-The successor research next needs an executable cross-market loss-attribution case.
+The next decision is whether to lock the debtor’s original cash split and bound
+other-market impairment and insurance use during forced reductions.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator

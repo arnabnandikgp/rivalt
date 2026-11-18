@@ -160,8 +160,8 @@ Inferring eligibility from the aggregate unpaid claim alone can overstate it.
 
 Before activation, specify how clearing tracks payments on surviving lots through
 partial reductions and re-entry under D113. Verify those records at the cutoff
-selected in D114. Cross-market ADL, multiple debtors, maker priority
-and bounded on-chain continuation need further evidence. Today's proportional
+selected in D114. D116 selects maximum recovery followed by proportional charges.
+Cross-market ADL, multiple debtors and bounded on-chain continuation need further evidence. Today's proportional
 settlement remains active in the qualified local profile.
 
 ```sh
@@ -307,6 +307,62 @@ cargo build --locked -p financial-core --bin scalable-settlement-driver
 python3 tests/financial/freeze_cutoff_model.py
 python3 tests/financial/test_freeze_cutoff.py -v
 cargo test --locked -p clearing --lib account_safety::resolution::tests
+```
+
+### Who bears the cross-market effect?
+
+D116 sets how eligible winners share a charge. Which plans qualify matters when
+one margin account connects BTC and ETH. These two cases use a common collateral
+atom. All ETH claims are fixed. The only open exposure being forcibly reduced
+is BTC.
+
+**A debtor owes both markets.** The debtor has 90 cash and owes BTC 80 and ETH
+40. Before the close, BTC can collect 60 and ETH 30. A BTC winner gives up 20
+of eligible gain through a paired close. Recalculating the debtor’s cash split
+now divides 90 against debts of 60/40, sending 54 to BTC and 36 to ETH. Fixing
+the original 60/30 collections leaves all six disputed atoms with BTC creditors.
+The same inventory closes in both cases.
+
+**A winner owes the other market.** A BTC debtor has 60 cash against 100 of BTC
+claims. The cross trader is owed 40 BTC-market atoms and owes 40 ETH-market
+atoms. A flat BTC creditor is owed 60. Before any forced close, BTC pays 60%. Of that recovery,
+36 goes to the flat creditor and 24 of the cross trader’s recovery goes to ETH.
+Charging the cross trader 20 leaves only 80 BTC claims. BTC now pays 75%,
+giving the flat creditor 45 and sending 15 to ETH.
+
+| Cross trader case | BTC forced charge | Flat BTC creditor | ETH creditor | ETH insurance spent |
+|---|---:|---:|---:|---:|
+| No forced close, ETH insurance empty | 0 | 36 | 24 | 0 |
+| Full BTC close, ETH insurance empty | 20 | 45 | 15 | 0 |
+| No forced close, ETH insurance has 25 | 0 | 36 | 40 | 16 |
+| Full BTC close, ETH insurance has 25 | 20 | 45 | 40 | 25 |
+
+**Recommended scope for the successor.** Fix debtor cash attribution first.
+Compare each candidate plan with the complete-cohort outcome before forced
+closes. Require the other market’s aggregate creditor impairment and insurance
+debit each to stay at or below its baseline. Maximize originating-market recovery
+within that feasible set, then apply proportional sharing. This can leave a
+larger residual for BTC creditors. It still admits a ten-atom charge when the
+ETH obligation in the example is only 20, and the full twenty when the cross
+winner brings enough funded cash to meet its own ETH obligation. The proposed
+guard measures market totals. Per-account whole-atom rounding needs its own check.
+
+The [research model](../../tests/financial/cross_market_adl_model.py) enumerates
+small BTC charge vectors on one frozen cohort at a time, bounds the named
+debtor’s charge by its own verified write-off and uses explicit unpaid open
+gains. The [tests](../../tests/financial/test_cross_market_adl.py) cover two
+eligible winners, another debtor, a cashless cycle and fractional ownership.
+The intermediate cash representation requires whole aggregate pool balances in
+both markets. Inputs requiring fractional pool balances reject. The current
+native settlement kernel checks seven complete terminal payout and insurance
+vectors. Activation still requires a joint bounded plan for multiple debtors,
+both markets’ open positions and fractional claims.
+
+```sh
+source ops/env.sh
+cargo build --locked -p financial-core --bin scalable-settlement-driver
+python3 tests/financial/cross_market_adl_model.py
+python3 tests/financial/test_cross_market_adl.py -v
 ```
 
 ## Direction under discussion and remaining choices

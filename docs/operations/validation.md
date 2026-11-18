@@ -33,6 +33,13 @@ commands](../clearing/architecture-review.md#when-default-eligibility-becomes-bi
 document the rebound, omitted witness, atomic rollback, funded payments and
 deferred emergency valuation. No signed execution or keeper latency was measured.
 
+Model `9bfd68f` passes nine cross-market tests and the existing 12 winner
+eligibility tests. Seven adjusted cohorts match independently specified cash and
+insurance debits in the compiled settlement kernel. Candidate selection runs in
+Python at frozen prices. The [cross-market cases](../clearing/architecture-review.md#who-bears-the-cross-market-effect)
+include an ETH creditor whose payout falls despite an unchanged ETH position,
+an additional ETH insurance draw and a feasible partial BTC reduction.
+
 ### Signed source publication and freeze
 
 On 18 November 2026 harness `bc816d4` deployed the qualified local SBF
