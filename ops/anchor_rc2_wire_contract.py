@@ -143,6 +143,13 @@ def check_domains():
 
 def comparable_program(program, actual):
     """Validate every explicit extension before comparing the retained D90 ABI."""
+    if program == 'clearing':
+        actual = deepcopy(actual)
+        direct = next(ix for ix in actual['instructions'] if ix['name'] == 'execute_liquidity_route')
+        forced = next(ix for ix in actual['instructions'] if ix['name'] == 'liquidate_liquidity_route')
+        assert forced['accounts'] == direct['accounts'] and forced['args'] == direct['args']
+        assert forced['discriminator'] == list(hashlib.sha256(b'global:liquidate_liquidity_route').digest()[:8])
+        actual['instructions'].remove(forced)
     actual = undo_window_delta(actual, program)
     actual = undo_backing_delta(actual, program)
     actual = undo_membership_delta(actual, program)

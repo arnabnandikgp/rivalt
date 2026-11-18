@@ -106,12 +106,7 @@ pub(crate) fn candidate_optional(
     let mut receiver = Box::new(receiver.clone());
     super::markets::commit_model(&mut target, next_target, markets)?;
     super::markets::commit_model(&mut receiver, next_receiver, markets)?;
-    for entry in &mut target.book.orders {
-        if entry.order.active() && !entry.order.reduce_only {
-            entry.order.state = crate::constants::orders::INVALIDATED;
-            entry.order.reserve = 0;
-        }
-    }
+    cancel_risk_increasing_orders(&mut target);
     book::refresh_with_environment(&mut target, &environment)?;
     book::refresh_with_environment(&mut receiver, &environment)?;
     checked(account::model(&receiver)?.admissible(risks))?;
@@ -142,4 +137,13 @@ pub(crate) fn risks(
         };
     }
     Ok(result)
+}
+
+pub(crate) fn cancel_risk_increasing_orders(target: &mut MarginAccount) {
+    for entry in &mut target.book.orders {
+        if entry.order.active() && !entry.order.reduce_only {
+            entry.order.state = crate::constants::orders::INVALIDATED;
+            entry.order.reserve = 0;
+        }
+    }
 }

@@ -652,7 +652,19 @@ pub mod clearing {
             ctx,
             [168, 103, 155, 184, 217, 71, 251, 209],
             false,
-            |ctx, events| maker_liquidity::routes::execute(ctx, events, args),
+            |ctx, events| maker_liquidity::routes::execute(ctx, events, args, false),
+        )
+    }
+
+    pub fn liquidate_liquidity_route(
+        ctx: &mut Context<ExecuteLiquidityRoute>,
+        args: LiquidityRouteIntent,
+    ) -> Result<()> {
+        scoped_history::run(
+            ctx,
+            [201, 205, 162, 241, 160, 102, 201, 176],
+            false,
+            |ctx, events| maker_liquidity::routes::execute(ctx, events, args, true),
         )
     }
 
