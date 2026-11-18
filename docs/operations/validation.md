@@ -32,6 +32,9 @@ checked unchanged account bytes on each rejection. The finalized SQL state recon
 with the accounts, and a fresh PostgreSQL 18.6 database reproduced all 96 events,
 including signatures and exact bytes. These are single-session
 measurements with one maker leg, controlled prices and local fee payers.
+The generated lock inventory covers 92 instructions (84 clearing, 14 custody
+writers). The maker liquidation has the same declared access set as a direct
+maker route. All earlier entries match their pre-liquidation inventories.
 
 ## Ordinary trader payout
 

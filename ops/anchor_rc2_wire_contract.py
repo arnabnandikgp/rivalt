@@ -141,15 +141,26 @@ def check_domains():
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
+def undo_liquidation_delta(actual, program):
+    """Check the new keeper route before comparing older interface layers."""
+    if program != 'clearing':
+        return actual
+    actual = deepcopy(actual)
+    def unique(name):
+        matches = [ix for ix in actual['instructions'] if ix['name'] == name]
+        assert len(matches) == 1, name
+        return matches[0]
+    direct = unique('execute_liquidity_route')
+    forced = unique('liquidate_liquidity_route')
+    tag = list(hashlib.sha256(b'global:liquidate_liquidity_route').digest()[:8])
+    assert forced == {**direct, 'name': 'liquidate_liquidity_route', 'discriminator': tag}
+    actual['instructions'].remove(forced)
+    return actual
+
+
 def comparable_program(program, actual):
     """Validate every explicit extension before comparing the retained D90 ABI."""
-    if program == 'clearing':
-        actual = deepcopy(actual)
-        direct = next(ix for ix in actual['instructions'] if ix['name'] == 'execute_liquidity_route')
-        forced = next(ix for ix in actual['instructions'] if ix['name'] == 'liquidate_liquidity_route')
-        assert forced['accounts'] == direct['accounts'] and forced['args'] == direct['args']
-        assert forced['discriminator'] == list(hashlib.sha256(b'global:liquidate_liquidity_route').digest()[:8])
-        actual['instructions'].remove(forced)
+    actual = undo_liquidation_delta(actual, program)
     actual = undo_window_delta(actual, program)
     actual = undo_backing_delta(actual, program)
     actual = undo_membership_delta(actual, program)

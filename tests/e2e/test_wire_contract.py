@@ -25,10 +25,23 @@ class WireContractTest(unittest.TestCase):
         mutate(changed)
         self.assertNotEqual(wire.program_contract(changed), self.expected)
 
+    def test_forced_route_wire_checks_privileges_tag_and_uniqueness(self):
+        for field in ('accounts', 'args', 'discriminator', 'duplicate'):
+            altered = deepcopy(self.original)
+            route = next(ix for ix in altered['instructions'] if ix['name'] == 'liquidate_liquidity_route')
+            if field == 'duplicate':
+                altered['instructions'].insert(0, deepcopy(route))
+            elif field == 'accounts':
+                route['accounts'][0]['signer'] = False
+            else:
+                route[field] = []
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                rc2.undo_liquidation_delta(altered, 'clearing')
+
     def test_backing_delta_preserves_exact_epoch_layout_and_ledger_privilege(self):
         from backing_wire_contract import undo_backing_delta
         from settlement_wire_contract import undo_window_delta
-        original = undo_window_delta(self.original, 'clearing')
+        original = undo_window_delta(rc2.undo_liquidation_delta(self.original, 'clearing'), 'clearing')
         undo_backing_delta(original, 'clearing')
         for name in ('MarginAccount', 'MarketLedger', 'BackingState', 'BackingRegion', 'SettlementCertificate', 'AccountBackingChanged'):
             altered = deepcopy(original)
@@ -44,9 +57,10 @@ class WireContractTest(unittest.TestCase):
 
     def test_window_extension_rejects_unknown_authority_payload_or_layout(self):
         from settlement_wire_contract import undo_window_delta
-        undo_window_delta(self.original, 'clearing')
+        original = rc2.undo_liquidation_delta(self.original, 'clearing')
+        undo_window_delta(original, 'clearing')
         for mutation in ('argument', 'order', 'discriminator', 'layout', 'duplicate'):
-            altered = deepcopy(self.original)
+            altered = deepcopy(original)
             instruction = next(item for item in altered['instructions'] if item['name'] == 'continue_settlement_plan_window')
             if mutation == 'argument': instruction['args'][3]['type'] = 'u32'
             elif mutation == 'order': instruction['accounts'].reverse()
