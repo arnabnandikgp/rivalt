@@ -81,7 +81,9 @@ rounding would harm a foreign creditor. The [joint default comparison](architect
 checks shared maker lots, cross-market payout floors and feasibility when both
 markets reduce positions in the same freeze.
 [D119](../DECISIONS.md#d119--verified-joint-reductions-in-one-frozen-episode)
-selects joint admission with an indivisible financial result across both markets. Keep the active proportional settlement until
+selects joint admission with an indivisible financial result across both markets. [D120](../DECISIONS.md#d120--total-recovery-before-market-balance)
+selects maximum total recovery followed by balanced market recovery on ties.
+Keep the active proportional settlement until
 the successor eligibility, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.

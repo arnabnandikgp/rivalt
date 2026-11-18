@@ -460,7 +460,7 @@ The [tests](../../tests/financial/test_joint_reductions.py) also cover shared
 fractional debtor cash, fee custody, scarce insurance and ordinary Rust terminal
 settlement on all four books in the table. In the one-atom BTC insurance case,
 one feasible plan reduces BTC/ETH impairments by (1, 0) and another by
-(109/120, 119/120). The model returns both.
+(109/120, 119/120). The comparison frontier contains both. D120 selects the latter because it recovers more in total.
 
 **Choosing between feasible joint plans.** A separate fixture has frozen BTC/ETH
 impairments of 2 and 64/5 collateral atoms. The two flat creditors start with
@@ -473,7 +473,7 @@ Their ranking changes which creditor receives the extra atom.
 | Largest total reduction first | 2 and 14/5 | 24/5 (4.80) | 7/32 (21.88%) | 6 / 7 |
 | Largest recovery percentage for the worse-off market first | 1 and 52/15 | 67/15 (4.47) | 13/48 (27.08%) | 5 / 8 |
 
-The total-first comparison adds the verified reductions denominated in the same
+The [approved total-first rule](../DECISIONS.md#d120--total-recovery-before-market-balance) adds the verified reductions denominated in the same
 collateral. The balance-first comparison sorts the markets’ recovery percentages
 from lowest to highest and compares them in that order. A market with zero
 original loss has no percentage to rank. Each comparison uses the other objective

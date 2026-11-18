@@ -1192,4 +1192,19 @@ recovery may expose a one-sided result. A restart resumes the same commitment.
 The [model comparison](clearing/architecture-review.md#competing-debtors-and-simultaneous-market-defaults)
 uses joint admission by default. Runtime verification, interruption and recovery
 still require implementation and qualification. D119 settles feasibility;
-the choice between multiple feasible cross-market outcomes remains open.
+D120 ranks feasible cross-market outcomes.
+
+## D120 — Total recovery before market balance
+
+18 November 2026. For the D119 successor the user approved maximizing total
+verified shortfall reduction, denominated in the common collateral. For each
+market, count at most the direct charge and the decline in that market’s
+verified creditor impairment. Use exact quantities through ranking. On equal
+totals, compare the fractions of original market shortfalls recovered, sorted
+lowest first. Omit markets whose original shortfall is zero. D116 governs
+charge sharing among eligible winners. Preserve exact ties for verification.
+
+Every ranked plan must already satisfy D117–D119. The [joint comparison](clearing/architecture-review.md#competing-debtors-and-simultaneous-market-defaults)
+shows which creditor receives the next atom and a separate equal-total case.
+The rule selects a research outcome. Runtime activation requires evidence of
+feasibility, optimality and indivisible application for the frozen episode.

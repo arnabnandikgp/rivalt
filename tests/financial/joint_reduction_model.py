@@ -135,7 +135,7 @@ def evaluate(original, baseline, plans):
 
 
 def preferred(first, second):
-    """Keep incomparable market outcomes visible; never add BTC and ETH shortfalls for ranking."""
+    """Prune dominated plans before comparing exact recovery totals across markets."""
     if first.recovered != second.recovered:
         return all(a >= b for a, b in zip(first.recovered, second.recovered))
     deviations = [tuple(m.deviation for m in plan.markets) for plan in (first, second)]
@@ -150,7 +150,8 @@ def preferred(first, second):
     return first_costs != second_costs and all(a <= b for a, b in zip(first_costs, second_costs))
 
 
-def compare_joint(book, exposures, *, require_standalone=False):
+def compare_joint(book, exposures, *, require_standalone=False, priority="total-first"):
+    """Apply the successor ranking. Pass priority=None to inspect the full comparison frontier."""
     require(book.frozen and len(exposures) == 2, "both frozen markets required")
     baseline = terminal(book)
     choices = [market_plans(book, m, exposures[m], baseline) for m in range(2)]
@@ -165,7 +166,7 @@ def compare_joint(book, exposures, *, require_standalone=False):
             frontier = [other for other in frontier if not preferred(result, other)]
             frontier.append(result)
     require(bool(frontier), "the original frozen plan must remain feasible")
-    return frontier
+    return frontier if priority is None else rank_recoveries(frontier, baseline, priority=priority)
 
 
 def rank_recoveries(plans, baseline, *, priority):

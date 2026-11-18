@@ -79,7 +79,7 @@ class JointReductions(unittest.TestCase):
 
     def test_insurance_and_incomparable_market_recoveries_remain_visible(self):
         book, exposures = linked_defaults(insurance=(1, 0))
-        plans = compare_joint(book, exposures, require_standalone=False)
+        plans = compare_joint(book, exposures, priority=None)
         self.assertEqual({(plan.recovered, plan.payout.cash[4:]) for plan in plans},
                          {((1, 0), (10, 8)), ((Fraction(109, 120), Fraction(119, 120)), (10, 9))})
         self.assertTrue(all(plan.payout.insurance_spent == (1, 0) for plan in plans))
@@ -115,10 +115,10 @@ class JointReductions(unittest.TestCase):
         profiles = (Exposure(100, (-1, 1, 0, 0, 0, 0), (100, 96, None, None, None, None), (0, 4, 0, 0, 0, 0)),
                     Exposure(20, (0, 0, 1, -1, 0, 0), (None, None, 20, 24, None, None), (0, 0, 0, 4, 0, 0)))
         baseline = terminal(book)
-        plans = compare_joint(book, profiles)
+        plans = compare_joint(book, profiles, priority=None)
         self.assertEqual(baseline.cash, (0, 0, 0, 2, 5, 7))
         self.assertEqual({p.charges for p in plans}, {(0, 4), (1, 4), (2, 4)})
-        most, = rank_recoveries(plans, baseline, priority="total-first")
+        most, = compare_joint(book, profiles)
         balanced, = rank_recoveries(plans, baseline, priority="balance-first")
         # Initial shortfalls: 2 BTC, 64/5 ETH. Total-first recovers 24/5;
         # balance-first recovers 67/15. The weaker share rises from 7/32 to 13/48.
@@ -141,11 +141,11 @@ class JointReductions(unittest.TestCase):
         book = MarketBook(tuple(Account(c, (btc, eth)) for c, btc, eth in rows), insurance=(1, 2), frozen=True)
         profiles = (Exposure(100, (-1, 1, 0, 0, 0, 0), (100, 95, None, None, None, None), (0, 5, 0, 0, 0, 0)),
                     Exposure(20, (0, 0, 1, -1, 0, 0), (None, None, 20, 30, None, None), (0, 0, 0, 10, 0, 0)))
-        plans = compare_joint(book, profiles)
+        plans = compare_joint(book, profiles, priority=None)
         tied = {p.charges: p for p in plans if sum(p.recovered) == Fraction(61, 12)}
         self.assertEqual({charges: plan.recovered for charges, plan in tied.items()},
                          {(4, 5): (Fraction(7, 3), Fraction(11, 4)), (5, 5): (3, Fraction(25, 12))})
-        chosen, = rank_recoveries(plans, terminal(book), priority="total-first")
+        chosen, = compare_joint(book, profiles)
         self.assertEqual((chosen.charges, chosen.payout.cash[4:]), ((4, 5), (4, 4)))
         self.assertEqual(tied[(5, 5)].payout.cash[4:], (5, 3))
 
