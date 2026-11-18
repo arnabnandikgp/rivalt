@@ -1,6 +1,6 @@
 //! Exact selection for the funded two-debtor ThreeLotBook only.
 //! Member IDs 0 and 1 are debtors, 2..=7 are winners and 8 is the flat creditor.
-use anchor_lang::prelude::*;
+#![no_std]
 use core::cmp::Ordering;
 
 // Every unordered partition contains winner 0 in exactly one triple.
@@ -57,9 +57,7 @@ pub fn score_weights(gains: &[u16; 6]) -> [u128; 6] {
     })
 }
 
-#[derive(
-    AnchorSerialize, AnchorDeserialize, Clone, Default, InitSpace, IdlType, Debug, PartialEq, Eq,
-)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub struct Plan {
     pub charges: [u16; 6],
     /// Bit i is 1 exactly when winner i was assigned to debtor 1.

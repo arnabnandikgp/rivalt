@@ -1,7 +1,5 @@
 //! Input lines are episode, budget and six gains, separated by spaces.
-use default_proof_probe::selection::{
-    candidate, priorities, score_weights, valid_book, Plan, PARTITIONS,
-};
+use default_plan_selection::{candidate, priorities, score_weights, valid_book, Plan, PARTITIONS};
 use std::{
     hint::black_box,
     io::{self, BufRead},

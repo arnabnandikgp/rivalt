@@ -16,4 +16,4 @@ custom-heap = []
 custom-panic = []
 [dependencies]
 anchor-lang = { workspace = true }
-solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
+default-plan-selection = { path = "../../../crates/default-plan-selection" }

@@ -391,11 +391,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "default-plan-selection"
+version = "0.1.0"
+dependencies = [
+ "solana-sha256-hasher",
+]
+
+[[package]]
 name = "default-proof-probe"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
- "solana-sha256-hasher",
+ "default-plan-selection",
 ]
 
 [[package]]

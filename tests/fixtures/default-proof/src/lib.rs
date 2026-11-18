@@ -1,7 +1,7 @@
 //! Isolated local diagnostic. Its PDA contains a synthetic frozen book and a
 //! restartable selection result. It has no clearing account or custody authority.
 use anchor_lang::prelude::*;
-pub mod selection;
+use default_plan_selection as selection;
 use selection::{Plan, PARTITIONS};
 
 declare_id!("sDPXvpEPwCzVKHdpxntiM1khVvtCj2V6ozCr5euajBi");
@@ -19,7 +19,10 @@ pub struct Proof {
     pub cursor: u8,
     pub sealed: bool,
     pub bump: u8,
-    pub best: Plan,
+    pub charges: [u16; 6],
+    pub debtor_mask: u8,
+    pub recovered: u32,
+    pub sharing_cost: u128,
 }
 
 #[derive(Accounts)]
@@ -77,6 +80,12 @@ pub mod default_proof_probe {
             ProofError::InvalidCount
         );
         let weights = selection::score_weights(&proof.gains);
+        let mut best = Plan {
+            charges: proof.charges,
+            debtor_mask: proof.debtor_mask,
+            recovered: proof.recovered,
+            sharing_cost: proof.sharing_cost,
+        };
         for partition in expected..expected + count {
             let next = selection::candidate(
                 partition,
@@ -86,10 +95,14 @@ pub mod default_proof_probe {
                 &proof.order,
                 proof.preferred_debtor,
             );
-            if next.beats(&proof.best, &proof.order, proof.preferred_debtor) {
-                proof.best = next;
+            if next.beats(&best, &proof.order, proof.preferred_debtor) {
+                best = next;
             }
         }
+        proof.charges = best.charges;
+        proof.debtor_mask = best.debtor_mask;
+        proof.recovered = best.recovered;
+        proof.sharing_cost = best.sharing_cost;
         proof.cursor += count;
         Ok(())
     }

@@ -39,6 +39,8 @@ python3 tests/financial/test_creditor_payout_floors.py
 python3 tests/financial/test_joint_reductions.py
 python3 tests/financial/test_default_plan_certificate.py
 python3 tests/financial/test_bounded_default_search.py
+cargo build --locked -p default-plan-selection --example measure
+python3 tests/financial/test_metered_default_proof.py
 python3 tests/financial/test_scalable_clearing.py
 python3 tests/financial/test_incremental_backing.py
 cargo build --locked -p financial-core --bin backing-driver
