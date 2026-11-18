@@ -14,6 +14,7 @@ import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {financialRoots} from './membership-scan-helper.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 import {eventually} from './wire.js';
+import {verifyProfitBuild} from './profit-attribution-build.js';
 
 const directory = process.env.RIVALT_RUN_DIR!, url = process.env.RIVALT_RPC_URL!;
 const revision = execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
@@ -23,7 +24,9 @@ const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RI
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 try {
-  const setup = await liquidityExecutionSetup(h,rpc,{shape:symmetricPayoutShape,makerCash:8_000n,verifyRejections:false});
+  const candidate = process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-recovery'
+    ? verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) : undefined;
+  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:candidate?'profit-attribution':'selected',shape:symmetricPayoutShape,makerCash:8_000n,verifyRejections:false});
   const [trader] = setup.roots, owner = setup.traderOwner;
   const first = setup.instances[0], second = setup.instances[2], debtor = first.capital, winner = second.capital;
   assert.notEqual(first.pricingProgram,second.pricingProgram);
@@ -66,7 +69,7 @@ try {
       position.lots*frozen.prices[index]*1_000_000_000n+position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled))};
   }));
   assert.equal((await root(trader)).cash,999_974n);
-  journal = await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)));
+  journal = await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),candidate);
   const events = journal.initialEvents, freezes = events.filter(event=>event.type==='AccountResolutionFrozenV3');
   assert.equal(freezes.length,1);
   const cutoff = freezes[0];
@@ -85,9 +88,16 @@ try {
   const inputs = {rows,debtor,winner,trader,mark:frozen.prices[0],funding:frozen.funding,pools:frozen.poolsBefore,
     fees:frozen.feesBefore,insurance:frozen.insuranceBefore,fills};
   const comparison = JSON.parse(execFileSync('python3',['tests/financial/btc_default_comparison.py'],{input:json(inputs),encoding:'utf8'}));
+  if(candidate) {
+    for(const row of rows) {
+      const {positions}=sdk.decodeProfitAttribution((await h.read(row.key))!);
+      const entry=row.key===winner?60_998n:row.key===debtor?60_002n:0n;
+      assert.deepEqual(positions[0],{entryScaled:entry*1_000_000_000n,paidScaled:0n,denominator:1n});
+    }
+  }
   await journal.checkpoint('frozen',true);
   const openWorker = async () => {
-    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url);
+    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,candidate?'profit-attribution-candidate':'selected');
     await runtime.open();
     return runtime;
   };
@@ -124,6 +134,7 @@ try {
   const finalCash = Object.fromEntries(await Promise.all(members.map(async key=>{
     const value = await root(key);
     assert(value.positions.every(position=>position.lots===0n && position.virtualScaled===0n));
+    if(candidate)assert(sdk.decodeProfitAttribution((await h.read(key))!).positions.every(slot=>slot.entryScaled===0n&&slot.paidScaled===0n));
     return [key,String(value.cash)];
   })));
   assert.deepEqual(finalCash,comparison.onchainExpectedCash);

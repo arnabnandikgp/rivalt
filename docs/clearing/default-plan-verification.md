@@ -291,3 +291,58 @@ silently substituted for a verified input.
 selects self-contained current state, per-account capacity and optional sponsorship. The measurements establish the cost for this fixture and leave the
 general arithmetic, on-chain attribution, forced-reduction headroom and
 complete-route rent measurements open.
+
+### Clearing-owned per-lot attribution
+
+The local profit-attribution candidate stores the average entry price and the
+previously paid part of price profit **per surviving lot**, both expressed in
+scaled collateral atoms. Each market has its own two numerators and a common
+positive denominator. A flat position has an empty record. The root's existing
+signed lot count gives the direction and quantity. The candidate reads the
+same oracle reference and accrued funding as ordinary claim payment.
+
+Increasing a position weights its old entry and paid amounts by the surviving
+quantity, adds the new fill cost, then divides by the new quantity. A flip
+starts at the exact gross divided by the executed lots. The trader sees one
+aggregate route price and each maker sees its own leg. A same-side partial
+reduction leaves the per-lot values byte-identical. Closing clears the record.
+All of these writes occur inside the clearing transaction that changes the
+position. The keeper and maker pricing programs receive no additional authority.
+
+For a backed payment, let `q` be the absolute lots, `e` the per-lot entry,
+`p` the per-lot amount already paid, `g` the signed per-lot price gain at the
+current reference, `C` the aggregate accrued claim and `A` the payment. Use
+scaled units throughout. The fixed claim is `F = C − q(g − p)`. Clearing
+adds `max(0, A − max(0, F)) / q` to `p` for an open position. The ordinary
+certificate, available pool and whole-account checks still authorize the payment.
+
+#### Storage reserved at trade admission
+
+Consider any sequence of reductions and backed payments starting with `N` lots
+and common denominator `D`. Let `L = lcm(1, …, N)`. Every future denominator
+divides `lcm(D, L)`. A reduction preserves the per-lot amounts. A payment
+changes no open amount when the fixed claim covers it. When the fixed claim
+is nonpositive, the payment adds `A/q`. In the remaining case the new per-lot
+paid amount equals `g + (A − C)/q`. Both `A` and `C` are integers in scaled
+units. These cases also cover intervening funding or collection because they
+change `C` at the next payment. Positive funded payments never increase `p`
+past the larger of its old value and the positive price gain.
+
+The implementation bounds the stored numerators and denominator before a new
+risk-increasing fill or flip can commit. For `K` the smallest power of two at
+least `N`, use `L ≤ 2^(2K−2)`. Each new prime power in `(m,2m]` contributes
+its prime to the central binomial coefficient `choose(2m,m)`, bounded by
+`2^(2m)`. Multiplying these bounds for successive doublings from one proves
+the stated bound. The denominator is therefore no larger than `D × L`, and
+the entry numerator no larger than its original numerator times `L`. For the
+paid numerator, multiply `L` by the maximum of the original paid numerator,
+entry numerator and `D × MAX_PRICE × SCALE`. This is conservative and cheap
+to check even for a large request. It bounds persistent storage. Transaction
+compute and temporary heap still need measurement for each admitted workload.
+
+The first candidate uses 128 owner-funded bytes per market and an eight-byte
+format marker after the existing margin prefix. The candidate SDK reader
+explicitly selects this layout. The original deployment reader keeps its exact
+size check. Neither growable sponsorship nor the general default verifier is
+active in this build. Separate acceptance must establish contributor refunds,
+capacity growth and resource limits before changing normal admission.
