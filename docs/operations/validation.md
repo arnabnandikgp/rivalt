@@ -1,5 +1,34 @@
 # Validation and measured limits
 
+## Ordinary trader payout
+
+Harness `f732ae05805aadfe1f1dc06d8a83107bb3e9c02a` used the selected
+`p56-window-ed46603` programs, two internal makers, signed local price updates,
+Surfpool 1.7.0 and PostgreSQL 18.6. A trader closed a one-lot gain against a
+different maker, paid 26 fee atoms and withdrew the 970-atom net profit to their
+SPL account. The vault fell by exactly 970. An earlier signed exit that included
+one unpaid atom failed with clearing error 6100 and preserved the margin, custody,
+vault and token-account bytes. Both makers still held their opposing lots.
+
+| Finalized observation | Trader funded cash | Unpaid BTC claim | BTC settlement pool | Wallet received | Seconds since close confirmation |
+|---|---:|---:|---:|---:|---:|
+| Closed against B | 999,974 | 996 | 0 | 0 | 59.6 |
+| A's first loss collected | 999,974 | 996 | 300 | 0 | 68.5 |
+| First 300 paid | 1,000,274 | 696 | 0 | 0 | 103.7 |
+| Remaining gain funded | 1,000,970 | 0 | 0 | 0 | 123.4 |
+| Net profit withdrawn | 1,000,000 | 0 | 0 | 970 | 126.2 |
+
+The first collection and payment were deliberately staged. The cold certificate
+took 39 verification instructions. The ordinary keeper then collected 698 more
+from maker A, restarted with its finalized receipt, and paid 2 to maker B and
+696 to the trader. The three keeper receipts matched stored signed bytes, finalized
+RPC and WebSocket outcomes. Each checkpoint compared the indexed account and API
+with a direct SDK read. A fresh database reproduced the final projection and all
+158 event rows including their signatures and bytes. Reported times include cold
+indexer catch-up, staged collection, certificate preparation and finality. This
+run does not estimate steady-state latency. The [local report](local-development.md#ordinary-payout-demonstration)
+renders five finalized snapshots through the trader's Positions panel.
+
 ## Metered default verification
 
 At `220c139` the [signed resource comparison](../clearing/default-plan-verification.md#measured-nine-account-verifier)

@@ -23,12 +23,20 @@ selected loss rule's eligibility and execution terms are being tested.
 | 5. Default and recovery | Implement the selected rules for debtor recoveries, market insurance, ADL and unpaid claims. Specify when the loss becomes binding, cross-market attribution, rounding, freeze scope and resumption. | Complete conservation across all affected obligations including flat accounts, no eligible opposite position and depleted insurance. Demonstrate bounded, authenticated continuation after restart. Eligibility and execution terms must pass the deliverable 1 gates. |
 | 6. Shared writes and qualification | Baseline same-market locks on the existing paths, then change ownership where measurements justify it. Qualify the resulting clearing lifecycle and its effects on makers and users. | Compare matched distinct-maker and shared-maker workloads, signed Surfpool RPC/WS results, PostgreSQL replay, exit, CU, transaction sizes, costs by payer and landed throughput. Verify aggregate exposure caps, fee carry, funding history and complete payment backing. |
 
-The next demonstration is ordinary settlement on the qualified local runtime.
-Open against one maker, close at a profit against another, follow collection
-from the still-open debtor, and withdraw the funded proceeds. Trace the same
-amounts through clearing, the wallet, the SDK and the finalized SQL projection.
-Use a local test sponsor. Keep successor default development behind its separate
-verification gates. Group future changes by these demonstrable behaviors.
+Use a user-visible outcome to size each delivery. The
+[ordinary payout demonstration](../operations/local-development.md#ordinary-payout-demonstration)
+follows one cross-maker close from claim to wallet. Its deliberately delayed
+first payment exposes the intermediate state. A separate continuous-worker
+measurement with an already prepared certificate would be needed to decide
+whether to optimize payout timing or finance earlier access to cash.
+
+The next deliverable follows one account below maintenance. Show how much of
+its position an admitted maker can close and how a consenting, funded receiver
+takes the remainder when the book runs out. Compare remaining lots, funded cash
+and the maintenance deficit after fees. Include the case where neither path can
+improve the account. Only after this ordinary liquidation path is observable
+does the next deliverable address terminal default. Shared-write and cost
+qualification follow the implemented financial paths.
 
 ## Functional ownership
 

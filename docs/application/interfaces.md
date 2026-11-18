@@ -157,6 +157,12 @@ positions/orders → close → eligible settlement/withdrawal. Portfolio and sub
 IDs refer to real PDAs; portfolio metadata itself has no funds. Account mode and
 isolated market cannot change after registration.
 
+For a flat position with a positive claim, the Positions panel uses
+`closedGainStatus` from the SDK. It shows whether ordinary payment is suspended,
+the balance is below one payable atom, the settlement pool is empty, the pool
+covers part of the claim, or the claim awaits verified payment. Pool cash is
+shared. A payment becomes funded account cash only when clearing applies it.
+
 Show pending, confirmed and finalized separately. Submitted does not mean filled;
 a triggered stop authorizes an attempt and can fail liquidity/price/risk checks.
 Keep exact original signatures/wire for reload and direct RPC recovery. Account,

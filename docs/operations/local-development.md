@@ -116,6 +116,24 @@ does not download a browser. `pnpm build:trader` builds the UI. Integrated wrapp
 provision signed real accounts and SPL transfers, start actual services/PG and stop
 only owned processes. Fixtures do not fabricate fills or settlements.
 
+## Ordinary payout demonstration
+
+With the selected program artifacts and PostgreSQL container runtime installed,
+run the following from the repository root.
+
+```sh
+RIVALT_LIQUIDITY_PROBE=ordinary-payout bash ops/current-runtime-smoke.sh
+```
+
+The launcher creates an owned Surfpool instance and a fresh PostgreSQL database.
+It prints the local output directory on success. Open `payout.html` for the trader's
+Positions panel at each payment stage. `payout.json` records the exact amounts,
+transaction signatures, worker receipts and observation times. Both stay local.
+The test fee payer submits keeper operations, the trader's local signer authorizes
+the trades and withdrawal, and the two reference makers use separate capital.
+The first collection is deliberately partial so the intermediate balances can be
+inspected. Observation times include sampling, finality and SQL publication.
+
 ## Interactive local demo
 
 `bash ops/demo.sh start|status|stop|reset` launches the same current canonical

@@ -247,6 +247,20 @@ Payment remains first-admissible landed order, not a FIFO/pro-rata queue, and
 already paid cash is not clawed back for a later gap. Funded exits use their own
 whole-account admission below, not this ordinary profit-payment certificate.
 
+### When the trader closes against a different maker
+
+Suppose a trader buys one lot at 60,002 collateral atoms from A and sells it at
+60,998 to B. The trader is flat with a fixed positive claim of 996 atoms. A stays
+short and B stays long. At an index of 61,000, A owes 998 atoms and B is owed two.
+The traders' and makers' claims sum to zero. Each fill charged the trader 13 atoms,
+so paying the entire gain leaves the trader 970 atoms ahead of their deposit.
+
+A keeper can collect A's loss while A is still short. Collection moves A's funded
+cash into the market settlement pool. A separate, backed payment moves cash from
+that pool to the trader and reduces their unpaid claim by the same amount. For
+example, a 300-atom payment leaves a 696-atom claim. Only funded cash can leave
+the vault through withdrawal. The [local demonstration](../operations/local-development.md#ordinary-payout-demonstration)
+follows these balances through a restarted keeper and a token-account exit.
 
 ## Funded-exit proof and checks
 
