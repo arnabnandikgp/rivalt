@@ -9,6 +9,11 @@ A second process recovered the missing receipt from RPC and resumed at partition
 three. The local terminal driver established the resulting cash allocation.
 The live clearing release path and its compute budget are outside this measurement.
 
+The [frozen attribution comparison](../clearing/default-plan-verification.md#what-the-freeze-must-retain-about-open-profit)
+at `50d8a3a` checks 1,000 prefixes, 367 payments and two exact native terminal
+payoffs. Its storage figures are serialized reference payloads. It has no signed
+attribution write or runtime efficiency measurement.
+
 ## Settlement and liquidation research
 
 Model revision `11a6000` passes 11 focused Python tests. Eight frozen inputs also

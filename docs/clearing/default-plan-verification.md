@@ -185,3 +185,71 @@ cargo build --locked -p default-plan-selection --example measure
 python3 tests/financial/test_metered_default_proof.py
 bash ops/default-proof-smoke.sh
 ```
+
+## What the freeze must retain about open profit
+
+The signed fixture starts with six known gains. In clearing, the source for
+each gain matters. Today's frozen row records lots, cash, generations and
+aggregate claims. A maker's aggregate claim can contain both realized gains
+and price profit on surviving lots. D113 charges only the eligible, unpaid
+part of the latter.
+
+The [input comparison](../../tests/financial/test_frozen_attribution_input.py)
+starts a one-lot long at 99 or 101. It then buys a lot at 100 and sells one
+lot, 128 times. The first sale makes the two aggregate books coincide. At a
+mark of 102 both have debtor cash 4, debtor claim −8, maker claim 4, flat claim
+4 and the same inventory. The two surviving average entries are
+`100 − 1/2^128` and `100 + 1/2^128`. The permitted whole-lot execution
+prices sit on opposite sides of a tick. In the first book the maker can absorb
+two atoms. In the second it can absorb one. Native terminal settlement pays
+the maker and flat creditor 1/3 and 2/2 respectively. These are synthetic,
+zero-fee trade histories and native terminal cash controls.
+
+Two exact records suffice per open market position. Store signed entry cost
+(lots times average entry) and cumulative payments assigned to those surviving
+lots. An increase adds the new signed fill cost. A partial close retains both
+in the same proportion as the lots. A complete close clears both. A flip starts
+the new side at the fill price. At a backed payment, the pre-payment aggregate
+and mark determine the fixed claim and hence the D113 open portion. Funding
+and collection enter through the signed aggregate. At freeze, check the
+per-lot execution-price bound, the matched lots' share of unpaid open profit
+and the aggregate unpaid claim.
+
+The [research encodings](../../tests/financial/frozen_attribution_input.py)
+compare two ways to furnish those records. One stores their current reduced
+rational values with a shared denominator. A keeper can read these values and
+continue without historical transactions. The other stores a 32-byte hash
+and an eight-byte event count bound to the original venue, member, activation,
+market and generation. It requires the ordered fill and payment records from
+a flat origin. A frozen commitment rejects a missing, added or altered record.
+It cannot reconstruct an unavailable record.
+
+| Partial closes in the measured history | Exact current position, bytes | Fixed commitment, bytes | Records needed to replay, bytes |
+|---:|---:|---:|---:|
+| 1 | 23 | 40 | 51 |
+| 32 | 31 | 40 | 1,105 |
+| 128 | 55 | 40 | 4,369 |
+| 1,024 | 279 | 40 | 34,833 |
+
+Lengths cover the implemented research encodings. The current-position encoding
+includes lots and three length fields. The commitment and event columns exclude
+account headers, origin metadata, indexing, transactions and backup overhead.
+The examples establish that a reduced rational denominator can exceed 128
+bits with two lots at peak exposure. They do not establish typical maker
+histories, an optimal encoding, a rent estimate or a runtime CU bound.
+
+At `50d8a3a`, five focused checks and nine existing payment-history checks
+passed. Across 1,000 independently generated history prefixes and 367 funded
+payments the checkpoint reproduced the ledger's basis and previously paid
+amount, including shorts, flips, fractional funding and partial reductions.
+Both terminal cash vectors above were checked against compiled Rust. Authority
+in these tests is supplied by the fixture. A financial integration must attach
+the records to clearing's successful transitions and verified freeze.
+
+A self-contained current position preserves permissionless recovery if the
+venue's historical database becomes unavailable. A commitment makes the
+ordinary footprint fixed but introduces a data-availability dependency that can
+keep the cohort frozen under D122. The working recommendation is to meter the
+self-contained representation on the common trade path, including the cost
+of crossing a storage boundary. Choosing an operating policy for missing
+storage or missing history affects trade and exit availability.

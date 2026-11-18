@@ -88,8 +88,9 @@ sets the final member tie order. The [verification contract](default-plan-verifi
 maps proof obligations to the existing freeze and settlement controllers.
 The [continuation reference](default-plan-verification.md#restarting-verification-when-a-bound-misses)
 checks whole joint candidates in committed ranges. The [metered fixture](default-plan-verification.md#measured-nine-account-verifier) now has signed restart
-evidence for a funded nine-account family. Next establish the authenticated
-closed-first gain input for surviving positions. General linked-book verification
+evidence for a funded nine-account family. The [input comparison](default-plan-verification.md#what-the-freeze-must-retain-about-open-profit) identifies the two
+exact survivor amounts and measures checkpoint versus history storage. Next
+meter a self-contained update and storage growth on the common path. General linked-book verification
 and clearing adoption remain open. [D122](../DECISIONS.md#d122--exact-proof-before-prototype-release)
 requires an exact proof and defers the production timeout policy.
 Keep the active proportional settlement until
