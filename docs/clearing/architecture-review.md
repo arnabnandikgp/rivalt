@@ -344,7 +344,7 @@ debit each to stay at or below its baseline. Maximize originating-market recover
 within that feasible set, then apply proportional sharing. This can leave a
 larger residual for BTC creditors. It still admits a ten-atom charge when the
 ETH obligation in the example is only 20, and the full twenty when the cross
-winner brings enough funded cash to meet its own ETH obligation. The research
+winner brings enough funded cash to meet its own ETH obligation. The
 initial guard measured market totals. The individual payout experiment below checks each creditor’s actual market receipt.
 
 The [research model](../../tests/financial/cross_market_adl_model.py) enumerates
