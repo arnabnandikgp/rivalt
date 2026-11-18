@@ -166,3 +166,18 @@ def compare_joint(book, exposures, *, require_standalone=False):
             frontier.append(result)
     require(bool(frontier), "the original frozen plan must remain feasible")
     return frontier
+
+
+def rank_recoveries(plans, baseline, *, priority):
+    """Compare feasible plans in collateral atoms or by recovery fraction; retain exact ties."""
+    require(priority in ("total-first", "balance-first") and plans, "plans and a ranking policy required")
+    shortfalls = market_losses(baseline)
+
+    def score(plan):
+        total = sum(plan.recovered)
+        fractions = tuple(sorted(Fraction(recovery, loss) for recovery, loss in
+                                 zip(plan.recovered, shortfalls) if loss > 0))
+        return (total, fractions) if priority == "total-first" else (fractions, total)
+
+    highest = max(map(score, plans))
+    return [plan for plan in plans if score(plan) == highest]

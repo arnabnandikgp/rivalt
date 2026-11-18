@@ -4,7 +4,7 @@ from itertools import permutations, product
 import unittest
 
 from account_contract_reference import Account
-from joint_reduction_model import Exposure, compare_joint, evaluate, market_plans
+from joint_reduction_model import Exposure, compare_joint, evaluate, market_plans, rank_recoveries
 from market_settlement_reference import MarketBook
 from settlement_liquidation_model import terminal
 from test_creditor_payout_floors import linked_creditors
@@ -108,6 +108,33 @@ class JointReductions(unittest.TestCase):
             observed = compare_joint(book, (exposure, inactive(4)), require_standalone=True)
             self.assertEqual({plan.markets[0].winner_charges[2:] for plan in observed}, expected)
             self.assertTrue(all(plan.recovered == (-best_score[0], 0) for plan in observed))
+
+    def test_ranking_can_change_which_flat_creditor_gets_the_next_atom(self):
+        rows = ((7, -9, 0), (0, 4, -8), (5, 0, -13), (2, -1, 4), (0, 6, 0), (0, 0, 17))
+        book = MarketBook(tuple(Account(cash, (btc, eth)) for cash, btc, eth in rows), frozen=True)
+        profiles = (Exposure(100, (-1, 1, 0, 0, 0, 0), (100, 96, None, None, None, None), (0, 4, 0, 0, 0, 0)),
+                    Exposure(20, (0, 0, 1, -1, 0, 0), (None, None, 20, 24, None, None), (0, 0, 0, 4, 0, 0)))
+        baseline = terminal(book)
+        plans = compare_joint(book, profiles)
+        self.assertEqual(baseline.cash, (0, 0, 0, 2, 5, 7))
+        self.assertEqual({p.charges for p in plans}, {(0, 4), (1, 4), (2, 4)})
+        most, = rank_recoveries(plans, baseline, priority="total-first")
+        balanced, = rank_recoveries(plans, baseline, priority="balance-first")
+        # Initial shortfalls: 2 BTC, 64/5 ETH. Total-first recovers 24/5;
+        # balance-first recovers 67/15. The weaker share rises from 7/32 to 13/48.
+        self.assertEqual((most.recovered, balanced.recovered), ((2, Fraction(14, 5)), (1, Fraction(52, 15))))
+        self.assertEqual((most.charges, balanced.charges), ((2, 4), (1, 4)))
+        for line, plan, cash in zip(run([frozen_book_command(p.book) for p in (most, balanced)]),
+                                    (most, balanced), ((0, 0, 0, 1, 6, 7), (0, 0, 0, 1, 5, 8)), strict=True):
+            native = decode(line)
+            self.assertEqual((plan.payout.cash, native['cash'], native['spent']), (cash, cash, (0, 0)))
+
+    def test_fully_covered_markets_have_no_recovery_fraction_to_rank(self):
+        book, exposures = linked_defaults(insurance=(2, 2))
+        baseline, choices = terminal(book), compare_joint(book, exposures)
+        for policy in ("total-first", "balance-first"):
+            selected, = rank_recoveries(choices, baseline, priority=policy)
+            self.assertEqual((selected.recovered, selected.charges), ((0, 0), (0, 0)))
 
     def test_native_terminal_controls_for_both_markets_and_each_half(self):
         book, _ = linked_defaults()
