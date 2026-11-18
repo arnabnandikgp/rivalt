@@ -1,5 +1,41 @@
 # Validation and measured limits
 
+## Single-debtor BTC recovery
+
+At `7781e6b0cbf0b8df7801cd3d09fff1005977c5ea`, the [signed harness](../../tests/rpc-contract/btc-default-recovery-rpc.ts)
+ran the selected P56 binaries (`ed46603`) on fresh Surfpool 1.7.0 with eight
+financial accounts, internally operated makers, signed test prices and one test
+collateral mint. A cross trader bought one BTC lot from maker A at 60,002 and
+sold it to maker B at 60,998. The trader paid two 13-atom fees. At the verified
+70,000 freeze, A's short owed 9,998 atoms and A held 8,000 funded atoms.
+BTC insurance supplied its whole 498-atom balance (492 donor atoms plus six fee
+atoms). The remaining **1,500 atoms** are the difference between the claims and
+the 8,498 available to creditors.
+
+| Creditor | Unpaid BTC gain at freeze | Funded by selected clearing | Funded in successor model | Difference |
+|---|---:|---:|---:|---:|
+| Flat trader | 996 | 847 | 996 | +149 |
+| Maker B, still long one lot | 9,002 | 7,651 | 7,502 | −149 |
+| Total | 9,998 | 8,498 | 8,498 | 0 |
+
+The [independent comparison](../../tests/financial/btc_default_comparison.py)
+replayed both finalized fills from a flat origin, checked every frozen position
+and claim, and compared all eight terminal cash balances with the signed
+proportional result. The successor model assigns all 1,500 atoms to B by closing
+its one eligible lot at 68,500. This leaves zero loss for subsequent proportional
+allocation. ETH insurance spent zero. Clearing retained 20 atoms of fees.
+
+The selected worker finalized 13 continuations, including a worker restart
+after the first receipt. Each stored original matched finalized RPC bytes
+and a successful WebSocket notification. All positions were flat at distribution.
+The trader withdrew 847 funded atoms into its SPL account and the vault fell by
+847. Four subsequent source observations and an authority transaction returned
+clearing to custody. The run recorded 277 signed harness outcomes including setup.
+A fresh PostgreSQL 18.6 replay matched the projection, all 115 event records,
+their signatures and their bytes. This run covers a single BTC debtor, zero
+funding, and one eligible opposite position. The general successor remains a
+separate implementation and qualification gate. [Reproduction](local-development.md#btc-default-recovery-comparison)
+
 ## Maker liquidation and funded receiver
 
 The candidate SBF was built at `4e07c1f`. Its [signed scenario](../../tests/rpc-contract/maker-liquidation-rpc.ts)

@@ -134,6 +134,22 @@ the trades and withdrawal, and the two reference makers use separate capital.
 The first collection is deliberately partial so the intermediate balances can be
 inspected. Observation times include sampling, finality and SQL publication.
 
+## BTC default recovery comparison
+
+Use the selected program artifacts, the pinned native settlement helper and the
+local PostgreSQL container runtime. Run this command from a clean tracked checkout.
+
+```sh
+RIVALT_LIQUIDITY_PROBE=btc-default-recovery bash ops/current-runtime-smoke.sh
+```
+
+Two internal makers trade one BTC lot against the same trader. The trader closes
+before a signed price change makes the first maker insolvent. The launcher records
+the verified freeze, finalized continuations, funded payouts and SPL withdrawal in
+`btc-default-recovery.json` under the printed local directory. A Python reference
+replays the two fills and calculates both payout rules from that same freeze.
+Only the selected proportional rule moves tokens in this demonstration.
+
 ## Maker liquidation demonstration
 
 Build the separately pinned candidate at source revision `ab3f6c6` with

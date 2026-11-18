@@ -4,47 +4,49 @@ Updated 19 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
-P01–P14, P15A/P16A, P17–P50 and M1–M5b/M7–M13 are integrated within their
-recorded engineering scopes. The quantity/audit stack #68 → #69 → #71 merged
-atomically at **`28db412378317a493459c8cc9e0f7310cb38e151`**, with the complete tree
-identical to accepted tip `953cd1fbf40af8e22e7e7a0a60bc396a83966df2` and review fix
-`d63e3b17631d8275aaf0e1afac371f1fd03ca8b6` retained as an ancestor.
-[Validation](operations/validation.md) records the exact qualification pins and
-limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
+P01–P14, P15A/P16A and the delivered P17–P56 phases are integrated within
+their recorded scopes, together with the clearing research and qualification
+through #101. On 19 November,
+all 29 PRs in stack #74 merged into `main` at
+**`8a1d49d5217009a17f129266df02a214e5c429f0`**. Its file tree matches
+the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
+[Validation](operations/validation.md) records the qualified artifacts and limits.
+[History](HISTORY.md) records the integration.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| P51A audit-remediation roadmap | Review | [Ready PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
-| P51B account/settlement contract and feasibility | Review | [Ready PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
-| P52 bounded-progress finalized indexer | Review | [Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
-| P53A shared price policy | Review | [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
-| P53B calibrated ranges | Review | [Ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
-| P54A scalable settlement kernel | Review | [Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
-| P54B authenticated frozen/rate work | Review | [Ready PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
-| P54C conserving settlement | Review | [Ready PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
-| P55A1 identity/index foundation | Review | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [ready PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
-| P55A2 on-chain membership/lifecycle | Review | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [Ready PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
-| P55B1 maintained-backing kernel | Review | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [Ready PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
-| P55B2 on-chain maintained backing | Review | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [ready PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
-| P56 account-scale services, clients and activation | Review | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. Local acceptance complete; PR remains open |
+| P51A audit-remediation roadmap | Closed | [PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
+| P51B account/settlement contract and feasibility | Closed | [PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
+| P52 bounded-progress finalized indexer | Closed | [PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |
+| P53A shared price policy | Closed | [PR #76](https://github.com/arnabnandikgp/rivalt/pull/76), above #75; SBF `2136106`; publisher `55426dc` passes 99 signed outcomes; journal `e98b0eb` passes 120 outcomes and reconciled, byte-identical 72-event fresh replay |
+| P53B calibrated ranges | Closed | [PR #77](https://github.com/arnabnandikgp/rivalt/pull/77), above #76; user-approved policy 2; SBF `afeb7ea`, publisher `10cadb7` (137 outcomes), boundary/PG and safety `82d2c6a` (228 / 290 outcomes); 176-event fresh replay |
+| P54A scalable settlement kernel | Closed | [PR #78](https://github.com/arnabnandikgp/rivalt/pull/78), above #77; clean `60c2141`: 774 independent settlements, 307 rejection cases and 16 completed native scale cases; no runtime activation |
+| P54B authenticated frozen/rate work | Closed | [PR #79](https://github.com/arnabnandikgp/rivalt/pull/79), above #78; clean `22736dc` / SBF `89b6129`: 479 signed outcomes, two insurance evaluations and complete prefix/ABI/recovery checks; financial activation unchanged |
+| P54C conserving settlement | Closed | [PR #80](https://github.com/arnabnandikgp/rivalt/pull/80), above #79; clean `c6e08f9` / SBF `efa4595`: 1,405 signed outcomes, ten-root payouts, eight token exits, recovery and identical 131-event fresh PostgreSQL replay; population activation unchanged |
+| P55A1 identity/index foundation | Closed | Clean `b8a19eb`: 38 focused native tests and linked SBF pass; 1,027-member independent index reconstruction; [PR #81](https://github.com/arnabnandikgp/rivalt/pull/81) above #80; no wire/admission change |
+| P55A2 on-chain membership/lifecycle | Closed | Schema-9 candidate SBF `583dbcb`; lifecycle 411, complete default/SQL 1,538, custody 234 and race 274 signed outcomes; [PR #82](https://github.com/arnabnandikgp/rivalt/pull/82) above #81; selected runtime unchanged |
+| P55B1 maintained-backing kernel | Closed | Clean `1715d20`: 1,274 explicit-corner comparisons, 89,720 native summary/restoration checks up to 10,000 roots, six literal financial paths; [PR #83](https://github.com/arnabnandikgp/rivalt/pull/83) above #82; no runtime activation |
+| P55B2 on-chain maintained backing | Closed | SBF `bc9f029`; clean `cf128c0` passes 1,474 signed outcomes / 61 rejections, maintained progress, repair/netting/liquidation/default/exit and 469-event exact SQL replay; clean `831d352` adds 41 durable originals, SIGKILL recovery and 136-event fresh replay; [PR #84](https://github.com/arnabnandikgp/rivalt/pull/84), above #83 |
+| P56 account-scale services, clients and activation | Closed | [PR #85](https://github.com/arnabnandikgp/rivalt/pull/85), above #84; clean `ad19215` / D108 SBF `ed46603` passes 128 populated Financial roots, 175 originals / 506.428 seconds, both crash recoveries, exact payouts/exit and 1,074-event fresh SQL replay. Clean `6b92665` passes the normal launcher and all 13 wallet originals. |
 | Clearing architecture review | Research delivered | [Comparison](clearing/venue-comparison.md) covers six venues using primary docs accessed 17 November. Source baseline `07822f49`. [D112](DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery) records the subsequent loss-policy choice. |
-| Clearing engineering roadmap | Active planning | [Delivery order and functional ownership](clearing/roadmap.md). First deliverable is the executable settlement/liquidation comparison. The second is a dedicated domain extraction with a risk-engine crate. |
-| Settlement and liquidation comparison | In review | [Ready PR #86](https://github.com/arnabnandikgp/rivalt/pull/86) above #85. The user reported independently reproducing its payout cases and selected capped ADL followed by proportional residual recovery. |
-| Capped ADL eligibility | In review | [Ready PR #87](https://github.com/arnabnandikgp/rivalt/pull/87) above #86. [Multi-maker and freeze comparisons](clearing/architecture-review.md#eligibility-at-the-freeze). Model `bd5b40e` passes 12 new and 11 existing focused tests. Eight new adjusted cohorts match native Rust terminal cash and insurance. D113 settles payment attribution and D114 sets the freeze cutoff. D116 sets priority among eligible winners. |
-| Ordinary gain payment attribution | In review | [Ready PR #88](https://github.com/arnabnandikgp/rivalt/pull/88) above #87. [Payment comparison](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles). Model `1ab1eaf` passes nine new and 23 preceding focused tests. Ten frozen outcomes and 15 funding accruals match native Rust. [D113](DECISIONS.md#d113--closed-first-payment-attribution) records user approval of closed-first for the successor. |
-| Default eligibility cutoff | In review | [Ready PR #89](https://github.com/arnabnandikgp/rivalt/pull/89) above #88. [Cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding). Model `8cbbb31` passes 11 focused tests, including 18 native terminal comparisons. Four existing Rust resolution tests pass. [D114](DECISIONS.md#d114--verified-freeze-cutoff-for-loss-eligibility) records the approved prospective cutoff. |
-| Signed freeze delivery | In review | [Ready PR #90](https://github.com/arnabnandikgp/rivalt/pull/90) above #89. Clean harnesses `bc816d4` and `3594114`, local SBF `ed46603`. [Four signed outcomes](operations/validation.md#signed-source-publication-and-freeze), including complete atomic rollback and a successful freeze two to three slots after source publication. Fresh PostgreSQL replay matched 72 events. |
-| Whole-account risk-engine extraction | In review | [Ready PR #91](https://github.com/arnabnandikgp/rivalt/pull/91) above #90. Candidate SBF `6775e13`, harness `8b5dda2`. [Matched financial and resource results](operations/validation.md#whole-account-risk-engine-extraction) for nine signed transactions per build, 90-event SQL replay per build and 30 native tests. The normal launcher selects P56. |
-| Cross-market ADL attribution | In review | [Ready PR #92](https://github.com/arnabnandikgp/rivalt/pull/92) above #91. [Linked creditor comparison](clearing/architecture-review.md#who-bears-the-cross-market-effect). Model `9bfd68f` passes nine new and 12 existing focused tests. Seven terminal cash/insurance vectors match native Rust. D116 records winner selection. D117 fixes cash attribution and protects the other market. |
-| Individual creditor payout protection | In review | [Ready PR #93](https://github.com/arnabnandikgp/rivalt/pull/93) above #92. [Rounding comparison](clearing/architecture-review.md#protecting-individual-creditor-payouts). Model `c4109b1` passes eight focused tests with seven native controls and 1,125 enumerated transitions. A BTC forced close can take one ETH atom from a creditor despite unchanged total payouts and insurance. |
-| Joint frozen reductions | In review | [Ready PR #94](https://github.com/arnabnandikgp/rivalt/pull/94) above #93. [Shared lots and two-market defaults](clearing/architecture-review.md#competing-debtors-and-simultaneous-market-defaults). Offline revision `e06dca7` passes eight joint and 17 related tests, including 81 independent matching cases and four native terminal controls. |
-| Default plan verification | In review | [Ready PR #95](https://github.com/arnabnandikgp/rivalt/pull/95) above #94. [Verification contract and fixtures](clearing/default-plan-verification.md). At `4be157f`, eight certificate/identity tests, eleven joint tests and eight current Rust plan-controller tests passed. D121 selects frozen-episode priority for exact ties. |
-| Restartable default verification | In review | [Ready PR #96](https://github.com/arnabnandikgp/rivalt/pull/96) above #95. [Reference and work counts](clearing/default-plan-verification.md#restarting-verification-when-a-bound-misses). At `0093a05`, six new and 19 related tests pass, including rejection of an inferior plan, episode binding and checkpoint restart. |
-| Metered default selection | In review | [Ready PR #97](https://github.com/arnabnandikgp/rivalt/pull/97) above #96. [Native and signed results](clearing/default-plan-verification.md#measured-nine-account-verifier) at `220c139`. 67 exhaustive comparisons, twelve signed outcomes and recovery of a missing PostgreSQL receipt. |
-| Frozen position attribution inputs | In review | [Ready PR #98](https://github.com/arnabnandikgp/rivalt/pull/98) above #97. [History and storage comparison](clearing/default-plan-verification.md#what-the-freeze-must-retain-about-open-profit) at `50d8a3a`. Five focused checks, nine existing checks, 1,000 history prefixes and independent native terminal payouts. At `100bf32` seven signed transactions cover exact growth, atomic rollback and a separate test sponsor. |
-| Ordinary cross-maker payout | In review | [Ready PR #99](https://github.com/arnabnandikgp/rivalt/pull/99) above #98. [Signed results](operations/validation.md#ordinary-trader-payout) at `f732ae0` on selected SBF `ed46603`. The trader withdrew all 970 net atoms, an early exit failed atomically, the restarted keeper completed payment, and fresh PostgreSQL replay matched all 158 events. |
-| Maker liquidation and funded receiver | In review | [Ready PR #100](https://github.com/arnabnandikgp/rivalt/pull/100) above #99. [Signed qualification](operations/validation.md#maker-liquidation-and-funded-receiver) at `3c05d59` / SBF `4e07c1f`. A ten-lot maker fill and a five-lot receiver transfer restored the target to maintenance, 12 signed rejections preserved state and fresh PostgreSQL replay matched 96 events. The normal runtime remains on P56. |
-| Stack review closeout | In review | [Ready PR #101](https://github.com/arnabnandikgp/rivalt/pull/101) above #100 covers 17 CodeRabbit threads from the 28 predecessor PRs. Twelve warranted changes and five were already covered. Local default at `104a8ac` finalized 15 worker transactions and replayed 109 events. The [liquidation regression](operations/validation.md#stack-review-regressions) at `5c302cd` on candidate SBF `ab3f6c6` replayed 92 events. Merge through #101 after review and owner authorization, then start the next feature from main. |
+| Clearing engineering roadmap | Active planning | [Delivery order and functional ownership](clearing/roadmap.md). The comparison and first domain extraction have landed. Default and recovery are the active deliverable. |
+| Settlement and liquidation comparison | Closed | [PR #86](https://github.com/arnabnandikgp/rivalt/pull/86) above #85. The user reported independently reproducing its payout cases and selected capped ADL followed by proportional residual recovery. |
+| Capped ADL eligibility | Closed | [PR #87](https://github.com/arnabnandikgp/rivalt/pull/87) above #86. [Multi-maker and freeze comparisons](clearing/architecture-review.md#eligibility-at-the-freeze). Model `bd5b40e` passes 12 new and 11 existing focused tests. Eight new adjusted cohorts match native Rust terminal cash and insurance. D113 settles payment attribution and D114 sets the freeze cutoff. D116 sets priority among eligible winners. |
+| Ordinary gain payment attribution | Closed | [PR #88](https://github.com/arnabnandikgp/rivalt/pull/88) above #87. [Payment comparison](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles). Model `1ab1eaf` passes nine new and 23 preceding focused tests. Ten frozen outcomes and 15 funding accruals match native Rust. [D113](DECISIONS.md#d113--closed-first-payment-attribution) records user approval of closed-first for the successor. |
+| Default eligibility cutoff | Closed | [PR #89](https://github.com/arnabnandikgp/rivalt/pull/89) above #88. [Cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding). Model `8cbbb31` passes 11 focused tests, including 18 native terminal comparisons. Four existing Rust resolution tests pass. [D114](DECISIONS.md#d114--verified-freeze-cutoff-for-loss-eligibility) records the approved prospective cutoff. |
+| Signed freeze delivery | Closed | [PR #90](https://github.com/arnabnandikgp/rivalt/pull/90) above #89. Clean harnesses `bc816d4` and `3594114`, local SBF `ed46603`. [Four signed outcomes](operations/validation.md#signed-source-publication-and-freeze), including complete atomic rollback and a successful freeze two to three slots after source publication. Fresh PostgreSQL replay matched 72 events. |
+| Whole-account risk-engine extraction | Closed | [PR #91](https://github.com/arnabnandikgp/rivalt/pull/91) above #90. Candidate SBF `6775e13`, harness `8b5dda2`. [Matched financial and resource results](operations/validation.md#whole-account-risk-engine-extraction) for nine signed transactions per build, 90-event SQL replay per build and 30 native tests. The normal launcher selects P56. |
+| Cross-market ADL attribution | Closed | [PR #92](https://github.com/arnabnandikgp/rivalt/pull/92) above #91. [Linked creditor comparison](clearing/architecture-review.md#who-bears-the-cross-market-effect). Model `9bfd68f` passes nine new and 12 existing focused tests. Seven terminal cash/insurance vectors match native Rust. D116 records winner selection. D117 fixes cash attribution and protects the other market. |
+| Individual creditor payout protection | Closed | [PR #93](https://github.com/arnabnandikgp/rivalt/pull/93) above #92. [Rounding comparison](clearing/architecture-review.md#protecting-individual-creditor-payouts). Model `c4109b1` passes eight focused tests with seven native controls and 1,125 enumerated transitions. A BTC forced close can take one ETH atom from a creditor despite unchanged total payouts and insurance. |
+| Joint frozen reductions | Closed | [PR #94](https://github.com/arnabnandikgp/rivalt/pull/94) above #93. [Shared lots and two-market defaults](clearing/architecture-review.md#competing-debtors-and-simultaneous-market-defaults). Offline revision `e06dca7` passes eight joint and 17 related tests, including 81 independent matching cases and four native terminal controls. |
+| Default plan verification | Closed | [PR #95](https://github.com/arnabnandikgp/rivalt/pull/95) above #94. [Verification contract and fixtures](clearing/default-plan-verification.md). At `4be157f`, eight certificate/identity tests, eleven joint tests and eight current Rust plan-controller tests passed. D121 selects frozen-episode priority for exact ties. |
+| Restartable default verification | Closed | [PR #96](https://github.com/arnabnandikgp/rivalt/pull/96) above #95. [Reference and work counts](clearing/default-plan-verification.md#restarting-verification-when-a-bound-misses). At `0093a05`, six new and 19 related tests pass, including rejection of an inferior plan, episode binding and checkpoint restart. |
+| Metered default selection | Closed | [PR #97](https://github.com/arnabnandikgp/rivalt/pull/97) above #96. [Native and signed results](clearing/default-plan-verification.md#measured-nine-account-verifier) at `220c139`. 67 exhaustive comparisons, twelve signed outcomes and recovery of a missing PostgreSQL receipt. |
+| Frozen position attribution inputs | Closed | [PR #98](https://github.com/arnabnandikgp/rivalt/pull/98) above #97. [History and storage comparison](clearing/default-plan-verification.md#what-the-freeze-must-retain-about-open-profit) at `50d8a3a`. Five focused checks, nine existing checks, 1,000 history prefixes and independent native terminal payouts. At `100bf32` seven signed transactions cover exact growth, atomic rollback and a separate test sponsor. |
+| Ordinary cross-maker payout | Closed | [PR #99](https://github.com/arnabnandikgp/rivalt/pull/99) above #98. [Signed results](operations/validation.md#ordinary-trader-payout) at `f732ae0` on selected SBF `ed46603`. The trader withdrew all 970 net atoms, an early exit failed atomically, the restarted keeper completed payment, and fresh PostgreSQL replay matched all 158 events. |
+| Maker liquidation and funded receiver | Closed | [PR #100](https://github.com/arnabnandikgp/rivalt/pull/100) above #99. [Signed qualification](operations/validation.md#maker-liquidation-and-funded-receiver) at `3c05d59` / SBF `4e07c1f`. A ten-lot maker fill and a five-lot receiver transfer restored the target to maintenance, 12 signed rejections preserved state and fresh PostgreSQL replay matched 96 events. The normal runtime remains on P56. |
+| Stack review closeout | Closed | [PR #101](https://github.com/arnabnandikgp/rivalt/pull/101) above #100 covers 17 CodeRabbit threads from the 28 predecessor PRs. Twelve warranted changes and five were already covered. Local default at `104a8ac` finalized 15 worker transactions and replayed 109 events. The [liquidation regression](operations/validation.md#stack-review-regressions) at `5c302cd` on candidate SBF `ab3f6c6` replayed 92 events. Integrated in the verified 29-PR merge. |
+| Single-debtor BTC recovery | Review | [Signed comparison](operations/validation.md#single-debtor-btc-recovery) at `7781e6b` on selected P56. Eight accounts, 13 finalized worker continuations, an 847-atom wallet exit and 115-event fresh SQL replay. A successor model on the same inputs pays the trader 996. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -104,10 +106,15 @@ optional sponsorship. Compulsory recovery headroom remains an acceptance gate.
 The ordinary payout demonstration now follows a profitable cross-maker close to
 the trader's SPL wallet with a local test fee payer. Under D124 the local maker liquidation candidate now
 reaches a healthy target through admitted depth and a separately funded receiver.
-Next reproduce a single insolvent BTC debtor from verified freeze through market
-insurance and final cash recovery, comparing creditor payouts under the qualified
-rule and the approved successor on identical frozen inputs.
-The existing qualified terminal path continues to use proportional settlement.
+The single-debtor BTC comparison now measures the 149-atom difference between
+the trader's signed proportional payout and the successor model on identical
+frozen obligations. Next bind exact surviving-position attribution to an actual
+candidate fill and backed payment, and verify it through a compulsory reduction
+and freeze without owner-funded growth during recovery.
+
+## Earlier checkpoints
+
+The following dated records describe the evidence and PR state at the time of each run. The table above gives current integration status.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator
@@ -225,7 +232,7 @@ financial comparisons, canonical finalized history and ten-second freshness.
 Full and diagnostic evidence remain at their original ignored paths under
 `.local/indexer-progress/`. Failed attempts remain retained; none substitute for
 the accepted full run. The owned qualification runtime stopped successfully.
-[Ready PR #75](https://github.com/arnabnandikgp/rivalt/pull/75) contains acceptance
+[PR #75](https://github.com/arnabnandikgp/rivalt/pull/75) contains acceptance
 closeout `1eb86ff` above #73. All applicable hosted checks (scope/client/shell) pass at `c6913b2` in
 [run 42970638033](https://github.com/arnabnandikgp/rivalt/actions/runs/42970638033);
 report/financial are correctly skipped. Automated CodeRabbit check also reports
@@ -255,7 +262,7 @@ journal pass and the subsequent host-sleep timeout remain retained. The final
 probe requires fresh published readiness and exact event bytes, with unchanged
 freshness/deadlines and a temporary supervisor-owned idle-sleep inhibitor.
 [Validation](operations/validation.md#shared-unchanged-price-policy-p53a) records
-exact pins, results and limitations. [Ready PR #76](https://github.com/arnabnandikgp/rivalt/pull/76)
+exact pins, results and limitations. [PR #76](https://github.com/arnabnandikgp/rivalt/pull/76)
 contains acceptance closeout `a24251e`; all five scoped hosted jobs pass at
 `b6fbcb8` in [run 42977315184](https://github.com/arnabnandikgp/rivalt/actions/runs/42977315184).
 CodeRabbit is neutral, not external approval. P53A is not integrated.
@@ -289,7 +296,7 @@ records pins, commands, limitations and the first Clock-wait harness failure.
 
 The accepted candidate is selected locally, with prior artifacts/failed runs retained
 under existing ignored paths. All owned runtimes stopped. No external/funded action,
-new browser or endurance run is claimed. P53B is published as [ready PR #77](https://github.com/arnabnandikgp/rivalt/pull/77)
+new browser or endurance run is claimed. P53B is published as [PR #77](https://github.com/arnabnandikgp/rivalt/pull/77)
 above #76 in stack #74; all five PRs remain open. Scope/client/financial hosted checks pass at `c7fdfb9`
 in [run 43009090127](https://github.com/arnabnandikgp/rivalt/actions/runs/43009090127);
 report/shell are correctly skipped. CodeRabbit was still running at inspection.
@@ -334,7 +341,7 @@ completion does not establish affordable on-chain resolution. P54B/P54C must mea
 authenticated continuations and total cost before expanded activation. No SBF,
 RPC/WS/PostgreSQL, browser or external qualification is inferred. P15B/P16B remain
 Open and 24-hour endurance Deferred. No access blocker is known.
-[Ready PR #78](https://github.com/arnabnandikgp/rivalt/pull/78) contains cohesive P54A
+[PR #78](https://github.com/arnabnandikgp/rivalt/pull/78) contains cohesive P54A
 acceptance above #77 in stack #74. Scope/financial/shell CI pass at `023574b` in
 [run 43019766671](https://github.com/arnabnandikgp/rivalt/actions/runs/43019766671);
 client/report correctly skip. Automated review is still pending; no external review

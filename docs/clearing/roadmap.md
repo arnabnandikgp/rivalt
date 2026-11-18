@@ -32,12 +32,16 @@ whether to optimize payout timing or finance earlier access to cash.
 
 The [maker liquidation candidate](../operations/validation.md#maker-liquidation-and-funded-receiver)
 now demonstrates a partial maker fill, a blocked interval, a consenting receiver,
-and its unwind. The next default demonstration should follow one insolvent
-account through a verified freeze, debtor cash collection, market insurance,
-and the creditor's final cash and residual shortfall. Run the existing terminal
-rule against the approved successor with the same frozen obligations and show
-where the allocations differ. Keep the selected runtime on its qualified rule
-while the general successor proof remains open. Shared-write and cost
+and its unwind. The [single-debtor BTC recovery](../operations/validation.md#single-debtor-btc-recovery)
+now follows one verified freeze through insurance, funding of the creditors,
+withdrawal and return to custody. On the same 8,498 available atoms, the approved
+successor model shifts 149 from the open winning maker to the flat trader.
+
+The next acceptance is to bind the two exact surviving-position amounts to an
+actual clearing fill and a closed-first gain payment, then read them at freeze.
+Include partial compulsory reductions without an owner signature or rent top-up
+under D123. General linked-book verification and application remain open. The
+selected local runtime uses proportional terminal recovery. Shared-write and cost
 qualification follow the implemented financial paths.
 
 ## Functional ownership
