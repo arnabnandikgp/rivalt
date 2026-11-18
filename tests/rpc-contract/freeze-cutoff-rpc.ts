@@ -21,7 +21,7 @@ const directory = process.env.RIVALT_RUN_DIR!;
 const build = verifyBackingBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim(), '');
-const keeper = fixtureKey('freeze-cutoff-keeper');
+const keeper = await fixtureKey('freeze-cutoff-keeper');
 const broadcastAt = new Map<string, number>();
 const confirmedAt = new Map<string, number>();
 const measured = (label: string) => label.startsWith('cutoff ');
