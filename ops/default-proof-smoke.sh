@@ -14,7 +14,6 @@ git rev-parse HEAD > "$RIVALT_RUN_DIR/revision"
 cargo build-sbf --manifest-path tests/fixtures/default-proof/Cargo.toml --tools-version v1.52 --arch v0 \
   --sbf-out-dir "$RIVALT_RUN_DIR" -- --locked --offline > "$RIVALT_RUN_DIR/build.log" 2>&1
 if rg 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' "$RIVALT_RUN_DIR/build.log"; then exit 1; fi
-cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
 node --import tsx tests/rpc-contract/default-proof-rpc.ts write-fixture-key
 surfpool start --offline --no-deploy --no-tui --no-studio --disable-instruction-profiling \
   --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" --slot-time 50 \
@@ -40,6 +39,12 @@ built, fetched = ((root/name).read_bytes() for name in ('default_proof_probe.so'
 assert fetched.startswith(built) and not any(fetched[len(built):]), 'deployed fixture differs'
 PY
 source ops/postgres.sh
-node --import tsx tests/rpc-contract/default-proof-rpc.ts start
-node --import tsx tests/rpc-contract/default-proof-rpc.ts resume
+case "${RIVALT_PROOF_SCOPE:-selection}" in
+  selection)
+    cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
+    node --import tsx tests/rpc-contract/default-proof-rpc.ts start
+    node --import tsx tests/rpc-contract/default-proof-rpc.ts resume ;;
+  attribution) node --import tsx tests/rpc-contract/attribution-storage-rpc.ts ;;
+  *) echo 'Unknown local proof scope' >&2; exit 1 ;;
+esac
 echo "Proof measurements retained in $RIVALT_RUN_DIR"

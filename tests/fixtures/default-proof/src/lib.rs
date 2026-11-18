@@ -1,6 +1,8 @@
 //! Isolated local diagnostic. Its PDA contains a synthetic frozen book and a
 //! restartable selection result. It has no clearing account or custody authority.
 use anchor_lang::prelude::*;
+mod basis;
+use basis::*;
 use default_plan_selection as selection;
 use selection::{Plan, PARTITIONS};
 
@@ -45,6 +47,15 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    pub fn start_basis(ctx: &mut Context<StartBasis>) -> Result<()> {
+        ctx.accounts.basis.numerator = 101u64.to_le_bytes().to_vec();
+        Ok(())
+    }
+
+    pub fn cycle_basis(ctx: &mut Context<UpdateBasis>, expected: u8, count: u8) -> Result<()> {
+        basis::cycle(ctx, expected, count)
+    }
 
     pub fn prepare(
         ctx: &mut Context<Prepare>,
@@ -124,4 +135,5 @@ pub enum ProofError {
     WrongCursor,
     InvalidCount,
     Incomplete,
+    StorageFunding,
 }
