@@ -30,12 +30,14 @@ first payment exposes the intermediate state. A separate continuous-worker
 measurement with an already prepared certificate would be needed to decide
 whether to optimize payout timing or finance earlier access to cash.
 
-The next deliverable follows one account below maintenance. Show how much of
-its position an admitted maker can close and how a consenting, funded receiver
-takes the remainder when the book runs out. Compare remaining lots, funded cash
-and the maintenance deficit after fees. Include the case where neither path can
-improve the account. Only after this ordinary liquidation path is observable
-does the next deliverable address terminal default. Shared-write and cost
+The [maker liquidation candidate](../operations/validation.md#maker-liquidation-and-funded-receiver)
+now demonstrates a partial maker fill, a blocked interval, a consenting receiver,
+and its unwind. The next default demonstration should follow one insolvent
+account through a verified freeze, debtor cash collection, market insurance,
+and the creditor's final cash and residual shortfall. Run the existing terminal
+rule against the approved successor with the same frozen obligations and show
+where the allocations differ. Keep the selected runtime on its qualified rule
+while the general successor proof remains open. Shared-write and cost
 qualification follow the implemented financial paths.
 
 ## Functional ownership

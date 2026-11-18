@@ -73,4 +73,4 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;
   *) echo 'Unknown settlement probe' >&2; exit 1 ;;
 esac
-printf 'Frozen verifier probe: %s\n' "$RIVALT_RUN_DIR"
+printf 'Qualification evidence: %s\n' "$RIVALT_RUN_DIR"

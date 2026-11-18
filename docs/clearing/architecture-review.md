@@ -732,9 +732,10 @@ The direct liquidation fee is 5 bps of transferred notional, capped at 10,000 at
 affect the receiver's economics; the fee cap alone is not its complete compensation.
 Neither the fee nor synthetic tests demonstrate an independently viable backstop.
 
-Normal maker-route reduction exists under trading authority; it is not a
+On the selected P56 runtime, normal maker-route reduction exists under trading authority; it is not a
 permissionless liquidation mechanism. There is no ADL stage. Insurance participates
 in exceptional loss allocation, not as a standing pool that takes positions.
+The [local successor candidate](../operations/validation.md#maker-liquidation-and-funded-receiver) now demonstrates a permissionless maker reduction followed by a funded receiver transfer.
 
 The normal freeze predicate is:
 

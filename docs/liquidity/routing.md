@@ -1,5 +1,10 @@
 # Authenticated routing and atomic execution
 
+The [maker liquidation candidate](../clearing/risk-and-resolution.md#maker-liquidation-candidate)
+uses the same authenticated quote and fee rules with additional on-chain price
+and whole-account constraints. Its separate instruction allows a keeper to reduce
+eligible risk. Ordinary route authority still belongs to the owner or delegate.
+
 ## Implementation boundary
 
 `readAccountTradeSnapshot` discovers the selected market's three sealed

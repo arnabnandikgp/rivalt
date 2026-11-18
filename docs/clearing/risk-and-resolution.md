@@ -599,6 +599,28 @@ After fees, selected absolute exposure and whole-account MM deficit must both
 strictly decrease. Mere exposure reduction is insufficient. Failure rolls back
 funding, orders, positions and fee. No forced unfunded receiver or hidden subsidy.
 
+### Maker liquidation candidate
+
+`liquidate_liquidity_route` shares the existing maker route's quote authentication,
+one- or two-capital limit, solvency checks, funding, fee split and atomic commit.
+Any signer can pay to submit it on the candidate deployment. The target's guard
+and reduce-only generation bind the precise position it may reduce.
+The target must be below maintenance with nonnegative conservative equity.
+The instruction requires current qualified sources for the relevant markets.
+
+For a long, each maker's gross proceeds must be at least lots times the lower
+risk price. For a short, gross cost must be at most lots times the upper risk
+price. Clearing cancels the target's active risk-increasing orders in the same
+transaction. It checks whole-account equity and deficit again after charging
+the fee. If a multi-lot close would restore maintenance, try a smaller close and
+finish with one lot. A rejected candidate preserves balances, orders and depth.
+
+A separately consenting, funded receiver can take residual exposure. An
+unsuccessful attempt cannot authorize default. The scope footer's instruction
+discriminator identifies maker liquidations in finalized history. The
+[candidate decision](../DECISIONS.md#d124--keeper-authority-for-a-bounded-maker-liquidation)
+defines its deployment and compensation scope.
+
 ## Complete frozen input and economic priority
 
 There are exactly two markets, one collateral mint and at most 64 complete account

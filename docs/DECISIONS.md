@@ -1249,3 +1249,21 @@ Use the explicit local test sponsor for the ordinary settlement demonstration.
 Changing normal trade admission requires a measured complete-route implementation
 and a proven recovery bound. The eight-byte experiment in PR #98 measured one
 growth boundary. It does not set a general reserve size.
+
+## D124 — Keeper authority for a bounded maker liquidation
+
+19 November 2026. For the local successor candidate, a separate instruction lets
+a keeper reduce a position against admitted maker quotes. Its authority comes
+from a positive whole-account maintenance deficit at fresh, qualified sources.
+Require nonnegative conservative risk equity before execution. Each maker's
+average price must respect the selected market's adverse oracle endpoint.
+After the ordinary 2 bps taker fee, conservative equity must hold or improve
+and the deficit must strictly shrink. A bulk reduction must leave a smaller
+positive deficit. Only a one-lot fill may restore maintenance. This conservative
+sizing rule limits how much exposure a keeper can close near the threshold.
+
+Use the existing maker admission, order cancellation on liquidation, fee split
+and separately consenting receiver. The keeper pays its transaction costs in
+this prototype. Absence of a quote or receiver leaves the existing freeze
+predicate in force. The candidate runs on its separately hashed local deployment.
+Activation, automated route selection and keeper compensation remain open.

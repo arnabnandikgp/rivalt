@@ -1,5 +1,38 @@
 # Validation and measured limits
 
+## Maker liquidation and funded receiver
+
+The candidate SBF was built at `4e07c1f`. Its [signed scenario](../../tests/rpc-contract/maker-liquidation-rpc.ts)
+at `3c05d59` used one cross trader, distinct keeper and receiver signers, an
+isolated receiver and two internal maker programs on local Surfpool. The trader
+bought 50 BTC lots at 61,000 with 564,000 cash and paid 610 in fees. At the new
+52,000 index the risk endpoints were 51,480 and 52,520. Funding was zero.
+
+| Stage | Trader lots | Funded cash | Maintenance required | Conservative equity | Shortfall |
+|---|---:|---:|---:|---:|---:|
+| Before intervention | 50 | 563,390 | 131,300 | 87,390 | 43,910 |
+| Maker bought 10 at 51,998 | 40 | 563,286 | 105,040 | 92,466 | 12,574 |
+| Tight depth exhausted and receiver underfunded | 40 | 563,286 | 105,040 | 92,466 | 12,574 |
+| Funded receiver took 5 at 52,000 | 35 | 563,156 | 91,910 | 94,936 | 0 |
+
+The maker fill cancelled the trader's risk-increasing order and charged the
+ordinary 104-atom fee. Clearing rejected quotes at 51,000. While the receiver
+had just one atom, it could not take five lots. The venue remained active.
+After a signed deposit, the receiver accepted five lots and earned 130 atoms.
+It later sold them at the wide bid of 51,000, paid a 51-atom trading fee and
+held a flat negative claim of 5,000. Its net outcome was **−4,921 collateral
+atoms** before network costs. Insurance supplied zero receiver capital.
+
+The maker liquidation took 175,415 CU in 918 wire bytes, the receiver transfer
+54,545 CU in 715 bytes and the receiver unwind 162,340 CU in 1,014 bytes.
+All three were finalized v0 transactions. Twelve signed rejections covered
+healthy/restored accounts, stale sources, authority, price, available lots,
+competing guards, receiver consent and capital. The scenario independently
+checked unchanged account bytes on each rejection. The finalized SQL state reconciled
+with the accounts, and a fresh PostgreSQL 18.6 database reproduced all 96 events,
+including signatures and exact bytes. These are single-session
+measurements with one maker leg, controlled prices and local fee payers.
+
 ## Ordinary trader payout
 
 Harness `f732ae05805aadfe1f1dc06d8a83107bb3e9c02a` used the selected

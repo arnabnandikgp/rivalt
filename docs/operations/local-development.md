@@ -134,6 +134,25 @@ the trades and withdrawal, and the two reference makers use separate capital.
 The first collection is deliberately partial so the intermediate balances can be
 inspected. Observation times include sampling, finality and SQL publication.
 
+## Maker liquidation demonstration
+
+Build the separately pinned candidate at source revision `4e07c1f` with
+`RIVALT_LIQUIDITY_ARTIFACTS=.local/anchor-rc2/maker-reduction-4e07c1f bash ops/build-liquidity-execution.sh`.
+From the qualification revision, run the following with the normal selected
+artifacts still available. The launcher verifies both sets of hashes before
+deploying to a fresh loopback Surfpool instance.
+
+```sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/anchor-rc2/maker-reduction-4e07c1f \
+RIVALT_SETTLEMENT_PROBE=maker-liquidation RIVALT_PG_PORT=15452 \
+bash ops/scalable-settlement-smoke.sh
+```
+
+The result in `liquidation.json` contains the realized shortfalls, fees in the
+transaction receipts and replay count. The maker and receiver in this exercise
+use internal capital and separate signing keys for the trader, keeper and
+receiver. The normal launcher continues to require the qualified P56 binaries.
+
 ## Interactive local demo
 
 `bash ops/demo.sh start|status|stop|reset` launches the same current canonical

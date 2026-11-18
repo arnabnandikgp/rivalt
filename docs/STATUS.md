@@ -43,6 +43,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Metered default selection | In review | [Ready PR #97](https://github.com/arnabnandikgp/rivalt/pull/97) above #96. [Native and signed results](clearing/default-plan-verification.md#measured-nine-account-verifier) at `220c139`. 67 exhaustive comparisons, twelve signed outcomes and recovery of a missing PostgreSQL receipt. |
 | Frozen position attribution inputs | In review | [Ready PR #98](https://github.com/arnabnandikgp/rivalt/pull/98) above #97. [History and storage comparison](clearing/default-plan-verification.md#what-the-freeze-must-retain-about-open-profit) at `50d8a3a`. Five focused checks, nine existing checks, 1,000 history prefixes and independent native terminal payouts. At `100bf32` seven signed transactions cover exact growth, atomic rollback and a separate test sponsor. |
 | Ordinary cross-maker payout | In review | [Ready PR #99](https://github.com/arnabnandikgp/rivalt/pull/99) above #98. [Signed results](operations/validation.md#ordinary-trader-payout) at `f732ae0` on selected SBF `ed46603`. The trader withdrew all 970 net atoms, an early exit failed atomically, the restarted keeper completed payment, and fresh PostgreSQL replay matched all 158 events. |
+| Maker liquidation and funded receiver | Locally verified candidate | [Signed qualification](operations/validation.md#maker-liquidation-and-funded-receiver) at `3c05d59` / SBF `4e07c1f`. A ten-lot maker fill and a five-lot receiver transfer restored the target to maintenance, 12 signed rejections preserved state and fresh PostgreSQL replay matched 96 events. The normal runtime remains on P56. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -100,10 +101,11 @@ commitment agree on the inputs. The signed growth boundary required 40,640
 additional rent lamports and 2,808 CU. D123 selects per-account capacity with
 optional sponsorship. Compulsory recovery headroom remains an acceptance gate.
 The ordinary payout demonstration now follows a profitable cross-maker close to
-the trader's SPL wallet with a local test fee payer. The next deliverable is a
-signed under-maintenance case comparing partial maker execution and a funded
-receiver for the unfilled lots. Measure the target's deficit after all fees
-through both reductions and record what happens when neither can make progress.
+the trader's SPL wallet with a local test fee payer. Under D124 the local maker liquidation candidate now
+reaches a healthy target through admitted depth and a separately funded receiver.
+Next reproduce a single insolvent BTC debtor from verified freeze through market
+insurance and final cash recovery, comparing creditor payouts under the qualified
+rule and the approved successor on identical frozen inputs.
 The existing qualified terminal path continues to use proportional settlement.
 
 The 16 November architecture review inspected source at
