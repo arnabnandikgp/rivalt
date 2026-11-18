@@ -7,6 +7,7 @@ import type { Address } from '@solana/kit';
 import { getTransferSolInstruction } from '@solana-program/system';
 import * as sdk from '@rivalt/sdk';
 import { json } from '../../packages/indexer/src/events.js';
+import { SOURCE_AGE } from '../../packages/sdk/src/price-policy-constants.js';
 import { transactionLocks } from '../performance/lock-model.js';
 import { verifyBackingBuild } from './backing-artifacts.js';
 import { openCanonicalRpcHarness } from './canonical-rpc-harness.js';
@@ -62,16 +63,20 @@ try {
     confirmedAt.set(label, performance.now());
   };
   const publishers = [setup.primary, setup.guard];
-  setup.sourcePrices.btc = 40_000_000_000n; // 40,000 atoms/lot, down from 60,000.
   const proof = await freeze(debtor);
   const keys = [...new Set([...setup.feeds.map(item => item.feed),
     ...proof.accounts.filter(meta => meta.role & 1).map(meta => meta.address)])];
   const snapshot = () => Promise.all(keys.map(h.read));
   // At the original price the same named debtor is solvent. Confirm that its
   // proof reaches the economic predicate before publishing the adverse price.
+  const refreshStarted = await setup.now();
+  await setup.freshSources();
   const before = await snapshot();
   await send('cutoff healthy before shock', [proof], [], sdk.CLEARING_ERROR__RESOLUTION);
+  const checkedAt = await setup.now();
+  assert(checkedAt >= refreshStarted && checkedAt - refreshStarted < SOURCE_AGE);
   assert.deepEqual(await snapshot(), before);
+  setup.sourcePrices.btc = 40_000_000_000n; // 40,000 atoms/lot, down from 60,000.
   // Top-level publication promotes the feeds to writable for the full message.
   // Clearing authenticates read-only sources before checking this debtor.
   await send('cutoff atomic publication and proof', [...await setup.sourceInstructions(), proof],
@@ -93,7 +98,7 @@ try {
   assert.equal(frozen.count, registry.financialCount);
   assert.equal(frozen.membershipEpoch, registry.membershipEpoch);
   assert.equal(frozen.liveIndex, registry.liveIndex);
-  assert.equal(frozen.prices[0], 40_000n);
+  assert.deepEqual(frozen.prices, [40_000n, 30_000n]);
   const markets = await Promise.all([setup.marketState(0), setup.marketState(1)]);
   assert.deepEqual(frozen.funding, markets.map(market => market.fundingIndexScaled));
   const scaledEquity = (price: bigint) => {
@@ -108,6 +113,7 @@ try {
     if (!measured(label)) return [];
     const wire = JSON.parse(readFileSync(`${directory}/wire-${index}.json`, 'utf8'));
     const receipt = JSON.parse(readFileSync(`${directory}/transaction-${index}.json`, 'utf8'));
+    assert.deepEqual(check.signatureWsError, receipt.meta.err);
     if (label === 'cutoff atomic publication and proof') {
       assert.deepEqual(receipt.meta.err.InstructionError, [
         receipt.transaction.message.instructions.length - 1, { Custom: sdk.CLEARING_ERROR__ORACLE_SOURCE },
@@ -121,7 +127,7 @@ try {
     await journal.checkpoint('freeze-cutoff');
     const replay = await journal.finish();
     writeFileSync(`${directory}/freeze-cutoff.json`, json({
-      revision, build: build.revision, frozen, metrics, buildThroughObservedConfirmationMs: elapsedMs,
+      revision, build: build.revision, frozen, metrics, refreshStarted, checkedAt, buildThroughObservedConfirmationMs: elapsedMs,
       ordinaryEquityScaled: scaledEquity(60_000n), adverseEquityScaled: scaledEquity(40_000n), replayEvents: replay.events,
     }));
   } finally { await journal.close(); }

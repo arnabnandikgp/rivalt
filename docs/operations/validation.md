@@ -67,7 +67,12 @@ The harness compared the signed bytes with finalized RPC history for all four
 originals. Signature WS notifications agreed with the receipts. Surfpool's log
 notifications reported a null error for both rejections. Fresh PostgreSQL replay
 matched the 72 committed events and reconciled the frozen accounts. Reproduce
-from the repository root with the pinned local artifacts and Apple Container:
+from the repository root with the pinned local artifacts and Apple Container.
+A fresh review run at `3594114` refreshed all six original-price sources and
+observed the same chain second through the healthy rejection. It checked both
+frozen marks and each signature notification against its finalized receipt.
+All four CU measurements repeated exactly. Publication and freeze landed at
+slots 1651 and 1653, and PostgreSQL replay reproduced 72 events.
 
 ```sh
 RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/anchor-rc2/current \
