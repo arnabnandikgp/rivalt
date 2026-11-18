@@ -47,7 +47,9 @@ The nine previous cross-market and 29 clearing-network tests also pass. Five
 scalable-kernel tests passed, including 774 matched settlements. The
 [new examples](../clearing/architecture-review.md#protecting-individual-creditor-payouts)
 cover a loss hidden by identical aggregate ETH payout, recovery rate and insurance.
-The constrained allocation and frozen-share comparisons run offline.
+The constrained allocation and frozen-share comparisons run offline. At
+`1f3ce81`, all eight payout and nine cross-market tests passed with D118
+protected rounding selected by default.
 
 ### Signed source publication and freeze
 
