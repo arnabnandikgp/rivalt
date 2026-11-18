@@ -31,6 +31,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Clearing engineering roadmap | Active planning | [Delivery order and functional ownership](clearing/roadmap.md). First deliverable is the executable settlement/liquidation comparison. The second is a dedicated domain extraction with a risk-engine crate. |
 | Settlement and liquidation comparison | In review | [Ready PR #86](https://github.com/arnabnandikgp/rivalt/pull/86) above #85. The user reported independently reproducing its payout cases and selected capped ADL followed by proportional residual recovery. |
 | Capped ADL eligibility | In review | [Ready PR #87](https://github.com/arnabnandikgp/rivalt/pull/87) above #86. [Multi-maker and freeze comparisons](clearing/architecture-review.md#eligibility-at-the-freeze). Model `bd5b40e` passes 12 new and 11 existing focused tests. Eight new adjusted cohorts match native Rust terminal cash and insurance. Payment attribution, re-entry treatment and winner selection remain open. |
+| Ordinary gain payment attribution | Research for review | [Payment comparison](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles). Model `1ab1eaf` passes nine new and 23 preceding focused tests. Ten frozen outcomes and 15 funding accruals match native Rust. Closed-first is recommended for decision. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -63,9 +64,10 @@ integration. The user authorized this stack's review fixes and merge on
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The 18 November scope decision supersedes the 10 November audit delivery sequence.
 P56 has recorded local acceptance in PR #85. The selected economic target is
-research-only. Next action: compare open-first and closed-first attribution
-of ordinary gain payments across partial close, funding and re-entry using the
-same trade and cash histories. The implementation still uses proportional
+research-only. Next action: decide whether to pay a trader's positive fixed
+claim, including signed accrued funding, before attributing cash to open price
+profit. The [matched histories](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles)
+show who bears the loss under each rule. The implementation still uses proportional
 terminal settlement. The behavior-preserving risk-engine extraction remains
 the next separate engineering deliverable.
 

@@ -171,6 +171,73 @@ python3 tests/financial/adl_eligibility_model.py
 python3 tests/financial/test_adl_eligibility.py -v
 ```
 
+### Which profit an ordinary payment settles
+
+**Recommendation for decision.** Pay a trader's positive fixed claim first.
+This includes realized trading P&L and signed accrued funding. Apply any
+remainder to unpaid price profit on the lots still open. This fits D112 because
+more of a surviving profitable position can absorb a shortfall before a flat
+creditor shares in it. The active maker bears more of the loss in some defaults.
+Both conventions pay the same account the same cash at the time of payment.
+
+The [replay](../../tests/financial/payment_attribution_model.py) starts from cash
+deposits and zero claims. At 90 maker A has ten atoms of closed profit and ten
+of open profit and receives ten in cash. Maker B holds the other long and a
+flat trader is owed ten. The single debtor goes into default at 100. The partial-
+close histories start at twice the size, pay A twenty, then A sells one of its
+two remaining lots to C. The flat trader is owed twenty in those two histories.
+
+| History at freeze | ADL charges to A/B/C, closed-first | ADL charges to A/B/C, open-first | Loss left to unpaid creditors, closed-first / open-first | Flat trader receives on its claim, closed-first / open-first |
+|---|---|---|---|---|
+| Mixed payment, zero funding | 13 / 7 / 0 | 10 / 10 / 0 | 0 / 0 | 10 / 10 |
+| Longs receive two funding atoms per lot | 16 / 8 / 0 | 10 / 10 / 0 | 0 / 4 | 10 / 8 |
+| Partial close, longs pay two per lot | 14 / 12 / 6 | 9 / 15 / 8 | 0 / 0 | 20 / 20 |
+| Partial close, longs receive two per lot | 19 / 19 / 10 | 10 / 20 / 10 | 0 / 8 | 20 / 17 |
+| A closes and reopens at 99 | 1 / 10 / 0 | 1 / 10 / 0 | 9 / 9 | 7 / 7 |
+
+In the second row the debtor has 20 cash against 44 of claims. Under closed-first
+the 24-atom charge leaves claims of six for A, four for B and ten for the flat
+trader, all fully funded. Under open-first the forced closes recover twenty. The
+remaining claims of 12, two and ten share the same 20 cash. Conserving rounding
+pays ten, two and eight. Each row uses the same collateral under both rules.
+
+**Calculation.** Let `P` be the gain already paid on lots that survive, `O` be
+their signed mark-to-average-entry price P&L less `P`, and `X = U − O` the
+remaining signed component of the aggregate unpaid claim `U`. On a backed whole
+payment `d`, closed-first adds `max(0, d − max(X, 0))` to `P`. Open-first adds
+`min(d, max(O, 0))`. Funding accrues `−lots × change in funding index` to `X`.
+An ordinary collection credits `X` for the funded cash the debtor surrendered.
+These conventions keep signed losses through reversals and allow payment of a
+funding credit even when price P&L is zero.
+
+Adding lots preserves the amount already paid. A partial close retains the same
+fraction of `P` as of the original lots. Closing or flipping clears the old
+position's `P`. For a forced partial close of `n` of `Q` lots, at most
+`floor(n × max(O, 0) / Q)` atoms can be charged across the paired fills, also
+subject to the unpaid claim and execution-price bounds. A two-lot position
+with nine eligible atoms can supply four on one lot or nine on both.
+
+**Timing still matters.** With two surviving lots and 20 each of fixed and open
+profit, a 30-atom closed-first payment before selling one lot leaves five
+previously paid atoms on the survivor. Selling first puts 30 in fixed profit,
+so the same payment leaves zero previously paid on the survivor. Open-first also
+depends on ordering. A full close and re-entry resets the experimental average
+basis under both rules. Defining the binding loss epoch remains a separate decision.
+
+The comparison holds winner selection, precise eligibility, funding classification
+and paid-gain allocation across lots constant. It uses one BTC debtor, zero
+fees and zero insurance to isolate the difference. The Rust checks exercise
+funding accrual and terminal settlement. Attribution and ADL run in Python.
+The [tests](../../tests/financial/test_payment_attribution.py) give literal
+cash and charge expectations for both conventions.
+
+```sh
+source ops/env.sh
+cargo build --locked -p financial-core --bin reference-driver --bin scalable-settlement-driver
+python3 tests/financial/payment_attribution_model.py
+python3 tests/financial/test_payment_attribution.py -v
+```
+
 ## Direction under discussion and remaining choices
 
 On 16 November, the user's acknowledgment was recorded as acceptance of debtor

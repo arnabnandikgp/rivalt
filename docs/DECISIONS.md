@@ -1074,3 +1074,7 @@ identify decisions still required on payment attribution, eligibility timing,
 priority among winners and cross-market execution. The experimental allocator
 and entry convention have research status. Changes to payout instructions or
 activation require the later implementation and qualification gates.
+
+The [ordinary payment comparison](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles)
+recommends fixed claims first after replaying both conventions. Adoption of
+that payment rule and the proposed treatment of accrued funding remain open.

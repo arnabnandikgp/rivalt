@@ -64,10 +64,12 @@ Its starter cases use whole collateral atoms at one frozen valuation.
 sets finality at funded cash and selects capped ADL with proportional residual
 recovery. The [eligibility experiments](architecture-review.md#eligibility-at-the-freeze)
 show charges moving across makers after a close/reopen or a subaccount split.
-The next economic question is how an ordinary payment consumes open versus
-closed profit when both are present. Verify both conventions against funding,
-partial closes and re-entry. Keep the active proportional settlement until the
-selected eligibility, epoch, pricing and continuation rules are qualified. The
+The [payment comparison](architecture-review.md#which-profit-an-ordinary-payment-settles)
+replays both conventions through signed funding, partial closes and re-entry.
+It recommends paying positive fixed claims first, including accrued funding.
+That economic choice awaits approval. The next contract question concerns the
+binding loss epoch for pre-freeze closes and re-entry. Keep the active proportional
+settlement until the selected eligibility, epoch, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.
 

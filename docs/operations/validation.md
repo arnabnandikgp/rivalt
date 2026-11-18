@@ -16,6 +16,14 @@ kernel. Competing allocation rules and payment attribution run in Python. The
 [multi-maker histories and commands](../clearing/architecture-review.md#eligibility-at-the-freeze)
 describe the fee-free scope and the observed close/reopen and account-splitting effects.
 
+Payment-attribution model `1ab1eaf` passes nine new and 23 preceding focused
+tests. The new suite compares 180 matched history pairs, ten policy/history
+outcomes against literal balances and native Rust terminal settlement, and
+15 account/checkpoint accruals against Rust `Participant::accrued`. The
+[results and reproduction commands](../clearing/architecture-review.md#which-profit-an-ordinary-payment-settles)
+describe the fixed funding component and the open-first and closed-first rules.
+This evidence covers research arithmetic and supplies no runtime ADL qualification.
+
 ## Account-scale populated qualification (P56)
 
 Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper
