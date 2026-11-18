@@ -150,7 +150,7 @@ def preferred(first, second):
     return first_costs != second_costs and all(a <= b for a, b in zip(first_costs, second_costs))
 
 
-def compare_joint(book, exposures, *, require_standalone):
+def compare_joint(book, exposures, *, require_standalone=False):
     require(book.frozen and len(exposures) == 2, "both frozen markets required")
     baseline = terminal(book)
     choices = [market_plans(book, m, exposures[m], baseline) for m in range(2)]

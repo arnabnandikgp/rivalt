@@ -79,7 +79,9 @@ supports [D118](../DECISIONS.md#d118--protected-rounding-for-foreign-creditor-pa
 which permits a conserving reassignment of fractional remainders when ordinary
 rounding would harm a foreign creditor. The [joint default comparison](architecture-review.md#competing-debtors-and-simultaneous-market-defaults)
 checks shared maker lots, cross-market payout floors and feasibility when both
-markets reduce positions in the same freeze. Keep the active proportional settlement until
+markets reduce positions in the same freeze.
+[D119](../DECISIONS.md#d119--verified-joint-reductions-in-one-frozen-episode)
+selects joint admission with an indivisible financial result across both markets. Keep the active proportional settlement until
 the successor eligibility, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.

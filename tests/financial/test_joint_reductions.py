@@ -42,7 +42,7 @@ class JointReductions(unittest.TestCase):
     def test_joint_feasibility_differs_from_individual_market_feasibility(self):
         book, exposures = linked_defaults()
         separate, = compare_joint(book, exposures, require_standalone=True)
-        joint, = compare_joint(book, exposures, require_standalone=False)
+        joint, = compare_joint(book, exposures)
         self.assertEqual((separate.charges, separate.payout.cash), ((0, 0), (0, 1, 0, 1, 8, 8)))
         self.assertEqual((joint.charges, joint.payout.cash), ((2, 2), (0, 0, 0, 0, 9, 9)))
         # Write off one fewer atom per market; charging two on each leg does not recover four.

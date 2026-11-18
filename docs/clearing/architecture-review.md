@@ -461,10 +461,11 @@ fractional debtor cash, fee custody, scarce insurance and ordinary Rust terminal
 settlement on all four books in the table. In the one-atom BTC insurance case,
 one feasible plan reduces BTC/ETH impairments by (1, 0) and another by
 (109/120, 119/120). The model returns both. Cross-market ranking remains open
-if a verified joint package is selected.
+under the approved joint admission rule.
 
-The comparison runs offline. Making a joint plan binding would require a
-verified commitment covering both markets before effects become available.
+[D119](../DECISIONS.md#d119--verified-joint-reductions-in-one-frozen-episode)
+selects joint admission. The comparison runs offline. Making the rule binding
+requires a verified commitment covering both markets before effects become available.
 A bounded continuation must prevent exits, payments or recovery from exposing
 a partial plan and must resume the same committed result after interruption.
 

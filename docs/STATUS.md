@@ -82,8 +82,9 @@ and insurance. The new comparison reproduces an individual creditor loss with
 unchanged ETH totals. D118 approves protected rounding as the successor default. At `1f3ce81`,
 the eight individual-payout and nine cross-market tests pass with that default.
 The joint comparison now reproduces 8/8 flat-creditor payouts under independent
-market admission and 9/9 for a complete package. The next decision is whether
-a verified package may qualify when its two component closes fail individually.
+market admission and 9/9 for a complete package. D119 approves joint admission
+with verified finality across both markets. Next compare feasible joint plans
+when increasing one market’s recovery can reduce the other’s.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator

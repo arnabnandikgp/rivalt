@@ -1174,3 +1174,22 @@ The [comparison](clearing/architecture-review.md#protecting-individual-creditor-
 shows a two-atom BTC recovery with ETH payouts of three, one and one. The
 research model selects this rule. The qualified on-chain terminal settlement
 continues to use ordinary rounding.
+
+## D119 — Verified joint reductions in one frozen episode
+
+18 November 2026. The user approved a joint plan for BTC and ETH even when
+either market’s component alone would fail foreign-creditor protection.
+Verify the complete frozen cohort and final result for both markets before
+making any effect available. Bind membership, valuations, original payouts,
+cash attribution, insurance, position quantities, charges and final allocations
+to the same episode. Protect every foreign claim against its original exact and
+whole-atom payment, allowing only its verified direct charge in its own market.
+D117 and D118 also constrain impairment, insurance and whole-atom conservation.
+
+A staged application must keep both markets frozen until the full verified plan
+has committed. No intermediate withdrawal, payment, alternative plan or partial
+recovery may expose a one-sided result. A restart resumes the same commitment.
+The [model comparison](clearing/architecture-review.md#competing-debtors-and-simultaneous-market-defaults)
+uses joint admission by default. Runtime verification, interruption and recovery
+still require implementation and qualification. D119 settles feasibility;
+the choice between multiple feasible cross-market outcomes remains open.
