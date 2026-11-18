@@ -1,5 +1,10 @@
 # Risk, orders and complete resolution
 
+The current qualified local program applies proportional recovery to unpaid
+claims in each affected market. The [successor decision](../DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery)
+selects capped ADL before that residual allocation. Its eligibility and payout
+experiments run in the [research model](architecture-review.md#eligibility-at-the-freeze).
+
 ## Scalable exact resolution candidate (P51B)
 
 This section specifies the implemented paged settlement kernel and authenticated

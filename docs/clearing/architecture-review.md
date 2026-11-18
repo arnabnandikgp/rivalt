@@ -1,7 +1,8 @@
 # Clearing architecture review
 
-16 November 2026. **Research and recommendations, not an approved replacement
-contract.** Rivalt source inspected: `07822f49dc9785989897f69d5361ea90717fdc11`
+16–18 November 2026. [D112](../DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery)
+records the approved loss-handling target. The runtime still uses complete
+proportional recovery. Rivalt source inspected: `07822f49dc9785989897f69d5361ea90717fdc11`
 (accepted P56 source on the open stack). No program, account layout, economic
 parameter, deployment or qualification result changes with this document.
 
@@ -92,14 +93,83 @@ python3 tests/financial/settlement_liquidation_model.py
 python3 tests/financial/test_settlement_liquidation_model.py -v
 ```
 
-The first decision for reviewers is whether closing a position should give its
-unpaid profit priority over an opposite open position's eligible gain. The second
-is whether the proportional residual above is acceptable once that gain runs out.
-Both affect who receives the same 90 atoms. The candidate assumes one eligible
-opposite, a fixed known entry price, whole lots and prices, and zero forced-close
-fees. It cannot select among multiple winners or establish incentives around
-close/reopen, keeper cost, on-chain work bounds or recovery time.
-Those choices require further evidence before implementing a successor rule.
+The user independently reproduced the starter results and selected capped ADL
+followed by proportional residual recovery. The starter model assumes one
+eligible opposite, a fixed known entry price, whole lots and prices, and zero
+forced-close fees.
+
+### Eligibility at the freeze
+
+Who still owns eligible open profit can change who bears the loss even when the
+ledger, frozen price and lot counts are identical. The [multi-maker model](../../tests/financial/adl_eligibility_model.py)
+tracks exact weighted-average entry across trades. Increasing a position averages
+its entry, reducing retains the surviving basis, closing clears it and flipping
+opens the remainder at the fill price. These are experimental assumptions.
+The current [position record](../../programs/clearing/src/state/records.rs)
+stores lots, virtual balance, funding checkpoint and generation. It has no field
+attributing a paid atom to open or closed profit.
+
+The example freezes BTC at 100 with a debtor short four lots. A flat trader is
+owed 60 and makers A and B are each owed 20. Debtor cash plus BTC insurance
+supplies 90. A fresh counterparty can take a maker's position at 99 immediately
+before freeze. The table uses proportional allocation among eligible open gains.
+Payouts exclude each creditor's original 100 atoms of funded cash.
+
+| Pre-freeze history | Forced charges to A / B / fresh counterparty | Residual shortfall | Payouts to flat trader / A / B / fresh counterparty |
+|---|---|---:|---|
+| Both hold through freeze | 5 / 5 / 0 | 0 | 60 / 15 / 15 / 0 |
+| A closes to the fresh counterparty | 0 / 9 / 1 | 0 | 60 / 18 / 11 / 1 |
+| A closes and reopens at 99 | 1 / 9 / 0 | 0 | 60 / 19 / 11 / 0 |
+| A and B both close and reopen at 99 | 2 / 2 / 0 | 6 | 56 / 17 / 17 / 0 |
+
+The round trip resets A's average entry from 90 to 99, so its two lots have only
+two atoms of open gain at 100. In the third row A receives four more atoms and B
+receives four fewer than in the first. In the last row some loss reaches the
+flat trader. The model rejects trades after freeze. Trading fees, slippage,
+funding changes, quote availability, route admission and detection latency are
+outside these counterfactual histories.
+
+**Two allocation experiments.** One serves eligible roots in stable member
+order. The other finds the largest feasible total charge, then the closest
+proportional shares of eligible capacity, then the smallest number of forced
+lots. It minimizes the sum of each squared charge divided by its positive cap
+and breaks remaining ties by stable member order. Each assigned charge must
+fit a paired whole-lot close at integer prices between entry and frozen mark.
+The reference searches whole-atom/lot budgets offline. It supplies an exact
+small-book comparison only.
+
+- With two equal makers, member order puts all ten atoms on A and closes one
+  lot. Proportional allocation charges five each and closes two lots.
+- With one debtor lot, opposite makers able to absorb three and seven atoms
+  respectively, and a six-atom deficit, member order can use the only lot for
+  three. Matching it with the second maker covers all six.
+- In a one-atom shortfall two equal roots are tied. Splitting the first root
+  into two smaller roots moves its one-atom charge entirely onto the second
+  maker under the proportional experiment. The example establishes no general
+  bound on the benefit from splitting.
+
+**A payment needs attribution.** In the mixed-profit fixture A holds ten atoms
+of closed gain and ten of open gain at 90. Clearing pays A ten atoms, then its
+open position earns another ten. A now has the same funded balance and aggregate
+unpaid claim under either accounting convention. Assigning the earlier payment
+to closed gain leaves 20 eligible open atoms. Assigning it to open gain leaves
+ten. Against maker B's ten eligible atoms and a 20-atom shortfall, the modeled
+charges are 13/7 or 10/10 respectively. A and B's final cash is 117/103 or
+120/100. Each plan pays the same total and protects the already funded payment.
+Inferring eligibility from the aggregate unpaid claim alone can overstate it.
+
+Before activation, specify the attribution of ordinary payments, funding,
+partial reductions and re-entry to each surviving position. Compare the two
+payment conventions over identical histories and define an enforceable cutoff
+for trades around a default. Cross-market ADL, multiple debtors, maker priority
+and bounded on-chain continuation need further evidence. Today's proportional
+settlement remains active in the qualified local profile.
+
+```sh
+# From the repository root, after the native driver build above
+python3 tests/financial/adl_eligibility_model.py
+python3 tests/financial/test_adl_eligibility.py -v
+```
 
 ## Direction under discussion and remaining choices
 
@@ -108,8 +178,8 @@ resources first, market insurance, explicit residual loss and a last-resort ADL
 role. On 17 November the user clarified that these mechanisms were not yet clear
 and requested a digestible explanation before making decisions. Accordingly,
 [D110](../DECISIONS.md#d110--successor-loss-handling-direction) now records the
-direction as under discussion. Do not use the earlier acknowledgment as approval
-of successor economics, ADL, a new algorithm or a revised implementation roadmap.
+the earlier direction as under discussion. D112 records the subsequent explicit
+selection following independent reproduction of the payout comparison.
 
 Keep two coordinated mechanisms distinct: maker execution / funded takeover / ADL
 remove exposure; debtor resources / insurance / residual impairment allocate loss.
@@ -121,14 +191,13 @@ The [six-venue follow-up](venue-comparison.md), accessed 17 November, compares
 Hyperliquid, BULK, Phoenix, Lighter, Variational and Pacifica. It distinguishes
 position-taking backstops from cash insurance and capacity-driven ADL from deficit
 allocation. In particular, it does not establish proportional impairment of all
-closed unpaid claims as an industry norm. Settlement finality and creditor
-membership must be compared before selecting that policy.
+closed unpaid claims as an industry norm. D112 records Rivalt's own choice.
 
 The next contract/model deliverable must resolve:
 
 | Choice | Recommended starting point / required comparison |
 |---|---|
-| Creditor eligibility and loss epoch | Compare position-targeted ADL and explicit unpaid-claim resolution; the earlier proportional open/closed-claim proposal is an alternative, not the presumed baseline. Define flat-but-unsettled versus fully settled, protect healthy funded cash and prohibit escaping an already-bound loss by closing, transferring or claiming first. Specify exactly when the boundary becomes binding |
+| Creditor eligibility and loss epoch | Credit funded cash as final against another account's default. Specify the freeze cutoff, authenticated entry and payment attribution so a close, transfer or claim cannot change an already-bound loss. |
 | Cross-account loss attribution | Count debtor cash once; use actual recoveries, not positive face value. Preserve explicit market attribution and no discretionary foreign-insurance raid. Demonstrate mixed-sign claims, shared debtors and cycles before promising local resolution |
 | ADL execution contract | Define permissionless activation, independently authenticated prices, partial sizing, compatible opposite-position selection, health/progress and source-outage behavior. Selection of exposure to close must not silently select who bears disproportionate loss; compare that policy explicitly if proposed |
 | Accounting precision | Compare today's exact simultaneous/fractional allocation with any bounded fixed-precision or loss-index candidate. Publish differences, rounding bounds/ownership and conservation. No alternative is approved merely because it is faster |
@@ -385,9 +454,8 @@ cannot be labelled a mechanical optimization with identical payouts.
 
 ## Recommended successor lifecycle
 
-The direction below remains under discussion after the user's 17 November
-clarification. Keep current rejecting/terminal safeguards until a replacement is
-specified, independently tested and qualified.
+D112 selects the loss-allocation target in this lifecycle. Execution, authorization
+and recovery still require specification, independent tests and qualification.
 
 ```mermaid
 flowchart TD
@@ -564,8 +632,8 @@ reference model. Review it against the following requirements.
 The [clearing roadmap](roadmap.md) owns the delivery order, the first payout
 comparisons and the functional consolidation deliverable.
 
-This discussion does not select an ADL loss-allocation algorithm or authorize
-new credit, insurance subsidies, LP pooling, risk relaxation or funded deployment.
+The remaining ADL selection and pricing choices belong to the successor contract.
+New credit, insurance subsidies, LP pooling and funded deployment require separate decisions.
 P15B/P16B remain separate external
 gates and continuous 24-hour endurance remains Deferred. The executable comparison
 above adds native financial examples. Runtime and load qualification belong to the

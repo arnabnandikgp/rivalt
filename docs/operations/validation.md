@@ -9,6 +9,13 @@ on the original or adjusted claims. Candidate ADL pricing runs in Python. The
 [comparison and reproduction commands](../clearing/architecture-review.md#executable-settlement-and-liquidation-comparison)
 give the results and scope. This research adds no signed runtime or CU measurement.
 
+Model revision `bd5b40e` passes the original 11 tests and 12 eligibility tests.
+The latter include 144 comparisons against exhaustive independent charge vectors
+and eight adjusted cohorts with cash and insurance checked by the native Rust
+kernel. Competing allocation rules and payment attribution run in Python. The
+[multi-maker histories and commands](../clearing/architecture-review.md#eligibility-at-the-freeze)
+describe the fee-free scope and the observed close/reopen and account-splitting effects.
+
 ## Account-scale populated qualification (P56)
 
 Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper

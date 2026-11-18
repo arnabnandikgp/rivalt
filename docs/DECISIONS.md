@@ -1047,3 +1047,30 @@ implementation and qualification records retain their original revision pins.
 Review the [executable settlement comparison](clearing/architecture-review.md#executable-settlement-and-liquidation-comparison)
 as a research PR. Merging a reproducible model records the alternatives and their
 outcomes. Selecting a successor payout rule requires a separate economic decision.
+
+## D112 — Capped ADL and proportional residual recovery
+
+18 November 2026. The user reported independently reproducing the three payouts
+in PR #86 and approved the successor design target. D112 resolves D110's open
+question about the sequence of loss allocation. Today's program continues to
+use complete-cohort proportional recovery.
+
+Use the debtor's available resources first, count shared cash once and apply
+available insurance from the affected market. For a remaining verified deficit,
+a paired forced close may use eligible **unpaid profit on an open opposite
+position in that market**. Cap the charge by the remaining shortfall, attributable
+unpaid open gain and safely closeable quantity at the allowed prices. Allocate
+any remaining loss proportionally across that market's remaining unpaid claims,
+including flat creditors, before conserving whole-atom rounding. An ordinary
+close ends price exposure. Crediting funded cash protects that amount from
+another account's default. The account still answers for its own obligations.
+
+This puts an existing profitable opposite position to use in removing exposure
+while limiting the loss that position can absorb. The proportional fallback
+also works when all creditors are flat. Neither step creates collateral. Earlier
+payment, split accounts and closing near freeze can change membership and allocation.
+The [eligibility experiments](clearing/architecture-review.md#eligibility-at-the-freeze)
+identify decisions still required on payment attribution, eligibility timing,
+priority among winners and cross-market execution. The experimental allocator
+and entry convention have research status. Changes to payout instructions or
+activation require the later implementation and qualification gates.

@@ -124,9 +124,8 @@ Rivalt's shared market/ledger contention. Treat that as a separate workstream.
 
 ## Handoff
 
-Research changes recommendations only. No program, IDL, reserve allocation, fee,
-runtime profile or activation changes. No new successor economic decision is
-approved. Next action: present a concrete settlement-finality/loss-membership
-comparison with independent mixed-market examples, then obtain the material
-policy decisions for the [clearing roadmap](roadmap.md). P15B/P16B remain external
+The 17 November survey informed the following day's
+[loss-policy decision](../DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery).
+The [clearing roadmap](roadmap.md) tracks the remaining eligibility and execution
+work. The survey supplies venue comparisons only. P15B/P16B remain external
 gates and continuous 24-hour endurance remains deferred.

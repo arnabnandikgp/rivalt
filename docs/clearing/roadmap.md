@@ -12,7 +12,7 @@ records the change in direction.
 
 Each row is a reviewable deliverable. Dependencies follow the financial behavior
 being changed. Source extraction can proceed against today's behavior while the
-candidate loss policies are being compared.
+selected loss rule's eligibility and execution terms are being tested.
 
 | Deliverable | Scope | Review evidence |
 |---|---|---|
@@ -20,7 +20,7 @@ candidate loss policies are being compared.
 | 2. Functional code consolidation | Give the risk engine a crate with a small public API and each other financial operation a discoverable owner. Extract the existing behavior through the normal clearing entrypoints. Publish the equation-to-code map with the extraction. | Follow a withdrawal or liquidation from instruction to the exact rule and atomic commit. Check matched financial vectors, authorization, ABI/IDL/SDK and signed domains. Compare affected compiled stack and CU against the pre-extraction pin. |
 | 3. Ordinary settlement | Measure collection of open-position losses and time from eligible claim to funded gain. Improve worker and on-chain progress, and evaluate close-and-pay where current cash and backing checks permit it. | Verified close with a different maker, delayed collections, partial payments, price changes and interruption. Report why payment waited. Show funded and pending amounts in the SDK, indexer and UI. |
 | 4. Forced liquidation and backstop | Route eligible partial reductions through admitted maker quotes with independent price bounds. Integrate consent, funded capacity, compensation and unwind rules for receivers. | Whole-account deficit improves after all fees. Demonstrate no quote, insufficient receiver capacity, stale oracle, competing attempts, and preservation of the trader's remaining exposure and cash. |
-| 5. Default and recovery | Implement the selected rules for debtor recoveries, market insurance, ADL and unpaid claims. Specify when the loss becomes binding, cross-market attribution, rounding, freeze scope and resumption. | Complete conservation across all affected obligations including flat accounts, no eligible opposite position and depleted insurance. Demonstrate bounded, authenticated continuation after restart. Economic selection follows deliverable 1. |
+| 5. Default and recovery | Implement the selected rules for debtor recoveries, market insurance, ADL and unpaid claims. Specify when the loss becomes binding, cross-market attribution, rounding, freeze scope and resumption. | Complete conservation across all affected obligations including flat accounts, no eligible opposite position and depleted insurance. Demonstrate bounded, authenticated continuation after restart. Eligibility and execution terms must pass the deliverable 1 gates. |
 | 6. Shared writes and qualification | Baseline same-market locks on the existing paths, then change ownership where measurements justify it. Qualify the resulting clearing lifecycle and its effects on makers and users. | Compare matched distinct-maker and shared-maker workloads, signed Surfpool RPC/WS results, PostgreSQL replay, exit, CU, transaction sizes, costs by payer and landed throughput. Verify aggregate exposure caps, fee carry, funding history and complete payment backing. |
 
 ## Functional ownership
@@ -60,11 +60,14 @@ Its starter cases use whole collateral atoms at one frozen valuation.
   cannot be counted twice. Separate fixtures cover a collectible opposite-market
   claim and a cashless cycle with an external creditor.
 
-The first policy decision is when a flat account's outstanding claim becomes
-final, and who can absorb a loss arising before that boundary. Show the effects
-of closing, claiming or transferring immediately before and after the boundary.
-Use the model to decide ADL pricing, creditor eligibility, market attribution,
-precision, freeze scope and keeper/receiver compensation. The
+[D112](../DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery)
+sets finality at funded cash and selects capped ADL with proportional residual
+recovery. The [eligibility experiments](architecture-review.md#eligibility-at-the-freeze)
+show charges moving across makers after a close/reopen or a subaccount split.
+The next economic question is how an ordinary payment consumes open versus
+closed profit when both are present. Verify both conventions against funding,
+partial closes and re-entry. Keep the active proportional settlement until the
+selected eligibility, epoch, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.
 
