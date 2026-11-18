@@ -36,6 +36,22 @@ pub const MARGIN_ALLOCATION: usize = MARGIN_PREFIX + {
     { 0 }
 };
 
+/// The local qualification probes prove this range on the pinned SBF executable.
+#[cfg(feature = "profit-attribution-qualification")]
+pub const MAX_ATTRIBUTION_SLOT: usize = 256;
+#[cfg(feature = "profit-attribution-qualification")]
+pub const RENT_CREDIT_BYTES: usize = 32 + 8;
+
+pub fn valid_margin_size(size: usize) -> bool {
+    if size == MARGIN_ALLOCATION { return true; }
+    #[cfg(feature = "profit-attribution-qualification")]
+    if let Some(extra) = size.checked_sub(MARGIN_ALLOCATION + RENT_CREDIT_BYTES) {
+        return extra > 0 && extra % 2 == 0 &&
+            extra / 2 <= MAX_ATTRIBUTION_SLOT - INITIAL_ATTRIBUTION_BYTES;
+    }
+    false
+}
+
 pub const SCHEMA_VERSION: u16 = 10;
 pub const PROFILE_VERSION: u16 = 6;
 pub use crate::state::identity::MARKET_COUNT;

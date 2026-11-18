@@ -1042,3 +1042,6 @@ impl ScopedContext for RefundRecoveryAllocation {
     fn venue(&self) -> (Address, [u8;32]) { (*self.venue.address(),self.venue.domain) }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
+
+context!(ManageProfitCapacity, venue, event_authority;
+[venue: Read, safety: Read, margin: Write]; []);

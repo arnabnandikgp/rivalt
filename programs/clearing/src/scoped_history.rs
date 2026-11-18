@@ -182,7 +182,7 @@ impl Scope {
         );
         let bytes = account.try_borrow()?;
         require!(
-            bytes.len() == (if T::KIND == MarginAccount::KIND { crate::state::accounts::MARGIN_ALLOCATION } else { 8 + T::INIT_SPACE }) && bytes[..8] == *T::DISCRIMINATOR,
+            (if T::KIND == MarginAccount::KIND { crate::state::accounts::valid_margin_size(bytes.len()) } else { bytes.len() == 8 + T::INIT_SPACE }) && bytes[..8] == *T::DISCRIMINATOR,
             ClearingError::Profile
         );
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
@@ -258,7 +258,7 @@ impl Scope {
             (crate::state::accounts::MARGIN_ALLOCATION, MarginAccount::DISCRIMINATOR)
         };
         require!(
-            bytes.len() == length && bytes[..8] == *discriminator,
+            (if after { bytes.len() == length } else { crate::state::accounts::valid_margin_size(bytes.len()) }) && bytes[..8] == *discriminator,
             ClearingError::Profile
         );
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
@@ -361,7 +361,7 @@ impl Scope {
             require_keys_eq!(*account.owner(), crate::ID, ClearingError::Profile);
             let data = account.try_borrow()?;
             require!(
-                data.len() == crate::state::accounts::MARGIN_ALLOCATION
+                crate::state::accounts::valid_margin_size(data.len())
                     && data[..8] == *MarginAccount::DISCRIMINATOR,
                 ClearingError::Profile
             );

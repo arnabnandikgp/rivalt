@@ -369,3 +369,9 @@ pub use account_membership::RefundRecoveryAllocation;
 pub(crate) use account_membership::__client_accounts_refundrecoveryallocation;
 #[cfg(feature="cpi")]
 pub(crate) use account_membership::__cpi_accounts_refundrecoveryallocation;
+
+pub mod profit_capacity;
+pub use profit_capacity::ManageProfitCapacity;
+pub(crate) use profit_capacity::__client_accounts_manageprofitcapacity;
+#[cfg(feature="cpi")]
+pub(crate) use profit_capacity::__cpi_accounts_manageprofitcapacity;

@@ -1,13 +1,13 @@
 //! Additional storage in a fresh candidate margin account. Clearing owns both
 //! the fixed Borsh prefix and the tail, so each financial write locks one root.
 use crate::{
-    state::accounts::{MarginAccount, MARGIN_ALLOCATION, MARGIN_PREFIX},
+    state::accounts::{MarginAccount, valid_margin_size, INITIAL_ATTRIBUTION_BYTES, RENT_CREDIT_BYTES, MARGIN_PREFIX},
     ClearingError,
 };
 use anchor_lang::prelude::*;
 use clearing_accounting::attribution::Attribution;
 
-const MAGIC: &[u8; 8] = b"RVPROF01";
+pub(crate) const MAGIC: &[u8; 8] = b"RVPROF01";
 
 fn tail(
     root: &mut BorshAccount<MarginAccount>,
@@ -15,7 +15,7 @@ fn tail(
 ) -> Result<()> {
     let mut account = root.account().clone();
     require!(
-        account.data_len() == MARGIN_ALLOCATION,
+        valid_margin_size(account.data_len()),
         ClearingError::Profile
     );
     // RC2 holds the mutable Borsh borrow until exit. Release it while changing
@@ -34,12 +34,17 @@ pub fn initialize(root: &mut BorshAccount<MarginAccount>) -> Result<()> {
     })
 }
 
+fn slots_end(bytes: &[u8]) -> usize {
+    if bytes.len() == 8 + 2 * INITIAL_ATTRIBUTION_BYTES { bytes.len() }
+    else { bytes.len() - RENT_CREDIT_BYTES }
+}
+
 fn market_slot(bytes: &mut [u8], market: usize) -> Result<&mut [u8]> {
     require!(
         market < 2 && bytes.starts_with(MAGIC),
         ClearingError::Profile
     );
-    let width = (bytes.len() - 8) / 2;
+    let width = (slots_end(bytes) - 8) / 2;
     Ok(&mut bytes[8 + market * width..8 + (market + 1) * width])
 }
 
@@ -96,7 +101,8 @@ pub fn payment(
 pub fn clear_resolved(root: &mut BorshAccount<MarginAccount>) -> Result<()> {
     tail(root, |bytes| {
         require!(bytes.starts_with(MAGIC), ClearingError::Profile);
-        bytes[8..].fill(0);
+        let end = slots_end(bytes);
+        bytes[8..end].fill(0);
         Ok(())
     })
 }

@@ -19,7 +19,7 @@ pub(crate) fn step(cursor: &mut MembershipCursor, venue: &Address, accounts: &[A
             let entry = settlement_membership::financial_member(cursor, venue, &accounts[0])?;
             let account = &accounts[1];
             require!(account.owner() == &crate::ID && !account.is_signer() && !account.executable()
-                && account.data_len() == crate::state::accounts::MARGIN_ALLOCATION && *account.address() == entry.root, ClearingError::Resolution);
+                && crate::state::accounts::valid_margin_size(account.data_len()) && *account.address() == entry.root, ClearingError::Resolution);
             let root = Box::new(MarginAccount::try_deserialize(&mut &account.try_borrow()?[..])?);
             require!(root.schema_version == SCHEMA_VERSION && root.revision > 0 && root.venue == *venue
                 && root.id == id && root.lifecycle == MEMBER_FINANCIAL

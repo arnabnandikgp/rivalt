@@ -152,6 +152,17 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    capacity = unique('manage_profit_capacity')
+    assert capacity['discriminator'] == list(hashlib.sha256(b'global:manage_profit_capacity').digest()[:8])
+    assert capacity['args'] == [{'name': name, 'type': kind} for name, kind in
+                                [('slot_bytes','u16'), ('revision','u64'), ('max_payment','u64')]]
+    assert [(field['name'], field.get('writable',False), field.get('signer',False))
+            for field in capacity['accounts']] == [
+                ('actor',False,True), ('payer',True,True), ('previous_contributor',True,False),
+                ('venue',False,False), ('safety',False,False), ('margin',True,False),
+                ('system_program',False,False), ('event_authority',False,False), ('program',False,False)]
+    assert capacity['accounts'][6]['address'] == '11111111111111111111111111111111'
+    actual['instructions'].remove(capacity)
     direct = unique('execute_liquidity_route')
     forced = unique('liquidate_liquidity_route')
     tag = list(hashlib.sha256(b'global:liquidate_liquidity_route').digest()[:8])

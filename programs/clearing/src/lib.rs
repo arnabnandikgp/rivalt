@@ -66,6 +66,9 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn manage_profit_capacity(ctx: &mut Context<ManageProfitCapacity>, slot_bytes: u16, revision: u64, max_payment: u64) -> Result<()> {
+        scoped_history::run(ctx, [127, 131, 245, 73, 221, 170, 34, 48], false, |ctx, _events| profit_capacity::manage(ctx, slot_bytes, revision, max_payment))
+    }
     pub fn activate_margin(ctx: &mut Context<ChangeMarginMembership>, revision: u64, membership_epoch: u64,
         safety_epoch: u64, index_revisions: [u64; 15]) -> Result<()> {
         scoped_history::run_membership(ctx, [206, 170, 249, 231, 115, 159, 95, 29], |ctx, events| account_membership::handlers::change(

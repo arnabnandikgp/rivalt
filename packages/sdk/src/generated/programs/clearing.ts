@@ -170,6 +170,7 @@ import {
   getLiquidateAccountInstructionAsync,
   getLiquidateLiquidityRouteInstructionAsync,
   getManageAccountOrderInstructionAsync,
+  getManageProfitCapacityInstructionAsync,
   getNetAccountClaimsInstructionAsync,
   getPauseVenueInstructionAsync,
   getPayAccountGainInstructionAsync,
@@ -254,6 +255,7 @@ import {
   parseLiquidateAccountInstruction,
   parseLiquidateLiquidityRouteInstruction,
   parseManageAccountOrderInstruction,
+  parseManageProfitCapacityInstruction,
   parseNetAccountClaimsInstruction,
   parsePauseVenueInstruction,
   parsePayAccountGainInstruction,
@@ -338,6 +340,7 @@ import {
   type LiquidateAccountAsyncInput,
   type LiquidateLiquidityRouteAsyncInput,
   type ManageAccountOrderAsyncInput,
+  type ManageProfitCapacityAsyncInput,
   type NetAccountClaimsAsyncInput,
   type ParsedAcceptDenominatorRowInstruction,
   type ParsedAcceptSettlementPlanRowInstruction,
@@ -393,6 +396,7 @@ import {
   type ParsedLiquidateAccountInstruction,
   type ParsedLiquidateLiquidityRouteInstruction,
   type ParsedManageAccountOrderInstruction,
+  type ParsedManageProfitCapacityInstruction,
   type ParsedNetAccountClaimsInstruction,
   type ParsedPauseVenueInstruction,
   type ParsedPayAccountGainInstruction,
@@ -1256,6 +1260,7 @@ export enum ClearingInstruction {
   LiquidateAccount,
   LiquidateLiquidityRoute,
   ManageAccountOrder,
+  ManageProfitCapacity,
   NetAccountClaims,
   PauseVenue,
   PayAccountGain,
@@ -1890,6 +1895,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([127, 131, 245, 73, 221, 170, 34, 48]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ManageProfitCapacity;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([234, 97, 182, 215, 70, 97, 13, 87]),
       ),
       0,
@@ -2388,6 +2404,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ManageAccountOrder;
     } & ParsedManageAccountOrderInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ManageProfitCapacity;
+    } & ParsedManageProfitCapacityInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.NetAccountClaims;
     } & ParsedNetAccountClaimsInstruction<TProgram>)
   | ({
@@ -2859,6 +2878,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ManageAccountOrder,
         ...parseManageAccountOrderInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ManageProfitCapacity: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ManageProfitCapacity,
+        ...parseManageProfitCapacityInstruction(instruction),
       };
     }
     case ClearingInstruction.NetAccountClaims: {
@@ -3413,6 +3439,11 @@ export type ClearingPluginInstructions = {
     input: ManageAccountOrderAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getManageAccountOrderInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  manageProfitCapacity: (
+    input: MakeOptional<ManageProfitCapacityAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getManageProfitCapacityInstructionAsync> &
     SelfPlanAndSendFunctions;
   netAccountClaims: (
     input: NetAccountClaimsAsyncInput,
@@ -4131,6 +4162,17 @@ export function clearingProgram(
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
+            ),
+          manageProfitCapacity: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getManageProfitCapacityInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
             ),
           netAccountClaims: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
