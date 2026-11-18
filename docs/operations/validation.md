@@ -36,6 +36,25 @@ The generated lock inventory covers 92 instructions (84 clearing, 14 custody
 writers). The maker liquidation has the same declared access set as a direct
 maker route. All earlier entries match their pre-liquidation inventories.
 
+### Stack review regressions
+
+At `5c302cd`, the rebuilt local candidate `ab3f6c6` executed the same ten-lot
+BTC reduction with a live risk-increasing ETH order on the target. Both price
+windows first expired and a signed BTC liquidation failed. Only BTC reports
+then resumed. With the ETH window still expired, the BTC fill cancelled the ETH
+order, released its reserve and reduced the target’s deficit from 43,910 to
+12,574 atoms. It took 173,591 CU in 918 bytes. The five-lot funded receiver
+transfer restored maintenance. All twelve signed rejections preserved state,
+and fresh PostgreSQL replay reproduced 92 finalized events. The native control
+on the same program source rejected expired ETH when an ETH position survived.
+
+Separately, the eight-account default worker on clean `104a8ac` used selected
+P56 clearing and the D108 native helper. All 15 signed continuation transactions
+finalized, including recovery after interruption during upload and application.
+A token exit landed and fresh PostgreSQL replay matched 109 events. The harness
+records the eight-root operating envelope as unassessed. These two runs used
+independent local Surfpool instances and test collateral.
+
 ## Ordinary trader payout
 
 Harness `f732ae05805aadfe1f1dc06d8a83107bb3e9c02a` used the selected
