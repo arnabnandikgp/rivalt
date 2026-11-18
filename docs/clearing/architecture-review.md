@@ -159,8 +159,8 @@ charges are 13/7 or 10/10 respectively. A and B's final cash is 117/103 or
 Inferring eligibility from the aggregate unpaid claim alone can overstate it.
 
 Before activation, specify how clearing tracks payments on surviving lots through
-partial reductions and re-entry under D113. Define an enforceable cutoff for
-trades around a default. Cross-market ADL, multiple debtors, maker priority
+partial reductions and re-entry under D113. Verify those records at the cutoff
+selected in D114. Cross-market ADL, multiple debtors, maker priority
 and bounded on-chain continuation need further evidence. Today's proportional
 settlement remains active in the qualified local profile.
 
@@ -222,7 +222,7 @@ profit, a 30-atom closed-first payment before selling one lot leaves five
 previously paid atoms on the survivor. Selling first puts 30 in fixed profit,
 so the same payment leaves zero previously paid on the survivor. Open-first also
 depends on ordering. A full close and re-entry resets the experimental average
-basis under both rules. Defining the binding loss epoch remains a separate decision.
+basis under both rules. D114 determines which committed trades and payments enter this history.
 
 The comparison holds winner selection, precise eligibility, funding classification
 and paid-gain allocation across lots constant. It uses one BTC debtor, zero
@@ -240,8 +240,9 @@ python3 tests/financial/test_payment_attribution.py -v
 
 ### When default eligibility becomes binding
 
-**Recommendation for decision.** Bind eligibility when a transaction successfully
-commits a verified freeze. Honor the trades and backed payments that committed
+Under [D114](../DECISIONS.md#d114--verified-freeze-cutoff-for-loss-eligibility),
+the first verified freeze that commits for a default episode binds eligibility.
+Honor the trades and backed payments that committed
 before it. A keeper that identifies a bankrupt account can submit that account
 to the freeze instruction immediately. When a source update is also needed,
 evaluate submitting the update and proof atomically. An earlier oracle timestamp
@@ -333,7 +334,7 @@ The next contract/model deliverable must resolve:
 
 | Choice | Recommended starting point / required comparison |
 |---|---|
-| Creditor eligibility and loss epoch | Credit funded cash as final against another account's default. Specify the freeze cutoff, authenticated entry and payment attribution so a close, transfer or claim cannot change an already-bound loss. |
+| Creditor eligibility and loss epoch | Credit funded cash as final against another account's default. Authenticate entry and D113 payment history at the D114 cutoff. Verify that a later close, transfer or claim cannot change the frozen allocation inputs. |
 | Cross-account loss attribution | Count debtor cash once; use actual recoveries, not positive face value. Preserve explicit market attribution and no discretionary foreign-insurance raid. Demonstrate mixed-sign claims, shared debtors and cycles before promising local resolution |
 | ADL execution contract | Define permissionless activation, independently authenticated prices, partial sizing, compatible opposite-position selection, health/progress and source-outage behavior. Selection of exposure to close must not silently select who bears disproportionate loss; compare that policy explicitly if proposed |
 | Accounting precision | Compare today's exact simultaneous/fractional allocation with any bounded fixed-precision or loss-index candidate. Publish differences, rounding bounds/ownership and conservation. No alternative is approved merely because it is faster |

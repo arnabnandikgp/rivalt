@@ -2,8 +2,9 @@
 
 The current qualified local program applies proportional recovery to unpaid
 claims in each affected market. The [successor decision](../DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery)
-selects capped ADL before that residual allocation. Its eligibility and payout
-experiments run in the [research model](architecture-review.md#eligibility-at-the-freeze).
+selects capped ADL before that residual allocation. [D114](../DECISIONS.md#d114--verified-freeze-cutoff-for-loss-eligibility)
+fixes eligibility at the first verified freeze that commits for the episode.
+The successor eligibility and payout experiments run in the [research model](architecture-review.md#eligibility-at-the-freeze).
 
 ## Scalable exact resolution candidate (P51B)
 

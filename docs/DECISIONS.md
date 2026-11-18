@@ -1088,7 +1088,23 @@ This preserves more eligible gain on open exposure to absorb a later shortfall
 before other unpaid creditors share it. An open maker can consequently bear
 more loss. The [matched payment histories](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles)
 show this tradeoff and the case where both conventions give the same result
-after a close and re-entry. The [binding-cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding)
-recommends a prospective verified freeze commit. Selection of the cutoff remains open.
+after a close and re-entry. D114 sets the cutoff at which this history is taken.
 The qualified local program currently records aggregate claim payments and uses
 proportional terminal recovery.
+
+## D114 — Verified freeze cutoff for loss eligibility
+
+18 November 2026. For the D112 successor, the user approved the first successfully
+committed, verified on-chain freeze for a default episode as the cutoff for loss
+eligibility. Honor trades and backed payments committed before the freeze, including
+those earlier in the same slot. Use the positions then open and the D113 payment
+history on their surviving lots. An earlier oracle timestamp, a keeper's observation
+or a transaction that rolls back cannot bind the cohort.
+
+A keeper may submit a named debtor as soon as clearing can verify the existing
+default predicate. The authorized source-emergency path fixes membership, positions
+and funding at freeze even when a required closeout price arrives later. That price
+values the frozen positions. It does not reopen eligibility. The
+[cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding)
+quantifies the effect of a late proof. Bundling a source update and proof still needs
+signed runtime measurements. Priority among eligible winners remains open.
