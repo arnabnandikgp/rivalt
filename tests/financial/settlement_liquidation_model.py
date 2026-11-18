@@ -1,5 +1,6 @@
 """Clearing research at fixed, fully accrued valuations. Run directly for the cases."""
 from dataclasses import dataclass, replace
+from fractions import Fraction
 
 from account_contract_reference import Account, require
 from clearing_network_reference import AtomClearingPlan, clear_atom_cohort
@@ -12,11 +13,16 @@ class MarketSnapshot:
     book: MarketBook
     lots: tuple[int, ...]
     mark: int
+    entries: tuple[Fraction | None, ...] | None = None  # Optional average entry from research trade history.
 
     def __post_init__(self):
         require(type(self.mark) is int and self.mark > 0, "positive valuation required")
         require(len(self.lots) == len(self.book.accounts) and sum(self.lots) == 0
                 and all(type(q) is int for q in self.lots), "inventory must reconcile")
+        if self.entries is not None:
+            require(len(self.entries) == len(self.lots) and all(
+                entry is None if lots == 0 else type(entry) in (int, Fraction) and entry > 0
+                for lots, entry in zip(self.lots, self.entries)), "basis required on every open position")
 
     def reprice(self, mark):
         require(not self.book.frozen, "valuation fixed at freeze")
@@ -35,12 +41,23 @@ class MarketSnapshot:
         require(type(quantity) is int and quantity > 0 and type(price) is int and price > 0,
                 "positive integer lots and price required")
         accounts, lots = list(self.book.accounts), list(self.lots)
+        entries = list(self.entries) if self.entries is not None else None
         for member, delta in ((buyer, quantity), (seller, -quantity)):
             account = accounts[member]
             lots[member] += delta
+            if entries is not None:
+                previous = self.lots[member]
+                if lots[member] == 0:
+                    entries[member] = None
+                elif previous * lots[member] <= 0:
+                    entries[member] = Fraction(price)
+                elif previous * delta > 0:
+                    entries[member] = (entries[member] * previous + price * delta) / Fraction(lots[member])
+                # A partial reduction retains the surviving position's average entry.
             accounts[member] = Account(account.cash, (account.claims[0] + delta * (self.mark - price),
                                                        account.claims[1]))
-        return replace(self, lots=tuple(lots), book=replace(self.book, accounts=tuple(accounts)))
+        return replace(self, lots=tuple(lots), book=replace(self.book, accounts=tuple(accounts)),
+                       entries=tuple(entries) if entries is not None else None)
 
     def apply_cash(self, book):
         require(book.vault == self.book.vault, "custody changed during internal settlement")
@@ -74,41 +91,51 @@ class AdlComparison:
     candidate: AtomClearingPlan
 
 
-def compare_open_priority(state, debtor, winner, entry_price):
-    """One frozen market, one debtor and one eligible opposite. Residual uses equal recovery.
-
-    Pure policy experiment. Entry price is a frozen fixture input. Positive unpaid claim
-    may include profit on previously closed lots, distinct from profit on still-open lots.
-    """
+def frozen_btc_baseline(state, debtor):
     book = state.book
-    require(book.frozen and 0 <= debtor < len(state.lots) and 0 <= winner < len(state.lots)
-            and debtor != winner and type(entry_price) is int and entry_price > 0,
-            "frozen roles and entry required")
+    require(book.frozen and 0 <= debtor < len(state.lots), "frozen debtor required")
     require(all(account.claims[1] == 0 for account in book.accounts)
             and all(account.claims[0] >= 0 for i, account in enumerate(book.accounts) if i != debtor)
             and book.accounts[debtor].claims[0] < 0, "single-market single-debtor cohort required")
-    baseline = terminal(book)
+    return terminal(book)
+
+
+def paired_reduction(state, debtor, winner, profit_per_lot, charge):
+    """Execute an assigned whole-atom charge with the fewest whole lots at bounded prices."""
+    require(profit_per_lot > 0 and charge > 0 and state.lots[debtor] * state.lots[winner] < 0,
+            "profitable opposite exposure required")
+    matched = (charge + profit_per_lot - 1) // profit_per_lot
+    require(matched <= min(abs(state.lots[debtor]), abs(state.lots[winner]))
+            and charge <= state.book.accounts[winner].claims[0], "charge exceeds open exposure or unpaid claim")
+    concession, extra_lots = divmod(charge, matched)
+    direction = 1 if state.lots[winner] > 0 else -1
+    buyer, seller = (debtor, winner) if direction == 1 else (winner, debtor)
+    fills = []
+    for size, discount in ((matched - extra_lots, concession), (extra_lots, concession + 1)):
+        if size:
+            price = state.mark - direction * discount
+            state = state._paired_fill(buyer, seller, size, price)
+            fills.append((size, price))
+    return state, tuple(fills)
+
+
+def compare_open_priority(state, debtor, winner, entry_price):
+    """Compare one nominated opposite with equal recovery using a fixed fixture entry."""
+    require(0 <= winner < len(state.lots) and debtor != winner and type(entry_price) is int
+            and entry_price > 0, "distinct winner and entry required")
+    baseline = frozen_btc_baseline(state, debtor)
     initial_loss = sum(row[0] for row in baseline.benchmark.creditor_impairments)
     quantity = min(abs(state.lots[debtor]), abs(state.lots[winner]))
     direction = 1 if state.lots[winner] > 0 else -1
     profit_per_lot = direction * (state.mark - entry_price)
     charge = 0
-    fills = []
+    fills = ()
     after = state
     if state.lots[debtor] * state.lots[winner] < 0 and profit_per_lot > 0:
-        charge = int(min(initial_loss, max(0, book.accounts[winner].claims[0]),
+        charge = int(min(initial_loss, max(0, state.book.accounts[winner].claims[0]),
                          quantity * profit_per_lot))
     if charge:
-        # Smallest integer size whose accrued open profit covers the charge. Split across
-        # adjacent whole prices so execution transfers exactly the selected whole atoms.
-        matched = (charge + profit_per_lot - 1) // profit_per_lot
-        concession, extra_lots = divmod(charge, matched)
-        buyer, seller = (debtor, winner) if direction == 1 else (winner, debtor)
-        for size, discount in ((matched - extra_lots, concession), (extra_lots, concession + 1)):
-            if size:
-                price = state.mark - direction * discount
-                after = after._paired_fill(buyer, seller, size, price)
-                fills.append((size, price))
+        after, fills = paired_reduction(state, debtor, winner, profit_per_lot, charge)
     candidate = terminal(after.book)
     residual = sum(row[0] for row in candidate.benchmark.creditor_impairments)
     require(charge + residual == initial_loss and candidate.insurance_spent == baseline.insurance_spent,
