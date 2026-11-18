@@ -10,11 +10,15 @@ export const BACKING_ARTIFACTS:Record<string,{bytes:number;sha256:string}>={
   'maker-b':{bytes:166848,sha256:'7fb790b32a94b66f5bc893c3e212a31604fae7c0d1d82ab693bda4f0dc5b8a41'},
 };
 export function verifyBackingBuild(directory:string) {
+  return verifyTestBuild(directory, BACKING_BUILD, BACKING_ARTIFACTS);
+}
+export function verifyTestBuild(directory: string, revision: string, artifacts: typeof BACKING_ARTIFACTS) {
   const manifest=JSON.parse(readFileSync(`${directory}/build-manifest.json`,'utf8'));
-  assert.equal(manifest.revision,BACKING_BUILD);assert.equal(manifest.trackedDirty,false);
+  assert.equal(manifest.revision,revision);assert.equal(manifest.trackedDirty,false);
+  assert.equal(manifest.profile,'liquidity-execution-qualification');
   assert.equal(manifest.accountSchema,10);assert.equal(manifest.profileVersion,6);
   assert.equal(manifest.framework,'anchor-2.0.0-rc.2');
-  for(const [name,expected] of Object.entries(BACKING_ARTIFACTS)) {
+  for(const [name,expected] of Object.entries(artifacts)) {
     const file=`${name.replace('-','_')}.so`,bytes=readFileSync(`${directory}/${file}`);
     assert.equal(bytes.length,expected.bytes);assert.equal(createHash('sha256').update(bytes).digest('hex'),expected.sha256);
     assert.equal(manifest.binaries[file],expected.sha256);

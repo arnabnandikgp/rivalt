@@ -9,10 +9,11 @@ import {json} from '../../packages/indexer/src/events.js';
 import type {WireRpc} from './wire.js';
 import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 
-export async function openSettlementJournal(rpc:WireRpc,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,signatures:string[]) {
+export async function openSettlementJournal(rpc:WireRpc,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,signatures:string[],
+  build = { artifactSet: BACKING_ARTIFACT_SET, artifacts: BACKING_ARTIFACTS }) {
   const databaseUrl=process.env.RIVALT_DATABASE_URL!;assert(databaseUrl,'Actual owned PostgreSQL is required');
   // Candidate-specific hash binding is test-only. Normal runtime allowlists stay unchanged.
-  const artifactSet=BACKING_ARTIFACT_SET,candidates=BACKING_ARTIFACTS;
+  const {artifactSet, artifacts: candidates} = build;
   await new sdk.ArtifactVerifier(rpc,sdk.LIQUIDITY_ARTIFACTS.map(artifact=>({...artifact,...candidates[artifact.name]}))).verify(setup.payer.address);
   const anchor=await initializationSignature(rpc,signatures,setup.deployment.eventAuthority);
   const history=()=>fetchScopedHistory(rpc,anchor,setup.deployment.eventAuthority,setup.venue,setup.domain.toString('hex'));
