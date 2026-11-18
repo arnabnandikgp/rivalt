@@ -73,6 +73,18 @@ def command(rows, pools, insurance, fees, proposals, orders, budget=128, full=Tr
         *( ",".join(map(str, order)) for order in orders), str(budget)))
 
 
+def frozen_book_command(book):
+    """Encode a research book exactly at the native scale, using the existing untrusted proposer."""
+    rows = []
+    for account in book.accounts:
+        claims = tuple(Fraction(claim) * SCALE for claim in account.claims)
+        if any(claim.denominator != 1 for claim in claims):
+            raise ValueError("claim cannot be expressed at native scale")
+        rows.append((account.cash, tuple(int(claim) for claim in claims)))
+    _, _, proposals, orders = independent_input(rows, book.pools, book.insurance, book.fees)
+    return command(rows, book.pools, book.insurance, book.fees, proposals, orders)
+
+
 def decode(line):
     if line.startswith("err:"):
         raise AssertionError(line)

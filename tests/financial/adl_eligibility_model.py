@@ -1,6 +1,7 @@
 """Offline single-debtor experiments for selecting among opposite BTC positions."""
 from dataclasses import dataclass, replace
 from fractions import Fraction
+from math import ceil
 
 from account_contract_reference import Account, require
 from clearing_network_reference import AtomClearingPlan
@@ -11,7 +12,7 @@ from settlement_liquidation_model import MarketSnapshot, frozen_btc_baseline, pa
 @dataclass(frozen=True)
 class EligiblePosition:
     member: int
-    gain_per_lot: int
+    gain_per_lot: int | Fraction
     cap: int
 
 
@@ -29,9 +30,11 @@ def eligible_positions(state, debtor, unpaid_open):
         # Every individual execution price must remain between entry and frozen mark.
         gain_per_lot = int(max(0, direction * (state.mark - entry)))
         pairable_lots = min(abs(lots), abs(state.lots[debtor]))
-        cap = min(pairable_lots * gain_per_lot, int(account.claims[0]))
         if unpaid_open is not None:
-            cap = min(cap, int(unpaid_open[member]))
+            # Average-entry histories release the paid and unpaid parts in proportion
+            # to lots closed. A partial ADL can use only the matched lots' share.
+            gain_per_lot = min(gain_per_lot, Fraction(unpaid_open[member], abs(lots)))
+        cap = min(int(pairable_lots * gain_per_lot), int(account.claims[0]))
         if cap > 0:
             eligible.append(EligiblePosition(member, gain_per_lot, cap))
     return eligible
@@ -41,10 +44,10 @@ def ordinal_charges(eligible, loss, lots):
     """Counterfactual: serve profitable roots in stable member order until lots or loss run out."""
     charges = []
     for position in eligible:
-        charge = min(loss, position.cap, lots * position.gain_per_lot)
+        charge = min(loss, position.cap, int(lots * position.gain_per_lot))
         charges.append(charge)
         loss -= charge
-        lots -= (charge + position.gain_per_lot - 1) // position.gain_per_lot
+        lots -= ceil(Fraction(charge) / position.gain_per_lot)
     return charges
 
 
@@ -60,9 +63,9 @@ def proportional_charges(eligible, loss, lots):
     for position in eligible:
         extended = {}
         for (charged, used), (cost, negative_charges) in plans.items():
-            maximum = min(position.cap, loss - charged, (lots - used) * position.gain_per_lot)
+            maximum = min(position.cap, loss - charged, int((lots - used) * position.gain_per_lot))
             for charge in range(maximum + 1):
-                required_lots = (charge + position.gain_per_lot - 1) // position.gain_per_lot
+                required_lots = ceil(Fraction(charge) / position.gain_per_lot)
                 key = charged + charge, used + required_lots
                 plan = cost + Fraction(charge * charge, position.cap), negative_charges + (-charge,)
                 if key not in extended or plan < extended[key]:

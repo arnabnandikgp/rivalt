@@ -8,7 +8,7 @@ from account_contract_reference import Account, InvalidTransition
 from adl_eligibility_model import EligiblePosition, freeze, maker_history, proportional_charges, resolve
 from market_settlement_reference import MarketBook, collect, pay
 from settlement_liquidation_model import MarketSnapshot
-from test_scalable_settlement import SCALE, command, decode, independent_input, run
+from test_scalable_settlement import decode, frozen_book_command, run
 
 
 def snapshot(cash, claims, lots, entries, insurance=0):
@@ -179,9 +179,7 @@ class EligibilityTest(unittest.TestCase):
         commands = []
         for state, rule, _, _ in fixtures:
             book = resolve(state, 0, allocation=rule).after.book
-            rows = tuple((account.cash, tuple(int(claim * SCALE) for claim in account.claims)) for account in book.accounts)
-            _, _, proposals, orders = independent_input(rows, book.pools, book.insurance)
-            commands.append(command(rows, book.pools, book.insurance, book.fees, proposals, orders))
+            commands.append(frozen_book_command(book))
         for line, (_, _, cash, spent) in zip(run(commands), fixtures, strict=True):
             actual = decode(line)
             self.assertEqual((actual["cash"], actual["spent"]), (cash, (spent, 0)))

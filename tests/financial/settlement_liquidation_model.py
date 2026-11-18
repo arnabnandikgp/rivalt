@@ -1,6 +1,7 @@
 """Clearing research at fixed, fully accrued valuations. Run directly for the cases."""
 from dataclasses import dataclass, replace
 from fractions import Fraction
+from math import ceil
 
 from account_contract_reference import Account, require
 from clearing_network_reference import AtomClearingPlan, clear_atom_cohort
@@ -104,7 +105,7 @@ def paired_reduction(state, debtor, winner, profit_per_lot, charge):
     """Execute an assigned whole-atom charge with the fewest whole lots at bounded prices."""
     require(profit_per_lot > 0 and charge > 0 and state.lots[debtor] * state.lots[winner] < 0,
             "profitable opposite exposure required")
-    matched = (charge + profit_per_lot - 1) // profit_per_lot
+    matched = ceil(Fraction(charge) / profit_per_lot)
     require(matched <= min(abs(state.lots[debtor]), abs(state.lots[winner]))
             and charge <= state.book.accounts[winner].claims[0], "charge exceeds open exposure or unpaid claim")
     concession, extra_lots = divmod(charge, matched)

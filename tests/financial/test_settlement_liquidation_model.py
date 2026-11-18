@@ -8,7 +8,7 @@ from market_settlement_reference import MarketBook, collect, pay
 from settlement_liquidation_model import (
     MarketSnapshot, compare_open_priority, cross_default, ordinary_close, shortfall, takeover, terminal,
 )
-from test_scalable_settlement import SCALE, command, decode, independent_input, run
+from test_scalable_settlement import decode, frozen_book_command, run
 
 
 def book_from_claims(claims):
@@ -151,9 +151,7 @@ class SettlementPolicyComparison(unittest.TestCase):
                  (book_from_claims(((100, -100), (-100, 60), (0, 40))), (0, 0, 0), (0, 0))]
         commands = []
         for book, _, _ in cases:
-            rows = tuple((a.cash, tuple(int(x*SCALE) for x in a.claims)) for a in book.accounts)
-            _, _, proposals, orders = independent_input(rows, book.pools, book.insurance)
-            commands.append(command(rows, book.pools, book.insurance, book.fees, proposals, orders))
+            commands.append(frozen_book_command(book))
         for line, (_, cash, insurance) in zip(run(commands), cases):
             got = decode(line)
             self.assertEqual((got["cash"], got["spent"]), (cash, insurance))
