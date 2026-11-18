@@ -1234,3 +1234,18 @@ The [nine-account example](clearing/default-plan-verification.md#release-and-liv
 pays the flat creditor 19 atoms with an optimal close and seven under ordinary
 proportional settlement. A production deadline or alternative loss rule requires
 a separate decision informed by native verification and recovery measurements.
+
+## D123 — Per-account growth capacity with optional sponsorship
+
+19 November 2026. Under the user's delegated choice, each account must arrange
+storage for its exact surviving-position history before increasing risk. An
+explicit sponsor may supply the rent. Preserve the contributor's refund rights
+under D100. Missing capacity may defer a new risk-increasing fill. Admission
+must reserve and demonstrate enough capacity for compulsory liquidation and
+default without another signature or top-up from the account owner. Storage rent
+is denominated in SOL and is separate from margin, insurance and trading fees.
+
+Use the explicit local test sponsor for the ordinary settlement demonstration.
+Changing normal trade admission requires a measured complete-route implementation
+and a proven recovery bound. The eight-byte experiment in PR #98 measured one
+growth boundary. It does not set a general reserve size.

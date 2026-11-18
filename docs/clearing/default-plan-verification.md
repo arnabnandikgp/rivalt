@@ -287,8 +287,7 @@ low. Both approaches need a demonstrated bound for compulsory reductions and
 default before admitting risk. An unavailable off-chain archive must not be
 silently substituted for a verified input.
 
-The recommendation is self-contained current state, per-account capacity and
-optional sponsorship. The funding policy for ordinary trading awaits a product
-decision. The measurements establish the cost for this fixture and leave the
+[D123](../DECISIONS.md#d123--per-account-growth-capacity-with-optional-sponsorship)
+selects self-contained current state, per-account capacity and optional sponsorship. The measurements establish the cost for this fixture and leave the
 general arithmetic, on-chain attribution, forced-reduction headroom and
-production rent policy open.
+complete-route rent measurements open.

@@ -96,9 +96,10 @@ D122 requires exact verification for prototype release. The native and signed ni
 22,718 CU. Two matched histories now reproduce different creditor payouts from the same
 aggregate frozen rows. An exact current-state checkpoint and a replayable
 commitment agree on the inputs. The signed growth boundary required 40,640
-additional rent lamports and 2,808 CU. Next select per-account provision with
-optional sponsorship or a dedicated venue storage reserve before implementing
-ordinary trade admission. Compulsory recovery headroom remains an acceptance gate.
+additional rent lamports and 2,808 CU. D123 selects per-account capacity with
+optional sponsorship. Compulsory recovery headroom remains an acceptance gate.
+Next demonstrate a profitable cross-maker close through funded SPL withdrawal
+on the qualified local runtime with a separate local test sponsor.
 The existing qualified terminal path continues to use proportional settlement.
 
 The 16 November architecture review inspected source at

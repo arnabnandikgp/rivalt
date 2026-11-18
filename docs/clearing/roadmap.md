@@ -23,6 +23,13 @@ selected loss rule's eligibility and execution terms are being tested.
 | 5. Default and recovery | Implement the selected rules for debtor recoveries, market insurance, ADL and unpaid claims. Specify when the loss becomes binding, cross-market attribution, rounding, freeze scope and resumption. | Complete conservation across all affected obligations including flat accounts, no eligible opposite position and depleted insurance. Demonstrate bounded, authenticated continuation after restart. Eligibility and execution terms must pass the deliverable 1 gates. |
 | 6. Shared writes and qualification | Baseline same-market locks on the existing paths, then change ownership where measurements justify it. Qualify the resulting clearing lifecycle and its effects on makers and users. | Compare matched distinct-maker and shared-maker workloads, signed Surfpool RPC/WS results, PostgreSQL replay, exit, CU, transaction sizes, costs by payer and landed throughput. Verify aggregate exposure caps, fee carry, funding history and complete payment backing. |
 
+The next demonstration is ordinary settlement on the qualified local runtime.
+Open against one maker, close at a profit against another, follow collection
+from the still-open debtor, and withdraw the funded proceeds. Trace the same
+amounts through clearing, the wallet, the SDK and the finalized SQL projection.
+Use a local test sponsor. Keep successor default development behind its separate
+verification gates. Group future changes by these demonstrable behaviors.
+
 ## Functional ownership
 
 The risk and position-accounting crates implement the first extraction in deliverable 2. The other rows identify the remaining domain boundaries. The clearing program links the pure Rust financial rules into the on-chain
@@ -90,8 +97,7 @@ The [continuation reference](default-plan-verification.md#restarting-verificatio
 checks whole joint candidates in committed ranges. The [metered fixture](default-plan-verification.md#measured-nine-account-verifier) now has signed restart
 evidence for a funded nine-account family. The [input comparison](default-plan-verification.md#what-the-freeze-must-retain-about-open-profit) identifies the two
 exact survivor amounts and measures checkpoint versus history storage. The [signed growth test](default-plan-verification.md#signed-storage-boundary) measures an atomic
-sponsor top-up. Select who supplies ordinary growth capacity before changing
-trade admission. Prove compulsory-reduction capacity independently. General linked-book verification
+sponsor top-up. D123 selects per-account growth capacity and voluntary sponsors. Prove compulsory-reduction capacity independently. General linked-book verification
 and clearing adoption remain open. [D122](../DECISIONS.md#d122--exact-proof-before-prototype-release)
 requires an exact proof and defers the production timeout policy.
 Keep the active proportional settlement until
