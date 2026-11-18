@@ -479,7 +479,9 @@ from lowest to highest and compares them in that order. A market with zero
 original loss has no percentage to rank. Each comparison uses the other objective
 to break a tie and preserves any remaining exact ties. These scores measure
 changes in market-attributed impairment. Independently specified balances from
-the native kernel show the associated whole-cash payments.
+the native kernel show the associated whole-cash payments. An equal-total case
+recovers 61/12 atoms under either plan. Comparing the lower recovered share
+then selects 33/73 over 25/73, with flat creditor payouts of 4/4 over 5/3.
 
 [D119](../DECISIONS.md#d119--verified-joint-reductions-in-one-frozen-episode)
 selects joint admission. The comparison runs offline. Making the rule binding
