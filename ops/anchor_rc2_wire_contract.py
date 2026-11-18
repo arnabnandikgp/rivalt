@@ -135,6 +135,9 @@ def check_domains():
     # P55B1 adds a native arithmetic-checkpoint domain only. No Anchor account,
     # PDA seed, signed transaction domain or instruction changes in this phase.
     expected['rust_byte_literals'] = sorted((set(expected['rust_byte_literals']) - DOMAINS_REMOVED) | {'RVBACK01'})
+    # D121 episode ordering is used only by the research selector at this revision.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
+                                            | {r'Rivalt/frozen-member-order/v1\0'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 

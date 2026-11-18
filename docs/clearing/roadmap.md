@@ -1,6 +1,6 @@
 # Clearing roadmap
 
-18 November 2026. This is the active engineering plan for Rivalt. The starting
+19 November 2026. This is the active engineering plan for Rivalt. The starting
 point is the locally qualified BTC/ETH prototype through P56. Its common clearing,
 isolated maker capital, one collateral mint, index-derived risk, whole-account
 funding and reservations, two-maker routes and current fees are the baseline for
@@ -87,8 +87,10 @@ selects maximum total recovery followed by balanced market recovery on ties.
 sets the final member tie order. The [verification contract](default-plan-verification.md)
 maps proof obligations to the existing freeze and settlement controllers.
 The [continuation reference](default-plan-verification.md#restarting-verification-when-a-bound-misses)
-checks whole joint candidates in committed ranges. Native metering and authenticated
-runtime continuation are still required. [D122](../DECISIONS.md#d122--exact-proof-before-prototype-release)
+checks whole joint candidates in committed ranges. The [metered fixture](default-plan-verification.md#measured-nine-account-verifier) now has signed restart
+evidence for a funded nine-account family. Next establish the authenticated
+closed-first gain input for surviving positions. General linked-book verification
+and clearing adoption remain open. [D122](../DECISIONS.md#d122--exact-proof-before-prototype-release)
 requires an exact proof and defers the production timeout policy.
 Keep the active proportional settlement until
 the successor eligibility, pricing and continuation rules are qualified. The

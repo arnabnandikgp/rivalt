@@ -1,6 +1,6 @@
 # Current status
 
-Updated 18 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 19 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -40,6 +40,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Joint frozen reductions | In review | [Ready PR #94](https://github.com/arnabnandikgp/rivalt/pull/94) above #93. [Shared lots and two-market defaults](clearing/architecture-review.md#competing-debtors-and-simultaneous-market-defaults). Offline revision `e06dca7` passes eight joint and 17 related tests, including 81 independent matching cases and four native terminal controls. |
 | Default plan verification | In review | [Ready PR #95](https://github.com/arnabnandikgp/rivalt/pull/95) above #94. [Verification contract and fixtures](clearing/default-plan-verification.md). At `4be157f`, eight certificate/identity tests, eleven joint tests and eight current Rust plan-controller tests passed. D121 selects frozen-episode priority for exact ties. |
 | Restartable default verification | In review | [Ready PR #96](https://github.com/arnabnandikgp/rivalt/pull/96) above #95. [Reference and work counts](clearing/default-plan-verification.md#restarting-verification-when-a-bound-misses). At `0093a05`, six new and 19 related tests pass, including rejection of an inferior plan, episode binding and checkpoint restart. |
+| Metered default selection | In review | Above #96. [Native and signed results](clearing/default-plan-verification.md#measured-nine-account-verifier) at `220c139`. 67 exhaustive comparisons, twelve signed outcomes and recovery of a missing PostgreSQL receipt. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -90,8 +91,9 @@ D120 prioritizes total verified recovery and uses the lower market recovery
 percentage to break ties. D121 fixes identity priority. A sufficient score proof
 works on a 121-member family, and a smaller book demonstrates a loose bound.
 The small-cohort reference now verifies a submitted joint result across restarts.
-D122 requires exact verification for prototype release. Next measure native
-verification and restart on the funded nine-account fixture.
+D122 requires exact verification for prototype release. The native and signed nine-account fixture now verifies all ten partitions in
+22,718 CU. Next test how to authenticate the closed-first gain on a surviving
+position when repeated partial closes leave a fractional entry basis.
 The existing qualified terminal path continues to use proportional settlement.
 
 The 16 November architecture review inspected source at

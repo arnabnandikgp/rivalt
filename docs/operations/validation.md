@@ -1,5 +1,14 @@
 # Validation and measured limits
 
+## Metered default verification
+
+At `220c139` the [signed resource comparison](../clearing/default-plan-verification.md#measured-nine-account-verifier)
+covers an independently deployed fixture on Surfpool 1.7.0 with PostgreSQL 18.6.
+All twelve signed transactions were fetched, decoded and observed over WebSocket.
+A second process recovered the missing receipt from RPC and resumed at partition
+three. The local terminal driver established the resulting cash allocation.
+The live clearing release path and its compute budget are outside this measurement.
+
 ## Settlement and liquidation research
 
 Model revision `11a6000` passes 11 focused Python tests. Eight frozen inputs also
