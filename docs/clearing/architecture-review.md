@@ -256,7 +256,9 @@ defines the two-market and emergency predicates. The successor would also need
 authenticated entry and D113 payment attribution at that boundary.
 
 The [experiment](../../tests/financial/freeze_cutoff_model.py) replays three
-policies over identical ordered transactions under D112/D113. A dedicated proof
+policies over identical ordered transactions under D112/D113. An observation
+here means Rivalt consumes a qualified price. The oracle publisher has no
+authority to freeze Rivalt. A dedicated proof
 binds only when it succeeds. A conditional check on each qualified price
 observation can bind immediately if it includes an insolvent member as a witness,
 and otherwise allows a later proof. A full scan checks the whole cohort on each
