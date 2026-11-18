@@ -525,3 +525,49 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
     };
     assert_ne!(bytes(&swapped), expected);
 }
+
+#[test]
+fn forced_short_cover_requires_equity_after_fees_and_stops_at_maintenance() {
+    let markets = markets();
+    let clock = clock();
+    let environment = environment(&markets, 0, &clock).unwrap();
+    let mut short = trader(35_000);
+    short.positions[0].lots = -10;
+    short.positions[0].virtual_scaled = 600_000 * SCALE;
+    let before = liquidation::prepare(&mut short, &environment, &clock).unwrap();
+
+    // Adverse price 60,600. Initial equity is 29,000 against 30,300 maintenance.
+    // Buying one at 60,000 costs 12 fee atoms and restores the account.
+    let mut covered = short.clone();
+    covered.positions[0].lots = -9;
+    covered.positions[0].virtual_scaled = 540_000 * SCALE;
+    covered.cash -= 12;
+    before.check_progress(&covered, &environment, 1).unwrap();
+
+    let mut excess = short.clone();
+    excess.positions[0].lots = -8;
+    excess.positions[0].virtual_scaled = 480_000 * SCALE;
+    excess.cash -= 24;
+    assert!(before.check_progress(&excess, &environment, 2).is_err());
+    // At 60,600, covering one still restores maintenance but costs the target fee cash.
+    covered.positions[0].virtual_scaled = 539_400 * SCALE;
+    covered.cash = 35_000 - 13;
+    assert!(before.check_progress(&covered, &environment, 1).is_err());
+    short.cash = 5_999;
+    assert!(liquidation::prepare(&mut short, &environment, &clock).is_err());
+}
+
+#[test]
+fn permissionless_execution_checks_each_side_against_its_adverse_oracle_endpoint() {
+    let market = &markets()[0];
+    let mut quote = canonical_quote(0, 121_200);
+    quote.request.lots = 2;
+    liquidation::check_price(&quote, market).unwrap();
+    quote.gross += 1;
+    assert!(liquidation::check_price(&quote, market).is_err());
+    quote.request.side = 1;
+    quote.gross = 118_800;
+    liquidation::check_price(&quote, market).unwrap();
+    quote.gross -= 1;
+    assert!(liquidation::check_price(&quote, market).is_err());
+}

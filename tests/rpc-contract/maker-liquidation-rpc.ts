@@ -35,7 +35,7 @@ try {
   const [target]=setup.roots, owner=setup.traderOwner, keeper=setup.payer;
   const receiverOwner=await fixtureKey('liquidation-backstop'),token=await fixtureKey('liquidation-backstop-token');
   const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,receiverOwner.address,0);
-  const [receiver]=await sdk.deriveMarginAccount(portfolio,0);
+  const [receiver]=await sdk.deriveMarginAccount(portfolio,1);
   const common={...setup.common,btc:setup.markets[0],eth:setup.markets[1]};
   const publicKeys=[...new Set([...setup.tracked,target,receiver,setup.traderToken.address,token.address])];
   const snapshot=()=>Promise.all(publicKeys.map(h.read));
@@ -50,7 +50,7 @@ try {
     getInitializeAccount3Instruction({account:token.address,mint:setup.mint.address,owner:receiverOwner.address}),
     getMintToInstruction({mint:setup.mint.address,token:token.address,mintAuthority:keeper,amount:100_000n})],[token]);
   await h.send('create separate receiver portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner:receiverOwner,portfolio,index:0})],[receiverOwner]);
-  await registerFinancialTestMargin(h,common,keeper,{owner:receiverOwner,portfolio,margin:receiver,subaccountIndex:0,mode:1,isolatedMarketIndex:0,role:0});
+  await registerFinancialTestMargin(h,common,keeper,{owner:receiverOwner,portfolio,margin:receiver,subaccountIndex:1,mode:1,isolatedMarketIndex:0,role:0});
   const fund=async(amount:bigint)=>h.send('fund receiver '+amount,[await sdk.getDepositAccountInstructionAsync({...setup.common,
     owner:receiverOwner,margin:receiver,quoteMint:setup.mint.address,userToken:token.address,amount})],[receiverOwner]);
   await fund(1n);
