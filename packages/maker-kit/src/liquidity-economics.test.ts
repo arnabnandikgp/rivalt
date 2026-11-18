@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {liquidityMakerEconomics,type LiquidityEconomicsInput} from './liquidity-economics.js';
-const root=(lots='0',virtual='0',funding='0',cash='1000000')=>({id:0,cash,role:1,mode:1,isolatedMarketIndex:0,
+const root=(lots='0',virtual='0',funding='0',cash='1000000')=>({id:'0',cash,role:1,mode:1,isolatedMarketIndex:0,
   positions:[{lots,virtualScaled:virtual,fundingCheckpointScaled:funding},{lots:'0',virtualScaled:'0',fundingCheckpointScaled:'0'}]});
 const vector=():LiquidityEconomicsInput=>({version:5,operatorClass:'internal-reference',capital:'capital',market:'market',marketIndex:0,
   opening:{cursor:'10',root:root(),fundingIndexScaled:'0',referencePrice:'60000'},

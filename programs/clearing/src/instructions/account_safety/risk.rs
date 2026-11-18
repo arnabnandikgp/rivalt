@@ -119,38 +119,38 @@ pub fn liquidate(
             == u128::from(candidate.target.cash) + u128::from(candidate.receiver.cash),
         ClearingError::Reconciliation
     );
-    let target_positions = accounts.target.positions;
-    let receiver_positions = accounts.receiver.positions;
+    account_cash::maintained::update(
+        [
+            accounts
+                .btc_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+            accounts
+                .eth_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+        ],
+        &accounts.target,
+        &candidate.target,
+        &accounts.identity.safety,
+    )?;
+    account_cash::maintained::update(
+        [
+            accounts
+                .btc_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+            accounts
+                .eth_ledger
+                .as_deref_mut()
+                .map(|ledger| &mut **ledger),
+        ],
+        &accounts.receiver,
+        &candidate.receiver,
+        &accounts.identity.safety,
+    )?;
     account_trading::commit_root(&mut accounts.target, &candidate.target)?;
     account_trading::commit_root(&mut accounts.receiver, &candidate.receiver)?;
-    account_trading::invalidate(
-        [
-            accounts
-                .btc_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-            accounts
-                .eth_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-        ],
-        target_positions,
-        accounts.target.positions,
-    )?;
-    account_trading::invalidate(
-        [
-            accounts
-                .btc_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-            accounts
-                .eth_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-        ],
-        receiver_positions,
-        accounts.receiver.positions,
-    )?;
     let selected = if market_index == 0 {
         &mut accounts.identity.btc
     } else {
@@ -244,7 +244,9 @@ mod event_tests {
     #[test]
     fn borrowed_liquidation_is_exactly_the_owned_event_wire() {
         let target = MarginAccount {
-            schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             cash: 17,
             nonce: 9,
             positions: [
@@ -259,13 +261,15 @@ mod event_tests {
             ..Default::default()
         };
         let receiver = MarginAccount {
-            schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             cash: 21,
             id: 1,
             ..Default::default()
         };
         let market = Market {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             reference_price: 20_000,
             funding_index_scaled: -17,
             ..Default::default()

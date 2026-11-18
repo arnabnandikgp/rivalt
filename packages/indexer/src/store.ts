@@ -10,13 +10,23 @@ import { hash, json, type JournalEvent } from './events.js';
 
 export type JournalBinding = { genesis: string; domain: string; anchor: string; anchorHash: string; program: string; schema: number; venue:string };
 export type JournalInvocation<Event> = ScopedInvocation & {events:Event[]};
+export const PUBLICATION_MAX_AGE_MS=10_000;
+export type JournalSnapshot<State,Binding>={state:State;binding:Binding;checkpoint:string|null;checkpoint_slot:string|null;
+  synced_at:Date|null;error:string|null;published_state:State|null;published_checkpoint:string|null;published_checkpoint_slot:string|null};
+
+/** Never renew an old published state's freshness using a later coverage write. */
+export function publishedSnapshot<State,Binding>(row:JournalSnapshot<State,Binding>,now=Date.now()) {
+  if(!row.published_state||!row.published_checkpoint||row.published_checkpoint_slot===null||row.error||!row.synced_at
+    ||row.synced_at.getTime()>now||now-row.synced_at.getTime()>=PUBLICATION_MAX_AGE_MS)throw new Error('Reconciled projection unavailable');
+  return {...row,state:row.published_state,checkpoint:row.published_checkpoint,checkpoint_slot:row.published_checkpoint_slot};
+}
 export type Projection<State, Binding, Event> = {
   schema: number;
   empty(): State;
   apply(state:State,invocations:readonly JournalInvocation<Event>[],binding:Binding):{state:State;invocations:JournalInvocation<Event>[]};
 };
 /** One journal implementation, with an explicit immutable protocol version.
- * SQL format 2 requires a fresh database; binding.schema selects protocol accounts. */
+ * SQL format 3 requires a fresh database; binding.schema selects protocol accounts. */
 export class JournalStore<State extends {sequence:string;revisions:RevisionVector}, Binding extends JournalBinding, Event extends JournalEvent> {
   readonly pool: pg.Pool;
   private lease?: PoolClient;
@@ -30,7 +40,9 @@ export class JournalStore<State extends {sequence:string;revisions:RevisionVecto
   async migrate() {
     const { rows } = await this.pool.query('SHOW server_version_num');
     if (rows[0].server_version_num !== '180006') throw new Error('PostgreSQL 18.6 required');
-    await this.pool.query(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'));
+    const client=await this.pool.connect();
+    try{await client.query(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'));}
+    catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
   }
   async bind(binding: Binding) {
     if (binding.schema !== this.projection.schema) throw new Error('Incompatible projection schema');
@@ -42,11 +54,50 @@ export class JournalStore<State extends {sequence:string;revisions:RevisionVecto
     const row = await this.snapshot();
     if (hashSorted(row.binding) !== hashSorted(binding)) throw new Error('Incompatible run binding');
   }
-  async snapshot(): Promise<{ state: State; binding: Binding; checkpoint: string | null; checkpoint_slot: string | null; synced_at: Date | null; error: string | null }> {
+  async snapshot(): Promise<JournalSnapshot<State,Binding>> {
     const { rows } = await this.pool.query('SELECT * FROM runs WHERE run_id=$1', [this.runId]);
     if (!rows[0]) throw new Error('Unknown run');
     if (rows[0].binding.schema !== this.projection.schema) throw new Error('Incompatible projection schema');
     return rows[0];
+  }
+  async published() { return publishedSnapshot(await this.snapshot()); }
+
+  /** Read one retained complete block, never accumulate a whole recovery backlog. */
+  async block(slot:number):Promise<FinalizedBlock> {
+    const result=await this.pool.query('SELECT * FROM blocks WHERE run_id=$1 AND slot=$2',[this.runId,slot]);
+    const row=result.rows[0];if(!row)throw new Error('Covered block unavailable');
+    const transactions=(await this.pool.query('SELECT signature,payload FROM transactions WHERE run_id=$1 AND slot=$2 ORDER BY transaction_index',
+      [this.runId,slot])).rows.map(value=>({signature:value.signature,tx:value.payload}));
+    return {slot:Number(row.slot),blockhash:row.blockhash,parentSlot:Number(row.parent_slot),previousBlockhash:row.previous_blockhash,
+      signatures:row.signatures,signatureDigest:row.signature_digest,transactions};
+  }
+  async *blocksAfter(start:number,end:number) {
+    let cursor=start;
+    while(cursor<end) {
+      const rows=(await this.pool.query('SELECT slot FROM blocks WHERE run_id=$1 AND slot>$2 AND slot<=$3 ORDER BY slot LIMIT 100',
+        [this.runId,cursor,end])).rows;
+      if(!rows.length)throw new Error('Covered block range unavailable');
+      for(const row of rows) {cursor=Number(row.slot);yield await this.block(cursor);}
+    }
+  }
+  async publish(candidate:JournalSnapshot<State,Binding>,capturedAt:Date) {
+    if(!this.lease)throw new Error('Indexer lease lost');
+    const now=Date.now();
+    if(!candidate.checkpoint||candidate.checkpoint_slot===null||capturedAt.getTime()>now
+      ||now-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS)throw new Error('Reconciliation witness expired');
+    const client=await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const row=(await client.query('SELECT * FROM runs WHERE run_id=$1 FOR UPDATE',[this.runId])).rows[0];
+      const checkpoint=(await client.query('SELECT * FROM covered_checkpoints WHERE run_id=$1 AND slot=$2',[this.runId,candidate.checkpoint_slot])).rows[0];
+      if(hashSorted(row.binding)!==hashSorted(candidate.binding)||!checkpoint||checkpoint.blockhash!==candidate.checkpoint
+        ||checkpoint.state_digest!==hashCanonical(candidate.state)||Number(candidate.checkpoint_slot)>Number(row.checkpoint_slot)
+        ||row.published_checkpoint_slot!==null&&Number(candidate.checkpoint_slot)<Number(row.published_checkpoint_slot))
+        throw new Error('Uncovered or regressing publication');
+      await client.query(`UPDATE runs SET published_state=$2,published_checkpoint=$3,published_checkpoint_slot=$4,synced_at=$5,error=NULL WHERE run_id=$1`,
+        [this.runId,json(candidate.state),candidate.checkpoint,candidate.checkpoint_slot,capturedAt]);
+      await client.query('COMMIT');
+    }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
   }
   async observe(source: 'ws-confirmed' | 'rpc-finalized', signature: string, payload: any) {
     const client = await this.pool.connect();
@@ -128,15 +179,19 @@ export class JournalStore<State extends {sequence:string;revisions:RevisionVecto
         }
       }
       if(result.state.sequence!==cursor.toString())throw new Error('Projection/outbox cursor mismatch');
-      for(const [account,entity] of Object.entries(result.state.revisions))await client.query(`INSERT INTO entity_revisions VALUES($1,$2,$3,$4)
+      for(const [account,entity] of Object.entries(result.state.revisions))if(!equal(entity,row.state.revisions[account]??null))await client.query(`INSERT INTO entity_revisions VALUES($1,$2,$3,$4)
         ON CONFLICT(run_id,account) DO UPDATE SET kind=EXCLUDED.kind,revision=EXCLUDED.revision`,[this.runId,account,entity.kind,entity.revision]);
-      await client.query('UPDATE runs SET state=$2,checkpoint=$3,checkpoint_slot=$4,synced_at=NULL,error=NULL WHERE run_id=$1',
+      await client.query('INSERT INTO covered_checkpoints VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+        [this.runId,fence.slot,fence.blockhash,hashCanonical(result.state)]);
+      const committed=(await client.query('SELECT * FROM covered_checkpoints WHERE run_id=$1 AND slot=$2',[this.runId,fence.slot])).rows[0];
+      if(committed.blockhash!==fence.blockhash||committed.state_digest!==hashCanonical(result.state))throw new Error('Conflicting covered checkpoint');
+      await client.query('UPDATE runs SET state=$2,checkpoint=$3,checkpoint_slot=$4 WHERE run_id=$1',
         [this.runId,json(result.state),fence.blockhash,fence.slot]);
       await client.query('COMMIT');
     }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
   }
   async health(error: string | null) {
-    await this.pool.query('UPDATE runs SET error=$2,synced_at=CASE WHEN $2::text IS NULL THEN now() ELSE NULL END WHERE run_id=$1', [this.runId,error]);
+    await this.pool.query('UPDATE runs SET error=$2,synced_at=CASE WHEN $2::text IS NULL THEN synced_at ELSE NULL END WHERE run_id=$1', [this.runId,error]);
   }
   async close() {
     if (this.closed) return;
@@ -146,3 +201,8 @@ export class JournalStore<State extends {sequence:string;revisions:RevisionVecto
   }
 }
 const hashSorted = (v: Record<string, unknown>) => hash(Object.fromEntries(Object.entries(v).sort(([a],[b]) => a.localeCompare(b))));
+const hashCanonical=(value:unknown):string=>{
+  const normalize=(item:any):any=>Array.isArray(item)?item.map(normalize):item&&typeof item==='object'
+    ?Object.fromEntries(Object.keys(item).sort().map(key=>[key,normalize(item[key])])):item;
+  return hash(normalize(JSON.parse(json(value))));
+};

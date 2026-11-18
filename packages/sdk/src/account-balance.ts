@@ -28,8 +28,8 @@ export function accountFundingBounds(safety:Safety,market:Market,now:bigint,slot
 /** Current whole-account valuation. Headroom is indicative, not a payout promise:
  * the atomic instruction recomputes sources, funding, reservations and solvency. */
 export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:bigint,slot:bigint) {
-  if(root.schemaVersion!==8||root.venue!==safety.venue||markets.some((market,index)=>
-    market.schemaVersion!==8||market.venue!==root.venue||market.index!==index))throw new Error('Invalid account preview dependencies');
+  if(root.schemaVersion!==10||root.lifecycle!==2||BigInt(root.activationGeneration)===0n||root.venue!==safety.venue||markets.some((market,index)=>
+    market.schemaVersion!==10||market.venue!==root.venue||market.index!==index))throw new Error('Invalid account preview dependencies');
   const sources=markets.map(market=>accountSourceMode(safety,market,now,slot));
   const funding=markets.map(market=>effectiveAccountFunding(safety,market,now,slot));
   const view=marginBalanceView(root,markets,funding,sources,now,slot,safety.mode===2);
@@ -54,4 +54,19 @@ export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:
   return {...view,heldFundingBoundsScaled:bounds.map(values=>values.map(value=>value.toString())),
     heldRiskEquityScaled:heldRiskEquityScaled?.toString()??null,indicativeCashHeadroom,
     withdrawableCash:null,withdrawalStatus:status,paused:safety.paused};
+}
+
+/** Explains a flat market position's gain while its owner awaits a funded payment.
+ * The shared pool is observed liquidity, never a reservation for this account. */
+export function closedGainStatus(position:{lots:string;unpaidClaimScaled:string|null}, settlement:bigint,
+  safety:{mode:number;paused:boolean}) {
+  if (position.lots !== '0' || position.unpaidClaimScaled === null) return null;
+  const claim = BigInt(position.unpaidClaimScaled);
+  if (claim <= 0n) return null;
+  if (safety.paused || safety.mode !== 1) return 'Ordinary settlement suspended';
+  const wholeAtoms = claim / 1_000_000_000n;
+  if (wholeAtoms === 0n) return 'Below one payable atom';
+  if (settlement === 0n) return 'Awaiting loss collection';
+  if (settlement < wholeAtoms) return 'Market pool covers part of this claim';
+  return 'Awaiting verified payment';
 }

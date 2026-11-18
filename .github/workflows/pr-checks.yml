@@ -102,6 +102,7 @@ jobs:
         run: |
           cargo test --locked -p clearing --lib --features liquidity-execution-qualification
           cargo test --locked -p clearing --lib
+          cargo test --locked -p rivalt-settlement-pages
           cargo test --locked -p maker_a -p maker_b --lib --features maker-liquidity-qualification
           cargo test --locked -p maker_a -p maker_b --lib
 

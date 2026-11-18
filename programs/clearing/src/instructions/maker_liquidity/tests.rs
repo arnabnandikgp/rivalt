@@ -3,23 +3,23 @@ use super::*;
 fn state() -> (Venue, Custody, VenueSafety, Market) {
     (
         Venue {
-            schema_version: 8,
-            profile_version: 4,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
+            profile_version: crate::state::accounts::PROFILE_VERSION,
             market_count: 2,
             insurance_fee_share_bps: 2500,
             ..Default::default()
         },
         Custody {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             ..Default::default()
         },
         VenueSafety {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             mode: CUSTODY,
             ..Default::default()
         },
         Market {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             ..Default::default()
         },
     )
@@ -110,7 +110,7 @@ fn liquidity_registry_layouts_match_the_frozen_contract() {
     assert_eq!(LiquidityRegistry::INIT_SPACE + 8, 181);
     assert_eq!(MakerRegistration::INIT_SPACE + 8, 341);
     let registration = MakerRegistration {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 0,
         venue: Address::default(),
         market: Address::default(),
@@ -140,7 +140,7 @@ fn liquidity_registry_layouts_match_the_frozen_contract() {
 #[test]
 fn liquidity_event_payloads_preserve_account_field_bytes_without_discriminators() {
     let registry = LiquidityRegistry {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 0,
         venue: Address::new_unique(),
         market: Address::new_unique(),
@@ -150,7 +150,7 @@ fn liquidity_event_payloads_preserve_account_field_bytes_without_discriminators(
         bump: 254,
     };
     let registration = MakerRegistration {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 0,
         venue: registry.venue,
         market: registry.market,

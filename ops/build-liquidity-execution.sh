@@ -52,15 +52,19 @@ PY
   cp target/deploy/hostile_maker.so "$RIVALT_LIQUIDITY_ARTIFACTS/hostile_maker.so"
 } 2>&1 | tee "$RIVALT_LIQUIDITY_BUILD_LOG"
 python3 - <<'PY'
-import hashlib, json, os, subprocess
+import hashlib, json, os, re, subprocess
 from pathlib import Path
 directory = Path(os.environ['RIVALT_LIQUIDITY_ARTIFACTS'])
+source = Path('programs/clearing/src/state/accounts/mod.rs').read_text()
+account_schema = int(re.search(r'pub const SCHEMA_VERSION: u16 = (\d+);', source)[1])
+profile_version = int(re.search(r'pub const PROFILE_VERSION: u16 = (\d+);', source)[1])
 manifest = {
     'revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
     'trackedDirty': bool(subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no'], text=True).strip()),
     'profile': 'liquidity-execution-qualification',
     'framework': 'anchor-2.0.0-rc.2',
-    'accountSchema': 8,
+    'accountSchema': account_schema,
+    'profileVersion': profile_version,
     'makerAccountSchema': 5,
     'binaries': {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(directory.glob('*.so'))},
 }

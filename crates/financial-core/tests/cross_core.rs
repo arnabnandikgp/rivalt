@@ -3,7 +3,7 @@ use financial_core::{
     *,
 };
 
-fn cross(id: u16, cash: u64) -> Margin {
+fn cross(id: u64, cash: u64) -> Margin {
     Margin {
         id,
         cash,

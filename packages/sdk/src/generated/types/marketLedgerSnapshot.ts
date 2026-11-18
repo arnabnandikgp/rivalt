@@ -22,6 +22,12 @@ import {
   type FixedSizeEncoder,
   type HasAddress,
 } from "@solana/kit";
+import {
+  getBackingStateDecoder,
+  getBackingStateEncoder,
+  type BackingState,
+  type BackingStateArgs,
+} from "./index.js";
 
 export type MarketLedgerSnapshot = {
   ledger: Address;
@@ -33,6 +39,7 @@ export type MarketLedgerSnapshot = {
   insuranceFeeRemainder: number;
   version: bigint;
   liabilityVersion: bigint;
+  backing: BackingState;
 };
 
 export type MarketLedgerSnapshotArgs = {
@@ -45,6 +52,7 @@ export type MarketLedgerSnapshotArgs = {
   insuranceFeeRemainder: number;
   version: number | bigint;
   liabilityVersion: number | bigint;
+  backing: BackingStateArgs;
 };
 
 export function getMarketLedgerSnapshotEncoder(): FixedSizeEncoder<MarketLedgerSnapshotArgs> {
@@ -58,6 +66,7 @@ export function getMarketLedgerSnapshotEncoder(): FixedSizeEncoder<MarketLedgerS
     ["insuranceFeeRemainder", getU8Encoder()],
     ["version", getU64Encoder()],
     ["liabilityVersion", getU64Encoder()],
+    ["backing", getBackingStateEncoder()],
   ]);
 }
 
@@ -72,6 +81,7 @@ export function getMarketLedgerSnapshotDecoder(): FixedSizeDecoder<MarketLedgerS
     ["insuranceFeeRemainder", getU8Decoder()],
     ["version", getU64Decoder()],
     ["liabilityVersion", getU64Decoder()],
+    ["backing", getBackingStateDecoder()],
   ]);
 }
 

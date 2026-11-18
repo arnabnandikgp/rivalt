@@ -78,7 +78,7 @@ pub fn recover(
         identity.safety.mode == RESOLVED
             && accounts.resolution.stage == COMPLETE
             && accounts.resolution.cursor == accounts.resolution.count
-            && accounts.resolution.count == accounts.registry.count
+            && accounts.resolution.count == accounts.registry.financial_count
             && accounts.resolution.registry_hash == registry_hash(&accounts.registry)?,
         ClearingError::Resolution
     );
@@ -258,6 +258,8 @@ mod tests {
     #[test]
     fn historical_account_generations_are_not_live_liabilities() {
         let mut root = MarginAccount {
+            lifecycle: MEMBER_FINANCIAL,
+            activation_generation: 1,
             schema_version: SCHEMA_VERSION,
             mode: MODE_CROSS,
             isolated_market_index: CROSS_MARKET_SENTINEL,

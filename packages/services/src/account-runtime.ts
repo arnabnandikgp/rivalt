@@ -5,6 +5,7 @@ import {AccountExecution} from './account-execution.js';
 import {accountWorkerKeys} from './account-worker-state.js';
 import {settleAccounts} from './account-settlement-worker.js';
 import {accountRiskWork} from './account-risk-worker.js';
+import {defaultBatchSteps} from './account-default-batch.js';
 import {publishLiquidityFunding,repriceLiquidity,quoteLiquidity} from './liquidity-workers.js';
 import {quantityCandidates} from './quantity-candidates.js';
 
@@ -16,8 +17,9 @@ export const ACCOUNT_HEARTBEAT_MS=3000;
 
 export class AccountRuntime extends AccountExecution {
   riskProbeCursor=0;
+  readonly defaultContinuationSteps=defaultBatchSteps();
   async discovery() {
-    const binding=await this.environment(),{state}=await this.store.snapshot();
+    const binding=await this.environment(),{state}=await this.store.published();
     if(!state.venue||state.members.length===0)throw new Error('Account discovery unavailable');
     return {binding,state,identity:{venue:address(binding.venue),mint:address(state.venue.quoteMint),domain:binding.domain}};
   }

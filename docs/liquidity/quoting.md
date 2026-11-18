@@ -2,10 +2,10 @@
 
 ## Identity, deployment and authority
 
-- Fresh local venue/domain with `Venue.schema_version=8`, immutable
-  `profile_version=4`; clearing accounts use schema 8 with scoped revisions.
-  Maker-owned accounts use schema 5; quote ABI retains version 4. P47 qualifies this bounded local runtime. No in-place profile-3 upgrade or account rewrite.
-  The default/devnet build rejects profile-4 financial activation. An explicit local qualification build gates execution.
+- Fresh local venue/domain with `Venue.schema_version=10`, immutable
+  `profile_version=6`; clearing accounts use schema 10 with scoped revisions.
+  Maker-owned accounts use schema 5; quote ABI retains version 4. P56 supplies the account-scale local binding. No in-place profile-3 upgrade or account rewrite.
+  The default/devnet build rejects profile-6 financial activation. An explicit local qualification build gates execution.
 - Exactly three registry slots per market, IDs 0,1,2. All must be provisioned and
   registry sealed before funding or trading. At least two instances share a maker
   implementation; the existing A/B programs remain the two admitted deployments.
@@ -16,7 +16,7 @@
   bounded release. Maker capital cannot be a trader's selected root in its route.
 - Reuse clearing's `[capital-v3, capital]` unique binding: one capital, one
   registration across programs and instance aliases. Capital must be the owner's
-  schema-8 isolated maker root for the exact venue/market. Config replicas cannot
+  schema-10 isolated maker root for the exact venue/market. Config replicas cannot
   supply additional collateral or depth. The same owner may fund distinct roots.
 - Owner + venue authority jointly admit/renew the program, ProgramData and complete
   SHA-256 code hash. Validate the actual loader/program-data relationship and full
@@ -103,7 +103,7 @@ increments reject at exhaustion. Every failure is atomic, including failed CPI.
 
 | Transition | Authority / preconditions | Effects / pending routes |
 |---|---|---|
-| Initialize | Owner, fresh capital identity, profile 4 | Immutable bindings, zero consumption, no valid price; no financial activation |
+| Initialize | Owner, fresh capital identity, profile 6 | Immutable bindings, zero consumption, no valid price; no financial activation |
 | Reprice | Owner or unexpired updater; exact expected control and price sequence | Increment price sequence, store positive anchor and actual Clock slot/time; consumption/shape/security unchanged |
 | Replace shape/caps/TTL | Owner via gateway, exact authority/control/shape epochs | Increment shape epoch, retain both consumption counters; strict pending shape bindings fail |
 | Rotate/revoke updater | Owner via gateway, exact authority/control epochs | Increment control epoch; old price's control mismatch invalidates it; fresh authorized reprice required |
@@ -175,8 +175,8 @@ See [the self-review evidence](https://github.com/arnabnandikgp/rivalt/blob/84c4
 
 | Account / owner / seeds | Bytes including discriminator | Ordered payload fields |
 |---|---:|---|
-| `LiquidityRegistry` / clearing / `liquidity-v4,market` | 181 | schema:u16=8; revision:u64; venue,market:keys; count:u8; sealed:bool; registrations:[key;3]; bump:u8 |
-| `MakerRegistration` / clearing / `maker-v4,market,instance:u8` | 341 | schema:u16=8; revision:u64; venue,market,capital,owner,pricing_program,program_data,config,price:keys; approved_hash:[u8;32]; instance:u8; authority_epoch,depth_epoch,buy_consumed,sell_consumed:u64; quarantined:bool; bump:u8 |
+| `LiquidityRegistry` / clearing / `liquidity-v4,market` | 181 | schema:u16=10; revision:u64; venue,market:keys; count:u8; sealed:bool; registrations:[key;3]; bump:u8 |
+| `MakerRegistration` / clearing / `maker-v4,market,instance:u8` | 341 | schema:u16=10; revision:u64; venue,market,capital,owner,pricing_program,program_data,config,price:keys; approved_hash:[u8;32]; instance:u8; authority_epoch,depth_epoch,buy_consumed,sell_consumed:u64; quarantined:bool; bump:u8 |
 | `MakerCurve` / maker / `curve-v4,capital` | 691 | schema:u16; venue,market,capital,controller,owner,updater:keys; updater_expiry_slot,control_epoch,shape_epoch:u64; domain:[u8;32]; instance:u8; capability:u16; mode:u8; ttl_slots:u16; target:i64; skew_step,skew_tick,long_cap,short_cap:u64; bid_count,ask_count:u8; bids,asks:[Region;8]; bump:u8 |
 | `MakerPrice` / maker / `price-v4,config` | 83 | schema:u16; config:key; control_epoch,sequence,anchor,updated_slot:u64; updated_time:i64; bump:u8 |
 

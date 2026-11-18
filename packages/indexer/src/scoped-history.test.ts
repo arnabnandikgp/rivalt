@@ -49,3 +49,37 @@ it('rejects alias, kind, noncanonical integer, overflow and duplicate invocation
   ])expect(()=>orderScopedTransactions([invalid],{a:root('1')})).toThrow();
   expect(()=>orderScopedTransactions([valid,valid],{a:root('1')})).toThrow('Duplicate scoped invocation');
 });
+
+it('orders more than 4096 invocations across complete transactions without a backlog-wide ceiling',()=>{
+  const envelopes=Array.from({length:4200},(_,index)=>event(`tx-${index}`,index,[['a',String(index),String(index+1)]]));
+  const result=orderScopedTransactions(envelopes.reverse(),{});
+  expect(result.transactions).toHaveLength(4200);expect(result.revisions.a.revision).toBe('4200');
+  expect(result.transactions[0].signature).toBe('tx-0');expect(result.transactions[4199].signature).toBe('tx-4199');
+});
+it('retains the per-transaction invocation resource bound',()=>{
+  const envelopes=Array.from({length:4097},(_,index)=>event('single',0,[['a',String(index),String(index+1)]],[],index));
+  expect(()=>orderScopedTransactions(envelopes,{})).toThrow('Scoped transaction exceeds invocation bound');
+});
+
+it('orders authenticated retirement after original-kind reads and before tombstone reads',()=>{
+  for(const [from,to]of [[5,26],[17,27],[18,27],[21,27],[22,27],[23,27]] as const) {
+    const retired={...event('retire',1,[]),writes:[{account:'a',kind:to,before:'1',after:'2'}],retirements:[{account:'a',from,to}]};
+    const previous={...event('before',2,[['b','0','1']]),reads:[{account:'a',kind:from,revision:'1'}]};
+    const next={...event('after',0,[['c','0','1']]),reads:[{account:'a',kind:to,revision:'2'}]};
+    const result=orderScopedTransactions([next,retired,previous],{a:{kind:from,revision:'1'}});
+    expect(result.transactions.map(value=>value.signature)).toEqual(['before','retire','after']);
+    expect(result.revisions.a).toEqual({kind:to,revision:'2'});
+    expect(()=>orderScopedTransactions([{...retired,retirements:[]}],{a:{kind:from,revision:'1'}})).toThrow('Unauthenticated');
+    expect(()=>orderScopedTransactions([retired],{a:{kind:6,revision:'1'}})).toThrow();
+    expect(()=>orderScopedTransactions([retired,{...next,reads:[{account:'a',kind:from,revision:'2'}]}],{a:{kind:from,revision:'1'}})).toThrow('kind');
+  }
+});
+it('cannot recreate, mutate or cross-kind relabel a permanent tombstone',()=>{
+  for(const [from,to]of [[5,27],[17,26],[20,27],[26,5],[27,17]] as const) {
+    const invalid={...event('invalid',0,[]),writes:[{account:'a',kind:to,before:'1',after:'2'}],
+      retirements:[{account:'a',from,to}]};
+    expect(()=>orderScopedTransactions([invalid as ScopedEnvelope],{a:{kind:from,revision:'1'}})).toThrow();
+  }
+  expect(()=>orderScopedTransactions([{...event('invalid',0,[]),writes:[{account:'a',kind:26,before:'0',after:'1'}],
+    retirements:[{account:'a',from:5,to:26}]}],{})).toThrow();
+});

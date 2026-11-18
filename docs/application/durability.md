@@ -1,5 +1,154 @@
 # Finalized state and durable execution
 
+## Canonical membership migration (P55A2)
+
+P55A2 established schema 9/profile 5; D102 now uses schema 10/profile 6. Transport
+API version 4 and persisted semantic event names remain unchanged. A fresh
+binding/database is required. Historical schema-8/schema-9 runs cannot be reopened with the
+new account codecs or treated as new qualification evidence.
+
+Projection separates allocated stable identities, non-retired roots and Financial
+members. Empty registration/retirement leaves the Financial epoch unchanged.
+Every member page and live-index count is reconciled against the complete projected
+identity/lifecycle set. Root IDs are decimal strings, never array offsets. Default
+rows retain both Financial ordinal and stable identity, including actual activation
+generation. A recovered historical resolution retains its frozen membership epoch
+even when new members subsequently enter.
+
+The scoped sorter accepts only payload-authenticated retirement transitions:
+MarginAccount 5→26 through `retire_margin`, or recovery kinds 17/18/21/22/23→27
+through `refund_recovery_allocation`. Revision ordering includes both predecessor
+and successor kinds, preserving read-before-retire and read-after-retire edges.
+Any other kind change, tombstone recreation or missing predecessor rejects the
+whole transaction. The immutable rent receipt stays separate from financial cash.
+Pinned signed lifecycle/default/custody/race checks and fresh PostgreSQL replay
+pass within P55A2's scope; see STATUS/validation. P56 integrates durable automatic continuation and wallet clients; see the
+exact acceptance pins and limitations in validation.
+
+## Bounded-progress successor contract (P52)
+
+P52 separates durable catch-up from reconciled publication, with no change to
+program schemas, financial authority, event bytes or original-signature recovery.
+STATUS and validation record the qualified revisions and observed operating limits.
+
+Keep two explicit frontiers:
+
+- **Covered:** the complete authenticated finalized block prefix durably stored
+  with its ordered invocation projection. Interrupted recovery resumes after this
+  prefix; a later unavailable block or newer account revision cannot erase it.
+- **Reconciled:** a covered prefix whose financial projection has passed independent
+  finalized account/vault reconciliation. Public facts and discovery use this
+  immutable published state/cursor, never a partially advanced covered state.
+
+Each covered chunk checks genesis/initialization binding, complete signature
+manifests, canonical parents, transaction outcomes, scoped revision dependencies
+and exact projector invariants. Persist blocks, original transaction bytes,
+invocations, projection and covered checkpoint atomically. Duplicate identical
+bytes are idempotent; conflicting duplicates, gaps and impossible revision orders
+reject. A chunk boundary cannot split an atomic transaction or manufacture a full
+block fence from its prefix. Canonical block transaction order alone is insufficient
+where scoped read/write dependencies require a different order within that block.
+
+`pageSize` bounds requested slot ranges (default 100, allowed 1–1,000). One
+complete block is one SQL commit. `maxRecoveryTransactions` is a per-cycle work
+budget (default 10,000); empty blocks cost one work unit, and an indivisible
+nonempty block can exceed the remaining budget.
+Reaching the budget saves progress and defers remaining work to the next cycle,
+without rejecting a large backlog. At most eight block bodies and their eight
+independent signature manifests are in flight. Each RPC response is streamed
+under an explicit 64 MiB default byte budget; `maxRpcResponseBytes` can be raised
+for an operator's measured environment. Oversized/unavailable blocks retain the
+previous prefix and close readiness; they are never skipped. Parsed object/SQL
+memory also depends on the largest block and current entity set. This is bounded
+network batching, not a hard process RSS guarantee.
+
+The old 4,096-invocation whole-batch limit is removed. A separate 4,096-invocation
+per-transaction decoder resource bound remains; transaction atomicity, causal
+ordering and revision continuity remain enforced. No account-population limit is
+changed by P52. SQL updates only changed entity revisions; unchanged entities do
+not cause one SQL request each for every empty block.
+
+### Attainable reconciliation while the head advances
+
+P52 must validate a fixed candidate checkpoint instead of chasing the latest head
+through repeated full-state restarts. The selected design is a captured account
+witness tied to complete finalized history:
+
+1. Catch up to a captured finalized head and retain that candidate state/checkpoint.
+   Enumerate its complete canonical entity set plus the vault.
+2. Read bounded account batches at finalized commitment with context no earlier
+   than the candidate. Record the exact owner/data and context slot of each batch.
+   These observations may be at different later slots; never combine them into a
+   fictitious atomic account snapshot.
+3. Durably ingest complete blocks through the maximum captured observation slot,
+   a finite target independent of subsequent head advancement. Also record one
+   processed-slot ceiling **after** all reads; it is a bounded recovery target,
+   never publication authority.
+4. Replay authenticated complete blocks within this finite interval. Select the
+   latest complete-block state whose **entire entity revision vector** matches
+   the captured bytes. New entities absent from the capture prevent a match.
+5. Compare every required financial/authority field, canonical type/schema/PDA,
+   partial-resolution value and conservation identity at that exact state against
+   captured account bytes. Custody and the token vault are captured in the same
+   actual RPC batch, binding controlled token movements to its custody revision.
+6. If no common state matches within the reported contexts, retain the same
+   captured bytes and extend once to that fixed processed-slot ceiling. First
+   wait for its finalization within the original ten-second freshness window,
+   then ingest only finalized block bodies/manifests and look for the same exact
+   common match. Never fetch a newer witness while chasing this one. This covers
+   local RPC responses whose context is older than their returned live bytes.
+7. Publish only that verified common historical checkpoint. Later coverage stays
+   unpublished. Never treat overwriting a bad earlier value with a correct later
+   event as proof of the earlier state. If no common checkpoint exists, retain
+   coverage, keep readiness closed and retry with a fresh capture.
+
+Account reads need not all have the same bank slot: unchanged revisions can span
+slots. They must still match one genuine historical complete-block state. Writes
+spanning multiple RPC batches can prevent a common captured vector;
+this implementation does not promise wait-free publication for that case. Its
+local live acceptance and later expanded-cohort acceptance remain separate.
+Surfpool 1.7.0's [account handler](https://github.com/solana-foundation/surfpool/blob/v1.7.0/crates/core/src/rpc/accounts_data.rs#L408)
+selects the response context before fetching current account values. The signed
+P52 diagnostic observed revision 93 under finalized context 2376 while complete
+coverage at that slot had revision 75. The one-time fixed extension treats those
+bytes as an untrusted witness until every field matches a canonical finalized
+prefix; neither the processed slot nor the RPC commitment label proves readiness.
+A fork, missing history, no common revision vector or expired witness still closes
+readiness. The freshness limit is unchanged; a long finality lag is not excused.
+
+This is not permission to
+compare only revision numbers or trust an indexer's own output twice. Same-revision
+changed bytes, omitted account fields, missing independent writers, mismatched
+vault timing and foreign observations must reject. Program artifact binding and
+canonical initialization remain independently verified. If the exact witness
+construction fails, keep public readiness closed while retaining safe coverage.
+
+Public/API freshness uses the candidate's captured freshness time, never the end
+of a long replay as a way to renew stale data. Events/trades are capped at the
+published payload cursor, including repeatable-read pagination. Advancing covered
+history alone does not advance `/ready`, user balances, discovery or public outbox
+delivery. Expose covered versus reconciled progress explicitly. A readiness error
+does not authorize replacing or abandoning any pending signed original; immutable
+binding checks and pending-signature recovery must remain available independently.
+
+### Persistence and acceptance boundary
+
+SQL transport format **3** adds separate published fields and immutable covered
+checkpoint digests. Fresh databases are required; format-2 databases and their
+signed originals stay with the old executor. Startup migration rejects the wrong
+format. Program/account binding remains schema 8; no on-chain layout changes.
+
+Acceptance uses the actual qualified programs, signed Surfpool RPC/WS traffic and
+PostgreSQL: backlog above both former whole-run thresholds, unrelated transactions,
+continuously advancing relevant accounts, disconnects and process death on both
+sides of a chunk commit. Every restart must advance or stop at an identified
+invalid/unavailable input. Independent fresh replay must equal the complete
+published projection. Include same-block atomicity/order, large-block/chunk edges,
+missing/conflicting manifests, revision gaps, false publication, stale API/event
+pagination and pending-original recovery during indexing lag. Record actual RPC,
+memory/SQL/chunk sizes and completion latency; no inherited runtime result qualifies
+this new journal protocol.
+
 ## Projection and intermediate states
 
 Amounts and signed fractions are decimal strings in JSON; bytes are hex. Cash,
@@ -20,9 +169,9 @@ against remaining original cash plus applied cash; only the completion event ado
 the canonical resolution header/pages against the event-derived fields. Wide
 registers and DFS scratch are solver continuation state, not spendable balances.
 
-RPC reconciliation reads the complete entity revision vector and financial bodies
-twice across bounded chunks. A relevant advance requests tail catch-up; it never
-silently combines incompatible states. Storage precreation has a zero-payload
+The standalone diagnostic reconciler reads the complete revision vector and
+financial bodies twice across bounded chunks. Publication uses the captured common
+checkpoint described above; neither combines incompatible entity versions. Storage precreation has a zero-payload
 scoped transition, so its creation remains part of authenticated history.
 The settlement worker combines final backing page and gain payment in one durable
 original. The receiver pre-state guard remains the payment nonexecution proof;
@@ -50,7 +199,9 @@ Liquidation jobs retain the consenting receiver’s signed pre-state version:
 on-chain execution checks it and advances it, so an unchanged canonical receiver
 after finalized expiry proves no liquidation effect. An advanced/missing receiver
 remains unresolved. Permissionless freeze/default/recovery jobs have no invented
-version proof. Actions without a signed pre-state stamp retain no inferred proof. All retries of
+version proof. Wallet activation signs the margin root revision, which clearing
+checks and advances on success. The same proof covers an atomic activation and
+deposit. A standalone deposit provides no such stamp. Actions without a signed pre-state stamp retain no inferred proof. All retries of
 pending or unknown outcomes use the same committed bytes and signature. Worker
 lamport budgets and heartbeat records are market/maker-specific; actual process/fault qualification is recorded in validation.
 
@@ -373,3 +524,161 @@ Stop older executors before upgrading. Existing unknown originals start without 
 validity witness; do not invent one or relabel historical expired records as newly
 verified. Such records retain their original provenance and require independent
 receipt reconciliation before a deployment relying on them is qualified.
+
+### Paged settlement journal extension (P54C candidate)
+
+Scoped kinds 17–23 explicitly identify schema-9 PreparedSettlement,
+FrozenMarginPage, MemberIndexNode, MemberPage, SettlementLimbPage, SettlementRates
+and SettlementPlan. The envelope remains schema 8. Each account keeps an exact
+size/discriminator/schema/revision and canonical PDA check; accepting a new kind
+is not permission to accept unknown future kinds or arbitrary scratch addresses.
+
+The two new financial payloads are projected separately from readonly verifier
+work. Adoption snapshots original root facts from complete finalized history.
+Each Apply verifies original claims, cash, lots, monotone counters and actual cash
+conservation, then advances the explicit original/applied split. Stage-14 mixed
+roots are never counted again as the original cash bucket. Distribution preserves
+fees/carry and unused market insurance; terminal/recovery events retain their
+existing meanings. RPC reconciliation additionally checks the adopted plan,
+frozen rows and final applied-flow records against the journal.
+
+The normal runtime executable allowlist remains P53B. The P54C candidate harness
+uses a separate fixed-hash ArtifactVerifier and actual LiquidityStore/PostgreSQL,
+finalized block fetch, scoped decoder and account reconciliation. It does not
+silently promote the new program through public runtime configuration. Clean
+`c6e08f9` passes partial-Apply/distributed/recovered reconciliation and byte-identical
+131-event fresh replay; [validation](../operations/validation.md#conserving-settlement-p54c)
+records the exact binary, actual token effects and remaining activation limits.
+
+### Canonical membership migration boundary
+
+The P55A2 schema-9 reader uses a fixed registry/source/workspace batch and bounded
+frozen-row page reads with an exact final revision fence. Rate proposals use the
+reduced LCM and count-derived limb storage; they remain untrusted inputs to full
+on-chain verification. Ordinary backing follows the live membership cursor.
+Liquidation, authenticated freeze, source valuation and recovery remain supported.
+The removed schema-8 fixed-cohort continuation instructions are never submitted:
+automatic default continuation returns `canonical-default-automation-awaiting-p56a`
+until P56A qualifies its durable successor. The signed operator qualification
+harness exercises the implemented paged default path meanwhile. This explicit
+worker gate is neither successful settlement nor a claim of end-to-end service
+readiness.
+
+During partial Apply, `Resolution` remains the frozen source certificate.
+`SettlementPlan` owns partial original cash, applied cash and market movements;
+its checkpoints and applied roots must reconcile separately. Source terminal
+counters change only after complete root/vault reconciliation. Reading partial
+plan progress as if it lived in the source is a decoder/projection error.
+
+## Maintained backing candidate journal
+
+D102's schema-10/profile-6 candidate requires a fresh domain and database binding.
+Backing events include the optional selected-ledger summary and paired root/address
+snapshot when a member is marked processed. Scoped footer writes authenticate all
+three entities; projection may not update a readonly ledger/root. Ordinary route,
+cash and liquidation snapshots carry the maintained summary and processed epochs.
+RPC reconciliation pins the new exact account sizes and schema; it never infers
+summary effects from an off-chain accounting model. Signed normal, partial-default,
+recovery and fresh SQL replay checks are recorded in [validation](../operations/validation.md#maintained-backing-integration-p55b2).
+
+The backing worker separates arithmetic validity, current source availability and
+payment readiness. In-region observations/liability discovery versions do not reset
+coverage; stale required sources block use without granting a reset. Only a payable
+summary combines final traversal closure and gain into one durable original. A bad
+cohort completes traversal without payment, so a later admissible repair can unblock
+it. Required live-source checks, exact-byte retries and unresolved-original fences
+remain unchanged. The broader default-automation gate still belongs to P56A.
+
+The candidate worker acceptance retains a real lost-ack original through SIGKILL
+and process restart, then completes the same proof epoch and reconciles fresh SQL
+replay. See validation for exact pins and scope. This does not qualify the still-
+gated full default worker or promote the selected deployment.
+
+
+## Paged default controller (P56A1 candidate)
+
+The selected service binding and explicit `account-scale-candidate` alias recognize
+only the qualified schema-10/profile-6 binary set. They never reinterpret old
+databases. `RIVALT_ACCOUNT_PROFILE=liquidity-execution-qualification` retains
+API/budget policy 4; account schema and on-chain profile remain separate identities.
+All initialization, genesis, owner and executable hash checks remain mandatory.
+
+`account-default-worker.ts` proposes one bounded current transition after checking
+that no unresolved risk original owns the budget. The source, prepared, rates and
+plan headers share a coherent RPC fence. Frozen continuation uses this complete
+on-chain source directly and remains available during read-API publication lag.
+Live liquidation/freeze discovery still requires fresh reconciled publication. Canonical frozen/limb pages are provisioned
+before Financial admission; the worker initializes/reuses those allocations and
+never spends collateral for SOL rent. Rate and complete market-order proposals are
+untrusted. They are recomputed from fenced frozen rows on process restart and cached
+only by venue/epoch/prepared revision/insurance checkpoint. The program independently
+checks normalized uploads, greatest rates, exact remainder order and full membership.
+
+The native `rivalt-settlement-pages` helper returns only the next bounded page
+metas. Build it using `bash ops/build-settlement-helper.sh`; its local binary and
+SHA-256 manifest live in ignored `.local/settlement-helper/` (or the explicit
+`RIVALT_SETTLEMENT_HELPER_DIR`). Version 2 supports plan windows; older helpers
+reject before this controller can operate. Input/output limits,
+exact schema/size, canonical page ordering and a five-second process deadline fail
+closed. A changed manifest or native error cannot declare financial progress.
+The helper is not needed for retail transactions and requires no signing key.
+
+Every successful producer step enters the existing durable queue before broadcast.
+A restarted producer rereads committed stages and cannot replace a pending original;
+an executor recovers the same signature/wire after a lost acknowledgement. Missing
+storage, foreign active proposals, unavailable input and failed preflight remain
+classified failures. No continuation can skip Apply or complete reconciliation.
+The selected runtime includes this controller; acceptance is recorded on its
+exact program/helper/client revisions, never inherited from historical runs.
+
+The frozen source stays in `PAGED_APPLY` (14) while the adopted plan advances
+through Apply (9), reconciliation (10), and reconciled (11). The controller uses
+that plan stage and cursor, bound to the source's adoption revision; only verified
+completion changes the source to Complete (11). Distribution does not independently
+advance the source stage. During order verification the worker resets a rejected
+order using its current attempt and revision before proposing the next order. Unsupported or mismatched checkpoints fail closed.
+
+### Bounded atomic continuation candidate (P56)
+
+`RIVALT_DEFAULT_BATCH_STEPS` defaults to **32** after populated acceptance and
+accepts only integers 1–32; `1` retains the scalar producer. Both selected and
+explicit alias bindings use the same qualified planner. It simulates each unsigned prefix, requests all writable poststates and reads unchanged headers through checked RPC, then uses the ordinary authenticated continuation reader
+and descriptor helper to propose the next instruction. Simulation is untrusted
+proposal material, never committed progress or financial authority. A separate
+speculative cache cannot pollute committed rate proposals.
+
+Each prefix has at most 32 instructions, 64 returned accounts and 8 MiB returned
+account bytes; v0/v1 remain within 1,232/4,096 wire bytes. A 1m CU transaction budget
+and at most 900k measured simulation CU bound batching. Rejection or resource
+exhaustion retains only the preceding admissible unsigned prefix; malformed RPC
+poststates fail closed. When no prefix fits, the worker independently preflights
+the scalar instruction before it can enter the durable queue. Unchanged headers and new read-only dependencies are fetched no earlier than the
+simulation slot and pass existing decoders. A concurrent change can invalidate the
+proposal, so final signed preflight and every program revision/epoch/attempt guard
+remain mandatory. No financial computation, authority or SBF ABI changes.
+
+The whole batch becomes one persisted original, one budget reservation and the
+union of its dispatch locks. No next batch is created while that original remains
+ambiguous. Upload/Apply crash tests identify actual instructions inside the signed
+wire, and every applied ordinal is checked against independent expected payouts.
+Validation records actual costs, runtime and fresh SQL replay. These are local
+measurements, not a network latency or low-priority-fee guarantee.
+
+
+Inside one on-chain continuation, scope discovery and execution reuse the same
+checked arithmetic cursor and derived page plan (D107). This private boxed value
+exists only within that invocation; remaining-account scope capture changes no
+state before execution. Frozen source, revision/attempt and actual page guards
+still run. No decoder state is reused across transactions, and the wire/scoped
+history contract is unchanged. A new program artifact needs independent resource
+and financial acceptance before selection.
+
+The D108 candidate adds a bounded plan-window instruction. The helper previews
+at most 128 unchanged kernel steps over copies of up to eight authenticated RPC
+pages, requesting missing pages through at most nine bounded preview calls. Input
+is at most 64 KiB, output at most 16 KiB. It returns only sorted unique descriptors
+and permissions. Clearing rechecks every descriptor and repeats the actual work;
+verified input registers remain read-only, and missing I/O stops before the next
+step. No preview result or simulation is uploaded as a trusted financial effect.
+The existing three-descriptor instructions retain their wire contract. Windowed
+source/build/runtime acceptance is separate from prior scalar/batched evidence.

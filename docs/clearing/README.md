@@ -20,6 +20,13 @@ Read [accounts](accounts.md) for identities, layouts and authority;
 [accounting](accounting.md) for money, funding, fees and ordinary exits;
 [risk and resolution](risk-and-resolution.md) for sources, orders, liquidation and
 complete default. Maker execution pricing belongs to [liquidity](../liquidity/README.md).
+The [architecture review](architecture-review.md) records the November 2026
+comparison and proposed functional boundaries; it does not replace these contracts.
+Its [venue comparison](venue-comparison.md) separates documented liquidation,
+backstop and loss-allocation mechanisms from candidate Rivalt changes.
+
+The [clearing roadmap](roadmap.md#functional-ownership) maps today’s source to the
+risk engine and other financial domains. The [risk source map](risk-and-resolution.md#risk-equations-in-code) traces a withdrawal or liquidation to its admission check.
 
 ## Source map
 
@@ -32,8 +39,11 @@ complete default. Maker execution pricing belongs to [liquidity](../liquidity/RE
   [financial core](../../crates/financial-core/src/) and
   [independent expectations](../../tests/financial/).
 
-The P47-qualified RC2 local profile uses schema-8 clearing accounts under immutable
-profile 4; retained P44 deployments use their historical schema-7 clients.
+The account-scale RC2 local profile uses schema-10 clearing accounts under immutable
+profile 6, paged Financial membership and maintained ordinary-payment backing.
+Its launcher provisions recovery capacity for 128 Financial roots; registration
+identity and pages are separate from qualified financial capacity. Earlier
+deployments retain their original clients, domains and journals.
 Qualification and integration are recorded in STATUS and validation. Shared records live in `state/records.rs`; `engine/` uses
 current account records directly for both isolated and cross accounts. The earlier
 standalone/group/fixed-maker runtimes are retired, with historical reproduction

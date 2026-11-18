@@ -11,6 +11,9 @@ import json
 import subprocess
 
 from wire_contract import PROGRAMS, BASELINE, program_contract, source_domains
+from settlement_wire_contract import strip_additions, DOMAINS, undo_window_delta
+from backing_wire_contract import undo_backing_delta
+from membership_wire_contract import undo_membership_delta, DOMAINS_ADDED, DOMAINS_REMOVED
 
 PREDECESSOR = 'c0bc3aaa3825896fcafbc879fe104362da61c21d'
 
@@ -127,15 +130,50 @@ def check_domains():
                     'account:MakerPriceV4': 'account:MakerPrice',
                     'global:control_curve_v4': 'global:control_curve',
                     'global:quote_v4': 'global:quote_curve'}
-    expected['rust_byte_literals'] = sorted(replacements.get(item, item)
-                                            for item in expected['rust_byte_literals'])
+    expected['rust_byte_literals'] = sorted(set(replacements.get(item, item)
+                                            for item in expected['rust_byte_literals']) | set(DOMAINS) | DOMAINS_ADDED)
+    # P55B1 adds a native arithmetic-checkpoint domain only. No Anchor account,
+    # PDA seed, signed transaction domain or instruction changes in this phase.
+    expected['rust_byte_literals'] = sorted((set(expected['rust_byte_literals']) - DOMAINS_REMOVED) | {'RVBACK01'})
+    # D121 episode ordering is used only by the research selector at this revision.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
+                                            | {r'Rivalt/frozen-member-order/v1\0'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
+
+
+def undo_liquidation_delta(actual, program):
+    """Check the new keeper route before comparing older interface layers."""
+    if program != 'clearing':
+        return actual
+    actual = deepcopy(actual)
+    def unique(name):
+        matches = [ix for ix in actual['instructions'] if ix['name'] == name]
+        assert len(matches) == 1, name
+        return matches[0]
+    direct = unique('execute_liquidity_route')
+    forced = unique('liquidate_liquidity_route')
+    tag = list(hashlib.sha256(b'global:liquidate_liquidity_route').digest()[:8])
+    assert forced == {**direct, 'name': 'liquidate_liquidity_route', 'discriminator': tag}
+    actual['instructions'].remove(forced)
+    return actual
+
+
+def comparable_program(program, actual):
+    """Validate every explicit extension before comparing the retained D90 ABI."""
+    actual = undo_liquidation_delta(actual, program)
+    actual = undo_window_delta(actual, program)
+    actual = undo_backing_delta(actual, program)
+    actual = undo_membership_delta(actual, program)
+    if program == 'clearing':
+        actual = strip_additions(actual)
+    return comparable(actual, expected_idl(program))
 
 
 def check(directory):
     check_domains()
     for program in PROGRAMS:
-        actual, expected = comparable(json.loads((directory / f'{program}.json').read_text()), expected_idl(program))
+        actual = json.loads((directory / f'{program}.json').read_text())
+        actual, expected = comparable_program(program, actual)
         assert program_contract(actual) == program_contract(expected), (program, program_contract(actual), program_contract(expected))
     print(f'RC2 ABI matches D90 canonical identifiers against immutable {PREDECESSOR}')
 

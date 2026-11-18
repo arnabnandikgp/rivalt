@@ -1,5 +1,4 @@
 import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
 import {expect,it} from 'vitest';
 import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposal.js';
 
@@ -10,15 +9,15 @@ const equalRate=(actual:{numerator:bigint;denominator:bigint},numerator:bigint,d
 it('keeps unrelated market losses separate and encodes the exact bounded proposal',()=>{
   const result=proposeAccountRates(input([[100n,[-100n,0n]],[0n,[100n,0n]],[0n,[0n,-100n]],[0n,[0n,100n]]]));
   equalRate(result.rates[0],1n);equalRate(result.rates[1],0n);expect(result.insuranceSpent).toEqual([0n,0n]);
-  expect(result.bytes.length).toBe(1560);expect(result.hash).toEqual(createHash('sha256').update(result.bytes).digest());
-  const decode=(offset:number,length:number)=>result.bytes.subarray(offset,offset+length).reduceRight((total,byte)=>(total<<8n)+BigInt(byte),0n);
-  expect([decode(0,768),decode(768,768)]).toEqual(result.numerators);expect(decode(1536,24)).toBe(result.factor);
+  const decode=(words:bigint[])=>words.reduceRight((total,word)=>(total<<64n)+word,0n);
+  expect(result.numeratorWords.map(decode)).toEqual(result.numerators);
+  expect(result.factorWords).toHaveLength(5);expect(decode(result.factorWords)).toBe(result.factor);
 });
 it('recovers 70/80 and 60/80 from one 100-atom double debtor and separate insurance',()=>{
   const result=proposeAccountRates(input([[100n,[-80n,-80n]],[0n,[80n,0n]],[0n,[0n,80n]]],[20n,10n]));
   equalRate(result.rates[0],7n,8n);equalRate(result.rates[1],3n,4n);
   expect(result.insuranceSpent).toEqual([20n,10n]);expect(result.fractional).toEqual([false,false]);
-  expect(result.common).toBe(160n*SCALE);
+  expect(result.common).toBe(1n);
 });
 it('selects the greatest cashless cycle and caps setoff at the same root debt',()=>{
   for(const budget of [[0n,0n],[30n,40n]] as [bigint,bigint][]) {
@@ -53,7 +52,7 @@ it('preserves fractional insurance clipping across the prescribed reevaluations'
   expect(passes.map(result=>result.fractional)).toEqual([[false,true],[true,false],[false,false]]);
   equalRate(passes[1].rates[0],1n);equalRate(passes[1].rates[1],1n,4n);
 });
-it('handles 64 roots and a greater-than-5,000-bit common denominator with exact limb encoding',()=>{
+it('uses reduced common denominators and count-derived word storage',()=>{
   const rows:AccountRateInputs['rows']=[];let totalBtc=0n,totalEth=0n;
   for(let index=0n;index<63n;index++) {
     const btc=10n**24n+2n*index+1n,eth=10n**24n+4n*index+3n;
@@ -61,14 +60,15 @@ it('handles 64 roots and a greater-than-5,000-bit common denominator with exact 
   }
   rows.push({cash:0n,claims:[totalBtc,totalEth]});
   const result=proposeAccountRates({rows,pools:[0n,0n],budgets:[13n,17n]});
-  expect(result.common.toString(2).length).toBeGreaterThan(5000);expect(result.common.toString(2).length).toBeLessThanOrEqual(5632);
+  expect(result.common.toString(2).length).toBeGreaterThan(1000);
+  expect(BigInt(result.common.toString(2).length)).toBeLessThanOrEqual(result.capacity*64n);
   expect(result.factor).toBeLessThan(1n<<186n);expect(result.numerators.every(value=>value<=result.common*result.factor)).toBe(true);
 });
 it('rejects omitted market claims, invalid cohort size and financial bounds',()=>{
   const balanced=input([[1n,[-1n,0n]],[0n,[1n,0n]]]);
   expect(()=>proposeAccountRates({...balanced,rows:balanced.rows.slice(1)})).toThrow(/claim identity/);
   expect(()=>proposeAccountRates({...balanced,rows:[]})).toThrow(/bounded/);
-  expect(()=>proposeAccountRates({...balanced,rows:Array(65).fill({cash:0n,claims:[0n,0n]})})).toThrow(/bounded/);
+  expect(proposeAccountRates({...balanced,rows:Array.from({length:1027},()=>({cash:0n,claims:[0n,0n] as [bigint,bigint]}))}).rates).toEqual([{numerator:1n,denominator:1n},{numerator:1n,denominator:1n}]);
   expect(()=>proposeAccountRates({...balanced,budgets:[-1n,0n]})).toThrow(/bounded/);
   expect(()=>proposeAccountRates({...balanced,rows:[{cash:10n**16n,claims:[0n,0n]}]})).toThrow(/bounded/);
 });

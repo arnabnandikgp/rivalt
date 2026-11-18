@@ -54,6 +54,7 @@ pub fn change(
                 .as_deref_mut()
                 .map(|ledger| &mut **ledger),
         ],
+        &accounts.identity.safety,
     )?;
     let ledger = if selected == 0 {
         accounts
@@ -139,6 +140,7 @@ pub fn net(
             Some(&mut accounts.btc_ledger),
             Some(&mut accounts.eth_ledger),
         ],
+        &accounts.identity.safety,
     )?;
     accounts.btc_ledger.settlement = pools[0];
     accounts.eth_ledger.settlement = pools[1];

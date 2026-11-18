@@ -44,6 +44,12 @@ import {
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getBackingStateDecoder,
+  getBackingStateEncoder,
+  type BackingState,
+  type BackingStateArgs,
+} from "../types/index.js";
 
 export const MARKET_LEDGER_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   20, 74, 143, 91, 58, 131, 8, 46,
@@ -71,6 +77,7 @@ export type MarketLedger = {
   version: bigint;
   /** Economic mutations of roots owing to this market invalidate its backing proof. */
   liabilityVersion: bigint;
+  backing: BackingState;
   bump: number;
 };
 
@@ -89,6 +96,7 @@ export type MarketLedgerArgs = {
   version: number | bigint;
   /** Economic mutations of roots owing to this market invalidate its backing proof. */
   liabilityVersion: number | bigint;
+  backing: BackingStateArgs;
   bump: number;
 };
 
@@ -108,6 +116,7 @@ export function getMarketLedgerEncoder(): FixedSizeEncoder<MarketLedgerArgs> {
       ["insuranceFeeRemainder", getU8Encoder()],
       ["version", getU64Encoder()],
       ["liabilityVersion", getU64Encoder()],
+      ["backing", getBackingStateEncoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: MARKET_LEDGER_DISCRIMINATOR }),
@@ -129,6 +138,7 @@ export function getMarketLedgerDecoder(): FixedSizeDecoder<MarketLedger> {
     ["insuranceFeeRemainder", getU8Decoder()],
     ["version", getU64Decoder()],
     ["liabilityVersion", getU64Decoder()],
+    ["backing", getBackingStateDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -211,5 +221,5 @@ export async function fetchAllMaybeMarketLedger(
 }
 
 export function getMarketLedgerSize(): number {
-  return 125;
+  return 373;
 }

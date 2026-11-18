@@ -4,23 +4,15 @@ use super::*;
 use account_custody::{arithmetic as checked, increment};
 use financial_core::{
     self as math,
-    clearing::{row::Row, wide},
 };
 
-mod application;
 mod contexts;
 mod freeze;
-mod pages;
-mod rates;
 mod recovery;
 pub mod retirement;
-mod rounding;
 pub use contexts::*;
 pub use freeze::{freeze, value_sources};
-pub use pages::advance;
-pub use rates::{finalize, upload};
 pub use recovery::{reactivate, recover};
-pub use rounding::{check_order, order, round};
 
 pub const IDLE: u8 = 0;
 pub const AWAIT_VALUATION: u8 = 1;
@@ -36,7 +28,7 @@ pub const RECONCILE: u8 = 10;
 pub const COMPLETE: u8 = 11;
 pub const RECOVERED: u8 = 12;
 pub const TERMINAL: u8 = 13;
-const PAGE_COUNT: u16 = (MAX_MEMBERS / RESOLUTION_PAGE_ROWS) as u16;
+
 
 fn profile(identity: &ResolutionIdentity) -> Result<()> {
     require!(
@@ -60,24 +52,13 @@ fn profile(identity: &ResolutionIdentity) -> Result<()> {
     )
 }
 
-fn registry_hash(registry: &VenueRegistry) -> Result<[u8; 32]> {
-    require!(
-        registry.schema_version == SCHEMA_VERSION
-            && registry.count > 0
-            && usize::from(registry.count) == registry.members.len()
-            && registry.members.len() <= MAX_MEMBERS,
-        ClearingError::Resolution
-    );
-    for (index, member) in registry.members.iter().enumerate() {
-        require!(
-            *member != Address::default() && !registry.members[..index].contains(member),
-            ClearingError::Resolution
-        );
-    }
-    // Include membership version, not merely the public-key list.
-    let mut bytes = Vec::with_capacity(VenueRegistry::INIT_SPACE);
-    crate::wire::write(registry, &mut bytes)?;
-    Ok(solana_sha256_hasher::hash(&bytes).to_bytes())
+pub(crate) fn registry_hash(registry: &VenueRegistry) -> Result<[u8; 32]> {
+    crate::instructions::account_membership::members::registry(registry)?;
+    require!(registry.financial_count > 0, ClearingError::Resolution);
+    // Empty identities and journal revisions do not change the live financial
+    // commitment. Safety prevents any Financial entry/exit during the epoch.
+    Ok(solana_sha256_hasher::hashv(&[b"rivalt-financial-membership-v1", registry.venue.as_ref(),
+        registry.live_index.as_ref(), &registry.membership_epoch.to_le_bytes(), &registry.financial_count.to_le_bytes()]).to_bytes())
 }
 
 fn frozen(
@@ -95,7 +76,9 @@ fn frozen(
             && identity.safety.resolution_epoch == epoch
             && header.safety_epoch == identity.safety.epoch
             && header.terms_epoch == identity.venue.terms_epoch
-            && header.count == registry.count
+            && header.count == registry.financial_count
+            && header.membership_epoch == registry.membership_epoch
+            && header.live_index == registry.live_index
             && header.registry_hash == registry_hash(registry)?
             && (AWAIT_VALUATION..=RECONCILE).contains(&header.stage),
         ClearingError::Resolution
@@ -160,48 +143,12 @@ pub fn initialize(
         &ctx.accounts.custody,
         &ctx.accounts.safety,
     )?;
-    // Anchor has already initialized the fixed buffers. Do not allocate another
-    // 8 KiB default work object on the SBF stack or bump heap.
+    // The frozen source is scalar authority; reusable arithmetic/graph storage
+    // is separately funded and proved before Financial admission.
     let header = &mut ctx.accounts.resolution;
     header.schema_version = SCHEMA_VERSION;
     header.venue = ctx.accounts.venue.address().to_owned();
     header.bump = ctx.bumps.resolution;
-    let work = &mut ctx.accounts.work;
-    work.schema_version = SCHEMA_VERSION;
-    work.venue = ctx.accounts.venue.address().to_owned();
-    work.bump = ctx.bumps.work;
-    Ok(())
-}
-
-pub fn initialize_page(
-    ctx: &mut Context<InitializeAccountResolutionPage>,
-    _events: &mut crate::event_cpi::Payloads,
-    page_index: u16,
-) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
-    require!(
-        remaining_accounts.is_empty() && cfg!(feature = "liquidity-execution-qualification"),
-        ClearingError::Profile
-    );
-    account_trading::base_profile(
-        &ctx.accounts.venue,
-        &ctx.accounts.custody,
-        &ctx.accounts.safety,
-    )?;
-    require!(
-        ctx.accounts.resolution.schema_version == SCHEMA_VERSION
-            && ctx.accounts.resolution.stage == IDLE
-            && ctx.accounts.resolution.epoch == 0
-            && page_index < PAGE_COUNT
-            && ctx.accounts.resolution.cursor == page_index,
-        ClearingError::Resolution
-    );
-    let page = &mut ctx.accounts.page;
-    page.schema_version = SCHEMA_VERSION;
-    page.venue = ctx.accounts.venue.address().to_owned();
-    page.page_index = page_index;
-    page.bump = ctx.bumps.page;
-    ctx.accounts.resolution.cursor += 1;
     Ok(())
 }
 

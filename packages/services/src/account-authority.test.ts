@@ -11,6 +11,10 @@ it('authenticates a canonical root state version without a global custody stamp'
   expect(await accountAuthorityValue(authority,bytes)).toBe(9n);
   await expect(accountAuthorityValue({...authority,account:fixture.margins[1]},bytes)).rejects.toThrow(/binding/);
   await expect(accountAuthorityValue({...authority,venue:fixture.owner},bytes)).rejects.toThrow(/binding/);
+  const membershipBytes=sdk.getMarginAccountEncoder().encode({...sdk.getMarginAccountDecoder().decode(bytes),revision:47n});
+  const membership={...authority,kind:'accountRevision'} as const;
+  expect(await accountAuthorityValue(membership,Buffer.from(membershipBytes))).toBe(47n);
+  await expect(accountAuthorityValue({...membership,account:fixture.margins[1]},Buffer.from(membershipBytes))).rejects.toThrow(/binding/);
   bytes[0]^=1;await expect(accountAuthorityValue(authority,bytes)).rejects.toThrow(/schema/);
 });
 it('keeps selected-market sampling and maker epoch proofs distinct and canonical',async()=>{

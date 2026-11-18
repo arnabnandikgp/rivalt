@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 const SCALE=1_000_000_000n;
-type Root={id:number;cash:string;role:number;mode:number;isolatedMarketIndex:number;
+type Root={id:string;cash:string;role:number;mode:number;isolatedMarketIndex:number;
   positions:{lots:string;virtualScaled:string;fundingCheckpointScaled:string}[]};
 type Boundary={cursor:string;root:Root;fundingIndexScaled:string;referencePrice:string|null};
 export type LiquidityEconomicsInput={version:5;operatorClass:'internal-reference';capital:string;market:string;marketIndex:0|1;

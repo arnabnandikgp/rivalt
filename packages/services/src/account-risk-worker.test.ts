@@ -1,10 +1,10 @@
 import {expect,it} from 'vitest';
 import {createNoopSigner,type Instruction} from '@solana/kit';
-import type {Keypair} from '@solana/web3.js';
+import {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {accountTradeFixture} from '../../sdk/src/account-test-fixture.js';
 import {accountRiskWork} from './account-risk-worker.js';
-import {accountWorkerKeys} from './account-worker-state.js';
+import {accountWorkerKeys,financialMembershipHash} from './account-worker-state.js';
 import type {AccountRuntime} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
 import {Queue} from './queue.js';
@@ -20,11 +20,20 @@ async function fixture(freezeAccepted=false,quantity=10n) {
   test.put(target,sdk.getMarginAccountEncoder().encode(distressed));test.put(receiver,sdk.getMarginAccountEncoder().encode(capital));
   const keys=await accountWorkerKeys(venue);
   const [,resolutionBump]=await sdk.deriveVenueComponent(venue,'resolution');
-  const [,workBump]=await sdk.deriveVenueComponent(venue,'resolution-work');
-  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...test.empty(sdk.getResolutionDecoder()),schemaVersion:8,revision:1n,venue,bump:resolutionBump}));
-  test.put(keys.work,sdk.getResolutionWorkEncoder().encode({...test.empty(sdk.getResolutionWorkDecoder()),schemaVersion:8,revision:1n,venue,bump:workBump}));
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...test.empty(sdk.getResolutionDecoder()),schemaVersion:10,revision:1n,venue,bump:resolutionBump}));
   const [,registryBump]=await sdk.deriveVenueComponent(venue,'registry');
-  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:8,revision:1n,venue,count:2,membershipVersion:1n,members:[target,receiver],bump:registryBump}));
+  test.put(keys.registry,sdk.getVenueRegistryEncoder().encode({schemaVersion:10,revision:1n,venue,nextId:2n,registeredCount:2n,
+    financialCount:2n,membershipEpoch:1n,liveIndex:(await sdk.deriveMemberIndex(venue,14,0n))[0],bump:registryBump}));
+  for(const [field,tag,decoder,encoder] of [
+    ['storage','storage',sdk.getRecoveryStorageDecoder(),sdk.getRecoveryStorageEncoder()],
+    ['prepared','prepared',sdk.getPreparedSettlementDecoder(),sdk.getPreparedSettlementEncoder()],
+    ['rates','rates',sdk.getSettlementRatesDecoder(),sdk.getSettlementRatesEncoder()],
+    ['plan','plan',sdk.getSettlementPlanDecoder(),sdk.getSettlementPlanEncoder()],
+  ] as const) {
+    const [,bump]=tag==='storage'?await sdk.deriveRecoveryStorage(venue):await sdk.deriveSettlementWorkspace(venue,tag);
+    const state={...(test.empty(decoder as any) as Record<string,unknown>),schemaVersion:10,revision:1n,venue,bump};
+    test.put(keys[field],encoder.encode(state as never));
+  }
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];
   const runtime={rpc:test.rpc,riskProbeCursor:0,budget:async()=> 'risk-budget',pendingBudget:async()=>false,
     discovery:async()=>({state:{members:[target,receiver],roots:{[target]:distressed,[receiver]:capital}}}),
@@ -35,7 +44,7 @@ async function fixture(freezeAccepted=false,quantity=10n) {
         throw new Error('Risk action presently unavailable');
     }};
   const outcome=await accountRiskWork(runtime as unknown as AccountRuntime,createNoopSigner(test.owner) as Keypair,receiver);
-  return {...test,target,receiver,submissions,outcome};
+  return {...test,target,receiver,submissions,outcome,runtime,keys};
 }
 it('attaches the signed receiver version to liquidation and proves only finalized nonexecution',async()=>{
   const test=await fixture();expect(test.outcome).toEqual({status:'queued',reason:'funded-whole-account-liquidation'});
@@ -76,4 +85,93 @@ it('proposes a large liquidation without the former operational 64-lot batch cap
   expect(test.outcome).toEqual({status:'queued',reason:'funded-whole-account-liquidation'});
   const wire=sdk.getLiquidateAccountInstructionDataDecoder().decode(test.submissions.at(-1)!.instructions[1].data!);
   expect(wire.lots).toBe(1_000_000n);
+});
+
+it.each(['selected','account-scale-candidate'])('continues authenticated frozen work during publication lag with %s binding',async deploymentSelection=>{
+  const test=await fixture(true),venue=test.config.venue,{keys}=test;
+  test.submissions.length=0;
+  const bytes=(key:string)=>Buffer.from(test.accounts.get(key).data[0],'base64');
+  const registry=sdk.getVenueRegistryDecoder().decode(bytes(keys.registry));
+  const source={...sdk.getResolutionDecoder().decode(bytes(keys.resolution)),stage:2,epoch:1n,count:2n,
+    membershipEpoch:registry.membershipEpoch,liveIndex:registry.liveIndex,registryHash:financialMembershipHash(registry)};
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode(source));
+  test.put(keys.storage,sdk.getRecoveryStorageEncoder().encode({...sdk.getRecoveryStorageDecoder().decode(bytes(keys.storage)),
+    lockedEpoch:1n,readyCapacity:2n}));
+  const call=test.rpc.call.bind(test.rpc);
+  const candidate={...test.runtime,deploymentSelection,
+    environment:async()=>({venue}),rpc:{call:async(method:string,params:any[]=[])=>method==='getSlot'?1_000_000:method==='getAccountInfo'?{context:{slot:1_000_000},value:test.accounts.get(params[0])??null}:call(method,params)},
+    discovery:async()=>{throw new Error('live publication stale');},snapshot:async()=>{throw new Error('live publication stale');}};
+  const run=()=>accountRiskWork(candidate as unknown as AccountRuntime,createNoopSigner(test.owner) as Keypair);
+  expect(await run()).toEqual({status:'queued',reason:'initialize-frozen'});
+  expect(test.submissions).toHaveLength(1);expect(test.submissions[0].authority).toBeNull();
+  const instruction=test.submissions[0].instructions[1];
+  expect(sdk.getInitializePreparedSettlementInstructionDataDecoder().decode(instruction.data!))
+    .toMatchObject({epoch:1n,sourceRevision:1n});
+  const payer=await Keypair.fromSeed(new Uint8Array(32).fill(42));
+  const batchRuntime={...candidate,defaultContinuationSteps:2,rpc:{call:async(method:string,params:any[]=[])=>{
+    if(method==='getLatestBlockhash')return {value:{blockhash:'11111111111111111111111111111111'}};
+    if(method==='simulateTransaction')return {context:{slot:1_000_000},value:{err:null,unitsConsumed:950_000}};
+    return candidate.rpc.call(method,params);
+  }}};
+  expect(await accountRiskWork(batchRuntime as unknown as AccountRuntime,payer)).toEqual({status:'queued',reason:'initialize-frozen'});
+  expect(test.submissions.at(-1)!.instructions).toHaveLength(2);
+  test.put(keys.prepared,sdk.getPreparedSettlementEncoder().encode({...sdk.getPreparedSettlementDecoder().decode(bytes(keys.prepared)),epoch:1n,stage:3}));
+  test.put(keys.rates,sdk.getSettlementRatesEncoder().encode({...sdk.getSettlementRatesDecoder().decode(bytes(keys.rates)),epoch:1n,stage:4}));
+  const rejected={...sdk.getSettlementPlanDecoder().decode(bytes(keys.plan)),epoch:1n,stage:5,revision:17n,orderAttempt:4n};
+  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode(rejected));
+  expect(await run()).toEqual({status:'queued',reason:'reset-rejected-order'});
+  const reset=sdk.getResetSettlementPlanOrderInstructionDataDecoder().decode(test.submissions.at(-1)!.instructions[1].data!);
+  expect(reset).toMatchObject({discriminator:sdk.RESET_SETTLEMENT_PLAN_ORDER_DISCRIMINATOR,epoch:1n,revision:17n,attempt:4n});
+  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode({...rejected,stage:3,revision:18n}));
+  expect(await run()).toEqual({status:'queued',reason:'begin-order'});
+  expect(sdk.getBeginSettlementPlanOrderInstructionDataDecoder().decode(test.submissions.at(-1)!.instructions[1].data!))
+    .toMatchObject({discriminator:sdk.BEGIN_SETTLEMENT_PLAN_ORDER_DISCRIMINATOR,revision:18n});
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...source,registryHash:new Uint8Array(32)}));
+  await expect(run()).rejects.toThrow(/Frozen membership/);
+  expect(test.submissions).toHaveLength(4);
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode({...source,stage:0}));
+  await expect(run()).rejects.toThrow(/live publication stale/);
+});
+
+it('uses the adopted plan cursor through distribution, reconciliation and completion',async()=>{
+  const test=await fixture(true),venue=test.config.venue,{keys}=test;
+  test.submissions.length=0;
+  const bytes=(key:string)=>Buffer.from(test.accounts.get(key).data[0],'base64');
+  const registry=sdk.getVenueRegistryDecoder().decode(bytes(keys.registry));
+  const source={...sdk.getResolutionDecoder().decode(bytes(keys.resolution)),stage:14,epoch:1n,count:2n,
+    membershipEpoch:registry.membershipEpoch,liveIndex:registry.liveIndex,registryHash:financialMembershipHash(registry)};
+  test.put(keys.resolution,sdk.getResolutionEncoder().encode(source));
+  test.put(keys.storage,sdk.getRecoveryStorageEncoder().encode({...sdk.getRecoveryStorageDecoder().decode(bytes(keys.storage)),lockedEpoch:1n,readyCapacity:2n}));
+  test.put(keys.prepared,sdk.getPreparedSettlementEncoder().encode({...sdk.getPreparedSettlementDecoder().decode(bytes(keys.prepared)),epoch:1n}));
+  test.put(keys.rates,sdk.getSettlementRatesEncoder().encode({...sdk.getSettlementRatesDecoder().decode(bytes(keys.rates)),epoch:1n}));
+  const plan={...sdk.getSettlementPlanDecoder().decode(bytes(keys.plan)),epoch:1n,adoptionRevision:source.revision};
+  const [page,bump]=await sdk.deriveFrozenMarginPage(venue,0n);
+  const frozen={...test.empty(sdk.getFrozenMarginPageDecoder()),schemaVersion:10,venue,epoch:1n,revision:1n,pageIndex:0n,bump,rowCount:2};
+  frozen.rows[0].member=test.target;frozen.rows[1].member=test.receiver;
+  test.put(page,sdk.getFrozenMarginPageEncoder().encode(frozen));
+  const call=test.rpc.call.bind(test.rpc);
+  const candidate={...test.runtime,deploymentSelection:'account-scale-candidate',environment:async()=>({venue}),
+    rpc:{call:async(method:string,params:any[]=[])=>method==='getSlot'?1_000_000:method==='getAccountInfo'?{context:{slot:1_000_000},value:test.accounts.get(params[0])??null}:call(method,params)},
+    discovery:async()=>{throw new Error('must use the frozen source');}};
+  const run=()=>accountRiskWork(candidate as unknown as AccountRuntime,createNoopSigner(test.owner) as Keypair);
+  for(const [stage,cursor,reason,tag] of [
+    [9,2n,'distribute',sdk.COMPLETE_SETTLEMENT_APPLICATION_DISCRIMINATOR],
+    [10,0n,'reconcile-member',sdk.RECONCILE_SETTLEMENT_MARGIN_DISCRIMINATOR],
+    [10,1n,'reconcile-member',sdk.RECONCILE_SETTLEMENT_MARGIN_DISCRIMINATOR],
+    [11,2n,'complete',sdk.COMPLETE_SETTLEMENT_PLAN_DISCRIMINATOR],
+  ] as const) {
+    test.put(keys.plan,sdk.getSettlementPlanEncoder().encode({...plan,stage,cursor}));
+    expect(await run()).toEqual({status:'queued',reason});
+    expect(sdk.hex(test.submissions.at(-1)!.instructions[1].data!.slice(0,8))).toBe(sdk.hex(tag));
+    if(stage===10) {
+      const instruction=test.submissions.at(-1)!.instructions[1];
+      expect(sdk.getReconcileSettlementMarginInstructionDataDecoder().decode(instruction.data!).ordinal).toBe(cursor);
+      expect(instruction.accounts!.some(meta=>meta.address===(cursor===0n?test.target:test.receiver))).toBe(true);
+    }
+  }
+  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode({...plan,stage:10,epoch:2n}));
+  await expect(run()).rejects.toThrow(/Adopted settlement binding/);
+  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode({...plan,stage:12}));
+  await expect(run()).rejects.toThrow(/Unsupported adopted plan/);
+  expect(test.submissions).toHaveLength(4);
 });

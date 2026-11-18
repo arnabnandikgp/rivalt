@@ -1,3 +1,5 @@
+import {backingStep} from './membership-scan-helper.js';
+import {registerFinancialTestMargin} from './account-membership-setup.js';
 // P42-specific signed invariants. Provisioning cannot inject financial state.
 import assert from 'node:assert/strict';
 import {AccountRole,type Address,type Instruction} from '@solana/kit';
@@ -24,8 +26,8 @@ export async function custodyIsolationCases(h:CanonicalHarness,setup:Setup) {
   const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,owner.address,3);
   const [ethRoot]=await sdk.deriveMarginAccount(portfolio,1);
   await h.send('P42 create distinct owner portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner,portfolio,index:3})],[owner]);
-  await h.send('P42 register distinct owner isolated ETH',[await sdk.getRegisterMarginInstructionAsync({...setup.common,owner,portfolio,
-    margin:ethRoot,subaccountIndex:1,mode:1,isolatedMarketIndex:1,role:0})],[owner]);
+  await registerFinancialTestMargin(h,setup.common,setup.payer,{owner,portfolio,
+    margin:ethRoot,subaccountIndex:1,mode:1,isolatedMarketIndex:1,role:0});
   await h.send('P42 deposit independent collateral without liability ledgers',[await sdk.getDepositAccountInstructionAsync({...setup.common,
     btcLedger:undefined,ethLedger:undefined,owner,margin:ethRoot,quoteMint:setup.mint.address,userToken:token.address,amount:100_000n})],[owner]);
   await setup.sample();
@@ -57,27 +59,24 @@ export async function custodyIsolationCases(h:CanonicalHarness,setup:Setup) {
   // actual attempts, not success-conditioned availability.
   setup.sourcePrices.eth=3_100_000_000n;await setup.qualify();
   const [certificate]=await sdk.deriveSettlementCertificate(setup.venue,1);
-  const members=sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!).members;
-  const page=(start:number)=>{
-    const check=sdk.getCheckMarketBackingInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
-      certificate,ledger:setup.ledgers[1],start});
-    return {...check,accounts:[...check.accounts,...members.slice(start,start+2).map(address=>({address,role:AccountRole.READONLY}))]};
-  };
+  const backingIdentity={...setup.common,btc:setup.markets[0],eth:setup.markets[1],certificate,ledger:setup.ledgers[1]};
   const progress:{offered:number;completed:number;rejected:number;reasons:Record<string,number>}={offered:0,completed:0,rejected:0,reasons:{}};
   for(let attempt=0;attempt<3;attempt++) {
     progress.offered++;
-    await h.send('P42 activity scan first page',[page(0)]);
-    await h.send('P42 activity scan exposed debtors',[page(2)]);
-    await setup.sample();
-    await h.send('P42 funding observation invalidates scan continuation',[page(4)],[],sdk.CLEARING_ERROR__EXIT_COHORT);
+    await h.send('activity scan starts authenticated index',[(await backingStep(h,backingIdentity,true)).instruction]);
+    const next=await backingStep(h,backingIdentity);await setup.sample();
+    await h.send('funding observation invalidates scan continuation',[next.instruction],[],sdk.CLEARING_ERROR__EXIT_COHORT);
     progress.rejected++;progress.reasons['source-observation-advanced']=(progress.reasons['source-observation-advanced']??0)+1;
   }
-  // Three deliberately interleaved attempts establish a classified limitation,
-  // not a general availability percentage. One bounded quiet source window then
-  // proves complete scanning plus final-page/payment atomically.
   progress.offered++;
-  for(let start=0;start<members.length-2;start+=2)await h.send('P42 backing continuation',[page(start)]);
-  const finalStart=members.length-2;assert(members.slice(finalStart).includes(ethRoot));
+  await h.send('restart complete backing scan',[(await backingStep(h,backingIdentity,true)).instruction]);
+  let final;
+  for(let steps=0;;steps++) {
+    assert(steps<1000,'bounded qualification scan');
+    const next=await backingStep(h,backingIdentity);
+    if(next.request.kind==='node'&&next.request.level===14&&next.proof.next===next.proof.count){final=next.instruction;break;}
+    await h.send('backing continuation',[next.instruction]);
+  }
   const payment=sdk.getPayAccountGainInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
     btcLedger:undefined,ethLedger:setup.ledgers[1],actor:setup.payer,margin:ethRoot,certificate,marketIndex:1,amount:1n});
   const beforeGain=await root(ethRoot),beforePool=await ledger(1);
@@ -87,9 +86,9 @@ export async function custodyIsolationCases(h:CanonicalHarness,setup:Setup) {
   const preAtomic=await Promise.all(watched.map(h.read));
   const badPayment=sdk.getPayAccountGainInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
     btcLedger:undefined,ethLedger:setup.ledgers[1],actor:setup.payer,margin:ethRoot,certificate,marketIndex:1,amount:0n});
-  await h.send('P42 atomic final page payment rollback',[page(finalStart),payment,badPayment],[],sdk.CLEARING_ERROR__EXIT_COHORT);
+  await h.send('P42 atomic final page payment rollback',[final,payment,badPayment],[],sdk.CLEARING_ERROR__EXIT_COHORT);
   assert.deepEqual(await Promise.all(watched.map(h.read)),preAtomic);
-  await h.send('P42 atomic final page and gain',[page(finalStart),payment]);
+  await h.send('P42 atomic final page and gain',[final,payment]);
   progress.completed++;
   const afterGain=await root(ethRoot);assert.equal(afterGain.cash,beforeGain.cash+1n);
   assert.equal((await ledger(1)).settlement,beforePool.settlement-1n);

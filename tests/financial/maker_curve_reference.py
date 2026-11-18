@@ -228,7 +228,7 @@ def best_route(candidates, side, lots, admissible: Callable = lambda legs, amoun
 
 
 def premium(reference: int, quantity: int, bid: int, ask: int):
-    bounded(reference, 10_000, 100_000)
+    bounded(reference, 2, 909_090)
     if quantity != (6_000_000 + reference - 1) // reference or not 0 < bid <= ask:
         raise ValueError("funding context")
     numerator = (bid + ask - 2 * quantity * reference) * SCALE
@@ -244,7 +244,7 @@ def held_index(base: int, premium_scaled: int, sampled_at: int, held_until: int,
 
 
 def funding_quote(candidates, publications, reference, slot, time):
-    bounded(reference, 10_000, 100_000)
+    bounded(reference, 2, 909_090)
     if len(candidates) != 3 or len(publications) != 3:
         raise ValueError("incomplete coverage")
     if not all(publication.valid(slot, time) for publication in publications):

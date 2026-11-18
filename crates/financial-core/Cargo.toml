@@ -4,5 +4,13 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[dependencies]
+clearing-accounting = { path = "../clearing-accounting" }
+risk-engine = { path = "../risk-engine" }
+
 [lib]
 path = "src/lib.rs"
+
+[lints.rust]
+# Solana platform-tools adds this target OS to its patched Rust compiler.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

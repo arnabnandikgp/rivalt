@@ -13,7 +13,9 @@ fn clock() -> Clock {
 }
 fn root() -> MarginAccount {
     MarginAccount {
-        schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Address::new_from_array([1; 32]),
@@ -26,7 +28,7 @@ fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -199,7 +201,7 @@ fn positive_unpaid_claims_never_fund_risk_or_fee() {
 fn fee_carry_is_exact_per_market_and_never_an_asset() {
     let mut account_cash = 100_000;
     let mut ledgers = [0u8, 1].map(|market_index| MarketLedger {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         market_index,
         ..Default::default()
     });
@@ -272,49 +274,51 @@ fn source_relevance_and_account_guard_ignore_unrelated_history() {
 
 #[test]
 fn dependency_stamps_follow_both_claims_but_not_cash_only_siblings() {
+    use super::super::account_cash::maintained::update;
+    let safety = VenueSafety {mode:ACTIVE, epoch:1, ..Default::default()};
     let mut ledgers = [0, 1].map(|market_index| MarketLedger {
         schema_version: SCHEMA_VERSION,
         market_index,
         ..Default::default()
     });
     let mut account = root();
-    invalidate([None, None], account.positions, account.positions).unwrap();
+    update([None, None], &account, &account, &safety).unwrap();
     assert_eq!(
         ledgers.each_ref().map(|ledger| ledger.liability_version),
         [0, 0]
     );
     account.positions[0].virtual_scaled = 1;
     account.positions[1].virtual_scaled = -1;
-    assert!(invalidate([None, None], account.positions, account.positions).is_err());
+    assert!(update([None, None], &account, &account, &safety).is_err());
     // Missing either side cannot leave a one-scaled-unit obligation unstamped.
-    assert!(invalidate(
+    assert!(update(
         [None, Some(&mut ledgers[1])],
-        account.positions,
-        account.positions
+        &account,
+        &account, &safety
     )
     .is_err());
-    invalidate(
+    update(
         ledgers.each_mut().map(Some),
-        account.positions,
-        account.positions,
+        &account,
+        &account, &safety,
     )
     .unwrap();
     assert_eq!(
         ledgers.each_ref().map(|ledger| ledger.liability_version),
         [1, 1]
     );
-    let before = account.positions;
+    let before = account.clone();
     account.positions[0].virtual_scaled = 0;
-    invalidate(ledgers.each_mut().map(Some), before, account.positions).unwrap();
+    update(ledgers.each_mut().map(Some), &before, &account, &safety).unwrap();
     assert_eq!(
         ledgers.each_ref().map(|ledger| ledger.liability_version),
         [2, 2]
     );
     // The now-empty sibling can be omitted; its stamp stays unchanged.
-    invalidate(
+    update(
         [None, Some(&mut ledgers[1])],
-        account.positions,
-        account.positions,
+        &account,
+        &account, &safety,
     )
     .unwrap();
     assert_eq!(

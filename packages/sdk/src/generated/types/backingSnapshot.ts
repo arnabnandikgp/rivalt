@@ -10,14 +10,8 @@ import {
   combineCodec,
   getAddressDecoder,
   getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBooleanDecoder,
   getBooleanEncoder,
-  getI128Decoder,
-  getI128Encoder,
-  getI64Decoder,
-  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU16Decoder,
@@ -32,24 +26,22 @@ import {
   type FixedSizeEncoder,
   type HasAddress,
 } from "@solana/kit";
+import {
+  getMembershipStateDecoder,
+  getMembershipStateEncoder,
+  type MembershipState,
+  type MembershipStateArgs,
+} from "./index.js";
 
 export type BackingSnapshot = {
   schemaVersion: number;
   venue: Address;
   marketIndex: number;
-  safetyEpoch: bigint;
-  membershipVersion: bigint;
-  liabilityVersion: bigint;
-  observations: Array<bigint>;
-  fundingBounds: Array<Array<bigint>>;
-  sourceDeadlines: Array<bigint>;
-  requiredMarketMask: number;
-  count: number;
-  next: number;
-  cash: bigint;
-  lots: Array<bigint>;
-  claimSum: bigint;
+  backingEpoch: bigint;
+  count: bigint;
+  next: bigint;
   complete: boolean;
+  membership: MembershipState;
   bump: number;
 };
 
@@ -57,19 +49,11 @@ export type BackingSnapshotArgs = {
   schemaVersion: number;
   venue: Address | HasAddress;
   marketIndex: number;
-  safetyEpoch: number | bigint;
-  membershipVersion: number | bigint;
-  liabilityVersion: number | bigint;
-  observations: Array<number | bigint>;
-  fundingBounds: Array<Array<number | bigint>>;
-  sourceDeadlines: Array<number | bigint>;
-  requiredMarketMask: number;
-  count: number;
-  next: number;
-  cash: number | bigint;
-  lots: Array<number | bigint>;
-  claimSum: number | bigint;
+  backingEpoch: number | bigint;
+  count: number | bigint;
+  next: number | bigint;
   complete: boolean;
+  membership: MembershipStateArgs;
   bump: number;
 };
 
@@ -78,24 +62,11 @@ export function getBackingSnapshotEncoder(): FixedSizeEncoder<BackingSnapshotArg
     ["schemaVersion", getU16Encoder()],
     ["venue", getAddressEncoder()],
     ["marketIndex", getU8Encoder()],
-    ["safetyEpoch", getU64Encoder()],
-    ["membershipVersion", getU64Encoder()],
-    ["liabilityVersion", getU64Encoder()],
-    ["observations", getArrayEncoder(getU64Encoder(), { size: 2 })],
-    [
-      "fundingBounds",
-      getArrayEncoder(getArrayEncoder(getI128Encoder(), { size: 2 }), {
-        size: 2,
-      }),
-    ],
-    ["sourceDeadlines", getArrayEncoder(getI64Encoder(), { size: 2 })],
-    ["requiredMarketMask", getU8Encoder()],
-    ["count", getU16Encoder()],
-    ["next", getU16Encoder()],
-    ["cash", getU64Encoder()],
-    ["lots", getArrayEncoder(getI128Encoder(), { size: 2 })],
-    ["claimSum", getI128Encoder()],
+    ["backingEpoch", getU64Encoder()],
+    ["count", getU64Encoder()],
+    ["next", getU64Encoder()],
     ["complete", getBooleanEncoder()],
+    ["membership", getMembershipStateEncoder()],
     ["bump", getU8Encoder()],
   ]);
 }
@@ -105,24 +76,11 @@ export function getBackingSnapshotDecoder(): FixedSizeDecoder<BackingSnapshot> {
     ["schemaVersion", getU16Decoder()],
     ["venue", getAddressDecoder()],
     ["marketIndex", getU8Decoder()],
-    ["safetyEpoch", getU64Decoder()],
-    ["membershipVersion", getU64Decoder()],
-    ["liabilityVersion", getU64Decoder()],
-    ["observations", getArrayDecoder(getU64Decoder(), { size: 2 })],
-    [
-      "fundingBounds",
-      getArrayDecoder(getArrayDecoder(getI128Decoder(), { size: 2 }), {
-        size: 2,
-      }),
-    ],
-    ["sourceDeadlines", getArrayDecoder(getI64Decoder(), { size: 2 })],
-    ["requiredMarketMask", getU8Decoder()],
-    ["count", getU16Decoder()],
-    ["next", getU16Decoder()],
-    ["cash", getU64Decoder()],
-    ["lots", getArrayDecoder(getI128Decoder(), { size: 2 })],
-    ["claimSum", getI128Decoder()],
+    ["backingEpoch", getU64Decoder()],
+    ["count", getU64Decoder()],
+    ["next", getU64Decoder()],
     ["complete", getBooleanDecoder()],
+    ["membership", getMembershipStateDecoder()],
     ["bump", getU8Decoder()],
   ]);
 }

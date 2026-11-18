@@ -38,6 +38,7 @@ pub fn withdraw(
                     .as_deref_mut()
                     .map(|ledger| &mut **ledger),
             ],
+            &accounts.identity.safety,
         )?;
         snapshot.clock
     };
@@ -140,6 +141,7 @@ pub fn transfer(
                 .as_deref_mut()
                 .map(|ledger| &mut **ledger),
         ],
+        &accounts.identity.safety,
     )?;
     commit(
         &mut accounts.recipient,
@@ -154,6 +156,7 @@ pub fn transfer(
                 .as_deref_mut()
                 .map(|ledger| &mut **ledger),
         ],
+        &accounts.identity.safety,
     )?;
     finish(&mut accounts.identity, &snapshot.clock)?;
     emit(

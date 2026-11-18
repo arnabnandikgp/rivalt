@@ -17,7 +17,7 @@ it.each(['current-runtime-smoke','liquidity-continuation-smoke','smoke'])(
         binaries[filename]=createHash('sha256').update(bytes).digest('hex');
       }
       writeFileSync(join(directory,'build-manifest.json'),JSON.stringify({trackedDirty:false,
-        profile:'liquidity-execution-qualification',framework:'anchor-2.0.0-rc.2',accountSchema:8,makerAccountSchema:5,binaries}));
+        profile:'liquidity-execution-qualification',framework:'anchor-2.0.0-rc.2',accountSchema:10,profileVersion:6,makerAccountSchema:5,binaries}));
       const runDirectory=join(directory,'must-not-start');
       const outcome=spawnSync('bash',[`ops/${script}.sh`],{encoding:'utf8',timeout:15_000,env:{...process.env,
         RIVALT_ARTIFACT_DIR:directory,RIVALT_RUN_DIR:runDirectory,RIVALT_LIQUIDITY_PROBE:'makers',

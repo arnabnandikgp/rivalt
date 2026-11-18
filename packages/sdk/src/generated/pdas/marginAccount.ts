@@ -10,7 +10,7 @@ import {
   getAddressEncoder,
   getBytesEncoder,
   getProgramDerivedAddress,
-  getU16Encoder,
+  getU32Encoder,
   type Address,
   type HasAddress,
   type ProgramDerivedAddress,
@@ -40,7 +40,7 @@ export async function findMarginAccountPda(
         new Uint8Array([109, 97, 114, 103, 105, 110, 45, 118, 51]),
       ),
       getAddressEncoder().encode(seeds.portfolio),
-      getU16Encoder().encode(seeds.subaccountIndex),
+      getU32Encoder().encode(seeds.subaccountIndex),
     ],
   });
 }

@@ -3,7 +3,12 @@ import {PublicKey} from '@solana/web3.js';
 import {getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
 import {testRpcUrl} from './test-deployment.js';
-import {LiquidityArtifactVerifier} from './liquidity-artifacts.js';
+import {ACCOUNT_PROFILE,readMembershipRegistry,readMarginMembership} from './account-membership.js';
+import {deriveMemberPage,deriveMemberIndex,deriveStorageFunding} from './account-addresses.js';
+import {ArtifactVerifier} from './artifacts.js';
+import {accountDeployment,type AccountDeployment} from './account-deployment.js';
+import {readOwnerAccounts} from './account-owner-discovery.js';
+import {validateActivationDeposit} from './account-wallet-envelope.js';
 import {compileCanonicalTransaction} from './canonical-transport.js';
 import {buildLiquidityRoute} from './liquidity-route.js';
 import {deriveAccountPortfolio,deriveMarginAccount,deriveSettlementCertificate,deriveVenueComponent} from './account-addresses.js';
@@ -14,10 +19,10 @@ import {accountBalanceView} from './account-balance.js';
 import {accountMarketMetas,accountLiabilityMetas} from './account-markets.js';
 import type {LiquidityRouteInput} from './liquidity-route.js';
 
-export type AccountUserConfig={version:4;accountSchema:8;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
+export type AccountUserConfig={version:4;accountSchema:10;deployment:AccountDeployment;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
   genesis:string;anchor:string;anchorHash:string;venue:Address;mint:Address;domain:string};
 export function accountUserConfig(value:AccountUserConfig):AccountUserConfig {
-  requireValue(value?.version===4&&value.accountSchema===8&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
+  requireValue(value?.version===4&&value.accountSchema===10&&(value.deployment==='selected'||value.deployment==='account-scale-candidate')&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
   return validateAccountConfig(value);
 }
 function validateAccountConfig<Config extends AccountUserConfig>(value:Config):Config {
@@ -31,13 +36,15 @@ function validateAccountConfig<Config extends AccountUserConfig>(value:Config):C
 }
 export function accountWalletInstructions(instructions:Instruction[]) {
   const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
+  if(economic.length===2){validateActivationDeposit(economic);return walletComputeBudget(instructions,400_000);}
   requireValue(economic.length===1&&economic[0].programAddress===protocol.CLEARING_PROGRAM_ADDRESS,'Unsupported account wallet envelope.');
   const discriminator=hex(economic[0].data?.slice(0,8)??[]);
   const route=discriminator===hex(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
   const supported=[protocol.CREATE_PORTFOLIO_DISCRIMINATOR,protocol.REGISTER_MARGIN_DISCRIMINATOR,protocol.DEPOSIT_ACCOUNT_DISCRIMINATOR,
     protocol.WITHDRAW_ACCOUNT_CUSTODY_DISCRIMINATOR,protocol.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,protocol.TRANSFER_ACCOUNT_CUSTODY_DISCRIMINATOR,
     protocol.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR,protocol.MANAGE_ACCOUNT_ORDER_DISCRIMINATOR,protocol.SET_ACCOUNT_DELEGATE_DISCRIMINATOR,
-    protocol.NET_ACCOUNT_CLAIMS_DISCRIMINATOR];
+    protocol.NET_ACCOUNT_CLAIMS_DISCRIMINATOR,protocol.ACTIVATE_MARGIN_DISCRIMINATOR,protocol.DEACTIVATE_MARGIN_DISCRIMINATOR,
+    protocol.RETIRE_MARGIN_DISCRIMINATOR,protocol.FUND_MEMBER_PAGE_DISCRIMINATOR,protocol.FUND_MEMBER_INDEX_DISCRIMINATOR];
   requireValue(route||supported.some(value=>hex(value)===discriminator),'Unsupported account wallet action.');
   return walletComputeBudget(instructions,route?800_000:400_000);
 }
@@ -46,16 +53,16 @@ export function accountWalletInstructions(instructions:Instruction[]) {
  * shared immutable wallet transport; the venue API is not an exit dependency. */
 export class AccountUserClient extends WalletClient {
   readonly config:AccountUserConfig;
-  private readonly artifacts:LiquidityArtifactVerifier;
+  private readonly artifacts:ArtifactVerifier;
   constructor(config:AccountUserConfig) {
     const checked=accountUserConfig(config);
     super(checked.rpcUrl);this.config=checked;
-    this.artifacts=new LiquidityArtifactVerifier(this.rpc);
+    this.artifacts=new ArtifactVerifier(this.rpc,accountDeployment(checked.deployment).artifacts);
   }
   protected override get maxTransactionVersion():0|1{return 1;}
   protected override compile(owner:Address,recentBlockhash:Blockhash,instructions:Instruction[]) {
     const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
-    requireValue(economic.length===1&&economic[0].programAddress===protocol.CLEARING_PROGRAM_ADDRESS,'Unsupported canonical wallet envelope.');
+    accountWalletInstructions(economic); // Also validates the narrowly bounded two-action envelope.
     const route=hex(economic[0].data?.slice(0,8)??[])===hex(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
     if(!route)accountWalletInstructions(economic); // Shared financial action allowlist.
     return compileCanonicalTransaction({payerKey:new PublicKey(owner),recentBlockhash},economic,
@@ -74,7 +81,7 @@ export class AccountUserClient extends WalletClient {
     const bytes=fromBase64(observed.value.data[0]);
     requireValue(bytes.length===protocol.getVenueSize()&&hex(bytes.slice(0,8))===hex(protocol.VENUE_DISCRIMINATOR),'Wrong venue schema.');
     const venue=protocol.getVenueDecoder().decode(bytes);
-    requireValue(venue.schemaVersion===8&&venue.profileVersion===this.config.version&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
+    requireValue(venue.schemaVersion===10&&venue.profileVersion===ACCOUNT_PROFILE&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
     await this.artifacts.verify(venue.authority);
   }
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
@@ -95,7 +102,7 @@ export class AccountUserClient extends WalletClient {
     return {venue:this.config.venue,eventAuthority,program:protocol.CLEARING_PROGRAM_ADDRESS};
   }
   private bound(snapshot:AccountSnapshot) {
-    requireValue(snapshot.venue===this.config.venue&&snapshot.venueState.profileVersion===this.config.version&&snapshot.venueState.quoteMint===this.config.mint&&hex(snapshot.venueState.domain)===this.config.domain,'Foreign account snapshot.');
+    requireValue(snapshot.venue===this.config.venue&&snapshot.venueState.profileVersion===ACCOUNT_PROFILE&&snapshot.venueState.quoteMint===this.config.mint&&hex(snapshot.venueState.domain)===this.config.domain,'Foreign account snapshot.');
   }
   private owned(snapshot:AccountSnapshot,owner:Address,margin:Address) {
     this.bound(snapshot);const root=snapshot.roots[margin];requireValue(root?.owner===owner,'Owner margin authority required.');return root;
@@ -117,39 +124,60 @@ export class AccountUserClient extends WalletClient {
     requireValue(response.value?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&response.value.data?.[1]==='base64','Foreign portfolio.');
     const bytes=fromBase64(response.value.data[0]);requireValue(bytes.length===protocol.getPortfolioSize()&&hex(bytes.slice(0,8))===hex(protocol.PORTFOLIO_DISCRIMINATOR),'Wrong portfolio schema.');
     const account=protocol.getPortfolioDecoder().decode(bytes);
-    requireValue(account.schemaVersion===8&&account.venue===this.config.venue&&account.owner===owner&&account.index===index&&account.bump===bump,'Portfolio identity mismatch.');
+    requireValue(account.schemaVersion===10&&account.venue===this.config.venue&&account.owner===owner&&account.index===index&&account.bump===bump,'Portfolio identity mismatch.');
     return {address:portfolio,account};
   }
   async createPortfolio(owner:Address,index=0) {
     const [portfolio]=await deriveAccountPortfolio(this.config.venue,owner,index);
     return protocol.getCreatePortfolioInstructionAsync({...await this.common(),owner:createNoopSigner(owner),portfolio,index});
   }
-  /** Bounded owner discovery, not a financial snapshot or a venue-wide scan. */
+  /** Includes retired namespaces; one coherent portfolio/children RPC batch. */
   async ownerAccounts(owner:Address,index=0) {
-    const portfolio=await this.ownerPortfolio(owner,index);
-    if(!portfolio.account)return {portfolio,accounts:[] as [Address,protocol.MarginAccount][]};
-    const children=portfolio.account.children;
-    requireValue((children&~511)===0,'Invalid portfolio child bitmap.');
-    const indexes=Array.from({length:9},(_,child)=>child).filter(child=>(children&(1<<child))!==0);
-    const keys=await Promise.all(indexes.map(child=>deriveMarginAccount(portfolio.address,child)));
-    if(!keys.length)return {portfolio,accounts:[] as [Address,protocol.MarginAccount][]};
-    const response=await this.rpc.call('getMultipleAccounts',[keys.map(([key])=>key),{encoding:'base64',commitment:'finalized'}]);
-    requireValue(response.value?.length===keys.length,'Incomplete owner discovery.');
-    const accounts=keys.map(([key,bump],offset):[Address,protocol.MarginAccount]=>{
-      const raw=response.value[offset];requireValue(raw?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&raw.data?.[1]==='base64','Foreign owner account.');
-      const bytes=fromBase64(raw.data[0]);requireValue(bytes.length===protocol.getMarginAccountSize()&&hex(bytes.slice(0,8))===hex(protocol.MARGIN_ACCOUNT_DISCRIMINATOR),'Wrong owner account schema.');
-      const root=protocol.getMarginAccountDecoder().decode(bytes);
-      requireValue(root.schemaVersion===8&&root.venue===this.config.venue&&root.portfolio===portfolio.address&&root.owner===owner&&root.subaccountIndex===indexes[offset]&&root.bump===bump,'Owner account identity mismatch.');
-      requireValue([0,1,2].includes(root.role)&&(root.subaccountIndex===0?root.mode===0&&root.isolatedMarketIndex===255&&root.role!==1:root.mode===1&&[0,1].includes(root.isolatedMarketIndex)),'Owner account mode mismatch.');
-      return [key,root];
-    });
-    return {portfolio,accounts};
+    return readOwnerAccounts(this.rpc,this.config.venue,owner,index);
   }
   async register(owner:Address,portfolioIndex:number,subaccountIndex:number,isolatedMarketIndex?:0|1,role:0|1|2=0) {
     requireValue([0,1,2].includes(role)&&(subaccountIndex===0?isolatedMarketIndex===undefined&&role!==1:isolatedMarketIndex===0||isolatedMarketIndex===1),'Invalid immutable margin mode/role.');
     const [portfolio]=await deriveAccountPortfolio(this.config.venue,owner,portfolioIndex),[margin]=await deriveMarginAccount(portfolio,subaccountIndex);
-    return protocol.getRegisterMarginInstructionAsync({...await this.common(),owner:createNoopSigner(owner),portfolio,margin,subaccountIndex,
+    const registry=await readMembershipRegistry(this.rpc,this.config.venue);
+    const [members]=await deriveMemberPage(this.config.venue,registry.state.nextId/64n);
+    return protocol.getRegisterMarginInstructionAsync({...await this.common(),members,owner:createNoopSigner(owner),portfolio,margin,subaccountIndex,
       mode:subaccountIndex===0?0:1,isolatedMarketIndex:isolatedMarketIndex??255,role});
+  }
+  async fundMemberPage(payer:Address,pageIndex:bigint) {
+    const [allocation]=await deriveMemberPage(this.config.venue,pageIndex),[receipt]=await deriveStorageFunding(this.config.venue,allocation);
+    return protocol.getFundMemberPageInstructionAsync({...await this.common(),payer:createNoopSigner(payer),allocation,receipt,pageIndex});
+  }
+  async fundMemberIndex(payer:Address,level:number,prefix:bigint) {
+    const [allocation]=await deriveMemberIndex(this.config.venue,level,prefix),[receipt]=await deriveStorageFunding(this.config.venue,allocation);
+    return protocol.getFundMemberIndexInstructionAsync({...await this.common(),payer:createNoopSigner(payer),allocation,receipt,level,prefix});
+  }
+  async changeMembership(owner:Address,margin:Address,activate:boolean) {
+    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin);
+    requireValue(state.root.lifecycle===(activate?1:2),'Wrong account lifecycle for membership transition.');
+    const input={...state,...await this.common(),owner:createNoopSigner(owner)};
+    const instruction=activate?protocol.getActivateMarginInstruction(input):protocol.getDeactivateMarginInstruction(input);
+    return {...instruction,accounts:[...instruction.accounts,...state.remaining]};
+  }
+  /** Atomically makes one empty Registered root Financial and deposits collateral.
+   * Recovery and membership storage must already be provisioned with SOL by its
+   * explicit payer; this action never silently funds operator storage. */
+  async activateAndDeposit(owner:Address,margin:Address,userToken:Address,amount:bigint) {
+    requireValue(amount>0n&&amount<(1n<<64n),'Invalid deposit amount.');
+    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin);
+    requireValue(state.root.lifecycle===1,'Activation requires a Registered account.');
+    requireValue([0,1].includes(state.safetyState.mode)&&!state.safetyState.paused,'Activation unavailable.');
+    requireValue(state.storageState&&state.storageState.lockedEpoch===0n
+      &&state.storageState.readyCapacity>state.registryState.financialCount,'Venue recovery capacity must be provisioned before activation.');
+    const common=await this.common(),input={...state,...common,owner:createNoopSigner(owner)};
+    const activation=protocol.getActivateMarginInstruction(input);
+    const deposit=await protocol.getDepositAccountInstructionAsync({...common,owner:createNoopSigner(owner),margin,
+      quoteMint:this.config.mint,userToken,amount});
+    return {instructions:[{...activation,accounts:[...activation.accounts,...state.remaining]},deposit]};
+  }
+  async retire(owner:Address,margin:Address) {
+    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin,false);
+    requireValue(state.root.lifecycle===1,'Deactivate an empty account before retirement.');
+    return protocol.getRetireMarginInstruction({...state,...await this.common(),owner:createNoopSigner(owner)});
   }
   async deposit(snapshot:AccountSnapshot,owner:Address,margin:Address,userToken:Address,amount:bigint) {
     this.owned(snapshot,owner,margin);requireValue(amount>0n&&[0,1].includes(snapshot.safetyState.mode)&&!snapshot.safetyState.paused,'Deposit unavailable.');

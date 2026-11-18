@@ -19,6 +19,8 @@ const browser=await chromium.launch({executablePath:'/Applications/Google Chrome
   args:['--disable-background-networking','--disable-component-update','--no-first-run']});
 const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
 page.setDefaultTimeout(25000);page.on('pageerror',error=>errors.push(error.message));
+const consoleErrors:string[]=[];
+page.on('console',message=>{if(message.type()==='error'&&consoleErrors.length<100)consoleErrors.push(message.text().slice(0,8000));});
 let decline=false;page.on('dialog',dialog=>{if(decline){decline=false;void dialog.dismiss();}else void dialog.accept();});
 const button=(name:string)=>page.getByRole('button',{name,exact:true});
 const receipts=()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('rivalt:receipts:v4:')).flatMap(([,value])=>JSON.parse(value))) as Promise<sdk.SignedIntent[]>;
@@ -66,23 +68,25 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
   writeFileSync(`${directory}/wallet-transactions.json`,JSON.stringify(outcomes,null,2));
   writeFileSync(`${directory}/wallet-finalized-${outcomes.length}.json`,JSON.stringify(history,null,2));
   if(receipt.status==='failed'){
-    // A live settlement worker can advance the account between review and send.
-    // Model a new user review only AFTER independent finalized failure proof;
-    // retain its original, fee and rejection. Unknown outcomes never retry here.
+    // Live workers can advance an account or source policy between review and
+    // send. Model a new user review only AFTER independent finalized failure
+    // proof; retain its original, fee and rejection. The new review waits for
+    // current source admission again. Unknown outcomes never retry here.
     assert.equal(name,'Review atomic trade',JSON.stringify(receipt.error));
     const code=history.meta.err?.InstructionError?.[1]?.Custom;
     assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:code}]});
-    assert(code===6122||code===6117,JSON.stringify(history.meta.err));
-    if(code===6117){
-      // RouteIntent is a broad error. Retry only independently proven expiry,
-      // never an unexplained authority/quantity/generation mismatch.
+    assert(code===6122||code===6117||code===6115||code===sdk.CLEARING_ERROR__ORACLE_POLICY,JSON.stringify(history.meta.err));
+    if(code===6117||code===6115){
+      // Quote lifetime can reject before the route-intent check. Both errors
+      // are broad: require independently proven signed route expiry, never
+      // infer a transient failure from the error number alone.
       const transaction=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
       const instruction=transaction.message.compiledInstructions[3];
       assert.equal(transaction.message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
       const intent=sdk.getExecuteLiquidityRouteInstructionDataDecoder().decode(instruction.data);
       assert(BigInt(history.slot)>=intent.expirySlot,'Finalized route must have landed after its signed expiry');
     }
-    assert(reviewAttempt<3,'Bounded fresh review after finalized version conflict or proven expiry');
+    assert(reviewAttempt<3,'Bounded fresh review after finalized version/source refusal or proven expiry');
     await button('Refresh').click();
     await wait(()=>page.getByRole('main').getAttribute('aria-busy'),value=>value==='false','finalized rejection refresh');
     return action(name,sourceMargin,reviewAttempt+1);
@@ -99,13 +103,13 @@ try{
   await button('Get test funds').click();await page.getByText('Sent 1 local SOL and 1,000 test USD. Wait for finalized balances, then create your portfolio.',{exact:true}).waitFor();
   await delay(2000);await action('Create portfolio');const registration=await action('Register account');
   const owner=registration.owner,[portfolio]=await sdk.deriveAccountPortfolio(config.venue,owner,0),[cross]=await sdk.deriveMarginAccount(portfolio,0),[isolated]=await sdk.deriveMarginAccount(portfolio,1);
-  await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Deposit');
+  await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Activate and deposit');
   assert.equal((await client.snapshot([cross])).roots[cross].cash,10_000_000n);
   // Declining the actual demo wallet confirmation creates no saved original.
   const originals=(await receipts()).length;await button('Deposit').click();await page.getByRole('region',{name:'Review transaction'}).waitFor();decline=true;await button('Sign transaction').click();
   await page.getByText('Signature declined or wallet unavailable. Nothing was sent.',{exact:true}).waitFor();assert.equal((await receipts()).length,originals);
   await select('Margin account','1');await select('Market','1');await action('Register account');
-  await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Deposit');
+  await page.getByLabel('Collateral amount',{exact:true}).fill('10');await action('Activate and deposit');
   await page.getByLabel('Collateral amount',{exact:true}).fill('0.5');await select('Allocate to account',cross);await action('Allocate collateral');
   const allocated=await client.snapshot([cross,isolated]);assert.equal(allocated.roots[cross].cash,10_500_000n);assert.equal(allocated.roots[isolated].cash,9_500_000n);
   assert.equal(allocated.roots[isolated].isolatedMarketIndex,1);
@@ -136,5 +140,5 @@ try{
   writeFileSync(`${directory}/summary.json`,JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));
 }catch(error){
   await page.screenshot({path:`${directory}/failure.png`,fullPage:true}).catch(()=>{});
-  writeFileSync(`${directory}/failure.json`,JSON.stringify({error:String(error),errors,alerts:await page.getByRole('alert').allTextContents(),outcomes},null,2));throw error;
+  writeFileSync(`${directory}/failure.json`,JSON.stringify({error:String(error),errors,consoleErrors,alerts:await page.getByRole('alert').allTextContents(),outcomes},null,2));throw error;
 }finally{await browser.close();}

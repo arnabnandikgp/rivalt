@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Dedicated canonical membership/default verifier probe. This does not admit a candidate to normal runtime.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+source ops/env.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
+export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
+node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation ]]; then
+  node --import tsx --input-type=module -e 'import {verifyLiquidationBuild} from "./tests/rpc-contract/maker-liquidation-build.ts"; verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
+elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk ]]; then
+  node --import tsx --input-type=module -e 'import {verifyRiskBuild} from "./tests/rpc-contract/risk-build.ts"; verifyRiskBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
+else
+  node --import tsx --input-type=module -e 'import {verifyBackingBuild} from "./tests/rpc-contract/backing-artifacts.ts"; verifyBackingBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
+fi
+
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker ]]; then
+  node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts"; new SettlementPages();'
+fi
+
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then
+  node --import tsx tests/browser/preflight.ts
+fi
+
+if [[ "${RIVALT_SETTLEMENT_PLAN:-0}" == 1 ]]; then
+  cargo build --locked -p clearing --example settlement-plan-pages --features state-only
+fi
+test "$(surfpool --version)" = 'surfpool 1.7.0'
+export RIVALT_RPC_PORT="${RIVALT_RPC_PORT:-18951}"
+export RIVALT_WS_PORT="${RIVALT_WS_PORT:-18952}"
+export RIVALT_RPC_URL="http://127.0.0.1:$RIVALT_RPC_PORT"
+export RIVALT_WS_URL="ws://127.0.0.1:$RIVALT_WS_PORT"
+export RIVALT_RUN_DIR="${RIVALT_RUN_DIR:-.local/scalable-settlement/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+test ! -e "$RIVALT_RUN_DIR"
+python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT"
+mkdir -p "$RIVALT_RUN_DIR"
+if command -v caffeinate >/dev/null; then caffeinate -i -w $$ & fi
+surfpool start --offline --no-deploy --no-tui --no-studio --disable-instruction-profiling \
+  --port "$RIVALT_RPC_PORT" --ws-port "$RIVALT_WS_PORT" --slot-time 50 \
+  --airdrop-keypair-path .local/keys/payer.json --log-path "$RIVALT_RUN_DIR/logs" \
+  > "$RIVALT_RUN_DIR/surfpool.log" 2>&1 &
+RIVALT_SETTLEMENT_SURFPOOL_PID=$!
+trap 'if [[ -n "${RIVALT_PG_CONTAINER:-}" ]]; then container stop "$RIVALT_PG_CONTAINER" >/dev/null 2>&1 || true; fi; kill "$RIVALT_SETTLEMENT_SURFPOOL_PID" 2>/dev/null || true; wait "$RIVALT_SETTLEMENT_SURFPOOL_PID" 2>/dev/null || true' EXIT
+ready=0
+for _ in {1..100}; do
+  kill -0 "$RIVALT_SETTLEMENT_SURFPOOL_PID" 2>/dev/null || { echo 'Owned Surfpool exited' >&2; exit 1; }
+  if curl -fsS --connect-timeout 1 --max-time 2 "$RIVALT_RPC_URL" -H 'content-type: application/json' \
+    -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' 2>/dev/null | rg -q '"ok"'; then ready=1; break; fi
+  sleep 0.1
+done
+[[ "$ready" == 1 ]] || { echo 'Owned Surfpool not ready' >&2; exit 1; }
+for component in clearing maker_a maker_b oracle_fixture; do
+  key_name="${component//_/-}"
+  artifact="$RIVALT_ARTIFACT_DIR/$component.so"
+  if [[ "$component" != oracle_fixture ]]; then artifact="$RIVALT_SETTLEMENT_ARTIFACT_DIR/$component.so"; fi
+  solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/$component-buffer.json" >/dev/null
+  solana program deploy "$artifact" --buffer "$RIVALT_RUN_DIR/$component-buffer.json" \
+    --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
+    --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
+done
+if [[ "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk || "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation || "${RIVALT_SETTLEMENT_PROBE:-default}" == freeze-cutoff || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
+case "${RIVALT_SETTLEMENT_PROBE:-default}" in
+  default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
+  maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;
+  backing-worker) node --import tsx tests/rpc-contract/maintained-backing-worker-rpc.ts ;;
+  default-worker) node --import tsx tests/rpc-contract/default-worker-rpc.ts
+    python3 tests/financial/check_default_worker.py "$RIVALT_RUN_DIR" > "$RIVALT_RUN_DIR/independent-worker-audit.json" ;;
+  account-clients) pnpm build:trader
+    node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
+  maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
+  whole-account-risk) node --import tsx tests/rpc-contract/whole-account-risk-rpc.ts ;;
+  freeze-cutoff) node --import tsx tests/rpc-contract/freeze-cutoff-rpc.ts ;;
+  membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;
+  *) echo 'Unknown settlement probe' >&2; exit 1 ;;
+esac
+printf 'Qualification evidence: %s\n' "$RIVALT_RUN_DIR"

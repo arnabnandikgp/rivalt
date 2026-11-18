@@ -1,12 +1,14 @@
 import {setTimeout as delay} from 'node:timers/promises';
 import {accountApi} from './account-api.js';
+import {accountDeployment,type AccountDeployment} from '@rivalt/sdk';
 import {LiquidityIndexer} from './liquidity-indexer.js';
 const required=(name:string)=>{const value=process.env[name];if(!value)throw new Error(`Missing ${name}`);return value;};
 const profile=required('RIVALT_ACCOUNT_PROFILE');
 if(profile!=='liquidity-execution-qualification')throw new Error('Explicit qualified local account profile required');
 const config={rpcUrl:required('RIVALT_RPC_URL'),wsUrl:required('RIVALT_WS_URL'),databaseUrl:required('RIVALT_DATABASE_URL'),
   runId:required('RIVALT_RUN_ID'),venue:required('RIVALT_VENUE'),anchor:required('RIVALT_INIT_SIGNATURE')};
-const indexer=new LiquidityIndexer({...config,profile});
+const deployment=(process.env.RIVALT_ACCOUNT_DEPLOYMENT??'selected') as AccountDeployment;accountDeployment(deployment);
+const indexer=new LiquidityIndexer({...config,profile,deployment});
 const app=accountApi(indexer);let stopping=false;
 for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>{stopping=true;});
 try {

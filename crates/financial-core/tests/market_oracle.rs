@@ -51,8 +51,18 @@ fn independent_market_units_and_conservative_rounding() {
             deadline: 1020
         }
     );
-    assert!(market_bounds(100_000, btc, Some(btc), 1000).is_err());
-    assert!(market_bounds(1_000_000, eth, Some(eth), 1000).is_err());
+    assert_eq!(
+        market_bounds(100_000, btc, Some(btc), 1000)
+            .unwrap()
+            .reference,
+        600_000
+    );
+    assert_eq!(
+        market_bounds(1_000_000, eth, Some(eth), 1000)
+            .unwrap()
+            .reference,
+        3_000
+    );
     assert!(market_bounds(10_000, eth, Some(eth), 1000).is_err());
 }
 #[test]

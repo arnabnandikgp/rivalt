@@ -18,7 +18,7 @@ test('account cash preserves isolated Anchor bytes and every optional certificat
   const cases:{program:string;name:string;args:unknown[];instruction:Instruction}[]=[];
   const add=(name:string,args:unknown[],instruction:Instruction)=>cases.push({program:'clearing',name,args,instruction});
   for(const marketIndex of [0,1])add('initialize_market_backing',[marketIndex],await sdk.getInitializeMarketBackingInstructionAsync({...common,marketIndex}));
-  add('check_market_backing',[62],sdk.getCheckMarketBackingInstruction({...common,start:62}));
+  add('check_market_backing',[large,true],sdk.getCheckMarketBackingInstruction({...common,revision:large,restart:true}));
   add('withdraw_funded_account',[guard,large],sdk.getWithdrawFundedAccountInstruction({...common,guard,amount:large}));
   add('transfer_funded_account',[guard,large],sdk.getTransferFundedAccountInstruction({...common,guard,amount:large}));
   add('net_account_claims',[guard,1,large],sdk.getNetAccountClaimsInstruction({...common,guard,sourceMarket:1,amount:large}));

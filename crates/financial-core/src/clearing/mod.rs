@@ -4,3 +4,6 @@ pub mod row;
 pub mod wide;
 pub mod circulation;
 pub mod atoms;
+
+/// Successor scratch kernel; no program activation or payout authority.
+pub mod scalable;

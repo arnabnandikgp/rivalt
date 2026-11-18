@@ -2,7 +2,7 @@
 
 ## Supported boundary
 
-The P49-qualified RC2 profile is explicit local `liquidity-execution-qualification`.
+The account-scale RC2 profile is explicit local `liquidity-execution-qualification`.
 Pin actual clearing/maker A/maker B/oracle-fixture binaries, IDLs, domain/mint/venue,
 registry, genesis, initialization signature/hash and resource settings in an explicit
 manifest. Public configuration cannot replace the SDK's executable allowlist.
@@ -35,15 +35,39 @@ unpaid claims/fractions, orders, fees/reserves and signed originals never migrat
 by relabeling database rows. Keep any needed compatibility reader explicitly scoped.
 
 P46 introduces, and P47 qualifies, a separate RC2 deployment with clearing/binding schema 8,
-maker account schema 5 and unchanged SQL journal format 2. It requires new
+maker account schema 5 and, at that qualification, SQL journal format 2. It requires new
 instruction/maker discriminators, genesis, domain, mint and empty database. Existing
-schema-7 originals and journals stay with the previous executor. Normal builds/probes/demo select `.local/anchor-rc2/current`; their executable
-allowlist now selects the P49 expanded-quantity hashes from clean SBF `49c343e`.
-P49 preserves all IDLs, account schemas, seeds and layouts, while changing accepted
-quantity bounds and executable bytes. Its artifact-set ID is distinct from C0.
-Use a fresh local genesis and empty database; existing C0 journals and unresolved
-originals retain their old artifact binding and executor. Retained P44/C0 files
-remain separate, and no persisted qualification original is rewritten.
+schema-7 originals and journals stay with the previous executor. Normal builds/probes/demo select `.local/anchor-rc2/current`; P56's successor
+allowlist selects D108 SBF `ed46603` (artifact set `p56-window-ed46603`), account
+schema 10/profile 6, and helper transport version 2. Its price policy remains the
+P53B-approved numeric policy 2. This is a fresh-domain replacement with an empty
+database, not an in-place account, deployment or journal edit. Keep retained
+P44/P47/P53B files and unresolved originals with their original executors; never
+copy pending intents into the new journal.
+
+P52 uses SQL journal format **3** with separate covered and reconciled frontiers;
+P52 itself changed no program hash or account schema. P56 combines that journal
+with its new explicit account-scale program binding. Start a
+fresh local database and replay actual initialization history. Preserve format-2
+databases and unresolved originals with their original executor; do not relabel,
+delete or copy pending financial intents into a new journal. Mixed-format startup
+rejects explicitly. P52 qualification needs no new program build.
+
+### Account-scale deployment (P55–P56)
+
+D100/D101 introduced schema 9/profile 5; D102 advances to schema 10/profile 6.
+It uses u64 identities, u32 namespace seeds, paged membership, pre-funded reusable
+recovery storage, permanent tombstones and maintained per-market backing.
+Financial entry requires authenticated membership and complete capacity. The
+normal local setup provisions **128 Financial roots** separately from registration
+pages, with an explicit SOL payer. Larger workloads need their own qualification;
+there is no renewed protocol constant limiting registration to 128.
+
+Promotion requires complete populated default/recovery/resource acceptance and a
+fresh normal wallet/runtime check. STATUS records whether those checks are done.
+Select the same exact binary/helper binding throughout the worker, executor, SDK
+and indexer. Never reuse an old database, namespace or unresolved original across
+this boundary. Default/devnet financial gates remain disabled.
 
 ## Running an operator against an explicit deployment
 

@@ -13,7 +13,7 @@ import {accountApi} from '../../packages/indexer/src/account-api.js';
 import {json} from '../../packages/indexer/src/events.js';
 
 export async function liquidityBrowser(input:{directory:string;client:sdk.AccountUserClient;owner:Keypair;
-  endpoint:string;indexer:LiquidityIndexer;normal():Promise<unknown>}) {
+  endpoint:string;indexer:LiquidityIndexer;normal():Promise<unknown>;lifecycle?:boolean;onSigned?(wire:string):Promise<void>;registered?():Promise<void>}) {
   const {directory,client,owner}=input,readApp=accountApi(input.indexer);
   const readEndpoint=await readApp.listen({host:'127.0.0.1',port:0});
   const publicPath=resolve(directory,'trader-public.json');writeFileSync(publicPath,json(client.config));
@@ -77,7 +77,8 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Accoun
     await context.exposeBinding('rivaltSign',async(_,request:{index:number;wire:number[]})=>{
       assert.equal(request.index,0);const transaction=VersionedTransaction.deserialize(Uint8Array.from(request.wire));
       assert.equal(transaction.message.staticAccountKeys[0].address,owner.address);assert.equal(transaction.signatures.length,1);
-      await transaction.sign([owner]);const wire=transaction.serialize();wires.push(Buffer.from(wire).toString('base64'));return [...wire];
+      await transaction.sign([owner]);const wire=transaction.serialize(),encoded=Buffer.from(wire).toString('base64');
+      await input.onSigned?.(encoded);wires.push(encoded);return [...wire];
     });
     const source=stripTypeScriptTypes(readFileSync('tests/browser/wallet.ts','utf8').replace('export function installWallet','function installWallet'));
     await context.addInitScript({content:source+'\ninstallWallet('+JSON.stringify([{address:owner.address,publicKey:[...owner.publicKey.toBytes()]}])+',[0,1]);'});
@@ -86,16 +87,48 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Accoun
     for(const [key,value] of Object.entries(client.config))assert.deepEqual(served[key],value,`HTTP deployment preserves ${key}`);
     await page.goto('http://127.0.0.1:18093');await button('Select Wallet').click();await page.getByRole('button',{name:/Rivalt Test Wallet/}).click();
     await wait(()=>button('Withdraw').isEnabled(),Boolean,'actual owner account discovery');
+    if(input.lifecycle) {
+      await page.getByLabel('Portfolio',{exact:true}).selectOption('1');
+      await wait(()=>button('Create portfolio').isEnabled(),Boolean,'new owner portfolio');
+      await action('Create portfolio');await action('Register account');await input.registered?.();
+      await page.getByLabel('Collateral amount',{exact:true}).fill('1');await action('Activate and deposit');
+    }
     await input.normal();await action('Review atomic trade');
+    if(input.lifecycle){
+      await page.getByText('Persistent limit / stop-limit',{exact:true}).click();await action('Review persistent order');
+      const target=(await client.ownerAccounts(owner.address,1)).accounts.find(([,root])=>root.subaccountIndex===0)![0];
+      assert((await client.snapshot([target])).roots[target].reserved>0n);await action('Cancel order');
+      assert.equal((await client.snapshot([target])).roots[target].reserved,0n);
+    }
     await select('Market','1');await input.normal();await action('Review atomic trade');
     await page.getByText('Protect existing position',{exact:true}).click();await action('Review TP/SL');await action('Cancel pair');
     await select('Side','1');await page.getByLabel('Minimum all-in proceeds (test USD)',{exact:true}).fill('0.000001');
     await page.getByLabel('Reduce only',{exact:true}).check();await action('Review atomic trade');await select('Market','0');await action('Review atomic trade');
     await page.getByLabel('Reduce only',{exact:true}).uncheck();await select('Side','0');
     await page.getByLabel('Maximum all-in spend (test USD)',{exact:true}).fill('1');
-    await select('Margin account','1');await action('Review atomic trade');
+    if(input.lifecycle) {
+      await page.getByLabel('Margin account',{exact:true}).selectOption('1');
+      await wait(()=>button('Register account').isEnabled(),Boolean,'unused isolated slot');
+      await action('Register account');await action('Activate and deposit');
+    } else await select('Margin account','1');
+    await action('Review atomic trade');
     await select('Side','1');await page.getByLabel('Minimum all-in proceeds (test USD)',{exact:true}).fill('0.000001');
     await page.getByLabel('Reduce only',{exact:true}).check();await action('Review atomic trade');
+    if(input.lifecycle) {
+      // An untouched collateral-only child can leave the cohort and retire.
+      // Trading accounts retain their actual closed/fractional claim ownership.
+      await page.getByLabel('Margin account',{exact:true}).selectOption('2');
+      await wait(()=>button('Register account').isEnabled(),Boolean,'retirement test slot');
+      await action('Register account');await page.getByLabel('Collateral amount',{exact:true}).fill('0.1');await action('Activate and deposit');
+      const owned=await client.ownerAccounts(owner.address,1),recipient=owned.accounts.find(([,root])=>root.subaccountIndex===1)!;
+      await page.getByLabel('Allocate to account',{exact:true}).selectOption(recipient[0]);
+      await page.getByLabel('Collateral amount',{exact:true}).fill('0.01');await action('Allocate collateral');
+      await page.getByLabel('Collateral amount',{exact:true}).fill('0.09');await action('Withdraw');
+      await action('Deactivate account');await action('Retire account');await page.reload();
+      await wait(()=>page.getByText('This account is permanently retired. Choose another unused account slot.',{exact:true}).isVisible(),Boolean,'retired slot persists after reload');
+      assert.equal(await button('Register account').count(),0);
+      await select('Margin account','1');
+    }
     const publication=page.locator('section').filter({has:page.getByRole('heading',{name:'Funding publications',exact:true})});
     await wait(()=>publication.textContent(),value=>Boolean(value?.includes('Depth available at publication')),'actual finalized publisher UI');
     await page.screenshot({path:`${directory}/liquidity-live-ui.png`,fullPage:true});
@@ -106,7 +139,7 @@ export async function liquidityBrowser(input:{directory:string;client:sdk.Accoun
     await wait(()=>page.getByTestId('account-cash').textContent(),value=>Boolean(value&&value!=='—'),'RPC balance recovery while APIs are blocked');
     assert.equal(await page.getByLabel('Margin account',{exact:true}).inputValue(),'1');
     assert.deepEqual(errors,[]);await page.screenshot({path:`${directory}/liquidity-ui.png`,fullPage:true});
-    writeFileSync(`${directory}/browser-summary.json`,json({internalWallet:true,outcomes,errors,wireCount:wires.length,preparationObservations}));return outcomes;
+    writeFileSync(`${directory}/browser-summary.json`,json({internalWallet:true,browserVersion:browser.version(),outcomes,errors,wireCount:wires.length,preparationObservations}));return outcomes;
   }catch(error){await page.screenshot({path:`${directory}/browser-failure.png`,fullPage:true}).catch(()=>{});
     writeFileSync(`${directory}/browser-failure.json`,json({error:String(error),alerts:await page.getByRole('alert').allTextContents(),outcomes,errors,preparationObservations}));throw error;
   }finally{await browser.close();await readApp.close();vite?.kill('SIGTERM');}

@@ -3,9 +3,25 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
+# An owned qualification must not suspend its RPC deadlines while the
+# operator is away. This temporary inhibitor ends with this supervisor; it does
+# not alter system settings or keep the display awake.
+if command -v caffeinate >/dev/null; then
+  caffeinate -i -w $$ &
+fi
 # The SDK pins the qualified local artifacts; retained P44/C0 remain separate.
+if [[ "${RIVALT_LIQUIDITY_PROBE:-}" == ordinary-payout ]]; then
+  export RIVALT_LIQUIDITY_POSTGRES=1 RIVALT_PG_PORT="${RIVALT_PG_PORT:-15452}"
+fi
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
+node --import tsx --input-type=module -e '
+  import assert from "node:assert/strict";
+  import {readFileSync} from "node:fs";
+  import {ACCOUNT_SCHEMA} from "./packages/sdk/src/account-membership.ts";
+  const manifest=JSON.parse(readFileSync(process.env.RIVALT_ARTIFACT_DIR+"/build-manifest.json","utf8"));
+  assert.equal(manifest.accountSchema,ACCOUNT_SCHEMA,"Selected runtime does not match this SDK; use the exact admitted artifacts and a fresh deployment.");
+'
 test "$(surfpool --version)" = 'surfpool 1.7.0'
 # Browser qualification must consume this checkout's schema/SDK, never a stale
 # ignored dist directory left by an older phase.
@@ -45,6 +61,7 @@ for component in clearing maker_a maker_b oracle_fixture; do
 done
 if [[ "${RIVALT_LIQUIDITY_POSTGRES:-0}" == 1 ]]; then source ops/postgres.sh; fi
 case "${RIVALT_LIQUIDITY_PROBE:?explicit probe required}" in
+  ordinary-payout) node --import tsx tests/rpc-contract/ordinary-payout-rpc.ts ;;
   custody) node --import tsx tests/rpc-contract/account-custody-rpc.ts
     python3 tests/financial/account-custody-reference.py "$RIVALT_RUN_DIR/summary.json" ;;
   makers) node --import tsx tests/rpc-contract/canonical-maker-rpc.ts ;;
@@ -61,6 +78,7 @@ case "${RIVALT_LIQUIDITY_PROBE:?explicit probe required}" in
   safety) node --import tsx tests/rpc-contract/liquidity-safety-rpc.ts ;;
   scoped-history) node --import tsx tests/rpc-contract/scoped-history-rpc.ts ;;
   journal) node --import tsx tests/rpc-contract/liquidity-journal-rpc.ts ;;
+  indexer-progress) node --import tsx tests/rpc-contract/indexer-progress-rpc.ts ;;
   indexer) node --import tsx tests/rpc-contract/liquidity-indexer-rpc.ts ;;
   services) node --import tsx tests/rpc-contract/liquidity-services-rpc.ts ;;
   *) echo 'Unknown scoped liquidity probe' >&2; exit 1 ;;

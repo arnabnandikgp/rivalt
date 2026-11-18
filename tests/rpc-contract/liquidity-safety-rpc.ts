@@ -1,3 +1,4 @@
+import {financialRoots} from './membership-scan-helper.js';
 // P32 affected safety qualification. No injected positions or successful events.
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -26,7 +27,7 @@ try {
   const owner = setup.traderOwner, cross = setup.roots[0], isolated = setup.roots[1];
   const common = { ...setup.common, btc: setup.markets[0], eth: setup.markets[1] };
   const registry = sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!);
-  const roots = registry.members.slice(0, registry.count);
+  const roots = await financialRoots(h,setup.venue,setup.registry);
   assert.deepEqual(roots, [...setup.instances.map(maker => maker.capital), ...setup.roots]);
   const header = async () => sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   const safety = async () => sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
@@ -34,8 +35,7 @@ try {
     mint: setup.mint.address, tokenProgram: TOKEN_PROGRAM_ADDRESS });
   await h.send('create immutable test reserve destination', [getCreateAssociatedTokenInstruction({ payer: setup.payer,
     ata: reserveDestination, owner: setup.payer.address, mint: setup.mint.address })]);
-  const tracked = [...new Set([...setup.tracked, ...roots, ...setup.configurations, setup.resolution, setup.work,
-    ...setup.pages, reserveDestination, setup.mint.address, setup.traderToken.address])];
+  const tracked = [...new Set([...setup.tracked, ...roots, ...setup.configurations, setup.resolution, setup.storage, reserveDestination, setup.mint.address, setup.traderToken.address])];
   const raw = async () => Object.fromEntries(await Promise.all(tracked.map(async key => [key, (await h.read(key))?.toString('base64') ?? null])));
   const reject = async (label: string, instruction: Instruction, error = sdk.CLEARING_ERROR__RESOLUTION,
     signers: typeof owner[] = []) => {
@@ -146,7 +146,7 @@ try {
   const sources = { primaryBtc: setup.feeds[0].feed, primaryCollateral: setup.feeds[1].feed,
     guardBtc: setup.feeds[2].feed, guardCollateral: setup.feeds[3].feed, primaryEth: setup.feeds[4].feed, guardEth: setup.feeds[5].feed };
   const freeze = async () => sdk.getFreezeAccountsInstruction({ ...setup.safetyCommon, ...sources, caller: setup.payer,
-    target: cross, safetyEpoch: (await safety()).epoch, resolutionEpoch: (await header()).epoch, emergency: false });
+    target: cross,members:(await sdk.deriveMemberPage(setup.venue,(await root(cross)).id/64n))[0], safetyEpoch: (await safety()).epoch, resolutionEpoch: (await header()).epoch, emergency: false });
   const staleTerminalExit = await withdraw(roots[0], 100n, setup.owner, setup.token.address);
   setup.sourcePrices.btc = 40_000_000_000n; setup.sourcePrices.eth = 2_000_000_000n;
   await setup.fresh();
@@ -167,7 +167,7 @@ try {
   const resolvedAccounts = await raw();
   const capture = { scenario: 'two-market-resolved', venue: setup.venue, custody: setup.custody, safety: setup.safety,
     registry: setup.registry, vault: setup.vault, mint: setup.mint.address, userTokens: [setup.token.address, setup.traderToken.address],
-    reserveDestination, resolution: setup.resolution, work: setup.work, pages: setup.pages, roots, markets: setup.markets, ledgers: setup.ledgers,
+    reserveDestination, resolution: setup.resolution, storage: setup.storage, roots, markets: setup.markets, ledgers: setup.ledgers,
     liquidationSteps: [{ target: cross, receiver: isolated, lots: 10n, price: 52_000n, before: beforeLiquidation, after: afterLiquidation }],
     frozenAccounts, completedAccounts, resolvedAccounts, rawAccounts: resolvedAccounts };
   writeFileSync(`${runDir}/financial-capture.json`, serialize(capture));

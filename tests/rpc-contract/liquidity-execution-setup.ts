@@ -1,4 +1,4 @@
-// Fresh signed profile4 provisioning. No injected financial state or retained
+// Fresh signed schema-10/profile-6 provisioning. No injected financial state or retained
 // acceptance dump is used as a deployment configuration.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -8,6 +8,7 @@ import { getCreateAccountInstruction, getTransferSolInstruction } from '@solana-
 import { TOKEN_PROGRAM_ADDRESS, getInitializeAccount3Instruction, getMintToInstruction } from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
 import { provisionCanonicalMakers, goldenShape, type CanonicalHarness } from './canonical-maker-cases.js';
+import {registerFinancialTestMargin} from './account-membership-setup.js';
 import { fixtureKey } from './harness.js';
 import { ORACLE_FIXTURE } from './oracle-fixture.js';
 import type { WireRpc } from './wire.js';
@@ -46,9 +47,8 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   const roots: Address[] = [];
   for (const subaccountIndex of [0, 1]) {
     const [margin] = await sdk.deriveMarginAccount(portfolio, subaccountIndex);
-    await h.send('register cross or isolated test root', [await sdk.getRegisterMarginInstructionAsync({ ...common,
-      owner: traderOwner, portfolio, margin, subaccountIndex, mode: subaccountIndex === 0 ? 0 : 1,
-      isolatedMarketIndex: subaccountIndex === 0 ? 255 : 0, role: 0 })], [traderOwner]);
+    await registerFinancialTestMargin(h,common,payer,{owner:traderOwner,portfolio,margin,subaccountIndex,
+      mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:0,role:0});
     await h.send('deposit actual test trader collateral', [await sdk.getDepositAccountInstructionAsync({ ...common,
       owner: traderOwner, margin, quoteMint: fixture.mint.address, userToken: traderToken.address, amount: options.traderCash ?? 1_000_000n })], [traderOwner]);
     roots.push(margin);
@@ -64,7 +64,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       data: Buffer.concat([discriminator('initialize'), id]) }], [authority]);
     feeds.push({ index, feed, authority });
   }
-  const configurations = [];
+  const configurations: Address[] = [];
   for (const index of [0, 1]) {
     await h.send('initialize canonical source bindings', [sdk.getInitializeLiquidityOracleInstruction({ ...common,
       authority: payer, market: markets[index], primary: primary.address, guard: guard.address })]);
@@ -74,16 +74,9 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     configurations.push(configuration);
   }
   const [resolution] = await sdk.deriveVenueComponent(venue, 'resolution');
-  const [work] = await sdk.deriveVenueComponent(venue, 'resolution-work');
-  const safetyCommon = { ...common, authority: payer, payer, btc: markets[0], eth: markets[1], resolution, work };
-  await h.send('precreate complete resolution header and work', [sdk.getInitializeAccountResolutionInstruction(safetyCommon)]);
-  if(options.verifyRejections!==false)await h.send('activation rejects incomplete safety storage', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__RESOLUTION);
-  const pages = [];
-  for (let pageIndex = 0; pageIndex < 32; pageIndex++) {
-    const [page] = await sdk.findResolutionPagePda(venue, pageIndex);
-    await h.send('precreate complete safety page', [sdk.getInitializeAccountResolutionPageInstruction({ ...safetyCommon, page, pageIndex })]);
-    pages.push(page);
-  }
+  const storage=fixture.storage;
+  const safetyCommon={...common,authority:payer,payer,btc:markets[0],eth:markets[1],resolution,storage};
+  await h.send('initialize storage-backed resolution header',[sdk.getInitializeAccountResolutionInstruction(safetyCommon)]);
   async function sourceInstructions() {
     const time = await now();
     return feeds.map(({ index, feed, authority }):Instruction => {
@@ -108,12 +101,22 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     }));
     await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
   }
-  async function sample() {
+  async function sample(reportMarkets: readonly (0|1)[] = [0,1]) {
     const previous = await Promise.all([0, 1].map(marketState));
-    await waitUntil(previous.reduce((latest, market) => market.oracle.sampledAt > latest ? market.oracle.sampledAt : latest, 0n) + 2n);
+    const publishers = await Promise.all(configurations.map(async configuration =>
+      sdk.getFundingPublisherDecoder().decode((await h.read(configuration))!)));
+    const sampleTime = previous.reduce((latest, market) => market.oracle.sampledAt > latest ? market.oracle.sampledAt : latest, 0n) + 2n;
+    const fenceTime = publishers.reduce((latest, publisher) => publisher.lastObservedTime > latest ? publisher.lastObservedTime : latest, 0n);
+    const fenceSlot = publishers.reduce((latest, publisher) => publisher.lastObservedSlot > latest ? publisher.lastObservedSlot : latest, 0n);
+    await waitUntil(sampleTime > fenceTime ? sampleTime : fenceTime);
+    // Fast confirmed provisioning can still be in the publisher's initialization
+    // slot. Wait before refreshing inputs; never re-date a report or relax its
+    // strictly newer-slot fence. No signed original exists at this point.
+    const deadline = Date.now() + 20_000;
+    while (await slot() <= fenceSlot) { assert(Date.now() < deadline, 'Publisher fence Clock progress'); await delay(100); }
     await fresh();
     const reports: Instruction[] = [];
-    for (const index of [0, 1] as const) {
+    for (const index of reportMarkets) {
       const input = await sdk.readFundingReport(rpc, venue, index);
       assert.equal(input.report.outcome, 0, input.coverageReason ?? 'available complete publication');
       const reference = index === 0 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n;
@@ -122,7 +125,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       reports.push(sdk.getPublishFundingReportInstruction({ ...common,
         ...input.instructionAccounts, publisher: fixture.updater, report: input.report }));
     }
-    await h.send('P32 publisher available two-market reports', reports, [fixture.updater]);
+    await h.send(reportMarkets.length===2?'P32 publisher available two-market reports':'publish selected-market funding report', reports, [fixture.updater]);
   }
   const qualify = async () => { for (let round = 0; round < 4; round++) await sample(); };
   await qualify();
@@ -132,6 +135,6 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   await qualify();
   const identity = { venue, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readAccountTradeSnapshot(rpc, identity, root, marketIndex);
-  return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, work, pages,
-    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, fresh, freshSources, sample, qualify, identity, snapshot };
+  return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, storage,
+    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, qualify, identity, snapshot };
 }

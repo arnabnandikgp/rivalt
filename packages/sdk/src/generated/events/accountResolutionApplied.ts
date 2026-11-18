@@ -23,8 +23,6 @@ import {
   getI128Encoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   type Address,
@@ -54,7 +52,7 @@ export type AccountResolutionAppliedEvent = {
   venue: Address;
   slot: bigint;
   epoch: bigint;
-  id: number;
+  id: bigint;
   member: Address;
   flows: Array<bigint>;
   cashBefore: bigint;
@@ -71,7 +69,7 @@ export type AccountResolutionAppliedEventArgs = {
   venue: Address | HasAddress;
   slot: number | bigint;
   epoch: number | bigint;
-  id: number;
+  id: number | bigint;
   member: Address | HasAddress;
   flows: Array<number | bigint>;
   cashBefore: number | bigint;
@@ -91,7 +89,7 @@ export function getAccountResolutionAppliedEventEncoder(): FixedSizeEncoder<Acco
       ["venue", getAddressEncoder()],
       ["slot", getU64Encoder()],
       ["epoch", getU64Encoder()],
-      ["id", getU16Encoder()],
+      ["id", getU64Encoder()],
       ["member", getAddressEncoder()],
       ["flows", getArrayEncoder(getU64Encoder(), { size: 2 })],
       ["cashBefore", getU64Encoder()],
@@ -114,7 +112,7 @@ export function getAccountResolutionAppliedEventDecoder(): FixedSizeDecoder<Acco
       ["venue", getAddressDecoder()],
       ["slot", getU64Decoder()],
       ["epoch", getU64Decoder()],
-      ["id", getU16Decoder()],
+      ["id", getU64Decoder()],
       ["member", getAddressDecoder()],
       ["flows", getArrayDecoder(getU64Decoder(), { size: 2 })],
       ["cashBefore", getU64Decoder()],

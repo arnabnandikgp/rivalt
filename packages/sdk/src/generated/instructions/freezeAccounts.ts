@@ -79,8 +79,9 @@ export type FreezeAccountsInstruction<
   TAccountCaller extends string | AccountMeta<string> = string,
   TAccountRegistry extends string | AccountMeta<string> = string,
   TAccountResolution extends string | AccountMeta<string> = string,
-  TAccountWork extends string | AccountMeta<string> = string,
   TAccountTarget extends string | AccountMeta<string> = string,
+  TAccountMembers extends string | AccountMeta<string> = string,
+  TAccountStorage extends string | AccountMeta<string> = string,
   TAccountPrimaryBtc extends string | AccountMeta<string> = string,
   TAccountPrimaryCollateral extends string | AccountMeta<string> = string,
   TAccountGuardBtc extends string | AccountMeta<string> = string,
@@ -124,12 +125,15 @@ export type FreezeAccountsInstruction<
       TAccountResolution extends string
         ? WritableAccount<TAccountResolution>
         : TAccountResolution,
-      TAccountWork extends string
-        ? WritableAccount<TAccountWork>
-        : TAccountWork,
       TAccountTarget extends string
         ? ReadonlyAccount<TAccountTarget>
         : TAccountTarget,
+      TAccountMembers extends string
+        ? ReadonlyAccount<TAccountMembers>
+        : TAccountMembers,
+      TAccountStorage extends string
+        ? WritableAccount<TAccountStorage>
+        : TAccountStorage,
       TAccountPrimaryBtc extends string
         ? ReadonlyAccount<TAccountPrimaryBtc>
         : TAccountPrimaryBtc,
@@ -214,8 +218,9 @@ export type FreezeAccountsAsyncInput<
   TAccountCaller extends InstructionSignerInput = InstructionSignerInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
-  TAccountWork extends InstructionAccountInput = InstructionAccountInput,
   TAccountTarget extends InstructionAccountInput = InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput = InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput = InstructionAccountInput,
   TAccountPrimaryBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountPrimaryCollateral extends InstructionAccountInput =
     InstructionAccountInput,
@@ -239,8 +244,9 @@ export type FreezeAccountsAsyncInput<
   caller: TAccountCaller;
   registry: TAccountRegistry;
   resolution: TAccountResolution;
-  work: TAccountWork;
   target: TAccountTarget;
+  members: TAccountMembers;
+  storage: TAccountStorage;
   /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryBtc: TAccountPrimaryBtc;
   /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
@@ -274,8 +280,9 @@ export async function getFreezeAccountsInstructionAsync<
   TAccountCaller extends InstructionSignerInput,
   TAccountRegistry extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
-  TAccountWork extends InstructionAccountInput,
   TAccountTarget extends InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput,
   TAccountPrimaryBtc extends InstructionAccountInput,
   TAccountPrimaryCollateral extends InstructionAccountInput,
   TAccountGuardBtc extends InstructionAccountInput,
@@ -298,8 +305,9 @@ export async function getFreezeAccountsInstructionAsync<
     TAccountCaller,
     TAccountRegistry,
     TAccountResolution,
-    TAccountWork,
     TAccountTarget,
+    TAccountMembers,
+    TAccountStorage,
     TAccountPrimaryBtc,
     TAccountPrimaryCollateral,
     TAccountGuardBtc,
@@ -360,12 +368,16 @@ export async function getFreezeAccountsInstructionAsync<
       InstructionAccountInputAddress<TAccountResolution>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountWork,
-      InstructionAccountInputAddress<TAccountWork>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountTarget,
       InstructionAccountInputAddress<TAccountTarget>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountPrimaryBtc,
@@ -445,8 +457,17 @@ export async function getFreezeAccountsInstructionAsync<
       isSigner: false,
       isWritable: true,
     },
-    work: { value: input.work ?? null, isSigner: false, isWritable: true },
     target: { value: input.target ?? null, isSigner: false, isWritable: false },
+    members: {
+      value: input.members ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    storage: {
+      value: input.storage ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
     primaryBtc: {
       value: input.primaryBtc ?? null,
       isSigner: false,
@@ -593,8 +614,9 @@ export async function getFreezeAccountsInstructionAsync<
       getAccountMeta("caller", accounts.caller),
       getAccountMeta("registry", accounts.registry),
       getAccountMeta("resolution", accounts.resolution),
-      getAccountMeta("work", accounts.work),
       getAccountMeta("target", accounts.target),
+      getAccountMeta("members", accounts.members),
+      getAccountMeta("storage", accounts.storage),
       getAccountMeta("primaryBtc", accounts.primaryBtc),
       getAccountMeta("primaryCollateral", accounts.primaryCollateral),
       getAccountMeta("guardBtc", accounts.guardBtc),
@@ -655,12 +677,16 @@ export async function getFreezeAccountsInstructionAsync<
       InstructionAccountInputAddress<TAccountResolution>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountWork,
-      InstructionAccountInputAddress<TAccountWork>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountTarget,
       InstructionAccountInputAddress<TAccountTarget>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountPrimaryBtc,
@@ -709,8 +735,9 @@ export type FreezeAccountsInput<
   TAccountCaller extends InstructionSignerInput = InstructionSignerInput,
   TAccountRegistry extends InstructionAccountInput = InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput = InstructionAccountInput,
-  TAccountWork extends InstructionAccountInput = InstructionAccountInput,
   TAccountTarget extends InstructionAccountInput = InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput = InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput = InstructionAccountInput,
   TAccountPrimaryBtc extends InstructionAccountInput = InstructionAccountInput,
   TAccountPrimaryCollateral extends InstructionAccountInput =
     InstructionAccountInput,
@@ -734,8 +761,9 @@ export type FreezeAccountsInput<
   caller: TAccountCaller;
   registry: TAccountRegistry;
   resolution: TAccountResolution;
-  work: TAccountWork;
   target: TAccountTarget;
+  members: TAccountMembers;
+  storage: TAccountStorage;
   /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
   primaryBtc: TAccountPrimaryBtc;
   /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
@@ -769,8 +797,9 @@ export function getFreezeAccountsInstruction<
   TAccountCaller extends InstructionSignerInput,
   TAccountRegistry extends InstructionAccountInput,
   TAccountResolution extends InstructionAccountInput,
-  TAccountWork extends InstructionAccountInput,
   TAccountTarget extends InstructionAccountInput,
+  TAccountMembers extends InstructionAccountInput,
+  TAccountStorage extends InstructionAccountInput,
   TAccountPrimaryBtc extends InstructionAccountInput,
   TAccountPrimaryCollateral extends InstructionAccountInput,
   TAccountGuardBtc extends InstructionAccountInput,
@@ -793,8 +822,9 @@ export function getFreezeAccountsInstruction<
     TAccountCaller,
     TAccountRegistry,
     TAccountResolution,
-    TAccountWork,
     TAccountTarget,
+    TAccountMembers,
+    TAccountStorage,
     TAccountPrimaryBtc,
     TAccountPrimaryCollateral,
     TAccountGuardBtc,
@@ -854,12 +884,16 @@ export function getFreezeAccountsInstruction<
     InstructionAccountInputAddress<TAccountResolution>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountWork,
-    InstructionAccountInputAddress<TAccountWork>
-  >,
-  ResolvedInstructionAccountMeta<
     TAccountTarget,
     InstructionAccountInputAddress<TAccountTarget>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountMembers,
+    InstructionAccountInputAddress<TAccountMembers>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountStorage,
+    InstructionAccountInputAddress<TAccountStorage>
   >,
   ResolvedInstructionAccountMeta<
     TAccountPrimaryBtc,
@@ -938,8 +972,17 @@ export function getFreezeAccountsInstruction<
       isSigner: false,
       isWritable: true,
     },
-    work: { value: input.work ?? null, isSigner: false, isWritable: true },
     target: { value: input.target ?? null, isSigner: false, isWritable: false },
+    members: {
+      value: input.members ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
+    storage: {
+      value: input.storage ?? null,
+      isSigner: false,
+      isWritable: true,
+    },
     primaryBtc: {
       value: input.primaryBtc ?? null,
       isSigner: false,
@@ -1002,8 +1045,9 @@ export function getFreezeAccountsInstruction<
       getAccountMeta("caller", accounts.caller),
       getAccountMeta("registry", accounts.registry),
       getAccountMeta("resolution", accounts.resolution),
-      getAccountMeta("work", accounts.work),
       getAccountMeta("target", accounts.target),
+      getAccountMeta("members", accounts.members),
+      getAccountMeta("storage", accounts.storage),
       getAccountMeta("primaryBtc", accounts.primaryBtc),
       getAccountMeta("primaryCollateral", accounts.primaryCollateral),
       getAccountMeta("guardBtc", accounts.guardBtc),
@@ -1064,12 +1108,16 @@ export function getFreezeAccountsInstruction<
       InstructionAccountInputAddress<TAccountResolution>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountWork,
-      InstructionAccountInputAddress<TAccountWork>
-    >,
-    ResolvedInstructionAccountMeta<
       TAccountTarget,
       InstructionAccountInputAddress<TAccountTarget>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountMembers,
+      InstructionAccountInputAddress<TAccountMembers>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountStorage,
+      InstructionAccountInputAddress<TAccountStorage>
     >,
     ResolvedInstructionAccountMeta<
       TAccountPrimaryBtc,
@@ -1123,24 +1171,25 @@ export type ParsedFreezeAccountsInstruction<
     caller: TAccountMetas[8];
     registry: TAccountMetas[9];
     resolution: TAccountMetas[10];
-    work: TAccountMetas[11];
-    target: TAccountMetas[12];
+    target: TAccountMetas[11];
+    members: TAccountMetas[12];
+    storage: TAccountMetas[13];
     /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
-    primaryBtc: TAccountMetas[13];
+    primaryBtc: TAccountMetas[14];
     /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
-    primaryCollateral: TAccountMetas[14];
+    primaryCollateral: TAccountMetas[15];
     /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
-    guardBtc: TAccountMetas[15];
+    guardBtc: TAccountMetas[16];
     /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
-    guardCollateral: TAccountMetas[16];
+    guardCollateral: TAccountMetas[17];
     /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
-    primaryEth: TAccountMetas[17];
+    primaryEth: TAccountMetas[18];
     /** CHECK: configured identity, program owner, feed ID and monotonic sequence. */
-    guardEth: TAccountMetas[18];
+    guardEth: TAccountMetas[19];
     /** CHECK: Only the event authority can invoke self-CPI */
-    eventAuthority: TAccountMetas[19];
+    eventAuthority: TAccountMetas[20];
     /** CHECK: Kept for v1-compatible account ordering and IDL shape */
-    program: TAccountMetas[20];
+    program: TAccountMetas[21];
   };
   data: FreezeAccountsInstructionData;
 };
@@ -1153,12 +1202,12 @@ export function parseFreezeAccountsInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedFreezeAccountsInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 21) {
+  if (instruction.accounts.length < 22) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 21,
+        expectedAccountMetas: 22,
       },
     );
   }
@@ -1182,8 +1231,9 @@ export function parseFreezeAccountsInstruction<
       caller: getNextAccount(),
       registry: getNextAccount(),
       resolution: getNextAccount(),
-      work: getNextAccount(),
       target: getNextAccount(),
+      members: getNextAccount(),
+      storage: getNextAccount(),
       primaryBtc: getNextAccount(),
       primaryCollateral: getNextAccount(),
       guardBtc: getNextAccount(),

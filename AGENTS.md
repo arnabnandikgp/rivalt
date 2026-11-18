@@ -12,7 +12,7 @@ cross accounts. Start with the current contracts, not historical phase proposals
 
 | Code / task | Required references |
 |---|---|
-| `programs/clearing`, `crates/financial-core`, account/risk SDK | [Clearing](docs/clearing/README.md), [accounts](docs/clearing/accounts.md), [accounting](docs/clearing/accounting.md), [risk/default](docs/clearing/risk-and-resolution.md) |
+| `programs/clearing`, `crates/{clearing-accounting,risk-engine,financial-core}`, account/risk SDK | [Clearing](docs/clearing/README.md), [accounts](docs/clearing/accounts.md), [accounting](docs/clearing/accounting.md), [risk/default](docs/clearing/risk-and-resolution.md) |
 | Maker programs, `crates/maker-interface`, pricing/router/publisher | [Liquidity](docs/liquidity/README.md), [quoting](docs/liquidity/quoting.md), [routing](docs/liquidity/routing.md), [funding](docs/liquidity/funding.md) |
 | SDK/API, services, indexer, maker kit, trader UI | [Application](docs/application/README.md), [interfaces](docs/application/interfaces.md), [durability](docs/application/durability.md) |
 | Build/test/runtime/config/deployment | [Operations](docs/operations/README.md), [local setup](docs/operations/local-development.md), [deployment](docs/operations/deployment.md), [validation](docs/operations/validation.md) |

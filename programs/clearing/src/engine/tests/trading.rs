@@ -49,8 +49,10 @@ fn market(index: u8) -> Market {
         ..Market::default()
     }
 }
-fn root(id: u16, market: u8, role: u8) -> MarginAccount {
+fn root(id: u64, market: u8, role: u8) -> MarginAccount {
     MarginAccount {
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
         schema_version: SCHEMA_VERSION,
         venue: Address::new_from_array([9; 32]),
         owner: Address::new_from_array([id as u8 + 1; 32]),
@@ -685,7 +687,7 @@ fn event_snapshots_preserve_account_payload_without_discriminator() {
         serialized(&crate::events::MarketSnapshot::from(&market))
     );
     let registration = crate::state::liquidity::MakerRegistration {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 0,
         owner: root.owner,
         venue: root.venue,

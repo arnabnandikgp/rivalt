@@ -36,8 +36,11 @@ it does not route trades to other perpetual exchanges.
 ## Run locally
 
 Install the [pinned toolchain and dependencies](docs/operations/local-development.md#pinned-toolchain)
-first. The verified environment is macOS arm64 with native Surfpool and Apple
-Containers for PostgreSQL. From the repository root:
+in the checkout you will run. For a fresh demo build use revision `657a255`,
+which selects the qualified local programs. A checkout with the matching
+artifacts already installed can start the demo directly. The verified
+environment is macOS arm64 with native Surfpool and Apple Containers for
+PostgreSQL.
 
 ```sh
 source ops/env.sh
@@ -65,7 +68,8 @@ for storage, shutdown, browser and setup details.
 |---|---|
 | `programs/clearing` | Account, custody, risk, execution and settlement authority |
 | `programs/maker-a`, `programs/maker-b`, shared `programs/maker-*.rs` | Maker program deployments and shared implementation |
-| `crates/financial-core`, `crates/maker-interface` | Checked financial arithmetic and bounded quote contract |
+| `crates/clearing-accounting`, `crates/risk-engine` | Position valuation, account health and order reservations |
+| `crates/financial-core`, `crates/maker-interface` | Execution and settlement transitions, bounded maker quote contract |
 | `packages/sdk`, `packages/services`, `packages/indexer` | Clients, durable workers, finalized projections and APIs |
 | `packages/maker-kit`, `packages/local-demo`, `apps/trader` | Operator tooling, local runtime and wallet UI |
 | `tests`, `ops` | Independent references, compiled/integration checks and pinned tooling |

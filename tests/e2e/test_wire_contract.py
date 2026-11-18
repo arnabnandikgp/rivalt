@@ -12,6 +12,7 @@ spec.loader.exec_module(wire)
 sys.path.insert(0, str(Path("ops").resolve()))
 import scoped_wire_contract as scoped
 import anchor_rc2_wire_contract as rc2
+import settlement_wire_contract as settlement
 
 
 class WireContractTest(unittest.TestCase):
@@ -24,6 +25,52 @@ class WireContractTest(unittest.TestCase):
         changed = deepcopy(self.original)
         mutate(changed)
         self.assertNotEqual(wire.program_contract(changed), self.expected)
+
+    def test_forced_route_wire_checks_privileges_tag_and_uniqueness(self):
+        for field in ('accounts', 'args', 'discriminator', 'duplicate'):
+            altered = deepcopy(self.original)
+            route = next(ix for ix in altered['instructions'] if ix['name'] == 'liquidate_liquidity_route')
+            if field == 'duplicate':
+                altered['instructions'].insert(0, deepcopy(route))
+            elif field == 'accounts':
+                route['accounts'][0]['signer'] = False
+            else:
+                route[field] = []
+            with self.subTest(field=field), self.assertRaises(AssertionError):
+                rc2.undo_liquidation_delta(altered, 'clearing')
+
+    def test_backing_delta_preserves_exact_epoch_layout_and_ledger_privilege(self):
+        from backing_wire_contract import undo_backing_delta
+        from settlement_wire_contract import undo_window_delta
+        original = undo_window_delta(rc2.undo_liquidation_delta(self.original, 'clearing'), 'clearing')
+        undo_backing_delta(original, 'clearing')
+        for name in ('MarginAccount', 'MarketLedger', 'BackingState', 'BackingRegion', 'SettlementCertificate', 'AccountBackingChanged'):
+            altered = deepcopy(original)
+            layout = next(item for item in altered['types'] if item['name'] == name)['type']['fields']
+            layout.reverse()
+            with self.subTest(name=name), self.assertRaises(AssertionError):
+                undo_backing_delta(altered, 'clearing')
+        altered = deepcopy(original)
+        instruction = next(item for item in altered['instructions'] if item['name'] == 'check_market_backing')
+        next(meta for meta in instruction['accounts'] if meta['name'] == 'ledger')['writable'] = False
+        with self.assertRaises(AssertionError):
+            undo_backing_delta(altered, 'clearing')
+
+    def test_window_extension_rejects_unknown_authority_payload_or_layout(self):
+        from settlement_wire_contract import undo_window_delta
+        original = rc2.undo_liquidation_delta(self.original, 'clearing')
+        undo_window_delta(original, 'clearing')
+        for mutation in ('argument', 'order', 'discriminator', 'layout', 'duplicate'):
+            altered = deepcopy(original)
+            instruction = next(item for item in altered['instructions'] if item['name'] == 'continue_settlement_plan_window')
+            if mutation == 'argument': instruction['args'][3]['type'] = 'u32'
+            elif mutation == 'order': instruction['accounts'].reverse()
+            elif mutation == 'discriminator': instruction['discriminator'][0] ^= 1
+            elif mutation == 'layout':
+                next(item for item in altered['types'] if item['name'] == 'SettlementPageAccess')['type']['fields'].reverse()
+            else: altered['instructions'].append(deepcopy(instruction))
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                undo_window_delta(altered, 'clearing')
 
     def test_source_names_and_declaration_order_are_not_wire(self):
         renamed = deepcopy(self.original)
@@ -124,19 +171,62 @@ class WireContractTest(unittest.TestCase):
                 # match only the deliberately enumerated D84 delta from it.
                 self.assertEqual(wire.program_contract(scoped.predecessor_idl(program)),
                                  baseline["contract"]["programs"][program])
-                actual, expected = rc2.comparable(json.loads(Path(f"packages/sdk/idl/{program}.json").read_text()), rc2.expected_idl(program))
+                actual, expected = rc2.comparable_program(program, json.loads(Path(f"packages/sdk/idl/{program}.json").read_text()))
                 self.assertEqual(wire.program_contract(actual), wire.program_contract(expected))
 
     def test_rc2_metadata_exceptions_do_not_hide_unknown_authority_changes(self):
         for mutation in ('privilege', 'seed', 'address', 'order'):
             changed = deepcopy(self.original)
-            account = changed['instructions'][0]['accounts'][0]
+            retained = rc2.expected_idl('clearing')['instructions'][0]['name']
+            instruction = next(item for item in changed['instructions'] if item['name'] == retained)
+            account = instruction['accounts'][0]
             if mutation == 'privilege': account['writable'] = True
             elif mutation == 'seed': account['pda'] = {'seeds': [{'kind': 'const', 'value': [0]}]}
             elif mutation == 'address': account['address'] = '11111111111111111111111111111111'
-            else: changed['instructions'][0]['accounts'].reverse()
+            else: instruction['accounts'].reverse()
             with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
-                rc2.comparable(changed, rc2.expected_idl('clearing'))
+                rc2.comparable_program('clearing', changed)
+
+    def test_settlement_extension_is_checked_before_retained_abi_comparison(self):
+        for mutation in ('privilege', 'signer', 'order', 'argument', 'layout', 'discriminator'):
+            changed = deepcopy(self.original)
+            instruction = next(item for item in changed['instructions']
+                               if item['name'] == 'continue_settlement_rates')
+            if mutation == 'privilege': instruction['accounts'][0]['writable'] = True
+            elif mutation == 'signer': instruction['accounts'][0]['signer'] = True
+            elif mutation == 'order': instruction['accounts'].reverse()
+            elif mutation == 'argument': instruction['args'][0]['type'] = 'u8'
+            elif mutation == 'discriminator': instruction['discriminator'][0] ^= 1
+            else:
+                next(item for item in changed['types'] if item['name'] == 'SettlementRates')['type']['fields'].reverse()
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                rc2.comparable_program('clearing', changed)
+
+    def test_settlement_strip_rejects_shadowed_extension_declarations(self):
+        for category, names in [('instructions', settlement.INSTRUCTIONS), ('accounts', settlement.ACCOUNTS),
+                                ('types', settlement.TYPES), ('events', settlement.EVENTS)]:
+            altered = deepcopy(self.original)
+            legitimate = next(entry for entry in altered[category] if entry['name'] in names)
+            altered[category].insert(0, {'name': legitimate['name'], 'discriminator': [0] * 8})
+            with self.subTest(category=category), self.assertRaisesRegex(AssertionError, 'duplicate'):
+                settlement.strip_additions(altered)
+
+    def test_membership_delta_keeps_identity_width_metadata_and_privileges_exact(self):
+        for mutation in ('id', 'child', 'generation', 'signer', 'storage_writer', 'seed', 'duplicate'):
+            changed = deepcopy(self.original)
+            instruction = next(item for item in changed['instructions'] if item['name'] == 'activate_margin')
+            fields = next(item['type']['fields'] for item in changed['types'] if item['name'] == 'MarginAccount')
+            if mutation in ('id', 'child', 'generation'):
+                field = {'id':'id','child':'subaccount_index','generation':'activation_generation'}[mutation]
+                next(item for item in fields if item['name'] == field)['type'] = 'u16'
+            elif mutation == 'signer': instruction['accounts'][0]['signer'] = False
+            elif mutation == 'storage_writer':
+                next(item for item in instruction['accounts'] if item['name'] == 'storage')['writable'] = True
+            elif mutation == 'seed':
+                next(item for item in instruction['accounts'] if item['name'] == 'registry')['pda']['seeds'][0]['value'] = [0]
+            else: changed['instructions'].append(deepcopy(instruction))
+            with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
+                rc2.comparable_program('clearing', changed)
 
 
 if __name__ == "__main__":

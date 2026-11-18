@@ -135,7 +135,7 @@ mod tests {
 
     fn market() -> Market {
         Market {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             venue: Address::new_unique(),
             cross_eligible: true,
             lots_per_unit: 1_000_000,

@@ -1,15 +1,20 @@
 BEGIN;
 SELECT pg_advisory_xact_lock(hashtextextended('rivalt/schema',0));
-CREATE TABLE IF NOT EXISTS schema_version (version integer PRIMARY KEY CHECK (version = 2));
+CREATE TABLE IF NOT EXISTS schema_version (version integer PRIMARY KEY CHECK (version = 3));
 DO $$ BEGIN
-  IF to_regclass('schema_version') IS NOT NULL AND EXISTS (SELECT 1 FROM schema_version WHERE version <> 2) THEN
-    RAISE EXCEPTION 'Fresh schema-8 journal database required; retained schema-1 originals cannot migrate';
+  IF to_regclass('schema_version') IS NOT NULL AND EXISTS (SELECT 1 FROM schema_version WHERE version <> 3) THEN
+    RAISE EXCEPTION 'Fresh format-3 journal required; preserve retained databases and signed originals';
   END IF;
 END $$;
-INSERT INTO schema_version VALUES (2) ON CONFLICT DO NOTHING;
+INSERT INTO schema_version VALUES (3) ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS runs (
   run_id text PRIMARY KEY, binding jsonb NOT NULL, state jsonb NOT NULL,
-  checkpoint text, checkpoint_slot bigint, synced_at timestamptz, error text
+  checkpoint text, checkpoint_slot bigint, synced_at timestamptz, error text,
+  published_state jsonb, published_checkpoint text, published_checkpoint_slot bigint
+);
+CREATE TABLE IF NOT EXISTS covered_checkpoints (
+  run_id text NOT NULL REFERENCES runs, slot bigint NOT NULL, blockhash text NOT NULL,
+  state_digest text NOT NULL, PRIMARY KEY(run_id,slot)
 );
 CREATE TABLE IF NOT EXISTS observations (
   run_id text NOT NULL REFERENCES runs, digest text NOT NULL, signature text NOT NULL,
@@ -26,6 +31,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   run_id text NOT NULL REFERENCES runs, signature text NOT NULL, slot bigint NOT NULL,
   transaction_index integer NOT NULL, failed boolean NOT NULL, payload jsonb NOT NULL, PRIMARY KEY (run_id, signature)
 );
+CREATE INDEX IF NOT EXISTS transactions_by_block ON transactions(run_id,slot,transaction_index);
 CREATE TABLE IF NOT EXISTS envelopes (
   run_id text NOT NULL, signature text NOT NULL, outer_index integer NOT NULL,
   invocation integer NOT NULL, payload jsonb NOT NULL, bytes text NOT NULL,
@@ -75,6 +81,7 @@ DO $$ BEGIN
     CREATE TRIGGER transactions_immutable BEFORE UPDATE OR DELETE ON transactions FOR EACH ROW EXECUTE FUNCTION immutable_journal();
     CREATE TRIGGER events_immutable BEFORE UPDATE OR DELETE ON events FOR EACH ROW EXECUTE FUNCTION immutable_journal();
     CREATE TRIGGER outbox_immutable BEFORE UPDATE OR DELETE ON outbox FOR EACH ROW EXECUTE FUNCTION immutable_journal();
+    CREATE TRIGGER covered_checkpoints_immutable BEFORE UPDATE OR DELETE ON covered_checkpoints FOR EACH ROW EXECUTE FUNCTION immutable_journal();
   END IF;
 END $$;
 COMMIT;

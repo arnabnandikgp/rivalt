@@ -107,6 +107,7 @@ pub fn manage(
         OrderAction::Cancel { .. } | OrderAction::Cleanup => {}
     }
     let next = candidates::manage_candidate(&root, &environment, operation, delegate_epoch)?;
+    super::super::account_cash::maintained::unchanged(&accounts.margin, &next)?;
     commit_root(&mut accounts.margin, &next)?;
     materialize_optional(
         [
@@ -167,6 +168,7 @@ pub fn delegate(
         expiry_slot,
         Clock::get()?.slot,
     )?;
+    super::super::account_cash::maintained::unchanged(&accounts.margin, &next)?;
     commit_root(&mut accounts.margin, &next)?;
 
     let emitted = crate::events::AccountAuthorityChanged {

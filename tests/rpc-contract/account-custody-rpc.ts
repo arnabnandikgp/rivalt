@@ -1,126 +1,30 @@
-import {assertInstructionError} from './instruction-errors.js';
+/** Signed custody/lifecycle acceptance with the canonical v0/v1 RPC/WS harness. */
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { getBase58Encoder, getBase58Decoder } from '@solana/kit';
-import { Connection } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import * as sdk from '@rivalt/sdk';
-import { payerKey, program, type Harness } from './harness.js';
-import { accountCustodyCases } from './account-custody-cases.js';
-import { WireRpc, WireSubscriptions, eventually } from './wire.js';
-
-const url = process.env.RIVALT_RPC_URL!, runDir = process.env.RIVALT_RUN_DIR!;
-assert.equal(new URL(url).hostname, '127.0.0.1');
-const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
-const ws = new WireSubscriptions(process.env.RIVALT_WS_URL!);
-const payer = await payerKey(), base58 = getBase58Encoder();
-const artifacts=await new sdk.LiquidityArtifactVerifier(rpc).verify(payer.address);
-const build=JSON.parse(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/build-manifest.json`,'utf8'));
-const checks: Record<string, unknown>[] = [], committed: ReturnType<typeof sdk.parseAccountCustodyChangedEvent>[] = [];
-const eventBytes: string[] = [];
-const serialize = (value: unknown) => JSON.stringify(value, (_, item) => typeof item === 'bigint' ? item.toString() : item, 2)+'\n';
-await ws.ready();
-const subscription = await ws.call('logsSubscribe', ['all', { commitment: 'confirmed' }]);
-const h: Harness = {
-  async rent(size) { return BigInt(await rpc.call('getMinimumBalanceForRentExemption', [size])); },
-  async read(key) {
-    const response = await rpc.call('getAccountInfo', [key, { encoding: 'base64', commitment: 'finalized' }]);
-    if (response.value) assert([program, TOKEN_PROGRAM_ADDRESS].includes(response.value.owner));
-    return response.value ? Buffer.from(response.value.data[0], 'base64') : null;
-  },
-  async send(label, instructions, signers = [], expectedError) {
-    const { transaction } = await sdk.signInstructions(connection, payer, [sdk.routeComputeBudget(), ...instructions], signers);
-    const wire = transaction.serialize(); assert(wire.length <= 1232);
-    const wireBase64 = Buffer.from(wire).toString('base64');
-    const expectedSignature=getBase58Decoder().decode(transaction.signatures[0]);
-    writeFileSync(`${runDir}/wire-${checks.length}.json`, serialize({ label, wireBase64,signature:expectedSignature }));
-    const simulation = await rpc.call('simulateTransaction', [wireBase64, { encoding: 'base64', sigVerify: true, commitment: 'confirmed' }]);
-    if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
-    else assertInstructionError(simulation.value.err?.InstructionError?.[1], expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
-    const subscriptionId=await ws.call('signatureSubscribe',[expectedSignature,{commitment:'finalized',enableReceivedNotification:false}]);
-    const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
-    assert.equal(signature,expectedSignature);
-    await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
-      response => response.value[0]?.confirmationStatus === 'finalized', label);
-    const history = await eventually(() => rpc.call('getTransaction', [signature, { encoding: 'json', commitment: 'finalized', maxSupportedTransactionVersion: 0 }]),
-      value => Boolean(value), `fetch ${label}`);
-    assert.equal(history.transaction.signatures[0], signature);
-    const fetched=await rpc.call('getTransaction',[signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:0}]);
-    assert.equal(fetched.transaction[0],wireBase64);
-    const notification=await ws.notification(subscriptionId);
-    writeFileSync(`${runDir}/ws-${checks.length}.json`,serialize(notification));
-    if (expectedError === undefined) assert.equal(history.meta.err, null, label);
-    else assertInstructionError(history.meta.err?.InstructionError?.[1], expectedError, label);
-    assert(history.meta.computeUnitsConsumed <= 320_000, `${label}: CU headroom`);
-    const bytes = (history.meta.innerInstructions ?? []).flatMap((outer: any) => outer.instructions)
-      .filter((instruction: any) => history.transaction.message.accountKeys[instruction.programIdIndex] === program)
-      .map((instruction: any) => Buffer.from(base58.encode(instruction.data)))
-      .filter((data: Buffer) => data.subarray(8, 16).equals(Buffer.from(sdk.ACCOUNT_CUSTODY_CHANGED_EVENT_DISCRIMINATOR)));
-    const events = bytes.map((data: Buffer) => sdk.parseAccountCustodyChangedEvent(data.subarray(8)));
-    if (expectedError === undefined) {
-      committed.push(...events);
-      eventBytes.push(...bytes.map((data: Buffer) => data.subarray(8).toString('base64')));
-    }
-    if (label.startsWith('rollback transfer')) assert.equal(events.length, 1, 'retain reverted event; exclude its financial effects');
-    writeFileSync(`${runDir}/transaction-${checks.length}.json`, serialize(history));
-    if ((checks.length + 1) % 10 === 0) console.log(`P23 RPC: ${checks.length + 1} outcomes fetched and decoded`);
-    checks.push({ label, signature, status: expectedError === undefined ? 'pass' : 'rejected',
-      error: history.meta.err, bytes: wire.length, accounts: history.transaction.message.accountKeys.length,
-      computeUnits: history.meta.computeUnitsConsumed,computeUnitLimit:400000,ws:true, feeLamports: String(history.meta.fee), decodedEvents: events.length });
-  },
-};
+import {accountCustodyCases} from './account-custody-cases.js';
+import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
+const directory=process.env.RIVALT_RUN_DIR!;
+const source={revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
+  trackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()};
+assert.equal(source.trackedDirty,false,'Commit the exact custody verifier before qualification');
+const malformedMetaLabel='reject missing owner signature';
+const {h,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
+  {deferFinality:true,instructionConformance:label=>label!==malformedMetaLabel});
+const json=(value:unknown)=>JSON.stringify(value,(_,item)=>typeof item==='bigint'?item.toString():item,2)+'\n';
 try {
-  const result = await accountCustodyCases(h);
-  await ws.notification(subscription);
-  const ledgerState = new Map<number, {settlement: bigint; insurance: bigint; fees: bigint}>();
-  const rootCash = new Map<number, bigint>();
-  let allocated = 0n;
-  for (const event of committed) {
-    assert.equal(event.venue, result.venue);
-    assert.equal(event.schemaVersion, 8);
-    for (const ledger of event.ledgers) ledgerState.set(ledger.marketIndex, ledger);
-    for (const root of event.members) rootCash.set(root.id, root.cash);
-    if (event.allocatedVault.__option === 'Some') allocated = event.allocatedVault.value;
-    assert.equal(allocated, [...rootCash.values()].reduce((sum, cash) => sum + cash, 0n) + [...ledgerState.values()].reduce((sum, ledger) =>
-      sum + ledger.settlement + ledger.insurance + ledger.fees, 0n));
-  }
-  assert.equal([...rootCash.values()].reduce((sum, cash) => sum + cash, 0n), 0n);
-  const accountKeys = { venue: result.venue, venueRegistry: result.registry, custody: result.custody,
-    venueSafety: result.safety, marginAccount: result.roots[0], portfolio: result.portfolios[0],
-    market: result.markets[1], marketLedger: result.ledgers[1] };
-  const accounts: Record<string, string> = Object.fromEntries(await Promise.all(Object.entries(accountKeys).map(async ([name, key]) => [name, (await h.read(key))!.toString('base64')])));
-  const conformancePath = `${runDir}/legacy-input.json`;
-  writeFileSync(conformancePath, serialize({ accounts, events: eventBytes }));
-  const legacy = JSON.parse(execFileSync(process.execPath, ['tests/anchor-conformance/account-custody.cjs', conformancePath], { encoding: 'utf8' }));
-  const canonical = (value: unknown): unknown => {
-    if (value instanceof Uint8Array) return [...value];
-    if (typeof value === 'bigint') return value.toString();
-    if (Array.isArray(value)) return value.map(canonical);
-    if (value && typeof value === 'object' && '__option' in value) {
-      if (value.__option === 'None') return null;
-      assert(value.__option === 'Some' && 'value' in value);
-      return canonical(value.value);
-    }
-    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'discriminator').map(([key, item]) => [key, canonical(item)]));
-    return value;
-  };
-  for (const [name, data] of Object.entries(accounts)) {
-    const decoder = (sdk as any)[`get${name[0].toUpperCase()+name.slice(1)}Decoder`]();
-    assert.deepEqual(legacy.accounts[name], canonical(decoder.decode(Buffer.from(data, 'base64'))));
-  }
-  legacy.events.forEach((event: any, index: number) => assert.deepEqual(event.data, canonical(committed[index])));
-  const balance = await rpc.call('getTokenAccountBalance', [result.vault, { commitment: 'finalized' }]);
-  assert.equal(balance.value.amount, '18'); assert.equal(balance.value.decimals, 6);
-  const rawAccounts = Object.fromEntries(await Promise.all([result.venue, result.custody, result.safety, result.registry, result.vault,
-    result.userToken, ...result.roots, ...result.markets, ...result.ledgers].map(async key => [key, (await h.read(key))!.toString('base64')])));
-  writeFileSync(`${runDir}/summary.json`, serialize({ revision: execFileSync('git', ['rev-parse','HEAD'], { encoding: 'utf8' }).trim(),
-    trackedDirty: execFileSync('git', ['status','--porcelain','--untracked-files=no'], { encoding: 'utf8' }).trim() !== '',
-    runtime: await rpc.call('getVersion'), genesis: await rpc.call('getGenesisHash'),
-    build,artifacts,
-    binarySha256: createHash('sha256').update(readFileSync(`${process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/candidate'}/clearing.so`)).digest('hex'),
-    idlSha256: createHash('sha256').update(readFileSync('packages/sdk/idl/clearing.json')).digest('hex'),
-    checks, committedEvents: committed, wsNotifications: ws.notifications.length, legacyAccounts: Object.keys(accounts), rawAccounts, result }));
-  console.log(`P23 RPC: ${checks.length} finalized signed scenarios; ${committed.length} committed events; legacy account/event parity.`);
-} finally { ws.close(); }
+  const result=await accountCustodyCases(h);
+  const [members]=await sdk.deriveMemberPage(result.venue,0n);
+  const keys=[result.venue,result.registry,result.vault,result.custody,result.safety,members,result.quoteMint,result.userToken,
+    ...result.ledgers,...result.markets,...result.roots,...result.portfolios];
+  const rawAccounts=Object.fromEntries(await Promise.all(keys.map(async key=>[key,(await h.read(key))!.toString('base64')])));
+  await flush();
+  const parity=await conformance.finish(directory,[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'venue',key:result.venue},{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'venueRegistry',key:result.registry},
+    {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'marginAccount',key:result.roots[0]},{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'portfolio',key:result.portfolios[0]},{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'memberPage',key:members}],h.read);
+  const build=JSON.parse(readFileSync(`${process.env.RIVALT_MEMBERSHIP_ARTIFACT_DIR??process.env.RIVALT_ARTIFACT_DIR!}/build-manifest.json`,'utf8'));
+  assert.equal(checks.filter(check=>check.label===malformedMetaLabel&&check.error!==null).length,1);
+  writeFileSync(`${directory}/summary.json`,json({...source,build,checks:checks.map(check=>({...check,status:check.error===null?'pass':'rejected'})),parity,conformanceOmissions:[{label:malformedMetaLabel,reason:'deliberately removed signer bit; actual rejection verified'}],result:{...result,members},rawAccounts,
+    wsNotifications:ws.notifications.length,endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim()}));
+  console.log(`Current custody: ${checks.length} signed outcomes, five Financial roots and exact token exits.`);
+}finally {try{await flush();}finally{ws.close();}}

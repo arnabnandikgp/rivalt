@@ -25,8 +25,6 @@ import {
   getI64Encoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   type Address,
@@ -50,7 +48,7 @@ export type AccountResolutionValuedEvent = {
   venue: Address;
   slot: bigint;
   epoch: bigint;
-  id: number;
+  id: bigint;
   member: Address;
   cash: bigint;
   lots: Array<bigint>;
@@ -63,7 +61,7 @@ export type AccountResolutionValuedEventArgs = {
   venue: Address | HasAddress;
   slot: number | bigint;
   epoch: number | bigint;
-  id: number;
+  id: number | bigint;
   member: Address | HasAddress;
   cash: number | bigint;
   lots: Array<number | bigint>;
@@ -79,7 +77,7 @@ export function getAccountResolutionValuedEventEncoder(): FixedSizeEncoder<Accou
       ["venue", getAddressEncoder()],
       ["slot", getU64Encoder()],
       ["epoch", getU64Encoder()],
-      ["id", getU16Encoder()],
+      ["id", getU64Encoder()],
       ["member", getAddressEncoder()],
       ["cash", getU64Encoder()],
       ["lots", getArrayEncoder(getI64Encoder(), { size: 2 })],
@@ -98,7 +96,7 @@ export function getAccountResolutionValuedEventDecoder(): FixedSizeDecoder<Accou
       ["venue", getAddressDecoder()],
       ["slot", getU64Decoder()],
       ["epoch", getU64Decoder()],
-      ["id", getU16Decoder()],
+      ["id", getU64Decoder()],
       ["member", getAddressDecoder()],
       ["cash", getU64Decoder()],
       ["lots", getArrayDecoder(getI64Decoder(), { size: 2 })],

@@ -12,8 +12,8 @@ import {
   getAddressEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -31,12 +31,14 @@ export type AccountCashSnapshot = {
   portfolio: Address;
   owner: Address;
   subaccountIndex: number;
-  id: number;
+  id: bigint;
   mode: number;
   isolatedMarketIndex: number;
   role: number;
   cash: bigint;
   stateVersion: bigint;
+  lifecycle: number;
+  activationGeneration: bigint;
 };
 
 export type AccountCashSnapshotArgs = {
@@ -44,12 +46,14 @@ export type AccountCashSnapshotArgs = {
   portfolio: Address | HasAddress;
   owner: Address | HasAddress;
   subaccountIndex: number;
-  id: number;
+  id: number | bigint;
   mode: number;
   isolatedMarketIndex: number;
   role: number;
   cash: number | bigint;
   stateVersion: number | bigint;
+  lifecycle: number;
+  activationGeneration: number | bigint;
 };
 
 export function getAccountCashSnapshotEncoder(): FixedSizeEncoder<AccountCashSnapshotArgs> {
@@ -57,13 +61,15 @@ export function getAccountCashSnapshotEncoder(): FixedSizeEncoder<AccountCashSna
     ["margin", getAddressEncoder()],
     ["portfolio", getAddressEncoder()],
     ["owner", getAddressEncoder()],
-    ["subaccountIndex", getU16Encoder()],
-    ["id", getU16Encoder()],
+    ["subaccountIndex", getU32Encoder()],
+    ["id", getU64Encoder()],
     ["mode", getU8Encoder()],
     ["isolatedMarketIndex", getU8Encoder()],
     ["role", getU8Encoder()],
     ["cash", getU64Encoder()],
     ["stateVersion", getU64Encoder()],
+    ["lifecycle", getU8Encoder()],
+    ["activationGeneration", getU64Encoder()],
   ]);
 }
 
@@ -72,13 +78,15 @@ export function getAccountCashSnapshotDecoder(): FixedSizeDecoder<AccountCashSna
     ["margin", getAddressDecoder()],
     ["portfolio", getAddressDecoder()],
     ["owner", getAddressDecoder()],
-    ["subaccountIndex", getU16Decoder()],
-    ["id", getU16Decoder()],
+    ["subaccountIndex", getU32Decoder()],
+    ["id", getU64Decoder()],
     ["mode", getU8Decoder()],
     ["isolatedMarketIndex", getU8Decoder()],
     ["role", getU8Decoder()],
     ["cash", getU64Decoder()],
     ["stateVersion", getU64Decoder()],
+    ["lifecycle", getU8Decoder()],
+    ["activationGeneration", getU64Decoder()],
   ]);
 }
 

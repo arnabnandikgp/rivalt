@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createFromRoot, bottomUpTransformerVisitor, flattenInstructionDataArgumentsVisitor, isNode, camelCase } from 'codama';
@@ -20,6 +21,7 @@ function snapshot(path: string): Record<string, string> {
       return [file, readFileSync(file, 'utf8')];
     }).sort(([a], [b]) => a.localeCompare(b)));
 }
+execFileSync('python3', ['ops/generate-price-policy.py', ...(process.argv.includes('--check') ? ['--check'] : [])], { stdio: 'inherit' });
 for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generatedMakerA'], ['maker_b', 'generatedMakerB']]) {
   const path = `packages/sdk/src/${folder}`;
   const before = process.argv.includes('--check') ? snapshot(path) : undefined;
@@ -30,7 +32,7 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   const dynamicAddresses = new Set([
     'identity.venue.fee_authority', 'identity.venue.authority',
     'identity.venue.quote_mint', 'identity.venue.reserve_authority',
-    'config.state.controller',
+    'config.state.controller', 'receipt.rent_payer',
   ]);
   for (const instruction of idl.instructions) for (const account of instruction.accounts) {
     if (typeof account.address === 'string' && account.address.includes('.')) {
@@ -102,7 +104,7 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   // Codama normally flattens structs used by only one instruction. Reusing V1
   // request types in V2 must not silently nest the existing public SDK inputs.
   const legacyRequests = program === 'clearing'
-    ? new Set(['executeRoute', 'executeOrder', 'previewMaker']) : new Set(['quote']);
+    ? new Set(['executeRoute', 'executeOrder', 'previewMaker', 'executeLiquidityRoute', 'liquidateLiquidityRoute']) : new Set(['quote']);
   const definitions = new Map(codama.getRoot().program.definedTypes?.map(type => [type.name, type.type]));
   codama.update(bottomUpTransformerVisitor([{
     select: '[instructionNode]',

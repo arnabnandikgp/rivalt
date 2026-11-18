@@ -34,8 +34,8 @@ pub fn candidate(
         || reference > MAX_PRICE
         || price == 0
         || price > MAX_PRICE
-        || u128::from(price) * 10 < u128::from(reference) * 9
-        || u128::from(price) * 10 > u128::from(reference) * 11
+        || u128::from(price) * u128::from(price_policy::EXECUTION_DENOMINATOR) < u128::from(reference) * u128::from(price_policy::EXECUTION_LOWER_NUMERATOR)
+        || u128::from(price) * u128::from(price_policy::EXECUTION_DENOMINATOR) > u128::from(reference) * u128::from(price_policy::EXECUTION_UPPER_NUMERATOR)
     {
         return Err(Error::Bounds);
     }

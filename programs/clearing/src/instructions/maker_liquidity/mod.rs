@@ -89,7 +89,7 @@ pub fn initialize(
     )?;
     **ctx.accounts.registry = LiquidityRegistry {
         revision: 0,
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         venue: ctx.accounts.venue.address().to_owned(),
         market: ctx.accounts.market.address().to_owned(),
         count: 0,
@@ -113,7 +113,7 @@ pub fn initialize(
 fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<()> {
     custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
-        accounts.registry.schema_version == 8
+        accounts.registry.schema_version == crate::state::accounts::SCHEMA_VERSION
             && !accounts.registry.sealed
             && instance < 3
             && instance == accounts.registry.count,
@@ -153,7 +153,7 @@ pub fn register(
     validate_registration(accounts, instance)?;
     **accounts.registration = MakerRegistration {
         revision: 0,
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         venue: accounts.venue.address().to_owned(),
         market: accounts.market.address().to_owned(),
         capital: accounts.capital.address().to_owned(),
@@ -212,7 +212,7 @@ pub fn seal(
     let accounts = &mut ctx.accounts;
     custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
-        accounts.registry.schema_version == 8
+        accounts.registry.schema_version == crate::state::accounts::SCHEMA_VERSION
             && accounts.registry.count == 3
             && !accounts.registry.sealed,
         ClearingError::MakerBinding
@@ -220,7 +220,7 @@ pub fn seal(
     let makers = [&accounts.first, &accounts.second, &accounts.third];
     for (index, registration) in makers.iter().enumerate() {
         require!(
-            registration.schema_version == 8
+            registration.schema_version == crate::state::accounts::SCHEMA_VERSION
                 && usize::from(registration.instance) == index
                 && registration.venue == accounts.venue.address().to_owned()
                 && registration.market == accounts.market.address().to_owned(),
@@ -398,7 +398,7 @@ pub fn quarantine(
     control_base(&accounts.venue, &accounts.safety, &accounts.market)?;
     capital_identity(&accounts.capital, &accounts.market)?;
     require!(
-        accounts.registration.schema_version == 8
+        accounts.registration.schema_version == crate::state::accounts::SCHEMA_VERSION
             && accounts.registration.authority_epoch == authority
             && authority > 0
             && accounts.registration.owner == accounts.capital.owner,

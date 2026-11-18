@@ -19,8 +19,6 @@ import {
   getHiddenPrefixEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU64Decoder,
   getU64Encoder,
   type Address,
@@ -45,7 +43,7 @@ export type AccountsRetiredEvent = {
   slot: bigint;
   safetyEpoch: bigint;
   termsEpoch: bigint;
-  count: number;
+  count: bigint;
   totalCash: bigint;
   allocatedVault: bigint;
   actualVault: bigint;
@@ -56,7 +54,7 @@ export type AccountsRetiredEventArgs = {
   slot: number | bigint;
   safetyEpoch: number | bigint;
   termsEpoch: number | bigint;
-  count: number;
+  count: number | bigint;
   totalCash: number | bigint;
   allocatedVault: number | bigint;
   actualVault: number | bigint;
@@ -70,7 +68,7 @@ export function getAccountsRetiredEventEncoder(): FixedSizeEncoder<AccountsRetir
       ["slot", getU64Encoder()],
       ["safetyEpoch", getU64Encoder()],
       ["termsEpoch", getU64Encoder()],
-      ["count", getU16Encoder()],
+      ["count", getU64Encoder()],
       ["totalCash", getU64Encoder()],
       ["allocatedVault", getU64Encoder()],
       ["actualVault", getU64Encoder()],
@@ -87,7 +85,7 @@ export function getAccountsRetiredEventDecoder(): FixedSizeDecoder<AccountsRetir
       ["slot", getU64Decoder()],
       ["safetyEpoch", getU64Decoder()],
       ["termsEpoch", getU64Decoder()],
-      ["count", getU16Decoder()],
+      ["count", getU64Decoder()],
       ["totalCash", getU64Decoder()],
       ["allocatedVault", getU64Decoder()],
       ["actualVault", getU64Decoder()],

@@ -1,4 +1,3 @@
-import {createHash} from 'node:crypto';
 
 /** Exact, untrusted off-chain proposal only. Clearing independently verifies the
  * complete frozen cohort, greatest fixed point, insurance passes and all payouts.
@@ -52,7 +51,7 @@ function segments(positiveClaims:Rational,base:Rational,insurance:bigint,links:L
 }
 
 export function proposeAccountRates(input:AccountRateInputs) {
-  if(!Array.isArray(input.rows)||input.rows.length<1||input.rows.length>64||input.pools.length!==2||input.budgets.length!==2||
+  if(!Array.isArray(input.rows)||input.rows.length<1||input.pools.length!==2||input.budgets.length!==2||
     [...input.pools,...input.budgets].some(value=>typeof value!=='bigint'||value<0n||value>MAX_CASH)||
     input.rows.some(row=>typeof row.cash!=='bigint'||row.cash<0n||row.cash>MAX_CASH||row.claims.length!==2||row.claims.some(value=>typeof value!=='bigint'||abs(value)>MAX_CLAIM)))
     throw new Error('Invalid bounded rate proposal input');
@@ -63,7 +62,10 @@ export function proposeAccountRates(input:AccountRateInputs) {
   for(const row of input.rows) {
     const debts=row.claims.map(claim=>claim<0n?-claim:0n),totalDebt=debts[0]+debts[1];
     const collected=totalDebt/SCALE<row.cash?totalDebt/SCALE:row.cash;
-    if(debts.every(debt=>debt>0n)&&collected>0n)common*=totalDebt;
+    if(debts.every(debt=>debt>0n)&&collected>0n) {
+      const divisor=totalDebt/gcd(totalDebt,collected*SCALE*debts[0]);
+      common=common/gcd(common,divisor)*divisor;
+    }
     const collectedParts=debts.map(debt=>totalDebt===0n?ZERO:ratio(collected*debt,totalDebt));
     for(const market of [0,1]) {
       collections[market].push(collectedParts[market]);
@@ -72,7 +74,10 @@ export function proposeAccountRates(input:AccountRateInputs) {
       if(claim.numerator>0n&&remaining.numerator>0n)incoming[destination].push({claim,cap:remaining});
     }
   }
-  if(bits(common)>5632)throw new Error('Proposal common denominator exceeds bounded layout');
+  const count=BigInt(input.rows.length),populationBits=count===1n?0n:BigInt((count-1n).toString(2).length);
+  const aggregateBits=87n+populationBits;
+  const capacity=(88n*count+4n*aggregateBits+16n+63n)/64n;
+  if(BigInt(bits(common))>capacity*64n)throw new Error('Proposal common denominator exceeds count-derived storage');
   const positives=[0,1].map(market=>sum(input.rows.map(row=>positive(ratio(row.claims[market],SCALE)))));
   const bases=[0,1].map(market=>add(ratio(input.pools[market]),sum(collections[market])));
   const curves=[0,1].map(market=>segments(positives[market],bases[market],input.budgets[market],incoming[market]));
@@ -103,16 +108,17 @@ export function proposeAccountRates(input:AccountRateInputs) {
   if(spent.some((value,index)=>compare(value,ratio(input.budgets[index]))>0))throw new Error('Rate proposal exceeds insurance budget');
   const denominator=rates[0].denominator/gcd(rates[0].denominator,rates[1].denominator)*rates[1].denominator;
   const factor=denominator/gcd(common,denominator);
-  if(factor<=0n||factor>=1n<<186n)throw new Error('Rate factor exceeds bounded layout');
+  if(factor<=0n||BigInt(bits(factor))>2n*aggregateBits||bits(factor)>302)throw new Error('Rate factor exceeds count-derived bound');
   const numerators=rates.map(rate=>{
     const value=multiply(rate,ratio(common*factor));if(value.denominator!==1n)throw new Error('Nonintegral encoded rate');return value.numerator;
   });
-  const bytes=Buffer.alloc(1560);
-  function encode(value:bigint,offset:number,length:number) {
-    if(value<0n||bits(value)>length*8)throw new Error('Rate proposal encoding overflow');
-    for(let index=0;index<length;index++){bytes[offset+index]=Number(value&255n);value>>=8n;}
-  }
-  numerators.forEach((value,index)=>encode(value,index*768,768));encode(factor,1536,24);
-  return {common,factor,numerators,rates,insuranceSpent:spent.map(floor),fractional:spent.map(value=>value.denominator!==1n),
-    bytes,hash:createHash('sha256').update(bytes).digest(),segmentPairs:curves[0].length*curves[1].length};
+  const words=(input:bigint)=>{
+    const result:bigint[]=[];for(let value=input;value;value>>=64n)result.push(value&((1n<<64n)-1n));return result;
+  };
+  const factorWords=words(factor);while(factorWords.length<5)factorWords.push(0n);
+  const numeratorWords=numerators.map(words);
+  if(numeratorWords.some(value=>BigInt(value.length)>capacity))throw new Error('Rate numerator exceeds count-derived storage');
+  return {common,factor,numerators,rates,factorWords,numeratorWords,capacity,
+    insuranceSpent:spent.map(floor),fractional:spent.map(value=>value.denominator!==1n),
+    segmentPairs:curves[0].length*curves[1].length};
 }

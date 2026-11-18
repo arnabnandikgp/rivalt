@@ -115,14 +115,16 @@ def _greatest_rates(positives, bases, insurance, links):
 
 
 def clear_rational_cohort(accounts, pools=(0, 0), insurance=(0, 0), fees=(0, 0), *,
-                          whole_cash_collection=False):
+                          whole_cash_collection=False, frozen_collections=None):
     """Resolve ideal entitlements, retaining every cross-market obligation.
 
     Risk has no positive unpaid credit. This function is only a simultaneous
     terminal-clearing benchmark after complete frozen valuation, not live margin
     netting or an instruction that can borrow/advance unpaid profit.
     """
-    require(type(accounts) is tuple and 0 < len(accounts) <= 64 and
+    # Population is a transport/storage concern, not a bound on exact Python
+    # Fraction economics. The historical 64-row fixture ceiling is retired.
+    require(type(accounts) is tuple and len(accounts) > 0 and
             all(type(account) is Account for account in accounts), "invalid complete cohort")
     for balances in (pools, insurance, fees):
         require(type(balances) is tuple and len(balances) == 2 and
@@ -131,6 +133,9 @@ def clear_rational_cohort(accounts, pools=(0, 0), insurance=(0, 0), fees=(0, 0),
     require(all(sum(account.claims[market] for account in accounts) == pools[market]
                 for market in range(2)), "per-market claim identity is broken")
     require(type(whole_cash_collection) is bool, "invalid collection policy")
+    if frozen_collections is not None:
+        require(whole_cash_collection and len(frozen_collections) == len(accounts),
+                "incomplete frozen cash allocation")
 
     debts = tuple(tuple(max(-claim, Fraction(0)) for claim in account.claims) for account in accounts)
     positives = tuple(sum(max(account.claims[market], Fraction(0)) for account in accounts)
@@ -142,7 +147,14 @@ def clear_rational_cohort(accounts, pools=(0, 0), insurance=(0, 0), fees=(0, 0),
         collectible = (Fraction(total_debt.numerator // total_debt.denominator)
                        if whole_cash_collection else total_debt)
         available = min(Fraction(account.cash), collectible)
-        collected = tuple(available * debt / total_debt if total_debt else Fraction(0) for debt in owed)
+        if frozen_collections is None:
+            collected = tuple(available * debt / total_debt if total_debt else Fraction(0) for debt in owed)
+        else:
+            collected = frozen_collections[account_index]
+            require(len(collected) == 2 and sum(collected) == available and
+                    all(type(share) in (int, Fraction) and 0 <= share <= debt
+                        for share, debt in zip(collected, owed)),
+                    "frozen allocation exceeds the remaining debt or collectible cash")
         collections.append(collected)
         for source_market in range(2):
             destination = 1 - source_market
@@ -202,7 +214,11 @@ class AtomClearingPlan:
     augmentations: int
 
 
-def _round_circulation(node_supplies, edges):
+class InfeasiblePayoutFloor(ValueError):
+    """No conserving rounding can honor all protected creditor payouts."""
+
+
+def _round_circulation(node_supplies, edges, minimums):
     """Round each exact flow within floor/ceil, conserving every integer node.
 
     Residual arcs have capacity at most one. Deterministic depth-first search prefers larger
@@ -222,10 +238,14 @@ def _round_circulation(node_supplies, edges):
 
     residual = list(node_supplies)
     originals = []
-    for start, end, exact in edges:
+    for index, (start, end, exact) in enumerate(edges):
         lower = exact.numerator // exact.denominator
         fraction = exact - lower
-        capacity = int(fraction != 0)
+        upper = lower + int(fraction != 0)
+        lower = max(lower, minimums.get(index, 0))
+        if lower > upper:
+            raise InfeasiblePayoutFloor("creditor floor exceeds the rounded entitlement")
+        capacity = upper - lower
         arc = add_arc(start, end, capacity, (1, -fraction))
         originals.append((arc, lower, capacity))
         residual[start] -= lower
@@ -253,6 +273,8 @@ def _round_circulation(node_supplies, edges):
             if arcs[arc][1] > 0 and end not in parents:
                 parents[end] = (start, arc)
                 search.append((end, iter(adjacency[end])))
+        if sink not in parents and minimums:
+            raise InfeasiblePayoutFloor("creditor floors cannot be funded together")
         require(sink in parents, "fractional circulation has no integral rounding")
         node, amount = sink, required - sent
         while node != source:
@@ -278,7 +300,8 @@ def _round_circulation(node_supplies, edges):
     return rounded, augmentations
 
 
-def clear_atom_cohort(accounts, pools=(0, 0), insurance=(0, 0), fees=(0, 0)):
+def clear_atom_cohort(accounts, pools=(0, 0), insurance=(0, 0), fees=(0, 0), *,
+                      frozen_collections=None, creditor_floors=None):
     """Whole-atom OUTPUT candidate; rational internals still need bounded encoding.
 
     Clip fractional insurance usage, then use constrained flow rounding. Never
@@ -292,7 +315,7 @@ def clear_atom_cohort(accounts, pools=(0, 0), insurance=(0, 0), fees=(0, 0)):
     clipped = set()
     for pass_index in range(3):
         benchmark = clear_rational_cohort(accounts, pools, tuple(budgets), fees,
-                                          whole_cash_collection=True)
+                                          whole_cash_collection=True, frozen_collections=frozen_collections)
         fractional = [market for market, spent in enumerate(benchmark.insurance_spent)
                       if spent.denominator != 1]
         if not fractional:
@@ -330,7 +353,13 @@ def clear_atom_cohort(accounts, pools=(0, 0), insurance=(0, 0), fees=(0, 0)):
     for account_index, entitlement in enumerate(benchmark.cash_entitlements):
         cash_edges.append(len(edges))
         edges.append((account_index, cash_sink, entitlement))
-    rounded, augmentations = _round_circulation(supplies, edges)
+    minimums = {}
+    for key, amount in (creditor_floors or {}).items():
+        require(key in claim_edges and claim_edges[key][1] == 1 and type(amount) is int
+                and amount >= 0, "invalid creditor floor")
+        if amount:
+            minimums[claim_edges[key][0]] = amount
+    rounded, augmentations = _round_circulation(supplies, edges, minimums)
     cash = tuple(rounded[index] for index in cash_edges)
     movements = [[0, 0] for _ in accounts]
     adjustments = [[Fraction(0), Fraction(0)] for _ in accounts]

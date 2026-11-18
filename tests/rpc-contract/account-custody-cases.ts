@@ -1,3 +1,5 @@
+import {provisionRecoveryWorkspace,registerFinancialTestMargin} from './account-membership-setup.js';
+import {financialRoots} from './membership-scan-helper.js';
 import type {ExpectedInstructionError} from './instruction-errors.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -9,7 +11,7 @@ import * as sdk from '@rivalt/sdk';
 import { fixtureKey, payerKey, addresses, type Harness } from './harness.js';
 
 const keyBytes = getAddressEncoder();
-const u16 = (value: number) => { const bytes = Buffer.alloc(2); bytes.writeUInt16LE(value); return bytes; };
+const u32 = sdk.namespaceIndexBytes;
 export const accountPda = async (...seeds: (string | ReadonlyUint8Array)[]) => (await getProgramDerivedAddress({
   programAddress: sdk.CLEARING_PROGRAM_ADDRESS, seeds: seeds.map(seed => typeof seed === 'string' ? Buffer.from(seed) : Uint8Array.from(seed)),
 }))[0];
@@ -21,7 +23,7 @@ export async function accountCustodyCases(h: Harness) {
   const mint = await fixtureKey('p23-mint'), badMint = await fixtureKey('p23-bad-mint');
   const token = await fixtureKey('p23-token'), wrongOwnerToken = await fixtureKey('p23-wrong-owner-token');
   const deployment = await addresses();
-  const domain = createHash('sha256').update('rivalt/p46/schema8/fresh-two-market-custody').digest();
+  const domain = createHash('sha256').update('rivalt/p55/schema9/fresh-two-market-custody').digest();
   const venue = await accountPda('venue-v3', domain);
   const registry = await accountPda('registry-v3', keyBytes.encode(venue));
   const vault = await accountPda('vault-v3', keyBytes.encode(venue));
@@ -81,16 +83,17 @@ export async function accountCustodyCases(h: Harness) {
   }
   await rejected('reject third market', [sdk.getInitializeMarketInstruction({ ...admin, index: 2, market: await accountMarket(venue, 2),
       ledger: await accountPda('ledger-v3', keyBytes.encode(await accountMarket(venue, 2))) })], [], 6108);
+  await provisionRecoveryWorkspace(h,common,payer);
+  const registrationPage=async()=> (await sdk.deriveMemberPage(venue,sdk.getVenueRegistryDecoder().decode((await h.read(registry))!).nextId/64n))[0];
   async function portfolio(index: number, signer = owner) {
-    const address = await accountPda('portfolio-v3', keyBytes.encode(venue), keyBytes.encode(signer.address), u16(index));
+    const address = await accountPda('portfolio-v3', keyBytes.encode(venue), keyBytes.encode(signer.address), u32(index));
     await h.send(`create portfolio ${index}`, [await sdk.getCreatePortfolioInstructionAsync({ ...common, owner: signer, portfolio: address, index })], [signer]);
     portfolios.push(address); return address;
   }
   const first = await portfolio(0), second = await portfolio(1), foreign = await portfolio(0, attacker);
   async function register(portfolio: Address, subaccountIndex: number, mode: number, isolatedMarketIndex: number, signer = owner, role = 0) {
-    const margin = await accountPda('margin-v3', keyBytes.encode(portfolio), u16(subaccountIndex));
-    await h.send(`register root ${roots.length}`, [await sdk.getRegisterMarginInstructionAsync({ ...common, owner: signer,
-      portfolio, margin, subaccountIndex, mode, isolatedMarketIndex, role })], [signer]);
+    const margin = await accountPda('margin-v3', keyBytes.encode(portfolio), u32(subaccountIndex));
+    await registerFinancialTestMargin(h,common,payer,{owner:signer,portfolio,margin,subaccountIndex,mode,isolatedMarketIndex,role});
     roots.push(margin); return margin;
   }
   const cross = await register(first, 0, 0, 255), btc = await register(first, 1, 1, 0);
@@ -98,13 +101,13 @@ export async function accountCustodyCases(h: Harness) {
   const otherOwner = await register(foreign, 0, 0, 255, attacker);
   for (const [subaccountIndex, mode, isolatedMarketIndex, role] of [[3,0,255,0],[0,1,0,0],[3,1,2,0],[9,1,0,0],[3,1,0,3]]) {
     const portfolio = subaccountIndex === 0 ? second : first;
-    const margin = await accountPda('margin-v3', keyBytes.encode(portfolio), u16(subaccountIndex));
-    await rejected('reject invalid immutable mode/identity', [await sdk.getRegisterMarginInstructionAsync({ ...common, owner, portfolio,
+    const margin = await accountPda('margin-v3', keyBytes.encode(portfolio), u32(subaccountIndex));
+    await rejected('reject invalid immutable mode/identity', [await sdk.getRegisterMarginInstructionAsync({ ...common, members:await registrationPage(), owner, portfolio,
       margin, subaccountIndex, mode, isolatedMarketIndex, role })], [owner], 6108);
     assert.equal(await h.read(margin), null);
   }
-  const crossMaker = await accountPda('margin-v3', keyBytes.encode(second), u16(0));
-  await rejected('reject cross maker capital', [await sdk.getRegisterMarginInstructionAsync({ ...common, owner, portfolio: second,
+  const crossMaker = await accountPda('margin-v3', keyBytes.encode(second), u32(0));
+  await rejected('reject cross maker capital', [await sdk.getRegisterMarginInstructionAsync({ ...common, members:await registrationPage(), owner, portfolio: second,
     margin: crossMaker, subaccountIndex: 0, mode: 0, isolatedMarketIndex: 255, role: 1 })], [owner], 6108);
   const cash = { ...common, owner, quoteMint: mint.address, userToken: token.address };
   const transfer = { ...common, owner, donor: cross, recipient: btc };
@@ -116,7 +119,7 @@ export async function accountCustodyCases(h: Harness) {
   const expected = [450_000n, 200_000n, 200_000n, 50_000n, 0n];
   for (const [index, margin] of roots.entries()) {
     const state = await rootState(margin);
-    assert.equal(state.cash, expected[index]); assert.equal(state.id, index);
+    assert.equal(state.cash, expected[index]); assert.equal(state.id, BigInt(index));
     assert(state.positions.every(position => position.lots === 0n && position.virtualScaled === 0n && position.fundingCheckpointScaled === 0n));
   }
   assert.equal((await venueState()).totalCash, 900_000n);
@@ -170,7 +173,8 @@ export async function accountCustodyCases(h: Harness) {
   assert.equal(getTokenDecoder().decode((await h.read(vault))!).amount, 18n);
   assert.equal(getTokenDecoder().decode((await h.read(token.address))!).amount, 1_999_982n);
   const membership = sdk.getVenueRegistryDecoder().decode((await h.read(registry))!);
-  assert.deepEqual(membership.members, roots);
+  assert.equal(membership.financialCount,BigInt(roots.length));
+  assert.deepEqual(await financialRoots(h,venue,registry), roots);
   return { venue, registry, vault, custody, safety, ledgers, markets, roots, portfolios, quoteMint: mint.address, userToken: token.address,
     owner: owner.address, final, tokenAtoms: '1999982', insuranceAtoms: '18' };
 }

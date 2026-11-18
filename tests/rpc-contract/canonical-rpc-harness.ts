@@ -16,6 +16,9 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
     beforeBroadcast?: (label: string) => Promise<void>;
     signedOriginal?: (label: string, signature: string) => void;
     payerFor?: (label: string) => Keypair | undefined;
+    /** Deliberately malformed metas have no equivalent generated IDL builder.
+     * Their actual RPC/WS rejection is still verified and retained. */
+    instructionConformance?: (label: string) => boolean;
     deferFinality?: boolean } = {}) {
 assert.equal(new URL(url).hostname, '127.0.0.1');
 const rpc = new WireRpc(url), connection = new Connection(url, 'confirmed');
@@ -123,7 +126,7 @@ const h: CanonicalHarness = {
       signedToFinalizedMs: finalizedAt - signedAt, finalizedReceiptFetchMs: receiptFetchedAt - finalizedAt,
       finalizedToWsAuditMs: performance.now() - finalizedAt,
       loadedAccounts, feeLamports: String(history.meta.fee), signatures: transaction.signatures.length, ws: true, wsErrorMatchesFinalized, wsError: notification.params.result.value.err, signatureWsError: signatureNotification.params.result.value.err };
-    conformance.record(instructions, history);
+    conformance.record(options.instructionConformance?.(label) === false ? [] : instructions, history);
     latestHistory = history;
     };
     if (options.deferFinality) {

@@ -9,6 +9,7 @@ use crate::instructions::{OrderExecution, RouteIntent, RouteLeg};
 use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
 mod contract;
+mod liquidation;
 use contract::*;
 pub use contract::{LiquidityOrderExecution, LiquidityRouteIntent, LiquidityRouteLeg};
 mod contexts;
@@ -21,6 +22,7 @@ pub fn execute(
     ctx: &mut Context<ExecuteLiquidityRoute>,
     events: &mut crate::event_cpi::Payloads,
     args: LiquidityRouteIntent,
+    forced: bool,
 ) -> Result<()> {
     let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
@@ -30,11 +32,15 @@ pub fn execute(
         &ctx.accounts.identity.trader,
     )?;
     let clock = Clock::get()?;
-    crate::engine::account::trade_authority(
-        &*root_view(&ctx.accounts.identity.trader)?,
-        ctx.accounts.identity.actor.address().to_owned(),
-        clock.slot,
-    )?;
+    if forced {
+        require!(args.reduce_only && args.generation.is_some(), ClearingError::Liquidation);
+    } else {
+        crate::engine::account::trade_authority(
+            &*root_view(&ctx.accounts.identity.trader)?,
+            ctx.accounts.identity.actor.address().to_owned(),
+            clock.slot,
+        )?;
+    }
     let intent = RouteIntent {
         domain: args.domain,
         terms_epoch: args.terms_epoch,
@@ -51,7 +57,7 @@ pub fn execute(
         generation: args.generation,
         legs: shared_legs(&args.legs),
     };
-    execute_core(&mut ctx.accounts, events, intent, None, &args.legs, &clock)
+    execute_core(&mut ctx.accounts, events, intent, None, forced, &args.legs, &clock)
 }
 
 pub fn execute_order(
@@ -90,6 +96,7 @@ pub fn execute_order(
         events,
         intent,
         Some(index),
+        false,
         &args.legs,
         &clock,
     )
@@ -101,6 +108,7 @@ fn execute_core(
     events: &mut crate::event_cpi::Payloads,
     intent: RouteIntent,
     order_index: Option<usize>,
+    forced: bool,
     signed_legs: &[LiquidityRouteLeg],
     clock: &Clock,
 ) -> Result<()> {
@@ -166,7 +174,12 @@ fn execute_core(
     if let Some(capital) = accounts.second_capital.as_deref() {
         environment.validate(capital)?;
     }
-    let trader = root_view(&identity.trader)?;
+    let mut trader = root_view(&identity.trader)?;
+    let liquidation = if forced {
+        Some(liquidation::prepare(&mut trader, &environment, clock)?)
+    } else {
+        None
+    };
     let mut views = vec![pricing::View {
         capital: &accounts.first_capital,
         registration: &accounts.first_registration,
@@ -200,6 +213,9 @@ fn execute_core(
     let mut quotes = Vec::with_capacity(views.len());
     for (view, leg) in views.iter().zip(signed_legs) {
         let actual = quote_current(view, accounts, leg, intent.side, clock, &mut cache)?;
+        if forced {
+            liquidation::check_price(&actual, &identity.market)?;
+        }
         quotes.push(financial_quote(&actual, &identity.market, clock));
         actual_quotes.push(actual);
     }
@@ -218,6 +234,9 @@ fn execute_core(
         4,
     )?;
     profile_cu!("financial-candidate-exit");
+    if let Some(before) = liquidation {
+        before.check_progress(&next.trader, &environment, intent.lots)?;
+    }
     drop(views);
     profile_cu!("route-commit-enter");
     commit::apply(

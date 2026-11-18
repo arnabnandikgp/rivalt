@@ -1,3 +1,4 @@
+import { MAX_PRICE } from './price-policy.js';
 /** Profile-4 canonical arithmetic. A quote is not capital admission or a reservation. */
 import {MAX_POSITION_LOTS as MAX_POSITION,MAX_MAKER_DEPTH_LOTS as MAX_DEPTH} from './quantity-limits.js';
 export type CanonicalRegion = Readonly<{
@@ -18,7 +19,6 @@ export type CanonicalShape = Readonly<{
   asks: readonly CanonicalRegion[];
 }>;
 
-const MAX_PRICE = 1_000_000n;
 const min = (left: bigint, right: bigint) => left < right ? left : right;
 const max = (left: bigint, right: bigint) => left > right ? left : right;
 const abs = (value: bigint) => value < 0n ? -value : value;

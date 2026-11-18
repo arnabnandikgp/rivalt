@@ -2,38 +2,22 @@
 //! All quote amounts are atoms unless named `scaled`.
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
 pub mod clearing;
+pub mod backing;
 pub mod liquidation;
 pub mod liquidity;
 pub mod margin;
 pub mod oracle;
-pub mod orders;
+pub use clearing_accounting::price_policy;
+pub use risk_engine::orders;
 pub mod route;
 
-pub const SCALE: i128 = 1_000_000_000;
 pub const LOTS_PER_BTC: i64 = 1_000_000;
-pub const MAX_LOTS: i64 = 100_000_000;
 pub const MAX_GROSS_LOTS: u64 = 200_000_000;
-pub const MAX_PRICE: u64 = 1_000_000;
-pub const MAX_CASH: u64 = 1_000_000_000_000_000;
-pub const MAX_SCALED: i128 = 100_000_000_000_000_000_000_000_000;
-pub const MAX_FUNDING: i128 = 1_000_000_000_000_000;
+use clearing_accounting::{add, mul, sub};
+pub use clearing_accounting::{cash_add, cash_sub, scaled, Error, Result, MAX_CASH, MAX_FUNDING, MAX_LOTS, MAX_PRICE, MAX_SCALED, SCALE};
+pub use risk_engine::{IM_BPS, MM_BPS};
 pub const MAX_PARTICIPANTS: usize = 64;
-pub const IM_BPS: u64 = 1_000;
-pub const MM_BPS: u64 = 500;
 pub const MIN_ORDER_ATOMS: u64 = 1_000;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Error {
-    Bounds,
-    Overflow,
-    InsufficientCash,
-    Entitlement,
-    Health,
-    Cohort,
-    Invariant,
-    Generation,
-}
-pub type Result<T> = core::result::Result<T, Error>;
 
 fn next_generation(previous: i64, next: i64, generation: u64) -> Result<u64> {
     if previous != next && (previous == 0 || next == 0 || previous.signum() != next.signum()) {
@@ -41,31 +25,6 @@ fn next_generation(previous: i64, next: i64, generation: u64) -> Result<u64> {
     } else { Ok(generation) }
 }
 
-fn add(a: i128, b: i128) -> Result<i128> {
-    a.checked_add(b).ok_or(Error::Overflow)
-}
-fn sub(a: i128, b: i128) -> Result<i128> {
-    a.checked_sub(b).ok_or(Error::Overflow)
-}
-fn mul(a: i128, b: i128) -> Result<i128> {
-    a.checked_mul(b).ok_or(Error::Overflow)
-}
-pub fn cash_add(a: u64, b: u64) -> Result<u64> {
-    let n = a.checked_add(b).ok_or(Error::Overflow)?;
-    if n > MAX_CASH {
-        return Err(Error::Bounds);
-    }
-    Ok(n)
-}
-pub fn cash_sub(a: u64, b: u64) -> Result<u64> {
-    if a > MAX_CASH || b > MAX_CASH {
-        return Err(Error::Bounds);
-    }
-    a.checked_sub(b).ok_or(Error::InsufficientCash)
-}
-pub fn scaled(atoms: u64) -> Result<i128> {
-    mul(i128::from(atoms), SCALE)
-}
 pub fn fee_total(notional: u64) -> Result<u64> {
     if notional > MAX_CASH {
         return Err(Error::Bounds);
@@ -79,7 +38,7 @@ pub fn fee_increment(prefix: u64, notional: u64) -> Result<(u64, u64)> {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Participant {
-    pub id: u16,
+    pub id: u64,
     pub cash: u64,
     pub lots: i64,
     pub virtual_scaled: i128,
@@ -88,17 +47,13 @@ pub struct Participant {
     pub reserved: u64,
 }
 impl Participant {
+    fn position(&self) -> margin::Position {
+        margin::Position { lots: self.lots, virtual_scaled: self.virtual_scaled,
+            funding_checkpoint: self.funding_checkpoint, generation: self.generation }
+    }
     pub fn validate(&self) -> Result<()> {
-        if self.cash > MAX_CASH
-            || self.reserved > MAX_CASH
-            || self.lots.unsigned_abs() > MAX_LOTS as u64
-            || self.virtual_scaled.unsigned_abs() > MAX_SCALED as u128
-            || self.funding_checkpoint.unsigned_abs() > MAX_FUNDING as u128
-            || (self.lots != 0 && self.generation == u64::MAX)
-        {
-            return Err(Error::Bounds);
-        }
-        Ok(())
+        if self.cash > MAX_CASH || self.reserved > MAX_CASH { return Err(Error::Bounds); }
+        self.position().validate()
     }
     pub fn accrued(&self, funding: i128) -> Result<Self> {
         self.validate()?;
@@ -118,36 +73,16 @@ impl Participant {
         Ok(next)
     }
     pub fn unpaid(&self, price: u64, funding: i128) -> Result<i128> {
-        self.validate()?;
-        if price == 0 || price > MAX_PRICE || funding.unsigned_abs() > MAX_FUNDING as u128 {
-            return Err(Error::Bounds);
-        }
-        // Derived valuation has headroom beyond the ordinary stored-v bound.
-        // Default must remain calculable at that bound even if an ordinary
-        // accrual/fill cannot store another unit of exposure.
-        let accrued = sub(
-            self.virtual_scaled,
-            mul(
-                i128::from(self.lots),
-                sub(funding, self.funding_checkpoint)?,
-            )?,
-        )?;
-        add(accrued, mul(i128::from(self.lots), scaled(price)?)?)
+        if self.cash > MAX_CASH || self.reserved > MAX_CASH { return Err(Error::Bounds); }
+        self.position().unpaid(price, funding)
     }
     pub fn risk_equity(&self, lower: u64, upper: u64, funding: i128) -> Result<i128> {
-        if lower == 0 || lower > upper || upper > MAX_PRICE {
-            return Err(Error::Bounds);
-        }
-        let price = if self.lots < 0 { upper } else { lower };
+        let price = risk_engine::Risk { lower, upper, funding }.adverse_price(self.lots)?;
         add(scaled(self.cash)?, self.unpaid(price, funding)?.min(0))
     }
     pub fn margin(&self, upper: u64, bps: u64) -> Result<u64> {
         self.validate()?;
-        if upper == 0 || upper > MAX_PRICE || bps > 10_000 {
-            return Err(Error::Bounds);
-        }
-        let numerator = u128::from(self.lots.unsigned_abs()) * u128::from(upper) * u128::from(bps);
-        u64::try_from(numerator.div_ceil(10_000)).map_err(|_| Error::Overflow)
+        risk_engine::margin_atoms(self.lots, upper, bps)
     }
     pub fn admissible(&self, lower: u64, upper: u64, funding: i128) -> Result<()> {
         let required = cash_add(self.margin(upper, IM_BPS)?, self.reserved)?;
@@ -311,7 +246,7 @@ fn validate_cohort(cohort: &[Participant]) -> Result<()> {
         return Err(Error::Cohort);
     }
     for (i, p) in cohort.iter().enumerate() {
-        if p.id as usize >= MAX_PARTICIPANTS || cohort[..i].iter().any(|other| other.id == p.id) {
+        if cohort[..i].iter().any(|other| other.id == p.id) {
             return Err(Error::Cohort);
         }
     }
@@ -362,13 +297,13 @@ pub fn mul_div_rem(a: u128, b: u128, d: u128) -> Result<(u128, u128)> {
     Ok((q, r))
 }
 /// Largest remainder in the caller's integer unit; deterministic stable-ID ties.
-pub fn apportion(total: u128, weights: &[(u16, u128)]) -> Result<Vec<u128>> {
+pub fn apportion(total: u128, weights: &[(u64, u128)]) -> Result<Vec<u128>> {
     if weights.is_empty() || weights.len() > MAX_PARTICIPANTS {
         return Err(Error::Cohort);
     }
     let mut denominator = 0u128;
     for (i, (id, w)) in weights.iter().enumerate() {
-        if *id as usize >= MAX_PARTICIPANTS || weights[..i].iter().any(|(other, _)| other == id) {
+        if weights[..i].iter().any(|(other, _)| other == id) {
             return Err(Error::Cohort);
         }
         denominator = denominator.checked_add(*w).ok_or(Error::Overflow)?;

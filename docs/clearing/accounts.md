@@ -1,16 +1,380 @@
 # Accounts, ownership and wire identity
 
-P47 qualifies the RC2 schema-8 local runtime; integration is tracked in [STATUS](../STATUS.md).
-The retained P44 deployment stays on its schema-7 client.
+The account-scale RC2 local runtime uses schema 10/profile 6. Acceptance and
+integration are tracked separately in [STATUS](../STATUS.md). Prior deployments
+stay on their original clients; there is no in-place account migration.
 
 Preserve two markets (BTC index 0, ETH index 1), one classic SPL six-decimal test
-mint, 64 stable members including makers/receivers, four portfolios per owner,
+mint, monotone u64 identities and paged Financial membership, four portfolios per owner,
 children 0–8, two position slots, four orders and two protective pairs per root.
 Child zero is Cross; positive children are Isolated. Makers are isolated. Cross
 eligibility is immutable on market admission; both initial markets are eligible.
 No identity reuse, market replacement, live conversion or dynamic listing is added.
 A cross account uses the eligible registry, not a user-selected clearing group.
 The bounded two-slot implementation is not a claim of unlimited market support.
+
+## Account-scale successor contract (P51B)
+
+D93–D108 implement the scalable account contract described here. The 64-entry
+**page** is a storage unit, not a venue population cap. Financial entry requires
+complete, rent-funded recovery capacity; the local launcher provisions 128 roots.
+Larger workloads require their own measured acceptance before enabling them.
+These are distinct gates: the program checks actual funded storage against the
+resulting Financial count; operator qualification measures an intended capacity
+and workload, not each new registration. There is no on-chain test-certificate
+flag. Ordinary fills do not enumerate the population. Complete default does, and
+its exact arithmetic cost also depends on claim denominators; paged storage alone
+does not prove practical recovery time at a larger population.
+The following gap matrix records the replaced predecessor; the membership and
+maintained-backing sections describe the current source.
+
+### Code-to-design gap matrix
+
+| Current source / constraint | Successor obligation | Owning phase |
+|---|---|---|
+| `state/identity.rs`: `MAX_MEMBERS=64`; `state/records.rs` bounded registry decoding | Fixed-size pages with authenticated complete traversal; page capacity never acts as venue population cap | P55A |
+| `account_custody/mod.rs`: register appends to `Vec<Address>`, lifetime `count:u16`, no individual retirement | Monotone u64 identity; empty registration distinct from financial participation; owner-authorized empty retirement and permanent tombstone | P55A |
+| `state/accounts/layouts.rs`: `Portfolio.children:u16`, u16 indices/root ID | u32 owner namespace keys, u64 member IDs and explicit lifecycle; retain current 4/9 namespace policy until P60A | P55A/P60A |
+| `account_safety/resolution/{mod,freeze,recovery}.rs`: registry hash/count and fixed pages | Freeze authenticated live-index root/count/epoch, then enumerate all financial members exactly once in stable ID order | P54B/P55A |
+| `financial-core/lib.rs`: 64-participant checks and aggregate arithmetic | Separate per-root numeric admission from aggregate membership; checked wider totals and complete-cohort conservation | P54A/P55A |
+| `clearing/{wide,row}.rs`: 96 limbs, product denominator, 186-bit factor, 93-bit totals | Paged arithmetic; reduced exact LCM with bounded small divisors; count-derived widths, not a bigger unexplained constant | P54A/P54B |
+| `ResolutionRow/Page`: two wide flows per root, two roots/page, 32 pages | Compact frozen inputs and whole-flow quotients; shared paged wide scratch; recompute exact remainders to verify order | P54B/P54C |
+| `ResolutionWork`, `clearing/circulation.rs`: u64 visited mask, 69 nodes, 518 arcs/u16 offsets | Paged graph, u64 indices, complete rank/permutation proof, hierarchical active-arc lookup and resumable canonical DFS | P54C |
+| `account_cash/certificate.rs`: whole scan restarts on selected liability/source/membership stamp | Incrementally maintained per-root epochs and ledger backing summaries; bounded validity region with current-source admission, no stale certificate or forced pause | P55B |
+| `MarketLedger`, custody, retirement scans | Keep actual allocated vault cap; complete cash/claim totals, market attribution and empty-member exclusion proof; no duplicated cached spendable cash | P54/P55 |
+| `events.rs`, `instructions/scopes.rs`, SDK `account-{client,snapshot}.ts` | Versioned lifecycle/page events and authenticated bounded page discovery; IDs as decimal strings, no JS number conversion | P55/P56A |
+| Services `account-{frozen,rate}-proposal.ts`, `account-settlement-worker.ts` | Untrusted paged proposals, durable continuation/recovery and incremental backing; no whole-cohort transaction or trusted solver | P54/P56A |
+| Indexer `account-{events,projection,reconcile}.ts` and trader UI | Staged completeness, page/tombstone projection and stable-ID pagination; never report partial replay as ready | P52/P56A |
+
+### P55A implementation boundary
+
+P55A1's accepted native foundation separates u64 scalar identity from the retained
+small reference-cohort array size. P55A2's source implements schema-9
+roots/header/pages, owner-controlled activation/deactivation, permanent same-address
+retirement and pre-funded capacity checks. D102 advances this layout to schema
+10/profile 6; P56 binds the common SDK,
+services and local runtime to the same explicitly qualified fresh-domain artifacts.
+
+`account_membership::index` authenticates all fifteen canonical writable nodes,
+revisions and predecessor counts before mutation. Entry/exit commits the root,
+member page, fixed header and path atomically; ordinary financial actions do not
+write that index. `members` validates page slots; `lifecycle` rejects residual
+obligations; `scan` performs one authenticated node/page/member visit with a
+serialized cursor. Node allocation itself creates only zero counts, never Financial
+eligibility. Recovery capacity comes from actual complete `StorageFunding` proofs.
+
+The new default path consumes the live index and D100 reusable workspace. Fixed-
+cohort solver/mirror entrypoints are deliberately retired (D101). Whole-venue
+retirement and the existing conservative backing scan now traverse the same index;
+P55B still owns maintained backing and progress under concurrent financial changes.
+The scoped journal records the narrowly authorized root-kind transition 5→26 on
+retirement; no other instruction may relabel that root. Pinned signed lifecycle, custody, interleaving and complete-default/SQL checks
+are recorded in validation; they do not qualify expanded Financial admission.
+
+### Identity and membership invariants
+
+`Registered` counts identities; `Financial` counts roots activated for money or
+obligations; `Exposed` counts nonzero q; `Default-connected` means claims joined
+through the two market nodes. These are different populations. A funded flat root
+is Financial even with no open position. Makers and liquidation receivers are
+ordinary counted financial roots with their existing separate role restrictions.
+Default still includes the **complete financial venue**, not only a suspected
+connected component or a selected group. Omitting a Registered-only root is safe
+only because the program enforces cash=q=v=orders=reservations=0 and no live binding.
+
+Member IDs are monotone u64, assigned once and never reused. Page/slot derive from
+ID, with 64 entries/page as an I/O choice. Registration writes the registry header
+and its page; ordinary fills do not. A sparse radix index records pages with
+financial entries; its stored counts authenticate traversal. Entry/exit updates
+the leaf and ancestor counts atomically. No writable global member counter is
+added to every trade. An existing Financial root stays indexed even when temporarily
+empty, until its owner explicitly deactivates it. This avoids automatic tree writes
+on a zero crossing and prevents a caller from dropping a debt-bearing root.
+
+| Transition | Authority / exact precondition | Atomic effect |
+|---|---|---|
+| Absent → Registered | Owner, canonical unused portfolio/child PDA, unfrozen venue, checked next ID; payer supplies rent | Allocate ID/root/page; zero financial state; no trading permission |
+| Registered → Financial | Owner, unfrozen safety; all required recovery storage and its rent funded before eligibility | Set live bit/count/path; bind activation generation; only then may the same transaction deposit or trade |
+| Financial → Financial | Existing operation authority and all current whole-account rules | Preserve live membership; update affected backing proof as part of the financial transition |
+| Financial → Registered | Owner; cash, quantities, fixed claims/fractions, reservations and active orders/protections all zero; delegate revoked and maker binding retired | Remove live bit/count/path; retain ID, nonces and generations |
+| Registered → Retired | Owner, same zero-state checks, no binding; no frozen epoch owns the root | Retain permanent tombstone at root PDA and identity entry; refund only excess account rent |
+| Financial → frozen snapshot → Financial | Existing credible freeze/emergency authority, then permissionless verified continuation | Freeze all live membership; apply every row once; recover only after exact reconciliation under the existing recovery rules |
+
+No live mode conversion or namespace reuse is introduced. A tombstone cannot be
+passed as a margin account or reinitialized; old signed actions cannot regain
+authority. Full venue retirement remains distinct. No financial root/page can be
+closed during default. Indexed membership changes serialize with safety so a
+freeze sees either the full entry/exit or its unchanged predecessor.
+
+### Versioned layout target and storage ownership
+
+P55 introduced **account schema 9 / local profile 5** for membership; D102 advances
+the same membership layout to **schema 10 / profile 6**, adding maintained-backing
+fields below. The table records the membership delta; MarginAccount is now 1,011
+bytes after its two processed epochs. Scratch layouts have typed decoders.
+All new accounts retain canonical name-based
+discriminators and ordered little-endian Borsh fields. Common prefix is
+`schema:u16, revision:u64, venue:Pubkey`; sizes include the eight-byte discriminator.
+No version suffix is added to Rust domain type names. The final generated ABI and
+literal byte-size/seed tests must agree before P54/P55 deploy anything.
+
+| Record | Ordered fields after the common prefix / explicit delta |
+|---|---|
+| VenueRegistry | `membership_epoch:u64, next_id:u64, registered_count:u64, financial_count:u64, live_index:Pubkey, bump:u8`; 115 bytes |
+| MemberPage | `page_index:u64, allocated_mask:u64, financial_mask:u64, entries:[MemberEntry;64], bump:u8`; 2,699 bytes |
+| MemberEntry | `root:Pubkey, lifecycle:u8, activation_generation:u64`; 41 bytes; member ID is page/slot-derived; unallocated entry all zero |
+| MemberIndexNode | `level:u8, prefix:u64, populated_mask:u16, counts:[u64;16], bump:u8`; 190 bytes; children use deterministic PDA prefixes; zero count iff absent bit |
+| RecoveryStorage | `ready_capacity:u64, target_capacity:u64, next_allocation:u64, generation:u64, locked_epoch:u64, completed_epoch:u64, bump:u8`; 99 bytes; actual complete-capacity proof and exclusive recovery epoch |
+| StorageFunding | `allocation:Pubkey, rent_payer:Pubkey, contributed_lamports:u64, bump:u8`; 123 bytes; immutable actual payer top-up and rent refund binding, not custody/insurance or a spendable trader balance; the workspace owns the lock (D100) |
+| Portfolio | Keep ownership; replace `index:u16, children:u16` with `index:u32, active_children:u32`; 91 bytes, no bitmap-based child authorization |
+| MarginAccount | Replace `subaccount_index:u16, id:u16` with `subaccount_index:u32, id:u64`; append `lifecycle:u8, activation_generation:u64` immediately before bump; 995 bytes, other fields unchanged |
+| StorageTombstone | Common prefix, `original_kind:u8, completed_epoch:u64, register:u32, page_index:u64, bump:u8`; 72 bytes; permanent terminal workspace marker with immutable payer receipt retained |
+| MarginTombstone | Common prefix, `portfolio:Pubkey, owner:Pubkey, child:u32, id:u64, activation_generation:u64, bump:u8`; 135 bytes; same root address, different discriminator |
+| Resolution / work | u64 frozen count/cursors/row IDs, committed live-index root and epoch; replace inline `Wide` by typed paged references and explicit used-limb counts; no inline cohort arrays |
+| Frozen row | Stable member ID/key, original cash/q/generations/claims, own collected cash, three whole-flow floors, fractional/direction flags, applied bit; no per-row wide numerator |
+| Arithmetic / graph / order pages | Epoch, work-object kind, page index, used length, fixed bounded payload, bump; successor reusable identity derives from venue/kind/index (D100), never a caller-selected writable account |
+
+New seed prefixes are `member-page`, `member-index`, `resolution-limbs`,
+`resolution-graph`, `resolution-order` and `storage-funding`, followed by venue and
+the typed indices (or allocation key for storage funding);
+P54 bridge work pages additionally include resolution epoch; D100 removes that
+seed in the successor workspace, retaining the payload's epoch fence. Root/portfolio prefixes remain
+but use u32 namespace seeds under a fresh domain. Typed layout lengths, graph-word
+packing and arithmetic page payload sizes are P54's measured encoding decisions;
+they cannot be inferred from the native Python object sizes. An opcode may access
+only its bounded canonical pages. No page instruction grants authority over money.
+
+Creation pays rent explicitly from a transaction signer. P55 must reserve scalar
+snapshot/graph capacity **before financial activation** and provision wide scratch
+for the aggregate proved numeric envelope, not wait for a bankrupt keeper to pay.
+Shared scratch grows only at an authenticated capacity transition. D100's successor
+uses reusable canonical allocation keys without epoch seeds; epoch remains in
+every work payload. The existing P54 source bridge still uses its epoch-specific
+keys until complete lifecycle integration replaces it. The funding
+source is explicit local operator lamports or an authorized storage payer, never
+collateral, insurance or silently redirected trading fees. Refunds go to the
+recorded payer only after no active/frozen work references that allocation.
+The exact worst-case provisioning/cost proof remains an activation gate; an
+unfunded allocation is a rejected activation, not an unresolvable admitted debt.
+
+The provisioning controller remains separate from financial eligibility.
+`RecoveryLayout` derives frozen-row pages, all 46 arithmetic registers
+at the count-derived worst width, and graph/order registers 64–70. The authority
+starts growth; each exact cursor step proves a real rent-funded allocation and
+its canonical `StorageFunding` receipt. No partial proof changes ready capacity.
+Cancellation retains storage/payer ownership, and a monotone generation rejects
+old continuations. A locked recovery epoch blocks all provisioning writes.
+Provisioning proves capacity; only the separate owner-signed activation transition
+grants Financial membership. Freeze locks the same workspace before default.
+
+Numeric exhaustion rejects without wrap. With N finite financial roots and retained
+per-root claim bound K, use checked totals sufficient for N*K; u128 is not a proof
+for u64 N. P54B uses three u64 words with an explicit <2^151 bound for those totals; determinant
+factors need up to 302 bits, hence five u64 limbs. Work length/index arithmetic is
+also checked. Existing per-root limits, global allocated custody <=10^15 atoms and
+market gross OI stay unchanged. Funding-index rebasing in P58D must preserve each
+economic claim exactly; P60 namespace/order expansion must rerun the relevant
+arithmetic and retirement proofs rather than exploit spare field widths silently.
+
+### Successor membership reads (P54B, inactive)
+
+`MemberIndexNode` and `MemberPage` now implement the reserved 190-/2,699-byte
+read layouts above; no current instruction creates/mutates them. The Borsh wrapper
+around the boxed 64-entry array adds no wire bytes. An entry's 41 bytes are root
+address, lifecycle u8 and activation generation u64. Codes are 0 unallocated,
+1 Registered, 2 Financial and 3 Retired; unallocated entries remain all zero.
+A Financial entry must be allocated, have a nonzero root and generation, and still
+match the actual canonical margin root before valuation. P55 owns registration,
+activation, tombstones, storage funding and complete mutation coverage.
+
+Index-node seeds are `member-index`, venue, level u8, prefix LE-u64 and bump.
+Member-page seeds are `member-page`, venue, page-index LE-u64 and bump. Nodes have
+level at byte 50, prefix at 51, populated mask at 59, 16 u64 child Financial counts
+at 61 and bump at 189. Member pages have index at 50, allocated mask at 58,
+financial mask at 66, 64 entries at 74 and bump at 2,698. Current native loader
+checks match these literal layouts and name-derived discriminators.
+
+A u64 member ID maps to page `id/64` and bit `id%64`. Its 58 page bits require
+15 radix-16 levels, numbered 14 (root) through 0 (parent of member pages). Root
+prefix is zero; a node child is `prefix*16+slot`. At level 0 it is a page index;
+otherwise it is the next node prefix. Counts are Financial roots, not populated
+pages. Bits and nonzero counts must agree, child counts must sum exactly, and
+children outside the u64 ID namespace reject. In particular root slots 4–15 are
+unreachable, and a level-0 child count cannot exceed 64.
+
+The 544-byte internal `MembershipCursor` fixes the next canonical node, page or
+member from the frozen root/count. It retains at most 15 bounded path frames,
+verifies every subtree count on return, consumes financial bits in ascending ID
+order and commits an ordinal only after successful row valuation. Work is one
+bounded node/page/member transition; whole traversal has exactly
+`N + 2*(index_nodes + member_pages)` such requests including terminal observation.
+This is logical work, not measured transactions or CU. No population-sized stack,
+private keeper list or skipped empty-looking financial root is permitted.
+
+The read adapter authenticates program ownership, exact layout, venue, requested
+level/prefix/index and PDA before advancing. **It does not itself freeze data.**
+The owning controller must bind the safety/membership epoch and prohibit index,
+entry and root mutation for that frozen snapshot; checking a count or caller's
+checkpoint cannot substitute for those locks. Full root role/mode/ID/generation
+and source/funding authentication, public handlers and signed acceptance remain
+unfinished. Existing schema-8 account creation/trading limits are unchanged.
+
+### Prepared frozen verification (P54B, inactive financial paths)
+
+D97 binds the real schema-8 frozen `Resolution`, requiring Value/cursor zero,
+exact source revision and registry hash, and unchanged frozen economic inputs.
+`PreparedSettlement` uses schema 9, **1,463 bytes**, seeds `prepared-settlement`,
+venue and epoch LE-u64. Its common schema/revision/venue prefix ends at byte 50;
+epoch/source/source-revision end at 98; registry revision/membership epoch/hash at
+146; count/safety/terms at 170; configuration/prices/funding at 234; allocated and
+four market-bucket/gross arrays at 306. Stage/index-ready mask/member-page-ready
+end at 310, followed by the 1,152-byte preparation checkpoints and bump.
+`FrozenMarginPage` uses **1,156 bytes**, seeds `frozen-margin-page`, venue, epoch
+LE-u64 and page-index LE-u64. After the common prefix, epoch/index occupy 16 bytes,
+then row-count, eight 136-byte rows and bump. Rows bind stable ID, root address,
+activation generation, original revision, cash, two signed quantities/generations,
+exact i128 claims and collected cash. The fixed eight-row page is an I/O bound.
+
+Initializers are permissionless/rent-funded and read the actual frozen source.
+They cannot accept uploaded claims or caller-selected membership. The bounded
+bridge mirrors the source's complete at-most-64 registered roots into one member
+page and 15 radix nodes; generation is 1 because schema-8 IDs cannot be reused.
+One mirror is created per fresh local qualification venue. Later freezes can use
+the unchanged existing resolution; the paged live lifecycle is P55's separate work.
+
+Valuation derives whole-account claims from the real margin model at frozen
+prices/funding and checks canonical membership, identity and complete conservation.
+Only after all ancestor counts close can denominator work begin. Stage- and
+revision-guarded denominator calls consume frozen rows and perform 1–128 word
+steps with at most three exactly ordered limb pages. Registers 0/1 alternate the
+common denominator; register 2 is scratch and attempt is 0. Missing next pages
+end the current bounded call; they cannot supply implicit zero data. The final
+denominator stage is Proposal. `SettlementRates` then controls untrusted upload,
+rate verification and insurance clipping; no path from this controller permits Apply.
+
+`SettlementRates` uses schema 9 and **1,204 bytes**, seeds `settlement-rates`, venue
+and epoch LE-u64. Prefix/epoch end at 58; attempt at 66; stage at 67; proposer at
+99; last progress slot at 107; five-word factor at 147; numerator lengths at 163;
+uploaded word counts at 179; insurance checkpoint at 243; rate checkpoint at 1203;
+then bump. Stages are Await=0, Upload=1, Verify=2, Rejected=3 and Verified=4.
+The original frozen insurance and completed rounds remain separate from attempt
+state. Each new attempt increments a checked u64; page PDA seeds omit attempt so
+retries reuse finite allocation.
+
+Registers 3/4 hold the proposed BTC/ETH numerators. Only the proposal signer may
+upload 1–32 contiguous words, within one page, at the exact next offset. The last
+used word must be nonzero; zero is length zero. Count-derived width and five-word
+factor bounds apply before upload. Registers 5–24 are algorithm-owned scratch;
+any helper may retag an old scratch page for the current attempt exactly once.
+No caller writes denominator registers 0/1 or arbitrary scratch values. Scratch
+tails stay dirty and are excluded by verified normalized lengths.
+
+Every helper may continue a completely uploaded proposal using authenticated
+frozen rows and 1–128 bounded word steps. Arithmetic rejection records Rejected;
+it never spends insurance or consumes an evaluation. A completed fractional round
+updates only the planned budget and returns Await. Verified requires a final
+integral round, with no more than three evaluations. D98 defines reset authority
+and the 64-slot inactivity bound; reset cannot change frozen input or successful
+insurance rounds. Missing/stale/foreign account guards still fail atomically.
+
+Scoped history kinds 17–23 are PreparedSettlement, FrozenMarginPage,
+MemberIndexNode, MemberPage, SettlementLimbPage, SettlementRates and SettlementPlan. Their schema is 9; all existing
+financial kinds remain 8. The ABI extension is literal in
+[its checker](../../ops/settlement_wire_contract.py); existing instructions/layouts,
+seeds, discriminators, signing domains and errors are independently retained.
+The selected runtime artifacts and admitted capacity remain unchanged until
+actual acceptance. Generated clients do not establish deployed qualification.
+
+### Conserving plan and scalar pages (P54C)
+
+`SettlementPlan` is a separate **1,181-byte** schema-9 account, seeded by
+`settlement-plan`, venue and epoch LE-u64. After the common prefix it binds the
+epoch, exact verified-rate revision/attempt, stage/cursor, proposer and progress
+slot, order attempt/market, integral insurance consumption, constructed graph
+length/required flow, original/applied cash, market movements and adoption revision.
+Its 960-byte stage-owned checkpoint begins at offset 220; the bump is at 1,180.
+Unused checkpoint tails must be zero. Generated IDL and the literal ABI checker
+specify every ordered field. Application fields become authoritative only after
+exclusive adoption; stages 9/10/11/12 mean Apply/Reconcile/Reconciled/Complete.
+Five financial instructions implement adoption, single-root application, complete
+market distribution, single-root reconciliation and terminal completion. The
+[resolution contract](risk-and-resolution.md#exclusive-paged-application-p54c)
+specifies their write boundaries and original/applied balance split.
+
+The six construction entrypoints initialize the plan/storage, accept a frozen row,
+begin/reset ordering and continue bounded work. They keep all source financial
+accounts read-only. Plan creation requires both complete rate verification and
+terminal original-budget insurance history with the identical integral result.
+Rows always come from the canonical frozen page. No uploader supplies flow floors,
+graph edges or work checkpoints. Scoped history owns all plan/page revisions.
+
+Existing limb pages also store fixed scalar records; no record crosses a page:
+
+| Register | Record | Capacity / page |
+|---|---|---|
+| 25–40 / 41–45 | Flow / order arithmetic | Count-derived wide width |
+| 64 | Frozen ID/cash, three floors, directions/fractions/order, seen attempt/mask, applied flag | 56 bytes; 36 rows |
+| 65 | Graph node | 72 bytes; 28 nodes |
+| 66 | Directed residual arc | 32 bytes; 64 arcs |
+| 67 | Adjacency arc ID | 256 u64 values |
+| 68 | Active hierarchy word | 256 u64 values |
+| 69 / 70 | BTC / ETH frozen ordinal permutation | 256 u64 values |
+
+The owner derives each register's capacity from count and graph topology; the
+loader authenticates its individual last-page length and rejects tail access.
+Flow bytes are ID at 0, cash at 8, floors at 16, directions at 40, fraction mask at
+42, local order at 43, order-attempt LE-u64 at 46, seen mask at 54 and applied bool
+at 55. Invalid flags/directions/permutations reject; an uninitialized zero row is
+invalid. Scalar encodings are explicit codecs, not fields inferred from the IDL's
+opaque word array. Program authentication and actual financial qualification are
+separate requirements; the selected runtime remains unchanged.
+
+### Successor limb-page layout (P54B, inactive)
+
+The first concrete scratch type is `SettlementLimbPage`; it is reserved schema 9,
+not a change to schema-8 venue/margin accounts. The verification-only P54B
+controller initializes and consumes it under the D97 frozen-source bridge. Fields are Borsh little endian with discriminator
+`sha256("account:SettlementLimbPage")[0..8]`:
+
+| Byte offset | Field / bytes |
+|---|---|
+| 0 | Discriminator / 8 |
+| 8 | Schema u16 / 2 |
+| 10 | Internal scratch revision u64 / 8 |
+| 18 | Venue address / 32 |
+| 50 | Resolution epoch u64 / 8 |
+| 58 | Attempt u64 / 8 |
+| 66 | Logical register u32 / 4 |
+| 70 | Page index u64 / 8 |
+| 78 | Addressable word count u16 / 2 |
+| 80 | PDA bump / 1 |
+| 81 | Fixed 256-u64 payload / 2,048 |
+
+Total **2,129 bytes**. PDA seeds are `resolution-limbs`, venue, epoch LE-u64,
+register LE-u32, page-index LE-u64 and bump. Attempt is a fenced reuse tag, not a
+seed that permits unbounded allocation on every proposal. The last page permits
+only `min(256, capacity-page_index*256)` words; its unused payload is inaccessible.
+The loader checks exact ownership, size, header, seeded address and required write
+permission. Read-only requests cannot write even if transaction privilege merging
+makes the account writable. Signed accounts/executable accounts are rejected.
+
+The page is temporary arithmetic, never collateral or a claim. Revision overflow
+rejects before a writable window opens. A successful invocation increments each
+declared write page once and atomically persists its controller checkpoint. The
+controller owns the epoch/attempt and descriptors; caller-supplied revisions are
+replay guards only. Structural cursor validity or arbitrary keeper versions cannot
+establish progress. Allocation/refund lifecycle and complete signed qualification
+remain P54/P55 obligations, with financial expansion disabled until P56B.
+
+### Deployment and phase gates
+
+Use a new local domain/genesis/mint, exact new artifact hashes and empty schema-9
+journal. Keep old artifacts, accounts, evidence and unresolved originals with their
+schema-8 executors. No in-place copying of claims, positions, reserves or authority.
+Default/devnet gates remain closed. P51B's model is never imported by a production
+worker. P54 owns bounded exact execution and invalid-proposal recovery; P55 owns
+membership/backing transitions; P56 owns complete SDK/event/PG/UI parity and signed
+larger-cohort acceptance. Only P56B can enable the expanded local financial profile.
 
 
 ## Authority, dependencies and linearization
@@ -56,13 +420,18 @@ conflicting actions. Distinct-market independence is not a validator TPS claim.
 
 Ordered Borsh fields in [state/accounts](../../programs/clearing/src/state/accounts) are normative.
 Clearing accounts use canonical discriminator bytes, SHA-256(`account:<name>`)[0..8].
-Each begins with schema u16=8 and a scoped revision u64. D84 deliberately supersedes
+The current clearing-owned prefix uses schema u16=10 and a scoped revision u64. D84 deliberately supersedes
 P36's preserved historical discriminators for this fresh local domain. Integer seeds are little endian. Reused Position and
 OrderBook scalar records preserve 48-/680-byte encoding only, not V2 account
 identity, handlers or common-loss semantics. All public JSON integers are decimal
 strings with explicit units and schema.
 
-| Account | PDA seeds after string prefix | Bytes including discriminator |
+The following table is the **retained schema-8 predecessor**, for migration
+comparison only. Current membership and D102 layout deltas above/below supersede
+its registry, namespace, root, certificate and resolution records. Generated IDLs
+and literal size tests own current wire identity.
+
+| Predecessor account | PDA seeds after string prefix | Historical bytes including discriminator |
 |---|---|---:|
 | Venue | `venue-v3`, domain[32] | 329 |
 | Custody | `custody-v3`, venue | 59 |
@@ -89,7 +458,7 @@ contract's size tests do not establish SBF stack/CU safety.
 
 ## Current-profile additions and activation
 
-Canonical maker registrations and funding publishers are clearing-owned schema 8.
+Canonical maker registrations and funding publishers are clearing-owned schema 10.
 Maker-owned curve and price accounts use schema 5. Their exact layouts are in
 [quoting](../liquidity/quoting.md) and [funding](../liquidity/funding.md).
 The older fixed-maker registration is retired, not reinterpreted as the current
@@ -102,9 +471,10 @@ Seed insurance requires both reserve authority and actual donor-token authority.
 Surplus classification requires reserve authority and cannot exceed the unallocated
 actual vault excess; repeated classification cannot allocate it twice.
 
-The profile-4 initializer permits flat custody setup only under its explicit local
+The profile-6 initializer permits flat custody setup only under its explicit local
 feature. `activate_liquidity` requires venue authority, unpaused Custody, complete
-32-page safety storage, an idle zero-epoch resolution header, reconciled vault and
+unlocked recovery capacity covering the authenticated Financial count, an idle
+zero-epoch resolution header, reconciled vault and
 ledgers, zero gross exposure/funding/settlement/fees/carry and both fresh Normal
 market qualifications. Only the restricted publisher can qualify this profile;
 initialization required sealed complete registries. Activation clears held
@@ -380,3 +750,31 @@ classified continuous-sampling/trading scan attempts; rebuilt ABI/SDK/SBF parity
 actual RPC/WS/PostgreSQL crash/replay reconciliation. A temporary coordinated window
 may remain a measured limitation, never an implicit guarantee. P43/P44 cannot
 inherit resource acceptance from P41.
+
+### P55B2 backing layout boundary
+
+D102 uses schema **10 / profile 6**. It adds two processed
+backing epochs to MarginAccount (1,011 bytes), a 248-byte BackingState to each
+MarketLedger (373 bytes), and replaces the old certificate's snapshot-dependent
+counters with a backing epoch and authenticated membership cursor (621 bytes).
+All other account layouts, PDA seeds, discriminators, instruction arguments and
+error numbers remain unchanged against P55B1. `check_market_backing` makes its
+existing selected ledger writable and writes a member root only for a member step.
+Fresh deployments and journal databases are mandatory; retained schema-8 and
+accepted P55A2 schema-9 evidence do not qualify schema 10. See [accounting](accounting.md#on-chain-maintained-proof-p55b2-candidate).
+
+### Workspace-backed population candidate (P56)
+
+D106 removes the temporary `MAX_MEMBERS=64` check in the account-scale local
+profile. Financial entry still authenticates the root lifecycle, exact registry
+membership epoch, all fifteen path revisions and the fully rent-funded reusable
+workspace. `RecoveryStorage.ready_capacity` must cover the resulting Financial
+count; a partial larger proof cannot supply capacity. Frozen storage excludes
+membership changes. Empty registration and permanent IDs never consume financial
+workspace capacity. No account layout, discriminator, seed or permission changes.
+
+The selected binary and 128-populated-root acceptance are pinned in validation. Previously
+qualified D102 binaries retain their 64-Financial gate. Native models, empty
+registration beyond 64, and the eight-root batch run do not qualify expansion.
+The G1 128/1,024 cohorts are measured acceptance cases, not new fixed protocol caps;
+operators must provision and qualify the capacity they intend to enable.

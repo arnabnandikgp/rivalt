@@ -23,6 +23,8 @@ import {
   getStructEncoder,
   getU16Decoder,
   getU16Encoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
   getU8Decoder,
@@ -61,7 +63,7 @@ export type Portfolio = {
   venue: Address;
   owner: Address;
   index: number;
-  children: number;
+  activeChildren: number;
   bump: number;
 };
 
@@ -72,7 +74,7 @@ export type PortfolioArgs = {
   venue: Address | HasAddress;
   owner: Address | HasAddress;
   index: number;
-  children: number;
+  activeChildren: number;
   bump: number;
 };
 
@@ -85,8 +87,8 @@ export function getPortfolioEncoder(): FixedSizeEncoder<PortfolioArgs> {
       ["revision", getU64Encoder()],
       ["venue", getAddressEncoder()],
       ["owner", getAddressEncoder()],
-      ["index", getU16Encoder()],
-      ["children", getU16Encoder()],
+      ["index", getU32Encoder()],
+      ["activeChildren", getU32Encoder()],
       ["bump", getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: PORTFOLIO_DISCRIMINATOR }),
@@ -101,8 +103,8 @@ export function getPortfolioDecoder(): FixedSizeDecoder<Portfolio> {
     ["revision", getU64Decoder()],
     ["venue", getAddressDecoder()],
     ["owner", getAddressDecoder()],
-    ["index", getU16Decoder()],
-    ["children", getU16Decoder()],
+    ["index", getU32Decoder()],
+    ["activeChildren", getU32Decoder()],
     ["bump", getU8Decoder()],
   ]);
 }
@@ -182,5 +184,5 @@ export async function fetchAllMaybePortfolio(
 }
 
 export function getPortfolioSize(): number {
-  return 87;
+  return 91;
 }

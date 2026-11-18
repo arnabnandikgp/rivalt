@@ -39,6 +39,9 @@ historical references. Current source has canonical domain names and one support
 local runtime; numeric wire schemas and persisted journal tags remain explicit.
 The [consolidation plan](REPOSITORY-CONSOLIDATION.md) records retirement dispositions;
 STATUS distinguishes accepted open PRs from the integrated baseline.
+The [clearing roadmap](clearing/roadmap.md) owns upcoming delivery and the proposed
+crate/module map. The [architecture review](clearing/architecture-review.md) explains
+the accounting, liquidation and contention findings behind it.
 
 ## Product boundaries
 

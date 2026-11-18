@@ -14,6 +14,7 @@ mod contexts;
 pub use contexts::*;
 pub mod cash;
 pub mod certificate;
+pub(crate) mod maintained;
 pub mod claims;
 pub mod fees;
 #[cfg(test)]
@@ -41,9 +42,9 @@ fn commit(
     root: &mut BorshAccount<MarginAccount>,
     candidate: &MarginAccount,
     ledgers: [Option<&mut MarketLedger>; 2],
+    safety: &VenueSafety,
 ) -> Result<()> {
-    let previous = root.positions;
-    trading::invalidate(ledgers, previous, candidate.positions)?;
+    maintained::update(ledgers, root, candidate, safety)?;
     trading::commit_root(root, candidate)
 }
 

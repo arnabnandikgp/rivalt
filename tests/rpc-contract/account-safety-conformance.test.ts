@@ -12,7 +12,7 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
   const payer=createNoopSigner(key(1)),receiverOwner=createNoopSigner(key(2));
   const common={payer,authority:payer,caller:payer,reserveAuthority:payer,receiverOwner,venue:key(3),custody:key(4),safety:key(5),
     btc:key(6),eth:key(7),btcLedger:key(8),ethLedger:key(9),vault:key(10),registry:key(11),resolution:key(12),work:key(13),
-    page:key(14),target:key(15),receiver:key(16),certificate:key(17),destination:key(18),quoteMint:key(19),
+    storage:key(13),members:key(14),prepared:key(27),index:key(28),rates:key(29),proposer:payer,actor:payer,page:key(14),target:key(15),receiver:key(16),certificate:key(17),destination:key(18),quoteMint:key(19),
     primaryBtc:key(20),primaryCollateral:key(21),guardBtc:key(22),guardCollateral:key(23),primaryEth:key(24),guardEth:key(25),
     eventAuthority:key(26),program:sdk.CLEARING_PROGRAM_ADDRESS};
   const large=9007199254740993n,guard={safetyEpoch:large,venueTermsEpoch:1n,nonce:large+1n,stateVersion:9n};
@@ -20,26 +20,22 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
   const add=(name:string,args:unknown[],instruction:Instruction)=>cases.push({program:'clearing',name,args,instruction});
   add('initialize_account_resolution',[],sdk.getInitializeAccountResolutionInstruction(common));
   add('activate_liquidity',[],sdk.getActivateLiquidityInstruction(common));
-  add('initialize_account_resolution_page',[31],sdk.getInitializeAccountResolutionPageInstruction({...common,pageIndex:31}));
+  add('initialize_prepared_settlement',[large,large+1n],sdk.getInitializePreparedSettlementInstruction({...common,epoch:large,sourceRevision:large+1n}));
   for(const emergency of [false,true])add('freeze_accounts',[large,large+1n,emergency],
     sdk.getFreezeAccountsInstruction({...common,safetyEpoch:large,resolutionEpoch:large+1n,emergency}));
   add('value_account_resolution',[large],sdk.getValueAccountResolutionInstruction({...common,epoch:large}));
-  for(const stage of [2,3,5,6,9,10])add('advance_account_resolution',[large,stage,62,1],
-    sdk.getAdvanceAccountResolutionInstruction({...common,epoch:large,stage,start:62,length:1}));
-  for(const length of [24,512]) {
-    const bytes=Uint8Array.from({length},(_,index)=>index%256),proposalHash=new Uint8Array(32).fill(255);
-    add('propose_account_resolution',[large,2,proposalHash,1024,{$bytes:Buffer.from(bytes).toString('base64')}],
-      sdk.getProposeAccountResolutionInstruction({...common,epoch:large,evaluation:2,proposalHash,offset:1024,bytes}));
+  add('advance_prepared_membership',[large,large+1n],sdk.getAdvancePreparedMembershipInstruction({...common,epoch:large,revision:large+1n}));
+  const factor=[large,0n,0n,0n,0n],lengths=[1n,2n];
+  add('begin_settlement_rate_proposal',[large,large+1n,factor,lengths],sdk.getBeginSettlementRateProposalInstruction({...common,epoch:large,revision:large+1n,factor,lengths}));
+  for(const length of [1,32]) {
+    const words=Array.from({length},(_,index)=>large+BigInt(index));
+    add('upload_settlement_rate',[large,large+1n,2n,1,large+2n,words],sdk.getUploadSettlementRateInstruction({...common,
+      epoch:large,revision:large+1n,attempt:2n,market:1,offset:large+2n,words}));
   }
-  add('finalize_account_resolution_rates',[large],sdk.getFinalizeAccountResolutionRatesInstruction({...common,epoch:large}));
-  const orders=[Array.from({length:64},(_,id)=>id),Array.from({length:64},(_,id)=>63-id)];
-  add('order_account_resolution',[large,orders],sdk.getOrderAccountResolutionInstruction({...common,epoch:large,orders}));
-  add('check_account_resolution_order',[large,127],sdk.getCheckAccountResolutionOrderInstruction({...common,epoch:large,start:127}));
-  add('round_account_resolution',[large,63],sdk.getRoundAccountResolutionInstruction({...common,epoch:large,start:63}));
   for(const resume of [false,true])add('recover_accounts',[large,resume],sdk.getRecoverAccountsInstruction({...common,epoch:large,resume}));
   add('reactivate_accounts',[large],sdk.getReactivateAccountsInstruction({...common,epoch:large}));
   add('initialize_account_retirement',[],sdk.getInitializeAccountRetirementInstruction(common));
-  add('check_account_retirement',[62],sdk.getCheckAccountRetirementInstruction({...common,start:62}));
+  add('check_account_retirement',[large,true],sdk.getCheckAccountRetirementInstruction({...common,revision:large,restart:true}));
   for(const certificate of [undefined,common.certificate])for(const resolution of [undefined,common.resolution])
     add('retire_accounts',[large],sdk.getRetireAccountsInstruction({...common,certificate,resolution,safetyEpoch:large}));
   for(const marketIndex of [0,1]) {
@@ -82,6 +78,6 @@ test('account safety preserves isolated Anchor bytes and every stage/optional pr
       assert.equal(result.data,Buffer.from(cases[index].instruction.data!).toString('hex'),cases[index].name);
       assert.deepEqual(result.accounts,cases[index].instruction.accounts!.map(account=>({address:account.address,signer:account.role>=2,writable:account.role%2===1})),cases[index].name);
     }
-    assert.equal(cases.length,31);
+    assert.equal(cases.length,23);
   }finally{rmSync(directory,{recursive:true});}
 });

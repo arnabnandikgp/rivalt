@@ -1,4 +1,5 @@
 import { address } from '@solana/kit';
+import { closedGainStatus } from '@rivalt/sdk';
 import { fixed, rational, short } from '../amount.js';
 import { Field, Metric } from './Primitives.js';
 import { MARKETS, accountLabel } from './model.js';
@@ -6,8 +7,8 @@ import type { AccountController } from '../account/useAccountController.js';
 const zero = address('11111111111111111111111111111111');
 const orderStates = ['Empty', 'Open', 'Partial', 'Filled', 'Cancelled', 'Expired', 'Invalidated'];
 
-export function Positions({ controller }: { controller: AccountController }) {
-  const { portfolio, margin, view, cash } = controller;
+export function Positions({ controller }: { controller: Pick<AccountController, 'snapshot' | 'view'> }) {
+  const { snapshot, view } = controller;
   return (
     <section className="panel">
       <h2>Positions and unpaid claims</h2>
@@ -29,7 +30,11 @@ export function Positions({ controller }: { controller: AccountController }) {
                 <td data-testid={`group-position-${index}`}>
                   {fixed(position.lots, MARKETS[index].decimals)}
                 </td>
-                <td>{fixed(position.unpaidClaimScaled, 15)}</td>
+                <td>
+                  {fixed(position.unpaidClaimScaled, 15)}
+                  {snapshot && <div className="caption">{closedGainStatus(position,
+                    snapshot.ledgerStates[index].settlement, snapshot.safetyState)}</div>}
+                </td>
                 <td>{fixed(position.pendingFundingDebitScaled, 15)}</td>
                 <td>{position.sourceMode}</td>
               </tr>

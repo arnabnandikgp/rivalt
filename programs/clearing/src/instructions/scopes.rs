@@ -27,6 +27,74 @@ macro_rules! context {
     };
 }
 
+impl ScopedContext for FundMemberPage {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.created_raw::<crate::state::accounts::MemberPage>(&mut self.allocation.account().clone())?;
+        scope.account(&mut self.receipt, Access::Create)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+impl ScopedContext for FundMemberIndex {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.created_raw::<crate::state::accounts::MemberIndexNode>(&mut self.allocation.account().clone())?;
+        scope.account(&mut self.receipt, Access::Create)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+context!(InitializeRecoveryStorage, venue, event_authority;
+[venue: Read, safety: Read, storage: Create]; []);
+context!(ConfigureRecoveryStorage, venue, event_authority;
+[venue: Read, safety: Read, storage: Write]; []);
+
+impl ScopedContext for FundRecoveryAllocation {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.account(&mut self.storage, Access::Read)?;
+        let state = self.storage.model();
+        let allocation = state.expected(state.generation, state.next_allocation)
+            .map_err(|_| crate::ClearingError::Resolution)?;
+        let account = &mut self.allocation.account().clone();
+        use financial_core::clearing::scalable::recovery_storage::Allocation;
+        use crate::state::accounts::*;
+        match allocation {
+            Allocation::Prepared => scope.created_raw::<PreparedSettlement>(account)?,
+            Allocation::Rates => scope.created_raw::<SettlementRates>(account)?,
+            Allocation::Plan => scope.created_raw::<SettlementPlan>(account)?,
+            Allocation::FrozenRows { .. } => scope.created_raw::<FrozenMarginPage>(account)?,
+            Allocation::Limbs { .. } => scope.created_raw::<SettlementLimbPage>(account)?,
+        }
+        scope.account(&mut self.receipt, Access::Create)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+impl ScopedContext for VerifyRecoveryAllocation {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.account(&mut self.storage, Access::Write)?;
+        let account = &mut self.allocation.account().clone();
+        let discriminator = account.try_borrow()?.get(..8).ok_or(crate::ClearingError::Resolution)?.to_vec();
+        use crate::state::accounts::*;
+        if discriminator == PreparedSettlement::DISCRIMINATOR { scope.raw::<PreparedSettlement>(account, Access::Read)?; }
+        else if discriminator == SettlementRates::DISCRIMINATOR { scope.raw::<SettlementRates>(account, Access::Read)?; }
+        else if discriminator == SettlementPlan::DISCRIMINATOR { scope.raw::<SettlementPlan>(account, Access::Read)?; }
+        else if discriminator == FrozenMarginPage::DISCRIMINATOR { scope.raw::<FrozenMarginPage>(account, Access::Read)?; }
+        else if discriminator == SettlementLimbPage::DISCRIMINATOR { scope.raw::<SettlementLimbPage>(account, Access::Read)?; }
+        else { return Err(crate::ClearingError::Resolution.into()); }
+        scope.account(&mut self.receipt, Access::Read)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+
 context!(AccountCash, venue, event_authority;
 [
     venue: Read,
@@ -49,26 +117,13 @@ context!(ActivateAccounts, qualification.venue, qualification.event_authority;
     qualification.btc_ledger: Read,
     qualification.eth_ledger: Read,
     resolution: Read,
+    registry: Read,
+    storage: Read,
 ];
 [
 ]);
 
-context!(AdvanceAccountResolution, identity.venue, event_authority;
-[
-    identity.venue: Write,
-    identity.custody: Write,
-    identity.safety: Write,
-    identity.btc: Write,
-    identity.eth: Write,
-    identity.btc_ledger: Write,
-    identity.eth_ledger: Write,
-    registry: Read,
-    resolution: Write,
-    work: Write,
-    page: Write,
-];
-[
-]);
+
 
 context!(AllocateMarketFees, identity.venue, event_authority;
 [
@@ -116,7 +171,7 @@ context!(CheckMarketBacking, venue, event_authority;
     registry: Read,
     btc: Read,
     eth: Read,
-    ledger: Read,
+    ledger: Write,
     certificate: Write,
 ];
 [
@@ -192,8 +247,9 @@ context!(FreezeAccounts, identity.venue, event_authority;
     identity.eth_ledger: Write,
     registry: Read,
     resolution: Write,
-    work: Write,
     target: Read,
+    members: Read,
+    storage: Write,
 ];
 [
 ]);
@@ -214,21 +270,11 @@ context!(InitializeAccountResolution, venue, event_authority;
     custody: Read,
     safety: Read,
     resolution: Create,
-    work: Create,
 ];
 [
 ]);
 
-context!(InitializeAccountResolutionPage, venue, event_authority;
-[
-    venue: Read,
-    custody: Read,
-    safety: Read,
-    resolution: Write,
-    page: Create,
-];
-[
-]);
+
 
 context!(InitializeAccountRetirement, venue, event_authority;
 [
@@ -350,21 +396,7 @@ context!(PauseVenue, venue, event_authority;
 [
 ]);
 
-context!(ProposeAccountResolution, identity.venue, event_authority;
-[
-    identity.venue: Write,
-    identity.custody: Write,
-    identity.safety: Write,
-    identity.btc: Write,
-    identity.eth: Write,
-    identity.btc_ledger: Write,
-    identity.eth_ledger: Write,
-    registry: Read,
-    resolution: Write,
-    work: Write,
-];
-[
-]);
+
 
 context!(PublishFundingReport, venue, event_authority;
 [
@@ -423,6 +455,7 @@ context!(RegisterMargin, venue, event_authority;
     registry: Write,
     portfolio: Write,
     margin: Create,
+    members: Write,
 ];
 [
 ]);
@@ -547,3 +580,465 @@ context!(WithdrawRetiredReserve, identity.venue, event_authority;
 ];
 [
 ]);
+
+context!(InitializePreparedSettlement, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+];
+[]);
+
+
+
+
+
+context!(InitializeFrozenMarginPage, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    page: Write,
+];
+[]);
+
+context!(ValuePreparedMember, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+    members: Read,
+    margin: Read,
+    page: Write,
+];
+[]);
+
+impl ScopedContext for AdvancePreparedMembership {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.source.venue, Access::Read)?;
+        scope.account(&mut self.source.custody, Access::Read)?;
+        scope.account(&mut self.source.safety, Access::Read)?;
+        scope.account(&mut self.source.registry, Access::Read)?;
+        scope.account(&mut self.source.storage, Access::Read)?;
+        scope.account(&mut self.source.resolution, Access::Read)?;
+        scope.account(&mut self.source.btc, Access::Read)?;
+        scope.account(&mut self.source.eth, Access::Read)?;
+        scope.account(&mut self.source.btc_ledger, Access::Read)?;
+        scope.account(&mut self.source.eth_ledger, Access::Read)?;
+        scope.account(&mut self.prepared, Access::Write)?;
+        // Use the actual immutable discriminator on both visits: the handler
+        // advances its cursor, so its next request may have a different kind.
+        let mut account = self.index.account().clone();
+        let bytes = account.try_borrow()?;
+        require!(bytes.len() >= 8, crate::ClearingError::Profile);
+        let mut discriminator = [0u8; 8];
+        discriminator.copy_from_slice(&bytes[..8]);
+        drop(bytes);
+        if discriminator == *crate::state::accounts::MemberIndexNode::DISCRIMINATOR {
+            scope.raw::<crate::state::accounts::MemberIndexNode>(&mut account, Access::Read)?;
+        } else {
+            scope.raw::<crate::state::accounts::MemberPage>(&mut account, Access::Read)?;
+        }
+        Ok(())
+    }
+    fn venue(&self) -> (Address, [u8; 32]) {
+        (*self.source.venue.address(), self.source.venue.domain)
+    }
+    fn event_authority(&self) -> AccountView {
+        self.event_authority.account().clone()
+    }
+}
+
+context!(InitializeSettlementLimbPage, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    page: Write,
+];
+[]);
+
+context!(AcceptDenominatorRow, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+    page: Read,
+];
+[]);
+
+context!(ContinueSettlementDenominator, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Write,
+];
+[]);
+
+context!(InitializeSettlementRates, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+];
+[]);
+
+context!(ManageSettlementProposal, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+];
+[]);
+
+context!(UploadSettlementRate, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+    page: Write,
+];
+[]);
+
+context!(PrepareRateScratch, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    page: Write,
+];
+[]);
+
+context!(AcceptSettlementRateRow, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+    page: Read,
+];
+[]);
+
+context!(ContinueSettlementRates, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Write,
+];
+[]);
+
+context!(InitializeSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(InitializeSettlementPlanPage, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Read,
+    page: Write,
+];
+[]);
+
+context!(AcceptSettlementPlanRow, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+    page: Read,
+];
+[]);
+
+context!(ManageSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(ContinueSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(AdoptSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Write,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(ApplySettlementMargin, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Write,
+    source.eth: Write,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+    page: Read,
+    margin: Write,
+    flow_page: Write,
+];
+[]);
+
+context!(CompleteSettlementApplication, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Write,
+    source.eth_ledger: Write,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(ReconcileSettlementMargin, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Read,
+    source.registry: Read,
+    source.storage: Read,
+    source.resolution: Read,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+    page: Read,
+    margin: Read,
+    flow_page: Read,
+];
+[]);
+
+context!(CompleteSettlementPlan, source.venue, event_authority;
+[
+    source.venue: Read,
+    source.custody: Read,
+    source.safety: Write,
+    source.registry: Read,
+    source.storage: Write,
+    source.resolution: Write,
+    source.btc: Read,
+    source.eth: Read,
+    source.btc_ledger: Read,
+    source.eth_ledger: Read,
+    prepared: Read,
+    rates: Read,
+    plan: Write,
+];
+[]);
+
+context!(ChangeMarginMembership, venue, event_authority;
+[venue: Read, safety: Read, registry: Write, portfolio: Read, margin: Write, members: Write, storage: Read]; []);
+impl ScopedContext for RetireMargin {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.account(&mut self.registry, Access::Write)?;
+        scope.account(&mut self.portfolio, Access::Write)?;
+        scope.retire_margin(&mut self.margin.account().clone())?;
+        scope.account(&mut self.members, Access::Write)
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+
+impl ScopedContext for RefundRecoveryAllocation {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.venue, Access::Read)?;
+        scope.account(&mut self.safety, Access::Read)?;
+        scope.account(&mut self.storage, Access::Write)?;
+        scope.retire_storage(&mut self.allocation.account().clone())?;
+        scope.account(&mut self.receipt, Access::Read)
+    }
+    fn venue(&self) -> (Address, [u8;32]) { (*self.venue.address(),self.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}

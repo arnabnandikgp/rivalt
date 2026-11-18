@@ -12,7 +12,8 @@ export function verifyLiquidityArtifactDirectory(directory:string){
   assert.equal(manifest.trackedDirty,false,'Artifact build must have a clean tracked tree');
   assert.equal(manifest.profile,'liquidity-execution-qualification','Wrong artifact profile');
   assert.equal(manifest.framework,'anchor-2.0.0-rc.2','Wrong artifact framework');
-  assert.equal(manifest.accountSchema,8,'Wrong clearing account schema');
+  assert.equal(manifest.accountSchema,10,'Wrong clearing account schema');
+  assert.equal(manifest.profileVersion,6,'Wrong clearing program profile');
   assert.equal(manifest.makerAccountSchema,5,'Wrong maker account schema');
   for(const artifact of LIQUIDITY_ARTIFACTS){
     const filename=`${artifact.name.replaceAll('-','_')}.so`;

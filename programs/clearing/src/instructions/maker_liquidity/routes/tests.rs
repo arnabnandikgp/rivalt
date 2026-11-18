@@ -14,7 +14,7 @@ fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| {
         let price = [60_000, 30_000][usize::from(index)];
         Market {
-            schema_version: 8,
+            schema_version: crate::state::accounts::SCHEMA_VERSION,
             index,
             lots_per_unit: [1_000_000, 100_000][usize::from(index)],
             cross_eligible: true,
@@ -42,7 +42,9 @@ fn markets() -> [Market; 2] {
 }
 fn trader(cash: u64) -> MarginAccount {
     MarginAccount {
-        schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         mode: MODE_CROSS,
         isolated_market_index: 255,
         owner: Address::new_from_array([1; 32]),
@@ -53,7 +55,7 @@ fn trader(cash: u64) -> MarginAccount {
 }
 fn makers() -> [MarginAccount; 2] {
     [1u8, 2].map(|id| MarginAccount {
-        id: u16::from(id),
+        id: u64::from(id),
         mode: MODE_ISOLATED,
         isolated_market_index: 0,
         subaccount_index: 1,
@@ -253,7 +255,7 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
     crate::wire::write(&order, &mut bytes).unwrap();
     assert_eq!(bytes.len() + 8, 172);
     let mut registration = MakerRegistration {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         revision: 0,
         venue: Address::default(),
         market: Address::default(),
@@ -320,6 +322,42 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
         mutate(&mut invalid);
         assert!(validate_leg(&invalid, &registration, &curve).is_err());
     }
+}
+
+#[test]
+fn forced_reduction_prices_surviving_exposure_after_order_cancellation() {
+    let mut markets = markets();
+    let mut target = trader(100_000);
+    let placement = environment(&markets, 1, &clock()).unwrap();
+    target = candidates::manage_candidate(
+        &target, &placement,
+        candidates::OrderAction::Place {
+            expected_id: 1,
+            terms: crate::instructions::types::OrderTerms {
+                side: 0, lots: 1, limit: 30_000, fee_budget: 10,
+                start_slot: 90, expiry_slot: 200, trigger: 0, threshold: 0,
+                reduce_only: false, generation: 0,
+            },
+        },
+        0,
+    ).unwrap();
+    assert!(target.reserved > 0);
+    // At the BTC lower endpoint equity is 1,000 atoms; maintenance is 3,030.
+    target.positions[0] = crate::state::Position {
+        lots: 1, virtual_scaled: -158_400 * SCALE, generation: 1, ..Default::default()
+    };
+    markets[1].oracle.source_deadline = clock().unix_timestamp;
+    let execution = environment(&markets, 0, &clock()).unwrap();
+    assert!(execution.admit_sources(&target, &clock(), true).is_err());
+    let mut exposed = target.clone();
+    exposed.positions[1] = crate::state::Position {
+        lots: 1, virtual_scaled: -30_000 * SCALE, generation: 1, ..Default::default()
+    };
+    let error = liquidation::prepare(&mut exposed, &execution, &clock()).err().unwrap();
+    assert_eq!(error, ProgramError::from(ClearingError::OraclePolicy));
+    liquidation::prepare(&mut target, &execution, &clock()).unwrap();
+    assert_eq!(target.reserved, 0);
+    assert_eq!(target.book.orders[0].order.state, crate::constants::orders::INVALIDATED);
 }
 
 #[test]
@@ -404,7 +442,7 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
     assert_eq!(root.book.orders[0].order.notional, 120_008);
     assert_eq!(root.book.orders[0].order.fee_charged, 25);
     let mut ledger = MarketLedger {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         ..Default::default()
     };
     trading::split_fee(&mut ledger, 13).unwrap();
@@ -429,7 +467,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
     let roots = [trader(100_000), makers()[0].clone(), makers()[1].clone()];
     let makers = [0u8, 1].map(|instance| {
         let mut value = crate::wire::read::<MakerRegistration>(&[0; 333]).unwrap();
-        value.schema_version = 8;
+        value.schema_version = crate::state::accounts::SCHEMA_VERSION;
         value.instance = instance;
         value.capital = Address::new_from_array([instance + 21; 32]);
         value.buy_consumed = 11 + u64::from(instance);
@@ -453,6 +491,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         consumed_after: 11 + u64::from(instance),
     });
     let ledger = MarketLedgerSnapshot {
+        backing: Default::default(),
         ledger: Address::new_unique(),
         market: Address::new_unique(),
         market_index: 0,
@@ -521,4 +560,50 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         ..view
     };
     assert_ne!(bytes(&swapped), expected);
+}
+
+#[test]
+fn forced_short_cover_requires_equity_after_fees_and_stops_at_maintenance() {
+    let markets = markets();
+    let clock = clock();
+    let environment = environment(&markets, 0, &clock).unwrap();
+    let mut short = trader(35_000);
+    short.positions[0].lots = -10;
+    short.positions[0].virtual_scaled = 600_000 * SCALE;
+    let before = liquidation::prepare(&mut short, &environment, &clock).unwrap();
+
+    // Adverse price 60,600. Initial equity is 29,000 against 30,300 maintenance.
+    // Buying one at 60,000 costs 12 fee atoms and restores the account.
+    let mut covered = short.clone();
+    covered.positions[0].lots = -9;
+    covered.positions[0].virtual_scaled = 540_000 * SCALE;
+    covered.cash -= 12;
+    before.check_progress(&covered, &environment, 1).unwrap();
+
+    let mut excess = short.clone();
+    excess.positions[0].lots = -8;
+    excess.positions[0].virtual_scaled = 480_000 * SCALE;
+    excess.cash -= 24;
+    assert!(before.check_progress(&excess, &environment, 2).is_err());
+    // At 60,600, covering one still restores maintenance but costs the target fee cash.
+    covered.positions[0].virtual_scaled = 539_400 * SCALE;
+    covered.cash = 35_000 - 13;
+    assert!(before.check_progress(&covered, &environment, 1).is_err());
+    short.cash = 5_999;
+    assert!(liquidation::prepare(&mut short, &environment, &clock).is_err());
+}
+
+#[test]
+fn permissionless_execution_checks_each_side_against_its_adverse_oracle_endpoint() {
+    let market = &markets()[0];
+    let mut quote = canonical_quote(0, 121_200);
+    quote.request.lots = 2;
+    liquidation::check_price(&quote, market).unwrap();
+    quote.gross += 1;
+    assert!(liquidation::check_price(&quote, market).is_err());
+    quote.request.side = 1;
+    quote.gross = 118_800;
+    liquidation::check_price(&quote, market).unwrap();
+    quote.gross -= 1;
+    assert!(liquidation::check_price(&quote, market).is_err());
 }

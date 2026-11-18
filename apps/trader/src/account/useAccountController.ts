@@ -33,16 +33,22 @@ export function useAccountController(config: AccountTraderConfig) {
     // A display preference only; ownership and authority are always read afresh.
     try { localStorage.setItem(selectionKey, JSON.stringify({portfolio: portfolioIndex, subaccount, market: marketIndex})); } catch { /* Signing still requires durable receipt storage. */ }
   }, [selectionKey, portfolioIndex, subaccount, marketIndex]);
-  const venue = useAccountVenue(config, `${portfolioIndex}:${subaccount}:${marketIndex}`, portfolioIndex, subaccount),
-    snapshot = venue.snapshot;
+  const venue = useAccountVenue(config, `${portfolioIndex}:${subaccount}:${marketIndex}`, portfolioIndex, subaccount);
   const { accounts } = venue;
+  const retired = venue.retired??[],retiredSelection=retired.some(([,entry])=>entry.child===subaccount);
   const portfolio = venue.ownerPortfolio?.account ? venue.ownerPortfolio.address : undefined;
   const selected = accounts.find(([, root]) => root.subaccountIndex === subaccount),
     margin = selected?.[0] as Address | undefined,
-    root = margin ? snapshot?.roots[margin] : undefined;
+    // Selection renders before the venue effect clears its previous snapshot.
+    // Discovery can show the new identity, but balances and financial actions
+    // must wait for a snapshot that actually contains that selected root.
+    snapshot = margin && venue.snapshot?.roots[margin] ? venue.snapshot : undefined,
+    root = margin ? snapshot?.roots[margin]??selected?.[1] : undefined;
   const [collateral, setCollateral] = useState(''),
     [amount, setAmount] = useState('1'),
     [recipient, setRecipient] = useState('');
+  const recipients=accounts.filter(([key,account])=>key!==margin&&account.lifecycle===2);
+  const selectedRecipient=recipients.find(([key])=>key===recipient);
   const [side, setSide] = useState<0 | 1>(0),
     [quantity, setQuantity] = useState('0.000005'),
     [allIn, setAllIn] = useState('1'),
@@ -60,10 +66,10 @@ export function useAccountController(config: AccountTraderConfig) {
   const [delegate, setDelegate] = useState(''),
     [delegateSlots, setDelegateSlots] = useState('1200');
   const selectedMarket = MARKETS[marketIndex];
-  const view = root && snapshot ? venue.client.balance(snapshot, margin!) : undefined;
+  const view = root?.lifecycle===2 && snapshot ? venue.client.balance(snapshot, margin!) : undefined;
   const disabled = Boolean(venue.busy) || !venue.canSign || Boolean(venue.rpcError);
   const financialDisabled =
-    disabled || !root || Boolean(snapshot?.safetyState.paused) || snapshot?.safetyState.mode === 2;
+    disabled || root?.lifecycle!==2 || !snapshot || Boolean(snapshot?.safetyState.paused) || snapshot?.safetyState.mode === 2;
   const marketAllowed = Boolean(
     root && root.role === 0 && snapshot?.safetyState.mode === 1 &&
     (root.mode === 0 || root.isolatedMarketIndex === marketIndex),
@@ -132,6 +138,25 @@ export function useAccountController(config: AccountTraderConfig) {
     ], [portfolio ? `Create immutable ${subaccount === 0 ? 'cross' : `isolated ${selectedMarket.name}`} account ${subaccount} in portfolio ${portfolioIndex}.`
       : `Create portfolio ${portfolioIndex}. No collateral is moved.`]), via: 'rpc',
   }));
+  const activateAndDeposit=()=>venue.preview(async(_state,owner)=>{
+    if(!margin||root?.lifecycle!==1)throw new Error('Select a Registered account.');
+    const atoms=units(amount,6,'Collateral'),plan=await venue.client.activateAndDeposit(owner,margin,token(),atoms);
+    return {...await venue.client.prepare('Activate and deposit',owner,plan.instructions,[
+      `Activate this account and deposit ${fixed(atoms)} test USD atomically.`,
+      'If admission or the token transfer fails, neither action takes effect. Recovery storage is funded separately by the venue.',
+    ]),via:'rpc'};
+  });
+  const membership=(retire:boolean)=>venue.preview(async(_state,owner)=>{
+    if(!margin)throw new Error('Select an owned margin account.');
+    const instruction=retire?await venue.client.retire(owner,margin):await venue.client.changeMembership(owner,margin,false);
+    return {...await venue.client.prepare(retire?'Retire account':'Deactivate account',owner,[instruction],[retire?
+      `Permanently retire account ${subaccount}. This address and child slot cannot be reused. Excess account rent returns to your wallet.`:
+      'Leave the financial cohort after all cash, claims, positions, orders and delegated authority are cleared. This account can be activated again.']),via:'rpc'};
+  });
+  const emptyForMembership=Boolean(root&&root.cash===0n&&root.reserved===0n&&root.delegate===zero&&root.delegateExpirySlot===0n
+    &&root.positions.every(position=>position.lots===0n&&position.virtualScaled===0n)
+    &&root.book.orders.every(entry=>![1,2].includes(entry.order.state)&&entry.order.reserve===0n)
+    &&root.book.protections.every(entry=>entry.protection.remaining===0n));
   const cash = (withdraw: boolean) =>
     prepare(withdraw ? 'Withdraw' : 'Deposit', async (state, owner) => {
       currentRoot(state, owner);
@@ -152,15 +177,14 @@ export function useAccountController(config: AccountTraderConfig) {
   const allocate = () =>
     prepare('Allocate collateral', async (state, owner) => {
       currentRoot(state, owner);
-      const destination = address(recipient),
-        atoms = units(amount, 6, 'Allocation');
-      const target = accounts.find(([key]) => key === destination);
-      if (!target) throw new Error('Select another owned account in this portfolio.');
-      const pair = await venue.client.snapshot([margin!, destination], 'confirmed');
-      const instruction = await venue.client.transfer(pair, owner, margin!, destination, atoms);
+      if (!selectedRecipient) throw new Error('Select another active account in this portfolio.');
+      const [destination,target] = selectedRecipient;
+      const atoms = units(amount, 6, 'Allocation');
+      const pair = await venue.client.snapshot([margin!, address(destination)], 'confirmed');
+      const instruction = await venue.client.transfer(pair, owner, margin!, address(destination), atoms);
       return {
         instructions: [instruction],
-        details: [ `Move ${fixed(atoms)} funded test USD to ${accountLabel(target[1])}.`,
+        details: [ `Move ${fixed(atoms)} funded test USD to ${accountLabel(target)}.`,
           `Recipient: ${destination}`,
           'Sibling cash is never an automatic guarantee.',
         ],
@@ -373,6 +397,11 @@ export function useAccountController(config: AccountTraderConfig) {
     snapshot,
     portfolio,
     accounts,
+    retired,
+    retiredSelection,
+    activateAndDeposit,
+    membership,
+    emptyForMembership,
     margin,
     root,
     collateral,
@@ -380,6 +409,8 @@ export function useAccountController(config: AccountTraderConfig) {
     amount,
     setAmount,
     recipient,
+    recipients,
+    selectedRecipient,
     setRecipient,
     side,
     setSide,

@@ -12,10 +12,13 @@ export * from './test-deployment.js';
 export * from './wallet-client.js';
 export * from './artifacts.js';
 export * from './account-addresses.js';
+export * from './account-membership.js';
+export * from './account-membership-scan.js';
 export * from './account-snapshot.js';
 export * from './account-client.js';
 export * from './account-markets.js';
 export * from './account-balance.js';
+export * from './account-backing.js';
 export * from './liquidity-adapter.js';
 export * from './liquidity-margin.js';
 export * from './liquidity-allocation.js';
@@ -25,3 +28,9 @@ export * from './liquidity-route.js';
 export * from './funding-publisher.js';
 export * from './funding-impact.js';
 export * from './liquidity-artifacts.js';
+
+export * from './price-policy.js';
+
+export * from './account-deployment.js';
+export * from './account-owner-discovery.js';
+export * from './account-wallet-envelope.js';

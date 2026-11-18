@@ -3,9 +3,11 @@ use super::*;
 use crate::state::{OracleState, Position};
 use financial_core::SCALE;
 
-fn root(id: u16, cash: u64) -> MarginAccount {
+fn root(id: u64, cash: u64) -> MarginAccount {
     MarginAccount {
-        schema_version: 8,
+            lifecycle: crate::state::accounts::MEMBER_FINANCIAL,
+            activation_generation: 1,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         id,
         cash,
         mode: MODE_CROSS,
@@ -17,7 +19,7 @@ fn root(id: u16, cash: u64) -> MarginAccount {
 }
 fn markets() -> [Market; 2] {
     [0u8, 1].map(|index| Market {
-        schema_version: 8,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
         index,
         cross_eligible: true,
         terms_epoch: 1,

@@ -45,8 +45,20 @@ revisioned! {
     0 => Venue, 1 => Custody, 2 => VenueSafety, 3 => VenueRegistry,
     4 => Portfolio, 5 => MarginAccount, 6 => Market, 7 => MarketLedger,
     8 => CapitalBinding, 9 => SettlementCertificate, 10 => Resolution,
-    11 => ResolutionPage, 12 => ResolutionWork, 13 => RetirementCertificate,
+    // Kinds 11/12 are retired; never reuse their persisted identities.
+    13 => RetirementCertificate,
     14 => LiquidityRegistry, 15 => MakerRegistration, 16 => FundingPublisher,
+    17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
+    20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
+    24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone, 27 => StorageTombstone,
+}
+
+fn schema_for_kind(kind: u8) -> Result<u16> {
+    match kind {
+        0..=10 | 13..=16 => Ok(SCHEMA_VERSION),
+        17..=27 => Ok(SETTLEMENT_SCHEMA),
+        _ => Err(ClearingError::Profile.into()),
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -59,6 +71,7 @@ pub(crate) enum Access {
 struct Entry {
     account: Address,
     kind: u8,
+    written_kind: u8,
     revision: u64,
     access: Access,
 }
@@ -85,6 +98,7 @@ impl Scope {
         revision: u64,
         access: Access,
     ) -> Result<u64> {
+        let expected_schema = schema_for_kind(kind)?;
         if let Some(cursor) = self.cursor {
             let entry = self.entries.get(cursor).ok_or(ClearingError::Profile)?;
             require!(
@@ -92,7 +106,7 @@ impl Scope {
                     && entry.kind == kind
                     && entry.access == access
                     && entry.revision == revision
-                    && schema == SCHEMA_VERSION,
+                    && schema == expected_schema,
                 ClearingError::Profile
             );
             self.cursor = Some(cursor + 1);
@@ -104,10 +118,7 @@ impl Scope {
                     .ok_or_else(|| ProgramError::from(ClearingError::Arithmetic))
             }
         } else {
-            require!(
-                self.entries.len() < MAX_ENTITIES && kind <= 16,
-                ClearingError::Profile
-            );
+            require!(self.entries.len() < MAX_ENTITIES, ClearingError::Profile);
             require!(
                 !self.entries.iter().any(|entry| entry.account == account),
                 ClearingError::Alias
@@ -116,7 +127,7 @@ impl Scope {
                 if access == Access::Create {
                     schema == 0 && revision == 0
                 } else {
-                    schema == SCHEMA_VERSION && revision > 0
+                    schema == expected_schema && revision > 0
                 },
                 ClearingError::Profile
             );
@@ -127,6 +138,7 @@ impl Scope {
             self.entries.push(Entry {
                 account,
                 kind,
+                written_kind: kind,
                 revision,
                 access,
             });
@@ -148,6 +160,196 @@ impl Scope {
         )?;
         if self.cursor.is_some() && access != Access::Read {
             account.set_revision(revision);
+        }
+        Ok(())
+    }
+
+    /// A statically named owned record read directly by a bounded adapter. Its
+    /// identity/stage PDA is checked by the handler; kind/schema/layout and
+    /// invocation-local access/revision are checked here on both visits.
+    pub(crate) fn raw<T: Revisioned + Discriminator + Space>(
+        &mut self,
+        account: &mut AccountView,
+        access: Access,
+    ) -> Result<()> {
+        require!(
+            access != Access::Create
+                && account.owner() == &crate::ID
+                && !account.executable()
+                && !account.is_signer()
+                && (access == Access::Read || account.is_writable()),
+            ClearingError::Profile
+        );
+        let bytes = account.try_borrow()?;
+        require!(
+            bytes.len() == 8 + T::INIT_SPACE && bytes[..8] == *T::DISCRIMINATOR,
+            ClearingError::Profile
+        );
+        let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
+        let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
+        drop(bytes);
+        let next = self.visit(*account.address(), T::KIND, schema, revision, access)?;
+        if self.cursor.is_some() && access != Access::Read {
+            account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
+        }
+        Ok(())
+    }
+
+    /// Canonical PDA initialization inside the handler lets the rent receipt
+    /// record the exact payer top-up even when somebody donated lamport dust.
+    pub(crate) fn created_raw<T: Revisioned + Discriminator + Space>(
+        &mut self,
+        account: &mut AccountView,
+    ) -> Result<()> {
+        require!(
+            account.is_writable() && !account.executable() && !account.is_signer(),
+            ClearingError::Profile
+        );
+        let (schema, revision) = if self.cursor.is_none() {
+            require!(
+                account.owner() == &anchor_lang::system_program::ID && account.data_len() == 0,
+                ClearingError::Profile
+            );
+            (0, 0)
+        } else {
+            require!(account.owner() == &crate::ID, ClearingError::Profile);
+            let bytes = account.try_borrow()?;
+            require!(
+                bytes.len() == 8 + T::INIT_SPACE && bytes[..8] == *T::DISCRIMINATOR,
+                ClearingError::Profile
+            );
+            (
+                u16::from_le_bytes(bytes[8..10].try_into().unwrap()),
+                u64::from_le_bytes(bytes[10..18].try_into().unwrap()),
+            )
+        };
+        let next = self.visit(
+            *account.address(),
+            T::KIND,
+            schema,
+            revision,
+            Access::Create,
+        )?;
+        if self.cursor.is_some() {
+            account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
+        }
+        Ok(())
+    }
+
+    /// The sole same-address kind transition. The journal reports terminal kind
+    /// 26 with the predecessor root revision; decoders authorize 5 -> 26 only for
+    /// retire_margin and its matching lifecycle payload. No general relabel API.
+    pub(crate) fn retire_margin(&mut self, account: &mut AccountView) -> Result<()> {
+        require!(
+            account.owner() == &crate::ID
+                && account.is_writable()
+                && !account.is_signer()
+                && !account.executable(),
+            ClearingError::Profile
+        );
+        let bytes = account.try_borrow()?;
+        let after = self.cursor.is_some();
+        let (length, discriminator) = if after {
+            (
+                8 + MarginTombstone::INIT_SPACE,
+                MarginTombstone::DISCRIMINATOR,
+            )
+        } else {
+            (8 + MarginAccount::INIT_SPACE, MarginAccount::DISCRIMINATOR)
+        };
+        require!(
+            bytes.len() == length && bytes[..8] == *discriminator,
+            ClearingError::Profile
+        );
+        let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
+        let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
+        drop(bytes);
+        let next = self.visit(
+            *account.address(),
+            MarginAccount::KIND,
+            schema,
+            revision,
+            Access::Write,
+        )?;
+        if after {
+            account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
+        } else {
+            self.entries
+                .last_mut()
+                .ok_or(ClearingError::Profile)?
+                .written_kind = MarginTombstone::KIND;
+        }
+        Ok(())
+    }
+
+    /// Terminal work cleanup is restricted to the five physical recovery kinds.
+    /// It cannot retire a live member page, financial root or arbitrary account.
+    pub(crate) fn retire_storage(&mut self, account: &mut AccountView) -> Result<()> {
+        require!(
+            account.owner() == &crate::ID
+                && account.is_writable()
+                && !account.is_signer()
+                && !account.executable(),
+            ClearingError::Profile
+        );
+        let bytes = account.try_borrow()?;
+        require!(bytes.len() >= 18, ClearingError::Profile);
+        let after = self.cursor.is_some();
+        let kind = if after {
+            require!(
+                bytes.len() == 8 + StorageTombstone::INIT_SPACE
+                    && bytes[..8] == *StorageTombstone::DISCRIMINATOR,
+                ClearingError::Profile
+            );
+            bytes[50]
+        } else {
+            let shapes = [
+                (
+                    17,
+                    PreparedSettlement::DISCRIMINATOR,
+                    PreparedSettlement::INIT_SPACE,
+                ),
+                (
+                    18,
+                    FrozenMarginPage::DISCRIMINATOR,
+                    FrozenMarginPage::INIT_SPACE,
+                ),
+                (
+                    21,
+                    SettlementLimbPage::DISCRIMINATOR,
+                    SettlementLimbPage::INIT_SPACE,
+                ),
+                (
+                    22,
+                    SettlementRates::DISCRIMINATOR,
+                    SettlementRates::INIT_SPACE,
+                ),
+                (
+                    23,
+                    SettlementPlan::DISCRIMINATOR,
+                    SettlementPlan::INIT_SPACE,
+                ),
+            ];
+            shapes
+                .into_iter()
+                .find(|(_, discriminator, size)| {
+                    bytes[..8] == **discriminator && bytes.len() == 8 + size
+                })
+                .ok_or(ClearingError::Profile)?
+                .0
+        };
+        require!([17, 18, 21, 22, 23].contains(&kind), ClearingError::Profile);
+        let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
+        let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
+        drop(bytes);
+        let next = self.visit(*account.address(), kind, schema, revision, Access::Write)?;
+        if after {
+            account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
+        } else {
+            self.entries
+                .last_mut()
+                .ok_or(ClearingError::Profile)?
+                .written_kind = StorageTombstone::KIND;
         }
         Ok(())
     }
@@ -182,6 +384,28 @@ impl Scope {
             if self.cursor.is_some() && writable {
                 account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
             }
+        }
+        Ok(())
+    }
+
+    fn limb_pages(
+        &mut self,
+        accounts: &mut [AccountView],
+        plan: financial_core::clearing::scalable::pages::PagePlan,
+    ) -> Result<()> {
+        require!(
+            accounts.len() == plan.requests().len(),
+            ClearingError::Resolution
+        );
+        for (account, request) in accounts.iter_mut().zip(plan.requests()) {
+            self.raw::<SettlementLimbPage>(
+                account,
+                if request.writable {
+                    Access::Write
+                } else {
+                    Access::Read
+                },
+            )?;
         }
         Ok(())
     }
@@ -256,7 +480,11 @@ unsafe impl<'a> SchemaWrite<anchor_lang::BorshConfig> for ScopedRows<'a> {
         writer.write(&count.to_le_bytes())?;
         for entry in value.entries.iter().filter(included) {
             writer.write(entry.account.as_ref())?;
-            writer.write(&[entry.kind])?;
+            writer.write(&[if value.writes {
+                entry.written_kind
+            } else {
+                entry.kind
+            }])?;
             writer.write(&entry.revision.to_le_bytes())?;
             if value.writes {
                 let after = entry.revision.checked_add(1).ok_or(
@@ -318,18 +546,108 @@ pub(crate) fn run<'context, T: ScopedContext>(
     remaining_writable: bool,
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
+    run_with_remaining(
+        context,
+        instruction,
+        Remaining::Roots(remaining_writable),
+        handler,
+    )
+}
+
+/// The plan is derived from authenticated work before the handler and retained
+/// unchanged for both scope visits. A caller cannot choose its access privileges.
+pub(crate) fn run_pages<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    plan: financial_core::clearing::scalable::pages::PagePlan,
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::Limbs(plan), handler)
+}
+
+pub(crate) fn run_membership<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::MembershipPath, handler)
+}
+
+pub(crate) fn run_membership_scan<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::MembershipScan(false), handler)
+}
+
+pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>, instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::MembershipScan(true), handler)
+}
+
+#[derive(Clone, Copy)]
+enum Remaining {
+    MembershipPath,
+    MembershipScan(bool),
+    Roots(bool),
+    Limbs(financial_core::clearing::scalable::pages::PagePlan),
+}
+impl Remaining {
+    fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
+        match self {
+            Self::MembershipScan(root_write) => {
+                require!(accounts.len() <= 2, ClearingError::Resolution);
+                for account in accounts {
+                    let discriminator = account
+                        .try_borrow()?
+                        .get(..8)
+                        .ok_or(ClearingError::Resolution)?
+                        .to_vec();
+                    if discriminator == MemberIndexNode::DISCRIMINATOR {
+                        scope.raw::<MemberIndexNode>(account, Access::Read)?;
+                    } else if discriminator == MemberPage::DISCRIMINATOR {
+                        scope.raw::<MemberPage>(account, Access::Read)?;
+                    } else {
+                        scope.raw::<MarginAccount>(account, if root_write { Access::Write } else { Access::Read })?;
+                    }
+                }
+                Ok(())
+            }
+            Self::MembershipPath => {
+                require!(accounts.len() == 15, ClearingError::Resolution);
+                for account in accounts {
+                    scope.raw::<MemberIndexNode>(account, Access::Write)?;
+                }
+                Ok(())
+            }
+            Self::Roots(writable) => scope.remaining(accounts, writable),
+            Self::Limbs(plan) => scope.limb_pages(accounts, plan),
+        }
+    }
+}
+
+#[inline(never)]
+fn run_with_remaining<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    access: Remaining,
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
     profile_cu!("scope-enter");
     let mut scope = Scope::new();
     context.accounts.visit(&mut scope)?;
     let mut remaining = context.remaining_accounts()?;
-    scope.remaining(&mut remaining, remaining_writable)?;
+    access.visit(&mut scope, &mut remaining)?;
     let mut payloads = event_cpi::Payloads::default();
     profile_cu!("handler-enter");
     handler(context, &mut payloads)?;
     profile_cu!("handler-exit");
     scope.cursor = Some(0);
     context.accounts.visit(&mut scope)?;
-    scope.remaining(&mut remaining, remaining_writable)?;
+    access.visit(&mut scope, &mut remaining)?;
     let (venue, domain) = context.accounts.venue();
     let event = scope.finish(
         venue,

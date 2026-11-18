@@ -48,10 +48,11 @@ risk valuation, all-or-nothing routes and funded cash versus unpaid claims.
 ## Frozen publisher contract — D76
 
 This is the implemented D76 report/authority contract.
-Scope remains the fresh profile4 local qualification artifact; V1–V3 are unchanged.
+The current account-scale binding is schema 10/profile 6; the report format
+and authority/economic rules below remain unchanged.
 
 - `FundingPublisher` PDA: `["funding-publisher-v4", market]`, clearing-owned,
-  148 bytes including the discriminator. Borsh field order: schema_version u16=6; revision u64;
+  148 bytes including the discriminator. Borsh field order: schema_version u16=10; revision u64;
   venue, market, publisher Pubkeys; authority_epoch, last_sequence,
   last_observed_slot u64; last_observed_time i64; enabled bool; bump u8.
 - `FundingReport` instruction payload: 203 bytes. Field order: version u16=1,
@@ -114,6 +115,22 @@ and use the earliest actual publication expiry. It must reject mixed/old snapsho
 record source inputs and never re-date cached observations. Default/devnet handlers
 remain gated. New artifacts require fresh affected acceptance; historical results do not qualify a rebuild.
 
+Price/range literals come from the [shared policy](../clearing/risk-and-resolution.md#versioned-price-policy-p53a),
+with generated SDK constants. P53B policy 2 retains the six-token notional and
+uses the approved reference domain below. The canonical funding search uses
+monotone marginal-price bounds to find each valid quantity interval and a binary
+search for each pair's exact convex optimum. Stable ties choose one leg, then
+ascending instance IDs, then the largest first quantity. Work is O(m² log Q × R),
+with m=3 and R<=8; it never allocates a Q-sized price table. Q<=3,000,000 gives
+at most 22 iterations per binary search: three domain/band searches plus the
+first quote per maker, and at most four quote reads per pair-minimum iteration.
+Including singleton/final candidates, a conservative bound is 474 distinct quote
+evaluations per side. The measured 18-scenario diagnostic peaks at 329; see
+[validation](../operations/validation.md#numeric-bound-price-policy-p53b). Inputs are canonical
+shape/anchor/inventory/consumption, not arbitrary quote callbacks. Only authenticated
+complete snapshots reach this search; disconnected financial feasibility belongs
+to the separate trading allocator. P58A still owns impact-notional calibration.
+
 ## Calculation and causal time
 
 The backend requires all three sealed authenticated makers, even when a valid
@@ -122,8 +139,8 @@ required inputs make coverage unavailable. A valid one-sided/inventory-limited
 maker can have zero side capacity; each aggregate side must still fill all Q with
 at most two capitals. Never choose a convenient incomplete subset.
 
-Reference is 10,000–100,000 quote atoms/lot and
-`Q = ceil(6,000,000/reference)` (60–600). Authenticate complete code hashes and
+Reference is 2–909,090 quote atoms/lot and
+`Q = ceil(6,000,000/reference)` (7–3,000,000). Authenticate complete code hashes and
 current identity, inventory, shape, price and clearing consumption. Apply declared
 capacity/reduce-only bounds and 90–110% index prices. Search exact best published
 single/pair totals with routing's deterministic ties, without taker fee, hypothetical

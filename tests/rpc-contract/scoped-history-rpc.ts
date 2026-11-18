@@ -1,3 +1,4 @@
+import {scanMetas} from './membership-scan-helper.js';
 // P40B: actual nested financial CPI, atomic rollback and paused retirement.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -75,22 +76,26 @@ try {
   await h.send('P40B second nested call rolls back first event and revisions',[forward([transfer(1n),transfer(1_000_000n)])],[owner],sdk.CLEARING_ERROR__ARITHMETIC);
   assert.deepEqual(await state(),before);
   await h.send('P40B zero-payload retirement storage',[sdk.getInitializeAccountRetirementInstruction({payer,venue,safety,certificate,eventAuthority:common.eventAuthority,program:common.program})]);
-  const scan=(start:number)=>{
-    const instruction=sdk.getCheckAccountRetirementInstruction({...identity,registry,certificate,start});
-    return {...instruction,accounts:[...instruction.accounts,...roots.slice(start,start+2).map(address=>({address,role:AccountRole.READONLY}))]};
+  const certificateState=async()=>sdk.getRetirementCertificateDecoder().decode((await h.read(certificate))!);
+  const scan=async(restart=false)=>{
+    const proof=await certificateState(),population=sdk.getVenueRegistryDecoder().decode((await h.read(registry))!).financialCount;
+    const request=restart?sdk.initialMembershipRequest(population):sdk.membershipRequest(proof.membership.checkpoint,proof.count);
+    const instruction=sdk.getCheckAccountRetirementInstruction({...identity,registry,certificate,revision:proof.revision,restart});
+    return {...instruction,accounts:[...instruction.accounts,...await scanMetas(h,venue,request)]};
   };
-  await h.send('P40B unpaused terminal scan rejects',[scan(0)],[],sdk.CLEARING_ERROR__RESOLUTION);
+  await h.send('P40B unpaused terminal scan rejects',[await scan(true)],[],sdk.CLEARING_ERROR__RESOLUTION);
   const pause=(paused:boolean)=>sdk.getPauseVenueInstruction({...common,authority:payer,paused});
   await h.send('P40B authority opens terminal proof window',[pause(true)]);
-  await h.send('P40B first complete-member page',[scan(0)]);
-  const partial=sdk.getRetirementCertificateDecoder().decode((await h.read(certificate))!);
-  assert.equal(partial.next,2);assert.equal(partial.cash,2_000_000n);
+  await h.send('P40B begin complete-member scan',[await scan(true)]);
+  while((await certificateState()).next<2n)await h.send('P40B bounded complete-member continuation',[await scan()]);
+  const partial=await certificateState();assert.equal(partial.next,2n);assert.equal(partial.cash,2_000_000n);
+  const stale=await scan();
   await h.send('P40B unpause and repause invalidate the earlier proof',[pause(false),pause(true)]);
-  await h.send('P40B prior page cannot continue in new epoch',[scan(2)],[],sdk.CLEARING_ERROR__RESOLUTION);
+  await h.send('P40B prior page cannot continue in new epoch',[stale],[],sdk.CLEARING_ERROR__RESOLUTION);
   await h.send('P40B paused cash transfer cannot alter scanned entitlement',[transfer(1n)],[owner],sdk.CLEARING_ERROR__PAUSED);
-  for(let start=0;start<roots.length;start+=2)await h.send(`P40B fresh complete-member page ${start}`,[scan(start)]);
-  const proof=sdk.getRetirementCertificateDecoder().decode((await h.read(certificate))!);
-  assert.equal(proof.complete,true);assert.equal(proof.cash,6_000_000n);assert.equal(proof.next,6);
+  await h.send('P40B restart complete-member scan',[await scan(true)]);
+  while(!(await certificateState()).complete)await h.send('P40B fresh complete-member page',[await scan()]);
+  const proof=await certificateState();assert.equal(proof.cash,6_000_000n);assert.equal(proof.next,6n);
   await h.send('P40B retire only the completed same-epoch proof',[sdk.getRetireAccountsInstruction({...identity,authority:payer,registry,
     certificate,resolution:undefined,safetyEpoch:(await safetyState()).epoch})]);
   assert.equal((await safetyState()).mode,4);
