@@ -136,6 +136,19 @@ class JointReductions(unittest.TestCase):
             selected, = rank_recoveries(choices, baseline, priority=policy)
             self.assertEqual((selected.recovered, selected.charges), ((0, 0), (0, 0)))
 
+    def test_equal_total_recovery_uses_the_weaker_markets_fraction(self):
+        rows = ((1, -7, 0), (1, 5, -5), (3, 0, -10), (0, -5, 10), (0, 7, 0), (0, 0, 5))
+        book = MarketBook(tuple(Account(c, (btc, eth)) for c, btc, eth in rows), insurance=(1, 2), frozen=True)
+        profiles = (Exposure(100, (-1, 1, 0, 0, 0, 0), (100, 95, None, None, None, None), (0, 5, 0, 0, 0, 0)),
+                    Exposure(20, (0, 0, 1, -1, 0, 0), (None, None, 20, 30, None, None), (0, 0, 0, 10, 0, 0)))
+        plans = compare_joint(book, profiles)
+        tied = {p.charges: p for p in plans if sum(p.recovered) == Fraction(61, 12)}
+        self.assertEqual({charges: plan.recovered for charges, plan in tied.items()},
+                         {(4, 5): (Fraction(7, 3), Fraction(11, 4)), (5, 5): (3, Fraction(25, 12))})
+        chosen, = rank_recoveries(plans, terminal(book), priority="total-first")
+        self.assertEqual((chosen.charges, chosen.payout.cash[4:]), ((4, 5), (4, 4)))
+        self.assertEqual(tied[(5, 5)].payout.cash[4:], (5, 3))
+
     def test_native_terminal_controls_for_both_markets_and_each_half(self):
         book, _ = linked_defaults()
         expected = {(0, 0): (0, 1, 0, 1, 8, 8), (2, 0): (0, 0, 0, 1, 10, 7),
