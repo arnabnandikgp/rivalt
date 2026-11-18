@@ -15,8 +15,6 @@ import { executionTestHelpers } from './liquidity-execution-helpers.js';
 import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
 import { openSettlementJournal } from './scalable-settlement-journal.js';
 
-const mode = process.env.RIVALT_FREEZE_DELIVERY ?? 'atomic';
-assert(mode === 'atomic' || mode === 'split', 'Expected atomic or split delivery');
 const directory = process.env.RIVALT_RUN_DIR!;
 const build = verifyBackingBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
@@ -37,7 +35,7 @@ const { h, rpc, ws, flush, checks } = await openCanonicalRpcHarness(
 try {
   const setup = await liquidityExecutionSetup(h, rpc, { verifyRejections: false });
   const { route, root } = executionTestHelpers(h, setup);
-  const [debtor, healthy] = setup.roots;
+  const [debtor] = setup.roots;
   const [primaryBtc, primaryCollateral, guardBtc, guardCollateral, primaryEth, guardEth] = setup.feeds.map(item => item.feed);
   const safety = async () => sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
   const resolution = async () => sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
@@ -65,27 +63,25 @@ try {
   };
   const publishers = [setup.primary, setup.guard];
   setup.sourcePrices.btc = 40_000_000_000n; // 40,000 atoms/lot, down from 60,000.
-  const updates = () => setup.sourceInstructions();
-  if (mode === 'atomic') {
-    const healthyProof = await freeze(healthy);
-    // Check all source/clearing writes apart from the keeper's transaction fee.
-    const keys = [...new Set([...setup.feeds.map(item => item.feed),
-      ...healthyProof.accounts.filter(meta => meta.role & 1).map(meta => meta.address)])];
-    const snapshot = () => Promise.all(keys.map(h.read));
-    const before = await snapshot();
-    await send('cutoff reject healthy witness', [...await updates(), healthyProof], publishers, sdk.CLEARING_ERROR__RESOLUTION);
-    assert.deepEqual(await snapshot(), before);
-  }
   const proof = await freeze(debtor);
+  const keys = [...new Set([...setup.feeds.map(item => item.feed),
+    ...proof.accounts.filter(meta => meta.role & 1).map(meta => meta.address)])];
+  const snapshot = () => Promise.all(keys.map(h.read));
+  // At the original price the same named debtor is solvent. Confirm that its
+  // proof reaches the economic predicate before publishing the adverse price.
+  const before = await snapshot();
+  await send('cutoff healthy before shock', [proof], [], sdk.CLEARING_ERROR__RESOLUTION);
+  assert.deepEqual(await snapshot(), before);
+  // Top-level publication promotes the feeds to writable for the full message.
+  // Clearing authenticates read-only sources before checking this debtor.
+  await send('cutoff atomic publication and proof', [...await setup.sourceInstructions(), proof],
+    publishers, sdk.CLEARING_ERROR__ORACLE_SOURCE);
+  assert.deepEqual(await snapshot(), before);
   const started = performance.now();
-  if (mode === 'atomic') {
-    await send('cutoff update and freeze', [...await updates(), proof], publishers);
-  } else {
-    await send('cutoff publish sources', await updates(), publishers);
-    assert.deepEqual(await safety(), beforeSafety);
-    assert.deepEqual(await resolution(), beforeResolution);
-    await send('cutoff freeze on published sources', [proof]);
-  }
+  await send('cutoff publish sources', await setup.sourceInstructions(), publishers);
+  assert.deepEqual(await safety(), beforeSafety);
+  assert.deepEqual(await resolution(), beforeResolution);
+  await send('cutoff freeze on published sources', [proof]);
   const elapsedMs = performance.now() - started;
   const frozen = await resolution();
   assert.equal(frozen.stage, 2); // Value
@@ -112,9 +108,9 @@ try {
     if (!measured(label)) return [];
     const wire = JSON.parse(readFileSync(`${directory}/wire-${index}.json`, 'utf8'));
     const receipt = JSON.parse(readFileSync(`${directory}/transaction-${index}.json`, 'utf8'));
-    if (label === 'cutoff reject healthy witness') {
+    if (label === 'cutoff atomic publication and proof') {
       assert.deepEqual(receipt.meta.err.InstructionError, [
-        receipt.transaction.message.instructions.length - 1, { Custom: sdk.CLEARING_ERROR__RESOLUTION },
+        receipt.transaction.message.instructions.length - 1, { Custom: sdk.CLEARING_ERROR__ORACLE_SOURCE },
       ]);
     }
     const locks = transactionLocks(Buffer.from(wire.wireBase64, 'base64'));
@@ -125,7 +121,7 @@ try {
     await journal.checkpoint('freeze-cutoff');
     const replay = await journal.finish();
     writeFileSync(`${directory}/freeze-cutoff.json`, json({
-      revision, build: build.revision, mode, frozen, metrics, buildThroughObservedConfirmationMs: elapsedMs,
+      revision, build: build.revision, frozen, metrics, buildThroughObservedConfirmationMs: elapsedMs,
       ordinaryEquityScaled: scaledEquity(60_000n), adverseEquityScaled: scaledEquity(40_000n), replayEvents: replay.events,
     }));
   } finally { await journal.close(); }
