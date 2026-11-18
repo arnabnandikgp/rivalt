@@ -5,7 +5,7 @@ import {getMarginAccountDecoder,getMarginAccountSize,MARGIN_ACCOUNT_DISCRIMINATO
 import {requireValue} from './wallet-client.js';
 
 export const PROFIT_ATTRIBUTION_ARTIFACT_SET='profit-attribution-33361d9';
-export const SPONSORED_PROFIT_ARTIFACT_SET='sponsored-profit-ab1964a';
+export const SPONSORED_PROFIT_ARTIFACT_SET='sponsored-profit-1763dc7';
 export type PerLotProfit={entryScaled:bigint;paidScaled:bigint;denominator:bigint};
 const marker=new TextEncoder().encode('RVPROF01');
 const slotBytes=128;

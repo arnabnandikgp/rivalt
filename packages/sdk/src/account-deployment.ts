@@ -10,7 +10,7 @@ export function accountDeployment(selection:AccountDeployment) {
   if(selection==='sponsored-profit-candidate')return {
     artifactSet:SPONSORED_PROFIT_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:SETTLEMENT_HELPER_REVISION,
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
-      bytes:2516408,sha256:'c34dcd5d97982b629274b40ca9141506ebbe35677322b0a80d0b3cda371b1d84'}:artifact)
+      bytes:2516448,sha256:'e1fa7b655b3e619aac575f1a8e559791cfc09e5c28492a5e334678b105b7f547'}:artifact)
   };
   if(selection==='profit-attribution-candidate')return {
     artifactSet:PROFIT_ATTRIBUTION_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:SETTLEMENT_HELPER_REVISION,
