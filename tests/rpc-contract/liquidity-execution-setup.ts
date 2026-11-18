@@ -136,5 +136,5 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   const identity = { venue, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readAccountTradeSnapshot(rpc, identity, root, marketIndex);
   return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, storage,
-    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, fresh, freshSources, sample, qualify, identity, snapshot };
+    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, qualify, identity, snapshot };
 }

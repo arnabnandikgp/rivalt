@@ -52,7 +52,7 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
-if [[ "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
+if [[ "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == freeze-cutoff || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
 case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
   maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;
@@ -61,6 +61,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     python3 tests/financial/check_default_worker.py "$RIVALT_RUN_DIR" > "$RIVALT_RUN_DIR/independent-worker-audit.json" ;;
   account-clients) pnpm build:trader
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
+  freeze-cutoff) node --import tsx tests/rpc-contract/freeze-cutoff-rpc.ts ;;
   membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;
   *) echo 'Unknown settlement probe' >&2; exit 1 ;;
 esac
