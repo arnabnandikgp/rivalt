@@ -1,9 +1,11 @@
 // Explicit reader for the separately deployed local candidate. Existing account
 // readers select their own fixed layout and deployment allowlist.
+import {getAddressDecoder} from '@solana/kit';
 import {getMarginAccountDecoder,getMarginAccountSize,MARGIN_ACCOUNT_DISCRIMINATOR} from './generated/index.js';
 import {requireValue} from './wallet-client.js';
 
 export const PROFIT_ATTRIBUTION_ARTIFACT_SET='profit-attribution-33361d9';
+export const SPONSORED_PROFIT_ARTIFACT_SET='sponsored-profit-ab1964a';
 export type PerLotProfit={entryScaled:bigint;paidScaled:bigint;denominator:bigint};
 const marker=new TextEncoder().encode('RVPROF01');
 const slotBytes=128;
@@ -29,23 +31,30 @@ function slot(bytes:Uint8Array,lots:bigint):PerLotProfit {
   return {entryScaled,paidScaled,denominator};
 }
 
-export function decodeProfitAttribution(bytes:Uint8Array) {
+export function decodeProfitAttribution(bytes:Uint8Array,allowSponsored=false) {
   const prefix=getMarginAccountSize();
-  requireValue(bytes.length===prefix+marker.length+2*slotBytes&&
+  const minimum=prefix+marker.length+2*slotBytes;
+  const expanded=bytes.length!==minimum;
+  const width=expanded?(bytes.length-prefix-marker.length-40)/2:slotBytes;
+  requireValue((!expanded||(allowSponsored&&Number.isInteger(width)&&width>slotBytes&&width<=256))&&
     MARGIN_ACCOUNT_DISCRIMINATOR.every((byte,index)=>bytes[index]===byte)&&
     marker.every((byte,index)=>bytes[prefix+index]===byte),'Invalid candidate margin layout.');
   const root=getMarginAccountDecoder().decode(bytes.subarray(0,prefix));
   requireValue(root.schemaVersion===10,'Invalid candidate margin schema.');
   const positions=root.positions.map((position,index)=>{
-    const start=prefix+marker.length+index*slotBytes;
-    return slot(bytes.subarray(start,start+slotBytes),position.lots);
+    const start=prefix+marker.length+index*width;
+    return slot(bytes.subarray(start,start+width),position.lots);
   });
-  return {root,positions};
+  const credit=expanded?{
+    contributor:getAddressDecoder().decode(bytes.subarray(bytes.length-40,bytes.length-8)),
+    lamports:new DataView(bytes.buffer,bytes.byteOffset+bytes.length-8,8).getBigUint64(0,true),
+  }:null;
+  return {root,positions,width,credit};
 }
 
-export type MarginLayout='profit-attribution'|'selected';
+export type MarginLayout='profit-attribution'|'sponsored-profit'|'selected';
 export function decodeMarginForLayout(bytes:Uint8Array,layout:MarginLayout='selected') {
-  if(layout==='profit-attribution')return decodeProfitAttribution(bytes).root;
+  if(layout==='profit-attribution'||layout==='sponsored-profit')return decodeProfitAttribution(bytes,layout==='sponsored-profit').root;
   requireValue(layout==='selected'&&bytes.length===getMarginAccountSize()&&
     MARGIN_ACCOUNT_DISCRIMINATOR.every((byte,index)=>bytes[index]===byte),'Invalid selected margin layout.');
   return getMarginAccountDecoder().decode(bytes);

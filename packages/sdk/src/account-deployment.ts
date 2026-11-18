@@ -1,12 +1,17 @@
-import {PROFIT_ATTRIBUTION_ARTIFACT_SET} from './profit-attribution.js';
+import {PROFIT_ATTRIBUTION_ARTIFACT_SET,SPONSORED_PROFIT_ARTIFACT_SET} from './profit-attribution.js';
 import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.js';
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate';
+export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
+  if(selection==='sponsored-profit-candidate')return {
+    artifactSet:SPONSORED_PROFIT_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:SETTLEMENT_HELPER_REVISION,
+    artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
+      bytes:2516408,sha256:'c34dcd5d97982b629274b40ca9141506ebbe35677322b0a80d0b3cda371b1d84'}:artifact)
+  };
   if(selection==='profit-attribution-candidate')return {
     artifactSet:PROFIT_ATTRIBUTION_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:SETTLEMENT_HELPER_REVISION,
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,

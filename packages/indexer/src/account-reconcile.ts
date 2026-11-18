@@ -117,8 +117,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       if(entity) {
         assert(current?.owner===program&&current.data[1]==='base64',`Scoped owner/encoding ${key}`);
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
-        if(entity.kind===5 && binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET) {
-          sdk.decodeProfitAttribution(bytes);
+        if(entity.kind===5 && [sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET,sdk.SPONSORED_PROFIT_ARTIFACT_SET].includes(binding.artifactSet)) {
+          sdk.decodeProfitAttribution(bytes,binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET);
         } else {
           assert(descriptor&&bytes.length===descriptor[1]&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
         }
