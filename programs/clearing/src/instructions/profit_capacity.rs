@@ -67,6 +67,15 @@ pub fn manage(
             && (next_width > width || (extended && next_width == INITIAL_ATTRIBUTION_BYTES)),
         ClearingError::Capacity
     );
+    // The RC2 Borsh wrapper cannot be dereferenced while its buffer is released.
+    if next_width == INITIAL_ATTRIBUTION_BYTES {
+        require!(
+            margin.positions.iter().all(|position| position.lots == 0)
+                && margin.reserved == 0
+                && margin.book.orders.iter().all(|entry| !entry.order.active()),
+            ClearingError::Resolution
+        );
+    }
     margin.release_borrow()?;
     let (prior, principal) = {
         let bytes = account.try_borrow()?;
@@ -96,9 +105,6 @@ pub fn manage(
         );
         require!(
             max_payment == 0
-                && margin.positions.iter().all(|position| position.lots == 0)
-                && margin.reserved == 0
-                && margin.book.orders.iter().all(|entry| !entry.order.active())
                 && matches!(accounts.safety.mode, ACTIVE | CUSTODY | RESOLVED | RETIRED),
             ClearingError::Resolution
         );
