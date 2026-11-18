@@ -1070,11 +1070,24 @@ while limiting the loss that position can absorb. The proportional fallback
 also works when all creditors are flat. Neither step creates collateral. Earlier
 payment, split accounts and closing near freeze can change membership and allocation.
 The [eligibility experiments](clearing/architecture-review.md#eligibility-at-the-freeze)
-identify decisions still required on payment attribution, eligibility timing,
+identified decisions on payment attribution, eligibility timing,
 priority among winners and cross-market execution. The experimental allocator
 and entry convention have research status. Changes to payout instructions or
 activation require the later implementation and qualification gates.
 
-The [ordinary payment comparison](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles)
-recommends fixed claims first after replaying both conventions. Adoption of
-that payment rule and the proposed treatment of accrued funding remain open.
+## D113 — Closed-first payment attribution
+
+18 November 2026. For the D112 successor, the user approved closed-first
+attribution of an ordinary, backed gain payment within one account and market.
+Apply the payment first to the positive fixed component of that account's unpaid
+claim, including realized trading P&L and signed accrued funding. Funding owed
+reduces that component. Apply the remainder to unpaid price profit on lots still
+open. The ordinary settlement checks determine how much cash the account can receive.
+
+This preserves more eligible gain on open exposure to absorb a later shortfall
+before other unpaid creditors share it. An open maker can consequently bear
+more loss. The [matched payment histories](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles)
+show this tradeoff and the case where both conventions give the same result
+after a close and re-entry. The cutoff that fixes loss eligibility remains open.
+The qualified local program currently records aggregate claim payments and uses
+proportional terminal recovery.

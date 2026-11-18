@@ -66,8 +66,8 @@ recovery. The [eligibility experiments](architecture-review.md#eligibility-at-th
 show charges moving across makers after a close/reopen or a subaccount split.
 The [payment comparison](architecture-review.md#which-profit-an-ordinary-payment-settles)
 replays both conventions through signed funding, partial closes and re-entry.
-It recommends paying positive fixed claims first, including accrued funding.
-That economic choice awaits approval. The next contract question concerns the
+[D113](../DECISIONS.md#d113--closed-first-payment-attribution) selects payment of
+the positive fixed claim first, including signed accrued funding. The next contract question concerns the
 binding loss epoch for pre-freeze closes and re-entry. Keep the active proportional
 settlement until the selected eligibility, epoch, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)

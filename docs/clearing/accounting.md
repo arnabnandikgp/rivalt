@@ -174,6 +174,10 @@ acceptance; native tests or source layout sizes are not those measurements.
 
 ## Cash, claims and normal transitions
 
+The current program records a gain payment against the account's aggregate
+market claim. The successor attributes that payment closed-first under
+[D113](../DECISIONS.md#d113--closed-first-payment-attribution).
+
 Use the existing 10^9 claim/funding scale, i128 normal claims/checkpoints, exact
 participant fractions, BTC/ETH lot sizes, quantity/price/cash bounds and 10%/5%
 synthetic IM/MM. Existing source, six-second recovery, causal funding, held-window,

@@ -158,10 +158,9 @@ charges are 13/7 or 10/10 respectively. A and B's final cash is 117/103 or
 120/100. Each plan pays the same total and protects the already funded payment.
 Inferring eligibility from the aggregate unpaid claim alone can overstate it.
 
-Before activation, specify the attribution of ordinary payments, funding,
-partial reductions and re-entry to each surviving position. Compare the two
-payment conventions over identical histories and define an enforceable cutoff
-for trades around a default. Cross-market ADL, multiple debtors, maker priority
+Before activation, specify how clearing tracks payments on surviving lots through
+partial reductions and re-entry under D113. Define an enforceable cutoff for
+trades around a default. Cross-market ADL, multiple debtors, maker priority
 and bounded on-chain continuation need further evidence. Today's proportional
 settlement remains active in the qualified local profile.
 
@@ -173,12 +172,13 @@ python3 tests/financial/test_adl_eligibility.py -v
 
 ### Which profit an ordinary payment settles
 
-**Recommendation for decision.** Pay a trader's positive fixed claim first.
+**Approved successor rule.** Pay a trader's positive fixed claim first.
 This includes realized trading P&L and signed accrued funding. Apply any
 remainder to unpaid price profit on the lots still open. This fits D112 because
 more of a surviving profitable position can absorb a shortfall before a flat
 creditor shares in it. The active maker bears more of the loss in some defaults.
 Both conventions pay the same account the same cash at the time of payment.
+[Decision D113](../DECISIONS.md#d113--closed-first-payment-attribution)
 
 The [replay](../../tests/financial/payment_attribution_model.py) starts from cash
 deposits and zero claims. At 90 maker A has ten atoms of closed profit and ten
