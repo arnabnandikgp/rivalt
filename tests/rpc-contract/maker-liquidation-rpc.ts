@@ -82,7 +82,10 @@ try {
   }
   await verifyTarget('Below maintenance',50n,563_390n,-3_050_000n,43_910n);
   // Expire the signed sources, then restore through the same oracle/publisher entrypoints.
-  await setup.waitUntil((await setup.marketState(0)).oracle.sourceDeadline);
+  const validity=await setup.marketState(0);
+  while (await setup.slot()<validity.validUntil && await setup.now()<validity.oracle.sourceDeadline) {
+    await setup.waitUntil(await setup.now()+2n);
+  }
   await reject('expired sources',await forced(1n),sdk.CLEARING_ERROR__ORACLE_POLICY);
   await setup.qualify();
   await reject('ordinary route requires target authority',await forced(1n,2,false),sdk.CLEARING_ERROR__AUTHORITY);
