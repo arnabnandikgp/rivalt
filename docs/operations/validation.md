@@ -11,8 +11,11 @@ The live clearing release path and its compute budget are outside this measureme
 
 The [frozen attribution comparison](../clearing/default-plan-verification.md#what-the-freeze-must-retain-about-open-profit)
 at `50d8a3a` checks 1,000 prefixes, 367 payments and two exact native terminal
-payoffs. Its storage figures are serialized reference payloads. It has no signed
-attribution write or runtime efficiency measurement.
+payoffs. Its general storage figures are serialized reference payloads. The [signed growth
+probe](../clearing/default-plan-verification.md#signed-storage-boundary) at `100bf32` separately
+finalized seven transactions, including atomic rollback and an eight-byte
+sponsored expansion, and reconciled six PostgreSQL observations. These CU
+measurements cover the dyadic position fixture.
 
 ## Settlement and liquidation research
 

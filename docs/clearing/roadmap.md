@@ -89,8 +89,9 @@ maps proof obligations to the existing freeze and settlement controllers.
 The [continuation reference](default-plan-verification.md#restarting-verification-when-a-bound-misses)
 checks whole joint candidates in committed ranges. The [metered fixture](default-plan-verification.md#measured-nine-account-verifier) now has signed restart
 evidence for a funded nine-account family. The [input comparison](default-plan-verification.md#what-the-freeze-must-retain-about-open-profit) identifies the two
-exact survivor amounts and measures checkpoint versus history storage. Next
-meter a self-contained update and storage growth on the common path. General linked-book verification
+exact survivor amounts and measures checkpoint versus history storage. The [signed growth test](default-plan-verification.md#signed-storage-boundary) measures an atomic
+sponsor top-up. Select who supplies ordinary growth capacity before changing
+trade admission. Prove compulsory-reduction capacity independently. General linked-book verification
 and clearing adoption remain open. [D122](../DECISIONS.md#d122--exact-proof-before-prototype-release)
 requires an exact proof and defers the production timeout policy.
 Keep the active proportional settlement until

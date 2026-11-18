@@ -246,10 +246,49 @@ Both terminal cash vectors above were checked against compiled Rust. Authority
 in these tests is supplied by the fixture. A financial integration must attach
 the records to clearing's successful transitions and verified freeze.
 
-A self-contained current position preserves permissionless recovery if the
-venue's historical database becomes unavailable. A commitment makes the
-ordinary footprint fixed but introduces a data-availability dependency that can
-keep the cohort frozen under D122. The working recommendation is to meter the
-self-contained representation on the common trade path, including the cost
-of crossing a storage boundary. Choosing an operating policy for missing
-storage or missing history affects trade and exit availability.
+### Signed storage boundary
+
+The [dyadic-basis fixture](../../tests/fixtures/default-proof/src/basis.rs)
+holds one surviving long. A cycle buys one lot at 100 then sells one at 100.
+Starting at 101, the exact remaining entry is `100 + 1/2^n` after `n`
+cycles. The fixture stores the numerator and exponent and advances from an
+expected cursor. This family isolates the resource cost of a numerator growing
+from eight to sixteen bytes. The fixture authenticates a test trader and PDA.
+It has no custody or financial trade instruction.
+
+At `100bf32`, the [signed test](../../tests/rpc-contract/attribution-storage-rpc.ts)
+finalized seven transactions over Surfpool RPC/WS and reconciled six position
+observations in PostgreSQL. The first development run exposed a serialization
+borrow held during resize. The tested fix releases the typed account borrow
+before resizing and reacquires it before committing the new numerator.
+
+| One update | CU | Wire bytes | Observed result |
+|---|---:|---:|---|
+| Cycle 57, inside current capacity | 2,031 | 371 | Exact numerator fits in eight bytes |
+| Cycle 58, top-up one lamport short | 2,083 | 420 | Both the attempted transfer and the update roll back |
+| Cycle 58, explicit sponsor top-up | 2,808 | 420 | Account grows from 21 to 29 bytes and the cycle commits atomically |
+| Cycle 59, after growth | 2,032 | 371 | Exact numerator verified independently from finalized state |
+
+The eight-byte increase retained 40,640 additional rent lamports on this
+validator. Total rent rose from 756,920 to 797,560 lamports. The separate
+test sponsor signed the transfer. The trader's SOL balance stayed constant
+after initialization. The local base transaction fee was 10,000 lamports on
+the two-signature updates, including the rejected one. The experiment covers
+neither an entire route nor refund execution. Reproduce with
+`RIVALT_PROOF_SCOPE=attribution bash ops/default-proof-smoke.sh`.
+
+D100 already identifies the actual contributor for pre-funded venue recovery
+storage. Variable storage caused by later fills introduces another operating
+choice. With per-account capacity, makers and traders can provision ahead of
+time and sponsors may contribute voluntarily. Risk-increasing operations wait
+if required capacity is missing. With a venue-funded reserve Rivalt assumes
+the cost for admitted users and must specify admission when its reserve runs
+low. Both approaches need a demonstrated bound for compulsory reductions and
+default before admitting risk. An unavailable off-chain archive must not be
+silently substituted for a verified input.
+
+The recommendation is self-contained current state, per-account capacity and
+optional sponsorship. The funding policy for ordinary trading awaits a product
+decision. The measurements establish the cost for this fixture and leave the
+general arithmetic, on-chain attribution, forced-reduction headroom and
+production rent policy open.
