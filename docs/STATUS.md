@@ -46,7 +46,8 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 | Ordinary cross-maker payout | Closed | [PR #99](https://github.com/arnabnandikgp/rivalt/pull/99) above #98. [Signed results](operations/validation.md#ordinary-trader-payout) at `f732ae0` on selected SBF `ed46603`. The trader withdrew all 970 net atoms, an early exit failed atomically, the restarted keeper completed payment, and fresh PostgreSQL replay matched all 158 events. |
 | Maker liquidation and funded receiver | Closed | [PR #100](https://github.com/arnabnandikgp/rivalt/pull/100) above #99. [Signed qualification](operations/validation.md#maker-liquidation-and-funded-receiver) at `3c05d59` / SBF `4e07c1f`. A ten-lot maker fill and a five-lot receiver transfer restored the target to maintenance, 12 signed rejections preserved state and fresh PostgreSQL replay matched 96 events. The normal runtime remains on P56. |
 | Stack review closeout | Closed | [PR #101](https://github.com/arnabnandikgp/rivalt/pull/101) above #100 covers 17 CodeRabbit threads from the 28 predecessor PRs. Twelve warranted changes and five were already covered. Local default at `104a8ac` finalized 15 worker transactions and replayed 109 events. The [liquidation regression](operations/validation.md#stack-review-regressions) at `5c302cd` on candidate SBF `ab3f6c6` replayed 92 events. Integrated in the verified 29-PR merge. |
-| Single-debtor BTC recovery | Review | [Signed comparison](operations/validation.md#single-debtor-btc-recovery) at `7781e6b` on selected P56. Eight accounts, 13 finalized worker continuations, an 847-atom wallet exit and 115-event fresh SQL replay. A successor model on the same inputs pays the trader 996. |
+| Single-debtor BTC recovery | Review | [PR #102](https://github.com/arnabnandikgp/rivalt/pull/102). [Signed comparison](operations/validation.md#single-debtor-btc-recovery) at `7781e6b` on selected P56. Eight accounts, 13 finalized worker continuations, an 847-atom wallet exit and 115-event fresh SQL replay. A successor model on the same inputs pays the trader 996. |
+| Clearing-owned surviving profit | Review | [Signed results](operations/validation.md#clearing-owned-surviving-profit). Program `33361d9`, signed harness `af1c515`. All 16 frozen market slots matched independent replay across two-maker fills, a flip, backed payment and keeper liquidation. A separate 277-transaction recovery reproduced the parent’s creditor payout and wallet exit. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -108,9 +109,10 @@ the trader's SPL wallet with a local test fee payer. Under D124 the local maker 
 reaches a healthy target through admitted depth and a separately funded receiver.
 The single-debtor BTC comparison now measures the 149-atom difference between
 the trader's signed proportional payout and the successor model on identical
-frozen obligations. Next bind exact surviving-position attribution to an actual
-candidate fill and backed payment, and verify it through a compulsory reduction
-and freeze without owner-funded growth during recovery.
+frozen obligations. On the separate attribution build those obligations now carry
+clearing-owned exact per-lot entry and paid profit. The 128-byte per-market
+allocation rejected a 129-lot test order. Next demonstrate growing that allocation
+with an optional rent sponsor and recovering the sponsor’s principal after exit.
 
 ## Earlier checkpoints
 

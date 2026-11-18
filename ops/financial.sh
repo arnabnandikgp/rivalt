@@ -32,6 +32,7 @@ python3 tests/financial/test_scalable_snapshot.py
 python3 tests/financial/test_scalable_settlement.py
 python3 tests/financial/test_settlement_liquidation_model.py
 python3 tests/financial/test_adl_eligibility.py
+cargo test --locked -p clearing-accounting --features surviving-profit attribution
 python3 tests/financial/test_payment_attribution.py
 python3 tests/financial/test_freeze_cutoff.py
 python3 tests/financial/test_cross_market_adl.py

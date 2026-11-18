@@ -150,6 +150,23 @@ the verified freeze, finalized continuations, funded payouts and SPL withdrawal 
 replays the two fills and calculates both payout rules from that same freeze.
 Only the selected proportional rule moves tokens in this demonstration.
 
+## Clearing-owned profit attribution
+
+Build from clean program source `33361d9` with the normal P56 artifacts already
+present. Use the same artifact directory from the signed harness checkout at
+`af1c515`. Each run starts a fresh loopback chain and PostgreSQL database.
+
+```sh
+RIVALT_ATTRIBUTION_DIR=.local/profit-attribution/candidate-33361d9 bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/candidate-33361d9
+RIVALT_SETTLEMENT_PROBE=profit-attribution bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-recovery bash ops/scalable-settlement-smoke.sh
+```
+
+The first probe compares every frozen account with independently replayed fills
+and payments. The second follows the debtor and both creditors through the
+selected proportional settlement and wallet exit. [Measured results](validation.md#clearing-owned-surviving-profit).
+
 ## Maker liquidation demonstration
 
 Build the separately pinned candidate at source revision `ab3f6c6` with

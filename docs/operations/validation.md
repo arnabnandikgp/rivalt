@@ -1,5 +1,43 @@
 # Validation and measured limits
 
+## Clearing-owned surviving profit
+
+The [signed test](../../tests/rpc-contract/profit-attribution-rpc.ts) at
+`af1c5158301274cfdb3299b0b364955f8af1ce6f` deployed candidate clearing built
+from `33361d969978543716697373826a3f3675e1edc4`. Its 2,497,736-byte binary
+has SHA-256 `f4b313c3899e1aab074baf92a015c2e37f3c7a450e6610105e0669d539a98ca3`.
+Both makers used the selected P56 binaries. The loopback run checked 344 signed
+outcomes including setup and expected rejections. A new PostgreSQL projection
+replayed all 157 events. A separate [Python fraction replay](../../tests/financial/check_profit_attribution.py)
+reconstructed all 16 frozen market slots across eight accounts from finalized
+fills and the backed payment.
+
+The trader bought four BTC lots at 60,002 and closed two at 60,998. The
+2,492-atom payment settled 1,992 of fixed gain and assigned 250 to each of the
+two open lots. A keeper closed one more lot. Its survivor retained the same
+entry and paid amount through the freeze without a trader signature or rent
+transfer. A second trader bought three lots across unequal maker prices at a
+total of 150,008 atoms, then flipped through a four-lot sale. Clearing retained
+the exact aggregate entry for the trader and each individual price for the makers.
+
+| Finalized transaction | CU | Wire bytes |
+|---|---:|---:|
+| Reject 129 lots on initial capacity; five financial accounts preserved byte-for-byte | 149,931 | 1,006 |
+| Open four lots | 177,940 | 1,006 |
+| Close two against another maker | 171,540 | 1,014 |
+| Pay certified gain | 70,798 | 580 |
+| Keeper closes one lot | 202,881 | 918 |
+| Two-maker fractional entry | 245,469 | 1,174 |
+| Two-maker flip | 244,667 | 1,174 |
+| Named-debtor freeze | 51,746 | 918 |
+
+At `b5555bccacaac432f84066c972704b501577575b` the same binary ran the separate
+single-debtor BTC recovery below. All 277 signed outcomes, 13 worker continuations,
+115 replayed events and the 847-atom token exit passed. Each distributed margin
+had empty attribution. These are small local workloads with a 1,275-byte margin
+root and 128 bytes reserved per market. General lot capacity, paid-for growth and
+successor payouts still require their own qualification.
+
 ## Single-debtor BTC recovery
 
 At `7781e6b0cbf0b8df7801cd3d09fff1005977c5ea`, the [signed harness](../../tests/rpc-contract/btc-default-recovery-rpc.ts)

@@ -37,12 +37,14 @@ now follows one verified freeze through insurance, funding of the creditors,
 withdrawal and return to custody. On the same 8,498 available atoms, the approved
 successor model shifts 149 from the open winning maker to the flat trader.
 
-The next acceptance is to bind the two exact surviving-position amounts to an
-actual clearing fill and a closed-first gain payment, then read them at freeze.
-Include partial compulsory reductions without an owner signature or rent top-up
-under D123. General linked-book verification and application remain open. The
-selected local runtime uses proportional terminal recovery. Shared-write and cost
-qualification follow the implemented financial paths.
+The [attribution candidate](../operations/validation.md#clearing-owned-surviving-profit)
+now retains exact per-lot entry and paid gain through fills, backed payment,
+compulsory reduction and the freeze. Next qualify adjustable per-margin capacity
+with optional sponsorship, including an order that the initial allocation rejects,
+refund to the contributor and recovery without a further signature. The subsequent
+user-visible milestone is the flat trader’s 996-atom payout from signed successor
+clearing on the matched BTC case. General linked-book verification and application,
+plus shared-write and cost qualification, remain open.
 
 ## Functional ownership
 

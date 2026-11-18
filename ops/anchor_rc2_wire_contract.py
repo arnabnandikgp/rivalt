@@ -138,6 +138,8 @@ def check_domains():
     # D121 episode ordering is used only by the research selector at this revision.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
                                             | {r'Rivalt/frozen-member-order/v1\0'})
+    # Format marker for the separately qualified margin extension.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
