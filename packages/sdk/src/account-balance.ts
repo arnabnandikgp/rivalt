@@ -55,3 +55,18 @@ export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:
     heldRiskEquityScaled:heldRiskEquityScaled?.toString()??null,indicativeCashHeadroom,
     withdrawableCash:null,withdrawalStatus:status,paused:safety.paused};
 }
+
+/** Explains a flat market position's gain while its owner awaits a funded payment.
+ * The shared pool is observed liquidity, never a reservation for this account. */
+export function closedGainStatus(position:{lots:string;unpaidClaimScaled:string|null}, settlement:bigint,
+  safety:{mode:number;paused:boolean}) {
+  if (position.lots !== '0' || position.unpaidClaimScaled === null) return null;
+  const claim = BigInt(position.unpaidClaimScaled);
+  if (claim <= 0n) return null;
+  if (safety.paused || safety.mode !== 1) return 'Ordinary settlement suspended';
+  const wholeAtoms = claim / 1_000_000_000n;
+  if (wholeAtoms === 0n) return 'Below one payable atom';
+  if (settlement === 0n) return 'Awaiting loss collection';
+  if (settlement < wholeAtoms) return 'Market pool covers part of this claim';
+  return 'Awaiting verified payment';
+}

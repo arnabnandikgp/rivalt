@@ -10,6 +10,9 @@ if command -v caffeinate >/dev/null; then
   caffeinate -i -w $$ &
 fi
 # The SDK pins the qualified local artifacts; retained P44/C0 remain separate.
+if [[ "${RIVALT_LIQUIDITY_PROBE:-}" == ordinary-payout ]]; then
+  export RIVALT_LIQUIDITY_POSTGRES=1 RIVALT_PG_PORT="${RIVALT_PG_PORT:-15452}"
+fi
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
 node --import tsx --input-type=module -e '
@@ -58,6 +61,7 @@ for component in clearing maker_a maker_b oracle_fixture; do
 done
 if [[ "${RIVALT_LIQUIDITY_POSTGRES:-0}" == 1 ]]; then source ops/postgres.sh; fi
 case "${RIVALT_LIQUIDITY_PROBE:?explicit probe required}" in
+  ordinary-payout) node --import tsx tests/rpc-contract/ordinary-payout-rpc.ts ;;
   custody) node --import tsx tests/rpc-contract/account-custody-rpc.ts
     python3 tests/financial/account-custody-reference.py "$RIVALT_RUN_DIR/summary.json" ;;
   makers) node --import tsx tests/rpc-contract/canonical-maker-rpc.ts ;;
