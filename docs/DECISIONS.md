@@ -1108,3 +1108,16 @@ values the frozen positions. It does not reopen eligibility. The
 [cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding)
 quantifies the effect of a late proof. Bundling a source update and proof still needs
 signed runtime measurements. Priority among eligible winners remains open.
+
+## D115 — Separate position accounting and whole-account risk
+
+18 November 2026. Under the D111 functional consolidation, `clearing-accounting`
+owns checked collateral units, position valuation and the shared price policy.
+`risk-engine` reads an account’s positions, signed funding inputs and authenticated
+bounds to calculate health, margin, reservations and reduce-only admission.
+`financial-core` retains its public entrypoints and builds transfer, liquidation
+and settlement candidates. Clearing authenticates accounts and commits accepted
+transitions. This dependency order lets all callers use the same equations.
+The [source map](clearing/risk-and-resolution.md#risk-equations-in-code) traces
+withdrawal and liquidation. The [matched comparison](operations/validation.md#whole-account-risk-engine-extraction)
+records the cost of moving the existing rules.

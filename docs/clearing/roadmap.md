@@ -25,14 +25,13 @@ selected loss rule's eligibility and execution terms are being tested.
 
 ## Functional ownership
 
-These are proposed destinations for deliverable 2. The links lead to today's
-source. The clearing program links the pure Rust financial rules into the on-chain
+The risk and position-accounting crates implement the first extraction in deliverable 2. The other rows identify the remaining domain boundaries. The clearing program links the pure Rust financial rules into the on-chain
 binary. Workers request transactions and the indexer records finalized outcomes.
 
 | Where to look today | Target owner | Question it answers |
 |---|---|---|
 | [Financial primitives](../../crates/financial-core/src/lib.rs) and [margin state](../../crates/financial-core/src/margin.rs) | Accounting module for typed cash, claims, positions, funding accrual and paired deltas | What balances and obligations changed? |
-| [Whole-account margin math](../../crates/financial-core/src/margin.rs), [orders](../../crates/risk-engine/src/orders.rs) and [program risk adapter](../../programs/clearing/src/engine/risk.rs) | Proposed `crates/risk-engine`, operating on typed accounting state and authenticated price/funding inputs | Can this account trade or withdraw, when is it liquidatable, and does reduction improve health after fees? |
+| [Whole-account risk](../../crates/risk-engine/src/lib.rs), [orders](../../crates/risk-engine/src/orders.rs) and [program risk adapter](../../programs/clearing/src/engine/risk.rs) | `crates/risk-engine`, reading positions from `crates/clearing-accounting` and authenticated price/funding inputs | Can this account trade or withdraw, when is it liquidatable, and does reduction improve health after fees? |
 | [Route rules](../../crates/financial-core/src/route.rs), [liquidation rules](../../crates/financial-core/src/liquidation.rs) and [maker route handler](../../programs/clearing/src/instructions/maker_liquidity/routes/) | Execution and liquidation modules calling accounting and risk | Which maker fill or receiver transfer is admissible, and what atomic update follows? |
 | [Backing](../../crates/financial-core/src/backing.rs), [default solver](../../crates/financial-core/src/clearing/), [claims](../../programs/clearing/src/instructions/account_cash/) and [resolution controller](../../programs/clearing/src/instructions/account_safety/resolution/) | Settlement and resolution engine with program adapters for authenticated continuation | How does a claim become cash, and who bears a deficit? |
 | [Clearing instructions](../../programs/clearing/src/instructions/), [state](../../programs/clearing/src/state/), [settlement worker](../../packages/services/src/account-settlement-worker.ts) and [indexer](../../packages/indexer/) | Thin on-chain authority/custody adapters, off-chain services grouped by domain and finalized projections | Who can call it, who signs or retries, and where can a user verify the outcome? |

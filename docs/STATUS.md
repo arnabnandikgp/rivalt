@@ -34,6 +34,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Ordinary gain payment attribution | In review | [Ready PR #88](https://github.com/arnabnandikgp/rivalt/pull/88) above #87. [Payment comparison](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles). Model `1ab1eaf` passes nine new and 23 preceding focused tests. Ten frozen outcomes and 15 funding accruals match native Rust. [D113](DECISIONS.md#d113--closed-first-payment-attribution) records user approval of closed-first for the successor. |
 | Default eligibility cutoff | In review | [Ready PR #89](https://github.com/arnabnandikgp/rivalt/pull/89) above #88. [Cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding). Model `8cbbb31` passes 11 focused tests, including 18 native terminal comparisons. Four existing Rust resolution tests pass. [D114](DECISIONS.md#d114--verified-freeze-cutoff-for-loss-eligibility) records the approved prospective cutoff. |
 | Signed freeze delivery | In review | [Ready PR #90](https://github.com/arnabnandikgp/rivalt/pull/90) above #89. Clean harness `bc816d4`, local SBF `ed46603`. [Four signed outcomes](operations/validation.md#signed-source-publication-and-freeze), including complete atomic rollback and a successful freeze three slots after source publication. Fresh PostgreSQL replay matched 72 events. |
+| Whole-account risk-engine extraction | In review | Candidate SBF `6775e13`, harness `8b5dda2`. [Matched financial and resource results](operations/validation.md#whole-account-risk-engine-extraction) for nine signed transactions per build, 90-event SQL replay per build and 30 native tests. The normal launcher selects P56. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -72,8 +73,8 @@ freeze that commits for the episode. The [cutoff results](clearing/architecture-
 quantify the tradeoff for late proofs and temporary insolvency. Clearing accepted
 the named-debtor proof against already-published feeds. The remaining economic
 decision is priority among eligible winners when whole lots are scarce.
-The behavior-preserving risk-engine extraction remains the next separate
-engineering deliverable.
+The risk engine and shared position accounting now have separate crate owners.
+The successor research next needs an executable cross-market loss-attribution case.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator

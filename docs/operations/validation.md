@@ -74,6 +74,50 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/anchor-rc2/current \
 RIVALT_SETTLEMENT_PROBE=freeze-cutoff bash ops/scalable-settlement-smoke.sh
 ```
 
+## Whole-account risk-engine extraction
+
+Harness `8b5dda2` deployed predecessor `ed46603` and candidate `6775e13`
+on separate Surfpool 1.7.0 instances with fresh PostgreSQL 18.6 databases.
+Each ran the same two-market cross account, isolated receiver and funded makers.
+The nine measured originals matched in outcome, packet size, fee, signature
+count and loaded-account count. Rejections rolled back the tracked accounts.
+
+| Signed original | Predecessor CU | Extracted CU | Bytes |
+|---|---:|---:|---:|
+| Two-maker BTC fill | 279,463 | 281,352 | 1,196 |
+| Two-maker ETH fill | 278,800 | 280,753 | 1,196 |
+| Reject withdrawal below IM | 24,119 | 24,631 | 806 |
+| Funded withdrawal | 55,332 | 55,940 | 806 |
+| Reserve a cross-account order | 35,492 | 36,145 | 636 |
+| Reserve an isolated order | 34,903 | 35,410 | 636 |
+| Reject liquidation that worsens the deficit | 27,859 | 28,648 | 715 |
+| Transfer ten BTC lots and pay the receiver | 55,250 | 56,436 | 715 |
+| Reject stale liquidation replay | 9,618 | 9,618 | 715 |
+
+Both transferred exactly 260 fee atoms. Cash ended at 598,738 for the target
+and 1,000,260 for the receiver. Signed lots and virtual quote matched the
+independent transfer and funding equation on both roots in both markets.
+Each deployment reconciled its own 90 committed events to fresh SQL replay.
+The clearing SBF shrank from 2,389,840 to 2,374,256 bytes. The largest direct
+frame-pointer displacement in each disassembly was 4,096 bytes. The candidate
+build passed the SBF frame diagnostic check. Displacement describes an
+instruction offset, not aggregate call-stack usage.
+
+Twenty-four native financial tests and six clearing liquidation tests passed.
+All three regenerated IDLs matched the checked-in bytes. The RC2 wire and
+signed-domain contract, generated price constants and TypeScript check passed.
+These measurements cover the listed paths. The normal demo and workers continue
+to select `ed46603`. The candidate has its own test-only artifact set.
+
+To repeat, build the candidate from clean `6775e13` into the directory below.
+Run the same probe once per pinned artifact set from the harness checkout.
+
+```sh
+for artifacts in .local/anchor-rc2/current .local/risk-engine-6775e13; do
+  RIVALT_SETTLEMENT_ARTIFACT_DIR="$artifacts" RIVALT_SETTLEMENT_PROBE=whole-account-risk bash ops/scalable-settlement-smoke.sh
+done
+```
+
 ## Account-scale populated qualification (P56)
 
 Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper

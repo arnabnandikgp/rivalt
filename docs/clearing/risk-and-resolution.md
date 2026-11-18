@@ -540,6 +540,23 @@ a caller omit a losing market; empty unrelated slots need no fresh price. Shared
 collateral sources remain relevant to exposed collateral-denominated positions.
 Cancellation outside frozen ownership needs no source or maker quote.
 
+### Risk equations in code
+
+| Question | Calculation and source |
+|---|---|
+| What does one position owe? | `Position::unpaid` applies the signed funding change since its checkpoint to virtual quote, then adds signed lots × price × scale. A flat position retains its fixed claim. [Position accounting](../../crates/clearing-accounting/src/lib.rs) |
+| Which claim counts toward margin? | `Account::risk_equity` counts cash once, selects lower for long and upper for short, and adds only negative claims across the permitted markets. [Risk engine](../../crates/risk-engine/src/lib.rs) |
+| Can a trade or withdrawal proceed? | `Account::admissible` requires that equity cover all reservations plus the sum of each position’s initial margin rounded up in whole atoms. `ReservationRate` bounds price loss, remaining fees and initial margin on an order. [Account admission](../../crates/risk-engine/src/lib.rs), [order reservations](../../crates/risk-engine/src/orders.rs) |
+| Does a forced reduction help? | `Account::deficit` is the positive shortfall between maintenance margin and risk equity. The funded-receiver candidate checks the target’s deficit again after charging the fee, then the adapter refreshes both books and checks receiver capacity. [Paired liquidation](../../crates/financial-core/src/margin.rs), [program adapter](../../programs/clearing/src/engine/risk.rs) |
+
+For a withdrawal, start at `withdraw`, which authenticates the owner and guard.
+`withdraw_candidate` accrues funding, refreshes the book and calls the account
+risk check. The handler commits the candidate and SPL transfer within the same
+transaction. For liquidation, `liquidate` verifies the caller and both accounts,
+constructs the funded transfer, and commits the accepted pair. [Withdrawal handler](../../programs/clearing/src/instructions/account_cash/cash.rs),
+[withdrawal candidate](../../programs/clearing/src/instructions/account_cash/engine.rs),
+[liquidation handler](../../programs/clearing/src/instructions/account_safety/risk.rs)
+
 ## Orders and protection
 
 Four records and two protective pairs are embedded in each root. Inclusive start,

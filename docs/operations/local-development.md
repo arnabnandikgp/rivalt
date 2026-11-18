@@ -33,8 +33,12 @@ Rust, SBF compiler, runtime version and transaction format are different identit
 Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
-The RC2 toolchain uses `bash ops/install-anchor-rc2.sh`, followed by
-`bash ops/build.sh`. P56 selects the account-scale RC2 artifacts with the unchanged approved policy-2
+For a fresh build of the qualified demo, create a separate checkout with
+`git worktree add --detach ../rivalt-qualified 657a255` and install the pinned
+tools and dependencies there. Run `bash ops/install-anchor-rc2.sh`, then
+`bash ops/build.sh` from that checkout. To build the extracted risk engine for
+comparison, use `RIVALT_LIQUIDITY_ARTIFACTS=.local/risk-engine-candidate bash ops/build-liquidity-execution.sh`
+at the candidate source revision in [validation](validation.md#whole-account-risk-engine-extraction). P56 selects the account-scale RC2 artifacts with the unchanged approved policy-2
 price bounds, quantities and risk safeguards
 and selects `.local/anchor-rc2/current` for builds, probes and the local demo. Actual files
 must match the SDK's admitted hashes; changing a manifest does not qualify code.

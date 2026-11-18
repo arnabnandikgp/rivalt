@@ -26,7 +26,7 @@ Its [venue comparison](venue-comparison.md) separates documented liquidation,
 backstop and loss-allocation mechanisms from candidate Rivalt changes.
 
 The [clearing roadmap](roadmap.md#functional-ownership) maps today’s source to the
-planned risk engine and other financial domains.
+risk engine and other financial domains. The [risk source map](risk-and-resolution.md#risk-equations-in-code) traces a withdrawal or liquidation to its admission check.
 
 ## Source map
 
