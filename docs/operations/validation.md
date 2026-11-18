@@ -33,6 +33,47 @@ commands](../clearing/architecture-review.md#when-default-eligibility-becomes-bi
 document the rebound, omitted witness, atomic rollback, funded payments and
 deferred emergency valuation. No signed execution or keeper latency was measured.
 
+### Signed source publication and freeze
+
+On 18 November 2026 harness `bc816d4` deployed the qualified local SBF
+`ed46603` on fresh Surfpool 1.7.0. A 60-lot BTC long against a funded
+maker had 999,099 atoms of common-value equity at 60,000 atoms/lot
+and −200,901 at 40,000, including funding at the frozen index. A separate
+permissionless keeper paid the fee. Two independent local fixture publishers
+signed six BTC, ETH and collateral feed updates.
+
+| Finalized original | Result | Wire bytes | CU | Writable / read-only keys | Fee (test lamports) | Broadcast to observed confirmation |
+|---|---|---:|---:|---:|---:|---:|
+| Freeze the named account at the original price | Solvent, resolution error 6130 | 918 (v0) | 33,470 | 10 / 13 | 5,000 | 123 ms |
+| Publish all six feeds and freeze the same account in one transaction | Oracle source error 6123 | 1,551 (v1) | 25,780 | 16 / 9 | 15,000 | 102 ms |
+| Publish the adverse prices | Committed at slot 1569 | 1,056 (v0) | 6,138 | 7 / 4 | 15,000 | 113 ms |
+| Freeze using those published prices | Committed at slot 1572 | 918 (v0) | 51,582 | 10 / 13 | 5,000 | 110 ms |
+
+The atomic packet reached clearing after six successful publisher invocations.
+Its compiled message gave all six feed accounts write access. The
+[source binding](../../programs/clearing/src/engine/sources.rs) requires each
+feed to be read-only. All feed and writable clearing account bytes matched
+their pre-transaction values after rejection. The separate publication left
+the venue active. The subsequent freeze fixed all eight financial members,
+both funding indices and BTC/ETH prices of 40,000/30,000 atoms per lot.
+
+The successful pair consumed 57,720 CU and 20,000 test lamports. From building
+the updates, with the proof instruction already prepared, to observing freeze
+confirmation took 265 ms including intermediate RPC checks. This is one
+loopback sample with 50 ms slots, signed synthetic prices and zero priority
+fee. Live oracle publication and keeper discovery latency are unmeasured.
+
+The harness compared the signed bytes with finalized RPC history for all four
+originals. Signature WS notifications agreed with the receipts. Surfpool's log
+notifications reported a null error for both rejections. Fresh PostgreSQL replay
+matched the 72 committed events and reconciled the frozen accounts. Reproduce
+from the repository root with the pinned local artifacts and Apple Container:
+
+```sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/anchor-rc2/current \
+RIVALT_SETTLEMENT_PROBE=freeze-cutoff bash ops/scalable-settlement-smoke.sh
+```
+
 ## Account-scale populated qualification (P56)
 
 Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper

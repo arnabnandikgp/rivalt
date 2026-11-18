@@ -245,7 +245,8 @@ the first verified freeze that commits for a default episode binds eligibility.
 Honor the trades and backed payments that committed
 before it. A keeper that identifies a bankrupt account can submit that account
 to the freeze instruction immediately. When a source update is also needed,
-evaluate submitting the update and proof atomically. An earlier oracle timestamp
+submit the proof once the qualified update has landed. The [signed comparison](../operations/validation.md#signed-source-publication-and-freeze)
+found that top-level publication and freeze together reject on the read-only source check. An earlier oracle timestamp
 alone cannot identify which accounts still held exposure or which gains had
 already been paid. Using it retroactively could select lots that have since closed.
 
@@ -296,9 +297,9 @@ any interval before freeze.
 The [tests](../../tests/financial/test_freeze_cutoff.py) use one BTC debtor,
 synthetic qualified inputs, zero trade fees and the experimental proportional
 winner selection. Native Rust checks cover current freeze predicates and the
-terminal payouts on adjusted claims. Packet size, CU, locks, keeper landing delay,
-oracle verification and admission of those example trades need signed runtime
-measurement before enabling an earlier proof path.
+terminal payouts on adjusted claims. The later signed comparison measures local
+packet size, CU, locks and confirmation for a single BTC debtor. Live oracle
+verification, detection delays and admission of the modeled round trips remain unmeasured.
 
 ```sh
 source ops/env.sh
