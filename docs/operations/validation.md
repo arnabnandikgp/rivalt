@@ -65,6 +65,13 @@ flat-creditor outputs are 6/7 and 5/8, with zero insurance in either case.
 At `65899ee`, eleven joint tests pass, including the 61/12 equal-total case.
 At `91ae07e` all eleven pass with the approved D120 policy as the default.
 
+At `4be157f`, eight default-plan verification tests, eleven joint tests and
+eight native clearing plan-controller tests passed. The new tests include 97
+six-winner books, five native terminal controls and a 121-member funded cohort.
+The [results](../clearing/default-plan-verification.md) distinguish a sufficient
+score proof, a loose bound and the identity tie. Python carries the successor
+verification. The Rust controls exercise ordinary settlement.
+
 ### Signed source publication and freeze
 
 On 18 November 2026 harness `bc816d4` deployed the qualified local SBF

@@ -38,6 +38,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Cross-market ADL attribution | In review | [Ready PR #92](https://github.com/arnabnandikgp/rivalt/pull/92) above #91. [Linked creditor comparison](clearing/architecture-review.md#who-bears-the-cross-market-effect). Model `9bfd68f` passes nine new and 12 existing focused tests. Seven terminal cash/insurance vectors match native Rust. D116 records winner selection. D117 fixes cash attribution and protects the other market. |
 | Individual creditor payout protection | In review | [Ready PR #93](https://github.com/arnabnandikgp/rivalt/pull/93) above #92. [Rounding comparison](clearing/architecture-review.md#protecting-individual-creditor-payouts). Model `c4109b1` passes eight focused tests with seven native controls and 1,125 enumerated transitions. A BTC forced close can take one ETH atom from a creditor despite unchanged total payouts and insurance. |
 | Joint frozen reductions | In review | [Ready PR #94](https://github.com/arnabnandikgp/rivalt/pull/94) above #93. [Shared lots and two-market defaults](clearing/architecture-review.md#competing-debtors-and-simultaneous-market-defaults). Offline revision `e06dca7` passes eight joint and 17 related tests, including 81 independent matching cases and four native terminal controls. |
+| Default plan verification | In review | [Verification contract and fixtures](clearing/default-plan-verification.md). At `4be157f`, eight certificate/identity tests, eleven joint tests and eight current Rust plan-controller tests passed. D121 selects frozen-episode priority for exact ties. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -85,8 +86,9 @@ The joint comparison now reproduces 8/8 flat-creditor payouts under independent
 market admission and 9/9 for a complete package. D119 approves joint admission
 with verified finality across both markets. At `91ae07e`, eleven joint tests pass with the D120 default, including an equal-total tie.
 D120 prioritizes total verified recovery and uses the lower market recovery
-percentage to break ties. Next check how a verifier can establish the selected
-plan’s optimality and bind it to one frozen episode.
+percentage to break ties. D121 fixes identity priority. A sufficient score proof
+works on a 121-member family, and a smaller book demonstrates a loose bound.
+Next verify bounded, restartable exhaustive work when the sufficient proof misses.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator

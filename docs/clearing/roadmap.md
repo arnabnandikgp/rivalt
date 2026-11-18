@@ -83,6 +83,9 @@ markets reduce positions in the same freeze.
 [D119](../DECISIONS.md#d119--verified-joint-reductions-in-one-frozen-episode)
 selects joint admission with an indivisible financial result across both markets. [D120](../DECISIONS.md#d120--total-recovery-before-market-balance)
 selects maximum total recovery followed by balanced market recovery on ties.
+[D121](../DECISIONS.md#d121--frozen-episode-ordering-for-exact-plan-ties)
+sets the final member tie order. The [verification contract](default-plan-verification.md)
+maps proof obligations to the existing freeze and settlement controllers.
 Keep the active proportional settlement until
 the successor eligibility, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)

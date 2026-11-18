@@ -1208,3 +1208,15 @@ Every ranked plan must already satisfy D117–D119. The [joint comparison](clear
 shows which creditor receives the next atom and a separate equal-total case.
 The rule selects a research outcome. Runtime activation requires evidence of
 feasibility, optimality and indivisible application for the frozen episode.
+
+## D121 — Frozen-episode ordering for exact plan ties
+
+18 November 2026. The user approved a reproducible final priority derived from
+the frozen venue, default episode and stable member IDs. Apply it only after
+D116–D120 recovery, proportionality and lot comparisons tie. The keeper’s
+submission order carries no priority. Use the same order on retries and after
+restart. The order is predictable and can change between episodes.
+
+The [verification contract](clearing/default-plan-verification.md#final-ties-can-determine-a-whole-payout)
+specifies the research encoding and shows why final identity selection can change
+a whole payout. Existing terminal rounding and ordinary fills use their own rules.
