@@ -17,8 +17,7 @@ def check(source):
             sign = 1 if data["side"] == 0 else -1
             trader = keys[int(data["rootStates"][0]["id"])]
             def apply(key, lots, gross):
-                price, remainder = divmod(int(gross), abs(lots))
-                assert remainder == 0  # This constructed book has flat signed quotes.
+                price = Fraction(int(gross), abs(lots))
                 histories[key] = histories[key].apply(Fill(lots, price))
             apply(trader, sign*int(data["lots"]), data["grossQuote"])
             for leg in data["legs"]:

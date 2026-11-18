@@ -68,6 +68,20 @@ try {
   const after=(await h.read(trader))!;
   assert.deepEqual(after.subarray(sdk.getMarginAccountSize()),before.subarray(sdk.getMarginAccountSize()));
   await checkTrader(1n,250n);
+  // A separate isolated account flips through two differently priced makers.
+  // The trader has one aggregate execution price, independent of the leg order.
+  const isolated=setup.roots[1], shifted=setup.instances[1];
+  const config=await shifted.state(), publication=shifted.module.getMakerPriceDecoder().decode((await h.read(shifted.price))!).state;
+  await h.send('move second maker one atom',[shifted.module.getRepriceInstruction({...shifted.makerCommon,actor:setup.updater,
+    expectedControl:config.controlEpoch,expectedSequence:publication.sequence,anchor:50_001n})],[setup.updater]);
+  await h.send('two-maker fractional entry',[await route({actor:owner,trader:isolated,marketIndex:0,side:0,
+    makers:[first,shifted],lots:[1n,2n]})],[owner]);
+  const isolatedBasis=async()=>sdk.decodeProfitAttribution((await h.read(isolated))!).positions[0];
+  assert.deepEqual(await isolatedBasis(),{entryScaled:150_008n*scale,paidScaled:0n,denominator:3n});
+  await h.send('two-maker aggregate flip',[await route({actor:owner,trader:isolated,marketIndex:0,side:1,
+    makers:[first,shifted],lots:[1n,3n]})],[owner]);
+  assert.equal((await root(isolated)).positions[0].lots,-1n);
+  assert.deepEqual(await isolatedBasis(),{entryScaled:199_995n*scale/4n,paidScaled:0n,denominator:1n});
   const sources={primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
     guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
   setup.sourcePrices.btc=25_000_000_000n;await setup.freshSources();
@@ -90,13 +104,13 @@ try {
   const history=journal.initialEvents.slice(0,journal.initialEvents.indexOf(cutoff[0]));
   const economic=history.filter(event=>event.type==='LiquidityRouteExecutedV4'||
     (event.type==='AccountFinancialChangedV3'&&event.data.kind===3));
-  assert.equal(economic.length,4);
+  assert.equal(economic.length,6);
   const probe={rows,economic:economic.map(event=>({kind:event.type,data:event.data})),trader,first:first.capital,second:second.capital};
   execFileSync('python3',['tests/financial/check_profit_attribution.py'],{input:json(probe),stdio:['pipe','inherit','inherit']});
   await journal.checkpoint('frozen-attribution',true);
   const sql=await journal.finish();
   assert.equal(sql.state.roots[trader].cash,'22990');
-  const measurements=checks.filter(check=>/attribution buy|attribution close|closed-first payment|keeper reduction|freeze with|reject risk increase/.test(String(check.label)));
+  const measurements=checks.filter(check=>/attribution buy|attribution close|closed-first payment|keeper reduction|freeze with|reject risk increase|two-maker/.test(String(check.label)));
   writeFileSync(directory+'/profit-attribution.json',json({revision,build,cutoff:cutoff[0].signature,rows,economic:probe.economic,
     financial:measurements,events:sql.events,checks:checks.length,marginBytes:after.length}));
   console.log('Profit attribution',json({events:sql.events,checks:checks.length,marginBytes:after.length}));
