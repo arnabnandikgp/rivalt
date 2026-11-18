@@ -24,9 +24,10 @@ const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RI
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 try {
-  const candidate = process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-recovery'
-    ? verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) : undefined;
-  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:candidate?'profit-attribution':'selected',shape:symmetricPayoutShape,makerCash:8_000n,verifyRejections:false});
+  const sponsored=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-sponsor-recovery';
+  const candidate = (sponsored||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-recovery')
+    ? verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,sponsored) : undefined;
+  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:sponsored?'sponsored-profit':candidate?'profit-attribution':'selected',shape:symmetricPayoutShape,makerCash:8_000n,verifyRejections:false});
   const [trader] = setup.roots, owner = setup.traderOwner;
   const first = setup.instances[0], second = setup.instances[2], debtor = first.capital, winner = second.capital;
   assert.notEqual(first.pricingProgram,second.pricingProgram);
@@ -35,6 +36,18 @@ try {
   const safety = async () => sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
   const resolution = async () => sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   const ledger = async (key:Address) => sdk.getMarketLedgerDecoder().decode((await h.read(key))!);
+  const lamports=async(key:Address)=>BigInt((await rpc.call('getBalance',[key,{commitment:'confirmed'}])).value);
+  const contributor=setup.primary;
+  const initialSponsor=sponsored?await lamports(contributor.address):0n;
+  let rentCredit=0n;
+  if(sponsored) {
+    const size=(await h.read(winner))!.length+40+2*(256-128);
+    rentCredit=BigInt(await rpc.call('getMinimumBalanceForRentExemption',[size]))-await lamports(winner);
+    await h.send('sponsor winning maker through default',[await sdk.getManageProfitCapacityInstructionAsync({...setup.common,
+      margin:winner,actor:setup.owner,payer:contributor,previousContributor:setup.owner.address,slotBytes:256,
+      revision:(await root(winner)).revision,maxPayment:rentCredit})],[setup.owner,contributor]);
+    assert.equal(await lamports(contributor.address),initialSponsor-rentCredit);
+  }
   const wallet = setup.traderToken.address;
   // The donor contributes actual tokens. The other six insurance atoms come from the two trading fees.
   await h.send('seed BTC insurance from funded donor',[
@@ -90,14 +103,14 @@ try {
   const comparison = JSON.parse(execFileSync('python3',['tests/financial/btc_default_comparison.py'],{input:json(inputs),encoding:'utf8'}));
   if(candidate) {
     for(const row of rows) {
-      const {positions}=sdk.decodeProfitAttribution((await h.read(row.key))!);
+      const {positions}=sdk.decodeProfitAttribution((await h.read(row.key))!,sponsored);
       const entry=row.key===winner?60_998n:row.key===debtor?60_002n:0n;
       assert.deepEqual(positions[0],{entryScaled:entry*1_000_000_000n,paidScaled:0n,denominator:1n});
     }
   }
   await journal.checkpoint('frozen',true);
   const openWorker = async () => {
-    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,candidate?'profit-attribution-candidate':'selected');
+    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,sponsored?'sponsored-profit-candidate':candidate?'profit-attribution-candidate':'selected');
     await runtime.open();
     return runtime;
   };
@@ -134,7 +147,7 @@ try {
   const finalCash = Object.fromEntries(await Promise.all(members.map(async key=>{
     const value = await root(key);
     assert(value.positions.every(position=>position.lots===0n && position.virtualScaled===0n));
-    if(candidate)assert(sdk.decodeProfitAttribution((await h.read(key))!).positions.every(slot=>slot.entryScaled===0n&&slot.paidScaled===0n));
+    if(candidate)assert(sdk.decodeProfitAttribution((await h.read(key))!,sponsored).positions.every(slot=>slot.entryScaled===0n&&slot.paidScaled===0n));
     return [key,String(value.cash)];
   })));
   assert.deepEqual(finalCash,comparison.onchainExpectedCash);
@@ -158,6 +171,15 @@ try {
   }
   await h.send('resume custody after BTC default',[sdk.getRecoverAccountsInstruction({...setup.safetyCommon,...sources,
     caller:setup.payer,epoch:frozen.epoch,resume:true})]);
+  if(sponsored) {
+    const credited=sdk.decodeProfitAttribution((await h.read(winner))!,true);
+    assert.deepEqual(credited.credit,{contributor:contributor.address,lamports:rentCredit});
+    await h.send('refund surviving sponsor principal after default',[await sdk.getManageProfitCapacityInstructionAsync({
+      ...setup.common,margin:winner,actor:setup.owner,payer:setup.owner,previousContributor:contributor.address,slotBytes:128,
+      revision:credited.root.revision,maxPayment:0n})],[setup.owner]);
+    assert.equal(await lamports(contributor.address),initialSponsor);
+    assert.equal(sdk.decodeProfitAttribution((await h.read(winner))!,true).credit,null);
+  }
   await flush();
   assert.equal((await safety()).mode,0);
   await journal.checkpoint('withdrawn-and-recovered',true);
