@@ -44,6 +44,7 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | Frozen position attribution inputs | In review | [Ready PR #98](https://github.com/arnabnandikgp/rivalt/pull/98) above #97. [History and storage comparison](clearing/default-plan-verification.md#what-the-freeze-must-retain-about-open-profit) at `50d8a3a`. Five focused checks, nine existing checks, 1,000 history prefixes and independent native terminal payouts. At `100bf32` seven signed transactions cover exact growth, atomic rollback and a separate test sponsor. |
 | Ordinary cross-maker payout | In review | [Ready PR #99](https://github.com/arnabnandikgp/rivalt/pull/99) above #98. [Signed results](operations/validation.md#ordinary-trader-payout) at `f732ae0` on selected SBF `ed46603`. The trader withdrew all 970 net atoms, an early exit failed atomically, the restarted keeper completed payment, and fresh PostgreSQL replay matched all 158 events. |
 | Maker liquidation and funded receiver | In review | [Ready PR #100](https://github.com/arnabnandikgp/rivalt/pull/100) above #99. [Signed qualification](operations/validation.md#maker-liquidation-and-funded-receiver) at `3c05d59` / SBF `4e07c1f`. A ten-lot maker fill and a five-lot receiver transfer restored the target to maintenance, 12 signed rejections preserved state and fresh PostgreSQL replay matched 96 events. The normal runtime remains on P56. |
+| Stack review closeout | In review | [Ready PR #101](https://github.com/arnabnandikgp/rivalt/pull/101) above #100 assesses 16 outstanding reviews from the 28 predecessor PRs. At `362f24a`, 57 client/service/indexer checks, 18 ABI tests, 13 cutoff tests and TypeScript pass. The clean D108 helper rebuild matches the retained binary. Five comments were superseded. Merge this boundary after hosted checks, review and owner authorization. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -70,8 +71,8 @@ limits; [HISTORY](HISTORY.md) records the integration and preceding baselines.
 | P16B independent review/funded readiness | Open — external | Independent review, risk/reserve calibration and separate funded authorization |
 | Continuous 24-hour endurance | Deferred | No run scheduled or completion claimed |
 
-Review means accepted work awaiting integration; Closed requires acceptance plus
-integration. The user authorized this stack's review fixes and merge on
+Review means accepted work awaiting integration. Closed requires acceptance plus
+integration. The user authorized the earlier #68–#71 stack's review fixes and merge on
 10 November 2026; all three PRs independently report MERGED, and the open-PR query
 at that closeout returned none. The fetched merge has the accepted tip's exact tree.
 The 18 November scope decision supersedes the 10 November audit delivery sequence.
