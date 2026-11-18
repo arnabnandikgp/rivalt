@@ -2,13 +2,11 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
-import {createElement} from 'react';
-import {renderToStaticMarkup} from 'react-dom/server';
 import {getTokenDecoder} from '@solana-program/token';
 import * as sdk from '@rivalt/sdk';
-import {Positions} from '../../apps/trader/src/shared/Panels.js';
+import {renderPayoutPositions} from '../../apps/trader/tests/ordinary-payout-view.js';
 import {fixed} from '../../apps/trader/src/amount.js';
-import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
+import {AccountRuntime,type AccountWorkerOutcome} from '../../packages/services/src/account-runtime.js';
 import {json} from '../../packages/indexer/src/events.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {goldenShape} from './canonical-maker-cases.js';
@@ -60,7 +58,7 @@ try {
     const wallet=await walletBalance();
     assert.equal(wallet,initialWallet+withdrawn,label);
     assert.equal(await vaultBalance(),initialVault-withdrawn,label);
-    const html=renderToStaticMarkup(createElement(Positions,{controller:{view,snapshot}}));
+    const html=renderPayoutPositions(snapshot,view);
     if(status)assert(html.includes(status),label);
     assert(html.includes(fixed(unpaid*SCALE,15)));
     sections.push('<section><h2>'+label+'</h2><p>Funded cash '+fixed(cash)+' test USD · wallet '+fixed(wallet)+' test USD</p>'+html+'</section>');
@@ -107,9 +105,9 @@ try {
     await setup.sample();
     await flush();
     await journal.checkpoint('worker-'+step,true);
-    const outcome=await runtime.settle(setup.payer);
+    const outcome:AccountWorkerOutcome=await runtime.settle(setup.payer);
     assert.equal(outcome.status,'queued',json(outcome));
-    const {rows}=await runtime.store.pool.query("SELECT request_id,signature,wire FROM service_intents WHERE run_id=$1 AND status='pending'",[runtime.runId]);
+    const {rows}:{rows:{request_id:string;signature:string;wire:string}[]}=await runtime.store.pool.query("SELECT request_id,signature,wire FROM service_intents WHERE run_id=$1 AND status='pending'",[runtime.runId]);
     assert.equal(rows.length,1);
     const original=rows[0];
     const subscription=await ws.call('signatureSubscribe',[original.signature,{commitment:'finalized'}]);
