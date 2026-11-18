@@ -149,6 +149,13 @@ pub fn liquidate(
         &candidate.receiver,
         &accounts.identity.safety,
     )?;
+    #[cfg(feature = "profit-attribution-qualification")]
+    {
+        let market = usize::from(market_index);
+        let gross = lots.checked_mul(price).ok_or(ClearingError::Arithmetic)?;
+        crate::profit_attribution::fill(&mut accounts.target, market, candidate.target.positions[market].lots, gross)?;
+        crate::profit_attribution::fill(&mut accounts.receiver, market, candidate.receiver.positions[market].lots, gross)?;
+    }
     account_trading::commit_root(&mut accounts.target, &candidate.target)?;
     account_trading::commit_root(&mut accounts.receiver, &candidate.receiver)?;
     let selected = if market_index == 0 {

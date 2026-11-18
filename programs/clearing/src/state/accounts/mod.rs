@@ -25,6 +25,17 @@ pub use settlement::*;
 pub use settlement_plan::*;
 pub use settlement_rates::*;
 
+/// The candidate adds an authenticated tail after the fixed Borsh prefix.
+pub const MARGIN_PREFIX: usize = 8 + MarginAccount::INIT_SPACE;
+#[cfg(feature = "profit-attribution-qualification")]
+pub const INITIAL_ATTRIBUTION_BYTES: usize = 128;
+pub const MARGIN_ALLOCATION: usize = MARGIN_PREFIX + {
+    #[cfg(feature = "profit-attribution-qualification")]
+    { 8 + 2 * INITIAL_ATTRIBUTION_BYTES }
+    #[cfg(not(feature = "profit-attribution-qualification"))]
+    { 0 }
+};
+
 pub const SCHEMA_VERSION: u16 = 10;
 pub const PROFILE_VERSION: u16 = 6;
 pub use crate::state::identity::MARKET_COUNT;

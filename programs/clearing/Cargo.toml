@@ -13,6 +13,8 @@ default = []
 devnet-test-profile = ["oracle-fixture/devnet-test-profile"]
 # Explicit bounded local trading/safety candidate; default/devnet stay disabled.
 liquidity-execution-qualification = []
+# Fresh local margin layout only. The selected binary uses the prefix layout.
+profit-attribution-qualification = ["liquidity-execution-qualification", "dep:clearing-accounting", "clearing-accounting/surviving-profit"]
 # Diagnostic artifact only; never used for headline CU or production pinning.
 cu-profiling = []
 cpi = ["no-entrypoint"]
@@ -27,6 +29,7 @@ custom-heap = []
 custom-panic = []
 
 [dependencies]
+clearing-accounting = { path = "../../crates/clearing-accounting", optional = true }
 anchor-lang = { workspace = true }
 anchor-spl = { workspace = true }
 financial-core = { path = "../../crates/financial-core" }

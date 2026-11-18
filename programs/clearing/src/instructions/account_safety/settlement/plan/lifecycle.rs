@@ -308,6 +308,8 @@ pub fn apply_plan_margin(
         ordinal,
     )?;
     accounts.flow_page.payload.words[offset..offset + 7].copy_from_slice(&exact(flow.words())?);
+    #[cfg(feature = "profit-attribution-qualification")]
+    crate::profit_attribution::clear_resolved(&mut accounts.margin)?;
     **accounts.margin = *next;
     let gross = remaining_gross(
         &accounts.prepared,

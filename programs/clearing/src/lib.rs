@@ -29,6 +29,8 @@ pub mod error;
 mod event_cpi;
 pub mod events;
 pub mod instructions;
+#[cfg(feature = "profit-attribution-qualification")]
+mod profit_attribution;
 mod program_accounts;
 mod manual_account;
 #[cfg(any(test, feature = "devnet-test-profile"))]

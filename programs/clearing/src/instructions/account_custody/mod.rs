@@ -514,6 +514,8 @@ pub fn register(
         bump: ctx.bumps.margin,
         ..Default::default()
     };
+    #[cfg(feature = "profit-attribution-qualification")]
+    crate::profit_attribution::initialize(&mut ctx.accounts.margin)?;
     let page = &mut ctx.accounts.members;
     let slot = (id % 64) as usize;
     page.members.entries[slot] = MemberEntry { root: *ctx.accounts.margin.address(),

@@ -1,6 +1,8 @@
 //! Shared checked units and position accounting used by risk, execution and settlement.
 #![no_std]
 
+#[cfg(feature = "surviving-profit")]
+pub mod attribution;
 pub mod price_policy;
 pub use price_policy::MAX_PRICE;
 

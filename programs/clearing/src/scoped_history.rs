@@ -182,7 +182,7 @@ impl Scope {
         );
         let bytes = account.try_borrow()?;
         require!(
-            bytes.len() == 8 + T::INIT_SPACE && bytes[..8] == *T::DISCRIMINATOR,
+            bytes.len() == (if T::KIND == MarginAccount::KIND { crate::state::accounts::MARGIN_ALLOCATION } else { 8 + T::INIT_SPACE }) && bytes[..8] == *T::DISCRIMINATOR,
             ClearingError::Profile
         );
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
@@ -255,7 +255,7 @@ impl Scope {
                 MarginTombstone::DISCRIMINATOR,
             )
         } else {
-            (8 + MarginAccount::INIT_SPACE, MarginAccount::DISCRIMINATOR)
+            (crate::state::accounts::MARGIN_ALLOCATION, MarginAccount::DISCRIMINATOR)
         };
         require!(
             bytes.len() == length && bytes[..8] == *discriminator,
@@ -361,7 +361,7 @@ impl Scope {
             require_keys_eq!(*account.owner(), crate::ID, ClearingError::Profile);
             let data = account.try_borrow()?;
             require!(
-                data.len() == 8 + MarginAccount::INIT_SPACE
+                data.len() == crate::state::accounts::MARGIN_ALLOCATION
                     && data[..8] == *MarginAccount::DISCRIMINATOR,
                 ClearingError::Profile
             );

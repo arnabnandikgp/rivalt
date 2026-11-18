@@ -49,6 +49,15 @@ pub(super) fn apply(
             registration.sell_consumed
         },
     };
+    #[cfg(feature = "profit-attribution-qualification")]
+    {
+        let market = usize::from(identity.market.index);
+        crate::profit_attribution::fill(&mut identity.trader, market, next.trader.positions[market].lots, next.gross)?;
+        crate::profit_attribution::fill(&mut accounts.first_capital, market, next.makers[0].positions[market].lots, quotes[0].gross)?;
+        if let Some(second) = accounts.second_capital.as_deref_mut() {
+            crate::profit_attribution::fill(second, market, next.makers[1].positions[market].lots, quotes[1].gross)?;
+        }
+    }
     consume(&mut accounts.first_registration, &quotes[0])?;
     executed.push(leg(
         &accounts.first_registration,
