@@ -238,6 +238,73 @@ python3 tests/financial/payment_attribution_model.py
 python3 tests/financial/test_payment_attribution.py -v
 ```
 
+### When default eligibility becomes binding
+
+**Recommendation for decision.** Bind eligibility when a transaction successfully
+commits a verified freeze. Honor the trades and backed payments that committed
+before it. A keeper that identifies a bankrupt account can submit that account
+to the freeze instruction immediately. When a source update is also needed,
+evaluate submitting the update and proof atomically. An earlier oracle timestamp
+alone cannot identify which accounts still held exposure or which gains had
+already been paid. Using it retroactively could select lots that have since closed.
+
+Today's [freeze instruction](../../programs/clearing/src/instructions/account_safety/resolution/freeze.rs)
+already checks the named financial member, current sources, accrued funding and
+economic trigger. It advances the safety epoch, pins membership, reserves and
+funding, and enters `Value` or `AwaitValuation`. The [current default contract](risk-and-resolution.md#frozen-transitions-continuation-and-recovery)
+defines the two-market and emergency predicates. The successor would also need
+authenticated entry and D113 payment attribution at that boundary.
+
+The [experiment](../../tests/financial/freeze_cutoff_model.py) replays three
+policies over identical ordered transactions under D112/D113. A dedicated proof
+binds only when it succeeds. A conditional check on each qualified price
+observation can bind immediately if it includes an insolvent member as a witness,
+and otherwise allows a later proof. A full scan checks the whole cohort on each
+observation. All three commit prospectively and roll back the entire transaction
+if a later instruction fails. A healthy observation bundled with a separate
+failing proof rolls back the update too. A conditional check of a healthy
+witness can commit the update and keep trading active.
+
+| Same price and transaction history | Dedicated proof after observation | Check the debtor with the observation | Scan all roots at observation |
+|---|---|---|---|
+| A closes and reopens before the observation | Flat trader receives 7 of 10 | 7 | 7 |
+| A closes and reopens between observation and dedicated proof | 7 | 10 | 10 |
+| Same interval, debtor omitted from the observation | 7 | 7 | 10 |
+| Both trades come after the dedicated proof | 10 | 10 | 10 |
+| Price recovers to 85 before the dedicated proof | Account has ten atoms of equity and trading stays active | Freeze already committed at 100 | Freeze already committed at 100 |
+
+At the common freeze price of 100, the debtor has 20 atoms for 40 of claims.
+Binding before the round trip charges A/B 13/7 through ADL. Their final cash is
+117/103 and the flat trader gets ten. Binding after the round trip at 99 charges
+A/B 1/10, leaving nine for unpaid creditors to share. A/B finish with 123/100
+and the flat trader gets seven. A freeze between two separate trades honors the
+close and rejects the reopen. The fresh counterparty then bears the one-atom
+ADL charge. An atomic round trip always commits or rejects as a unit.
+
+A later keeper proof leaves an interval in which eligibility can change. Faster
+proof submission reduces that interval. Checking only a named account can miss
+another account's bankruptcy. A straightforward full scan must inspect every
+financial root on a healthy update. The model also distinguishes a missing price
+from an authorized source-emergency freeze: the latter binds membership and
+funding at commit and can receive a qualified closeout valuation later. A prior
+funded payment survives, and ordinary payment still requires backing throughout
+any interval before freeze.
+
+The [tests](../../tests/financial/test_freeze_cutoff.py) use one BTC debtor,
+synthetic qualified inputs, zero trade fees and the experimental proportional
+winner selection. Native Rust checks cover current freeze predicates and the
+terminal payouts on adjusted claims. Packet size, CU, locks, keeper landing delay,
+oracle verification and admission of those example trades need signed runtime
+measurement before enabling an earlier proof path.
+
+```sh
+source ops/env.sh
+cargo build --locked -p financial-core --bin scalable-settlement-driver
+python3 tests/financial/freeze_cutoff_model.py
+python3 tests/financial/test_freeze_cutoff.py -v
+cargo test --locked -p clearing --lib account_safety::resolution::tests
+```
+
 ## Direction under discussion and remaining choices
 
 On 16 November, the user's acknowledgment was recorded as acceptance of debtor

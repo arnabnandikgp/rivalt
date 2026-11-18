@@ -24,6 +24,15 @@ outcomes against literal balances and native Rust terminal settlement, and
 describe the fixed funding component and the open-first and closed-first rules.
 This evidence covers research arithmetic and supplies no runtime ADL qualification.
 
+Freeze-cutoff model `8cbbb31` passes 11 focused tests. Six orderings of the
+observation, proof, close and reopen across three policies give 18 comparisons
+to literal charges and cash, with final cash and insurance also matched to the
+compiled Rust settlement kernel. Four existing native clearing tests passed for
+the current freeze guards and financial membership commitment. The [results and
+commands](../clearing/architecture-review.md#when-default-eligibility-becomes-binding)
+document the rebound, omitted witness, atomic rollback, funded payments and
+deferred emergency valuation. No signed execution or keeper latency was measured.
+
 ## Account-scale populated qualification (P56)
 
 Clean harness **`ad19215df00c03d5a6ab8f597d411e07fac8e467`**, D108 SBF/helper

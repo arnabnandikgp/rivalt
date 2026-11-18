@@ -1088,6 +1088,7 @@ This preserves more eligible gain on open exposure to absorb a later shortfall
 before other unpaid creditors share it. An open maker can consequently bear
 more loss. The [matched payment histories](clearing/architecture-review.md#which-profit-an-ordinary-payment-settles)
 show this tradeoff and the case where both conventions give the same result
-after a close and re-entry. The cutoff that fixes loss eligibility remains open.
+after a close and re-entry. The [binding-cutoff comparison](clearing/architecture-review.md#when-default-eligibility-becomes-binding)
+recommends a prospective verified freeze commit. Selection of the cutoff remains open.
 The qualified local program currently records aggregate claim payments and uses
 proportional terminal recovery.

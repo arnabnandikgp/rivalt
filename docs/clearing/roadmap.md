@@ -67,8 +67,9 @@ show charges moving across makers after a close/reopen or a subaccount split.
 The [payment comparison](architecture-review.md#which-profit-an-ordinary-payment-settles)
 replays both conventions through signed funding, partial closes and re-entry.
 [D113](../DECISIONS.md#d113--closed-first-payment-attribution) selects payment of
-the positive fixed claim first, including signed accrued funding. The next contract question concerns the
-binding loss epoch for pre-freeze closes and re-entry. Keep the active proportional
+the positive fixed claim first, including signed accrued funding. The [cutoff comparison](architecture-review.md#when-default-eligibility-becomes-binding)
+recommends binding at the committed freeze and quantifies how observation coverage
+and proof timing change payouts. The cutoff awaits approval. Keep the active proportional
 settlement until the selected eligibility, epoch, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.
