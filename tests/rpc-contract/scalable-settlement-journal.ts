@@ -56,5 +56,5 @@ export async function openSettlementJournal(rpc:WireRpc,setup:Awaited<ReturnType
       return {binding,events:events.length,checkpoints:captures,reconciliation,state:final.state};
     } finally {await replay?.close();await store.close();store=undefined;}
   };
-  return {checkpoint,finish,close:async()=>{await store?.close();}};
+  return {initialEvents:initial.events,checkpoint,finish,close:async()=>{await store?.close();}};
 }
