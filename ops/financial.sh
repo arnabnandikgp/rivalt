@@ -34,6 +34,7 @@ python3 tests/financial/test_settlement_liquidation_model.py
 python3 tests/financial/test_adl_eligibility.py
 python3 tests/financial/test_payment_attribution.py
 python3 tests/financial/test_freeze_cutoff.py
+python3 tests/financial/test_cross_market_adl.py
 python3 tests/financial/test_scalable_clearing.py
 python3 tests/financial/test_incremental_backing.py
 cargo build --locked -p financial-core --bin backing-driver
