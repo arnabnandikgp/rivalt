@@ -1,6 +1,6 @@
 import {expect,it} from 'vitest';
 import {createNoopSigner,type Instruction} from '@solana/kit';
-import type {Keypair} from '@solana/web3.js';
+import {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {accountTradeFixture} from '../../sdk/src/account-test-fixture.js';
 import {accountRiskWork} from './account-risk-worker.js';
@@ -107,9 +107,28 @@ it.each(['selected','account-scale-candidate'])('continues authenticated frozen 
   const instruction=test.submissions[0].instructions[1];
   expect(sdk.getInitializePreparedSettlementInstructionDataDecoder().decode(instruction.data!))
     .toMatchObject({epoch:1n,sourceRevision:1n});
+  const payer=await Keypair.fromSeed(new Uint8Array(32).fill(42));
+  const batchRuntime={...candidate,defaultContinuationSteps:2,rpc:{call:async(method:string,params:any[]=[])=>{
+    if(method==='getLatestBlockhash')return {value:{blockhash:'11111111111111111111111111111111'}};
+    if(method==='simulateTransaction')return {context:{slot:1_000_000},value:{err:null,unitsConsumed:950_000}};
+    return candidate.rpc.call(method,params);
+  }}};
+  expect(await accountRiskWork(batchRuntime as unknown as AccountRuntime,payer)).toEqual({status:'queued',reason:'initialize-frozen'});
+  expect(test.submissions.at(-1)!.instructions).toHaveLength(2);
+  test.put(keys.prepared,sdk.getPreparedSettlementEncoder().encode({...sdk.getPreparedSettlementDecoder().decode(bytes(keys.prepared)),epoch:1n,stage:3}));
+  test.put(keys.rates,sdk.getSettlementRatesEncoder().encode({...sdk.getSettlementRatesDecoder().decode(bytes(keys.rates)),epoch:1n,stage:4}));
+  const rejected={...sdk.getSettlementPlanDecoder().decode(bytes(keys.plan)),epoch:1n,stage:5,revision:17n,orderAttempt:4n};
+  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode(rejected));
+  expect(await run()).toEqual({status:'queued',reason:'reset-rejected-order'});
+  const reset=sdk.getResetSettlementPlanOrderInstructionDataDecoder().decode(test.submissions.at(-1)!.instructions[1].data!);
+  expect(reset).toMatchObject({discriminator:sdk.RESET_SETTLEMENT_PLAN_ORDER_DISCRIMINATOR,epoch:1n,revision:17n,attempt:4n});
+  test.put(keys.plan,sdk.getSettlementPlanEncoder().encode({...rejected,stage:3,revision:18n}));
+  expect(await run()).toEqual({status:'queued',reason:'begin-order'});
+  expect(sdk.getBeginSettlementPlanOrderInstructionDataDecoder().decode(test.submissions.at(-1)!.instructions[1].data!))
+    .toMatchObject({discriminator:sdk.BEGIN_SETTLEMENT_PLAN_ORDER_DISCRIMINATOR,revision:18n});
   test.put(keys.resolution,sdk.getResolutionEncoder().encode({...source,registryHash:new Uint8Array(32)}));
   await expect(run()).rejects.toThrow(/Frozen membership/);
-  expect(test.submissions).toHaveLength(1);
+  expect(test.submissions).toHaveLength(4);
   test.put(keys.resolution,sdk.getResolutionEncoder().encode({...source,stage:0}));
   await expect(run()).rejects.toThrow(/live publication stale/);
 });

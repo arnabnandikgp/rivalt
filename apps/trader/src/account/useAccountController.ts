@@ -47,6 +47,8 @@ export function useAccountController(config: AccountTraderConfig) {
   const [collateral, setCollateral] = useState(''),
     [amount, setAmount] = useState('1'),
     [recipient, setRecipient] = useState('');
+  const recipients=accounts.filter(([key,account])=>key!==margin&&account.lifecycle===2);
+  const selectedRecipient=recipients.find(([key])=>key===recipient);
   const [side, setSide] = useState<0 | 1>(0),
     [quantity, setQuantity] = useState('0.000005'),
     [allIn, setAllIn] = useState('1'),
@@ -175,15 +177,14 @@ export function useAccountController(config: AccountTraderConfig) {
   const allocate = () =>
     prepare('Allocate collateral', async (state, owner) => {
       currentRoot(state, owner);
-      const destination = address(recipient),
-        atoms = units(amount, 6, 'Allocation');
-      const target = accounts.find(([key]) => key === destination);
-      if (!target) throw new Error('Select another owned account in this portfolio.');
-      const pair = await venue.client.snapshot([margin!, destination], 'confirmed');
-      const instruction = await venue.client.transfer(pair, owner, margin!, destination, atoms);
+      if (!selectedRecipient) throw new Error('Select another active account in this portfolio.');
+      const [destination,target] = selectedRecipient;
+      const atoms = units(amount, 6, 'Allocation');
+      const pair = await venue.client.snapshot([margin!, address(destination)], 'confirmed');
+      const instruction = await venue.client.transfer(pair, owner, margin!, address(destination), atoms);
       return {
         instructions: [instruction],
-        details: [ `Move ${fixed(atoms)} funded test USD to ${accountLabel(target[1])}.`,
+        details: [ `Move ${fixed(atoms)} funded test USD to ${accountLabel(target)}.`,
           `Recipient: ${destination}`,
           'Sibling cash is never an automatic guarantee.',
         ],
@@ -408,6 +409,8 @@ export function useAccountController(config: AccountTraderConfig) {
     amount,
     setAmount,
     recipient,
+    recipients,
+    selectedRecipient,
     setRecipient,
     side,
     setSide,

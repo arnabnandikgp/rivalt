@@ -81,6 +81,10 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4):Accou
     return parsed;
   });
   const parsed=parsedActions[0];
+  if(sdk.hex(entry.discriminator)===sdk.hex(sdk.ACTIVATE_MARGIN_DISCRIMINATOR)) {
+    const revision=(parsed.data as sdk.ActivateMarginInstructionData).revision;
+    return {kind:'accountRevision',venue,account:parsed.accounts.margin!.address,value:revision.toString()};
+  }
   if(!entry.root)return null; // No signed pre-state stamp: missing history cannot license a replacement.
   const guard=(parsed.data as {guard:sdk.AccountGuard}).guard,root=parsed.accounts[entry.root];
   if(!guard||!root)throw new Error('Missing account intent guard');

@@ -1215,7 +1215,9 @@ feasibility, optimality and indivisible application for the frozen episode.
 the frozen venue, default episode and stable member IDs. Apply it only after
 D116–D120 recovery, proportionality and lot comparisons tie. The keeper’s
 submission order carries no priority. Use the same order on retries and after
-restart. The order is predictable and can change between episodes.
+restart. At the first unequal winner charge in this order, the larger charge wins
+the tie. The earlier member thus bears the loss in a 10/0 tie. The order is
+predictable and can change between episodes.
 
 The [verification contract](clearing/default-plan-verification.md#final-ties-can-determine-a-whole-payout)
 specifies the research encoding and shows why final identity selection can change

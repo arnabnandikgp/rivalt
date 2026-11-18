@@ -199,7 +199,9 @@ Liquidation jobs retain the consenting receiver’s signed pre-state version:
 on-chain execution checks it and advances it, so an unchanged canonical receiver
 after finalized expiry proves no liquidation effect. An advanced/missing receiver
 remains unresolved. Permissionless freeze/default/recovery jobs have no invented
-version proof. Actions without a signed pre-state stamp retain no inferred proof. All retries of
+version proof. Wallet activation signs the margin root revision, which clearing
+checks and advances on success. The same proof covers an atomic activation and
+deposit. A standalone deposit provides no such stamp. Actions without a signed pre-state stamp retain no inferred proof. All retries of
 pending or unknown outcomes use the same committed bytes and signature. Worker
 lamport budgets and heartbeat records are market/maker-specific; actual process/fault qualification is recorded in validation.
 
@@ -633,7 +635,8 @@ The frozen source stays in `PAGED_APPLY` (14) while the adopted plan advances
 through Apply (9), reconciliation (10), and reconciled (11). The controller uses
 that plan stage and cursor, bound to the source's adoption revision; only verified
 completion changes the source to Complete (11). Distribution does not independently
-advance the source stage. Unsupported or mismatched checkpoints fail closed.
+advance the source stage. During order verification the worker resets a rejected
+order using its current attempt and revision before proposing the next order. Unsupported or mismatched checkpoints fail closed.
 
 ### Bounded atomic continuation candidate (P56)
 
@@ -648,7 +651,8 @@ Each prefix has at most 32 instructions, 64 returned accounts and 8 MiB returned
 account bytes; v0/v1 remain within 1,232/4,096 wire bytes. A 1m CU transaction budget
 and at most 900k measured simulation CU bound batching. Rejection or resource
 exhaustion retains only the preceding admissible unsigned prefix; malformed RPC
-poststates fail closed. Unchanged headers and new read-only dependencies are fetched no earlier than the
+poststates fail closed. When no prefix fits, the worker independently preflights
+the scalar instruction before it can enter the durable queue. Unchanged headers and new read-only dependencies are fetched no earlier than the
 simulation slot and pass existing decoders. A concurrent change can invalidate the
 proposal, so final signed preflight and every program revision/epoch/attempt guard
 remain mandatory. No financial computation, authority or SBF ABI changes.

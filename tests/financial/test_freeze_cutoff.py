@@ -21,8 +21,8 @@ def same_time(*groups):
     return [(1, group) for group in groups]
 
 
-def amounts(episode):
-    plan = episode.payout()
+def amounts(episode, debtor=None):
+    plan = episode.payout(debtor)
     return plan.charges, plan.residual, plan.payout.cash
 
 
@@ -149,7 +149,29 @@ class FreezeCutoffTest(unittest.TestCase):
             self.assertEqual((valued.history, valued.boundary), (start.history, pending.boundary))
             self.assertEqual((valued.closeout_price, valued.history.funding_index), (100, 1))
             self.assertEqual(settled[-2:], ("committed", "valuation unavailable"))
-            self.assertEqual(amounts(valued), ((0, 12, 6, 0, 0), 0, (0, 117, 103, 110, 100)))
+            with self.assertRaisesRegex(InvalidTransition, "emergency debtor"):
+                valued.payout()
+            self.assertEqual(amounts(valued, 0), ((0, 12, 6, 0, 0), 0, (0, 117, 103, 110, 100)))
+
+    def test_nonzero_proving_member_is_bound_for_all_cutoffs(self):
+        from payment_attribution_model import PaymentHistory
+        from freeze_cutoff_model import Episode
+        history = PaymentHistory.start("closed-first", (100, 1), 90).trade(0, 1, 1, 90)
+        for policy in POLICIES:
+            frozen, _ = replay(Episode(history, 10), same_time(
+                (Observation(100, 12, witness=1),), (ProveDefault(1),)), policy)
+            self.assertEqual(frozen.proving_member, 1)
+            self.assertEqual(frozen.payout().payout.cash, (101, 0))
+            with self.assertRaisesRegex(InvalidTransition, "different freeze witness"):
+                frozen.payout(0)
+
+    def test_malformed_observation_rolls_back_and_later_transactions_run(self):
+        for policy in POLICIES:
+            for bad in (Observation(None, 12), Observation(100, None), Observation(True, 12)):
+                observed, outcomes = replay(starting_book(), same_time(
+                    (Observation(85, 15), bad), (OBSERVE,), (PROVE,)), policy)
+                self.assertEqual(outcomes[0], "invalid observation")
+                self.assertEqual(amounts(observed), HELD)
 
     def test_expired_observation_does_not_create_a_cutoff(self):
         start = starting_book()

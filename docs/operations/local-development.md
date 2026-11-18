@@ -229,7 +229,9 @@ bash ops/build-settlement-helper.sh
 
 The locked native executable and SHA-256 manifest live under ignored
 `.local/settlement-helper/`, or the explicit `RIVALT_SETTLEMENT_HELPER_DIR`.
-Version 2, schema 10/profile 6 and exact file hash/size are required. The helper
+The script builds the clean D108 Git tree declared in the SDK deployment contract,
+including its lockfile. The worker requires that exact source revision, version 2,
+schema 10/profile 6 and a matching local binary size and hash. The helper
 suggests canonical page descriptors; clearing independently verifies all work.
 The demo checks it before provisioning. It holds no signing key or financial
 permission. Rebuild after changing its checkpoint dependencies.

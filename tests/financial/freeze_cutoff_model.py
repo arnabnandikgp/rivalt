@@ -52,6 +52,7 @@ class Episode:
     source_deadline: int
     boundary: tuple[int, int] | None = None  # (transaction, instruction) in this replay
     closeout_price: int | None = None
+    proving_member: int | None = None
 
     def qualified_witness(self, member, now):
         market = self.history.market
@@ -63,38 +64,45 @@ class Episode:
             return False
         return account.cash + sum(account.claims) < 0
 
-    def bind(self, order, now):
+    def bind(self, order, now, member=None):
         mark = self.history.market.mark if now <= self.source_deadline else None
         if mark is None and not any(self.history.market.lots):
             mark = 1  # price-independent flat cohort, as in required_prices
-        return replace(self, boundary=order, closeout_price=mark)
+        return replace(self, boundary=order, closeout_price=mark, proving_member=member)
 
-    def payout(self, debtor=0):
+    def payout(self, debtor=None):
         require(self.boundary is not None and self.closeout_price is not None, "no valued freeze")
+        if self.proving_member is not None:
+            require(debtor is None or debtor == self.proving_member, "different freeze witness")
+            debtor = self.proving_member
+        require(type(debtor) is int and 0 <= debtor < len(self.history.market.lots), "supply the valued emergency debtor")
         return self.history.resolve_at(self.closeout_price, debtor)
 
 
 def step(state, operation, now, order, cutoff):
     if isinstance(operation, SupplyValuation):
         require(state.boundary is not None and state.closeout_price is None, "valuation unavailable")
-        require(type(operation.mark) is int and operation.mark > 0 and operation.deadline >= now,
+        require(type(operation.mark) is int and operation.mark > 0 and type(operation.deadline) is int and operation.deadline >= now,
                 "invalid valuation")
         return replace(state, closeout_price=operation.mark)
 
     require(state.boundary is None, "frozen")
     if isinstance(operation, Observation):
+        require(type(operation.deadline) is int and type(operation.mark) is int and operation.mark > 0
+                and type(operation.funding) in (int, Fraction), "invalid observation")
         require(operation.deadline >= now, "expired observation")
         history = state.history.accrue(operation.funding).reprice(operation.mark)
         state = replace(state, history=history, source_deadline=operation.deadline)
         if cutoff == "at-observation" and operation.witness is not None and state.qualified_witness(operation.witness, now):
-            return state.bind(order, now)
-        if cutoff == "full-scan" and any(state.qualified_witness(member, now)
-                                         for member in range(len(state.history.market.lots))):
-            return state.bind(order, now)
+            return state.bind(order, now, operation.witness)
+        if cutoff == "full-scan":
+            for member in range(len(state.history.market.lots)):
+                if state.qualified_witness(member, now):
+                    return state.bind(order, now, member)
         return state
     if isinstance(operation, ProveDefault):
         require(state.qualified_witness(operation.member, now), "default unproved")
-        return state.bind(order, now)
+        return state.bind(order, now, operation.member)
     if isinstance(operation, Emergency):
         require(operation.authorized and state.source_deadline > 0 and now >= state.source_deadline + 30
                 and any(state.history.market.lots), "emergency unproved")

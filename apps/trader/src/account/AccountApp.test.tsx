@@ -41,6 +41,10 @@ it('renders occupied operator slots and funded cash without offering trader acti
     function Capture(){controller=useAccountController(config);return null;}
     renderToStaticMarkup(<Capture/>);
     expect(controller!.margin).toBe(margin);expect(controller!.root!.cash).toBe(12_345_678n);
+    expect(controller!.recipients.map(([key])=>key)).toEqual([test.margins[0]]);
+    fixture.venue.accounts=discovered.accounts.map(([key,account])=>[key,key===test.margins[0]?{...account,lifecycle:1}:account]);
+    renderToStaticMarkup(<Capture/>);
+    expect(controller!.recipients).toEqual([]);
     expect(controller!.financialDisabled).toBe(false);expect(controller!.marketAllowed).toBe(role===0);
     const html=renderToStaticMarkup(<AccountApp config={config}/>);
     expect(html).toContain('12.345678');

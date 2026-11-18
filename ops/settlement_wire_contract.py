@@ -88,6 +88,9 @@ DOMAINS = ['account:MemberIndexNode','account:MemberPage','account:PreparedSettl
 def strip_additions(idl):
     """Check the literal extension first; return the untouched predecessor surface."""
     from anchor_rc2_wire_contract import clean, flatten
+    for category in ('types', 'accounts', 'instructions', 'events'):
+        names = [item['name'] for item in idl[category]]
+        assert len(names) == len(set(names)), f'duplicate {category} declaration'
     result = deepcopy(idl)
     definitions = {item['name']: clean(item) for item in idl['types']}
     for name, layout in TYPES.items():

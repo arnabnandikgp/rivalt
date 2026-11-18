@@ -92,7 +92,7 @@ it('validates v1 header budgets, zero priority fee and the canonical action prof
   const retiredSigned=await encode(retired);expect(()=>accountUserAuthority(retiredSigned,venue)).toThrow(/Unsupported/);
 });
 
-it('accepts only the exact same-owner atomic activation/deposit envelope and no fabricated expiry proof',async()=>{
+it('accepts only the exact same-owner atomic activation/deposit envelope and binds expiry to the signed activation revision',async()=>{
   const path=await sdk.deriveMemberPath(venue,65n);
   const activation=sdk.getActivateMarginInstruction({...common,owner:payer,margin,portfolio,registry:placeholder,members:placeholder,
     storage:placeholder,binding:placeholder,revision:1n,membershipEpoch:3n,safetyEpoch:2n,indexRevisions:Array(15).fill(1n)});
@@ -103,8 +103,10 @@ it('accepts only the exact same-owner atomic activation/deposit envelope and no 
     return Buffer.from(result.transaction.serialize()).toString('base64');
   };
   expect(sdk.validateActivationDeposit([first,deposit])).toEqual({owner:payer.address,venue,margin});
-  expect(accountUserAuthority(await encode([first,deposit]),venue)).toBeNull();
-  expect(accountUserAuthority(await encode([first]),venue)).toBeNull();
+  const expected={kind:'accountRevision',venue,account:margin,value:'1'};
+  expect(accountUserAuthority(await encode([first,deposit]),venue)).toEqual(expected);
+  expect(accountUserAuthority(await encode([first]),venue)).toEqual(expected);
+  expect(accountUserAuthority(await encode([deposit]),venue)).toBeNull();
   const foreign=await sdk.getDepositAccountInstructionAsync({...common,owner:payer,margin:donor,quoteMint:placeholder,userToken:placeholder,amount:1n});
   const zero=await sdk.getDepositAccountInstructionAsync({...common,owner:payer,margin,quoteMint:placeholder,userToken:placeholder,amount:0n});
   for(const instructions of [[deposit,first],[first,foreign],[first,zero],[first,deposit,deposit],

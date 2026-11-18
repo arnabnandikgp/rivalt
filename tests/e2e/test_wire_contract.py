@@ -12,6 +12,7 @@ spec.loader.exec_module(wire)
 sys.path.insert(0, str(Path("ops").resolve()))
 import scoped_wire_contract as scoped
 import anchor_rc2_wire_contract as rc2
+import settlement_wire_contract as settlement
 
 
 class WireContractTest(unittest.TestCase):
@@ -200,6 +201,15 @@ class WireContractTest(unittest.TestCase):
                 next(item for item in changed['types'] if item['name'] == 'SettlementRates')['type']['fields'].reverse()
             with self.subTest(mutation=mutation), self.assertRaises(AssertionError):
                 rc2.comparable_program('clearing', changed)
+
+    def test_settlement_strip_rejects_shadowed_extension_declarations(self):
+        for category, names in [('instructions', settlement.INSTRUCTIONS), ('accounts', settlement.ACCOUNTS),
+                                ('types', settlement.TYPES), ('events', settlement.EVENTS)]:
+            altered = deepcopy(self.original)
+            legitimate = next(entry for entry in altered[category] if entry['name'] in names)
+            altered[category].insert(0, {'name': legitimate['name'], 'discriminator': [0] * 8})
+            with self.subTest(category=category), self.assertRaisesRegex(AssertionError, 'duplicate'):
+                settlement.strip_additions(altered)
 
     def test_membership_delta_keeps_identity_width_metadata_and_privileges_exact(self):
         for mutation in ('id', 'child', 'generation', 'signer', 'storage_writer', 'seed', 'duplicate'):

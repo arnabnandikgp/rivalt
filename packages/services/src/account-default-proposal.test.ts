@@ -1,6 +1,10 @@
 import {expect,it} from 'vitest';
 import {proposeMarketOrder} from './account-default-proposal.js';
-import {decodeSettlementPages} from './settlement-pages.js';
+import {createHash} from 'node:crypto';
+import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {decodeSettlementPages,SettlementPages} from './settlement-pages.js';
 import {accountDeployment} from './account-deployment.js';
 import {accountDeploymentSelection} from './account-profile.js';
 it('orders literal fractions, stable u64 ties and a complete nonpositive tail',()=>{
@@ -36,4 +40,21 @@ it('bounds extended descriptors separately and rejects old helper output',()=>{
   expect(()=>decodeSettlementPages(output)).toThrow();
   expect(()=>decodeSettlementPages(JSON.stringify({version:1,schema:10,pages:[]}))).toThrow();
   expect(()=>decodeSettlementPages(JSON.stringify({version:2,schema:10,pages:[...pages,{register:33,index:'0',writable:true}]}),8)).toThrow();
+});
+
+it('rejects a self-consistent helper manifest from another checkout or a dirty build',()=>{
+  const directory=mkdtempSync(join(tmpdir(),'rivalt-helper-test-'));
+  try {
+    const bytes=Buffer.from('descriptor fixture');
+    const manifest={version:2,accountSchema:10,programProfile:6,binary:'rivalt-settlement-pages',
+      bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),
+      revision:'ed466030eccd485b8552b378815bf3f4e28fb658',trackedDirty:false};
+    writeFileSync(join(directory,manifest.binary),bytes);
+    for(const change of [{revision:'a'.repeat(40)},{trackedDirty:true},{bytes:bytes.length+1}]) {
+      writeFileSync(join(directory,'manifest.json'),JSON.stringify({...manifest,...change}));
+      expect(()=>new SettlementPages(directory)).toThrow();
+    }
+    writeFileSync(join(directory,'manifest.json'),JSON.stringify(manifest));
+    expect(()=>new SettlementPages(directory)).not.toThrow();
+  } finally {rmSync(directory,{recursive:true});}
 });

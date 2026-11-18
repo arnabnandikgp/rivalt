@@ -192,8 +192,9 @@ try {
     p50OriginalMs:latency[Math.ceil(latency.length*0.5)-1],p95OriginalMs:latency[Math.ceil(latency.length*0.95)-1],
     feeLamports:budget[0].spent,peakCu:Math.max(...originals.map(value=>value.transaction.meta.computeUnitsConsumed)),
     peakWireBytes:Math.max(...originals.map(value=>Buffer.from(value.wire,'base64').length)),storageResources};
-  const operatingEnvelope=population!==128||originals.length<=2000&&elapsedMs<=900_000&&BigInt(budget[0].spent)<=10_000_000n
-    &&storageResources.recoveryBytes<=16*1024*1024;
+  // Only the 128-root cohort has an approved operating envelope.
+  const operatingEnvelope=population===128 ? originals.length<=2000&&elapsedMs<=900_000&&BigInt(budget[0].spent)<=10_000_000n
+    &&storageResources.recoveryBytes<=16*1024*1024 : null;
   const financialResult={revision,build,helper,populated,populatedActions,contention,resources,operatingEnvelope,checks,originals,faults,outcomes,budget,elapsedMs,expected,sql,defaultBatchSteps:runtime.defaultContinuationSteps,
     endTrackedDirty:!!execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),
     limitations:[`${population} Financial roots; selected runtime promotion remains gated pending complete P56 acceptance`,'internal makers and synthetic oracle inputs']};
@@ -201,6 +202,6 @@ try {
   // reporter fails. Only result.json represents completion of every acceptance.
   writeFileSync(`${directory}/financial-result.json`,json(financialResult));
   const parity=await conformance.finish(directory,[],h.read);
+  if(population===128)assert(operatingEnvelope,'P56 populated cohort exceeds G1 resource envelope; retained results are not acceptance');
   writeFileSync(`${directory}/result.json`,json({...financialResult,parity}));
-  assert(operatingEnvelope,'P56 populated cohort exceeds G1 resource envelope; retained results are not acceptance');
 } finally {persist();await runtime?.close();await journal?.close();try{await flush();}finally{ws.close();}}

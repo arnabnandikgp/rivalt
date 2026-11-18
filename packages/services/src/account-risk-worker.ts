@@ -33,9 +33,11 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
       if(step.status==='blocked')return step;
       if((runtime.defaultContinuationSteps??1)>1) {
         const batch=await accountDefaultBatch(runtime,key,frozen,step,runtime.defaultContinuationSteps);
-        if(!batch.steps.length)return {status:'blocked',reason:`default-batch-${batch.stop}`};
-        return await submit(`${step.id}:batch:${batch.steps.length}`,batch.steps.map(value=>value.instruction),true)?
-          {status:'queued',reason:`${step.reason}:batch:${batch.steps.length}`}:{status:'blocked',reason:'default-batch-presently-unavailable'};
+        if(batch.steps.length) {
+          return await submit(`${step.id}:batch:${batch.steps.length}`,batch.steps.map(value=>value.instruction),true)?
+            {status:'queued',reason:`${step.reason}:batch:${batch.steps.length}`}:{status:'blocked',reason:'default-batch-presently-unavailable'};
+        }
+        // No original was queued. The scalar path performs its own guarded preflight.
       }
       return await submit(step.id,step.instruction,true)?{status:'queued',reason:step.reason}:
         {status:'blocked',reason:'default-step-presently-unavailable'};

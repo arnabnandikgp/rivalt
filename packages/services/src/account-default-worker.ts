@@ -120,7 +120,9 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     }
     assert(rates.stage===4,'Unsupported rate stage');
     if(plan.epoch!==epoch)return ready('initialize-plan',sdk.getInitializeSettlementPlanInstruction(args));
-    if(plan.stage===3||plan.stage===5)return ready('begin-order',sdk.getBeginSettlementPlanOrderInstruction({...args,actor:key,revision:plan.revision}));
+    if(plan.stage===5)return ready('reset-rejected-order',sdk.getResetSettlementPlanOrderInstruction({...args,actor:key,
+      revision:plan.revision,attempt:plan.orderAttempt}));
+    if(plan.stage===3)return ready('begin-order',sdk.getBeginSettlementPlanOrderInstruction({...args,actor:key,revision:plan.revision}));
     if(plan.stage===8)return ready('adopt-plan',sdk.getAdoptSettlementPlanInstruction({...args,revision:plan.revision}));
     let ordinal:bigint|undefined;
     if(plan.stage===0||plan.stage===2)ordinal=plan.cursor;

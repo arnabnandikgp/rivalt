@@ -33,7 +33,7 @@ function Selection({controller}: {controller: AccountController}) {
   </section>;
 }
 function Balances({controller}: {controller: AccountController}) {
-  const {venue,view,root,snapshot,financialDisabled,collateral,setCollateral,amount,setAmount,recipient,setRecipient,accounts,margin,cash,allocate,net}=controller;
+  const {venue,view,root,snapshot,financialDisabled,collateral,setCollateral,amount,setAmount,recipient,setRecipient,recipients,selectedRecipient,cash,allocate,net}=controller;
   return <section className="panel">
     <h2>Account collateral</h2>
     <dl className="account-metrics">
@@ -58,9 +58,9 @@ function Balances({controller}: {controller: AccountController}) {
     </div>
     <p className="caption">Netting is explicit and flat-only. It uses the amount above and the selected market’s positive closed claim, subject to available certified backing.</p>
     <Field label="Allocate to account"><select value={recipient} onChange={event=>setRecipient(event.target.value)}>
-      <option value="">Choose recipient</option>{accounts.filter(([key,account])=>key!==margin&&account.lifecycle===2).map(([key,account])=><option key={key} value={key}>{accountLabel(account)}</option>)}
+      <option value="">Choose recipient</option>{recipients.map(([key,account])=><option key={key} value={key}>{accountLabel(account)}</option>)}
     </select></Field>
-    <button disabled={financialDisabled||!recipient||![0,1].includes(snapshot?.safetyState.mode??-1)} onClick={()=>void allocate()}>Allocate collateral</button>
+    <button disabled={financialDisabled||!selectedRecipient||![0,1].includes(snapshot?.safetyState.mode??-1)} onClick={()=>void allocate()}>Allocate collateral</button>
   </section>;
 }
 function Reserves({controller}: {controller: AccountController}) {
