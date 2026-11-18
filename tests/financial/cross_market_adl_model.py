@@ -47,7 +47,7 @@ class Candidate:
     payout: AtomClearingPlan
 
 
-def compare(state, debtor, unpaid_open, *, pin_cash, protect_eth, protected_rounding=False):
+def compare(state, debtor, unpaid_open, *, pin_cash=True, protect_eth=True, ordinary_rounding_only=False):
     """Enumerate whole-atom BTC charges with one named debtor and an explicit D113 gain per root.
 
     Maximize recovered BTC shortfall, then approximate equal percentages of eligible
@@ -57,7 +57,6 @@ def compare(state, debtor, unpaid_open, *, pin_cash, protect_eth, protected_roun
             "a frozen BTC debtor is required")
     baseline = terminal(state.book)
     initial_losses = market_losses(baseline)
-    require(not protected_rounding or protect_eth, "protected rounding requires creditor protection")
     floors = {(index, 1): baseline.claim_cash_movements[index][1]
               for index, account in enumerate(state.book.accounts) if account.claims[1] > 0}
     loss_budget = floor(baseline.benchmark.debtor_writeoffs[debtor][0])
@@ -93,7 +92,7 @@ def compare(state, debtor, unpaid_open, *, pin_cash, protect_eth, protected_roun
             continue
         if protect_eth and any(payout.claim_cash_movements[index][market] < minimum
                                for (index, market), minimum in floors.items()):
-            if not protected_rounding:
+            if ordinary_rounding_only:
                 continue
             try:
                 payout = clear_atom_cohort(*inputs, frozen_collections=collections, creditor_floors=floors)

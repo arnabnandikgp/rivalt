@@ -36,9 +36,8 @@ class CreditorPayoutFloors(unittest.TestCase):
 
     def test_two_feasible_policies_protect_each_creditor(self):
         state = linked_creditors()
-        settings = dict(pin_cash=True, protect_eth=True)
-        canonical = compare(state, 0, (0, 2, 0, 0, 0, 0), **settings)
-        protected = compare(state, 0, (0, 2, 0, 0, 0, 0), **settings, protected_rounding=True)
+        canonical = compare(state, 0, (0, 2, 0, 0, 0, 0), ordinary_rounding_only=True)
+        protected = compare(state, 0, (0, 2, 0, 0, 0, 0))
         self.assertEqual((canonical.charges, canonical.payout.cash), ((1,), (0, 1, 0, 2, 1, 1)))
         self.assertEqual((protected.charges, protected.payout.cash), ((2,), (0, 0, 0, 3, 1, 1)))
         self.assertEqual((canonical.lots, protected.lots), (1, 1))
@@ -71,7 +70,7 @@ class CreditorPayoutFloors(unittest.TestCase):
             self.assertEqual((plan.benchmark.rates[1], native['spent']), (1, (0, 0)))
             self.assertEqual(tuple(native['movements'][index][1] for index in (0, 4)), expected)
             self.assertEqual(plan.claim_cash_movements, native['movements'])
-        result = compare(state, 0, (0, 1, 0, 0, 0), pin_cash=True, protect_eth=True, protected_rounding=True)
+        result = compare(state, 0, (0, 1, 0, 0, 0), pin_cash=True, protect_eth=True)
         self.assertEqual(result.charges, (1,))
         self.assertEqual(tuple(result.payout.claim_cash_movements[i][1] for i in (0, 4)), (1, 6))
 

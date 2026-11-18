@@ -384,8 +384,8 @@ gains on one lot. ETH creditors have fixed claims of five, three and one.
 | Full close with protected rounding | 2 | 3, 1, 1 | 0 |
 
 ETH’s exact recovery rises from 4/9 to 5/9 on the full close. Under ordinary
-rounding, the smallest creditor loses its previously payable atom. The
-protected alternative first tries the ordinary payout. If a creditor would lose,
+rounding, the smallest creditor loses its previously payable atom. Under [D118](../DECISIONS.md#d118--protected-rounding-for-foreign-creditor-payouts),
+the successor first tries the ordinary payout. If a creditor would lose,
 it gives each positive foreign claim an integer lower bound equal to its original
 payment, then solves the same conserving circulation. Every flow and final account
 cash stays within one atom of its exact entitlement. An infeasible joint lower

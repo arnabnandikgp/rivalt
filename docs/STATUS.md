@@ -78,8 +78,9 @@ recovery and proportional charges among eligible winners.
 The risk engine and shared position accounting now have separate crate owners.
 D117 fixes the debtor’s original cash allocation and protects foreign payouts
 and insurance. The new comparison reproduces an individual creditor loss with
-unchanged ETH totals. The next decision is whether to permit a conserving
-rounding adjustment to honor creditor floors when ordinary rounding fails.
+unchanged ETH totals. D118 approves protected rounding as the successor default.
+The next model check is joint allocation when debtors compete for the same lots,
+including linked BTC and ETH reductions.
 
 The 16 November architecture review inspected source at
 `07822f49dc9785989897f69d5361ea90717fdc11`, Flint draft 0.8 and Percolator

@@ -1156,5 +1156,21 @@ market. A cross winner can still qualify when its other obligations are covered.
 The [worked cases](clearing/architecture-review.md#who-bears-the-cross-market-effect)
 separate the two protections. The [individual payout comparison](clearing/architecture-review.md#protecting-individual-creditor-payouts)
 demonstrates why the successor must check each actual foreign claim payment as
-well. Using constrained rounding to satisfy those floors is an open economic
-choice. Linked simultaneous reductions remain an implementation gate.
+well. D118 selects the rounding rule. Linked simultaneous reductions remain an
+implementation gate.
+
+## D118 — Protected rounding for foreign creditor payouts
+
+18 November 2026. The user approved protected rounding for the successor.
+First calculate the ordinary whole-atom plan. If it would reduce a foreign
+creditor’s receipt on its positive market claim below its original frozen
+payout, use that original payment as a lower bound and solve the complete
+circulation again. Preserve every account and market balance, the strict
+sub-atom entitlement bound, D117 cash attribution and the foreign market’s
+insurance and impairment limits. Exclude the proposed reduction if the floors
+cannot be funded together. D116 still ranks the feasible reductions.
+
+The [comparison](clearing/architecture-review.md#protecting-individual-creditor-payouts)
+shows a two-atom BTC recovery with ETH payouts of three, one and one. The
+research model selects this rule. The qualified on-chain terminal settlement
+continues to use ordinary rounding.

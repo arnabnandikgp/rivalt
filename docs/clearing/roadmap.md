@@ -75,8 +75,9 @@ selects maximum recovery followed by proportional charges. [D117](../DECISIONS.m
 fixes debtor cash attribution and protects the other market’s payouts and insurance.
 The [linked creditor cases](architecture-review.md#who-bears-the-cross-market-effect)
 quantify both choices. The [individual payout comparison](architecture-review.md#protecting-individual-creditor-payouts)
-measures how much additional BTC shortfall can be covered if fractional remainders
-are reassigned while respecting every ETH creditor’s original whole payout. Keep the active proportional settlement until
+supports [D118](../DECISIONS.md#d118--protected-rounding-for-foreign-creditor-payouts),
+which permits a conserving reassignment of fractional remainders when ordinary
+rounding would harm a foreign creditor. Keep the active proportional settlement until
 the successor eligibility, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.
