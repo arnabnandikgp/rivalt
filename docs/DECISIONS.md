@@ -1139,3 +1139,20 @@ ownership through a multi-stage plan and a bounded execution proof require
 separate qualification. The [cross-market comparison](clearing/architecture-review.md#who-bears-the-cross-market-effect)
 asks which pairings can count as feasible when an ETH creditor depends on the
 BTC winner’s recovery.
+
+## D117 — Frozen cash attribution and protection of the other market
+
+18 November 2026. The user approved both cross-market rules for the successor.
+Fix the attribution of the debtor’s available funded cash against its original
+frozen debts before evaluating forced reductions. A subsequent paired close
+preserves each market’s assigned share, including fractional ownership.
+
+For a proposed reduction in one market, use the complete-cohort recovery before
+forced reductions as the comparison. Protect the other market’s creditor payouts
+and insurance. The research guard requires that neither its aggregate creditor
+impairment nor its insurance debit increase. Apply D116 among the feasible plans,
+including smaller reductions. Any residual loss follows D112 in its originating
+market. A cross winner can still qualify when its other obligations are covered.
+The [worked cases](clearing/architecture-review.md#who-bears-the-cross-market-effect)
+separate the two protections. Verification of individual rounded payouts and
+linked simultaneous reductions is an implementation gate.

@@ -337,14 +337,14 @@ giving the flat creditor 45 and sending 15 to ETH.
 | No forced close, ETH insurance has 25 | 0 | 36 | 40 | 16 |
 | Full BTC close, ETH insurance has 25 | 20 | 45 | 40 | 25 |
 
-**Recommended scope for the successor.** Fix debtor cash attribution first.
+Under [D117](../DECISIONS.md#d117--frozen-cash-attribution-and-protection-of-the-other-market), fix debtor cash attribution first.
 Compare each candidate plan with the complete-cohort outcome before forced
 closes. Require the other market’s aggregate creditor impairment and insurance
 debit each to stay at or below its baseline. Maximize originating-market recovery
 within that feasible set, then apply proportional sharing. This can leave a
 larger residual for BTC creditors. It still admits a ten-atom charge when the
 ETH obligation in the example is only 20, and the full twenty when the cross
-winner brings enough funded cash to meet its own ETH obligation. The proposed
+winner brings enough funded cash to meet its own ETH obligation. The research
 guard measures market totals. Per-account whole-atom rounding needs its own check.
 
 The [research model](../../tests/financial/cross_market_adl_model.py) enumerates

@@ -71,8 +71,8 @@ the positive fixed claim first, including signed accrued funding.
 first verified freeze that commits for the episode. The [cutoff comparison](architecture-review.md#when-default-eligibility-becomes-binding)
 quantifies how proof timing changes payouts. The [signed runtime comparison](../operations/validation.md#signed-source-publication-and-freeze)
 supports submitting a named-debtor proof against already-published read-only feeds. [D116](../DECISIONS.md#d116--maximize-recovery-then-share-the-charge-proportionally)
-selects maximum recovery followed by proportional charges. Decide whether to fix
-debtor cash allocation and protect the other market when the winner owes it.
+selects maximum recovery followed by proportional charges. [D117](../DECISIONS.md#d117--frozen-cash-attribution-and-protection-of-the-other-market)
+fixes debtor cash attribution and protects the other market’s payouts and insurance.
 The [linked creditor cases](architecture-review.md#who-bears-the-cross-market-effect) quantify both choices. Keep the active proportional settlement until
 the successor eligibility, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
