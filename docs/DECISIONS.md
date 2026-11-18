@@ -1154,5 +1154,7 @@ impairment nor its insurance debit increase. Apply D116 among the feasible plans
 including smaller reductions. Any residual loss follows D112 in its originating
 market. A cross winner can still qualify when its other obligations are covered.
 The [worked cases](clearing/architecture-review.md#who-bears-the-cross-market-effect)
-separate the two protections. Verification of individual rounded payouts and
-linked simultaneous reductions is an implementation gate.
+separate the two protections. The [individual payout comparison](clearing/architecture-review.md#protecting-individual-creditor-payouts)
+demonstrates why the successor must check each actual foreign claim payment as
+well. Using constrained rounding to satisfy those floors is an open economic
+choice. Linked simultaneous reductions remain an implementation gate.

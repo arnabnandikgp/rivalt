@@ -73,7 +73,10 @@ quantifies how proof timing changes payouts. The [signed runtime comparison](../
 supports submitting a named-debtor proof against already-published read-only feeds. [D116](../DECISIONS.md#d116--maximize-recovery-then-share-the-charge-proportionally)
 selects maximum recovery followed by proportional charges. [D117](../DECISIONS.md#d117--frozen-cash-attribution-and-protection-of-the-other-market)
 fixes debtor cash attribution and protects the other market’s payouts and insurance.
-The [linked creditor cases](architecture-review.md#who-bears-the-cross-market-effect) quantify both choices. Keep the active proportional settlement until
+The [linked creditor cases](architecture-review.md#who-bears-the-cross-market-effect)
+quantify both choices. The [individual payout comparison](architecture-review.md#protecting-individual-creditor-payouts)
+measures how much additional BTC shortfall can be covered if fractional remainders
+are reassigned while respecting every ETH creditor’s original whole payout. Keep the active proportional settlement until
 the successor eligibility, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.

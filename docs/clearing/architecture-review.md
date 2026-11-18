@@ -345,15 +345,14 @@ within that feasible set, then apply proportional sharing. This can leave a
 larger residual for BTC creditors. It still admits a ten-atom charge when the
 ETH obligation in the example is only 20, and the full twenty when the cross
 winner brings enough funded cash to meet its own ETH obligation. The research
-guard measures market totals. Per-account whole-atom rounding needs its own check.
+initial guard measured market totals. The individual payout experiment below checks each creditor’s actual market receipt.
 
 The [research model](../../tests/financial/cross_market_adl_model.py) enumerates
 small BTC charge vectors on one frozen cohort at a time, bounds the named
 debtor’s charge by its own verified write-off and uses explicit unpaid open
 gains. The [tests](../../tests/financial/test_cross_market_adl.py) cover two
 eligible winners, another debtor, a cashless cycle and fractional ownership.
-The intermediate cash representation requires whole aggregate pool balances in
-both markets. Inputs requiring fractional pool balances reject. The current
+The first experiment required whole aggregate pool balances to encode native controls. The current
 native settlement kernel checks seven complete terminal payout and insurance
 vectors. Activation still requires a joint bounded plan for multiple debtors,
 both markets’ open positions and fractional claims.
@@ -364,6 +363,53 @@ cargo build --locked -p financial-core --bin scalable-settlement-driver
 python3 tests/financial/cross_market_adl_model.py
 python3 tests/financial/test_cross_market_adl.py -v
 ```
+
+### Protecting individual creditor payouts
+
+Use the original complete-cohort settlement at the freeze as the floor for each
+creditor’s whole-atom receipt in the other market. A cross account can immediately
+owe that receipt to another market. Compare the original gross payment on its
+positive claim with the candidate payment on the same claim. A root’s final
+wallet balance alone cannot identify which market paid it.
+
+Consider a BTC debtor with five cash against ten owed. Eight of the ten are owed
+to a cross account that owes nine to ETH. The remaining two are eligible BTC
+gains on one lot. ETH creditors have fixed claims of five, three and one.
+
+| Outcome | BTC charge | ETH receipts in creditor order | ETH insurance |
+|---|---:|---|---:|
+| Before the forced close | 0 | 2, 1, 1 | 0 |
+| Full close, ordinary rounding | 2 | 3, 2, 0 | 0 |
+| Largest charge preserving each receipt under ordinary rounding | 1 | 2, 1, 1 | 0 |
+| Full close with protected rounding | 2 | 3, 1, 1 | 0 |
+
+ETH’s exact recovery rises from 4/9 to 5/9 on the full close. Under ordinary
+rounding, the smallest creditor loses its previously payable atom. The
+protected alternative first tries the ordinary payout. If a creditor would lose,
+it gives each positive foreign claim an integer lower bound equal to its original
+payment, then solves the same conserving circulation. Every flow and final account
+cash stays within one atom of its exact entitlement. An infeasible joint lower
+bound excludes that candidate. Both alternatives keep the existing rational
+impairment and insurance checks.
+
+A second book isolates rounding with an unchanged ETH recovery rate of 100%,
+seven atoms paid and zero insurance. Two ETH claims of 1½ and 5½ atoms initially
+receive one and six. An intervening one-atom BTC charge changes ordinary ETH
+receipts to two and five. The protected candidate retains one and six. The
+current Rust kernel reproduced both ordinary distributions in both books.
+
+The model now carries each debtor’s exact frozen cash shares through the original
+gross account and pool balances. A two-debtor example preserves shares of
+(2/3, 1/3) and (6/5, 4/5) while three whole atoms remain in custody. Joint
+rounding pays two atoms on BTC claims and one on ETH claims. Recalculating the
+shares after the close would pay one on BTC and two on ETH. No fractional token
+transfer or intermediate funded pool is required.
+
+The [eight focused tests](../../tests/financial/test_creditor_payout_floors.py)
+include seven ordinary native terminal controls and exhaustive floor/ceiling
+allocation checks for 1,125 small three-creditor transitions. Protected rounding
+and frozen-share overlays are Python candidates. Simultaneous forced reductions
+on both markets and bounded on-chain continuation need separate qualification.
 
 ## Direction under discussion and remaining choices
 

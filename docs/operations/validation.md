@@ -40,6 +40,15 @@ Python at frozen prices. The [cross-market cases](../clearing/architecture-revie
 include an ETH creditor whose payout falls despite an unchanged ETH position,
 an additional ETH insurance draw and a feasible partial BTC reduction.
 
+Model `c4109b1` passes eight individual-payout and fractional-ownership tests.
+Seven unmodified native terminal calculations reproduce the specified ordinary
+outcomes. Independent enumeration checks 1,125 three-creditor transitions.
+The nine previous cross-market and 29 clearing-network tests also pass. Five
+scalable-kernel tests passed, including 774 matched settlements. The
+[new examples](../clearing/architecture-review.md#protecting-individual-creditor-payouts)
+cover a loss hidden by identical aggregate ETH payout, recovery rate and insurance.
+The constrained allocation and frozen-share comparisons run offline.
+
 ### Signed source publication and freeze
 
 On 18 November 2026 harness `bc816d4` deployed the qualified local SBF
