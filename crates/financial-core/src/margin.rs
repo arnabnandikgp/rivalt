@@ -1,22 +1,9 @@
-//! Schema-2 accounting: cash belongs to a root, positions belong to its fixed markets.
+//! Account transitions for funded cash, claims and positions in the permitted markets.
 //! Authority, order validity, source authentication and release gates are the caller's job.
 use super::*;
 
-pub const MARKETS: usize = 2;
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct Position {
-    pub lots: i64,
-    pub virtual_scaled: i128,
-    pub funding_checkpoint: i128,
-    pub generation: u64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Mode {
-    Isolated(usize),
-    Cross,
-}
+pub use clearing_accounting::{Mode, Position, MARKETS};
+pub use risk_engine::Risk;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Margin {
@@ -27,14 +14,14 @@ pub struct Margin {
     pub reserved: u64,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct Risk {
-    pub lower: u64,
-    pub upper: u64,
-    pub funding: i128,
-}
-
 impl Margin {
+    fn risk_view(&self) -> risk_engine::Account<'_> {
+        risk_engine::Account {
+            id: self.id, mode: self.mode, cash: self.cash, reserved: self.reserved,
+            positions: &self.positions,
+        }
+    }
+
     pub fn claims(
         &self,
         prices: [u64; MARKETS],
@@ -61,11 +48,7 @@ impl Margin {
     }
 
     pub fn deficit(&self, risks: [Risk; MARKETS]) -> Result<i128> {
-        Ok(sub(
-            scaled(self.requirement(risks, MM_BPS)?)?,
-            self.risk_equity(risks)?,
-        )?
-        .max(0))
+        self.risk_view().deficit(risks)
     }
 
     pub fn withdraw(&self, amount: u64, risks: [Risk; MARKETS]) -> Result<Self> {
@@ -143,46 +126,15 @@ impl Margin {
         market: usize,
         risks: [Risk; MARKETS],
     ) -> Result<()> {
-        if self.id != next.id || self.mode != next.mode || !self.allows(market) {
-            return Err(Error::Invariant);
-        }
-        if next.admissible(risks).is_ok() {
-            return Ok(());
-        }
-        let before = self.positions[market].lots;
-        let after = next.positions[market].lots;
-        if before == 0
-            || after.unsigned_abs() >= before.unsigned_abs()
-            || (after != 0 && before.signum() != after.signum())
-            || next.deficit(risks)? >= self.deficit(risks)?
-        {
-            return Err(Error::Health);
-        }
-        Ok(())
+        self.risk_view().admit_reduction(next.risk_view(), market, risks)
     }
 
     pub fn allows(&self, market: usize) -> bool {
-        market < MARKETS
-            && match self.mode {
-                Mode::Isolated(index) => index == market,
-                Mode::Cross => true,
-            }
+        self.risk_view().allows(market)
     }
 
     pub fn validate(&self) -> Result<()> {
-        if self.cash > MAX_CASH
-            || self.reserved > MAX_CASH
-            || matches!(self.mode, Mode::Isolated(index) if index >= MARKETS)
-        {
-            return Err(Error::Bounds);
-        }
-        for (index, position) in self.positions.iter().enumerate() {
-            if !self.allows(index) && *position != Position::default() {
-                return Err(Error::Invariant);
-            }
-            self.selected(index)?.validate()?;
-        }
-        Ok(())
+        self.risk_view().validate()
     }
 
     /// An ephemeral view into one position; never a second authoritative cash balance.
@@ -250,60 +202,15 @@ impl Margin {
 
     /// Funded cash once, plus each negative market claim. Positive claims never offset losses.
     pub fn risk_equity(&self, risks: [Risk; MARKETS]) -> Result<i128> {
-        self.validate()?;
-        let mut equity = scaled(self.cash)?;
-        for (market, risk) in risks.into_iter().enumerate() {
-            if !self.allows(market) {
-                continue;
-            }
-            if risk.lower == 0 || risk.lower > risk.upper || risk.upper > MAX_PRICE {
-                return Err(Error::Bounds);
-            }
-            let selected = self.selected(market)?;
-            let price = if selected.lots < 0 {
-                risk.upper
-            } else {
-                risk.lower
-            };
-            equity = add(equity, selected.unpaid(price, risk.funding)?.min(0))?;
-        }
-        Ok(equity)
+        self.risk_view().risk_equity(risks)
     }
 
     pub fn requirement(&self, risks: [Risk; MARKETS], bps: u64) -> Result<u64> {
-        self.validate()?;
-        let mut required = 0;
-        for (market, risk) in risks.into_iter().enumerate() {
-            if self.allows(market) {
-                required = cash_add(required, self.selected(market)?.margin(risk.upper, bps)?)?;
-            }
-        }
-        Ok(required)
+        self.risk_view().requirement(risks, bps)
     }
 
     pub fn admissible(&self, risks: [Risk; MARKETS]) -> Result<()> {
-        // One whole-account validation and position traversal. Keep the same
-        // per-market rounded IM and gross negative-claim admission; a positive
-        // claim never offsets a loss or becomes cash.
-        self.validate()?;
-        let mut required = self.reserved;
-        let mut equity = scaled(self.cash)?;
-        for (market, risk) in risks.into_iter().enumerate() {
-            if !self.allows(market) {
-                continue;
-            }
-            if risk.lower == 0 || risk.lower > risk.upper || risk.upper > MAX_PRICE {
-                return Err(Error::Bounds);
-            }
-            let selected = self.selected(market)?;
-            required = cash_add(required, selected.margin(risk.upper, IM_BPS)?)?;
-            let price = if selected.lots < 0 { risk.upper } else { risk.lower };
-            equity = add(equity, selected.unpaid(price, risk.funding)?.min(0))?;
-        }
-        if equity < scaled(required)? {
-            return Err(Error::Health);
-        }
-        Ok(())
+        self.risk_view().admissible(risks)
     }
 }
 

@@ -522,7 +522,7 @@ The relevant current code is:
 | Function | Pure calculation | On-chain enforcement / orchestration |
 |---|---|---|
 | Claims, cash, funding, paired fill | [financial-core/lib.rs](../../crates/financial-core/src/lib.rs) | [account trading adapters](../../programs/clearing/src/instructions/account_trading/engine.rs), [route commit](../../programs/clearing/src/instructions/maker_liquidity/routes/commit.rs) |
-| Whole-account risk / exit | [margin.rs](../../crates/financial-core/src/margin.rs), [orders.rs](../../crates/financial-core/src/orders.rs) | [book engine](../../programs/clearing/src/engine/book.rs), [cash instructions](../../programs/clearing/src/instructions/account_cash/) |
+| Whole-account risk / exit | [margin.rs](../../crates/financial-core/src/margin.rs), [orders.rs](../../crates/risk-engine/src/orders.rs) | [book engine](../../programs/clearing/src/engine/book.rs), [cash instructions](../../programs/clearing/src/instructions/account_cash/) |
 | Liquidation candidate / progress | `margin::liquidation_candidate` | [engine/risk.rs](../../programs/clearing/src/engine/risk.rs), [signed receiver instruction](../../programs/clearing/src/instructions/account_safety/risk.rs) |
 | Default eligibility | `Margin::net_equity`, `Margin::claims` | [freeze.rs](../../programs/clearing/src/instructions/account_safety/resolution/freeze.rs) |
 | Backing and ordinary payment | [backing.rs](../../crates/financial-core/src/backing.rs) | [maintained backing](../../programs/clearing/src/instructions/account_cash/maintained.rs), [cash engine](../../programs/clearing/src/instructions/account_cash/engine.rs) |

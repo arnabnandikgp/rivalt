@@ -427,7 +427,7 @@ liveness remains open, not acceptance supplied by old P16A/P49 results.
 
 ## Versioned price policy (P53A)
 
-[`financial-core::price_policy`](../../crates/financial-core/src/price_policy.rs)
+[`financial-core::price_policy`](../../crates/clearing-accounting/src/price_policy.rs)
 is the canonical literal definition. P53A preserved price policy 1; P53B source
 implements qualified local **price policy 2**. Price policy version, account schema 8 and venue
 profile 4 are distinct identifiers; this refactor changes no account bytes, PDA,

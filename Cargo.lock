@@ -287,6 +287,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "clearing-accounting"
+version = "0.1.0"
+
+[[package]]
 name = "clearing-math-probe"
 version = "0.1.0"
 dependencies = [
@@ -430,6 +434,10 @@ checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 [[package]]
 name = "financial-core"
 version = "0.1.0"
+dependencies = [
+ "clearing-accounting",
+ "risk-engine",
+]
 
 [[package]]
 name = "five8"
@@ -923,6 +931,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "risk-engine"
+version = "0.1.0"
+dependencies = [
+ "clearing-accounting",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 //! Conservative remaining-order reservations. Clearing owns stored authority.
-use super::*;
+use clearing_accounting::{cash_add, price_policy, Error, Result, MAX_CASH, MAX_LOTS, MAX_PRICE};
 
 pub fn reserve(
     lots: u64,
