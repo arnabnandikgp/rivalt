@@ -39,6 +39,20 @@ def market_losses(plan):
     return tuple(sum(row[market] for row in plan.benchmark.creditor_impairments) for market in range(2))
 
 
+def protect_receipts(book, ordinary, floors, collections, *, ordinary_rounding_only=False):
+    """Keep ordinary rounding when possible, otherwise enforce D118 on the same book."""
+    if all(ordinary.claim_cash_movements[index][market] >= minimum
+           for (index, market), minimum in floors.items()):
+        return ordinary
+    if ordinary_rounding_only:
+        return None
+    try:
+        return clear_atom_cohort(book.accounts, book.pools, book.insurance, book.fees,
+                                 frozen_collections=collections, creditor_floors=floors)
+    except InfeasiblePayoutFloor:
+        return None
+
+
 @dataclass(frozen=True)
 class Candidate:
     book: MarketBook
@@ -90,13 +104,9 @@ def compare(state, debtor, unpaid_open, *, pin_cash=True, protect_eth=True, ordi
         if protect_eth and (losses[1] > initial_losses[1]
                             or payout.insurance_spent[1] > baseline.insurance_spent[1]):
             continue
-        if protect_eth and any(payout.claim_cash_movements[index][market] < minimum
-                               for (index, market), minimum in floors.items()):
-            if ordinary_rounding_only:
-                continue
-            try:
-                payout = clear_atom_cohort(*inputs, frozen_collections=collections, creditor_floors=floors)
-            except InfeasiblePayoutFloor:
+        if protect_eth:
+            payout = protect_receipts(book, payout, floors, collections, ordinary_rounding_only=ordinary_rounding_only)
+            if payout is None:
                 continue
         key = (-recovered, cost, total, lots, tuple(-charge for charge in charges))
         if best_key is not None and key >= best_key:
