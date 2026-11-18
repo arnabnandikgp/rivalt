@@ -77,7 +77,9 @@ The [linked creditor cases](architecture-review.md#who-bears-the-cross-market-ef
 quantify both choices. The [individual payout comparison](architecture-review.md#protecting-individual-creditor-payouts)
 supports [D118](../DECISIONS.md#d118--protected-rounding-for-foreign-creditor-payouts),
 which permits a conserving reassignment of fractional remainders when ordinary
-rounding would harm a foreign creditor. Keep the active proportional settlement until
+rounding would harm a foreign creditor. The [joint default comparison](architecture-review.md#competing-debtors-and-simultaneous-market-defaults)
+checks shared maker lots, cross-market payout floors and feasibility when both
+markets reduce positions in the same freeze. Keep the active proportional settlement until
 the successor eligibility, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.

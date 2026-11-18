@@ -51,6 +51,15 @@ The constrained allocation and frozen-share comparisons run offline. At
 `1f3ce81`, all eight payout and nine cross-market tests passed with D118
 protected rounding selected by default.
 
+Joint model `e06dca7` passes eight new tests, including 81 independent
+two-debtor/two-winner matching cases and four ordinary Rust terminal controls.
+The eight individual-payout and nine cross-market tests pass at the same pin.
+The [payout table](../clearing/architecture-review.md#competing-debtors-and-simultaneous-market-defaults)
+reports each market in isolation and both together. Candidate selection,
+protected rounding and the joint commitment policy are offline research.
+Run `python3 tests/financial/test_joint_reductions.py -v` after building the
+native settlement driver as described above.
+
 ### Signed source publication and freeze
 
 On 18 November 2026 harness `bc816d4` deployed the qualified local SBF

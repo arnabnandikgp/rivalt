@@ -411,6 +411,63 @@ allocation checks for 1,125 small three-creditor transitions. Protected rounding
 and frozen-share overlays are Python candidates. Simultaneous forced reductions
 on both markets and bounded on-chain continuation need separate qualification.
 
+### Competing debtors and simultaneous market defaults
+
+The [joint model](../../tests/financial/joint_reduction_model.py) enumerates
+paired closes against one frozen BTC/ETH cohort. Each debtor has its own
+market-attributed write-off budget after insurance. Every match consumes actual
+remaining lots at both ends. Several debtors can compete for one maker’s lots
+or unpaid gain. The model uses the D113 attribution supplied for each open
+position and counts the position once when comparing proportional charges.
+
+For example, two BTC debtors owe ten atoms each and hold nine and two cash.
+Only one profitable opposite lot is eligible, with eight atoms of unpaid gain.
+Pairing it with the first debtor absorbs one atom. Pairing it with the second
+absorbs eight and leaves eleven cash for the other creditor. Both plans use
+the entire available opposite lot. An independent comparison enumerates the
+two possible full matchings across 81 small books.
+
+**BTC and ETH can default together.** In each market a debtor has nine cash
+against eleven owed. The eligible opposite has two unpaid atoms and owes one
+in the other market. Each market also has a flat creditor owed ten. The same
+eighteen cash atoms fund all four outcomes.
+
+| Forced charge in BTC / ETH | Flat BTC creditor | Flat ETH creditor | Cash left with the two eligible winners | Insurance spent |
+|---|---:|---:|---:|---:|
+| 0 / 0 | 8 | 8 | 1 each | 0 |
+| 2 / 0 | 10 | 7 | 0 BTC winner, 1 ETH winner | 0 |
+| 0 / 2 | 7 | 10 | 1 BTC winner, 0 ETH winner | 0 |
+| 2 / 2 together | 9 | 9 | 0 each | 0 |
+
+Even a one-atom standalone charge reduces the other market’s exact recovery
+rate from 5/6 to 109/132. Requiring each market’s reductions to pass separately
+therefore selects zero charges. Testing the complete package against the freeze
+admits both full reductions. Its exact rate is 9/10 in each market. Each market’s
+impairment falls from two atoms to one. Four atoms of nominal charges recover
+two atoms of verified shortfall in total.
+
+Both candidate policies retain each debtor’s original cash attribution. For the
+combined-plan comparison, each market’s aggregate impairment and insurance
+debit must stay at or below their frozen baselines. For each original positive claim
+the comparison checks its exact receipt and its whole-atom receipt against the
+freeze, allowing only the verified charge on that same position as a deduction.
+Every flat creditor keeps its full baseline floor. D118 supplies the fallback
+when ordinary rounding would violate a floor. A one-market plan gets no offset
+from an empty leg. The stricter comparison additionally requires each nonempty
+market plan to satisfy D117 on its own before testing the complete package.
+
+The [tests](../../tests/financial/test_joint_reductions.py) also cover shared
+fractional debtor cash, fee custody, scarce insurance and ordinary Rust terminal
+settlement on all four books in the table. In the one-atom BTC insurance case,
+one feasible plan reduces BTC/ETH impairments by (1, 0) and another by
+(109/120, 119/120). The model returns both. Cross-market ranking remains open
+if a verified joint package is selected.
+
+The comparison runs offline. Making a joint plan binding would require a
+verified commitment covering both markets before effects become available.
+A bounded continuation must prevent exits, payments or recovery from exposing
+a partial plan and must resume the same committed result after interruption.
+
 ## Direction under discussion and remaining choices
 
 On 16 November, the user's acknowledgment was recorded as acceptance of debtor
