@@ -41,7 +41,7 @@ class MarketPlan:
         return sum(self.winner_charges)
 
 
-def market_plans(book, market, exposure, baseline):
+def frozen_market_inputs(book, market, exposure, baseline):
     # The paired-fill primitive takes its target in column zero. Rotate both
     # claims and market buckets together, then return only that market's column.
     if market == 1:
@@ -60,8 +60,13 @@ def market_plans(book, market, exposure, baseline):
         pairable = [(debtor, pos) for debtor, pos in edges if pos.member == winner]
         available_lots = min(abs(state.lots[winner]), sum(abs(state.lots[d]) for d, _ in pairable))
         caps[winner] = min(floor(book.accounts[winner].claims[0]), floor(available_lots * pairable[0][1].gain_per_lot))
+    return state, budgets, edges, caps
+
+
+def market_plans(book, market, exposure, baseline):
+    state, budgets, edges, caps = frozen_market_inputs(book, market, exposure, baseline)
     total_capacity = sum(caps.values())
-    winners = (0,) * member_count
+    winners = (0,) * len(state.lots)
 
     def extend(cursor, current, remaining_budgets, charges, pairs):
         if cursor == len(edges):
@@ -175,10 +180,14 @@ def rank_recoveries(plans, baseline, *, priority):
     shortfalls = market_losses(baseline)
 
     def score(plan):
-        total = sum(plan.recovered)
-        fractions = tuple(sorted(Fraction(recovery, loss) for recovery, loss in
-                                 zip(plan.recovered, shortfalls) if loss > 0))
+        total, fractions = recovery_score(plan, shortfalls)
         return (total, fractions) if priority == "total-first" else (fractions, total)
 
     highest = max(map(score, plans))
     return [plan for plan in plans if score(plan) == highest]
+
+
+def recovery_score(plan, shortfalls):
+    fractions = tuple(sorted(Fraction(recovery, loss) for recovery, loss in
+                             zip(plan.recovered, shortfalls) if loss > 0))
+    return sum(plan.recovered), fractions

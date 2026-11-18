@@ -2,10 +2,14 @@
 from dataclasses import dataclass
 from hashlib import sha256
 
-from account_contract_reference import require
+from account_contract_reference import InvalidTransition, require
 from joint_reduction_model import compare_joint
 
 DOMAIN = b"Rivalt/frozen-member-order/v1\x00"
+
+
+class IncomparableFinancialProfiles(InvalidTransition):
+    """Recovery scores tie while the remaining financial objectives trade off."""
 
 
 @dataclass(frozen=True)
@@ -58,7 +62,8 @@ def _break_exact_ties(plans, freeze):
 
     profiles = {profile(plan) for plan in plans}
     best = [first for first in profiles if not any(dominates(other, first) for other in profiles)]
-    require(len(best) == 1, "financial objectives differ across tied recovery scores")
+    if len(best) != 1:
+        raise IncomparableFinancialProfiles("financial objectives differ across tied recovery scores")
     finalists = [plan for plan in plans if profile(plan) == best[0]]
     if len(finalists) == 1:
         return finalists[0]
