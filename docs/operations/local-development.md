@@ -167,6 +167,18 @@ The first probe compares every frozen account with independently replayed fills
 and payments. The second follows the debtor and both creditors through the
 selected proportional settlement and wallet exit. [Measured results](validation.md#clearing-owned-surviving-profit).
 
+## Sponsored profit capacity
+
+Build at `1763dc7` with the selected P56 maker binaries available. Switch back
+to the qualification revision `291e7a5` before launching each fresh local run.
+
+```sh
+RIVALT_ATTRIBUTION_DIR=.local/profit-attribution/sponsored-revision-2 bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/sponsored-revision-2
+RIVALT_SETTLEMENT_PROBE=profit-attribution-sponsor bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-sponsor-recovery bash ops/scalable-settlement-smoke.sh
+```
+
 ## Maker liquidation demonstration
 
 Build the separately pinned candidate at source revision `ab3f6c6` with

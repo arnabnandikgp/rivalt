@@ -39,9 +39,9 @@ successor model shifts 149 from the open winning maker to the flat trader.
 
 The [attribution candidate](../operations/validation.md#clearing-owned-surviving-profit)
 now retains exact per-lot entry and paid gain through fills, backed payment,
-compulsory reduction and the freeze. Next qualify adjustable per-margin capacity
-with optional sponsorship, including an order that the initial allocation rejects,
-refund to the contributor and recovery without a further signature. The subsequent
+compulsory reduction and the freeze. The [sponsored capacity qualification](../operations/validation.md#sponsored-profit-capacity)
+also admitted the previously rejected order, repaid a replacement contributor
+and preserved the rent credit through a restarted default. The subsequent
 user-visible milestone is the flat trader’s 996-atom payout from signed successor
 clearing on the matched BTC case. General linked-book verification and application,
 plus shared-write and cost qualification, remain open.

@@ -1,5 +1,41 @@
 # Validation and measured limits
 
+## Sponsored profit capacity
+
+Program `1763dc750dbb27c852fafd5fbda4fad486fd69cb` built a 2,516,448-byte SBF
+with SHA-256 `e1fa7b655b3e619aac575f1a8e559791cfc09e5c28492a5e334678b105b7f547`.
+At `291e7a52bbccc92621faf24511b77c1217a2ac7a` the
+[signed rent lifecycle](../../tests/rpc-contract/profit-capacity-rpc.ts) checked
+274 outcomes and rebuilt 76 financial payloads in a fresh PostgreSQL database.
+The refund and growth instructions also advance the margin’s scoped revision.
+SOL principal and token balances were checked independently over RPC.
+
+The first sponsor paid 1,178,543 lamports to enlarge the trader’s two slots
+from 128 to 224 bytes. A 17-lamport donation already on the root earned
+no refund credit. A 129-lot buy still failed until the maker funded its own
+capacity. The trader then bought and closed 129 lots. During the open position,
+a new sponsor reimbursed the first in full and paid 325,120 additional lamports
+to grow to 256 bytes per market. After exit the trader independently returned
+1,503,663 lamports to that sponsor. The 17-lamport donation remained on the
+margin. The self-funded maker recovered its own 1,503,680 lamports.
+
+| Finalized transaction | CU | Wire bytes |
+|---|---:|---:|
+| Sponsor initial trader growth | 14,051 | 618 |
+| Buy 129 lots | 178,984 | 1,006 |
+| Reject release with open exposure | 4,613 | 522 |
+| Replace contributor and grow the live root | 17,188 | 650 |
+| Close 129 lots | 163,182 | 1,014 |
+| Refund absent final contributor | 10,705 | 554 |
+
+Owner substitution, an insufficient signed ceiling, stale replay, missing maker
+capacity and a redirected refund all rejected. In the separate signed BTC
+recovery, the winning maker’s credit survived 13 restartable worker steps,
+complete distribution, an 847-atom withdrawal and return to custody. The sponsor
+recovered its full principal. The run checked 279 outcomes and replayed 115
+financial payloads. Neither run measures arbitrary-denominator worst-case CU,
+larger widths or the successor payout rule. [Commands](local-development.md#sponsored-profit-capacity).
+
 ## Clearing-owned surviving profit
 
 The [signed test](../../tests/rpc-contract/profit-attribution-rpc.ts) at

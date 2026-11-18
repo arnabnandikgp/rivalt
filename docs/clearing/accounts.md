@@ -778,3 +778,22 @@ qualified D102 binaries retain their 64-Financial gate. Native models, empty
 registration beyond 64, and the eight-root batch run do not qualify expansion.
 The G1 128/1,024 cohorts are measured acceptance cases, not new fixed protocol caps;
 operators must provision and qualify the capacity they intend to enable.
+
+## Contributor-funded profit capacity in the local candidate
+
+The normal margin root is 1,011 bytes. The separately built attribution program
+initially appends an eight-byte marker and two 128-byte market slots. In the
+sponsored build the margin owner and SOL payer can increase both slot widths.
+The signed request binds the margin revision and a maximum lamport debit. An
+expanded root adds a 32-byte contributor and eight-byte refundable principal
+after both slots. Current qualification covers widths through 256 bytes per
+market, including size changes while exposure is open.
+
+On a change of payer, the new payer directly reimburses the prior contributor.
+Only actual system-program top-ups and that reimbursed principal become the
+new payer’s credit. The account owner or contributor may release the extension
+when both markets are flat and the account has no reserve or active order.
+Release pays the recorded contributor even if another party signs. Retirement
+requires this release first. Frozen recovery retains the receipt until ordinary
+access resumes. See [D125](../DECISIONS.md#d125--refundable-attribution-capacity)
+and the [measured lifecycle](../operations/validation.md#sponsored-profit-capacity).

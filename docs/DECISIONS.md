@@ -1269,3 +1269,19 @@ and separately consenting receiver. The keeper pays its transaction costs in
 this prototype. Absence of a quote or receiver leaves the existing freeze
 predicate in force. The candidate runs on its separately hashed local deployment.
 Activation, automated route selection and keeper compensation remain open.
+
+## D125 — Refundable attribution capacity
+
+19 November 2026. Implement D123 in the bounded local candidate with one current
+rent contributor per margin extension. The owner consents to growth and the payer
+signs a maximum total debit, including any principal paid directly to a previous
+contributor. The validated previous contributor may be absent. Exact reimbursement
+passes the existing refund right to the new payer. Credit only the observed rent
+top-up. Pre-existing SOL donations stay with the margin root. A flat owner or
+contributor can release the extension to the recorded contributor without
+requiring any other party to return. Open positions, outstanding reservations
+and the frozen episode retain capacity. Principal is denominated in lamports.
+
+Use a fresh isolated deployment for the [qualification](operations/validation.md#sponsored-profit-capacity).
+The 256-byte test ceiling applies to this binary. Larger widths require measured
+compute and recovery on large exact histories.
