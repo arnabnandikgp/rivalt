@@ -58,7 +58,10 @@ The [payout table](../clearing/architecture-review.md#competing-debtors-and-simu
 reports each market in isolation and both together. Candidate selection,
 protected rounding and the joint commitment policy are offline research.
 Run `python3 tests/financial/test_joint_reductions.py -v` after building the
-native settlement driver as described above.
+native settlement driver as described above. At `400ea98`, the eight tests pass
+with D119 joint admission selected. At `bec7149`, ten tests pass, including
+two additional native terminal controls for the ranking comparison. Its funded
+flat-creditor outputs are 6/7 and 5/8, with zero insurance in either case.
 
 ### Signed source publication and freeze
 

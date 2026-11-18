@@ -460,8 +460,26 @@ The [tests](../../tests/financial/test_joint_reductions.py) also cover shared
 fractional debtor cash, fee custody, scarce insurance and ordinary Rust terminal
 settlement on all four books in the table. In the one-atom BTC insurance case,
 one feasible plan reduces BTC/ETH impairments by (1, 0) and another by
-(109/120, 119/120). The model returns both. Cross-market ranking remains open
-under the approved joint admission rule.
+(109/120, 119/120). The model returns both.
+
+**Choosing between feasible joint plans.** A separate fixture has frozen BTC/ETH
+impairments of 2 and 64/5 collateral atoms. The two flat creditors start with
+whole payouts of five and seven. Both alternatives below use zero insurance,
+preserve those original floors and distribute the same fourteen funded atoms.
+Their ranking changes which creditor receives the extra atom.
+
+| Ranking | BTC / ETH verified impairment reduction | Total reduction | Smaller recovered share of initial market loss | Flat BTC / ETH cash |
+|---|---|---:|---:|---|
+| Largest total reduction first | 2 and 14/5 | 24/5 (4.80) | 7/32 (21.88%) | 6 / 7 |
+| Largest recovery percentage for the worse-off market first | 1 and 52/15 | 67/15 (4.47) | 13/48 (27.08%) | 5 / 8 |
+
+The total-first comparison adds the verified reductions denominated in the same
+collateral. The balance-first comparison sorts the markets’ recovery percentages
+from lowest to highest and compares them in that order. A market with zero
+original loss has no percentage to rank. Each comparison uses the other objective
+to break a tie and preserves any remaining exact ties. These scores measure
+changes in market-attributed impairment. Independently specified balances from
+the native kernel show the associated whole-cash payments.
 
 [D119](../DECISIONS.md#d119--verified-joint-reductions-in-one-frozen-episode)
 selects joint admission. The comparison runs offline. Making the rule binding
