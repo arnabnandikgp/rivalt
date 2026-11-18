@@ -42,14 +42,15 @@ pub(super) fn prepare(
     clock: &Clock,
 ) -> Result<Health> {
     book::validate(target)?;
+    // The target is a candidate copy. Only a completed fill can persist cancellation.
+    risk::cancel_risk_increasing_orders(target);
+    book::refresh_with_environment(target, environment)?;
     environment.admit_sources(target, clock, true)?;
     let before = Health::read(target, environment)?;
     require!(
         before.deficit > 0 && before.equity >= 0,
         ClearingError::Liquidation
     );
-    risk::cancel_risk_increasing_orders(target);
-    book::refresh_with_environment(target, environment)?;
     Ok(before)
 }
 

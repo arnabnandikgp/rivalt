@@ -606,7 +606,10 @@ one- or two-capital limit, solvency checks, funding, fee split and atomic commit
 Any signer can pay to submit it on the candidate deployment. The target's guard
 and reduce-only generation bind the precise position it may reduce.
 The target must be below maintenance with nonnegative conservative equity.
-The instruction requires current qualified sources for the relevant markets.
+The selected market and any market with surviving position exposure or a live
+order must have current qualified sources. A risk-increasing order that the
+fill cancels still requires its authenticated market account for input validation.
+That order alone does not require a fresh price for its market.
 
 For a long, each maker's gross proceeds must be at least lots times the lower
 risk price. For a short, gross cost must be at most lots times the upper risk

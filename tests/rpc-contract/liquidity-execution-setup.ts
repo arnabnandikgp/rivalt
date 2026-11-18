@@ -101,7 +101,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     }));
     await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
   }
-  async function sample() {
+  async function sample(reportMarkets: readonly (0|1)[] = [0,1]) {
     const previous = await Promise.all([0, 1].map(marketState));
     const publishers = await Promise.all(configurations.map(async configuration =>
       sdk.getFundingPublisherDecoder().decode((await h.read(configuration))!)));
@@ -116,7 +116,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     while (await slot() <= fenceSlot) { assert(Date.now() < deadline, 'Publisher fence Clock progress'); await delay(100); }
     await fresh();
     const reports: Instruction[] = [];
-    for (const index of [0, 1] as const) {
+    for (const index of reportMarkets) {
       const input = await sdk.readFundingReport(rpc, venue, index);
       assert.equal(input.report.outcome, 0, input.coverageReason ?? 'available complete publication');
       const reference = index === 0 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n;
@@ -125,7 +125,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       reports.push(sdk.getPublishFundingReportInstruction({ ...common,
         ...input.instructionAccounts, publisher: fixture.updater, report: input.report }));
     }
-    await h.send('P32 publisher available two-market reports', reports, [fixture.updater]);
+    await h.send(reportMarkets.length===2?'P32 publisher available two-market reports':'publish selected-market funding report', reports, [fixture.updater]);
   }
   const qualify = async () => { for (let round = 0; round < 4; round++) await sample(); };
   await qualify();

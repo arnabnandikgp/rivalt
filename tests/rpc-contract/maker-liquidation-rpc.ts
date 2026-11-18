@@ -63,9 +63,9 @@ try {
     makers:[setup.instances[0]],lots:[50n]})],[owner]);
   await reject('healthy target',await forced(1n),sdk.CLEARING_ERROR__LIQUIDATION);
   const slot=await setup.slot();
-  await h.send('place target risk-increasing order',[sdk.getManageAccountOrderInstruction({...common,actor:owner,margin:target,
-    guard:await guard(target),marketIndex:0,operation:{__kind:'Place',expectedId:1n,terms:{side:0,lots:1n,
-      limit:66_000n,feeBudget:100n,startSlot:slot,expirySlot:slot+5000n,trigger:0,threshold:0n,reduceOnly:false,generation:0n}}})],[owner]);
+  await h.send('place target ETH risk-increasing order',[sdk.getManageAccountOrderInstruction({...common,actor:owner,margin:target,
+    guard:await guard(target),marketIndex:1,operation:{__kind:'Place',expectedId:1n,terms:{side:0,lots:1n,
+      limit:33_000n,feeBudget:100n,startSlot:slot,expirySlot:slot+5000n,trigger:0,threshold:0n,reduceOnly:false,generation:0n}}})],[owner]);
   setup.sourcePrices.btc=52_000_000_000n;
   await setup.qualify();
   const stages:{stage:string;lots:string;cash:string;deficit:string}[]=[];
@@ -87,12 +87,18 @@ try {
     await setup.waitUntil(await setup.now()+2n);
   }
   await reject('expired sources',await forced(1n),sdk.CLEARING_ERROR__ORACLE_POLICY);
-  await setup.qualify();
+  // Only BTC returns to Normal. Pre-state ETH dependencies must still be supplied.
+  for(let round=0;round<4;round++)await setup.sample([0]);
+  const eth=await setup.marketState(1);
+  assert(await setup.now()>=eth.oracle.sourceDeadline||await setup.slot()>=eth.validUntil);
   await reject('ordinary route requires target authority',await forced(1n,2,false),sdk.CLEARING_ERROR__AUTHORITY);
   await reject('wide maker outside adverse oracle price',await forced(1n,0),sdk.CLEARING_ERROR__ROUTE_LIMIT);
   await reject('cannot request eleven tight lots',await forced(11n),sdk.CLEARING_ERROR__MAKER_QUOTE);
   const fill=await forced(10n);
-  assert((await root(target)).reserved>0n);
+  const beforeFill=await root(target);
+  assert(beforeFill.reserved>0n);
+  assert(beforeFill.book.orders.some(entry=>entry.marketIndex===1&&!entry.order.reduceOnly&&entry.order.reserve>0n));
+  assert(beforeFill.positions[1].lots===0n&&beforeFill.positions[1].virtualScaled===0n);
   await h.send('liquidation keeper sells ten lots to maker B',[fill]);
   await verifyTarget('Maker filled ten',40n,563_286n,-2_530_020n,12_574n);
   assert.equal((await root(target)).reserved,0n);

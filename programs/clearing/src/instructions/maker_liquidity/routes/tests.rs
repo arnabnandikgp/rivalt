@@ -325,6 +325,42 @@ fn canonical_legs_keep_exact_wire_width_and_depth_changes_do_not_reset_consumpti
 }
 
 #[test]
+fn forced_reduction_prices_surviving_exposure_after_order_cancellation() {
+    let mut markets = markets();
+    let mut target = trader(100_000);
+    let placement = environment(&markets, 1, &clock()).unwrap();
+    target = candidates::manage_candidate(
+        &target, &placement,
+        candidates::OrderAction::Place {
+            expected_id: 1,
+            terms: crate::instructions::types::OrderTerms {
+                side: 0, lots: 1, limit: 30_000, fee_budget: 10,
+                start_slot: 90, expiry_slot: 200, trigger: 0, threshold: 0,
+                reduce_only: false, generation: 0,
+            },
+        },
+        0,
+    ).unwrap();
+    assert!(target.reserved > 0);
+    // At the BTC lower endpoint equity is 1,000 atoms; maintenance is 3,030.
+    target.positions[0] = crate::state::Position {
+        lots: 1, virtual_scaled: -158_400 * SCALE, generation: 1, ..Default::default()
+    };
+    markets[1].oracle.source_deadline = clock().unix_timestamp;
+    let execution = environment(&markets, 0, &clock()).unwrap();
+    assert!(execution.admit_sources(&target, &clock(), true).is_err());
+    let mut exposed = target.clone();
+    exposed.positions[1] = crate::state::Position {
+        lots: 1, virtual_scaled: -30_000 * SCALE, generation: 1, ..Default::default()
+    };
+    let error = liquidation::prepare(&mut exposed, &execution, &clock()).err().unwrap();
+    assert_eq!(error, ProgramError::from(ClearingError::OraclePolicy));
+    liquidation::prepare(&mut target, &execution, &clock()).unwrap();
+    assert_eq!(target.reserved, 0);
+    assert_eq!(target.book.orders[0].order.state, crate::constants::orders::INVALIDATED);
+}
+
+#[test]
 fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
     let mut markets = markets();
     let market_views = [
