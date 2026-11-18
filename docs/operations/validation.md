@@ -63,6 +63,7 @@ with D119 joint admission selected. At `bec7149`, ten tests pass, including
 two additional native terminal controls for the ranking comparison. Its funded
 flat-creditor outputs are 6/7 and 5/8, with zero insurance in either case.
 At `65899ee`, eleven joint tests pass, including the 61/12 equal-total case.
+At `91ae07e` all eleven pass with the approved D120 policy as the default.
 
 ### Signed source publication and freeze
 

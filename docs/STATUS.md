@@ -83,7 +83,7 @@ unchanged ETH totals. D118 approves protected rounding as the successor default.
 the eight individual-payout and nine cross-market tests pass with that default.
 The joint comparison now reproduces 8/8 flat-creditor payouts under independent
 market admission and 9/9 for a complete package. D119 approves joint admission
-with verified finality across both markets. At `65899ee`, eleven joint tests pass, including an equal-total tie.
+with verified finality across both markets. At `91ae07e`, eleven joint tests pass with the D120 default, including an equal-total tie.
 D120 prioritizes total verified recovery and uses the lower market recovery
 percentage to break ties. Next check how a verifier can establish the selected
 plan’s optimality and bind it to one frozen episode.
