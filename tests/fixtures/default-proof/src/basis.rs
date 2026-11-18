@@ -52,7 +52,9 @@ pub fn cycle(ctx: &mut Context<UpdateBasis>, expected: u8, count: u8) -> Result<
             account.lamports() >= Rent::get()?.try_minimum_balance(new_size)?,
             ProofError::StorageFunding
         );
+        basis.release_borrow()?;
         account.resize(new_size)?;
+        basis.reacquire_borrow_mut()?;
     }
     basis.numerator = numerator.to_le_bytes()[..width].to_vec();
     basis.cycles += count;
