@@ -72,6 +72,14 @@ The [results](../clearing/default-plan-verification.md) distinguish a sufficient
 score proof, a loose bound and the identity tie. Python carries the successor
 verification. The Rust controls exercise ordinary settlement.
 
+At `0093a05`, six restartable default-search tests pass alongside eight
+certificate/identity and eleven joint tests. The six-account case reproduces
+the native 9/9 terminal payout after a nine-candidate scan. Tests cover changed
+sources and proposals, stale cursors, early access and an inferior equal-score
+assignment. The [work counts and limits](../clearing/default-plan-verification.md#restarting-verification-when-a-bound-misses)
+describe a Python reference with trusted checkpoint storage. No successor
+RPC execution, on-chain step limit or wall-clock guarantee is claimed.
+
 ### Signed source publication and freeze
 
 On 18 November 2026 harness `bc816d4` deployed the qualified local SBF

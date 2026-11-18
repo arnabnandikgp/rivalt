@@ -86,12 +86,45 @@ A score certificate does not authenticate the episode, prove the final identity
 tie, or cover arbitrary linked BTC/ETH positions. The unqualified successor
 has no financial instruction.
 
-## Next verification gate
+## Restarting verification when a bound misses
 
-Use a restartable, exhaustively checked small-cohort reference for cases where
-a sufficient bound misses. Pin its continuation to the immutable source and
-both markets, measure the actual verification work and compare every outcome
-with the independent fixtures. Before activation, establish a complete proof
-and a recovery policy when no timely proof is available. A proposer may not
-substitute a feasible lower score, revert to ordinary proportional payouts, or
-release partially applied cash on its own.
+The [small-cohort reference](../../tests/financial/bounded_default_search.py)
+accepts a proposed charge vector and checks every possible challenger. It gives
+each frozen debtor/winner pair a digit ranging from zero to the smaller of the
+debtor’s verified shortfall budget and the winner’s pairable gain. All admissible
+plans are in this space. Many digit combinations fail once shared lots or foreign
+payment floors are checked.
+
+A cursor records the first unchecked ordinal. The binding covers the frozen
+source digest, venue, episode, canonical member IDs, all cash and claim inputs,
+market buckets, exposures, gains, rule version and proposed ordinal. Each call
+continues from the expected cursor, reconstructs the economic outcome from
+frozen state, and checks a contiguous range. A higher-ranked challenger rejects
+the proposal. An incomparable financial profile leaves it uncertified. Only
+the full successful scan exposes a verified plan. A worker can replay an
+uncommitted range against the same prior checkpoint. The reference assumes
+the committed checkpoint is trusted. On chain its owner, address and revision
+must be authenticated. The reference digest is a research encoding.
+
+| Fixture | Result |
+|---|---|
+| Six-account joint BTC/ETH default | Nine ordinals. Three are feasible. The original plan loses to ordinal 4, which loses to ordinal 8. Verifying ordinal 8 in batches of 1, 3, 2 and 3 restores the same 9/9 payout after each checkpoint reload. |
+| One debtor lot and two equal winning makers | 121 ordinals. D121 certifies only the winning assignment for the specified venue and episode. The equally feasible alternative is rejected. |
+| Two debtors and six winners, B=17 | 6,666,395,904 ordinals in the general digit enumeration. The family-specific solver checks ten distinct splits. These counts concern these two algorithms. The general search was not run to completion on this book. |
+
+Work per call is bounded in candidate count. One candidate still requires
+whole-cohort exact settlement and may require protected rounding. The reference
+does not bound a Solana instruction’s CU, certify a production deadline or
+publish a spendable result.
+
+## Release and liveness
+
+An optimal 33-atom reduction on the B=17 book can pay the flat creditor 19
+atoms. Ordinary proportional settlement of its original claims pays seven.
+Both settle the same twenty deposited atoms. A timeout that switches rules
+would change ownership. A slow proposal, keeper retry or failed budget check
+does not authorize such a switch.
+
+The next implementation gate is a native, resource-metered proof with
+authenticated stage storage. Benchmark verification and recovery before
+activating any successor instruction or setting an operational deadline.
