@@ -125,6 +125,8 @@ Both settle the same twenty deposited atoms. A timeout that switches rules
 would change ownership. A slow proposal, keeper retry or failed budget check
 does not authorize such a switch.
 
+[D122](../DECISIONS.md#d122--exact-proof-before-prototype-release) makes exact verification mandatory for the prototype. Production deadline policy is deferred.
+
 The next implementation gate is a native, resource-metered proof with
 authenticated stage storage. Benchmark verification and recovery before
 activating any successor instruction or setting an operational deadline.

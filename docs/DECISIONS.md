@@ -1220,3 +1220,17 @@ restart. The order is predictable and can change between episodes.
 The [verification contract](clearing/default-plan-verification.md#final-ties-can-determine-a-whole-payout)
 specifies the research encoding and shows why final identity selection can change
 a whole payout. Existing terminal rounding and ordinary fills use their own rules.
+
+## D122 — Exact proof before prototype release
+
+19 November 2026. The user approved exact verification as a prerequisite for
+release in the successor prototype. While a proposed plan is pending, outscored
+or unverifiable, keep the affected cohort frozen. A keeper may resume a valid
+checkpoint or propose another plan against the same frozen inputs. Elapsed time
+cannot select a different payout. Reconciliation of the entire verified plan
+remains a separate prerequisite for spendable balances.
+
+The [nine-account example](clearing/default-plan-verification.md#release-and-liveness)
+pays the flat creditor 19 atoms with an optimal close and seven under ordinary
+proportional settlement. A production deadline or alternative loss rule requires
+a separate decision informed by native verification and recovery measurements.

@@ -90,7 +90,8 @@ D120 prioritizes total verified recovery and uses the lower market recovery
 percentage to break ties. D121 fixes identity priority. A sufficient score proof
 works on a 121-member family, and a smaller book demonstrates a loose bound.
 The small-cohort reference now verifies a submitted joint result across restarts.
-Next settle the prototype’s liveness policy when the exact proof is delayed.
+D122 requires exact verification for prototype release. Next measure native
+verification and restart on the funded nine-account fixture.
 The existing qualified terminal path continues to use proportional settlement.
 
 The 16 November architecture review inspected source at
