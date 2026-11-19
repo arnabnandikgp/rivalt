@@ -1,5 +1,19 @@
 # Validation and measured limits
 
+## Native linked-market recovery
+
+At `56e276b`, the compiled settlement kernel preserved the approved 60 BTC / 30
+ETH cash split when BTC debt fell from 80 to 60. Recomputing the split moved
+six atoms to ETH. The new native path matched an independent fractional solver on
+152 original/effective cohorts for cash, per-market movements, insurance, funded
+fee retention and each member’s exact cash allocation. Six malformed inputs
+were rejected. The ordinary kernel still matched 774 settlements and rejected
+307 invalid proposals. The two-market comparison enumerated 256 charge vectors
+and found 70 feasible. Rust reproduced the 6/6 baseline and the two finalist
+payouts of 7/8 and 8/7. These checks exercise native financial code. The
+[comparison](../clearing/default-plan-verification.md#when-the-two-markets-trade-places)
+identifies the outstanding policy choice.
+
 ## Multi-winner BTC recovery
 
 Two independent eight-account Surfpool/RPC/WS/PostgreSQL runs at `c747189`

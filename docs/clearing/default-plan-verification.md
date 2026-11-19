@@ -459,3 +459,52 @@ The [exact cutoff](../../crates/default-plan-selection/src/proportional.rs),
 and [on-chain scan](../../programs/clearing/src/instructions/account_safety/settlement/btc_allocation.rs)
 own the three corresponding rules. This proof does not cover competing debtors,
 scarce opposing inventory or linked-market claims.
+
+### Joint recovery and frozen cash ownership
+
+The [native settlement verifier](../../crates/financial-core/src/clearing/scalable/settlement.rs)
+can take the original cohort alongside the effective claims of a proposed
+reduction. Both cohorts must conserve each market independently. Each member
+retains its cash balance and each claim can only move toward zero by whole
+atoms. The verifier derives cash ownership once from the original debts and
+checks it against the remaining obligation in each market before accepting the
+rates. The same original allocation enters rate verification, per-member
+attribution, rounding and the retained-cash floor.
+
+For a member owing 80 to BTC and 40 to ETH with 90 cash, the original shares
+are 60 and 30. Closing 20 of the BTC debt leaves face debts of 60 and 40.
+Recalculating the shares would pay 54 and 36. Keeping the original allocation
+pays 60 and 30. The native path also handles fractions that cannot be
+represented by depositing whole tokens into intermediate market pools.
+The verifier requires corresponding member ordinals. Authenticating them to
+the frozen roots, proving the proposed charges, protecting foreign creditors’
+individual floors and applying a linked plan on-chain remain separate gates.
+
+### When the two markets trade places
+
+An eight-member frozen book exposes a remaining product choice. Each market
+has a debtor owing 11 with 7 funded, insurance of 1, a winner with a gain of 3,
+a cross-account winner with a gain of 4 that owes 4 to the other market, and
+a flat creditor owed 8. The two cross-account winners are different members.
+Both flat creditors receive 6 before forced closes. Of the 256 possible whole
+charge vectors, 70 satisfy the model's constraints. Two remain after the
+approved recovery comparisons.
+
+| Outcome | BTC charges on gains 3 and 4 | ETH charges on gains 3 and 4 | BTC / ETH flat-creditor cash | BTC / ETH insurance |
+|---|---|---|---|---|
+| BTC shares the charge more evenly | 2 and 1 | 3 and 0 | 7 / 8 | 1 / 1 |
+| ETH shares the charge more evenly | 3 and 0 | 2 and 1 | 8 / 7 | 1 / 1 |
+
+Each recovers 3 atoms per market and closes three lots in total. The preferable
+sharing score in one market is the less preferable score in the other. D120
+cannot distinguish them. D121 currently applies after the individual financial
+comparisons tie. The resumable reference flags each finalist as incomparable
+with the other. Native settlement independently reproduces both cash vectors
+from literal adjusted obligations.
+
+The proposed narrow extension would use frozen member order if the original
+market economics match and the two surviving plans exchange identical
+financial profiles under the market swap. This requires an explicit decision
+because it changes which flat creditor receives the eighth atom. General
+unequal trade-offs remain a separate question. This fixture is synthetic. A
+signed joint-market default has yet to be qualified.

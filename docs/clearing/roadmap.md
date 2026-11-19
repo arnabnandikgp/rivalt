@@ -49,7 +49,10 @@ when the forced reduction needs several lots at two prices. The [multi-winner re
 now covers proportional charges, minimum lots and frozen-episode tie ordering for
 a single BTC debtor holding its entire side of open interest. Next verify linked
 books where BTC and ETH recovery decisions depend on each other.
-Linked-market proofs, shared writes and broader cost qualification remain open.
+Native linked settlement now keeps the [original debtor cash split](default-plan-verification.md#joint-recovery-and-frozen-cash-ownership).
+The [mirror comparison](default-plan-verification.md#when-the-two-markets-trade-places)
+identifies a payout decision still needed for a complete joint plan.
+Linked-market runtime proofs, shared writes and broader cost qualification remain open.
 
 ## Functional ownership
 
