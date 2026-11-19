@@ -100,6 +100,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
             (row.lots[0]===0n ? row.claims[0]<0n : row.claims[0]%1_000_000_000n!==0n ||
               row.lots[0] !== (row.claims[0]<0n?side:-side))))return blocked('unsupported-inventory-book');
         const metas=[...new Set(active.map(member=>member.page))].map(address=>({address,role:AccountRole.WRITABLE}));
+        if(metas.length>sdk.INVENTORY_BOOK_ACTIVE_PAGE_LIMIT)return blocked('inventory-book-requires-paged-verification');
         return ready('verify-inventory-book',withPages(sdk.getVerifyInventoryBookInstruction({
           ...args,revision:prepared.revision,ordinals:active.map(member=>member.ordinal)}),metas));
       }
