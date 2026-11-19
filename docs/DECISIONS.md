@@ -1460,3 +1460,15 @@ The market ledger holds unclassified fees in escrow so the existing vault
 reconciliation continues to work. This first measurement retains both shared
 BTC writes. The selected deployment still certifies insurance on each fill.
 [Accounting](clearing/accounting.md#aggregate-market-fee-prototype).
+
+## D138 — Read current market totals from bounded clearing accounts
+
+20 November 2026. The user approved a fresh local prototype in which an on-chain
+consumer reads a bounded set of clearing-owned accounts for current market
+totals. A fill must still prove the exact common gross cap from reserved
+headroom. Its receipt may identify local changes. A checkpoint exposed from a
+single market account must be labelled as such. Funding must preserve the last
+valid materialized prefix through an outage. Profit payments still require the
+complete backing proof at consumption. Only verified financial effects can be
+published by the SDK and indexer. Deployment promotion requires separate
+end-to-end evidence. [Comparison](operations/performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills).

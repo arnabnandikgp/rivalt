@@ -6,8 +6,12 @@ Clean source `e1bb859`. Four gross-capacity tests, the backing-partition test
 and the clearing funding-prefix test passed. The Rust driver, fed by decoded
 finalized receipts, matched 37 paired-workload/exit-boundary fills and two
 default-workload fills with their signed market states and frozen roots.
-The existing on-chain receipts came from D137. There was no new SBF deployment
-for this comparison. [Results and public read constraint](performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills).
+An additional signed scenario at `c7b94a2` used the D137 SBF: two stored
+two-maker subfills cost 25 and 24 atoms. Closing all four lots against the
+third maker cost 48. Market gross progressed from 0 to 4, 8 and 6 as the
+trader returned to zero lots. The three registrations recorded 25/24/48;
+insurance, treasury and carry were 24/73/1. There were 261 harness outcomes,
+76 fresh SQL events and three more matches to the native gross comparison. [Results and public read constraint](performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills).
 
 To reproduce, use `cargo test --locked -p financial-core --features parallel-market-prototype --lib gross_capacity`,
 repeat with the `backing::partitions` filter, and run
@@ -15,7 +19,10 @@ repeat with the `backing::partitions` filter, and run
 Build the `gross_capacity_replay` example with the same financial-core feature.
 Run `node --import tsx tests/performance/replay-gross-capacity.ts <snapshot>` after
 loading `ops/env.sh`. Use the paired run's `sql-route-bursts-and-exit-snapshot.json`
-and the default run's `sql-multi-lot-native-comparison-snapshot.json`.
+and the default run's `sql-multi-lot-native-comparison-snapshot.json`. Run
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-cross-maker-capacity` with the same
+D137 SBF and smoke script for the stored-order case, then replay
+`sql-cross-maker-capacity-snapshot.json`.
 
 ## Aggregate market insurance
 
