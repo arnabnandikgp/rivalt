@@ -84,42 +84,45 @@ mod candidate {
         Ok(Anchor { generation, gross })
     }
 
-    fn available(maker: &BorshAccount<MakerRegistration>, anchor: Anchor) -> Result<u64> {
-        let bytes = maker.account().try_borrow()?;
-        let start = 8 + MakerRegistration::INIT_SPACE + 16;
+    fn available(tail: &[u8], instance: u8, anchor: Anchor) -> Result<u64> {
         require!(
-            bytes.len() == start + LANE_EXTRA && maker.instance < 3,
+            tail.len() == LANE_EXTRA && instance < 3,
             ClearingError::Profile
         );
-        let generation = word(&bytes[start..start + 8])?;
+        let generation = word(&tail[..8])?;
+        let stored = word(&tail[8..])?;
         require!(
-            generation <= anchor.generation,
+            generation <= anchor.generation && stored <= MAX_GROSS_LOTS,
             ClearingError::Reconciliation
         );
-        if generation > 0 && generation == anchor.generation {
-            let free = word(&bytes[start + 8..])?;
-            require!(free <= MAX_GROSS_LOTS, ClearingError::Reconciliation);
-            return Ok(free);
+        if generation != 0 && generation == anchor.generation {
+            return Ok(stored);
         }
         let free = MAX_GROSS_LOTS - anchor.gross;
-        Ok(free / 3 + u64::from(u64::from(maker.instance) < free % 3))
+        Ok(free / 3 + u64::from(u64::from(instance) < free % 3))
     }
 
     pub(super) fn total(
         market: &BorshAccount<Market>,
         makers: [&BorshAccount<MakerRegistration>; 3],
     ) -> Result<u64> {
+        require!(market.schema_version == 10, ClearingError::Profile);
         let checkpoint = anchor(market)?;
         let mut gross = MAX_GROSS_LOTS;
         for (index, maker) in makers.into_iter().enumerate() {
             require!(
-                maker.instance as usize == index
+                maker.schema_version == 10
+                    && maker.instance as usize == index
                     && maker.venue == market.venue
                     && maker.market == market.address().to_owned(),
                 ClearingError::MakerBinding
             );
+            let bytes = maker.account().try_borrow()?;
+            let tail = bytes
+                .get(8 + MakerRegistration::INIT_SPACE + 16..)
+                .ok_or(ClearingError::Profile)?;
             gross = gross
-                .checked_sub(available(maker, checkpoint)?)
+                .checked_sub(available(tail, maker.instance, checkpoint)?)
                 .ok_or(ClearingError::Reconciliation)?;
         }
         Ok(gross)
@@ -148,6 +151,7 @@ mod candidate {
         market: &mut BorshAccount<Market>,
         maker: &mut BorshAccount<MakerRegistration>,
         after: u64,
+        position_delta: i128,
     ) -> Result<()> {
         let before = market.gross_lots;
         require!(
@@ -164,27 +168,31 @@ mod candidate {
                 gross: before,
             };
         }
-        maker.release_borrow()?;
-        let free = available(maker, checkpoint)?;
-        maker.reacquire_guard_only()?;
-        let next = i128::from(free) + i128::from(before) - i128::from(after);
-        if next < 0 {
-            // The serialized legacy cap is also checked on this profile. Only
-            // this fallback may draw on other makers' unused capacity. The
-            // complete new distribution is installed after consuming the fill.
-            return reset(market, after);
-        }
-        let next = u64::try_from(next).map_err(|_| ClearingError::Arithmetic)?;
-        require!(next <= MAX_GROSS_LOTS, ClearingError::Reconciliation);
+        let instance = maker.instance;
+        let mut needs_rebalance = false;
         inspect::<_, { crate::market_fees::LANE_EXTRA }>(
             maker,
             |bytes| {
-                bytes[16..24].copy_from_slice(&checkpoint.generation.to_le_bytes());
-                bytes[24..].copy_from_slice(&next.to_le_bytes());
+                let free = available(&bytes[16..], instance, checkpoint)?;
+                let remaining = i128::from(free) - position_delta;
+                if remaining < 0 {
+                    needs_rebalance = true;
+                } else {
+                    let next = u64::try_from(remaining).map_err(|_| ClearingError::Arithmetic)?;
+                    require!(next <= MAX_GROSS_LOTS, ClearingError::Reconciliation);
+                    bytes[16..24].copy_from_slice(&checkpoint.generation.to_le_bytes());
+                    bytes[24..].copy_from_slice(&next.to_le_bytes());
+                }
                 Ok(())
             },
             true,
-        )
+        )?;
+        if needs_rebalance {
+            // The serialized route still checks the complete common cap. A new
+            // generation redistributes the exact remaining capacity atomically.
+            reset(market, after)?;
+        }
+        Ok(())
     }
 }
 #[cfg(feature = "bounded-market-read")]

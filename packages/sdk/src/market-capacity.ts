@@ -12,7 +12,9 @@ export function decodeCapacityAnchor(bytes:Uint8Array){
   const tail=new DataView(bytes.buffer,bytes.byteOffset+prefix,16);
   const generation=tail.getBigUint64(0,true),initialGross=tail.getBigUint64(8,true);
   requireValue(initialGross<=MAX_GROSS&&(generation>0n||initialGross===0n),'Invalid market capacity anchor.');
-  return {market:decoder.decode(bytes),generation,initialGross};
+  const market=decoder.decode(bytes);
+  requireValue(market.schemaVersion===10,'Invalid capacity market schema.');
+  return {market,generation,initialGross};
 }
 
 /** Each input has already been identified by its canonical PDA in this market. */
@@ -23,7 +25,7 @@ export function grossFromCapacity(marketKey:Address,marketBytes:Uint8Array,regis
   let gross=MAX_GROSS;
   for(const [index,bytes] of registrations.entries()){
     const {state}=decodeMakerFeeLane(bytes,true);
-    requireValue(state.instance===index&&state.market===marketKey&&state.venue===anchor.market.venue,'Foreign capacity lane.');
+    requireValue(state.schemaVersion===10&&state.instance===index&&state.market===marketKey&&state.venue===anchor.market.venue,'Foreign capacity lane.');
     const tail=new DataView(bytes.buffer,bytes.byteOffset+bytes.length-16,16);
     const generation=tail.getBigUint64(0,true),stored=tail.getBigUint64(8,true);
     requireValue(generation<=anchor.generation&&stored<=MAX_GROSS,'Invalid capacity generation or balance.');
@@ -40,8 +42,8 @@ export async function readMarketGross(rpc:Pick<UserRpc,'call'>,venue:Address,ind
   const keys=[venue,market,...makers.map(([key])=>key)];
   const response=await rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment}]);
   requireValue(response.value.length===5,'Incomplete market capacity read.');
-  const rows:Uint8Array[]=response.value.map((account:{owner:string;data:[string,string]}|null)=>{
-    requireValue(account?.owner===CLEARING_PROGRAM_ADDRESS&&account.data[1]==='base64','Invalid market capacity owner.');
+  const rows:Uint8Array[]=response.value.map((account:{owner:string;executable:boolean;data:[string,string]}|null)=>{
+    requireValue(account?.owner===CLEARING_PROGRAM_ADDRESS&&!account.executable&&account.data[1]==='base64','Invalid market capacity owner.');
     return fromBase64(account!.data[0]);
   });
   const venueDecoder=getVenueDecoder();

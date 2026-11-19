@@ -167,6 +167,8 @@ pub(crate) struct Candidate {
     pub fee: u64,
     pub gross: u64,
     pub gross_lots: u64,
+    #[cfg(feature = "bounded-market-read")]
+    pub position_delta: i128,
 }
 
 pub(crate) fn candidate(
@@ -383,6 +385,8 @@ pub(crate) fn candidate_for_version(
         fee,
         gross,
         gross_lots,
+        #[cfg(feature = "bounded-market-read")]
+        position_delta: i128::from(after) - i128::from(before),
     })
 }
 

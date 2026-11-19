@@ -78,7 +78,7 @@ pub(super) fn apply(
     identity.maintain_trader(&next.trader)?;
     trading::commit_root(&mut identity.trader, &next.trader)?;
     #[cfg(feature = "bounded-market-read")]
-    crate::market_capacity::record(&mut identity.market, &mut accounts.first_registration, next.gross_lots)?;
+    crate::market_capacity::record(&mut identity.market, &mut accounts.first_registration, next.gross_lots, next.position_delta)?;
     identity.market.gross_lots = next.gross_lots;
     trading::materialize_optional(
         [
