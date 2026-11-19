@@ -26,19 +26,20 @@ let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 async function run() {
   const probe=process.env.RIVALT_SETTLEMENT_PROBE??'';
+  const allocation=probe.startsWith('profit-attribution-btc-allocation-'),tie=probe.endsWith('-tie');
   const residual=probe.startsWith('profit-attribution-btc-residual-');
-  const scenario=residual?probe.slice('profit-attribution-btc-residual-'.length):'full';
-  assert(['full','partial','multi','none'].includes(scenario),'Unknown BTC payout scenario');
+  const scenario=allocation?(tie?'equal':'unequal'):residual?probe.slice('profit-attribution-btc-residual-'.length):'full';
+  assert(['full','partial','multi','none','equal','unequal'].includes(scenario),'Unknown BTC payout scenario');
   const limited=probe==='profit-attribution-verified-pair-limited';
-  const paired=residual||limited||probe==='profit-attribution-verified-pair';
+  const paired=allocation||residual||limited||probe==='profit-attribution-verified-pair';
   const sponsored=paired||probe==='profit-attribution-sponsor-recovery';
   const candidate=(sponsored||probe==='profit-attribution-recovery')
-    ?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,sponsored,paired,residual):undefined;
-  const multi=scenario==='multi',lots=multi?3n:1n,makerCash=multi?27_000n:8_000n;
+    ?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,sponsored,paired,residual,allocation):undefined;
+  const multi=scenario==='multi',lots=multi?3n:1n,makerCash=allocation?(tie?18_498n:16_000n):multi?27_000n:8_000n;
   const closeMid=limited||scenario==='partial'?69_500n:multi?69_000n:scenario==='none'?70_002n:61_000n;
   const openGross=60_002n*lots,closeGross=(closeMid-2n)*lots;
   const openFee=(openGross+4_999n)/5_000n,closeFee=(closeGross+4_999n)/5_000n;
-  const fees=openFee+closeFee,protectedFees=fees-fees/4n,initialCash=1_000_000n-fees;
+  const fees=openFee+closeFee+(allocation?13n:0n),protectedFees=fees-fees/4n,initialCash=1_000_000n-openFee-closeFee;
   const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:sponsored?'sponsored-profit':candidate?'profit-attribution':'selected',
     shape:symmetricPayoutShape,makerCash,verifyRejections:false});
   const [trader] = setup.roots, owner = setup.traderOwner;
@@ -71,6 +72,12 @@ async function run() {
   await setup.sample();
   await h.send('open BTC against the eventual debtor',[await route({actor:owner,trader,marketIndex:0,side:0,
     makers:[first],lots:[lots],allInLimit:openGross+openFee,maxFee:openFee})],[owner]);
+  if(allocation) {
+    if(tie){setup.sourcePrices.btc=60_996_000_000n;await setup.qualify();}
+    const gross=tie?60_998n:60_002n;
+    await h.send('independent second BTC account takes the other lot against the debtor',[
+      await route({actor:owner,trader:setup.roots[1],marketIndex:0,side:0,makers:[first],lots:[1n],allInLimit:gross+13n,maxFee:13n})],[owner]);
+  }
   setup.sourcePrices.btc = closeMid*1_000_000n;
   await setup.qualify();
   await h.send('close trader against the open winner',[await route({actor:owner,trader,marketIndex:0,side:1,
@@ -111,19 +118,20 @@ async function run() {
     const [leg] = data.legs;
     return {signature,side:data.side,maker:leg.capital,traderId:data.rootStates[0].id,lots:leg.lots,gross:leg.gross};
   });
-  const inputs = {case:scenario,rows,debtor,winner,trader,mark:frozen.prices[0],funding:frozen.funding,pools:frozen.poolsBefore,
+  const inputs = {case:scenario,rows,debtor,winner,trader,otherWinner:setup.roots[1],venue:setup.venue,epoch:frozen.epoch,mark:frozen.prices[0],funding:frozen.funding,pools:frozen.poolsBefore,
     fees:frozen.feesBefore,insurance:frozen.insuranceBefore,fills};
-  const comparison = limited?undefined:JSON.parse(execFileSync('python3',['tests/financial/btc_default_comparison.py'],{input:json(inputs),encoding:'utf8'}));
+  const comparison = limited?undefined:JSON.parse(execFileSync('python3',[allocation?'tests/financial/btc_allocation_comparison.py':'tests/financial/btc_default_comparison.py'],{input:json(inputs),encoding:'utf8'}));
   if(candidate) {
     for(const row of rows) {
       const {positions}=sdk.decodeProfitAttribution((await h.read(row.key))!,sponsored);
-      const entry=row.key===winner?closeMid-2n:row.key===debtor?60_002n:0n;
+      const entry=row.key===winner?closeMid-2n:row.key===debtor?(allocation&&tie?60_500n:60_002n):
+        allocation&&row.key===setup.roots[1]?(tie?60_998n:60_002n):0n;
       assert.deepEqual(positions[0],{entryScaled:entry*1_000_000_000n,paidScaled:0n,denominator:1n});
     }
   }
   await journal.checkpoint('frozen',true);
   const openWorker = async () => {
-    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,residual?'btc-residual-candidate':paired?'verified-pair-candidate':sponsored?'sponsored-profit-candidate':candidate?'profit-attribution-candidate':'selected');
+    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,allocation?'btc-allocation-candidate':residual?'btc-residual-candidate':paired?'verified-pair-candidate':sponsored?'sponsored-profit-candidate':candidate?'profit-attribution-candidate':'selected');
     await runtime.open();
     return runtime;
   };
@@ -133,7 +141,7 @@ async function run() {
   const originals: {requestId:string; signature:string; cu:number}[] = [];
   while ((await resolution()).stage!==11) {
     assert(originals.length<128,'Eight-member BTC recovery exceeded its continuation budget');
-    if(paired&&!residual&&!exercisedPair) {
+    if(paired&&!residual&&!allocation&&!exercisedPair) {
       const current=await readAccountResolution(worker.rpc,setup.venue),prepared=current.preparedState;
       if(prepared.epoch===frozen.epoch&&prepared.stage===4) {
         const common=await accountDefaultContext(worker.rpc,current);
@@ -169,6 +177,26 @@ async function run() {
         await worker.close();process.env.RIVALT_DEFAULT_BATCH_STEPS='8';worker=await openWorker();
       }
     }
+    if(allocation&&!exercisedPair) {
+      const current=await readAccountResolution(worker.rpc,setup.venue),prepared=current.preparedState;
+      if(prepared.epoch===frozen.epoch&&prepared.stage===4){
+        const common=await accountDefaultContext(worker.rpc,current);
+        const ix=async(index:number,cutoff:bigint[]|null)=>{
+          const fresh=await readAccountResolution(worker!.rpc,setup.venue);
+          return sdk.getAdvanceBtcAllocationInstruction({...common,epoch:frozen.epoch,revision:fresh.preparedState.revision,
+            ordinal:BigInt(index),margin:members[index],page:(await sdk.deriveFrozenMarginPage(setup.venue,BigInt(index)/8n))[0],cutoff});
+        };
+        await h.send('reject a solvent root as sole debtor',[await ix(members.indexOf(winner),[0n,0n,0n,0n])],[],sdk.CLEARING_ERROR__RESOLUTION);
+        await h.send('propose a zero-charge cutoff for a funded shortfall',[await ix(members.indexOf(debtor),[0n,0n,0n,0n])]);
+        await h.send('reject skipping the first frozen row',[await ix(1,null)],[],sdk.CLEARING_ERROR__RESOLUTION);
+        for(const index of members.keys())await h.send('scan under-recovering cutoff '+index,[await ix(index,null)]);
+        const rejected=await readAccountResolution(worker.rpc,setup.venue);
+        assert.equal(rejected.preparedState.stage,4);assert.equal(rejected.header.stage,2);
+        assert.equal(await tokenBalance(wallet),walletBefore);assert.equal(await tokenBalance(setup.vault),vaultBefore);
+        await flush();await journal.checkpoint('under-recovering-allocation-rejected',true);
+        exercisedPair=true;
+      } else if(prepared.stage===5){throw new Error('Unexpected allocation scan before rejection test');}
+    }
     const outcome:Awaited<ReturnType<AccountRuntime['riskWork']>> = await worker.riskWork(setup.payer);
     assert.equal(outcome.status,'queued',json(outcome));
     const pending: {request_id:string; signature:string; wire:string}[] = (await worker.store.pool.query(
@@ -186,7 +214,10 @@ async function run() {
     assert.equal(fetched.transaction[0],original.wire);
     assert.equal(fetched.meta.err,null);
     originals.push({signature:original.signature,requestId:original.request_id,cu:fetched.meta.computeUnitsConsumed});
-    if (originals.length===1) {
+    const justScored=allocation&&exercisedPair&&(await readAccountResolution(worker.rpc,setup.venue)).preparedState;
+    const midway=justScored&&justScored.stage===5&&sdk.btcAllocationReceipt(justScored)?.cursor===2n;
+    if (originals.length===1||midway) {
+      if(midway)process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
       await worker.close();
       worker = await openWorker();
       assert.equal((await worker.queue.get(original.request_id)).status,'finalized');
@@ -202,7 +233,14 @@ async function run() {
     return [key,String(value.cash)];
   })));
   assert.deepEqual(finalCash,paired?comparison.successorModelCash:comparison.onchainExpectedCash);
-  if(paired) {
+  if(allocation) {
+    assert(exercisedPair);
+    const prepared=(await readAccountResolution(worker.rpc,setup.venue)).preparedState;
+    const receipt=sdk.btcAllocationReceipt(prepared);
+    assert(receipt?.committed);assert.equal(receipt.recovered,BigInt(comparison.winnerCharge));
+    const page=sdk.getBtcAllocationPageDecoder().decode((await h.read((await sdk.deriveFrozenMarginPage(setup.venue,0n))[0]))!);
+    assert.deepEqual(Object.fromEntries(page.rows.map(row=>[row.member,String(row.btcCharge)])),comparison.charges);
+  } else if(paired) {
     assert(residual||exercisedPair);
     const current=await readAccountResolution(worker.rpc,setup.venue);
     const receipt=sdk.frozenPairReceipt(current.preparedState);

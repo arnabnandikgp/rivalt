@@ -7,6 +7,7 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['FrozenBtcAllocationRow',sdk.FROZEN_BTC_ALLOCATION_ROW_EVENT_DISCRIMINATOR,sdk.getFrozenBtcAllocationRowEventDecoder()],
   ['FrozenBtcReductionVerified',sdk.FROZEN_BTC_REDUCTION_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenBtcReductionVerifiedEventDecoder()],
   ['FrozenPairVerified',sdk.FROZEN_PAIR_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenPairVerifiedEventDecoder()],
   ['MarginMembershipChanged', sdk.MARGIN_MEMBERSHIP_CHANGED_EVENT_DISCRIMINATOR, sdk.getMarginMembershipChangedEventDecoder()],

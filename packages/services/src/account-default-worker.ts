@@ -6,6 +6,7 @@ import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime} from './account-runtime.js';
 import {decodeAccountWorker,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
+import {btcCutoff,frozenWinner,type Winner} from './btc-allocation.js';
 import {SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
 import {defaultProposal,matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
 
@@ -26,10 +27,11 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     const result=await runtime.rpc.call('getAccountInfo',[address,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(state.contextSlot)}]);
     assert(BigInt(result.context.slot)>=state.contextSlot,'Default read moved backwards');return result.value;
   };
+  const allocation=runtime.deploymentSelection==='btc-allocation-candidate';
   const frozen=async(ordinal:bigint,initialize=false)=>{
     assert(ordinal>=0n&&ordinal<header.count,'Invalid frozen ordinal');
     const [page,bump]=await sdk.deriveFrozenMarginPage(venue,ordinal/8n);
-    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,sdk.getFrozenMarginPageDecoder());
+    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
     assert(row.schemaVersion===10&&row.venue===venue&&row.pageIndex===ordinal/8n&&row.bump===bump&&row.revision>0n,'Foreign frozen row page');
     if(row.epoch!==epoch) {
       assert(initialize&&row.epoch<epoch,'Unavailable frozen row epoch');
@@ -75,6 +77,42 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       }
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
+    }
+    if(allocation&&prepared.stage===5) {
+      const receipt=sdk.btcAllocationReceipt(prepared);
+      assert(receipt&&!receipt.committed,'Missing allocation scan');
+      const {page,row}=await frozen(receipt.cursor);
+      assert(row&&row.rowCount>Number(receipt.cursor%8n),'Missing frozen allocation row');
+      return ready('score-btc-allocation',sdk.getAdvanceBtcAllocationInstruction({...args,revision:prepared.revision,
+        ordinal:receipt.cursor,page,margin:row.rows[Number(receipt.cursor%8n)].member,cutoff:null}));
+    }
+    if(allocation&&prepared.stage===4) {
+      if(header.remainingGross[1]!==0n)return blocked('unsupported-linked-market');
+      const winners:Winner[]=[];
+      let debtor:{ordinal:bigint;member:Address;page:Address;shortfall:bigint}|undefined;
+      for(let start=0n;start<header.count;start+=8n) {
+        const {page,row}=await frozen(start);
+        assert(row&&row.rowCount===Number(header.count-start<8n?header.count-start:8n),'Incomplete allocation page');
+        for(const [offset,record] of row.rows.slice(0,row.rowCount).entries()) {
+          const claim=record.claims[0],lots=record.lots[0],quantity=lots<0n?-lots:lots;
+          if(record.claims[1]!==0n)return blocked('unsupported-linked-market');
+          if(claim<0n) {
+            if(debtor||quantity===0n||2n*quantity!==header.remainingGross[0])return blocked('unsupported-debtor-inventory');
+            const deficit=-claim/1_000_000_000n-record.cash-prepared.insurance[0];
+            debtor={ordinal:start+BigInt(offset),member:record.member,page,shortfall:deficit>0n?deficit:0n};
+          } else if(lots!==0n&&claim>0n) {
+            const account=await read(record.member);
+            assert(account?.owner===sdk.CLEARING_PROGRAM_ADDRESS&&!account.executable&&account.data[1]==='base64','Foreign winning account');
+            const {root,positions}=sdk.decodeProfitAttribution(Buffer.from(account.data[0],'base64'),true);
+            assert(root.venue===venue&&root.id===record.id&&root.revision===record.originalRevision,'Winning account changed');
+            winners.push(frozenWinner(record.id,lots,claim,prepared.prices[0],positions[0]));
+          }
+        }
+      }
+      if(!debtor)return blocked('unsupported-debtor-inventory');
+      const cutoff=btcCutoff(venue,epoch,debtor.shortfall,winners);
+      return ready('begin-btc-allocation',sdk.getAdvanceBtcAllocationInstruction({...args,revision:prepared.revision,
+        ordinal:debtor.ordinal,page:debtor.page,margin:debtor.member,cutoff}));
     }
     const residual=runtime.deploymentSelection==='btc-residual-candidate';
     if(prepared.stage===4&&(residual||runtime.deploymentSelection==='verified-pair-candidate')) {

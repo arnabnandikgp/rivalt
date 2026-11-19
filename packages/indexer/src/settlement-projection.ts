@@ -14,6 +14,29 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='FrozenBtcAllocationRow') {
+    eq(current.stage,2,'allocation at freeze');
+    const ordinal=BigInt(change.ordinal),id=change.memberId;
+    if(ordinal===0n) {
+      accountCheck(!current.allocation||current.allocation.status===2&&BigInt(current.allocation.attempt)<BigInt(change.attempt),'new allocation attempt');
+      current.allocation={attempt:change.attempt,debtorId:change.debtorId,shortfall:change.shortfall,cursor:'0',recovered:'0',capacity:'0',status:0,charges:{}};
+    }
+    const plan=present(current.allocation,'allocation scan');
+    eq(plan.attempt,change.attempt,'allocation attempt');eq(plan.cursor,change.ordinal,'allocation cursor');
+    eq(plan.debtorId,change.debtorId,'allocation debtor');eq(plan.shortfall,change.shortfall,'allocation shortfall');
+    const account=present(state.roots[state.identities[id]],'frozen member'),lots=BigInt(account.positions[0].lots);
+    const limit=BigInt(change.eligible),charge=BigInt(change.charge),matched=BigInt(change.matchedLots);
+    accountCheck(plan.status===0&&!(id in plan.charges)&&charge<=limit&&matched<=(lots<0n?-lots:lots)&&
+      (charge===0n)===(matched===0n)&&(!(id===plan.debtorId||lots===0n)||limit===0n),'frozen charge terms');
+    eq(BigInt(change.extraTickLots),matched===0n?0n:charge%matched,'allocation remainder');
+    eq(BigInt(change.basePrice),matched===0n?0n:BigInt(current.prices[0])-(lots>0n?1n:-1n)*(charge/matched),'allocation price');
+    const total=BigInt(plan.recovered)+charge,capacity=BigInt(plan.capacity)+limit,shortfall=BigInt(plan.shortfall);
+    plan.recovered=String(total);plan.capacity=String(capacity<shortfall?capacity:shortfall);
+    plan.charges[id]=change.charge;plan.cursor=String(ordinal+1n);
+    const finished=plan.cursor===String(current.count);
+    plan.status=total>shortfall||finished&&plan.capacity!==plan.recovered?2:finished?1:0;
+    eq(plan.status,change.status,'verified allocation outcome');return;
+  }
   if(event.type==='FrozenPairVerified'||event.type==='FrozenBtcReductionVerified') {
     eq(current.stage,2,'pair at freeze');eq(current.prices[0],change.mark,'frozen BTC price');
     accountCheck(!current.pair&&change.debtorId!==change.winnerId,'unique frozen pair');
@@ -47,7 +70,11 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
-    if(pair) {
+    if(current.allocation?.status===1) {
+      const allocation=current.allocation;
+      const delta=previous.id===allocation.debtorId?BigInt(allocation.recovered):-BigInt(allocation.charges[previous.id]);
+      economic[0]=(BigInt(economic[0])+delta*scale).toString();
+    } else if(pair) {
       const delta=previous.id===pair.debtorId?BigInt(pair.charge):previous.id===pair.winnerId?-BigInt(pair.charge):0n;
       economic[0]=(BigInt(economic[0])+delta*scale).toString();
     }

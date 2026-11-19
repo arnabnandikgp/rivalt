@@ -37,3 +37,4 @@ export * from './account-wallet-envelope.js';
 export * from './profit-attribution.js';
 
 export * from './frozen-pair.js';
+export * from './btc-allocation.js';

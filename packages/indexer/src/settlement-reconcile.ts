@@ -22,10 +22,11 @@ export function scopedSchema(kind:number) {
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
-  binding:{venue:string;program:string},frozenIds:readonly string[]) {
+  binding:{venue:string;program:string;artifactSet?:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
-  assert.equal(bytes.length,descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
-  const value=descriptor[2].decode(bytes) as any;
+  const allocation=kind===18&&binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET?sdk.getBtcAllocationPageDecoder():undefined;
+  assert.equal(bytes.length,allocation?.fixedSize??descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
+  const value=(allocation??descriptor[2]).decode(bytes) as any;
   assert.equal(value.schemaVersion,10);assert.equal(value.venue,binding.venue);
   let label:string,suffix:Uint8Array[];
   switch(kind) {
@@ -47,6 +48,12 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(kind===17) {
     const header=JSON.parse(json(value));
     const pair=sdk.frozenPairReceipt(value);
+    const receipt=sdk.btcAllocationReceipt(value), projected=resolution.allocation;
+    if(receipt?.committed||projected?.status===1) {
+      assert(receipt?.committed&&projected?.status===1,'Missing complete BTC allocation');
+      for(const key of ['attempt','debtorId','shortfall','cursor','capacity','recovered'] as const)
+        assert.equal(receipt[key].toString(),projected[key],key);
+    }
     if(resolution.pair||pair) {
       assert(pair&&resolution.pair,'Missing verified pair receipt or event');
       const {epoch,...terms}=JSON.parse(json(pair));assert.equal(epoch,resolution.epoch);assert.deepEqual(terms,resolution.pair);
@@ -63,6 +70,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
       assert(ordinal<BigInt(frozenIds.length),'Complete frozen row');
       const id=frozenIds[Number(ordinal)],frozen:FrozenRow=resolution.rows[id];
       const actual=JSON.parse(json(row));
+      if(resolution.allocation?.status===1)assert.equal(actual.btcCharge,resolution.allocation.charges[id],'Frozen allocated BTC charge');
       for(const [field,expected] of Object.entries({id,member:frozen.member,cash:frozen.cashBefore,
         lots:frozen.lots,generations:frozen.generations,claims:frozen.claimsScaled,collected:frozen.collected,
         activationGeneration:frozen.activationGeneration,originalRevision:frozen.originalRevision}))assert.deepEqual(actual[field],expected,`Frozen ${field}`);
