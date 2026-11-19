@@ -98,7 +98,7 @@ pub fn verify(
         )
         .map_err(|_| ClearingError::Resolution)?;
     // Both markets must be fully recoverable at the frozen cash split. For
-    // these books each market has exactly one creditor and its own insurer.
+    // these books all remaining claims can be paid in whole atoms at face.
     require!(
         shortfall > 0 && terms.charge == shortfall && terms.matched > 0,
         ClearingError::Resolution

@@ -58,6 +58,7 @@ pub struct SnapshotScan {
     processed: u64,
     last_id: u64,
     expected_cash: u64,
+    flat_btc_atoms: u64,
     cash: u64,
     gross: [u64; 2],
     lots: [i128; 2],
@@ -114,6 +115,7 @@ impl SnapshotScan {
             processed: 0,
             last_id: 0,
             expected_cash,
+            flat_btc_atoms: 0,
             cash: 0,
             gross: [0; 2],
             lots: [0; 2],
@@ -200,7 +202,8 @@ impl SnapshotScan {
     }
     pub fn checkpoint(&self) -> [u8; CHECKPOINT_BYTES] {
         let mut bytes = [0; CHECKPOINT_BYTES];
-        bytes[0] = 1;
+        bytes[0] = if self.flat_btc_atoms == 0 { 1 } else { 2 };
+        bytes[264..272].copy_from_slice(&self.flat_btc_atoms.to_le_bytes());
         let scalars = [
             self.binding.count,
             self.processed,
@@ -240,10 +243,10 @@ impl SnapshotScan {
     /// Only authenticated program-owned bytes can establish historical progress.
     pub fn from_checkpoint(bytes: &[u8], binding: SnapshotBinding) -> Result<Self> {
         if bytes.len() != CHECKPOINT_BYTES
-            || bytes[0] != 1
+            || !matches!(bytes[0], 1 | 2)
             || bytes[1..8]
                 .iter()
-                .chain(&bytes[264..])
+                .chain(&bytes[272..])
                 .any(|byte| *byte != 0)
         {
             return Err(Error::Bounds);
@@ -257,6 +260,12 @@ impl SnapshotScan {
             || [read(120), read(128)] != binding.pools
             || [read(136), read(144)] != binding.insurance
             || [read(152), read(160)] != binding.fees
+        {
+            return Err(Error::Bounds);
+        }
+        scan.flat_btc_atoms = read(264);
+        if (scan.flat_btc_atoms == 0) != (bytes[0] == 1)
+            || u128::from(scan.flat_btc_atoms) * SCALE as u128 > crate::clearing::row::MAX_CLAIM
         {
             return Err(Error::Bounds);
         }

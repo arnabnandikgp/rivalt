@@ -4,6 +4,25 @@ use super::*;
 use core::num::NonZeroU128;
 
 impl SnapshotScan {
+    /// Keep one authenticated whole BTC claim belonging to a fully flat account.
+    /// Taking the maximum makes the witness independent of membership order.
+    /// Release requires it to explain the *entire* positive remainder.
+    pub fn accept_linked_row(
+        &mut self,
+        ordinal: u64,
+        id: u64,
+        row: &Row,
+        lots: [i64; 2],
+    ) -> Result<()> {
+        self.accept(ordinal, id, row, lots)?;
+        let [btc, eth] = row.claims;
+        if lots == [0, 0] && eth == 0 && btc > 0 && btc % SCALE == 0 {
+            // Row::validate bounds the whole-atom quotient below u64::MAX.
+            self.flat_btc_atoms = self.flat_btc_atoms.max((btc / SCALE) as u64);
+        }
+        Ok(())
+    }
+
     pub fn linked_cash_shares(&self, debtor: Row, lots: [i64; 2]) -> Result<[u64; 2]> {
         let totals = self.result()?;
         let debts = debtor.debts();
@@ -33,7 +52,8 @@ impl SnapshotScan {
     }
 
     /// The debtor holds its entire side of both markets. The named winner must
-    /// own every positive claim and every opposing lot in this market and owe
+    /// own every opposing lot in this market, exhaust the positive claims
+    /// together with the optional authenticated flat BTC creditor, and owe
     /// nothing in the other market. A second verified leg is required to commit.
     pub fn linked_pair_shortfall(
         &self,
@@ -52,9 +72,16 @@ impl SnapshotScan {
             || winner.claims[1 - market] != 0
             || claim <= 0
             || debtor_lots[market].checked_neg() != Some(winner_lots[market])
-            || self.result()?.positive[market] != ClaimTotal::scalar(claim as u128)
         {
             return Err(Error::Cohort);
+        }
+        let total_positive = self.result()?.positive[market];
+        let winner_claim = ClaimTotal::scalar(claim as u128);
+        if total_positive != winner_claim {
+            let flat = ClaimTotal::scalar(u128::from(self.flat_btc_atoms) * SCALE as u128);
+            if market != 0 || claim % SCALE != 0 || total_positive != winner_claim.add(flat)? {
+                return Err(Error::Cohort);
+            }
         }
         let debt =
             u64::try_from(debtor.debts()[market] / SCALE as u128).map_err(|_| Error::Bounds)?;
@@ -93,7 +120,7 @@ mod tests {
         })
         .unwrap();
         for (ordinal, (member, lots)) in members.iter().enumerate() {
-            scan.accept(ordinal as u64, ordinal as u64 + 2, member, *lots)
+            scan.accept_linked_row(ordinal as u64, ordinal as u64 + 2, member, *lots)
                 .unwrap();
         }
         scan
@@ -122,6 +149,27 @@ mod tests {
         let mut shared = members.to_vec();
         shared[1].0 = row(0, [10_001, 0]);
         shared.push((row(0, [1, 0]), [0, 0]));
+        let witnessed = cohort(&shared);
+        let bytes = witnessed.checkpoint();
+        assert_eq!(bytes[0], 2);
+        let mut malformed = bytes;
+        malformed[0] = 1;
+        assert!(SnapshotScan::from_checkpoint(&malformed, witnessed.binding).is_err());
+        malformed = bytes;
+        malformed[264..272].fill(0);
+        assert!(SnapshotScan::from_checkpoint(&malformed, witnessed.binding).is_err());
+        let restored = SnapshotScan::from_checkpoint(&bytes, witnessed.binding).unwrap();
+        assert_eq!(
+            restored.linked_pair_shortfall(0, debtor, [1, 1], shared[1].0, [-1, 0]),
+            Ok(([9996, 9996], 3))
+        );
+        shared[1].0 = row(0, [10_000, 0]);
+        shared.push((row(0, [1, 0]), [0, 0]));
+        assert!(cohort(&shared)
+            .linked_pair_shortfall(0, debtor, [1, 1], shared[1].0, [-1, 0])
+            .is_err());
+        shared[3].0.claims[0] += SCALE / 2;
+        shared[4].0.claims[0] -= SCALE / 2;
         assert!(cohort(&shared)
             .linked_pair_shortfall(0, debtor, [1, 1], shared[1].0, [-1, 0])
             .is_err());

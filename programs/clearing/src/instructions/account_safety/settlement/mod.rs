@@ -111,7 +111,9 @@ pub(crate) fn value_member(
             .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
     #[cfg(all(feature="single-pair-default-qualification",not(feature="btc-residual-qualification")))]
     let acceptance=valuation.accept_single_pair_row(ordinal,id,&row,lots);
-    #[cfg(any(not(feature="single-pair-default-qualification"),feature="btc-residual-qualification"))]
+    #[cfg(feature="linked-pair-qualification")]
+    let acceptance=valuation.accept_linked_row(ordinal,id,&row,lots);
+    #[cfg(all(not(feature="linked-pair-qualification"),any(not(feature="single-pair-default-qualification"),feature="btc-residual-qualification")))]
     let acceptance=valuation.accept(ordinal,id,&row,lots);
     acceptance.map_err(|_|ProgramError::from(ClearingError::Reconciliation))?;
     membership
