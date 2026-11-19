@@ -692,3 +692,29 @@ The signed book can use this constant-size proof because there is one eligible
 winner on each side and both schedules are executable. Competing debtors for
 one lot, circular obligations, fractional original claims and insufficient
 winning capacity remain outside its scope. [Program adapter](../../programs/clearing/src/instructions/account_safety/settlement/foreign_creditor.rs) · [Arithmetic](../../crates/default-plan-selection/src/foreign_creditor.rs).
+
+### Shared single-lot inventory
+
+A debtor's verified BTC write-off limits how much it can recover. A winning
+position's unpaid gain limits how much it can be charged. Each scheduled
+reduction also consumes lots on **both** positions. Two debtors cannot each
+assign the same one-lot winner, even when their combined charges fit comfortably
+within its unpaid gain.
+
+In the single-market native selector, each participating debtor has one lot,
+each eligible winner has one opposite lot, both sets have the same size, and
+the budgets and capacities are positive whole atoms. Complete pairing in order
+of descending debtor budget and winning capacity achieves the sum of all debtor
+budgets whenever that total is feasible. If any sorted budget exceeds its
+corresponding capacity, this full-recovery selector returns no plan.
+
+At fixed total charge, proportional allocation minimizes the sum of each
+winning charge squared divided by its capacity. Swapping a larger charge onto
+a larger capacity improves that objective whenever both differ. For equal
+capacities the earlier D121 winner receives the larger charge. Within each
+equal-charge band, order winners and debtors by their frozen identities before
+pairing them. The sort takes O(n log n) comparisons and O(n) working memory.
+The signed two-debtor fixture compares this native result with full enumeration.
+Live clearing still needs authenticated per-debtor budgets, original positions,
+one-use lot assignments and complete-cohort verification before using the result.
+[Allocator](../../crates/default-plan-selection/src/single_lot.rs) · [Independent enumeration](../../tests/financial/check_shared_inventory.py).

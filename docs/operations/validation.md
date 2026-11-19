@@ -1,5 +1,35 @@
 # Validation and measured limits
 
+## Two BTC debtors sharing winning inventory
+
+On ordinary clearing SBF `33361d9`, clean harness `cfc2279` bought two BTC
+lots in separate trader accounts from two makers at 60,002 and 60,006. Both
+traders deposited 20,010 and paid a fee of 13 collateral atoms per trade. At the frozen mark of 40,000 each trader had 19,997 funded atoms.
+The uncovered debts before insurance were 5 and 9. BTC insurance supplied
+six. Their exact residuals were 20/7 and 36/7; the maximum whole charges
+were two and five. One atom of aggregate loss remained after both budgets.
+
+| BTC maker | Original claim | Actual ordinary withdrawal | Native successor credit |
+|---|---:|---:|---:|
+| Member 0 | 20,002 | 19,998 | 20,000 |
+| Member 2 | 20,006 | 20,002 | 20,000 |
+
+The ordinary run finalized two SPL withdrawals of 40,000 atoms in total
+(32,673 CU and 806 bytes each), leaving 6,000,020 in custody and the two
+trader roots at zero. The operator's eight-member book reconciled after restart.
+There were 268 harness outcomes, 14 finalized worker originals and 110 events
+reproduced in a fresh PostgreSQL database.
+
+The independent comparison enumerated all 324 proposed charge assignments.
+Both ways of using one winning lot twice were infeasible. Rust protected
+settlement agreed with the original and successor cash and claim movements.
+Native selector `981d269` assigned debtor 6 to maker 0 at 40,002 and debtor 7
+to maker 2 at 40,005. It also matched independent exhaustive permutations on
+120 books of one to six debtors (94 full recoveries and 26 insufficient-capacity
+results). Four malformed inputs and the maximum-u64 ordering boundary were
+checked separately. The successor assignment has native evidence only.
+[Verification contract](../clearing/default-plan-verification.md#shared-single-lot-inventory).
+
 ## Atomic payment for a BTC winner with ETH debt
 
 Clean program `d177cc5` (2,603,744 bytes, SHA-256

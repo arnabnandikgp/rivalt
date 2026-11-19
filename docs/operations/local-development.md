@@ -476,3 +476,17 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$foreign_creditor_build" \
   RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-apply \
   bash ops/scalable-settlement-smoke.sh
 ```
+
+### Reproduce two debtors sharing one-lot winners
+
+Use the ordinary attribution binary built at `33361d9` and the harness at
+`cfc2279`. Save the printed run directory. The native comparison at `981d269`
+reads the reconstructed inputs and compares every selected debtor/winner pair.
+
+```bash
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-shared-inventory \
+  bash ops/scalable-settlement-smoke.sh
+cargo build --locked -p default-plan-selection --example single_lot_assignment
+python3 tests/financial/check_shared_inventory.py "$run_dir/linked-default.json"
+```

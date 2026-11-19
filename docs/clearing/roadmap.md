@@ -69,10 +69,13 @@ A BTC winner whose gain backs an ETH debt now has a signed path through both
 wallet withdrawals. One transaction authenticates both winners' charges and the
 original and effective creditor entitlements. [Payment and measured cost](../operations/validation.md#atomic-payment-for-a-btc-winner-with-eth-debt).
 
-The next inventory case has two debtors competing for the same eligible winner
-lots. Construct the competing exposures through real trades, independently
-enumerate feasible lot assignments, and measure what ordinary settlement pays.
-A certificate may count each winning lot only once across all debtor schedules.
+Two BTC debtors now compete for the same two single-lot winners in a real
+frozen book. Ordinary clearing paid 19,998 and 20,002 atoms. Independent
+exhaustive search and the native allocator selected separate one-lot closes
+and equal 20,000-atom credits. The next clearing deliverable is to authenticate
+those opposing lots and debtor budgets, reject lot reuse, and pay the selected
+assignment through the existing settlement and withdrawal flow.
+[Measured comparison](../operations/validation.md#two-btc-debtors-sharing-winning-inventory).
 General linked selection,
 shared writes and broader cost qualification remain open.
 
