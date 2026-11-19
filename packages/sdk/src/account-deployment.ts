@@ -3,15 +3,16 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate';
+export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
 export const SHARED_INVENTORY_ARTIFACT_SET='shared-inventory-59184c5';
 export const BOOK_INVENTORY_ARTIFACT_SET='inventory-book-d5cc624';
 export const BOOK_CAPACITY_ARTIFACT_SET='book-capacity-eb011a5';
-export const isBookInventoryArtifact=(set?:string)=>set===BOOK_INVENTORY_ARTIFACT_SET||set===BOOK_CAPACITY_ARTIFACT_SET;
-export const isBookInventoryDeployment=(selection:AccountDeployment)=>selection==='book-inventory-candidate'||selection==='book-capacity-candidate';
+export const MULTI_LOT_ARTIFACT_SET='multi-lot-70b90d8';
+export const isBookInventoryArtifact=(set?:string)=>set===BOOK_INVENTORY_ARTIFACT_SET||set===BOOK_CAPACITY_ARTIFACT_SET||set===MULTI_LOT_ARTIFACT_SET;
+export const isBookInventoryDeployment=(selection:AccountDeployment)=>selection==='book-inventory-candidate'||selection==='book-capacity-candidate'||selection==='multi-lot-book-candidate';
 export const PARTIAL_INVENTORY_ARTIFACT_SET='partial-inventory-2256c51';
 export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY_ARTIFACT_SET || value===PARTIAL_INVENTORY_ARTIFACT_SET;
 export const FOREIGN_CREDITOR_ARTIFACT_SET='foreign-creditor-d177cc5';
@@ -22,6 +23,11 @@ export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
+  if(selection==='multi-lot-book-candidate')return {
+    artifactSet:MULTI_LOT_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'70b90d8ef1909db7155e3b323e91f9042a1920f5',
+    artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
+      bytes:2852240,sha256:'71d05dd4af7becba234c061e4f8d10129f59e0fbbbb1e8170a2ec137b9a35eba'}:artifact)
+  };
   if(selection==='book-capacity-candidate')return {
     artifactSet:BOOK_CAPACITY_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'eb011a5b3846cc002217cefbf1be59d22c934228',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,

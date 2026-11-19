@@ -11,6 +11,7 @@ import {SettlementPages,type SettlementPageRequest} from './settlement-pages.js'
 import {defaultProposal,matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
 
 import {sharedInventoryProposal} from './shared-inventory-proposal.js';
+import {multiLotBookPlan} from '@rivalt/sdk/multi-lot-book';
 import {foreignCreditorProposal,type FrozenMember} from './foreign-creditor-proposal.js';
 
 type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
@@ -30,13 +31,14 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     const result=await runtime.rpc.call('getAccountInfo',[address,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(state.contextSlot)}]);
     assert(BigInt(result.context.slot)>=state.contextSlot,'Default read moved backwards');return result.value;
   };
+  const multi=runtime.deploymentSelection==='multi-lot-book-candidate';
   const book=sdk.isBookInventoryDeployment(runtime.deploymentSelection);
   const allocation=runtime.deploymentSelection==='btc-allocation-candidate';
   const linkedAllocation=runtime.deploymentSelection==='linked-allocation-candidate';
   const frozen=async(ordinal:bigint,initialize=false)=>{
     assert(ordinal>=0n&&ordinal<header.count,'Invalid frozen ordinal');
     const [page,bump]=await sdk.deriveFrozenMarginPage(venue,ordinal/8n);
-    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,book?sdk.getInventoryBookPageDecoder():linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
+    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,multi?sdk.getMultiLotBookPageDecoder():book?sdk.getInventoryBookPageDecoder():linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
     assert(row.schemaVersion===10&&row.venue===venue&&row.pageIndex===ordinal/8n&&row.bump===bump&&row.revision>0n,'Foreign frozen row page');
     if(row.epoch!==epoch) {
       assert(initialize&&row.epoch<epoch,'Unavailable frozen row epoch');
@@ -83,7 +85,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate','book-capacity-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
+    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate','book-capacity-candidate','multi-lot-book-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
       const members:FrozenMember[]=[];
       for(let start=0n; start<prepared.count; start+=8n) {
         const {page,row}=await frozen(start);
@@ -93,14 +95,23 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
         }
       }
       if(book) {
-        const active=members.filter(member=>member.row.lots.some(lots=>lots!==0n));
+        const active=members.filter(({row})=>row.lots.some(lots=>lots!==0n) || (multi&&row.claims[0]<0n));
+        const multiShape=multi && active.some(({row})=>row.lots[0]!==1n&&row.lots[0]!==-1n);
         const side=active.find(member=>member.row.claims[0]<0n)?.row.lots[0];
-        if((side!==1n && side!==-1n) || prepared.pools.some(pool=>pool!==0n) ||
+        if(multiShape){
+          if(prepared.pools.some(pool=>pool!==0n)||members.some(({row})=>row.lots[1]!==0n||row.claims[1]!==0n||row.claims[0]%1_000_000_000n!==0n))
+            return blocked('unsupported-multi-lot-book');
+          const rows=members.map(({row})=>{
+            if(!('lotRate' in row)||!Array.isArray(row.lotRate)||row.lotRate.length!==2)throw new Error('Missing frozen lot rate');
+            return {id:row.id,lots:row.lots[0],face:row.claims[0]/1_000_000_000n,cash:row.cash,rate:[row.lotRate[0],row.lotRate[1]] as const};
+          });
+          if(!multiLotBookPlan(venue,epoch,prepared.prices[0],prepared.insurance[0],rows))return blocked('multi-lot-optimality-unproven');
+        } else if((side!==1n && side!==-1n) || prepared.pools.some(pool=>pool!==0n) ||
           members.some(({row})=>row.claims[1]!==0n || row.lots[1]!==0n ||
             (row.lots[0]===0n ? row.claims[0]<0n : row.claims[0]%1_000_000_000n!==0n ||
               row.lots[0] !== (row.claims[0]<0n?side:-side))))return blocked('unsupported-inventory-book');
         const metas=[...new Set(active.map(member=>member.page))].map(address=>({address,role:AccountRole.WRITABLE}));
-        const limit=runtime.deploymentSelection==='book-capacity-candidate'?sdk.INVENTORY_BOOK_EVENT_PAGE_LIMIT:sdk.INVENTORY_BOOK_ACTIVE_PAGE_LIMIT;
+        const limit=multi||runtime.deploymentSelection==='book-capacity-candidate'?sdk.INVENTORY_BOOK_EVENT_PAGE_LIMIT:sdk.INVENTORY_BOOK_ACTIVE_PAGE_LIMIT;
         if(metas.length>limit)return blocked('inventory-book-requires-paged-verification');
         return ready('verify-inventory-book',withPages(sdk.getVerifyInventoryBookInstruction({
           ...args,revision:prepared.revision,ordinals:active.map(member=>member.ordinal)}),metas));

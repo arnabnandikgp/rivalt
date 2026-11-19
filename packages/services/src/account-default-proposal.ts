@@ -35,7 +35,7 @@ export async function defaultProposal(runtime:AccountRuntime,state:Awaited<Retur
   const key=[state.preparedState.venue,state.header.epoch,state.preparedState.revision,
     createHash('sha256').update(Buffer.from(state.ratesState.state.insurance)).digest('hex')].join(':');
   const prior=cache.get(runtime);if(prior?.key===key)return prior.value;
-  const value=await readAccountRateProposal(runtime.rpc,state.preparedState.venue,state.header.epoch,6,isBookInventoryDeployment(runtime.deploymentSelection)?'book':runtime.deploymentSelection==='linked-allocation-candidate'?'linked':runtime.deploymentSelection==='btc-allocation-candidate');
+  const value=await readAccountRateProposal(runtime.rpc,state.preparedState.venue,state.header.epoch,6,runtime.deploymentSelection==='multi-lot-book-candidate'?'multi':isBookInventoryDeployment(runtime.deploymentSelection)?'book':runtime.deploymentSelection==='linked-allocation-candidate'?'linked':runtime.deploymentSelection==='btc-allocation-candidate');
   assert(value.prepared.revision===state.preparedState.revision
 ,'Frozen proposal changed');
   cache.set(runtime,{key,value});return value;

@@ -25,7 +25,7 @@ export const INVENTORY_BOOK_ACTIVE_PAGE_LIMIT=32-11;
 export const INVENTORY_BOOK_EVENT_PAGE_LIMIT=Math.floor((8192-108-10*41-49)/49);
 export const INVENTORY_BOOK_HEAP_BYTES=128*1024;
 export function inventoryBookHeap(selection:AccountDeployment|undefined,instructions:readonly Instruction[]) {
-  if(selection!=='book-capacity-candidate')return undefined;
+  if(selection!=='book-capacity-candidate'&&selection!=='multi-lot-book-candidate')return undefined;
   return instructions.some(ix=>ix.programAddress===CLEARING_PROGRAM_ADDRESS &&
     VERIFY_INVENTORY_BOOK_DISCRIMINATOR.every((byte,index)=>ix.data?.[index]===byte))?INVENTORY_BOOK_HEAP_BYTES:undefined;
 }
@@ -35,9 +35,14 @@ export function getInventoryBookPageDecoder() {
     ([original,bookCapacity,bookCharge])=>({...original,bookCapacity,bookCharge})));
 }
 
-export function inventoryBookReceipt(header:PreparedSettlement) {
+export function getMultiLotBookPageDecoder() {
+  return allocationPage(transformDecoder(getTupleDecoder([getFrozenMarginDecoder(),getU64Decoder(),
+    getTupleDecoder([getU64Decoder(),getU64Decoder()]),getU64Decoder()]),
+    ([original,bookCapacity,lotRate,bookCharge])=>({...original,bookCapacity,lotRate,bookCharge})));
+}
+export function inventoryBookReceipt(header:PreparedSettlement,multiLot=false) {
   const bytes=Uint8Array.from(header.state.membership);
-  if(new TextDecoder().decode(bytes.subarray(0,8))!=='RVBOOK01')return null;
+  if(new TextDecoder().decode(bytes.subarray(0,8))!==(multiLot?'RVMULT01':'RVBOOK01'))return null;
   const view=new DataView(bytes.buffer), epoch=view.getBigUint64(8,true);
   const total=view.getBigUint64(16,true),count=view.getBigUint64(24,true);
   requireValue(epoch===header.epoch && [2,3].includes(header.stage) && header.gross[1]===0n &&

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {writeFileSync} from 'node:fs';
+import {getTokenDecoder} from '@solana-program/token';
+import {eventually} from './wire.js';
 import {AccountRole,getAddressEncoder} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from '../../packages/indexer/src/events.js';
@@ -20,15 +22,17 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory=process.env.RIVALT_RUN_DIR!, url=process.env.RIVALT_RPC_URL!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const selection='book-capacity-candidate';
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'capacity');
+const apply=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-multi-lot-apply';
+const tie=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-multi-lot-tie';
+const selection=apply||tie?'multi-lot-book-candidate':'book-capacity-candidate';
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,apply||tie?'multi':'capacity');
 const {h,rpc,ws,flush,checks}=await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,{deferFinality:true});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,worker:AccountRuntime|undefined;
 try {
   const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:'sponsored-profit',shape:symmetricPayoutShape,
-    traderCount:2,traderCash:20_021n,verifyRejections:false});
-  const {root,route}=executionTestHelpers(h,setup);
-  for(const [index,reference] of [60_000n,60_003n].entries()) {
+    traderCount:2,traderDeposits:[20_021n,tie?20_019n:20_021n],verifyRejections:false});
+  const {root,route,guard}=executionTestHelpers(h,setup);
+  for(const [index,reference] of [60_000n,tie?60_000n:60_003n].entries()) {
     setup.sourcePrices.btc=reference*1_000_000n;
     if(index===0)await setup.sample();else await setup.qualify();
     const actor=setup.traderOwners[index];
@@ -60,29 +64,72 @@ try {
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   const fills=journal.initialEvents.filter(event=>event.type==='LiquidityRouteExecutedV4');
   assert.deepEqual(fills.map(fill=>[fill.data.lots,fill.data.grossQuote,fill.data.fee].map(String)),
-    [['2','120004','25'],['2','120010','25']]);
+    [['2','120004','25'],['2',tie?'120004':'120010','25']]);
   assert.deepEqual(frozen.insuranceBefore,[12n,0n]);
   assert.deepEqual(rows.filter(row=>row.lots[0]>0n).map(row=>[row.cash,row.claims[0]]),
-    [[19_996n,-20_004_000_000_000n],[19_996n,-20_010_000_000_000n]]);
+    [[19_996n,-20_004_000_000_000n],[tie?19_994n:19_996n,tie?-20_004_000_000_000n:-20_010_000_000_000n]]);
   const input={rows,venueHex:Buffer.from(getAddressEncoder().encode(setup.venue)).toString('hex'),epoch:frozen.epoch,
     marks:frozen.prices,pools:frozen.poolsBefore,insurance:frozen.insuranceBefore,fees:frozen.feesBefore,
     sourceDigest:createHash('sha256').update(json([setup.venue,checks.at(-1)!.signature,frozen,rows])).digest('hex')};
   const inputPath=directory+'/multi-lot-frozen.json';
   writeFileSync(inputPath,json(input));
   const result=JSON.parse(execFileSync('python3',['tests/financial/check_multi_lot_search.py',inputPath],{encoding:'utf8'}));
-  assert.deepEqual([result.candidates,result.boundComparisons,result.boundCertified],['784',784,true]);
-  assert.deepEqual(result.charges,[9,0]);
-  assert.equal(result.fills.length,3);
+  assert.deepEqual([result.candidates,result.boundComparisons,result.boundCertified],tie?['144',144,false]:['784',784,true]);
+  assert.deepEqual(result.charges,[tie?5:9,0]);
+  if(!tie)assert.equal(result.fills.length,3);
   await journal.checkpoint('multi-lot-native-comparison',true);
 
   worker=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,selection);
   await worker.open();
-  let rejected=false;
+  const originals:{signature:string;reason:string;units:number;bytes:number}[]=[];
+  const token=async(key:typeof setup.vault)=>getTokenDecoder().decode((await h.read(key))!).amount;
+  const vaultBefore=await token(setup.vault),walletBefore=await token(setup.token.address);
+  let rejected=false,certified=false;
+  if(apply)process.env.RIVALT_DEFAULT_BATCH_STEPS='1';
   for(let step=0;step<70;step++){
     const state=await readAccountResolution(worker.rpc,setup.venue),common=await accountDefaultContext(worker.rpc,state);
+    if(apply && state.header.stage===11)break;
     const next=await accountDefaultStep(worker,setup.payer,state,common);
+    if(apply && state.preparedState.stage===2 && !certified) {
+      const receipt=sdk.inventoryBookReceipt(state.preparedState,true);
+      assert(receipt && receipt.count===3n && receipt.total===9n);
+      await journal.checkpoint('multi-lot-certified-before-settlement',true);
+      assert.equal(await token(setup.vault),vaultBefore);
+      for(const row of rows)assert.equal((await root(row.key)).cash,row.cash);
+      certified=true;
+      await worker.close();worker=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,selection);
+      await worker.open();
+      assert.equal((await worker.queue.get(originals.at(-1)!.reason)).status,'finalized');
+      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+    }
+    if(apply) {
+      if(next.status==='ready' && next.reason==='verify-inventory-book' && !rejected) {
+        const active=rows.flatMap((row,index)=>row.lots[0]!==0n?[BigInt(index)]:[]);
+        const page=(await sdk.deriveFrozenMarginPage(setup.venue,0n))[0];
+        const scratch=async()=>Promise.all([common.prepared,page,setup.vault,...keys].map(key=>h.read(key)));
+        const prior=await scratch();
+        for(const ordinals of [active.slice(1),[...active.slice(0,-1),active[0]]]){
+          const wrong=sdk.getVerifyInventoryBookInstruction({...common,epoch:frozen.epoch,revision:state.preparedState.revision,ordinals});
+          await h.send('refuse incomplete multi-lot certificate',[{...wrong,accounts:[...wrong.accounts,{address:page,role:AccountRole.WRITABLE}]}],[],sdk.CLEARING_ERROR__RESOLUTION);
+        }
+        assert.deepEqual(await scratch(),prior);rejected=true;
+      }
+      const queued:Awaited<ReturnType<AccountRuntime['riskWork']>>=await worker.riskWork(setup.payer);
+      assert.equal(queued.status,'queued',json(queued));
+      const pending:{request_id:string;signature:string;wire:string}[]=(await worker.store.pool.query("SELECT request_id,signature,wire FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[worker.runId])).rows;
+      assert.equal(pending.length,1);const [intent]=pending;
+      const subscription=await ws.call('signatureSubscribe',[intent.signature,{commitment:'finalized'}]);
+      await eventually(async()=>{await worker!.queue.step(intent.request_id);return worker!.queue.get(intent.request_id);},
+        value=>['finalized','failed'].includes(value?.status),'multi-lot settlement');
+      assert.equal((await worker.queue.get(intent.request_id)).status,'finalized');
+      assert.equal((await ws.notification(subscription)).params.result.value.err,null);
+      const receipt=await rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+      assert.equal(receipt.transaction[0],intent.wire);
+      originals.push({signature:intent.signature,reason:intent.request_id,units:receipt.meta.computeUnitsConsumed,bytes:Buffer.from(intent.wire,'base64').length});
+      continue;
+    }
     if(next.status==='ready'){await h.send(next.reason,[next.instruction]);continue;}
-    assert.equal(next.reason,'unsupported-inventory-book');
+    assert.equal(next.reason,tie?'multi-lot-optimality-unproven':'unsupported-inventory-book');
     const active=rows.flatMap((row,index)=>row.lots.some(quantity=>quantity!==0n)?[BigInt(index)]:[]);
     const pages=await Promise.all([...new Set(active.map(ordinal=>ordinal/8n))].map(async index=>(await sdk.deriveFrozenMarginPage(setup.venue,index))[0]));
     const watched=[setup.resolution,common.prepared,setup.vault,...keys,...pages];
@@ -96,10 +143,31 @@ try {
     rejected=true;break;
   }
   assert(rejected);
-  await journal.checkpoint('multi-lot-release-refused',true);
+  if(apply){
+    assert(certified);
+    const final=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
+    assert.equal(final.stage,11);
+    assert.deepEqual(final.insuranceSpent,[12n,0n]);
+    for(const [index,key] of keys.entries())assert.equal((await root(key)).cash,BigInt(result.cash[index]));
+    for(const [index,amount] of [20_000n,20_004n].entries()) {
+      const margin=setup.instances[index].capital;
+      await h.send('withdraw verified multi-lot maker gain '+index,[sdk.getWithdrawFundedAccountInstruction({...setup.common,
+        btc:setup.markets[0],eth:setup.markets[1],owner:setup.owner,margin,quoteMint:setup.mint.address,userToken:setup.token.address,
+        guard:await guard(margin),amount})],[setup.owner]);
+      assert.equal((await root(margin)).cash,1_000_000n);
+    }
+    assert.deepEqual([await token(setup.vault),await token(setup.token.address)],[vaultBefore-40_004n,walletBefore+40_004n]);
+    await flush();
+  }
+  await journal.checkpoint(apply?'multi-lot-wallets-received':'multi-lot-release-refused',true);
   const replay=await journal.finish();
-  assert.equal(replay.state.resolution?.inventoryBook,undefined);
-  const evidence={revision,sbf:build.revision,result,financialRoots:keys.length,freshEvents:replay.events,harnessChecks:checks.length};
+  const proof=replay.state.resolution?.inventoryBook;
+  if(apply){
+    assert(proof?.multiLot);
+    const expected=result.fills.map(([debtor,winner,charge,qty,ticks,extra]:string[])=>[debtor,winner,charge,qty,String(50_000n+BigInt(ticks)),extra]);
+    assert.deepEqual(proof.pairs,expected);
+  }else assert.equal(proof,undefined);
+  const evidence={revision,sbf:build.revision,originals,certified,result,financialRoots:keys.length,freshEvents:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/multi-lot-comparison.json',json(evidence));
   console.log(json(evidence));
 } finally {

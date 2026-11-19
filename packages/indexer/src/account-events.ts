@@ -7,6 +7,7 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['MultiLotBookVerified',sdk.MULTI_LOT_BOOK_VERIFIED_EVENT_DISCRIMINATOR,sdk.getMultiLotBookVerifiedEventDecoder()],
   ['InventoryBookVerified',sdk.INVENTORY_BOOK_VERIFIED_EVENT_DISCRIMINATOR,sdk.getInventoryBookVerifiedEventDecoder()],
   ['SharedInventoryVerified',sdk.SHARED_INVENTORY_VERIFIED_EVENT_DISCRIMINATOR,sdk.getSharedInventoryVerifiedEventDecoder()],
   ['ForeignCreditorsVerified',sdk.FOREIGN_CREDITORS_VERIFIED_EVENT_DISCRIMINATOR,sdk.getForeignCreditorsVerifiedEventDecoder()],

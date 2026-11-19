@@ -24,7 +24,8 @@ const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(valu
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
   binding:{venue:string;program:string;artifactSet?:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
-  const allocation=kind===18&&sdk.isBookInventoryArtifact(binding.artifactSet)?sdk.getInventoryBookPageDecoder():
+  const allocation=kind===18&&binding.artifactSet===sdk.MULTI_LOT_ARTIFACT_SET?sdk.getMultiLotBookPageDecoder():
+    kind===18&&sdk.isBookInventoryArtifact(binding.artifactSet)?sdk.getInventoryBookPageDecoder():
     kind===18&&binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET?sdk.getLinkedAllocationPageDecoder():
     kind===18&&binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET?sdk.getBtcAllocationPageDecoder():undefined;
   assert.equal(bytes.length,allocation?.fixedSize??descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
@@ -65,7 +66,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
           assert.deepEqual(JSON.parse(json(linked[key])),projection[key],key);
       } else assert(!projection||projection.status===2&&BigInt(projection.attempt)<linked.attempt,'Invalid restarted linked scan');
     } else if(projection)assert.equal(projection.status,2,'Lost linked scan');
-    const book=sdk.inventoryBookReceipt(value);
+    const book=sdk.inventoryBookReceipt(value,Boolean(resolution.inventoryBook?.multiLot));
     if(book || resolution.inventoryBook) {
       const projected=resolution.inventoryBook;
       assert(sdk.isBookInventoryArtifact(binding.artifactSet) && book && projected,'Missing book certificate or event');
@@ -105,9 +106,15 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(kind===18 && resolution.inventoryBook) {
     const {capacities,pairs}=resolution.inventoryBook;
     for(const row of value.rows.slice(0,value.rowCount)) {
-      const id=String(row.id), match=pairs.find(([debtor,winner])=>debtor===id||winner===id);
-      assert.equal(String(row.bookCharge),match?.[2]??'0','Certified row charge');
-      assert.equal(String(row.bookCapacity),capacities.find(([winner])=>winner===id)?.[1]??'0','Frozen winning capacity');
+      const id=String(row.id), terms=capacities.find(([winner])=>winner===id);
+      const charge=pairs.reduce((sum,[debtor,winner,amount])=>id===debtor||id===winner?sum+BigInt(amount):sum,0n);
+      assert.equal(row.bookCharge,charge,'Certified row charge');
+      if(resolution.inventoryBook.multiLot && terms) {
+        assert.deepEqual(row.lotRate.map(String),terms.slice(2),'Original frozen lot rate');
+        const face=BigInt(row.claims[0])/1_000_000_000n, lots=BigInt(row.lots[0]);
+        const limit=(lots<0n?-lots:lots)*row.lotRate[0]/row.lotRate[1];
+        assert.equal(row.bookCapacity,face<limit?face:limit,'Original winning capacity');
+      } else assert.equal(String(row.bookCapacity),terms?.[1]??'0','Frozen winning capacity');
     }
   }
   if(kind===18&&!plan&&resolution.linkedAllocation) {

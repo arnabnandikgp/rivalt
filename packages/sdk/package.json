@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./multi-lot-book": "./src/multi-lot-book.node.ts",
     "./frozen-order": "./src/frozen-order.node.ts"
   },
   "dependencies": {

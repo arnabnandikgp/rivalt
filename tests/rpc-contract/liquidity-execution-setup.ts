@@ -16,8 +16,10 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { traderCount?:number; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; verifyRejections?: boolean } = {}) {
+  options: { traderCount?:number; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
   const traderCount=options.traderCount??2;
+  if(options.traderDeposits)assert(options.traderDeposits.length===traderCount && options.traderDeposits.every(amount=>amount>0n));
+  const deposit=(index:number)=>options.traderDeposits?.[index]??options.traderCash??1_000_000n;
   assert(Number.isSafeInteger(traderCount)&&traderCount>0&&traderCount+6<=1024,'Requested Financial members must fit the qualification storage fixture');
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
@@ -51,7 +53,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       lamports:await h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
       getInitializeAccount3Instruction({account:token.address,mint:fixture.mint.address,owner:owner.address}),
       getMintToInstruction({mint:fixture.mint.address,token:token.address,mintAuthority:payer,
-        amount:(options.traderCash??1_000_000n)*BigInt(count)})],[token]);
+        amount:Array.from({length:count},(_,index)=>deposit(first+index)).reduce((sum,amount)=>sum+amount,0n)})],[token]);
     for(let local=0;local<count;local++) {
       const index=Math.floor(local/9),subaccountIndex=local%9;
       const [portfolio]=await sdk.deriveAccountPortfolio(venue,owner.address,index);
@@ -61,7 +63,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       await registerFinancialTestMargin(h,common,payer,{owner,portfolio,margin,subaccountIndex,
         mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:0,role:0});
       await h.send('deposit actual test trader collateral',[await sdk.getDepositAccountInstructionAsync({...common,
-        owner,margin,quoteMint:fixture.mint.address,userToken:token.address,amount:options.traderCash??1_000_000n})],[owner]);
+        owner,margin,quoteMint:fixture.mint.address,userToken:token.address,amount:deposit(first+local)})],[owner]);
       roots.push(margin);traderOwners.push(owner);
     }
   }

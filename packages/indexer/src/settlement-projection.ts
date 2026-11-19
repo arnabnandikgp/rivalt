@@ -1,6 +1,8 @@
 /** Financial effects of the authenticated paged settlement, separate from its
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
 import {address} from '@solana/kit';
+import {multiLotBookPlan} from '@rivalt/sdk/multi-lot-book';
+import {MULTI_LOT_ARTIFACT_SET} from '@rivalt/sdk';
 import {inventoryBookPlan,twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
 import {isBookInventoryArtifact,isSharedInventoryArtifact,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
@@ -17,6 +19,26 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void,artifactSet?:string) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='MultiLotBookVerified') {
+    accountCheck(artifactSet===MULTI_LOT_ARTIFACT_SET && current.stage===2 && !current.inventoryBook && !current.pair &&
+      !current.sharedInventory && !current.foreignCreditors && !current.joint && !current.allocation && !current.linkedAllocation,'unique multi-lot certificate');
+    eq(current.poolsBefore,['0','0'],'empty settlement pools');
+    eq(String(state.members.length),current.count,'complete multi-lot membership');
+    const rates=new Map<string,readonly [bigint,bigint]>(change.capacities.map(([id,,num,den]:string[])=>[id,[BigInt(num),BigInt(den)]]));
+    const rows=state.members.map(key=>{
+      const member=state.roots[key], [btc,eth]=claims(member,current.prices,current.funding).map(BigInt);
+      const [lots,ethLots]=member.positions.map(position=>BigInt(position.lots));
+      eq([btc%scale,eth,ethLots],[0n,0n,0n],'whole BTC book');
+      return {id:BigInt(member.id),cash:BigInt(member.cash),face:btc/scale,lots,rate:rates.get(member.id)??[0n,1n] as const};
+    });
+    eq(current.remainingGross,[String(rows.reduce((sum,row)=>sum+(row.lots<0n?-row.lots:row.lots),0n)),'0'],'complete exposure');
+    const plan=present(multiLotBookPlan(address(change.venue),BigInt(current.epoch),BigInt(current.prices[0]),BigInt(current.insuranceBefore[0]),rows),'multi-lot proof');
+    eq(plan.capacities.map(row=>row.map(String)),change.capacities,'bounded frozen rates');
+    eq(plan.pairs.map(row=>row.map(String)),change.pairs,'canonical multi-lot fills');
+    eq(String(plan.total),change.total,'total charge');
+    current.inventoryBook={multiLot:true,total:change.total,digest:plan.digest,capacities:change.capacities,pairs:change.pairs};
+    return;
+  }
   if(event.type==='InventoryBookVerified') {
     accountCheck(isBookInventoryArtifact(artifactSet) && current.stage===2 && !current.inventoryBook &&
       !current.sharedInventory && !current.foreignCreditors && !current.pair && !current.joint &&
@@ -318,8 +340,9 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
     if(current.inventoryBook) {
-      const pair=current.inventoryBook.pairs.find(([debtor,winner])=>previous.id===debtor||previous.id===winner);
-      if(pair)economic[0]=String(BigInt(economic[0])+(previous.id===pair[0]?1n:-1n)*BigInt(pair[2])*scale);
+      const net=current.inventoryBook.pairs.reduce((value,[debtor,winner,amount])=>
+        previous.id===debtor?value+BigInt(amount):previous.id===winner?value-BigInt(amount):value,0n);
+      economic[0]=String(BigInt(economic[0])+net*scale);
     } else if(current.sharedInventory) {
       const {members,charges}=current.sharedInventory;
       const index=members.indexOf(previous.id);

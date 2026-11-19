@@ -8,7 +8,7 @@ import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposa
 /** Bounded page reads with a final exact-header fence. Frozen rows are immutable
  * until Apply, which is excluded here. A mixed revision/epoch never supplies a
  * rate proposal. The program independently checks every uploaded limb/row. */
-export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:6=6,allocationLayout:boolean|'linked'|'book'=false) {
+export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:6=6,allocationLayout:boolean|'linked'|'book'|'multi'=false) {
   assert(expectedProfile===6,'Unsupported frozen proposal profile.');
   const before=await readAccountResolution(rpc,venue),header=before.preparedState;
   assert(before.header.epoch===epoch&&before.header.stage===2&&header.epoch===epoch&&header.stage===3&&header.count>0n
@@ -19,7 +19,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   assert(canonical===venue&&venueState.bump===bump&&venueState.schemaVersion===10&&venueState.profileVersion===expectedProfile
     &&venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
   const pair=sdk.frozenPairReceipt(header),allocation=sdk.btcAllocationReceipt(header);
-  const book=sdk.inventoryBookReceipt(header);
+  const book=sdk.inventoryBookReceipt(header) || (allocationLayout==='multi' && sdk.inventoryBookReceipt(header,true));
   const shared=sdk.sharedInventoryReceipt(header);
   const foreign=sdk.foreignCreditorReceipt(header);
   const linked=sdk.linkedAllocationReceipt(header),joint=sdk.frozenJointReceipt(header), originalClaims:[bigint,bigint][]=[];
@@ -29,7 +29,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
     const response=await rpc.call('getMultipleAccounts',[keys.map(([key])=>key),{encoding:'base64',commitment:'confirmed',minContextSlot:Number(before.contextSlot)}]);
     assert(response.value?.length===keys.length,'Incomplete frozen page batch.');
     for(const [offset,[key,pageBump]] of keys.entries()) {
-      const index=start+BigInt(offset),page=decodeAccountWorker(response.value[offset],sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,allocationLayout==='book'?sdk.getInventoryBookPageDecoder():allocationLayout==='linked'?sdk.getLinkedAllocationPageDecoder():allocationLayout?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
+      const index=start+BigInt(offset),page=decodeAccountWorker(response.value[offset],sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,allocationLayout==='multi'?sdk.getMultiLotBookPageDecoder():allocationLayout==='book'?sdk.getInventoryBookPageDecoder():allocationLayout==='linked'?sdk.getLinkedAllocationPageDecoder():allocationLayout?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
       const length=Number(header.count-index*8n<8n?header.count-index*8n:8n);
       assert(page.schemaVersion===10&&page.venue===venue&&page.bump===pageBump&&page.epoch===epoch&&page.pageIndex===index
         &&page.rowCount===length&&page.revision>0n,'Incomplete or foreign frozen page.');
@@ -42,7 +42,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
           -(row as sdk.FrozenMargin & {btcCharge:bigint}).btcCharge):0n;
         const charge=(allocation?allocated:row.id===pair?.debtorId?pair.charge:row.id===pair?.winnerId?-pair.charge:0n)*1_000_000_000n;
         if(book) {
-          assert(allocationLayout==='book' && 'bookCharge' in row && typeof row.bookCharge==='bigint','Missing certified frozen charge');
+          assert((allocationLayout==='book'||allocationLayout==='multi') && 'bookCharge' in row && typeof row.bookCharge==='bigint','Missing certified frozen charge');
           originalClaims.push([row.claims[0],row.claims[1]]);
           const delta=row.claims[0]<0n?row.bookCharge:-row.bookCharge;
           rows.push({...row,claims:[row.claims[0]+delta*1_000_000_000n,row.claims[1]]});

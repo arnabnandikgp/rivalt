@@ -125,7 +125,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
           sdk.decodeProfitAttribution(bytes,sponsored);
         } else {
-          assert(descriptor&&bytes.length===(entity.kind===18&&book?sdk.getInventoryBookPageDecoder().fixedSize:entity.kind===18&&linkedAllocation?sdk.getLinkedAllocationPageDecoder().fixedSize:entity.kind===18&&allocation?sdk.getBtcAllocationPageDecoder().fixedSize:descriptor[1])&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
+          assert(descriptor&&bytes.length===(entity.kind===18&&binding.artifactSet===sdk.MULTI_LOT_ARTIFACT_SET?sdk.getMultiLotBookPageDecoder().fixedSize:entity.kind===18&&book?sdk.getInventoryBookPageDecoder().fixedSize:entity.kind===18&&linkedAllocation?sdk.getLinkedAllocationPageDecoder().fixedSize:entity.kind===18&&allocation?sdk.getBtcAllocationPageDecoder().fixedSize:descriptor[1])&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
         }
         assert.equal(bytes.readUInt16LE(8),scopedSchema(entity.kind));
         compareReconciliationRevision(bytes.readBigUInt64LE(10),BigInt(entity.revision));
