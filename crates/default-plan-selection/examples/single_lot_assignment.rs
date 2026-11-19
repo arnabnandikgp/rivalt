@@ -2,6 +2,9 @@
 //! two lists of id:atom pairs in ascending stable member order.
 use default_plan_selection::single_lot::{assign, MemberAmount};
 fn members(list: &str) -> Option<Vec<MemberAmount>> {
+    if list.is_empty() {
+        return Some(Vec::new());
+    }
     list.split(',')
         .map(|entry| {
             let (id, atoms) = entry.split_once(':')?;
@@ -15,7 +18,8 @@ fn members(list: &str) -> Option<Vec<MemberAmount>> {
 fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let partial = args.first().is_some_and(|value| value == "--partial");
-    let [venue, epoch, debtors, winners] = &args[usize::from(partial)..] else {
+    let population = args.first().is_some_and(|value| value == "--population");
+    let [venue, epoch, debtors, winners] = &args[usize::from(partial || population)..] else {
         panic!("expected four arguments")
     };
     assert!(venue.is_ascii() && venue.len() == 64);
@@ -45,7 +49,12 @@ fn main() {
         }
         return;
     }
-    if let Some(pairs) = assign(
+    let select = if population {
+        default_plan_selection::inventory_book::assign
+    } else {
+        assign
+    };
+    if let Some(pairs) = select(
         &venue,
         epoch.parse().unwrap(),
         &members(debtors).unwrap(),

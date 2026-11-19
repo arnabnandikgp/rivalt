@@ -25,13 +25,14 @@ const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).tr
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
+const populationBook=probe==='profit-attribution-inventory-book-ordinary';
 const scarceProbe=probe?.startsWith('profit-attribution-scarce-inventory-')??false;
 const zeroDebtorBudget=probe==='profit-attribution-scarce-inventory-floor-apply';
 const partialInventory=scarceProbe && !zeroDebtorBudget;
 const partialApply=scarceProbe && probe!.endsWith('-apply');
 const smallWinnerEntry=partialInventory?(probe!.includes('-zero-')?40_000n:40_001n):undefined;
 const sharedApply=partialApply||probe==='profit-attribution-shared-inventory-apply';
-const sharedInventory=partialInventory||sharedApply||probe==='profit-attribution-shared-inventory';
+const sharedInventory=populationBook||partialInventory||sharedApply||probe==='profit-attribution-shared-inventory';
 const foreignGate=probe==='profit-attribution-foreign-winner-gate';
 const foreignApply=probe==='profit-attribution-foreign-winner-apply';
 const foreignBook=foreignApply||foreignGate||probe==='profit-attribution-foreign-winner-ordinary';
@@ -49,10 +50,10 @@ let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
   const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked||foreignGate||foreignApply||sharedApply?'sponsored-profit':'profit-attribution',
-    shape:symmetricPayoutShape,traderCount:partialInventory?3:2, traderCash:zeroDebtorBudget?20_013n:partialInventory?20_000n:sharedInventory?20_010n:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
+    shape:symmetricPayoutShape,traderCount:partialInventory||populationBook?3:2, traderCash:populationBook?20_011n:zeroDebtorBudget?20_013n:partialInventory?20_000n:sharedInventory?20_010n:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
   const {guard,route,root} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = foreignBook?[setup.roots[1],setup.roots[0]]:setup.roots;
-  const makers = [setup.instances[partialInventory?1:0], setup.instances[sharedInventory?2:3]];
+  const makers = populationBook?setup.instances.slice(0,3):[setup.instances[partialInventory?1:0], setup.instances[sharedInventory?2:3]];
   const sources = {primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
     guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
   const safety = async () => sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
@@ -61,7 +62,7 @@ try {
   const traderWallet = async () => getTokenDecoder().decode((await h.read(setup.traderToken.address))!).amount;
   const vault = async () => getTokenDecoder().decode((await h.read(setup.vault))!).amount;
   const before = {wallet:await wallet(),traderWallet:await traderWallet(),vault:await vault()};
-  if(sharedInventory)await openSharedInventory(h,setup,smallWinnerEntry);
+  if(sharedInventory)await openSharedInventory(h,setup,smallWinnerEntry,populationBook);
   else if(foreignBook)await openForeignWinnerBook(h,setup);
   else for (const market of [0,1] as const) {
     await setup.sample();
@@ -114,12 +115,12 @@ try {
   assert.equal(freezes[0].data.trigger,debtor);
   const history = events.slice(0,events.indexOf(freezes[0]));
   assert(!history.some(event=>event.type==='AccountFinancialChangedV3' && [2,3].includes(event.data.kind)));
-  const input = {flatCreditor,smallWinnerEntry,zeroDebtorBudget,thirdTrader:partialInventory?setup.roots[2]:undefined,flatMaker:partialInventory?setup.instances[0].capital:undefined,secondBtcWinner:contested?secondMaker.capital:undefined,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
+  const input = {flatCreditor,traders:populationBook?setup.roots:undefined,smallWinnerEntry,zeroDebtorBudget,thirdTrader:partialInventory?setup.roots[2]:undefined,flatMaker:partialInventory?setup.instances[0].capital:undefined,secondBtcWinner:contested?secondMaker.capital:undefined,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
     insurance:frozen.insuranceBefore,fees:frozen.feesBefore,markets:setup.markets,rows,makerDeposit,debtor,otherTrader,
     winners:makers.map(maker=>maker.capital),venueHex:Buffer.from(getAddressEncoder().encode(setup.venue)).toString('hex'),
     sourceDigest:createHash('sha256').update(json([setup.venue,frozen,rows,freezes[0].signature])).digest('hex'),
     fills:history.filter(event=>event.type==='LiquidityRouteExecutedV4').map(event=>event.data)};
-  const reference=sharedInventory?'shared_inventory_comparison':foreignBook?'foreign_winner_comparison':'linked_default_comparison';
+  const reference=populationBook?'inventory_book_comparison':sharedInventory?'shared_inventory_comparison':foreignBook?'foreign_winner_comparison':'linked_default_comparison';
   const comparison = JSON.parse(execFileSync('python3',[`tests/financial/${reference}.py`],{input:json(input),encoding:'utf8'}));
   await journal.checkpoint(sharedInventory?'frozen-competing-debtors':'frozen-two-market-debtor',true);
   const openWorker = async () => {
@@ -410,7 +411,7 @@ try {
     assert.equal((await resolution()).stage,2);
     assert.deepEqual([await wallet(),await traderWallet(),await vault()],[before.wallet,before.traderWallet,before.vault]);
   } else {
-    assert.deepEqual((await resolution()).insuranceSpent,partialInventory?[(smallWinnerEntry===40_000n?10n:11n),0n]:sharedInventory?[6n,0n]:foreignBook?[6n,3n]:allocationProfile?[13n,1n]:flatCreditor?[9n,1n]:[3n,1n]);
+    assert.deepEqual((await resolution()).insuranceSpent,populationBook?[9n,0n]:partialInventory?[(smallWinnerEntry===40_000n?10n:11n),0n]:sharedInventory?[6n,0n]:foreignBook?[6n,3n]:allocationProfile?[13n,1n]:flatCreditor?[9n,1n]:[3n,1n]);
     const target=linked||foreignApply||sharedApply?comparison.cash:comparison.ordinaryCash;
     for (const key of members) assert.equal(String((await root(key)).cash),target[key]);
     const traderPayout=flatCreditor?(linked?4_996n:4_994n):0n;
@@ -446,7 +447,7 @@ try {
     assert.deepEqual([failed.status,failed.cursor,failed.recovered],[2,'8',['0','12']]);
     assert.equal(replay.state.resolution?.linkedAllocation?.status,1);
   }
-  const result={revision,rejectionChecked,profile:zeroDebtorBudget?'verified zero debtor budget':partialInventory?(partialApply?'verified scarce winning inventory':'ordinary scarce winning inventory'):sharedApply?'verified shared winner inventory':sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+  const result={revision,rejectionChecked,profile:populationBook?'ordinary three-debtor inventory':zeroDebtorBudget?'verified zero debtor budget':partialInventory?(partialApply?'verified scarce winning inventory':'ordinary scarce winning inventory'):sharedApply?'verified shared winner inventory':sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
     inputs:input,traderWalletAfter:await traderWallet(),comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));

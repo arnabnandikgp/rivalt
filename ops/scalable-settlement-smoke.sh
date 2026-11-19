@@ -88,8 +88,11 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     python3 tests/financial/check_default_worker.py "$RIVALT_RUN_DIR" > "$RIVALT_RUN_DIR/independent-worker-audit.json" ;;
   account-clients) pnpm build:trader
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
-  profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply|profit-attribution-linked-flat|profit-attribution-linked-flat-apply|profit-attribution-linked-contested|profit-attribution-linked-allocation|profit-attribution-foreign-winner-ordinary|profit-attribution-foreign-winner-gate|profit-attribution-foreign-winner-apply|profit-attribution-shared-inventory|profit-attribution-shared-inventory-apply|profit-attribution-scarce-inventory-one-apply|profit-attribution-scarce-inventory-one-ordinary|profit-attribution-scarce-inventory-zero-apply|profit-attribution-scarce-inventory-floor-apply)
+  profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply|profit-attribution-linked-flat|profit-attribution-linked-flat-apply|profit-attribution-linked-contested|profit-attribution-linked-allocation|profit-attribution-foreign-winner-ordinary|profit-attribution-foreign-winner-gate|profit-attribution-foreign-winner-apply|profit-attribution-shared-inventory|profit-attribution-shared-inventory-apply|profit-attribution-scarce-inventory-one-apply|profit-attribution-scarce-inventory-one-ordinary|profit-attribution-scarce-inventory-zero-apply|profit-attribution-scarce-inventory-floor-apply|profit-attribution-inventory-book-ordinary)
     cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
+    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-inventory-book-* ]]; then
+      cargo build --locked --offline -p default-plan-selection --example single_lot_assignment
+    fi
     node --import tsx tests/rpc-contract/linked-default-recovery-rpc.ts ;;
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;
   profit-attribution-recovery|profit-attribution-sponsor-recovery|profit-attribution-verified-pair|profit-attribution-verified-pair-limited|profit-attribution-btc-residual-*|profit-attribution-btc-allocation-*) node --import tsx tests/rpc-contract/btc-default-recovery-rpc.ts ;;

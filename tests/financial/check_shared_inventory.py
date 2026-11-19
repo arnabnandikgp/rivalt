@@ -13,10 +13,10 @@ from shared_inventory_comparison import compare
 BINARY = 'target/debug/examples/single_lot_assignment'
 
 
-def native(venue, epoch, debtors, winners, *, partial=False):
+def native(venue, epoch, debtors, winners, *, partial=False, population=False):
     def encode(members):
         return ','.join(f'{member}:{amount}' for member, amount in members)
-    output = check_output([BINARY, *(["--partial"] if partial else []), venue.hex(), str(epoch), encode(debtors), encode(winners)], text=True)
+    output = check_output([BINARY, *(["--partial"] if partial else ["--population"] if population else []), venue.hex(), str(epoch), encode(debtors), encode(winners)], text=True)
     if output.strip() == 'unsupported':
         return None
     return sorted(tuple(map(int, line.split())) for line in output.splitlines())

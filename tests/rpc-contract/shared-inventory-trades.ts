@@ -4,15 +4,15 @@ import {executionTestHelpers} from './liquidity-execution-helpers.js';
 
 type Setup=Awaited<ReturnType<typeof liquidityExecutionSetup>>;
 
-export async function openSharedInventory(h:CanonicalHarness,setup:Setup,smallWinnerEntry?:bigint) {
+export async function openSharedInventory(h:CanonicalHarness,setup:Setup,smallWinnerEntry?:bigint,population=false) {
   const {route,root}=executionTestHelpers(h,setup);
   const actor=setup.traderOwner;
-  for(const [index,trader] of setup.roots.slice(0,2).entries()) {
-    const reference=index===0?60_000n:60_004n;
+  for(const [index,trader] of setup.roots.slice(0,population?3:2).entries()) {
+    const reference=60_000n+BigInt(index)*(population?1n:4n);
     setup.sourcePrices.btc=reference*1_000_000n;
     if(index===0)await setup.sample();else await setup.qualify();
     await h.send('open debtor BTC lot against distinct maker '+index,[await route({trader,actor,marketIndex:0,
-      side:0,makers:[setup.instances[2*index]],lots:[1n],allInLimit:reference+15n,maxFee:13n})],[actor]);
+      side:0,makers:[setup.instances[population?index:2*index]],lots:[1n],allInLimit:reference+15n,maxFee:13n})],[actor]);
   }
   if(smallWinnerEntry===undefined)return;
   const trader=setup.roots[2],fee=(smallWinnerEntry+4999n)/5000n;
