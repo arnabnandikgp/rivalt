@@ -19,6 +19,21 @@ pub struct PairClose {
 }
 
 impl SnapshotScan {
+    /// Full payment of whole remaining claims proves the individual payout
+    /// floors without relying on a new rounding allocation for this family.
+    pub fn accept_single_pair_row(
+        &mut self,
+        ordinal: u64,
+        id: u64,
+        row: &Row,
+        lots: [i64; 2],
+    ) -> Result<()> {
+        if row.claims.iter().any(|claim| claim % SCALE != 0) {
+            return Err(Error::Cohort);
+        }
+        self.accept(ordinal, id, row, lots)
+    }
+
     pub fn select_single_btc_pair(
         &self,
         debtor: FrozenSide,
@@ -53,6 +68,10 @@ impl SnapshotScan {
             crate::MAX_PRICE - mark
         };
         let charge = shortfall.min(history_cap).min(winner_atoms).min(price_room);
+        if charge != shortfall {
+            // Partial recovery requires the general per-creditor floor proof.
+            return Err(Error::Cohort);
+        }
         let scaled = i128::from(charge) * SCALE;
         let mut price = None;
         if charge > 0 {
@@ -117,19 +136,35 @@ mod tests {
     #[test]
     fn unique_pair_reaches_the_same_exact_claims_as_an_independent_trade() {
         let (snapshot, debtor, winner) = setup();
-        for (cap, charge, price) in [
-            (9_002, 1_500, Some(68_500)),
-            (125, 125, Some(69_875)),
-            (0, 0, None),
-        ] {
-            let result = snapshot
-                .clone()
+        let result = snapshot
+            .select_single_btc_pair(debtor, winner, 70_000, 9_002)
+            .unwrap();
+        assert_eq!((result.charge, result.price), (1_500, Some(68_500)));
+        assert_eq!(result.debtor_claim, -8_498 * SCALE);
+        assert_eq!(result.winner_claim, 7_502 * SCALE);
+        for cap in [0, 125, 1_499] {
+            assert!(snapshot
                 .select_single_btc_pair(debtor, winner, 70_000, cap)
-                .unwrap();
-            assert_eq!((result.charge, result.price), (charge, price));
-            assert_eq!(result.debtor_claim, (-9_998 + i128::from(charge)) * SCALE);
-            assert_eq!(result.winner_claim, (9_002 - i128::from(charge)) * SCALE);
+                .is_err());
         }
+    }
+
+    #[test]
+    fn a_fractional_credit_cannot_enter_the_full_whole_payout_proof() {
+        let (snapshot, _, _) = setup();
+        let mut scan = SnapshotScan::new(snapshot.binding).unwrap();
+        assert!(scan
+            .accept_single_pair_row(
+                0,
+                0,
+                &Row {
+                    cash: 0,
+                    claims: [SCALE / 2, 0]
+                },
+                [0, 0]
+            )
+            .is_err());
+        assert_eq!(scan.next(), Ok(0));
     }
 
     #[test]
