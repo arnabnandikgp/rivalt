@@ -67,6 +67,32 @@ try {
   assert.deepEqual([recovered.oracle.fundingBase,recovered.fundingIndexScaled],[btc.expected,btc.expected]);
   assert.equal(recovered.oracle.coveredSeconds-btc.anchor.oracle.coveredSeconds,btc.stamp.timestamp-btc.anchor.oracle.sampledAt);
   assert.equal(recovered.oracle.skippedSeconds-btc.anchor.oracle.skippedSeconds,recovered.oracle.sampledAt-btc.stamp.timestamp);
+  // Cross zero from +1 to -1 with two distinct makers. Both receive one
+  // lot and the first registration records the aggregate taker fee exactly once.
+  await setup.qualify();
+  const secondTrader=setup.roots[1],owner=setup.traderOwners[1],makers=[setup.instances[0],setup.instances[1]];
+  const beforeTrader=await root(secondTrader);
+  assert.equal(beforeTrader.positions[0].lots,1n);
+  const makerBefore=await Promise.all(makers.map(maker=>root(maker.capital)));
+  const feeBefore=await Promise.all(makers.map(async maker=>sdk.decodeMakerFeeLane((await h.read(maker.registration))!,'checked-funding').collected));
+  const marketBefore=await h.read(setup.markets[0]);
+  await h.send('two-maker read-only route crosses zero',[await route({trader:secondTrader,actor:owner,marketIndex:0,
+    side:1,lots:[1n,1n],makers,minimalMarkets:true,marketLane:true})],[owner]);
+  assert.deepEqual(await h.read(setup.markets[0]),marketBefore);
+  const afterTrader=await root(secondTrader);
+  const fee=24n; // Two BTC lots at 59,999 each, ceil(119,998 * 2 / 10,000).
+  assert.deepEqual([afterTrader.positions[0].lots,afterTrader.cash],[-1n,beforeTrader.cash-fee]);
+  for(const [i,maker] of makers.entries()){
+    const next=await root(maker.capital);
+    assert.deepEqual([next.positions[0].lots,next.cash],[makerBefore[i].positions[0].lots+1n,makerBefore[i].cash]);
+    const lane=sdk.decodeMakerFeeLane((await h.read(maker.registration))!,'checked-funding');
+    assert.equal(lane.collected-feeBefore[i],i===0?fee:0n);
+  }
+  const projected=await sdk.readAccountTradeSnapshot(rpc,setup.identity,secondTrader,0,'confirmed');
+  const positions=await Promise.all([...setup.roots,...setup.instances.map(maker=>maker.capital)].map(root));
+  assert.equal(projected.marketStates[0].grossLots,positions.reduce((sum,member)=>{
+    const lots=member.positions[0].lots;return sum+(lots<0n?-lots:lots);
+  },0n));
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint('market-lane-gap',true);

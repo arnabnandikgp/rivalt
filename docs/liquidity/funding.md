@@ -201,3 +201,10 @@ checkpoint, and requires it to equal the serial index and timestamp. The SDK
 derives these three addresses even when quote discovery reports unavailable depth.
 Existing funded cash, index-derived risk and the six-second hold still govern
 every fill. The tested route writes the selected market and ledger.
+
+The subsequent `read-only-market-candidate` uses the same checkpoint layout.
+A single-market fill can leave the market PDA unchanged. An active publisher
+first folds the last earned funding and gross into the market using
+`checkpoint_market` in the same transaction. Publication independently verifies
+all three registrations before advancing the observation. This separates the
+cost of frequent trades from the bounded cost at publication.

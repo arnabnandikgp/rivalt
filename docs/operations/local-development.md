@@ -629,3 +629,15 @@ absolute build directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR` and run
 with a fresh run directory. For independent replay build the `funding_prefix_replay`
 example in `financial-core` with `--features parallel-market-prototype` and run
 `node --import tsx tests/performance/replay-cross-fill-funding.ts <run-directory>`.
+
+### Reproduce the read-only market route
+
+Build clean revision `10ab3b5` with
+`RIVALT_ATTRIBUTION_PROFILE=read-only-route-market bash ops/build-profit-attribution.sh`.
+Export the printed directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR`.
+At clean harness revision `d45eae7`, run
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-market-lanes bash ops/scalable-settlement-smoke.sh`
+for paired fills, withdrawal and freeze, and
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-market-lane-funding bash ops/scalable-settlement-smoke.sh`
+for the nonzero-premium cross-account and outage cases. Each invocation owns a
+fresh Surfpool instance and PostgreSQL database.

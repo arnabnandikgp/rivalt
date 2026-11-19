@@ -243,3 +243,21 @@ The indexer compares the derived capacity total against finalized market
 events during reconciliation. The pure read produces no financial event or
 revision. Both source discovery and the final funding snapshot require the
 account layout selected by the caller. [Layout and identity](../clearing/accounts.md#bounded-market-gross-on-the-local-candidate).
+
+### Derived market values for the read-only route
+
+With the candidate's explicit `market-lanes` layout, wallet and trade snapshots
+include the canonical registrations for both markets in the final account batch.
+Funding publication reads the registrations for the reported market. The SDK
+uses the newest materialization by slot in the same observation and the
+corresponding premium to calculate earned funding. It obtains current gross lots
+from reserved capacity. Reading the Borsh market prefix alone returns the last
+stored checkpoint.
+
+`MarketLaneFilled` carries the unchanged market snapshot and the earned
+timestamp and index. The journal derives gross from actual position changes,
+verifies funding against the observation, and keeps the stored fields for
+revision checks and finalized RPC reconciliation. `MarketCheckpointed` verifies
+these derived values against the newly written market account. Both route
+events appear in the trade feed. Runtime selection remains limited to explicit
+local qualification.

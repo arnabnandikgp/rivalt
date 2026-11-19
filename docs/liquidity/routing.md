@@ -163,3 +163,20 @@ admission, numeric bounds, gross exposure, fee prefixes and signed limits.
 Tie order is part of the API. Snapshot optimality does not prove global exchange
 best execution, future-state optimality or validator throughput. [Validation](../operations/validation.md)
 records actual latency/resource limits and contention caveats.
+
+### Routes with a read-only market
+
+On `read-only-market-candidate`, a signed immediate route can select
+`execute_market_lane` when the trader and both selected maker capitals have
+only the target market as a financial dependency. The active funding observation
+must cover the fill's Clock, and the first registration must have enough reserved
+market capacity for the change in gross absolute lots. Clearing runs the common
+route admission and maker CPIs, collects the aggregate fee and updates the
+actual margin accounts. Trades through different makers still share the
+target ledger for fee escrow and payment backing.
+
+A client can select the ordinary route with atomic market checkpoints for a
+cross-market liability, exhausted local capacity or a trade outside the short
+funding window. The ordinary route applies its own oracle and margin rules.
+Stored orders and forced liquidations use the ordinary route. A failed submission
+requires a fresh state and intent check before retry.

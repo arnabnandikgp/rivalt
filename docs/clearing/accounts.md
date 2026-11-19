@@ -812,3 +812,21 @@ registrations prevent the read until market setup is complete. The program
 authenticates the venue, market binding, account owners, instances and maker
 addresses, then computes the total from the capacity fields. See the
 [capacity accounting rule](accounting.md#reserved-gross-capacity).
+
+### Read-only market on a local fill
+
+In the `read-only-market-candidate` build, the market PDA stores the last
+checkpoint of gross lots, earned funding time and earned funding index. A
+single-market fill spends reserved headroom on its first maker registration and
+records the active observation and Clock there. The market and registration
+retain the checked-funding layout. Their account sizes are 503 and 405 bytes.
+
+`checkpoint_market` authenticates the market and its three registrations in
+instance order and writes the three derived fields. It is permissionless in
+Active mode. While Active, an ordinary financial instruction with a market
+dependency requires a checkpoint for each supplied market immediately before it,
+at the same instruction nesting level in the transaction. The checkpoint covers
+earned funding only. A trader can sign checkpoints and the financial action
+together. Freeze consumes both checkpoints before capturing financial state.
+The [routing contract](../liquidity/routing.md#routes-with-a-read-only-market)
+describes when a fill can use the read-only path.

@@ -143,6 +143,33 @@ The paired publisher crosses the v0 packet boundary. These are observed local
 CU and wire sizes. The route still locks the selected market and ledger for
 writing. [Signed funding and rollback](validation.md#clearing-verified-funding-checkpoints).
 
+### Read-only selected market
+
+Program `10ab3b5`, harness `d45eae7`. Each paired trade was 846 signed bytes
+(v0) and paid a 5,000-lamport transaction fee. Each pair class has six
+simultaneous offers of two signed trades using independent payers. All 36
+landed. The account overlap comes from the finalized message bytes.
+
+| Pair | Previous shared writes | Observed shared writes | CU per trade |
+|---|---:|---:|---:|
+| BTC, same maker | 4 | 3 | 160,099–180,866 |
+| BTC, different makers | 2 | 1 | 159,344–174,002 |
+| BTC and ETH, different makers | 0 | 0 | 159,349–174,002 |
+
+| Financial action | CU | Signed bytes |
+|---|---:|---:|
+| Checkpoint one market | 21,422 | 471 v0 |
+| Checkpoint BTC and withdraw with an open position | 72,244 | 857 v0 |
+| Checkpoint both markets and execute a BTC trade with ETH exposure | 222,331 | 1,204 v0 |
+| Publish two active markets with their checkpoints | 98,068 | 1,388 v1 |
+| Classify both markets, checkpoint both and freeze | 131,715 | 1,186 v0 |
+
+The previous two-market funding publisher used 54,438 CU and 1,348 v1 bytes
+on the nonzero-premium workload. This prototype pays for a separate checkpoint
+before each publication. The remaining ledger lock serializes all same-market
+fills. These paired receipts establish account access and per-transaction cost.
+They do not measure sustained throughput. [Financial checks](validation.md#read-only-market-on-a-signed-fill).
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,

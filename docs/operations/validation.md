@@ -1,5 +1,36 @@
 # Validation and measured limits
 
+## Read-only market on a signed fill
+
+SBF `10ab3b5`, 2,961,736 bytes, SHA-256
+`2e2aa670fc7e2aa318a4fb9bb7ee9db02f8f0f0ef517e0bab14f99fe8b21acac`.
+Harness `d45eae7` finalized 36 paired one-maker trades. With distinct payers and
+makers, two BTC trades shared only the ledger. A separate 50-lot BTC fill left
+the market bytes unchanged. Its stored gross was zero while its authenticated
+three-registration gross was 100. PostgreSQL reconciled both at that boundary.
+An initial indexer run at `ea10d90` refused the financial projection because it
+compared a derived total to a physical account revision. The corrected check
+compares the full stored account and independently validates its derived fields.
+
+A standalone checkpoint, a checkpoint for ETH and an intervening BTC fill each
+failed to authorize a subsequent BTC withdrawal. The interposed fill reverted.
+A single signed BTC checkpoint and withdrawal then paid one collateral atom
+while the position stayed open. Freeze rejected unclassified fees. Atomic fee
+classification and freeze then captured the exact funded insurance. Fresh
+PostgreSQL replay reproduced 228 events from 359 signed outcomes.
+
+The nonzero-funding run at `d45eae7` finalized 266 outcomes and reproduced 94
+events. ETH opened at a funding index of 4,999,999 scaled units. An attempted
+BTC-only instruction rejected the ETH exposure. The ordinary BTC route with both
+checkpoints brought ETH to 5,555,555 and charged the exact difference to its
+position. After a separate BTC fill the market PDA stayed byte-identical. The
+next publication recovered 6,111,110 from its maker registration after a
+31-second interval, with one second covered and 30 skipped. The funded wallet
+and freeze checks apply to this fresh local artifact. General default payouts,
+receiver exits and sustained throughput require their own qualification.
+[Costs](performance.md#read-only-selected-market) and
+[commands](local-development.md#reproduce-the-read-only-market-route).
+
 ## Clearing-verified funding checkpoints
 
 Clean harness `1637f8f`, SBF `2da3e90`, 2,920,496 bytes, SHA-256

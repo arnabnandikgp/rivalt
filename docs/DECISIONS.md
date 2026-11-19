@@ -1483,3 +1483,10 @@ also materializes the other market it checkpoints that market directly.
 Each publisher can reconstruct its own market with three read-only maker
 accounts and the market anchor. A cross fill still writes the sibling market.
 [Signed cost and funding evidence](operations/validation.md#clearing-verified-funding-checkpoints).
+
+The read-only route applies D138 to a single-market immediate trade during a
+held observation. A consumer can atomically fold current values into the market
+and use them in the next instruction. Clearing enforces adjacency, the target
+market and the invocation level. The ordinary route continues to handle
+cross-market dependencies and capacity redistribution on the prototype.
+[Account contract](clearing/accounts.md#read-only-market-on-a-local-fill).
