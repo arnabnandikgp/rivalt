@@ -16,7 +16,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { traderCount?:number; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
+  options: { traderCount?:number; independentTraders?:boolean; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
   const traderCount=options.traderCount??2;
   if(options.traderDeposits)assert(options.traderDeposits.length===traderCount && options.traderDeposits.every(amount=>amount>0n));
   const deposit=(index:number)=>options.traderDeposits?.[index]??options.traderCash??1_000_000n;
@@ -42,7 +42,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   await h.send('fund local test participants', [primary, guard, traderOwner].map(signer => getTransferSolInstruction({
     source: payer, destination: signer.address, amount: 1_000_000_000n })));
   const roots:Address[]=[], traderOwners:(typeof traderOwner)[]=[];
-  const identityCapacity=4*9; // Four portfolios, each with one cross and eight isolated roots.
+  const identityCapacity=options.independentTraders?1:4*9; // An independent owner starts at its own cross account.
   for(let first=0;first<traderCount;first+=identityCapacity) {
     const owner=first===0?traderOwner:await fixtureKey('p32-scale-trader-'+first);
     const token=first===0?traderToken:await fixtureKey('p32-scale-token-'+first);
