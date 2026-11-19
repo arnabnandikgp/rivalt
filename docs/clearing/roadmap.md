@@ -1,6 +1,6 @@
 # Clearing roadmap
 
-19 November 2026. This is the active engineering plan for Rivalt. The starting
+20 November 2026. This is the active engineering plan for Rivalt. The starting
 point is the locally qualified BTC/ETH prototype through P56. Its common clearing,
 isolated maker capital, one collateral mint, index-derived risk, whole-account
 funding and reservations, two-maker routes and current fees are the baseline for
@@ -74,8 +74,11 @@ frozen book. Ordinary clearing paid 19,998 and 20,002 atoms. Independent
 exhaustive search and the native allocator selected separate one-lot closes
 and equal 20,000-atom credits. The local clearing candidate now verifies
 both debtor budgets and distinct winning lots, and each maker withdrew 20,000.
-The next case measures what the flat creditor and the two open makers receive
-when one lot has too little eligible gain to cover either debtor’s budget.
+With insufficient opposing gain, the
+[partial-inventory case](../operations/validation.md#scarce-winning-inventory-and-flat-btc-claims)
+also pays the flat maker 19,996 and checks both a zero-capacity winning lot and
+a rounded-zero debtor budget. Next qualify the same matching rule for larger
+single-lot books, using complete membership and a resource-bounded verifier.
 [Measured comparison](../operations/validation.md#two-btc-debtors-sharing-winning-inventory).
 General linked selection,
 shared writes and broader cost qualification remain open.

@@ -1401,3 +1401,12 @@ Each debtor keeps its own original post-insurance budget and each winning lot
 can satisfy one debtor. The same receipt determines every downstream rate and
 member claim. D116 and D121 govern selection and ties.
 [Verification and release scope](clearing/default-plan-verification.md#shared-single-lot-inventory).
+
+## D133 — Compare disjoint one-lot assignments when neither can cover every loss
+
+20 November 2026. For the bounded two-debtor BTC build, compare both possible
+pairings under D116 and D121. A positive charge must fund a whole-lot execution.
+A zero charge leaves that lot unused and carries a zero fill price. Flat BTC
+creditors share the remaining backing under ordinary terminal rounding. The
+new local receipt marker distinguishes these terms from D132’s full-coverage
+certificate. [Proof and eligibility](clearing/default-plan-verification.md#when-one-of-the-two-winning-lots-has-little-eligible-gain).

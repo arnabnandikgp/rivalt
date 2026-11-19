@@ -1,5 +1,50 @@
 # Validation and measured limits
 
+## Scarce winning inventory and flat BTC claims
+
+Clean harness `f462fc6` used four signed BTC fills and nine funded internal
+accounts. Both debtors bought at 60,002 or 60,006. A third trader then sold and
+bought back one lot at 40,001, leaving the original maker flat with 20,001
+unpaid atoms and another maker with one atom of gain at the frozen 40,000 mark.
+The 44 fee atoms supplied 11 to BTC insurance. The original whole loss budgets
+were 10 and 12. Independent enumeration checked 572 assignments. It selected
+one atom on member 1 at 40,001 and 12 on member 2 at 40,012.
+
+| Account or measurement | Ordinary SBF `33361d9` | Partial-inventory SBF `2256c51` |
+|---|---:|---:|
+| Flat maker’s SPL withdrawal | 19,990 | 19,996 |
+| Small winning maker’s SPL withdrawal | 1 | 0 |
+| Other winning maker’s SPL withdrawal | 19,994 | 19,989 |
+| Total withdrawn to the internal operator’s wallet | 39,985 | 39,985 |
+| Vault balance after withdrawals | 6,020,015 | 6,020,015 |
+| Harness outcomes / finalized worker originals / fresh PostgreSQL events | 290 / 16 / 135 | 292 / 57 / 135 |
+
+A zero withdrawal in this table means the account had no funded recovery above
+its original deposit. The harness checked the root and skipped submitting an
+empty transfer. Candidate verification cost 55,697 CU / 835 bytes. The signed run
+rejected a repeated winner, the wrong pairing, and a charge above the debtor’s
+budget before it allowed settlement. A new worker resumed from the on-chain
+certificate. The fresh indexer reconciled all nine financial roots and the vault.
+
+Two boundaries exercise different reasons for leaving a lot unused on the same
+clearing artifact (2,638,216 bytes, SHA-256
+`da2796230e4591aa53855b4fc0c6543ad424c017bd09cd2ec8c8f96535627e8e`).
+
+| Boundary | Selected debtor charges | Signed wallet withdrawals | Verifier transaction | Outcomes / worker originals / fresh events |
+|---|---|---|---|---|
+| Mark equals one winner’s entry, nine members, `f462fc6` | 0 and 13 | Flat maker 19,996 and other winner 19,988 | 52,887 CU / 835 bytes | 292 / 57 / 135 |
+| One debtor’s share rounds to zero, eight members, `f95fbc7` | 0 and 1 | Makers 20,002 and 20,004 | 55,733 CU / 835 bytes | 271 / 54 / 111 |
+
+For the rounded budget, cash of 20,000 per debtor left losses of 2 and 6 before
+six insurance atoms. The remaining two atoms split into exact shares of 1/2
+and 3/2. Only the second admits a whole-atom close. Both winning positions had
+ample gain. The independent reference verified all four proposals on this book
+and all 154 in the zero-gain book. The standalone Rust comparison matched
+2,516 feasible allocations across 296 independent small books and a u64
+boundary. This profile covers two one-lot debtors and two opposite positions
+in BTC, with any remaining creditors flat and ETH exposure and claims zero.
+[Verification contract](../clearing/default-plan-verification.md#when-one-of-the-two-winning-lots-has-little-eligible-gain).
+
 ## Two BTC debtors sharing winning inventory
 
 On ordinary clearing SBF `33361d9`, clean harness `cfc2279` bought two BTC
