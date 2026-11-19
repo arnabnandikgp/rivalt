@@ -24,6 +24,7 @@ const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).tr
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
+const sharedInventory=probe==='profit-attribution-shared-inventory';
 const foreignGate=probe==='profit-attribution-foreign-winner-gate';
 const foreignApply=probe==='profit-attribution-foreign-winner-apply';
 const foreignBook=foreignApply||foreignGate||probe==='profit-attribution-foreign-winner-ordinary';
@@ -41,10 +42,10 @@ let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
   const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked||foreignGate||foreignApply?'sponsored-profit':'profit-attribution',
-    shape:symmetricPayoutShape, traderCash:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
+    shape:symmetricPayoutShape, traderCash:sharedInventory?20_010n:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
   const {guard,route,root} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = foreignBook?[setup.roots[1],setup.roots[0]]:setup.roots;
-  const makers = [setup.instances[0], setup.instances[3]];
+  const makers = [setup.instances[0], setup.instances[sharedInventory?2:3]];
   const sources = {primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
     guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
   const safety = async () => sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
@@ -53,7 +54,15 @@ try {
   const traderWallet = async () => getTokenDecoder().decode((await h.read(setup.traderToken.address))!).amount;
   const vault = async () => getTokenDecoder().decode((await h.read(setup.vault))!).amount;
   const before = {wallet:await wallet(),traderWallet:await traderWallet(),vault:await vault()};
-  if(foreignBook)await openForeignWinnerBook(h,setup);
+  if(sharedInventory) {
+    for(const [index,trader] of [debtor,otherTrader].entries()) {
+      const reference=index===0?60_000n:60_004n;
+      setup.sourcePrices.btc=reference*1_000_000n;
+      if(index===0)await setup.sample();else await setup.qualify();
+      await h.send('open debtor BTC lot against distinct maker '+index,[await route({trader,actor:setup.traderOwner,
+        marketIndex:0,side:0,makers:[makers[index]],lots:[1n],allInLimit:reference+15n,maxFee:13n})],[setup.traderOwner]);
+    }
+  } else if(foreignBook)await openForeignWinnerBook(h,setup);
   else for (const market of [0,1] as const) {
     await setup.sample();
     const gross = market===0 ? 60_002n : 30_002n;
@@ -81,15 +90,15 @@ try {
     const closed=await root(otherTrader);
     assert.deepEqual([closed.cash,closed.positions[0].lots,closed.positions[0].virtualScaled],[contested?29_974n:19_970n,0n,4_996_000_000_000n]);
   }
-  setup.sourcePrices.btc = foreignBook?40_000_000_000n:50_000_000_000n;
-  setup.sourcePrices.eth = foreignBook?1_250_000_000n:2_000_000_000n;
+  setup.sourcePrices.btc = sharedInventory||foreignBook?40_000_000_000n:50_000_000_000n;
+  setup.sourcePrices.eth = sharedInventory?3_000_000_000n:foreignBook?1_250_000_000n:2_000_000_000n;
   await setup.freshSources();
-  await h.send(foreignBook?'freeze the insolvent isolated BTC debtor':'freeze a cross debtor with both BTC and ETH losses',[sdk.getFreezeAccountsInstruction({...setup.safetyCommon,...sources,
+  await h.send(sharedInventory?'freeze the first of two insolvent BTC debtors':foreignBook?'freeze the insolvent isolated BTC debtor':'freeze a cross debtor with both BTC and ETH losses',[sdk.getFreezeAccountsInstruction({...setup.safetyCommon,...sources,
     caller:setup.payer,target:debtor,members:(await sdk.deriveMemberPage(setup.venue,(await root(debtor)).id/64n))[0],
     safetyEpoch:(await safety()).epoch,resolutionEpoch:(await resolution()).epoch,emergency:false})]);
   await flush();
   const frozen = await resolution();
-  assert.deepEqual(frozen.prices,foreignBook?[40_000n,12_500n]:[50_000n,20_000n]);
+  assert.deepEqual(frozen.prices,sharedInventory?[40_000n,30_000n]:foreignBook?[40_000n,12_500n]:[50_000n,20_000n]);
   const members = await financialRoots(h,setup.venue,setup.registry);
   const rows = await Promise.all(members.map(async key=>{
     const {root:value,positions:basis} = sdk.decodeProfitAttribution((await h.read(key))!,gated||linked||foreignGate||foreignApply);
@@ -110,8 +119,9 @@ try {
     winners:makers.map(maker=>maker.capital),venueHex:Buffer.from(getAddressEncoder().encode(setup.venue)).toString('hex'),
     sourceDigest:createHash('sha256').update(json([setup.venue,frozen,rows,freezes[0].signature])).digest('hex'),
     fills:history.filter(event=>event.type==='LiquidityRouteExecutedV4').map(event=>event.data)};
-  const comparison = JSON.parse(execFileSync('python3',[foreignBook?'tests/financial/foreign_winner_comparison.py':'tests/financial/linked_default_comparison.py'],{input:json(input),encoding:'utf8'}));
-  await journal.checkpoint('frozen-two-market-debtor',true);
+  const reference=sharedInventory?'shared_inventory_comparison':foreignBook?'foreign_winner_comparison':'linked_default_comparison';
+  const comparison = JSON.parse(execFileSync('python3',[`tests/financial/${reference}.py`],{input:json(input),encoding:'utf8'}));
+  await journal.checkpoint(sharedInventory?'frozen-competing-debtors':'frozen-two-market-debtor',true);
   const openWorker = async () => {
     const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,
       selection);
@@ -361,7 +371,7 @@ try {
     assert.equal((await resolution()).stage,2);
     assert.deepEqual([await wallet(),await traderWallet(),await vault()],[before.wallet,before.traderWallet,before.vault]);
   } else {
-    assert.deepEqual((await resolution()).insuranceSpent,foreignBook?[6n,3n]:allocationProfile?[13n,1n]:flatCreditor?[9n,1n]:[3n,1n]);
+    assert.deepEqual((await resolution()).insuranceSpent,sharedInventory?[6n,0n]:foreignBook?[6n,3n]:allocationProfile?[13n,1n]:flatCreditor?[9n,1n]:[3n,1n]);
     const target=linked||foreignApply?comparison.cash:comparison.ordinaryCash;
     for (const key of members) assert.equal(String((await root(key)).cash),target[key]);
     const traderPayout=flatCreditor?(linked?4_996n:4_994n):0n;
@@ -374,7 +384,7 @@ try {
       assert.deepEqual([await traderWallet(),await vault()],[before.traderWallet+traderPayout,before.vault-traderPayout]);
     }
     const payoutAccounts=allocationProfile?[makers[0],secondMaker,makers[1]]:makers;
-    const makerPayouts=foreignApply?[5_004n,34_968n]:foreignBook?[5_002n,34_970n]:allocationProfile?[5_002n,9_993n,9_990n]:flatCreditor?[linked?5_001n:5_003n,9_989n]:[9_999n,9_997n];
+    const makerPayouts:bigint[]=sharedInventory?comparison.ordinaryCredits.map(BigInt):foreignApply?[5_004n,34_968n]:foreignBook?[5_002n,34_970n]:allocationProfile?[5_002n,9_993n,9_990n]:flatCreditor?[linked?5_001n:5_003n,9_989n]:[9_999n,9_997n];
     for (const [index,amount] of makerPayouts.entries()) {
       const margin=payoutAccounts[index].capital;
       await h.send('withdraw market recovery to maker wallet '+index,[sdk.getWithdrawFundedAccountInstruction({...setup.common,
@@ -392,7 +402,7 @@ try {
     assert.deepEqual([failed.status,failed.cursor,failed.recovered],[2,'8',['0','12']]);
     assert.equal(replay.state.resolution?.linkedAllocation?.status,1);
   }
-  const result={revision,rejectionChecked,profile:foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+  const result={revision,rejectionChecked,profile:sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
     inputs:input,traderWalletAfter:await traderWallet(),comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));

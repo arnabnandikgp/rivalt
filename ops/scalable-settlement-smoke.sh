@@ -84,7 +84,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     python3 tests/financial/check_default_worker.py "$RIVALT_RUN_DIR" > "$RIVALT_RUN_DIR/independent-worker-audit.json" ;;
   account-clients) pnpm build:trader
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
-  profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply|profit-attribution-linked-flat|profit-attribution-linked-flat-apply|profit-attribution-linked-contested|profit-attribution-linked-allocation|profit-attribution-foreign-winner-ordinary|profit-attribution-foreign-winner-gate|profit-attribution-foreign-winner-apply)
+  profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply|profit-attribution-linked-flat|profit-attribution-linked-flat-apply|profit-attribution-linked-contested|profit-attribution-linked-allocation|profit-attribution-foreign-winner-ordinary|profit-attribution-foreign-winner-gate|profit-attribution-foreign-winner-apply|profit-attribution-shared-inventory)
     cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
     node --import tsx tests/rpc-contract/linked-default-recovery-rpc.ts ;;
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;
