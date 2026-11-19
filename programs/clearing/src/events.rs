@@ -268,8 +268,12 @@ pub struct LiquidityRouteExecuted {
     pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
 }
 
+// The two route events share the financial payload. The lane event carries
+// the earned funding so consumers can combine the fill with its physical checkpoint.
+macro_rules! fee_route_event {
+    ($name:ident $(, $field:ident: $ty:ty)*) => {
 #[event]
-pub struct LiquidityRouteFeeRecorded {
+pub struct $name {
     pub venue: Address,
     pub slot: u64,
     pub market: Address,
@@ -289,7 +293,21 @@ pub struct LiquidityRouteFeeRecorded {
     pub root_states: Vec<MarginAccountSnapshot>,
     pub maker_states: Vec<crate::state::liquidity::MakerRegistrationPayload>,
     pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
+        $(pub $field: $ty,)*
+        }
+    };
 }
+fee_route_event!(LiquidityRouteFeeRecorded);
+fee_route_event!(MarketLaneFilled, through: i64, index: i128);
+
+#[event]
+pub struct MarketCheckpointed {
+    pub venue: Address,
+    pub market: Address,
+    pub slot: u64,
+    pub state: MarketSnapshot,
+}
+
 #[event]
 pub struct MarketFeesClassified {
     pub venue: Address,

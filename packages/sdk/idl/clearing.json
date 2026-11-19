@@ -5268,6 +5268,186 @@
       ]
     },
     {
+      "name": "checkpoint_market",
+      "discriminator": [
+        234,
+        231,
+        222,
+        47,
+        209,
+        237,
+        138,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "market"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "first",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "second",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "third",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  107,
+                  101,
+                  114,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  2
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "classify_market_fees",
       "discriminator": [
         119,
@@ -9133,6 +9313,222 @@
         {
           "name": "market",
           "writable": true,
+          "relations": [
+            "ledger"
+          ]
+        },
+        {
+          "name": "other_market",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "other_ledger",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "trader",
+          "writable": true
+        },
+        {
+          "name": "registry"
+        },
+        {
+          "name": "first_capital",
+          "writable": true
+        },
+        {
+          "name": "first_registration",
+          "writable": true
+        },
+        {
+          "name": "first_program",
+          "docs": [
+            "CHECK: executable identity is bound to its loader metadata and approved hash."
+          ]
+        },
+        {
+          "name": "first_program_data"
+        },
+        {
+          "name": "first_config",
+          "docs": [
+            "CHECK: fixed read-only identity, ownership, code and quote verified before CPI."
+          ]
+        },
+        {
+          "name": "first_price",
+          "docs": [
+            "CHECK: fixed read-only publication validated against current inventory/depth."
+          ]
+        },
+        {
+          "name": "second_capital",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_registration",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "second_program",
+          "docs": [
+            "CHECK: executable identity is bound to its loader metadata and approved hash."
+          ],
+          "optional": true
+        },
+        {
+          "name": "second_program_data",
+          "optional": true
+        },
+        {
+          "name": "second_config",
+          "docs": [
+            "CHECK: same fixed read-only checks as the first leg; all-or-none optional tuple."
+          ],
+          "optional": true
+        },
+        {
+          "name": "second_price",
+          "docs": [
+            "CHECK: same fixed read-only checks as the first leg; no arbitrary remaining accounts."
+          ],
+          "optional": true
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "LiquidityRouteIntent"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_market_lane",
+      "discriminator": [
+        154,
+        97,
+        38,
+        114,
+        234,
+        143,
+        70,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "market",
+            "other_market",
+            "ledger",
+            "other_ledger",
+            "trader"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
           "relations": [
             "ledger"
           ]
@@ -23828,6 +24224,19 @@
       ]
     },
     {
+      "name": "MarketCheckpointed",
+      "discriminator": [
+        206,
+        244,
+        148,
+        80,
+        222,
+        32,
+        157,
+        44
+      ]
+    },
+    {
       "name": "MarketFeesClassified",
       "discriminator": [
         216,
@@ -23838,6 +24247,19 @@
         102,
         106,
         197
+      ]
+    },
+    {
+      "name": "MarketLaneFilled",
+      "discriminator": [
+        155,
+        169,
+        141,
+        229,
+        95,
+        233,
+        193,
+        157
       ]
     },
     {
@@ -24084,6 +24506,11 @@
       "code": 6131,
       "name": "FundingReport",
       "msg": "Funding publisher authority, report binding, sequence or lifetime rejected"
+    },
+    {
+      "code": 6132,
+      "name": "MarketCheckpoint",
+      "msg": "A current funding and gross checkpoint is required for each market"
     }
   ],
   "types": [
@@ -28136,6 +28563,34 @@
       }
     },
     {
+      "name": "MarketCheckpointed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarketSnapshot"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MarketFeesClassified",
       "type": {
         "kind": "struct",
@@ -28171,6 +28626,136 @@
                 "name": "MarketLedgerSnapshot"
               }
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketLaneFilled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_state",
+            "type": {
+              "defined": {
+                "name": "MarketSnapshot"
+              }
+            }
+          },
+          {
+            "name": "other_market_state",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "MarketSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "lane_collected",
+            "type": "u128"
+          },
+          {
+            "name": "market_pending",
+            "type": "u64"
+          },
+          {
+            "name": "ledger",
+            "type": {
+              "defined": {
+                "name": "MarketLedgerSnapshot"
+              }
+            }
+          },
+          {
+            "name": "other_ledger",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "MarketLedgerSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "order_version",
+            "type": "u64"
+          },
+          {
+            "name": "root_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "maker_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MakerRegistrationPayload"
+                }
+              }
+            }
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ExecutedLeg"
+                }
+              }
+            }
+          },
+          {
+            "name": "through",
+            "type": "i64"
+          },
+          {
+            "name": "index",
+            "type": "i128"
           }
         ]
       }

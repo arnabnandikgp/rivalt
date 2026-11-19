@@ -18,7 +18,7 @@ mod candidate {
         ClearingError,
     };
     use anchor_lang::prelude::*;
-    use financial_core::oracle::prefix::{FundingWindow, Materialization};
+    use financial_core::oracle::prefix::{FundingPrefix, FundingWindow, Materialization};
 
     fn window(market: &Market) -> Option<FundingWindow> {
         let source = &market.oracle;
@@ -92,12 +92,14 @@ mod candidate {
         }
         Ok(())
     }
-    pub(crate) fn check(
+    /// Reconstruct only previously earned funding. The Clock supplies a read
+    /// fence; reading the checkpoint never extends its earned interval.
+    pub(crate) fn earned(
         market: &mut BorshAccount<Market>,
         accounts: &[AccountView],
         clock: &Clock,
         active: bool,
-    ) -> Result<()> {
+    ) -> Result<Option<FundingPrefix>> {
         require!(accounts.len() == 3, ClearingError::Profile);
         let mut lanes = [None; 3];
         for (instance, account) in accounts.iter().enumerate() {
@@ -132,10 +134,10 @@ mod candidate {
             lanes[instance] = load(&data[prefix + 32..], market.index)?;
         }
         let Some(source) = window(market) else {
-            return Ok(());
+            return Ok(None);
         };
         if !active {
-            return Ok(());
+            return Ok(None);
         }
         let mut canonical = None;
         inspect::<_, { crate::market_capacity::MARKET_EXTRA }>(
@@ -146,9 +148,20 @@ mod candidate {
             },
             false,
         )?;
-        let accrued = source
-            .resolve(canonical, lanes, clock.slot)
+        let accrued = source.resolve(canonical, lanes, clock.slot)
             .map_err(|_| ClearingError::Reconciliation)?;
+        Ok(Some(accrued))
+    }
+
+    pub(crate) fn check(
+        market: &mut BorshAccount<Market>,
+        accounts: &[AccountView],
+        clock: &Clock,
+        active: bool,
+    ) -> Result<()> {
+        let Some(accrued) = earned(market, accounts, clock, active)? else {
+            return Ok(());
+        };
         require!(
             market.funding_time == accrued.through && market.funding_index_scaled == accrued.index,
             ClearingError::Reconciliation

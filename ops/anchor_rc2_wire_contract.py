@@ -155,6 +155,25 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    checkpoint = unique('checkpoint_market')
+    assert checkpoint['discriminator'] == list(hashlib.sha256(b'global:checkpoint_market').digest()[:8])
+    assert not checkpoint['args'] and 'returns' not in checkpoint
+    assert [item['name'] for item in checkpoint['accounts']] == 'venue safety market first second third event_authority program'.split()
+    assert [item['name'] for item in checkpoint['accounts'] if item.get('writable')] == ['market']
+    assert not any(item.get('signer') or item.get('optional') for item in checkpoint['accounts'])
+    assert checkpoint['accounts'][3:6] == unique('read_market_gross')['accounts'][2:5]
+    actual['instructions'].remove(checkpoint)
+    lane = unique('execute_market_lane')
+    assert lane['discriminator'] == list(hashlib.sha256(b'global:execute_market_lane').digest()[:8])
+    ordinary = unique('execute_liquidity_route')
+    assert lane['args'] == ordinary['args']
+    expected_metas = deepcopy(ordinary['accounts'])
+    selected = next(meta for meta in expected_metas if meta['name'] == 'market')
+    assert selected.pop('writable')
+    assert lane['accounts'] == expected_metas
+    actual['instructions'].remove(lane)
+    actual['errors'].remove(dict(code=6132, name='MarketCheckpoint',
+        msg='A current funding and gross checkpoint is required for each market'))
     view = unique('read_market_gross')
     assert view['discriminator'] == list(hashlib.sha256(b'global:read_market_gross').digest()[:8])
     assert view.get('returns') == 'u64' and not view['args']
@@ -181,6 +200,8 @@ def undo_liquidation_delta(actual, program):
     revised[insert:insert] = fields([('lane_collected','u128'),('market_pending','u64')])
     for name, expected in (
         ('LiquidityRouteFeeRecorded', revised),
+        ('MarketLaneFilled', revised + fields([('through','i64'),('index','i128')])),
+        ('MarketCheckpointed', fields([('venue','pubkey'),('market','pubkey'),('slot','u64'),('state',{'defined':{'name':'MarketSnapshot'}})])),
         ('MarketFeesClassified', fields([('venue','pubkey'),('market','pubkey'),('slot','u64'),('classified','u128'),
                                        ('amount','u64'),('insurance_credit','u64'),('ledger',{'defined':{'name':'MarketLedgerSnapshot'}})]))
     ):

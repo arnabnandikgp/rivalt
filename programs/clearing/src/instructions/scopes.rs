@@ -125,6 +125,9 @@ context!(ActivateAccounts, qualification.venue, qualification.event_authority;
 
 
 
+context!(CheckpointMarket, venue, event_authority;
+[venue: Read, safety: Read, market: Write, first: Read, second: Read, third: Read]; []);
+
 context!(ClassifyMarketFees, identity.venue, event_authority;
 [identity.venue: Read, identity.safety: Read, identity.ledger: Write, first: Read, second: Read, third: Read]; []);
 
@@ -226,6 +229,24 @@ context!(ExecuteLiquidityRoute, identity.venue, event_authority;
     identity.venue: Read,
     identity.safety: Read,
     identity.market: Write,
+    identity.ledger: Write,
+    identity.trader: Write,
+    registry: Read,
+    first_capital: Write,
+    first_registration: Write,
+];
+[
+    identity.other_market: Write,
+    identity.other_ledger: Write,
+    second_capital: Write,
+    second_registration: Write,
+]);
+
+context!(ExecuteMarketLane, identity.venue, event_authority;
+[
+    identity.venue: Read,
+    identity.safety: Read,
+    identity.market: Read,
     identity.ledger: Write,
     identity.trader: Write,
     registry: Read,

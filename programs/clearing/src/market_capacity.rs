@@ -102,19 +102,39 @@ mod candidate {
         Ok(free / 3 + u64::from(u64::from(instance) < free % 3))
     }
 
-    pub(super) fn total(
+    pub(crate) fn total(
         market: &BorshAccount<Market>,
         makers: [&BorshAccount<MakerRegistration>; 3],
     ) -> Result<u64> {
         require!(market.schema_version == 10, ClearingError::Profile);
+        sum_lanes(*market.address(), market.venue, anchor(market)?, makers)
+    }
+
+    #[cfg(feature = "read-only-route-market")]
+    pub(crate) fn checkpoint_gross(
+        market: &mut BorshAccount<Market>,
+        makers: [&BorshAccount<MakerRegistration>; 3],
+    ) -> Result<u64> {
+        require!(market.schema_version == 10, ClearingError::Profile);
+        market.release_borrow()?;
         let checkpoint = anchor(market)?;
+        market.reacquire_guard_only()?;
+        sum_lanes(*market.address(), market.venue, checkpoint, makers)
+    }
+
+    fn sum_lanes(
+        market: Address,
+        venue: Address,
+        checkpoint: Anchor,
+        makers: [&BorshAccount<MakerRegistration>; 3],
+    ) -> Result<u64> {
         let mut gross = MAX_GROSS_LOTS;
         for (index, maker) in makers.into_iter().enumerate() {
             require!(
                 maker.schema_version == 10
                     && maker.instance as usize == index
-                    && maker.venue == market.venue
-                    && maker.market == market.address().to_owned(),
+                    && maker.venue == venue
+                    && maker.market == market,
                 ClearingError::MakerBinding
             );
             let bytes = maker.account().try_borrow()?;
@@ -146,6 +166,26 @@ mod candidate {
             },
             true,
         )
+    }
+
+    /// The hot route owns only the first registration's capacity. A short
+    /// lane can use the fully checkpointed ordinary route for global admission.
+    #[cfg(feature = "read-only-route-market")]
+    pub(crate) fn record_local(
+        market: &BorshAccount<Market>, maker: &mut BorshAccount<MakerRegistration>, delta: i128,
+    ) -> Result<()> {
+        let checkpoint = anchor(market)?;
+        require!(checkpoint.generation > 0 && maker.market == *market.address() && maker.venue == market.venue,
+            ClearingError::MakerBinding);
+        let instance = maker.instance;
+        inspect::<_, {crate::market_fees::LANE_EXTRA}>(maker, |bytes| {
+            let free = available(&bytes[16..32], instance, checkpoint)?;
+            let remaining = i128::from(free).checked_sub(delta).ok_or(ClearingError::Arithmetic)?;
+            require!((0..=i128::from(MAX_GROSS_LOTS)).contains(&remaining), ClearingError::RouteHealth);
+            bytes[16..24].copy_from_slice(&checkpoint.generation.to_le_bytes());
+            bytes[24..32].copy_from_slice(&(remaining as u64).to_le_bytes());
+            Ok(())
+        }, true)
     }
 
     pub(crate) fn record(
@@ -198,3 +238,5 @@ mod candidate {
 }
 #[cfg(feature = "bounded-market-read")]
 pub(crate) use candidate::{record, reset};
+#[cfg(feature = "read-only-route-market")]
+pub(crate) use candidate::{checkpoint_gross,record_local};

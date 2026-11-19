@@ -285,6 +285,7 @@ dependencies = [
  "financial-core",
  "maker-interface",
  "oracle-fixture",
+ "solana-instruction 4.0.0",
  "solana-sha256-hasher",
 ]
 

@@ -29,12 +29,16 @@ pub(crate) trait Revisioned {
     const KIND: u8;
     fn schema(&self) -> u16;
     fn revision(&self) -> u64;
+    #[cfg(feature = "read-only-route-market")]
+    fn venue_mode(&self) -> Option<u8> { None }
     fn set_revision(&mut self, revision: u64);
 }
 macro_rules! revisioned {
-    ($($kind:literal => $account:ty),+ $(,)?) => {$(
+    ($($kind:literal => $account:ty $(; $mode:ident)?),+ $(,)?) => {$(
         impl Revisioned for $account {
             const KIND: u8 = $kind;
+            $(#[cfg(feature = "read-only-route-market")]
+            fn venue_mode(&self) -> Option<u8> { Some(self.$mode) })?
             fn schema(&self) -> u16 { self.schema_version }
             fn revision(&self) -> u64 { self.revision }
             fn set_revision(&mut self, revision: u64) { self.revision = revision; }
@@ -42,7 +46,7 @@ macro_rules! revisioned {
     )+};
 }
 revisioned! {
-    0 => Venue, 1 => Custody, 2 => VenueSafety, 3 => VenueRegistry,
+    0 => Venue, 1 => Custody, 2 => VenueSafety; mode, 3 => VenueRegistry,
     4 => Portfolio, 5 => MarginAccount, 6 => Market, 7 => MarketLedger,
     8 => CapitalBinding, 9 => SettlementCertificate, 10 => Resolution,
     // Kinds 11/12 are retired; never reuse their persisted identities.
@@ -77,6 +81,8 @@ struct Entry {
 }
 
 pub(crate) struct Scope {
+    #[cfg(feature = "read-only-route-market")]
+    venue_mode: Option<u8>,
     entries: Vec<Entry>,
     limit: usize,
     cursor: Option<usize>,
@@ -87,7 +93,8 @@ impl Scope {
     }
 
     fn with_limit(limit: usize) -> Self {
-        Self { entries: Vec::with_capacity(limit), limit, cursor: None }
+        Self { entries: Vec::with_capacity(limit), limit, cursor: None,
+            #[cfg(feature = "read-only-route-market")] venue_mode: None }
     }
 
     #[cfg(feature = "book-inventory-qualification")]
@@ -162,6 +169,10 @@ impl Scope {
         account: &mut SerializedAccount<T, S>,
         access: Access,
     ) -> Result<()> {
+        #[cfg(feature = "read-only-route-market")]
+        if self.cursor.is_none() {
+            if let Some(mode) = account.venue_mode() { self.venue_mode = Some(mode); }
+        }
         let revision = self.visit(
             account.address().to_owned(),
             T::KIND,
@@ -695,6 +706,17 @@ fn run_with_remaining<'context, T: ScopedContext>(
     context.accounts.visit(&mut scope)?;
     access.visit(&mut scope, &mut remaining)?;
     let mut payloads = event_cpi::Payloads::default();
+    #[cfg(feature = "read-only-route-market")]
+    if instruction != [234, 231, 222, 47, 209, 237, 138, 64] && instruction != [154, 97, 38, 114, 234, 143, 70, 85] {
+        let markets = scope.entries.iter().filter(|entry| entry.kind == Market::KIND && entry.access != Access::Create)
+            .map(|entry| entry.account);
+        if markets.clone().next().is_some() {
+            let mode = scope.venue_mode.ok_or(ClearingError::Profile)?;
+            if mode == crate::state::accounts::ACTIVE {
+                crate::market_checkpoint::require_recent(markets)?;
+            }
+        }
+    }
     profile_cu!("handler-enter");
     handler(context, &mut payloads)?;
     profile_cu!("handler-exit");

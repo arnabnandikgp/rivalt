@@ -5,6 +5,7 @@ import {accountCheck as check, accountFields, emptyAccounts, present, type Accou
 
 type Fields<T> = ReturnType<typeof accountFields<T>>;
 export type LiquidityState = {
+  marketCheckpoints?:Record<string,{grossLots:string;fundingTime:string;fundingIndexScaled:string}>;
   feeAccounting?:Record<string,{lanes:Record<string,string>;classified:string;pending:string}>;
   registries:Record<string,Fields<sdk.LiquidityRegistry>>;
   makers:Record<string,Fields<sdk.MakerRegistration>>;
@@ -84,6 +85,15 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       liquidity.reports[change.market]={publisher:change.publisher,slot:String(event.slot),report:accountFields<sdk.FundingReport>(report)};
       financial.market(change.state,change.market);break;
     }
+    case 'MarketCheckpointed': {
+      check(artifactSet===sdk.READ_ONLY_MARKET_ARTIFACT_SET,'market checkpoint deployment');
+      const logical=present(state.markets[change.market],'current market');
+      same(fields(logical,['grossLots','fundingTime','fundingIndexScaled']),fields(change.state,['grossLots','fundingTime','fundingIndexScaled']),
+        'checkpoint versus committed economic effects');
+      if(liquidity.marketCheckpoints)delete liquidity.marketCheckpoints[change.market];
+      financial.market(change.state,change.market);
+      break;
+    }
     case 'MarketFeesClassified': {
       const fees=feesForMarket(), prior=previousLedger();
       const total=Object.values(fees.lanes).reduce((sum,lane)=>sum+BigInt(lane),0n);
@@ -95,12 +105,13 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       financial.ledger(change.ledger);
       break;
     }
+    case 'MarketLaneFilled':
     case 'LiquidityRouteFeeRecorded':
     case 'LiquidityRouteExecutedV4': {
       check([1,2].includes(change.legs.length)&&change.makerStates.length===change.legs.length&&change.rootStates.length===change.legs.length+1
         &&new Set(change.rootStates.map((value:any)=>value.id)).size===change.rootStates.length
         &&new Set(change.legs.map((leg:any)=>leg.registration)).size===change.legs.length,'canonical route shape');
-      if(event.type==='LiquidityRouteFeeRecorded') {
+      if(event.type!=='LiquidityRouteExecutedV4') {
         const accounting=feesForMarket(), prior=previousLedger(), lane=change.legs[0].registration;
         const amount=BigInt(change.fee), collected=BigInt(accounting.lanes[lane]??'0')+amount;
         const pending=BigInt(accounting.pending)+amount;
@@ -126,8 +137,29 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
         maker(next,leg.registration);lots+=BigInt(leg.lots);gross+=BigInt(leg.gross);
       }
       same(lots,BigInt(change.lots),'route lots sum');same(gross,BigInt(change.grossQuote),'route notional sum');
+      let marketAfter=change.marketState;
+      if(event.type==='MarketLaneFilled'){
+        check(artifactSet===sdk.READ_ONLY_MARKET_ARTIFACT_SET&&change.otherMarketState.__option==='None','local market lane scope');
+        const logical=present(state.markets[change.market],'current market'),cached=change.marketState;
+        const physical={grossLots:cached.grossLots,fundingTime:cached.fundingTime,fundingIndexScaled:cached.fundingIndexScaled};
+        const prior=liquidity.marketCheckpoints?.[change.market]??logical;
+        const names=['grossLots','fundingTime','fundingIndexScaled'];
+        same(fields(prior,names),fields(physical,names),'read-only market checkpoint');
+        const abs=(quantity:bigint)=>quantity<0n?-quantity:quantity;
+        let grossLots=BigInt(logical.grossLots);
+        for(const row of change.rootStates){
+          const old=present(state.roots[state.identities[row.id]],'previous trading account');
+          grossLots+=abs(BigInt(row.positions[marketIndex].lots))-abs(BigInt(old.positions[marketIndex].lots));
+        }
+        const oracle=logical.oracle,through=BigInt(change.through);
+        check(through>=BigInt(oracle.sampledAt)&&through<=BigInt(oracle.heldUntil),'lane funding time');
+        same(BigInt(change.index),BigInt(oracle.fundingBase)+BigInt(oracle.premiumScaled)*(through-BigInt(oracle.sampledAt))/3600n,'lane funding index');
+        liquidity.marketCheckpoints??={};
+        liquidity.marketCheckpoints[change.market]=physical;
+        marketAfter={...cached,grossLots:String(grossLots),fundingTime:change.through,fundingIndexScaled:change.index};
+      }
       change.rootStates.forEach((value:any)=>financial.root(value));
-      financial.market(change.marketState,change.market);
+      financial.market(marketAfter,change.market);
       if(change.otherMarketState.__option==='Some') {
         check(change.otherMarketState.value.index!==change.marketState.index,'distinct route market snapshots');
         financial.market(change.otherMarketState.value);

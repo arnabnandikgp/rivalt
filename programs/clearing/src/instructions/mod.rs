@@ -44,6 +44,10 @@ pub(crate) use crate::market_capacity::__client_accounts_readmarketgross;
 #[cfg(feature = "cpi")]
 pub(crate) use crate::market_capacity::__cpi_accounts_readmarketgross;
 pub use crate::market_capacity::ReadMarketGross;
+pub(crate) use crate::market_checkpoint::__client_accounts_checkpointmarket;
+#[cfg(feature = "cpi")]
+pub(crate) use crate::market_checkpoint::__cpi_accounts_checkpointmarket;
+pub use crate::market_checkpoint::CheckpointMarket;
 pub use account_cash::fees::{AllocateMarketFees, ClassifyMarketFees, WithdrawMarketFees};
 pub use account_cash::AccountFinancialIdentity;
 pub use account_cash::ChangeAccountClaim;
@@ -188,7 +192,10 @@ pub use maker_liquidity::publisher::PublishFundingReport;
 pub(crate) use maker_liquidity::routes::__client_accounts_executeliquidityroute;
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::routes::__cpi_accounts_executeliquidityroute;
-pub use maker_liquidity::routes::ExecuteLiquidityRoute;
+pub use maker_liquidity::routes::{ExecuteLiquidityRoute, ExecuteMarketLane};
+pub(crate) use maker_liquidity::routes::__client_accounts_executemarketlane;
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::routes::__cpi_accounts_executemarketlane;
 pub use maker_liquidity::routes::{LiquidityOrderExecution, LiquidityRouteIntent};
 pub use maker_liquidity::ControlLiquidity;
 pub use maker_liquidity::InitializeLiquidity;

@@ -16,6 +16,7 @@ liquidity-execution-qualification = []
 # Fresh local margin layout only. The selected binary uses the prefix layout.
 shared-inventory-qualification = ["foreign-creditor-qualification"]
 partial-inventory-qualification = ["shared-inventory-qualification"]
+read-only-route-market = ["checked-funding-prefix", "dep:solana-instruction"]
 checked-funding-prefix = ["bounded-market-read"]
 bounded-market-read = ["aggregate-fee-qualification", "financial-core/parallel-market-prototype"]
 aggregate-fee-qualification = ["multi-lot-book-qualification"]
@@ -42,6 +43,7 @@ custom-heap = []
 custom-panic = []
 
 [dependencies]
+solana-instruction = { version = "=4.0.0", features = ["syscalls"], optional = true }
 default-plan-selection = { path = "../../crates/default-plan-selection", optional = true }
 clearing-accounting = { path = "../../crates/clearing-accounting", optional = true }
 anchor-lang = { workspace = true }

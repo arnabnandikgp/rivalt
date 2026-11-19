@@ -134,6 +134,7 @@ import {
   getCancelRecoveryProvisionInstructionAsync,
   getCheckAccountRetirementInstructionAsync,
   getCheckMarketBackingInstructionAsync,
+  getCheckpointMarketInstructionAsync,
   getClassifyMarketFeesInstructionAsync,
   getClassifyMarketSurplusInstructionAsync,
   getCollectAccountLossInstructionAsync,
@@ -150,6 +151,7 @@ import {
   getDepositAccountInstructionAsync,
   getExecuteLiquidityOrderInstructionAsync,
   getExecuteLiquidityRouteInstructionAsync,
+  getExecuteMarketLaneInstructionAsync,
   getFreezeAccountsInstructionAsync,
   getFundMemberIndexInstructionAsync,
   getFundMemberPageInstructionAsync,
@@ -227,6 +229,7 @@ import {
   parseCancelRecoveryProvisionInstruction,
   parseCheckAccountRetirementInstruction,
   parseCheckMarketBackingInstruction,
+  parseCheckpointMarketInstruction,
   parseClassifyMarketFeesInstruction,
   parseClassifyMarketSurplusInstruction,
   parseCollectAccountLossInstruction,
@@ -243,6 +246,7 @@ import {
   parseDepositAccountInstruction,
   parseExecuteLiquidityOrderInstruction,
   parseExecuteLiquidityRouteInstruction,
+  parseExecuteMarketLaneInstruction,
   parseFreezeAccountsInstruction,
   parseFundMemberIndexInstruction,
   parseFundMemberPageInstruction,
@@ -320,6 +324,7 @@ import {
   type CancelRecoveryProvisionAsyncInput,
   type CheckAccountRetirementAsyncInput,
   type CheckMarketBackingAsyncInput,
+  type CheckpointMarketAsyncInput,
   type ClassifyMarketFeesAsyncInput,
   type ClassifyMarketSurplusAsyncInput,
   type CollectAccountLossAsyncInput,
@@ -336,6 +341,7 @@ import {
   type DepositAccountAsyncInput,
   type ExecuteLiquidityOrderAsyncInput,
   type ExecuteLiquidityRouteAsyncInput,
+  type ExecuteMarketLaneAsyncInput,
   type FreezeAccountsAsyncInput,
   type FundMemberIndexAsyncInput,
   type FundMemberPageAsyncInput,
@@ -379,6 +385,7 @@ import {
   type ParsedCancelRecoveryProvisionInstruction,
   type ParsedCheckAccountRetirementInstruction,
   type ParsedCheckMarketBackingInstruction,
+  type ParsedCheckpointMarketInstruction,
   type ParsedClassifyMarketFeesInstruction,
   type ParsedClassifyMarketSurplusInstruction,
   type ParsedCollectAccountLossInstruction,
@@ -395,6 +402,7 @@ import {
   type ParsedDepositAccountInstruction,
   type ParsedExecuteLiquidityOrderInstruction,
   type ParsedExecuteLiquidityRouteInstruction,
+  type ParsedExecuteMarketLaneInstruction,
   type ParsedFreezeAccountsInstruction,
   type ParsedFundMemberIndexInstruction,
   type ParsedFundMemberPageInstruction,
@@ -881,7 +889,9 @@ export enum ClearingEvent {
   LiquidityRouteExecuted,
   LiquidityRouteFeeRecorded,
   MarginMembershipChanged,
+  MarketCheckpointed,
   MarketFeesClassified,
+  MarketLaneFilled,
   MultiLotBookVerified,
   RecoveryStorageRefunded,
   RetiredReserveWithdrawn,
@@ -1294,12 +1304,34 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([206, 244, 148, 80, 222, 32, 157, 44]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarketCheckpointed;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([216, 80, 14, 69, 228, 102, 106, 197]),
       ),
       0,
     )
   ) {
     return ClearingEvent.MarketFeesClassified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([155, 169, 141, 229, 95, 233, 193, 157]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarketLaneFilled;
   }
   if (
     containsBytes(
@@ -1391,6 +1423,7 @@ export enum ClearingInstruction {
   CancelRecoveryProvision,
   CheckAccountRetirement,
   CheckMarketBacking,
+  CheckpointMarket,
   ClassifyMarketFees,
   ClassifyMarketSurplus,
   CollectAccountLoss,
@@ -1407,6 +1440,7 @@ export enum ClearingInstruction {
   DepositAccount,
   ExecuteLiquidityOrder,
   ExecuteLiquidityRoute,
+  ExecuteMarketLane,
   FreezeAccounts,
   FundMemberIndex,
   FundMemberPage,
@@ -1674,6 +1708,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([234, 231, 222, 47, 209, 237, 138, 64]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CheckpointMarket;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([119, 160, 87, 122, 107, 187, 203, 113]),
       ),
       0,
@@ -1845,6 +1890,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ExecuteLiquidityRoute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([154, 97, 38, 114, 234, 143, 70, 85]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteMarketLane;
   }
   if (
     containsBytes(
@@ -2559,6 +2615,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.CheckMarketBacking;
     } & ParsedCheckMarketBackingInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.CheckpointMarket;
+    } & ParsedCheckpointMarketInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ClassifyMarketFees;
     } & ParsedClassifyMarketFeesInstruction<TProgram>)
   | ({
@@ -2606,6 +2665,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.ExecuteLiquidityRoute;
     } & ParsedExecuteLiquidityRouteInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteMarketLane;
+    } & ParsedExecuteMarketLaneInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.FreezeAccounts;
     } & ParsedFreezeAccountsInstruction<TProgram>)
@@ -2915,6 +2977,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseCheckMarketBackingInstruction(instruction),
       };
     }
+    case ClearingInstruction.CheckpointMarket: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CheckpointMarket,
+        ...parseCheckpointMarketInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ClassifyMarketFees: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3025,6 +3094,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ExecuteLiquidityRoute,
         ...parseExecuteLiquidityRouteInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteMarketLane: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteMarketLane,
+        ...parseExecuteMarketLaneInstruction(instruction),
       };
     }
     case ClearingInstruction.FreezeAccounts: {
@@ -3603,6 +3679,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCheckMarketBackingInstructionAsync> &
     SelfPlanAndSendFunctions;
+  checkpointMarket: (
+    input: CheckpointMarketAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCheckpointMarketInstructionAsync> &
+    SelfPlanAndSendFunctions;
   classifyMarketFees: (
     input: ClassifyMarketFeesAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3682,6 +3763,11 @@ export type ClearingPluginInstructions = {
     input: ExecuteLiquidityRouteAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getExecuteLiquidityRouteInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeMarketLane: (
+    input: ExecuteMarketLaneAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteMarketLaneInstructionAsync> &
     SelfPlanAndSendFunctions;
   freezeAccounts: (
     input: FreezeAccountsAsyncInput,
@@ -3993,6 +4079,9 @@ export type ClearingPluginPdas = {
   venueVault: typeof findVenueVaultPda;
   eventAuthority: typeof findEventAuthorityPda;
   liquidityController: typeof findLiquidityControllerPda;
+  firstMakerRegistration: typeof findFirstMakerRegistrationPda;
+  secondMakerRegistration: typeof findSecondMakerRegistrationPda;
+  thirdMakerRegistration: typeof findThirdMakerRegistrationPda;
   fundingPublisher: typeof findFundingPublisherPda;
   portfolio: typeof findPortfolioPda;
   marketLedger: typeof findMarketLedgerPda;
@@ -4000,9 +4089,6 @@ export type ClearingPluginPdas = {
   certificate: typeof findCertificatePda;
   liquidityRegistry: typeof findLiquidityRegistryPda;
   venue: typeof findVenuePda;
-  firstMakerRegistration: typeof findFirstMakerRegistrationPda;
-  secondMakerRegistration: typeof findSecondMakerRegistrationPda;
-  thirdMakerRegistration: typeof findThirdMakerRegistrationPda;
   capitalBinding: typeof findCapitalBindingPda;
   marginAccount: typeof findMarginAccountPda;
 };
@@ -4243,6 +4329,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          checkpointMarket: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCheckpointMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           classifyMarketFees: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -4367,6 +4461,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getExecuteLiquidityRouteInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeMarketLane: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteMarketLaneInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -4926,6 +5028,21 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
+          firstMakerRegistration: (seeds, pdaConfig) =>
+            findFirstMakerRegistrationPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          secondMakerRegistration: (seeds, pdaConfig) =>
+            findSecondMakerRegistrationPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          thirdMakerRegistration: (seeds, pdaConfig) =>
+            findThirdMakerRegistrationPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           fundingPublisher: (seeds, pdaConfig) =>
             findFundingPublisherPda(seeds, {
               programAddress:
@@ -4958,21 +5075,6 @@ export function clearingProgram(
             }),
           venue: (seeds, pdaConfig) =>
             findVenuePda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          firstMakerRegistration: (seeds, pdaConfig) =>
-            findFirstMakerRegistrationPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          secondMakerRegistration: (seeds, pdaConfig) =>
-            findSecondMakerRegistrationPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          thirdMakerRegistration: (seeds, pdaConfig) =>
-            findThirdMakerRegistrationPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

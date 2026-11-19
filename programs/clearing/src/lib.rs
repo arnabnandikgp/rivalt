@@ -32,6 +32,7 @@ pub mod error;
 mod event_cpi;
 mod market_fees;
 mod market_capacity;
+mod market_checkpoint;
 mod market_funding;
 pub mod events;
 pub mod instructions;
@@ -556,6 +557,14 @@ pub mod clearing {
     /// Read exact gross lots at this invocation from the canonical capacity accounts.
     pub fn read_market_gross(ctx: &mut Context<ReadMarketGross>) -> Result<u64> {
         market_capacity::read_gross(ctx)
+    }
+
+    pub fn execute_market_lane(ctx: &mut Context<ExecuteMarketLane>, args: LiquidityRouteIntent) -> Result<()> {
+        scoped_history::run(ctx, [154, 97, 38, 114, 234, 143, 70, 85], false, |ctx, events| maker_liquidity::routes::execute_lane(ctx, events, args))
+    }
+
+    pub fn checkpoint_market(ctx: &mut Context<CheckpointMarket>) -> Result<()> {
+        scoped_history::run(ctx, [234, 231, 222, 47, 209, 237, 138, 64], false, market_checkpoint::checkpoint)
     }
 
     pub fn classify_market_fees(ctx: &mut Context<ClassifyMarketFees>) -> Result<()> {

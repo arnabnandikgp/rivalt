@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import {hasAggregateFees,attributeFinalizedFee} from '@rivalt/sdk';
+import {READ_ONLY_MARKET_ARTIFACT_SET,hasAggregateFees,attributeFinalizedFee} from '@rivalt/sdk';
 import type {LiquidityIndexer} from './liquidity-indexer.js';
 import {publishedSnapshot} from './store.js';
 
@@ -58,8 +58,10 @@ export function accountApi(indexer:LiquidityIndexer) {
         const row=publishedSnapshot<any,any>((await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0]);
         const aggregate=hasAggregateFees(row.binding.artifactSet);
         const tradeKind=aggregate?'LiquidityRouteFeeRecorded':'LiquidityRouteExecutedV4';
+        const tradeFilter=row.binding.artifactSet===READ_ONLY_MARKET_ARTIFACT_SET?
+          "kind IN ('MarketLaneFilled','LiquidityRouteFeeRecorded')":`kind='${tradeKind}'`;
         const result=await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
-          WHERE run_id=$1 AND sequence>$2 AND sequence<=$4 ${endpoint==='trades'?`AND kind='${tradeKind}'`:''}
+          WHERE run_id=$1 AND sequence>$2 AND sequence<=$4 ${endpoint==='trades'?`AND ${tradeFilter}`:''}
           ORDER BY events.sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,[indexer.config.runId,request.query.after??'0',request.query.limit??50,row.state.sequence]);
         await client.query('COMMIT');const items=request.query.latest?result.rows.reverse():result.rows;
         if(aggregate && endpoint==='trades')for(const item of items){

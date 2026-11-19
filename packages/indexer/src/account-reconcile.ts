@@ -106,7 +106,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
   let minSlot:number|undefined,maxSlot=0;
-  const checkedFunding=binding.artifactSet===sdk.CHECKED_FUNDING_ARTIFACT_SET;
+  const checkedFunding=sdk.hasFundingCheckpoints(binding.artifactSet);
   const capacity=sdk.hasMarketCapacity(binding.artifactSet);
   const allocation=binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET;
   const linkedAllocation=binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET;
@@ -181,8 +181,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         }
         if(state.safety?.mode===1&&observation.heldEpoch===marketState.configEpoch&&observation.heldUntil>observation.sampledAt){
           const end=latest && latest.timestamp<observation.heldUntil?latest.timestamp:latest?observation.heldUntil:observation.sampledAt;
-          assert.equal(marketState.fundingTime,end,'funding checkpoint time');
-          assert.equal(marketState.fundingIndexScaled,observation.fundingBase+observation.premiumScaled*(end-observation.sampledAt)/3600n,
+          assert.equal(BigInt(projected.fundingTime),end,'funding checkpoint time');
+          assert.equal(BigInt(projected.fundingIndexScaled),observation.fundingBase+observation.premiumScaled*(end-observation.sampledAt)/3600n,
             'funding checkpoint versus finalized market index');
         }
       }
@@ -209,7 +209,9 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   for(const [key,identity] of identities) {
     const actual=identity.decoder.decode(raw(key,identity.discriminator)) as {bump:number;vaultBump?:number};
     assert.equal(actual.bump,identity.bump,`Bump ${key}`);if(key===venue)assert.equal(actual.vaultBump,vaultBump);
-    assert.deepEqual(accountFields(actual),identity.expected,`Financial projection ${key}`);
+    const cached=state.liquidity?.marketCheckpoints?.[key];
+    const expected=cached?{...identity.expected as object,...cached}:identity.expected;
+    assert.deepEqual(accountFields(actual),expected,`Financial projection ${key}`);
   }
   if(state.resolution) {
     const expected=state.resolution;

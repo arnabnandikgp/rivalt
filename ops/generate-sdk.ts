@@ -113,7 +113,7 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   // Codama normally flattens structs used by only one instruction. Reusing V1
   // request types in V2 must not silently nest the existing public SDK inputs.
   const legacyRequests = program === 'clearing'
-    ? new Set(['executeRoute', 'executeOrder', 'previewMaker', 'executeLiquidityRoute', 'liquidateLiquidityRoute']) : new Set(['quote']);
+    ? new Set(['executeRoute', 'executeOrder', 'previewMaker', 'executeLiquidityRoute', 'executeMarketLane', 'liquidateLiquidityRoute']) : new Set(['quote']);
   const definitions = new Map(codama.getRoot().program.definedTypes?.map(type => [type.name, type.type]));
   codama.update(bottomUpTransformerVisitor([{
     select: '[instructionNode]',

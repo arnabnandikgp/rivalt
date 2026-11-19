@@ -70,4 +70,6 @@ pub enum ClearingError {
     Resolution,
     #[msg("Funding publisher authority, report binding, sequence or lifetime rejected")]
     FundingReport,
+    #[msg("A current funding and gross checkpoint is required for each market")]
+    MarketCheckpoint,
 }
