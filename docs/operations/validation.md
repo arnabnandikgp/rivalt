@@ -29,6 +29,9 @@ Independent rational calculations matched the paged rate and payment schedules
 for 33 reduced cohorts, including fractional original cash ownership. The
 scalar legacy regression passed 1,185 rate evaluations and 74 invalid proposals.
 The ordinary local clearing profile also compiled without an SBF stack warning.
+The regenerated IDL lock inventory covers 95 instructions, including 87 in
+clearing and 14 clearing custody writers. The new event changed the clearing
+IDL hash; every instruction's read and write accounts matched the previous inventory.
 The [certificate](../clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor)
 requires one creditor in each market and a whole original split. The separate
 D127 mirror diagnostic remains the evidence for ranking several creditors.
