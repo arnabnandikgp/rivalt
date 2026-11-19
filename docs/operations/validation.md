@@ -1,5 +1,62 @@
 # Validation and measured limits
 
+## Closed BTC claim in a two-market default
+
+A cross debtor bought BTC and ETH. A second trader sold one BTC lot at
+64,998 and bought it back at 60,002. The two 13-atom fees came from the
+trader's deposit. At the freeze its positions were flat, its funded cash
+was 19,970, and its unpaid BTC claim was 4,996. The eight financial members
+on both validators had identical frozen lots, cash, accrued claims and
+surviving entry and payment history. The market ledgers also matched.
+
+| Withdrawal in collateral atoms | Ordinary clearing | Linked clearing |
+|---|---:|---:|
+| Flat trader's BTC claim to its wallet | 4,994 | 4,996 |
+| BTC maker's funded recovery | 5,003 | 5,001 |
+| ETH maker's funded recovery | 9,989 | 9,989 |
+| Total paid from the vault | 19,986 | 19,986 |
+
+A fill-by-fill reference checked all eight roots, enumerated 84 charge
+assignments and selected 5 BTC and 13 ETH atoms. The native protected solver
+matched the cash, signed movements and insurance on both the ordinary and
+adjusted books. The debtor supplied 9,988 per market and insurance paid 9
+and 1. Both vaults fell from 6,039,992 to 6,020,006. The trader still had its
+original 19,970 funded atoms after withdrawing the claim payout.
+
+Ordinary harness `c8b5bc7` used SBF `33361d9`. It recorded 281 harness
+transactions, 15 separately signed worker originals and 123 events replayed
+in fresh PostgreSQL. The successor used SBF `30434d5` (2,586,864 bytes,
+SHA-256 `e55f48477a39977d10e33a85e87bab5d5ee00161307469ae1c88dae500d2cac9`).
+The BTC and ETH certificates consumed 42,732 and 46,479 CU at 801 bytes each.
+The trader withdrawal consumed 32,673 CU on ordinary clearing and 32,676 CU
+on the successor, both 806 bytes. All originals matched finalized RPC and WS.
+The independent indexer reconstructed the flat creditor from the complete
+financial membership. Twelve scoped projection tests passed. The legacy
+snapshot encoding matched 256 valuations and 3,637 encoded prefixes.
+
+An initial successor run landed every withdrawal and then found the indexer's
+older sole-creditor check. With the artifact-bound projection at `3d8d239`,
+fresh SQL reproduced all 124 events, including the joint certificate. The
+launcher then exited with a shell parse error after its source was edited
+during that invocation. At clean harness revision `89ef133`, the complete launcher exited successfully:
+285 harness outcomes, 56 finalized worker originals and 124 matching fresh
+SQL events. Frozen economics and all three withdrawals reproduced the preceding
+run. The run refused substitution of the flat creditor, the wrong ETH winner,
+premature settlement and a one-atom withdrawal during verification. The
+highest worker transaction used 899,467 CU and 2,923 wire bytes for 24 rate
+steps. [Reproduction](local-development.md#reproduce-the-closed-btc-traders-joint-default-payout).
+
+At `89ef133`, a separate book gave a second BTC maker one opposing lot.
+The reference searched 2,548 assignments and selected BTC charges of 4 and 9
+and an ETH charge of 12, keeping the debtor's cash split at 19,978 and 9,989.
+The worker reported unsupported competing creditors. Submitting **each** BTC
+winner on its own and attempting to bypass certification all failed with 6130.
+The eight roots and freeze checkpoint stayed byte-identical. Wallets stayed
+empty and the vault kept all 6,060,000 atoms. The run recorded 284 harness
+outcomes, 41 worker originals and 96 events reproduced in fresh SQL.
+The 4/9/12 schedule is an independently verified target for the next clearing
+deliverable. This local program did not apply that schedule.
+
 ## Clearing-verified linked default and wallet exit
 
 Harness `a956981` deployed the local linked clearing build `0e027fc`

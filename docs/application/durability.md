@@ -5,7 +5,11 @@ ETH verification instructions. It reads the original debtor and both market
 allocations from the prepared settlement before continuing. The finalized
 indexer projects the joint event only after both legs verify. Reconciliation
 compares each winner, quantity, price and charge with the clearing-owned
-receipt. [Joint certificate](../clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
+receipt. For the flat-creditor candidate the event projection reconstructs the
+BTC remainder from every financial member at the freeze. It checks the closed
+trader's accrued claim, zero positions and zero ETH claim. The original linked
+deployment still requires the open BTC winner to own all BTC credit.
+[Joint certificate](../clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
 
 ## Canonical membership migration (P55A2)
 

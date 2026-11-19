@@ -420,3 +420,8 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_flat_build" RIVALT_SETTLEMENT_PROBE=prof
 Each run checks the flat trader's banked collateral separately from the claim
 payout, the maker wallet, the vault, the independently reconstructed frozen
 inputs and the events replayed into a fresh PostgreSQL database.
+
+To exercise competing BTC winners, run the same linked candidate and helper
+with `RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-contested`. This
+five-trade scenario compares the proposals to the frozen book and submits
+each incomplete pair to clearing on its own fresh chain.

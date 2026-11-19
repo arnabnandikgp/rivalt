@@ -57,11 +57,16 @@ binds the model to actual clearing roots. Ordinary recovery paid both maker
 accounts, while the BTC-only certificate correctly refused the linked book.
 The [linked clearing candidate](../operations/validation.md#clearing-verified-linked-default-and-wallet-exit)
 verified both charges against the same membership and preserved the original
-cash split through two SPL withdrawals. The next book adds a separate
-flat BTC creditor and compares both rules through signed withdrawals.
-Then introduce a second eligible BTC maker in the same two-market freeze:
-verify its proportional share against an independent complete search and bind
-all winning accounts before releasing a payout. General linked selection,
+cash split through two SPL withdrawals. The [flat BTC creditor](../operations/validation.md#closed-btc-claim-in-a-two-market-default)
+withdrew 4,996 under joint clearing and 4,994 under ordinary clearing.
+With a second eligible BTC maker, the candidate rejects both one-winner
+submissions. The next clearing deliverable is to verify the complete charge
+allocation and pay that book. Start with the same observed inputs: the two
+BTC winners owe 4 and 9 atoms and the ETH winner owes 12. Reuse the
+[complete-member marginal allocation](../../crates/default-plan-selection/src/proportional.rs);
+bind each market's target to the debtor's original cash split, authenticate
+every winner and verify both totals before releasing either market.
+General linked selection,
 shared writes and broader cost qualification remain open.
 
 ## Functional ownership
