@@ -4,7 +4,10 @@ The current qualified local program applies proportional recovery to unpaid
 claims in each affected market. The [successor decision](../DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery)
 selects capped ADL before that residual allocation. [D114](../DECISIONS.md#d114--verified-freeze-cutoff-for-loss-eligibility)
 fixes eligibility at the first verified freeze that commits for the episode.
-The successor eligibility and payout experiments run in the [research model](architecture-review.md#eligibility-at-the-freeze).
+The [research model](architecture-review.md#eligibility-at-the-freeze) covers
+multi-market eligibility. The [single BTC pair](default-plan-verification.md#single-btc-pair-in-financial-clearing)
+also has a separate local clearing implementation with a frozen selection
+receipt, whole-cohort reconciliation and the ordinary withdrawal gate.
 
 ## Scalable exact resolution candidate (P51B)
 

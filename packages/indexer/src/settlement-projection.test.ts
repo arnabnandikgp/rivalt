@@ -43,6 +43,26 @@ function apply(state:AccountState,id:number) {
     claims:[((id===0?-2n:1n)*scale).toString(),'0'],lots:['0','0'],flows:[id===2?'0':'1','0'],state:root};
 }
 describe('paged default independent one-atom ownership',()=>{
+  it('keeps unapplied root claims separate from the verified payout basis between paired members',()=>{
+    const state=fixture(),source=state.resolution!;
+    state.ledgers.bl.insurance='0';source.insuranceBefore=['0','0'];source.budgets=['0','0'];
+    state.custody!.allocatedVault='3';source.allocatedBefore='3';
+    const debtor=state.roots.root0.positions[0],winner=state.roots.root1.positions[0];
+    debtor.lots='-1';debtor.virtualScaled=String(8n*scale);
+    winner.lots='1';winner.virtualScaled=String(-9n*scale);
+    source.remainingGross=['2','0'];state.markets.btc.grossLots='2';
+    emit(state,'FrozenPairVerified',{epoch:'3',mark:'10',price:'9',charge:'1',unpaidGainCap:'1',
+      venue:'venue',debtorId:'0',winnerId:'1'});
+    emit(state,'SettlementPlanProgress',progress({gross:['2','0'],insurance:['0','0'],allocated:'3',actualVault:'3'}));
+    const paid=apply(state,0);paid.claims[0]=String(-scale);paid.lots[0]='-1';paid.state.positions[0].lots='0';
+    emit(state,'SettlementMarginApplied',paid);
+    expect(source.remainingClaims[0]).toBe(String(2n*scale));
+    expect(source.rows['0'].claimsScaled[0]).toBe(String(-2n*scale));
+    const charged=apply(state,1);charged.claims[0]='0';charged.lots[0]='1';
+    charged.flows[0]='0';charged.state.cash='0';charged.state.positions[0].lots='0';
+    emit(state,'SettlementMarginApplied',charged);
+    expect(source.remainingClaims[0]).toBe(String(scale));
+  });
   it('replays partial cash/claims, protected buckets, complete reconciliation and terminal accounting',()=>{
     const state=fixture();emit(state,'SettlementPlanProgress',progress());
     for(let id=0;id<3;id++) {

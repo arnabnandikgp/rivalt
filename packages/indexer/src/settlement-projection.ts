@@ -38,6 +38,7 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     accountCheck(!frozen.applied,'paged once-only root');
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
+    eq(economic,frozen.claimsScaled,'original frozen claims');
     if(pair) {
       const delta=previous.id===pair.debtorId?BigInt(pair.charge):previous.id===pair.winnerId?-BigInt(pair.charge):0n;
       economic[0]=(BigInt(economic[0])+delta*scale).toString();
@@ -54,7 +55,9 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.state.revision,previous.revision,'root predecessor');
     for(let market=0;market<2;market++) {
       current.remainingLots[market]=(BigInt(current.remainingLots[market])-BigInt(change.lots[market])).toString();
-      current.remainingClaims[market]=(BigInt(current.remainingClaims[market])-BigInt(change.claims[market])).toString();
+      // Unapplied margin accounts still store their original positions. Their
+      // running sum differs from the payout basis between the two paired rows.
+      current.remainingClaims[market]=(BigInt(current.remainingClaims[market])-BigInt(frozen.claimsScaled[market])).toString();
       const lots=BigInt(change.lots[market]);
       current.remainingGross[market]=(BigInt(current.remainingGross[market])-(lots<0n?-lots:lots)).toString();
       plan.marketMovements[market]=(BigInt(plan.marketMovements[market])+movements[market]).toString();

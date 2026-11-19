@@ -1285,3 +1285,18 @@ and the frozen episode retain capacity. Principal is denominated in lamports.
 Use a fresh isolated deployment for the [qualification](operations/validation.md#sponsored-profit-capacity).
 The 256-byte test ceiling applies to this binary. Larger widths require measured
 compute and recovery on large exact histories.
+
+## D126 — Bind a verified forced close to the frozen settlement
+
+19 November 2026. In the local successor, clearing verifies the pair after
+complete valuation and retains its terms in the prepared header until the next
+episode. Both original roots and frozen rows remain available to authenticate
+custody and explain the change to creditors. The existing paged solver reads
+the adjusted obligations. Its aggregate rates, individual payments, adoption
+and root application share one episode and one charge. Workers may restart or
+change proposer without choosing the terms again.
+
+The first [financial proof](clearing/default-plan-verification.md#single-btc-pair-in-financial-clearing)
+admits one opposing BTC lot, one debtor, whole claims, no ETH obligations and
+full recovery of any verified shortfall. D112–D122 govern the economics. This
+restricted candidate has its own artifact selection and native page helper.
