@@ -16,7 +16,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { traderCount?:number; independentTraders?:boolean; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
+  options: { marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
   const traderCount=options.traderCount??2;
   if(options.traderDeposits)assert(options.traderDeposits.length===traderCount && options.traderDeposits.every(amount=>amount>0n));
   const deposit=(index:number)=>options.traderDeposits?.[index]??options.traderCash??1_000_000n;
@@ -115,6 +115,9 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     }));
     await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
   }
+  async function checkpoint(market:0|1) {
+    return sdk.getCheckpointMarketInstructionAsync({...common,venue,safety:fixture.safety,market:markets[market]});
+  }
   async function sample(reportMarkets: readonly (0|1)[] = [0,1], verifyCheckpoints=false) {
     const previous = await Promise.all([0, 1].map(marketState));
     const publishers = await Promise.all(configurations.map(async configuration =>
@@ -130,7 +133,10 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     while (await slot() <= fenceSlot) { assert(Date.now() < deadline, 'Publisher fence Clock progress'); await delay(100); }
     await fresh();
     const reports: Instruction[] = [];
+    const checkpointRequired=options.marketCheckpoints &&
+      sdk.getVenueSafetyDecoder().decode((await h.read(fixture.safety))!).mode===1;
     for (const index of reportMarkets) {
+      if(checkpointRequired)reports.push(await checkpoint(index));
       const input = await sdk.readFundingReport(rpc, venue, index,'confirmed',options.marginLayout);
       assert.equal(input.report.outcome, 0, input.coverageReason ?? 'available complete publication');
       const reference = index === 0 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n;
@@ -164,5 +170,5 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   const identity = { venue, marginLayout:options.marginLayout, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readAccountTradeSnapshot(rpc, identity, root, marketIndex);
   return { ...fixture, primary, guard, traderOwner, traderToken, roots, traderOwners, feeds, configurations, resolution, storage,
-    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, qualify, identity, snapshot };
+    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, checkpoint, qualify, identity, snapshot };
 }

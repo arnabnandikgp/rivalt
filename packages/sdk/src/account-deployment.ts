@@ -3,7 +3,7 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate';
+export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
@@ -14,7 +14,7 @@ export const MULTI_LOT_ARTIFACT_SET='multi-lot-baef259';
 export const AGGREGATE_FEE_ARTIFACT_SET='aggregate-fees-5b1e964';
 export const BOUNDED_MARKET_ARTIFACT_SET='bounded-market-3ace707';
 export const CHECKED_FUNDING_ARTIFACT_SET='funding-prefix-2da3e90';
-export const READ_ONLY_MARKET_ARTIFACT_SET='read-only-market-local-unbound';
+export const READ_ONLY_MARKET_ARTIFACT_SET='read-only-market-10ab3b5';
 export const hasFundingCheckpoints=(set?:string)=>set===CHECKED_FUNDING_ARTIFACT_SET||set===READ_ONLY_MARKET_ARTIFACT_SET;
 export const hasMarketCapacity=(set?:string)=>set===BOUNDED_MARKET_ARTIFACT_SET||hasFundingCheckpoints(set);
 export const hasAggregateFees=(set?:string)=>set===AGGREGATE_FEE_ARTIFACT_SET||hasMarketCapacity(set);
@@ -32,6 +32,11 @@ export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
+  if(selection==='read-only-market-candidate')return {
+    artifactSet:READ_ONLY_MARKET_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'10ab3b5437243c8a988862e6bcbc32551116d3ba',
+    artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
+      bytes:2961736,sha256:'2e2aa670fc7e2aa318a4fb9bb7ee9db02f8f0f0ef517e0bab14f99fe8b21acac'}:artifact)
+  };
   if(selection==='funding-prefix-candidate')return {
     artifactSet:CHECKED_FUNDING_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'2da3e904060aa2d1d1b174a88bf5740f99b71002',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,

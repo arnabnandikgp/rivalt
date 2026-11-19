@@ -17,7 +17,7 @@ export function executionTestHelpers(h: CanonicalHarness, setup: Setup) {
   };
   const route = async (input: { trader: Address; actor: TransactionSigner; marketIndex: 0 | 1; side: 0 | 1;
     makers: Setup['instances']; lots: bigint[]; reduceOnly?: boolean; generation?: bigint; liquidation?: boolean;
-    allInLimit?: bigint; maxFee?: bigint; minimalMarkets?: boolean; stored?: { id: bigint; version: bigint; filled: bigint } }) => {
+    allInLimit?: bigint; maxFee?: bigint; minimalMarkets?: boolean; marketLane?:boolean; stored?: { id: bigint; version: bigint; filled: bigint } }) => {
     const { trader, actor, marketIndex, side, makers, lots } = input;
     const [first, second] = makers, state = await setup.marketState(marketIndex), slot = await setup.slot();
     const required = input.minimalMarkets ? sdk.requiredAccountMarkets(await Promise.all([trader,...makers.map(maker=>maker.capital)].map(root)),1<<marketIndex) : 3;
@@ -36,7 +36,7 @@ export function executionTestHelpers(h: CanonicalHarness, setup: Setup) {
           shapeEpoch: config.shapeEpoch, depthEpoch: registered.depthEpoch };
       })) };
     if (input.stored) return sdk.getExecuteLiquidityOrderInstructionAsync({ ...shared, ...input.stored });
-    const buildRoute = input.liquidation ? sdk.getLiquidateLiquidityRouteInstructionAsync : sdk.getExecuteLiquidityRouteInstructionAsync;
+    const buildRoute = input.liquidation ? sdk.getLiquidateLiquidityRouteInstructionAsync : input.marketLane?sdk.getExecuteMarketLaneInstructionAsync:sdk.getExecuteLiquidityRouteInstructionAsync;
     return buildRoute({ ...shared, domain: setup.domain,
       termsEpoch: state.termsEpoch, configEpoch: state.configEpoch, side,
       allInLimit: input.allInLimit ?? (side === 0 ? 1_000_000_000n : 0n), maxFee: input.maxFee ?? 200_000n,

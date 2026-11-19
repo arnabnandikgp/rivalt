@@ -18,8 +18,9 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const aggregate=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-fee-lanes';
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,aggregate?'fees':'multi');
+const lane=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-market-lanes';
+const aggregate=lane||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-fee-lanes';
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,lane?'lane':aggregate?'fees':'multi');
 const payers=new Map<string,Keypair>();
 let broadcast:((label:string)=>Promise<void>)|undefined;
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
@@ -30,8 +31,9 @@ type Receipt={signature:string;slot:number;cu:number;bytes:number;fee:number;loc
 const bursts:{workload:Workload;round:number;side:number;elapsedMs:number;overlap:string[];receipts:Receipt[]}[]=[];
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
-  const setup=await liquidityExecutionSetup(h,rpc,{independentTraders:true,traderCount:3,marginLayout:aggregate?'aggregate-fees':'sponsored-profit',shape:symmetricPayoutShape,verifyRejections:false});
+  const setup=await liquidityExecutionSetup(h,rpc,{independentTraders:true,traderCount:3,marketCheckpoints:lane,marginLayout:lane?'checked-funding':aggregate?'aggregate-fees':'sponsored-profit',shape:symmetricPayoutShape,verifyRejections:false});
   const {root,route,guard}=executionTestHelpers(h,setup);
+  const checkpointBoth=async()=>lane?Promise.all(([0,1] as const).map(setup.checkpoint)):[];
   assert.equal(new Set(setup.traderOwners.map(owner=>owner.address)).size,3);
   await flush();
   const token=async(key:Address)=>getTokenDecoder().decode((await h.read(key))!).amount;
@@ -55,7 +57,7 @@ try {
       const instructions=await Promise.all(traders.map(async(trader,index)=>{
         const actor=setup.traderOwners[trader];payers.set(names[index],actor);
         return route({actor,trader:setup.roots[trader],marketIndex:markets[index],side,
-          makers:[setup.instances[makerIndices[index]]],lots:[1n],minimalMarkets:true});
+          makers:[setup.instances[makerIndices[index]]],lots:[1n],minimalMarkets:true,marketLane:lane});
       }));
       let arrivals=0,start=0;
       let release!:()=>void,refuse!:(error:Error)=>void;
@@ -87,7 +89,7 @@ try {
       const overlap=conflicts(receipts[0].locks,receipts[1].locks).map(conflict=>{
         assert.equal(conflict.kind,'write/write');return labels.get(conflict.address)??conflict.address;
       }).sort();
-      const expected=workload==='distinct markets'?[]:['BTC market','BTC ledger',...(workload==='shared maker'?['maker 0 capital','maker 0 registration']:[])];
+      const expected=workload==='distinct markets'?[]:[...(lane?[]:['BTC market']),'BTC ledger',...(workload==='shared maker'?['maker 0 capital','maker 0 registration']:[])];
       assert.deepEqual(overlap,expected.sort());
       for(const [index,trader] of traders.entries()){
         const market=markets[index],mark=market===0?60_000n:30_000n;
@@ -103,7 +105,8 @@ try {
   }
   for(const market of [0,1]){
     const snapshot=await setup.marketState(market);
-    assert.equal(snapshot.grossLots,0n);
+    const gross=lane?(await sdk.readMarketGross(rpc,setup.venue,market as 0|1,'confirmed',true)).grossLots:snapshot.grossLots;
+    assert.equal(gross,0n);
     assert.equal(snapshot.fundingIndexScaled,0n,'Constant symmetric quotes must have zero funding premium');
   }
   for(const key of accounts){const member=await root(key);assert.equal(member.cash,cash.get(key));
@@ -139,7 +142,7 @@ try {
   }
   assert.equal(await token(setup.vault),originalVault);
   await setup.sample();
-  await h.send('withdraw funded cash following matched routes',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
+  await h.send('withdraw funded cash following matched routes',[...await checkpointBoth(),sdk.getWithdrawFundedAccountInstruction({...setup.common,
     btc:setup.markets[0],eth:setup.markets[1],owner:setup.traderOwner,margin:setup.roots[0],quoteMint:setup.mint.address,
     userToken:setup.traderToken.address,guard:await guard(setup.roots[0]),amount:1n})],[setup.traderOwner]);
   assert.deepEqual([await token(setup.vault),await token(setup.traderToken.address),(await root(setup.roots[0])).cash],
@@ -149,8 +152,30 @@ try {
     const trader=setup.roots[0],owner=setup.traderOwners[0];
     const amount=50n;
     await setup.sample();
+    const beforeMarket=lane?await h.read(setup.markets[0]):null;
     await h.send('open BTC position before joint fee and freeze boundary',[await route({actor:owner,trader,marketIndex:0,side:0,
-      makers:[setup.instances[0]],lots:[amount],minimalMarkets:true})],[owner]);
+      makers:[setup.instances[0]],lots:[amount],minimalMarkets:true,marketLane:lane})],[owner]);
+    if(lane){
+      assert.deepEqual(await h.read(setup.markets[0]),beforeMarket,'selected market stays byte-identical');
+      assert.equal((await setup.marketState(0)).grossLots,0n);
+      assert.equal((await sdk.readMarketGross(rpc,setup.venue,0,'confirmed',true)).grossLots,100n);
+      await flush();
+      journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
+      await journal.checkpoint('before-market-refresh',true);
+      // A previous transaction (even in the same slot) cannot refresh a later consumer.
+      await h.send('standalone market checkpoint',[await setup.checkpoint(0)]);
+      assert.equal((await setup.marketState(0)).grossLots,100n);
+      const withdrawal=sdk.getWithdrawFundedAccountInstruction({...setup.common,btc:setup.markets[0],eth:undefined,
+        btcLedger:setup.ledgers[0],ethLedger:undefined,owner,margin:trader,quoteMint:setup.mint.address,userToken:setup.traderToken.address,
+        guard:await guard(trader),amount:1n});
+      const beforeWallet=await token(setup.traderToken.address);
+      await h.send('old checkpoint cannot authorize funded withdrawal',[withdrawal],[owner],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
+      await h.send('other market checkpoint cannot authorize funded withdrawal',[await setup.checkpoint(1),withdrawal],[owner],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
+      assert.equal(await token(setup.traderToken.address),beforeWallet);
+      await setup.sample();
+      await h.send('checkpoint BTC and withdraw while position remains open',[await setup.checkpoint(0),withdrawal],[owner]);
+      assert.equal(await token(setup.traderToken.address),beforeWallet+1n);
+    }
     additionalFee=(60_002n*amount+4999n)/5000n;
     assert.equal((await readFee(0)).pendingFees,additionalFee);
     const sources={primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
@@ -160,16 +185,16 @@ try {
       members:(await sdk.deriveMemberPage(setup.venue,(await root(trader)).id/64n))[0],
       safetyEpoch:sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).epoch,
       resolutionEpoch:sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!).epoch,emergency:false});
-    await h.send('freeze rejects an unclassified market',[freeze],[],sdk.CLEARING_ERROR__RECONCILIATION);
-    await h.send('atomic classify both markets and freeze with complete insurance',[classify(0),classify(1),freeze]);
+    await h.send('freeze rejects an unclassified market',[...await checkpointBoth(),freeze],[],sdk.CLEARING_ERROR__RECONCILIATION);
+    await h.send('atomic classify both markets and freeze with complete insurance',[classify(0),classify(1),...await checkpointBoth(),freeze]);
     const frozen=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
     assert.deepEqual(frozen.insuranceBefore,[(fees[0]+additionalFee)/4n,fees[1]/4n]);
     assert.deepEqual(frozen.feesBefore,[(fees[0]+additionalFee)-frozen.insuranceBefore[0],fees[1]-frozen.insuranceBefore[1]]);
     assert.equal(frozen.stage,2);
   }
   await flush();
-  journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
-  const routes=journal.initialEvents.filter(event=>event.type===(aggregate?'LiquidityRouteFeeRecorded':'LiquidityRouteExecutedV4'));
+  journal??=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
+  const routes=journal.initialEvents.filter(event=>event.type===(lane?'MarketLaneFilled':aggregate?'LiquidityRouteFeeRecorded':'LiquidityRouteExecutedV4'));
   const signed=bursts.flatMap(burst=>burst.receipts.map(receipt=>receipt.signature));
   if(aggregate)signed.push(String(checks.find(row=>row.label==='open BTC position before joint fee and freeze boundary')!.signature));
   assert.deepEqual(routes.map(event=>event.signature).sort(),[...signed].sort());
