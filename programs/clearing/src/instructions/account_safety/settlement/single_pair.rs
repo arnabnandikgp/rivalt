@@ -32,6 +32,10 @@ pub(super) fn economic_claims(
 ) -> Result<[i128; 2]> {
     #[cfg(feature = "single-pair-default-qualification")]
     {
+        #[cfg(feature="linked-allocation-qualification")]
+        if let Some(plan) = super::linked_allocation::committed(header)? {
+            return plan.claims(frozen);
+        }
         #[cfg(feature="linked-pair-qualification")]
         if let Some(joint) = super::linked_pair::Joint::read(header)? {
             require!(matches!(header.stage, DENOMINATOR | PROPOSAL), ClearingError::Resolution);

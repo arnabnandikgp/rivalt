@@ -139,7 +139,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
                                             | {r'Rivalt/frozen-member-order/v1\0'})
     # Format marker for the separately qualified margin extension.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01', 'RVJALLOC'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -153,6 +153,22 @@ def undo_liquidation_delta(actual, program):
         assert len(matches) == 1, name
         return matches[0]
     allocation = unique('advance_btc_allocation')
+    linked = unique('advance_linked_allocation')
+    assert linked['discriminator'] == list(hashlib.sha256(b'global:advance_linked_allocation').digest()[:8])
+    assert linked['accounts'] == allocation['accounts']
+    assert linked['args'] == allocation['args'][:3] + [
+        dict(name='cutoffs', type={'option': {'array': [{'array': ['u64', 4]}, 2]}})]
+    actual['instructions'].remove(linked)
+    name = 'FrozenLinkedAllocationRow'
+    actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+    fields = [dict(name='venue', type='pubkey'),
+              *[dict(name=key, type='u64') for key in ('slot', 'epoch', 'attempt', 'ordinal', 'debtor_id', 'member_id')],
+              *[dict(name=key, type={'array': ['u64', 2]}) for key in
+                ('shares', 'targets', 'eligible', 'charges', 'matched_lots', 'base_prices', 'extra_tick_lots')],
+              dict(name='status', type='u8')]
+    linked_row = next(item for item in actual['types'] if item['name'] == name)
+    assert clean(linked_row) == dict(name=name, type=dict(kind='struct', fields=fields))
+    actual['types'].remove(linked_row)
     assert allocation['discriminator'] == list(hashlib.sha256(b'global:advance_btc_allocation').digest()[:8])
     assert allocation['args'] == [dict(name=name, type='u64') for name in ('epoch','revision','ordinal')] + [
         dict(name='cutoff', type={'option': {'array': ['u64', 4]}})]

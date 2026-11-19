@@ -730,3 +730,23 @@ pub struct FrozenJointReductionVerified {
     pub base_prices: [u64; 2],
     pub extra_tick_lots: [u64; 2],
 }
+
+/// Canonical member's two provisional charge schedules. Status 1 commits the entire cohort.
+#[event]
+pub struct FrozenLinkedAllocationRow {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub attempt: u64,
+    pub ordinal: u64,
+    pub debtor_id: u64,
+    pub member_id: u64,
+    pub shares: [u64; 2],
+    pub targets: [u64; 2],
+    pub eligible: [u64; 2],
+    pub charges: [u64; 2],
+    pub matched_lots: [u64; 2],
+    pub base_prices: [u64; 2],
+    pub extra_tick_lots: [u64; 2],
+    pub status: u8,
+}

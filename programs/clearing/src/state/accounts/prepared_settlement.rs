@@ -59,6 +59,8 @@ pub struct FrozenMargin {
     pub collected: u64,
     #[cfg(feature = "btc-allocation-qualification")]
     pub btc_charge: u64,
+    #[cfg(feature = "linked-allocation-qualification")]
+    pub linked_charges: [u64; 2],
 }
 #[account(borsh)]
 #[derive(InitSpace, Default)]

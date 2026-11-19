@@ -123,6 +123,7 @@ import {
   getActivateMarginInstructionAsync,
   getAdoptSettlementPlanInstructionAsync,
   getAdvanceBtcAllocationInstructionAsync,
+  getAdvanceLinkedAllocationInstructionAsync,
   getAdvancePreparedMembershipInstructionAsync,
   getAllocateMarketFeesInstructionAsync,
   getApplySettlementMarginInstructionAsync,
@@ -210,6 +211,7 @@ import {
   parseActivateMarginInstruction,
   parseAdoptSettlementPlanInstruction,
   parseAdvanceBtcAllocationInstruction,
+  parseAdvanceLinkedAllocationInstruction,
   parseAdvancePreparedMembershipInstruction,
   parseAllocateMarketFeesInstruction,
   parseApplySettlementMarginInstruction,
@@ -297,6 +299,7 @@ import {
   type ActivateMarginAsyncInput,
   type AdoptSettlementPlanAsyncInput,
   type AdvanceBtcAllocationAsyncInput,
+  type AdvanceLinkedAllocationAsyncInput,
   type AdvancePreparedMembershipAsyncInput,
   type AllocateMarketFeesAsyncInput,
   type ApplySettlementMarginAsyncInput,
@@ -354,6 +357,7 @@ import {
   type ParsedActivateMarginInstruction,
   type ParsedAdoptSettlementPlanInstruction,
   type ParsedAdvanceBtcAllocationInstruction,
+  type ParsedAdvanceLinkedAllocationInstruction,
   type ParsedAdvancePreparedMembershipInstruction,
   type ParsedAllocateMarketFeesInstruction,
   type ParsedApplySettlementMarginInstruction,
@@ -843,6 +847,7 @@ export enum ClearingEvent {
   FrozenBtcAllocationRow,
   FrozenBtcReductionVerified,
   FrozenJointReductionVerified,
+  FrozenLinkedAllocationRow,
   FrozenPairVerified,
   FundingPublisherChanged,
   FundingReportAccepted,
@@ -1139,6 +1144,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([95, 209, 104, 77, 144, 55, 147, 10]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.FrozenLinkedAllocationRow;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([1, 178, 227, 95, 165, 67, 16, 148]),
       ),
       0,
@@ -1269,6 +1285,7 @@ export enum ClearingInstruction {
   ActivateMargin,
   AdoptSettlementPlan,
   AdvanceBtcAllocation,
+  AdvanceLinkedAllocation,
   AdvancePreparedMembership,
   AllocateMarketFees,
   ApplySettlementMargin,
@@ -1431,6 +1448,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.AdvanceBtcAllocation;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([122, 174, 162, 136, 46, 73, 226, 57]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdvanceLinkedAllocation;
   }
   if (
     containsBytes(
@@ -2343,6 +2371,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.AdvanceBtcAllocation;
     } & ParsedAdvanceBtcAllocationInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.AdvanceLinkedAllocation;
+    } & ParsedAdvanceLinkedAllocationInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.AdvancePreparedMembership;
     } & ParsedAdvancePreparedMembershipInstruction<TProgram>)
   | ({
@@ -2635,6 +2666,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.AdvanceBtcAllocation,
         ...parseAdvanceBtcAllocationInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.AdvanceLinkedAllocation: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdvanceLinkedAllocation,
+        ...parseAdvanceLinkedAllocationInstruction(instruction),
       };
     }
     case ClearingInstruction.AdvancePreparedMembership: {
@@ -3305,6 +3343,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getAdvanceBtcAllocationInstructionAsync> &
     SelfPlanAndSendFunctions;
+  advanceLinkedAllocation: (
+    input: AdvanceLinkedAllocationAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdvanceLinkedAllocationInstructionAsync> &
+    SelfPlanAndSendFunctions;
   advancePreparedMembership: (
     input: AdvancePreparedMembershipAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3875,6 +3918,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getAdvanceBtcAllocationInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          advanceLinkedAllocation: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdvanceLinkedAllocationInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

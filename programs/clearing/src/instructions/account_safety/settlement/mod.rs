@@ -16,6 +16,7 @@ use financial_core::clearing::{
 pub mod linked_pair;
 pub mod single_pair;
 pub mod btc_allocation;
+pub mod linked_allocation;
 mod contexts;
 mod denominator;
 pub use denominator::*;
@@ -131,6 +132,8 @@ pub(crate) fn value_member(
         collected,
         #[cfg(feature = "btc-allocation-qualification")]
         btc_charge: 0,
+        #[cfg(feature = "linked-allocation-qualification")]
+        linked_charges: [0; 2],
     };
     page.row_count += 1;
     header.state.valuation = valuation.checkpoint();

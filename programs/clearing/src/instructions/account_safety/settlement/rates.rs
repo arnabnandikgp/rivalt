@@ -49,10 +49,10 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
         #[cfg(feature="linked-pair-qualification")]
         let linked = super::linked_pair::Joint::read(header)?;
         #[cfg(feature="linked-pair-qualification")]
-        if let Some(joint) = linked {
+        if let Some(charges) = super::linked_allocation::charges(header)?.or_else(|| linked.map(|joint| joint.legs.map(|leg| leg.charge))) {
             require!(header.stage == PROPOSAL, ClearingError::Resolution);
-            arithmetic(totals.after_market_charge(0, joint.legs[0].charge)
-                .and_then(|btc| btc.after_market_charge(1, joint.legs[1].charge)))?
+            arithmetic(totals.after_market_charge(0, charges[0])
+                .and_then(|btc| btc.after_market_charge(1, charges[1])))?
         } else {
             arithmetic(totals.after_single_btc_charge(super::single_pair::verified_charge(header)?))?
         }

@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "e13d29e6a50639c8fc833ef35d17617f5c786eca47b7f6a446caeecb47439098",
+    "clearing": "783bb12a684840c72668968b66cac493796e596cc1843d269c242b2465ebb532",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -166,6 +166,32 @@
     {
       "program": "clearing",
       "name": "advance_btc_allocation",
+      "write": [
+        "prepared",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "margin",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "advance_linked_allocation",
       "write": [
         "prepared",
         "page"

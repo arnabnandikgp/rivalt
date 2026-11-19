@@ -403,7 +403,8 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
     .unwrap();
     bytes.clear();
     crate::wire::write_discriminated(&page, &mut bytes).unwrap();
-    let size = if cfg!(feature = "btc-allocation-qualification") { 1220 } else { 1156 };
+    let btc_bytes = usize::from(cfg!(feature = "btc-allocation-qualification")) * 8;
+    let size = 1156 + 8 * btc_bytes + 128 * usize::from(cfg!(feature = "linked-allocation-qualification"));
     assert_eq!(bytes.len(), size);
     assert_eq!(8 + FrozenMarginPage::INIT_SPACE, size);
     #[cfg(feature = "btc-allocation-qualification")]
@@ -412,6 +413,15 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
         bytes.clear();
         crate::wire::write_discriminated(&page, &mut bytes).unwrap();
         assert_eq!(&bytes[203..211], &201u64.to_le_bytes());
+    }
+    #[cfg(feature = "linked-allocation-qualification")]
+    {
+        page.rows[0].linked_charges = [73, 101];
+        bytes.clear();
+        crate::wire::write_discriminated(&page, &mut bytes).unwrap();
+        let offset = 203 + btc_bytes;
+        assert_eq!(&bytes[offset..offset + 8], &73u64.to_le_bytes());
+        assert_eq!(&bytes[offset + 8..offset + 16], &101u64.to_le_bytes());
     }
     assert_eq!(bytes[66], 1);
     assert_eq!(&bytes[75..107], fixture.member_keys[0].as_ref());
