@@ -1443,3 +1443,20 @@ sharing, lot and member-order bounds meet. The prepared receipt fixes all fills
 before any member can receive funded cash. The worker cannot substitute its
 own off-chain search result when the short proof is inconclusive.
 [State and arithmetic](clearing/default-plan-verification.md#how-the-multi-lot-clearing-certificate-binds-the-inputs).
+
+## D137 — Verify the market insurance share before spending it
+
+20 November 2026. The approved local prototype lets each fill certify its full
+taker fee. The market earns exactly one insurance atom for each four cumulative
+fee atoms. Before fees can be allocated or withdrawn, or insurance can enter a
+default snapshot or retirement, clearing checks complete market collections.
+Anyone can request that check. A trade's individual insurance attribution can be
+reconstructed from finalized transaction and invocation order. The cash allocation,
+insurance ownership and 2 bps taker fee stay the same under any valid fill order.
+
+The fresh prototype uses one cumulative counter in each of the market's three
+sealed maker registrations. A two-maker fill increments only the first counter.
+The market ledger holds unclassified fees in escrow so the existing vault
+reconciliation continues to work. This first measurement retains both shared
+BTC writes. The selected deployment still certifies insurance on each fill.
+[Accounting](clearing/accounting.md#aggregate-market-fee-prototype).

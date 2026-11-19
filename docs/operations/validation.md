@@ -1,5 +1,34 @@
 # Validation and measured limits
 
+## Aggregate market insurance
+
+Fresh local clearing `5b1e964` (2,880,864 bytes, SHA-256
+`1c8aa1d744a1a88281691ed67e87152b4c266f40401813a962a9855c6c88681c`).
+The aggregate profile uses its own account layouts and fee event discriminators.
+
+- Paired-route harness `2e5907c` finalized all 36 paired fills. The initial
+  BTC/ETH totals of 375/39 yielded 93/9 insurance and carry 3/3. A second BTC
+  checkpoint credited zero. Two 13-atom BTC receipts reconstructed 3 and 4
+  atoms of insurance. A one-atom SPL withdrawal left the funded vault at
+  8,999,999. A further 50-lot fill brought BTC fees to 976. Clearing refused
+  unclassified treasury allocation and a bare default freeze. Atomic BTC and ETH
+  classification with freeze recorded insurance of 244/9 and retained fees of
+  732/30. The harness checked 346 outcomes and fresh SQL replayed 157 events.
+- Default payout harness `60c173a` collected two 25-atom BTC fees and refused
+  duplicate and foreign-market registrations with `InvalidSeeds`. Both ledgers
+  matched their pre-attempt bytes. The verified default spent 12 BTC insurance
+  atoms and zero ETH. The worker restarted after certification and finalized 54
+  originals. Two real SPL exits paid 20,000 and 20,004. The vault moved from
+  6,040,042 to 6,000,038 atoms. All eight financial roots matched the independent
+  payout. The harness checked 272 outcomes and fresh SQL reproduced 113 events.
+- Three focused native tests include 10,368 fee distributions and checkpoint
+  partitions. The API/projection suites passed 19 tests and the RC2 wire contract
+  passed 18 regression tests. Source generation and TypeScript checks passed.
+
+The [matched lock and compute measurements](performance.md#aggregate-insurance-on-the-same-workload)
+retain the two BTC shared writes. Only the two-market, three-registrations-per-market
+fresh prototype was exercised. [Reproduction](local-development.md#aggregate-insurance-and-default-payout).
+
 ## Native linked-market reduction admission
 
 At `a64f834`, the opt-in Rust verifier admitted 88 and refused 54 of 142

@@ -37,6 +37,24 @@ receipt depend on the order of trades through the market ledger. The market
 account also tracks gross lots and the funding interval. Removing the ledger
 write alone would leave distinct BTC makers contending on that account.
 
+### Aggregate insurance on the same workload
+
+Program `5b1e964`, harness `2e5907c`. All 36 paired v0 fills finalized with
+the same 846 bytes and 5,000 lamports per trader as above.
+
+| Pair | Shared writes | CU per fill | Difference at both range endpoints | Median confirmation of pair |
+|---|---:|---:|---:|---:|
+| BTC, same maker | 4 | 158,560–179,325 | +518 | 154 ms |
+| BTC, different makers | 2 | 157,805–172,461 | +518 | 155 ms |
+| BTC and ETH | 0 | 157,805–172,461 | +518 | 154 ms |
+
+Classifying one market used 17,173 CU and 471 signed bytes. Repeating it
+used 17,167 CU. Classifying both and freezing used 85,737 CU and 1,148 bytes.
+Each transaction paid 5,000 local lamports. In addition to escrow, the ledger
+maintains the financial backing proof. The market maintains gross lots and the
+funding interval. Removing per-fill insurance attribution alone did not reduce
+contention in these receipts. [Financial checks](validation.md#aggregate-market-insurance).
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,

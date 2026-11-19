@@ -402,3 +402,23 @@ retain exact negative/fractional claims and any required reservations. Recovered
 Custody/Resolved/Retired cash exits need flat/no-claim/no-live-order state, not
 virgin nonces/generations or invented fresh prices. Frozen partial resolution
 permits no ordinary cash mutation.
+
+## Aggregate market fee prototype
+
+The local D137 candidate collects the full charged fee into market escrow. The
+first maker registration on a route records that fee in a lifetime u128 counter.
+Those counters certify collection. They confer no right to withdraw the funds.
+The ledger prefix field `fees` includes escrow. Only `fees − pending` is earned
+treasury cash. The ledger extension stores a u128 classified lifetime total and
+a u64 pending balance. Existing market insurance, voluntary deposits and prior
+spending stay separately accounted.
+
+`ClassifyMarketFees` reads the three canonical registrations in instance order.
+Let T be their sum and P the last classified lifetime total. Clearing requires
+T − P to equal pending. Of this difference it credits insurance
+`floor((pending + carry) / 4)`, retains the rest, saves the remainder modulo four
+and clears pending. Repeating a completed checkpoint credits zero. Treasury,
+default freeze and retirement require clean ledgers. A caller can classify both
+markets and freeze atomically. Subsequent default settlement spends the verified
+snapshot while trading is frozen. The lifetime counters never reset on a payout.
+This account layout is bound to a separate local artifact and fresh venue.

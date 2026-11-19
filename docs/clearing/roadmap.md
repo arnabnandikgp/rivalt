@@ -158,6 +158,13 @@ the successor eligibility, pricing and continuation rules are qualified. The
 [architecture review](architecture-review.md#next-deliverable-and-acceptance)
 contains the transition and adversarial-case checklist.
 
+For deliverable 6, [paired signed routes](../operations/performance.md#aggregate-insurance-on-the-same-workload)
+now isolate the cost of moving insurance classification to a market checkpoint.
+The remaining two shared writes maintain gross lots, funding and complete
+payment backing as well as fee escrow. A parallel fill must preserve the
+aggregate gross cap when traders switch makers, and the same funded gain must
+remain spendable after any valid interleaving.
+
 Model ordinary payment from deposited collateral first. A settlement advance
 facility requires measured timing demand plus an identified funder, repayment
 priority and loss bearer. A separately funded receiver takes inventory risk.

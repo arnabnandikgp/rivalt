@@ -590,3 +590,15 @@ artifact directory, a fresh run directory and
 `bash ops/scalable-settlement-smoke.sh`. The harness writes the signed lock
 sets and per-pair confirmation times to `successor-route-locks.json` in the
 run directory.
+
+### Aggregate insurance and default payout
+
+From clean program revision `5b1e964`, run
+`RIVALT_ATTRIBUTION_PROFILE=aggregate-fee-qualification bash ops/build-profit-attribution.sh`.
+Return to the qualification revision. Run
+`bash ops/build-settlement-helper.sh aggregate-fee-candidate`. Set
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` to the absolute printed program directory.
+Run `bash ops/scalable-settlement-smoke.sh` with
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-fee-lanes` for paired trades and
+with `RIVALT_SETTLEMENT_PROBE=profit-attribution-fee-lanes-apply` for a default
+that draws on earned insurance. Use a separate fresh run directory each time.

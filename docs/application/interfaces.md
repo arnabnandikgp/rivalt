@@ -215,3 +215,16 @@ low-level function itself is not an authentication boundary. Arbitrary/disconnec
 quote callbacks are unsupported by its convex-search contract. The optional
 `FundingSearchMetrics` records distinct quantity evaluations and compositions;
 report wire format, publisher authority and actual trade admission are unchanged.
+
+## Aggregate fee receipts
+
+For the D137 local artifact, `/v4/trades` returns one `LiquidityRouteFeeRecorded`
+per fill. Its signed payload carries the whole fee. The API adds
+`reconstructedFeeSplit` alongside that payload with insurance and retained atoms
+as decimal strings and the new carry as an integer from zero through three. A
+page can start mid-market or just after a checkpoint. The indexed pre-fill
+remainder is derivable from the last classified carry and the cumulative pending
+fees in that receipt. `/v4/events` also exposes `MarketFeesClassified`, the
+on-chain transfer into insurance. Summing both as revenue would count the same
+collection twice. The SDK's `decodeFeeLedger` separates escrow from spendable
+treasury cash on this artifact.
