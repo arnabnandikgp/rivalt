@@ -24,7 +24,7 @@ const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(valu
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
   binding:{venue:string;program:string;artifactSet?:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
-  const allocation=kind===18&&binding.artifactSet===sdk.BOOK_INVENTORY_ARTIFACT_SET?sdk.getInventoryBookPageDecoder():
+  const allocation=kind===18&&sdk.isBookInventoryArtifact(binding.artifactSet)?sdk.getInventoryBookPageDecoder():
     kind===18&&binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET?sdk.getLinkedAllocationPageDecoder():
     kind===18&&binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET?sdk.getBtcAllocationPageDecoder():undefined;
   assert.equal(bytes.length,allocation?.fixedSize??descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
@@ -68,7 +68,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     const book=sdk.inventoryBookReceipt(value);
     if(book || resolution.inventoryBook) {
       const projected=resolution.inventoryBook;
-      assert(binding.artifactSet===sdk.BOOK_INVENTORY_ARTIFACT_SET && book && projected,'Missing book certificate or event');
+      assert(sdk.isBookInventoryArtifact(binding.artifactSet) && book && projected,'Missing book certificate or event');
       assert.deepEqual([book.digest,String(book.total),Number(book.count)],[projected.digest,projected.total,projected.pairs.length]);
     }
     const shared=sdk.sharedInventoryReceipt(value,binding.artifactSet);

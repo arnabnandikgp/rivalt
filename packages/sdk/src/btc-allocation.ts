@@ -21,6 +21,8 @@ export function getLinkedAllocationPageDecoder() {
 
 // Eleven fixed revisioned accounts precede the dynamic pages in VerifyInventoryBook.
 export const INVENTORY_BOOK_ACTIVE_PAGE_LIMIT=32-11;
+export const INVENTORY_BOOK_EVENT_PAGE_LIMIT=Math.floor((8192-108-10*41-49)/49);
+export const INVENTORY_BOOK_HEAP_BYTES=128*1024;
 
 export function getInventoryBookPageDecoder() {
   return allocationPage(transformDecoder(getTupleDecoder([getFrozenMarginDecoder(),getU64Decoder(),getU64Decoder()]),

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {AccountRole} from '@solana/kit';
+import {Connection,VersionedTransaction} from '@solana/web3.js';
+import {eventually} from './wire.js';
 import * as sdk from '@rivalt/sdk';
 import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
 import {accountDefaultStep} from '../../packages/services/src/account-default-worker.js';
@@ -23,10 +25,12 @@ const activeIndices=Array.from({length:2*pairs},(_,index)=>index*stride);
 const directory=process.env.RIVALT_RUN_DIR!, url=process.env.RIVALT_RPC_URL!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'book');
+const expanded=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-inventory-book-expanded';
+const selection=expanded?'book-capacity-candidate':'book-inventory-candidate';
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,expanded?'capacity':'book');
 const label='certify every active BTC lot';
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,{
-  deferFinality:true,computeUnitLimit:value=>value===label?1_200_000:1_000_000,observeOutcomes:value=>value===label,
+  deferFinality:true,heapSize:value=>expanded&&value===label?sdk.INVENTORY_BOOK_HEAP_BYTES:undefined,computeUnitLimit:value=>value===label?1_200_000:1_000_000,observeOutcomes:value=>value===label,
 });
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,worker:AccountRuntime|undefined;
 try {
@@ -54,7 +58,8 @@ try {
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint('frozen-population',true);
-  worker=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,'book-inventory-candidate');
+  process.env.RIVALT_DEFAULT_BATCH_STEPS='1';
+  worker=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,selection);
   await worker.open();
   let measured=false;
   for(let steps=0;steps<2*setup.roots.length+125;steps++) {
@@ -71,7 +76,7 @@ try {
     const pageIndices=[...new Set(ordinals.map(ordinal=>ordinal/8n))];
     const activePages=pageIndices.length;
     const pages=await Promise.all(pageIndices.map(async index=>(await sdk.deriveFrozenMarginPage(setup.venue,index))[0]));
-    const scopeExceeded=activePages>sdk.INVENTORY_BOOK_ACTIVE_PAGE_LIMIT;
+    const scopeExceeded=activePages>(expanded?sdk.INVENTORY_BOOK_EVENT_PAGE_LIMIT:sdk.INVENTORY_BOOK_ACTIVE_PAGE_LIMIT);
     assert.equal(next.status,scopeExceeded?'blocked':'ready');
     let instruction;
     if(next.status==='blocked') {
@@ -82,9 +87,42 @@ try {
     const watched=[common.prepared,...pages,setup.resolution,setup.vault,...setup.roots];
     const snapshot=()=>Promise.all(watched.map(account=>h.read(account)));
     const before=await snapshot();
-    await h.send(label,[instruction]);
-    await flush();
-    const outcome=checks.find(check=>check.label===label)!;
+    let outcome:Record<string,unknown>;
+    const simulations:{heap:number;units:number;error:unknown}[]=[];
+    if(expanded) {
+      const connection=new Connection(url,'confirmed');
+      for(const heap of [32,64,128,256]) {
+        const {transaction}=await sdk.signCanonicalInstructions(connection,setup.payer,[instruction],{
+          computeUnitLimit:1_200_000,loadedAccountsDataSizeLimit:8*1024*1024,...(heap>32?{heapSize:heap*1024}:{}),
+        });
+        const simulated=await rpc.call('simulateTransaction',[Buffer.from(transaction.serialize()).toString('base64'),{
+          encoding:'base64',sigVerify:true,commitment:'confirmed',
+        }]);
+        simulations.push({heap,units:simulated.value.unitsConsumed,error:simulated.value.err});
+        writeFileSync(directory+'/inventory-heap-'+heap+'.json',json(simulated));
+      }
+      const work=await worker.riskWork(setup.payer);
+      assert.equal(work.status,'queued',json(work));
+      const intents=(await worker.store.pool.query("SELECT request_id,signature,wire FROM service_intents WHERE run_id=$1 AND status='pending'",[worker.runId])).rows;
+      assert.equal(intents.length,1);
+      const intent=intents[0];
+      const subscription=await ws.call('signatureSubscribe',[intent.signature,{commitment:'finalized'}]);
+      const finalized=await eventually(async()=>{await worker!.queue.step(intent.request_id);return worker!.queue.get(intent.request_id);},
+        value=>['finalized','failed'].includes(value?.status),'inventory certificate');
+      assert.equal(finalized.status,'finalized');
+      assert.equal((await ws.notification(subscription)).params.result.value.err,null);
+      const receipt=await rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+      assert.equal(receipt.transaction[0],intent.wire);
+      const wire=Buffer.from(intent.wire,'base64'),signed=VersionedTransaction.deserialize(wire);
+      outcome={signature:intent.signature,version:signed.version,bytes:wire.length,fee:receipt.meta.fee,
+        computeUnits:receipt.meta.computeUnitsConsumed,computeUnitLimit:1_200_000,error:receipt.meta.err};
+      assert.equal(receipt.meta.computeUnitsConsumed,simulations.find(test=>test.heap*1024===sdk.INVENTORY_BOOK_HEAP_BYTES)!.units);
+      writeFileSync(directory+'/inventory-worker-finalized.json',json(receipt));
+    } else {
+      await h.send(label,[instruction]);
+      await flush();
+      outcome=checks.find(check=>check.label===label)!;
+    }
     assert(outcome && typeof outcome.computeUnits==='number' && typeof outcome.bytes==='number');
     const after=await snapshot();
     if(outcome.error===null) {
@@ -96,7 +134,7 @@ try {
       const tx=JSON.parse(readFileSync(directory+'/transaction-'+checks.indexOf(outcome)+'.json','utf8'));
       const reason=[JSON.stringify(tx.meta.err),...tx.meta.logMessages].join(' ');
       if(scopeExceeded)assert.deepEqual(tx.meta.err?.InstructionError?.[1],{Custom:sdk.CLEARING_ERROR__PROFILE});
-      else assert(/memory allocation failed|exceeded.*(?:CUs|compute units)|ComputationalBudgetExceeded/i.test(reason),'Unclassified certificate failure: '+reason);
+      else assert(/memory allocation failed|Access violation writing \d+ bytes at address 0x3[0-9a-f]+ \(in heap region\)|exceeded.*(?:CUs|compute units)|ComputationalBudgetExceeded/i.test(reason),'Unclassified certificate failure: '+reason);
       assert.deepEqual(after,before,'rejected certificate modified frozen state');
     }
     await journal.checkpoint('measured-certificate',true);
@@ -105,7 +143,8 @@ try {
       assert(certificate && certificate.pairs.length===pairs);
       assert.deepEqual(certificate.pairs.map(row=>row.slice(2)),Array.from({length:pairs},()=>[String(charge),String(40_000n+charge)]));
     } else assert.equal(certificate,undefined);
-    const result={revision,sbf:build.revision,active:pairs*2,financialMembers:6+traderCount,stride,activePages,expectedCharge:String(charge),
+    if(expanded)assert.equal(outcome.error,null,'Expanded book must certify');
+    const result={revision,sbf:build.revision,active:pairs*2,financialMembers:6+traderCount,stride,activePages,expectedCharge:String(charge),simulations,
       finalized:outcome,freshEvents:replay.events,harnessChecks:checks.length};
     writeFileSync(directory+'/inventory-capacity.json',json(result));
     console.log(json(result));

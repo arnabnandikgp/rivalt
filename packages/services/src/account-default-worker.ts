@@ -30,7 +30,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     const result=await runtime.rpc.call('getAccountInfo',[address,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(state.contextSlot)}]);
     assert(BigInt(result.context.slot)>=state.contextSlot,'Default read moved backwards');return result.value;
   };
-  const book=runtime.deploymentSelection==='book-inventory-candidate';
+  const book=sdk.isBookInventoryDeployment(runtime.deploymentSelection);
   const allocation=runtime.deploymentSelection==='btc-allocation-candidate';
   const linkedAllocation=runtime.deploymentSelection==='linked-allocation-candidate';
   const frozen=async(ordinal:bigint,initialize=false)=>{
@@ -83,7 +83,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
+    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate','book-capacity-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
       const members:FrozenMember[]=[];
       for(let start=0n; start<prepared.count; start+=8n) {
         const {page,row}=await frozen(start);
@@ -100,7 +100,8 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
             (row.lots[0]===0n ? row.claims[0]<0n : row.claims[0]%1_000_000_000n!==0n ||
               row.lots[0] !== (row.claims[0]<0n?side:-side))))return blocked('unsupported-inventory-book');
         const metas=[...new Set(active.map(member=>member.page))].map(address=>({address,role:AccountRole.WRITABLE}));
-        if(metas.length>sdk.INVENTORY_BOOK_ACTIVE_PAGE_LIMIT)return blocked('inventory-book-requires-paged-verification');
+        const limit=runtime.deploymentSelection==='book-capacity-candidate'?sdk.INVENTORY_BOOK_EVENT_PAGE_LIMIT:sdk.INVENTORY_BOOK_ACTIVE_PAGE_LIMIT;
+        if(metas.length>limit)return blocked('inventory-book-requires-paged-verification');
         return ready('verify-inventory-book',withPages(sdk.getVerifyInventoryBookInstruction({
           ...args,revision:prepared.revision,ordinals:active.map(member=>member.ordinal)}),metas));
       }

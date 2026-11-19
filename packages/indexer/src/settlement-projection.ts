@@ -2,7 +2,7 @@
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
 import {address} from '@solana/kit';
 import {inventoryBookPlan,twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
-import {BOOK_INVENTORY_ARTIFACT_SET,isSharedInventoryArtifact,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
+import {isBookInventoryArtifact,isSharedInventoryArtifact,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -18,7 +18,7 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
   if(event.type==='InventoryBookVerified') {
-    accountCheck(artifactSet===BOOK_INVENTORY_ARTIFACT_SET && current.stage===2 && !current.inventoryBook &&
+    accountCheck(isBookInventoryArtifact(artifactSet) && current.stage===2 && !current.inventoryBook &&
       !current.sharedInventory && !current.foreignCreditors && !current.pair && !current.joint &&
       !current.allocation && !current.linkedAllocation,'unique book certificate');
     eq(current.poolsBefore,['0','0'],'empty frozen pools');

@@ -6,6 +6,7 @@ export const V0_PACKET_LIMIT = 1_232;
 export const V1_PACKET_LIMIT = 4_096;
 export type CanonicalTransactionBudget = {
   computeUnitLimit: number;
+  heapSize?:number;
   loadedAccountsDataSizeLimit: number;
 };
 
@@ -21,11 +22,14 @@ export function compileCanonicalTransaction(
   if (!Number.isInteger(budget.computeUnitLimit) || budget.computeUnitLimit < 1 || budget.computeUnitLimit > 1_400_000
     || !Number.isInteger(budget.loadedAccountsDataSizeLimit) || budget.loadedAccountsDataSizeLimit < 1
     || budget.loadedAccountsDataSizeLimit > 64 * 1024 * 1024) throw new Error('Invalid canonical transaction resource budget');
+  if(budget.heapSize!==undefined && (!Number.isSafeInteger(budget.heapSize) || budget.heapSize<32*1024 ||
+    budget.heapSize>256*1024 || budget.heapSize%1024!==0))throw new Error('Invalid transaction heap size');
   if (instructions.length === 0) throw new Error('Empty canonical transaction');
   if (instructions.some(ix => ix.programAddress === ComputeBudgetProgram.programId.toBase58())) {
     throw new Error('Pass resource limits through the budget, not compute-budget instructions');
   }
   const v0 = new VersionedTransaction(new TransactionMessage({ ...common, instructions: [
+    ...(budget.heapSize===undefined?[]:[ComputeBudgetProgram.requestHeapFrame({bytes:budget.heapSize})]),
     ComputeBudgetProgram.setComputeUnitLimit({ units: budget.computeUnitLimit }),
     ComputeBudgetProgram.setLoadedAccountsDataSizeLimit({ accountDataSizeLimit: budget.loadedAccountsDataSizeLimit }),
     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 0n }),
