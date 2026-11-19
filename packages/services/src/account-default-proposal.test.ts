@@ -74,5 +74,12 @@ it('rejects a self-consistent helper manifest from another checkout or a dirty b
     }
     writeFileSync(join(directory,'manifest.json'),JSON.stringify(manifest));
     expect(()=>new SettlementPages(directory)).not.toThrow();
+    expect(()=>new SettlementPages(directory,'verified-pair-candidate')).toThrow();
+    const pair={...manifest,revision:accountDeployment('verified-pair-candidate').helperRevision};
+    writeFileSync(join(directory,'manifest.json'),JSON.stringify(pair));
+    expect(()=>new SettlementPages(directory,'verified-pair-candidate')).toThrow();
+    writeFileSync(join(directory,'manifest.json'),JSON.stringify({...pair,feature:'single-pair-default-qualification'}));
+    expect(()=>new SettlementPages(directory,'verified-pair-candidate')).not.toThrow();
+    expect(()=>new SettlementPages(directory)).toThrow();
   } finally {rmSync(directory,{recursive:true});}
 });

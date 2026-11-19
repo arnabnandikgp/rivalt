@@ -5,11 +5,12 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
  * bind the same qualified bytes; old journals keep their original artifact set. */
 export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
+export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
   if(selection==='verified-pair-candidate')return {
-    artifactSet:VERIFIED_PAIR_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:SETTLEMENT_HELPER_REVISION,
+    artifactSet:VERIFIED_PAIR_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:VERIFIED_PAIR_HELPER_REVISION,
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
       bytes:2549160,sha256:'ad877806d413e8708d8c33189dc4d2084392fb41995763f016506c7ae04b8f6a'}:artifact)
   };

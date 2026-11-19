@@ -5,7 +5,7 @@ import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
-import {SETTLEMENT_HELPER_REVISION} from '@rivalt/sdk';
+import {accountDeployment,type AccountDeployment} from '@rivalt/sdk';
 import type {readAccountResolution} from './account-worker-state.js';
 
 export type SettlementPageRequest={register:number;index:bigint;writable:boolean};
@@ -13,10 +13,14 @@ export type SettlementPageOperation='denominator'|'rate'|'plan'|'plan-row'|'plan
 type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
 export class SettlementPages {
   private readonly binary:string;
-  constructor(directory=resolve(process.env.RIVALT_SETTLEMENT_HELPER_DIR??'.local/settlement-helper')) {
+  constructor(directory?:string,selection:AccountDeployment='selected') {
+    const paired=selection==='verified-pair-candidate';
+    directory=resolve(directory??process.env.RIVALT_SETTLEMENT_HELPER_DIR??
+      (paired?'.local/settlement-helper-verified-pair':'.local/settlement-helper'));
     const manifest=JSON.parse(readFileSync(resolve(directory,'manifest.json'),'utf8'));
     assert(manifest.version===2&&manifest.accountSchema===10&&manifest.programProfile===6
-      &&manifest.binary==='rivalt-settlement-pages'&&manifest.revision===SETTLEMENT_HELPER_REVISION&&manifest.trackedDirty===false
+      &&manifest.binary==='rivalt-settlement-pages'&&manifest.revision===accountDeployment(selection).helperRevision&&manifest.trackedDirty===false
+      &&(paired?manifest.feature==='single-pair-default-qualification':manifest.feature===undefined)
       &&/^[0-9a-f]{64}$/.test(manifest.sha256),'Unsupported settlement helper manifest');
     this.binary=resolve(directory,manifest.binary);
     const bytes=readFileSync(this.binary);

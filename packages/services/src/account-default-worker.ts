@@ -13,7 +13,7 @@ type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
 export type DefaultStep={status:'blocked';reason:string}|{status:'ready';reason:string;id:string;instruction:Instruction};
 const transports=new WeakMap<AccountRuntime,SettlementPages>();
 function transport(runtime:AccountRuntime) {
-  let value=transports.get(runtime);if(!value){value=new SettlementPages();transports.set(runtime,value);}return value;
+  let value=transports.get(runtime);if(!value){value=new SettlementPages(undefined,runtime.deploymentSelection);transports.set(runtime,value);}return value;
 }
 export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,state:Continuation,
   common:Awaited<ReturnType<typeof accountDefaultContext>>):Promise<DefaultStep> {

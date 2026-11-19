@@ -179,6 +179,24 @@ RIVALT_SETTLEMENT_PROBE=profit-attribution-sponsor bash ops/scalable-settlement-
 RIVALT_SETTLEMENT_PROBE=profit-attribution-sponsor-recovery bash ops/scalable-settlement-smoke.sh
 ```
 
+## Verified BTC default payout
+
+Build from clean program revision `447efef` with the pinned P56 maker binaries.
+From the qualification checkout build the matching native page helper, then run
+both cases using a fresh loopback chain and PostgreSQL database for each.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=single-pair-default-qualification RIVALT_ATTRIBUTION_DIR=.local/profit-attribution/verified-pair-rates bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/verified-pair-rates
+bash ops/build-settlement-helper.sh verified-pair-candidate
+RIVALT_SETTLEMENT_PROBE=profit-attribution-verified-pair bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-verified-pair-limited bash ops/scalable-settlement-smoke.sh
+```
+
+The first case follows the flat trader through a withdrawal. The second gives
+the winning maker only 502 eligible atoms against a 1,500-atom shortfall and
+checks that the cohort stays frozen.
+
 ## Maker liquidation demonstration
 
 Build the separately pinned candidate at source revision `ab3f6c6` with

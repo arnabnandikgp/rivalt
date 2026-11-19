@@ -4,8 +4,37 @@ The successor must establish three facts before anyone can collect a changed
 payout. Each forced close must be admissible at the freeze. The plan must win
 under the approved recovery, sharing and tie rules. Clearing must commit the
 same result across both markets. The existing program provides part of the
-last guarantee for ordinary terminal settlement. The small-cohort reference runs offline. The signed fixture below meters one
-restricted plan family on a local validator.
+last guarantee for ordinary terminal settlement. The small-cohort reference runs offline.
+The verified BTC candidate also connects one restricted selection proof to actual
+clearing balances and withdrawals. The nine-account fixture farther below measures
+a different selection proof in isolation.
+
+## Single BTC pair in financial clearing
+
+The candidate requires complete frozen membership, whole-atom claims, one
+BTC debtor, one opposite winning BTC lot and zero ETH obligations and exposure.
+Other flat BTC creditors and funded cash remain part of the same settlement.
+The valuation pass checks all members. Clearing reauthenticates both original
+roots and derives the winner’s unpaid gain from its surviving position history.
+The keeper supplies the two member locations.
+
+Let the debtor owe `D` whole atoms and hold `C` funded atoms. With BTC insurance
+`I`, the shortfall is `max(0, D − C − I)`. Existing settlement cash backs the
+corresponding extra positive claims and cancels out of this difference. With
+one opposite lot, an adverse move of one price atom transfers one collateral
+atom. Clearing admits the full charge only when the winner’s unpaid open gain,
+positive claim and valid price range all cover it. A zero shortfall needs no
+forced close. Partial coverage, fractional claims and linked books require
+additional verification.
+
+After traversal the prepared header records the epoch, both stable member IDs,
+charge, execution price and unpaid-gain cap. Frozen financial rows retain their
+original values. The denominator, rate totals, individual flows and final
+application all use the same adjusted claims. The existing custody check
+continues to authenticate the original roots. The finalized receipt explains
+the transfer to the indexer. Spendable cash becomes available after the entire
+cohort reconciles. [Rust selection](../../crates/financial-core/src/clearing/scalable/snapshot/single_pair.rs)
+and [program adapter](../../programs/clearing/src/instructions/account_safety/settlement/single_pair.rs).
 
 ## What clearing can reuse
 

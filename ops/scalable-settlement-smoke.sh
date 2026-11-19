@@ -8,6 +8,9 @@ export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
 if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution* ]]; then
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts"; verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,process.env.RIVALT_SETTLEMENT_PROBE.includes("sponsor"),process.env.RIVALT_SETTLEMENT_PROBE.includes("verified-pair"));'
+  if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-verified-pair* ]]; then
+    node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts"; new SettlementPages(undefined,"verified-pair-candidate");'
+  fi
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation ]]; then
   node --import tsx --input-type=module -e 'import {verifyLiquidationBuild} from "./tests/rpc-contract/maker-liquidation-build.ts"; verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR);'
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk ]]; then
