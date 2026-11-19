@@ -1,5 +1,34 @@
 # Validation and measured limits
 
+## BTC residual recovery
+
+At `1e05885` three independent eight-account runs used signed Surfpool RPC/WS,
+fresh PostgreSQL and SBF `8024a37`. The clearing binary is 2,550,560 bytes,
+SHA-256 `cd2e95d27c5e6ec9b1a55138220ec29f2475c9a7c9b3d14373c35a5361e1982e`.
+The frozen mark was 70,000 in every case. Each trader withdrew the funded
+amount shown to its SPL wallet. Each vault decreased by that same amount.
+
+| Available open BTC gain | Forced close at the freeze | Remaining BTC loss | Flat trader withdrew | Winning maker gain credited | BTC insurance / retained fees |
+|---|---|---:|---:|---:|---:|
+| 502 against 1,500 short | 1 lot at 69,498, charged 502 | 998 | 8,498 | 0 | 498 / 21 |
+| 0 against 1,500 short | 0 lots, no charge | 1,500 | 8,498 | 0 | 498 / 21 |
+| 3,006 against 2,483 short | 1 lot at 69,173 and 2 at 69,172, charged 2,483 | 0 | 26,988 | 523 | 511 / 60 |
+
+All eight cash balances in each run matched an independent fill replay and
+terminal calculation. Each run checked 279 harness outcomes and 13 separately
+finalized worker transactions, recovered a stored original after worker restart,
+resumed custody, returned the sponsor’s principal and replayed the same 116
+financial payloads in fresh SQL. ETH insurance spent was zero. Peak worker
+transaction CU was 891,712, 891,712 and 891,714 respectively. These maxima
+cover batched recovery work. An earlier test harness hard-coded the one-lot
+fee and rejected the actual 14- and 37-atom fees before qualification.
+
+The two-asset linked book and several competing eligible winners require other
+proofs. This candidate has one debtor and one opposing BTC account. The
+[rounding comparison](../clearing/default-plan-verification.md#a-sole-btc-debtor-with-residual-losses)
+explains a one-atom difference that can arise for flat creditors in the defaulting
+market. [Reproduction commands](local-development.md#btc-residual-recovery).
+
 ## Verified BTC default payout
 
 At `24bc87f84e3861296fe1559786486dab6a77a877`, eight accounts on fresh

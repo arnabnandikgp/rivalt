@@ -43,11 +43,12 @@ compulsory reduction and the freeze. The [sponsored capacity qualification](../o
 also admitted the previously rejected order, repaid a replacement contributor
 and preserved the rent credit through a restarted default. The
 [verified BTC payout](../operations/validation.md#verified-btc-default-payout)
-now gets the 996 atoms into the flat trader’s wallet. The next milestone is a
-complete single-market recovery when eligible gain covers only part of the loss,
-including the final payout of each creditor and the effect of whole-atom
-rounding. Multi-winner and linked-market proofs, shared writes and broader
-cost qualification remain open.
+now gets the 996 atoms into the flat trader’s wallet. [BTC residual recovery](../operations/validation.md#btc-residual-recovery)
+also pays the trader when eligible gain covers part or none of the loss and
+when the forced reduction needs several lots at two prices. The next milestone
+is a single BTC debtor with multiple eligible opposite accounts. It must verify
+the division of loss, the fewest necessary lots and episode tie ordering.
+Linked-market proofs, shared writes and broader cost qualification remain open.
 
 ## Functional ownership
 

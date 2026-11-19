@@ -49,7 +49,8 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 | Single-debtor BTC recovery | Review | [PR #102](https://github.com/arnabnandikgp/rivalt/pull/102). [Signed comparison](operations/validation.md#single-debtor-btc-recovery) at `7781e6b` on selected P56. Eight accounts, 13 finalized worker continuations, an 847-atom wallet exit and 115-event fresh SQL replay. A successor model on the same inputs pays the trader 996. |
 | Clearing-owned surviving profit | Review | [PR #103](https://github.com/arnabnandikgp/rivalt/pull/103). [Signed results](operations/validation.md#clearing-owned-surviving-profit). Program `33361d9`, signed harness `af1c515`. All 16 frozen market slots matched independent replay across two-maker fills, a flip, backed payment and keeper liquidation. A separate 277-transaction recovery reproduced the parent’s creditor payout and wallet exit. |
 | Sponsored profit capacity | Review | [PR #105](https://github.com/arnabnandikgp/rivalt/pull/105). [Signed capacity and recovery](operations/validation.md#sponsored-profit-capacity). At `291e7a5` on SBF `1763dc7`, 129 lots traded after both roots grew. A replacement sponsor reimbursed the first and received its own principal after exit. A separate 279-transaction BTC default returned the winning maker’s sponsor principal after restart and reconciliation. |
-| Verified BTC default payout | Review | [Signed recovery and limits](operations/validation.md#verified-btc-default-payout). At `24bc87f` on SBF `447efef`, clearing paid the flat trader 996 atoms into the wallet, debited the winning maker 1,500 and protected both markets’ accounting. All eight roots and 116 fresh SQL payloads reconciled. At `0ac7019` the 502-atom case remained frozen. |
+| Verified BTC default payout | Review | [PR #106](https://github.com/arnabnandikgp/rivalt/pull/106). [Signed recovery and limits](operations/validation.md#verified-btc-default-payout). At `24bc87f` on SBF `447efef`, clearing paid the flat trader 996 atoms into the wallet, debited the winning maker 1,500 and protected both markets’ accounting. All eight roots and 116 fresh SQL payloads reconciled. At `0ac7019` the 502-atom case remained frozen. |
+| BTC residual recovery | Review | [Three signed outcomes](operations/validation.md#btc-residual-recovery). At `1e05885` on SBF `8024a37`, actual wallet payouts were 8,498 with partial eligible gain, 8,498 with zero eligible gain and 26,988 with three opposite lots. Each run reconciled all eight roots and replayed 116 events in fresh SQL. |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -115,9 +116,10 @@ frozen obligations. On the separate attribution build those obligations now carr
 clearing-owned exact per-lot entry and paid profit. The 128-byte per-market
 allocation rejected a 129-lot test order. The separately tested growth path admitted the same 129 lots
 and refunded actual contributor principal. The first signed successor reduction
-paid the flat trader 996 on the matched default. Next complete the one-debtor
-BTC case with insufficient eligible gain and verify each residual payout,
-wallet withdrawal and fresh SQL replay against independent arithmetic.
+paid the flat trader 996 on the matched default. The residual candidate now
+pays through the same withdrawal path for insufficient and zero eligible gain.
+Next verify the division of a BTC loss across multiple eligible winners against
+the approved proportional rule, minimum lots and frozen-episode tie ordering.
 
 ## Earlier checkpoints
 

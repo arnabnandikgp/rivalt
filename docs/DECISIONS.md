@@ -1300,3 +1300,10 @@ The first [financial proof](clearing/default-plan-verification.md#single-btc-pai
 admits one opposing BTC lot, one debtor, whole claims, no ETH obligations and
 full recovery of any verified shortfall. D112–D122 govern the economics. This
 restricted candidate has its own artifact selection and native page helper.
+
+The succeeding BTC-only proof retains both original roots and records a compact
+two-price lot schedule. With only one debtor and one opposite position, the
+maximum recoverable whole charge and fewest matched lots follow directly from
+the recorded per-lot gain. Remaining loss follows D112. Its
+[separate signed qualification](operations/validation.md#btc-residual-recovery)
+includes zero gain, insufficient gain and a three-lot charge.

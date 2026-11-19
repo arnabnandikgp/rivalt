@@ -36,6 +36,39 @@ the transfer to the indexer. Spendable cash becomes available after the entire
 cohort reconciles. [Rust selection](../../crates/financial-core/src/clearing/scalable/snapshot/single_pair.rs)
 and [program adapter](../../programs/clearing/src/instructions/account_safety/settlement/single_pair.rs).
 
+### A sole BTC debtor with residual losses
+
+The BTC residual candidate accepts multiple opposite lots held by one account.
+It verifies that these two roots own all BTC exposure, the debtor owns all
+negative BTC claims, and every ETH position and claim is zero. Other flat BTC
+creditors participate in ordinary proportional recovery. Claims and previously
+paid profit retain their fractional parts.
+
+Let `g` be the gross price gain per winning lot, `p` its previously funded
+price gain and `b` the ticks available before the allowed price boundary. In
+collateral atoms the usable gain per lot is
+`a = max(0, min(floor(g), b, g − p))`. Each actual fill price stays within
+the entry and frozen mark. Across the matched lots the total charge also stays
+within their exact share of unpaid gain. For `Q` opposing lots, total capacity
+is the lesser of `floor(Q × a)` and the positive whole BTC claim. Charge the
+lesser of this capacity and the whole shortfall after debtor cash and BTC insurance.
+These bounds are attainable with one opposite account, so the result maximizes
+recovery. For positive charge `T`, `K = ceil(T / a)` is the smallest feasible
+number of whole lots. All `K` lots concede `floor(T / K)` ticks and
+`T mod K` of them concede one further tick. Zero charge leaves the forced
+schedule empty. The existing terminal settlement still clears the frozen positions.
+[Per-lot arithmetic](../../crates/clearing-accounting/src/attribution/forced_close.rs).
+
+Same-market residual claims use D112’s ordinary conserving rounding. For
+example, three available atoms initially pay an open winner and two flat
+creditors `(1, 1, 1)` on claims of `(2, 1, 3)`. A one-atom charge to the
+winner changes the claims to `(1, 1, 3)`. The exact payouts become
+`(3/5, 3/5, 9/5)` and ordinary rounding pays `(1, 0, 2)`. The smaller flat
+claim’s exact entitlement increased from 1/2 to 3/5 while its rounded payout
+fell by one atom. D118’s floor applies to foreign-market effects. The
+[native and reference comparison](../../tests/financial/test_creditor_payout_floors.py)
+also checks what an additional same-market floor would pay.
+
 ## What clearing can reuse
 
 | Boundary | Existing implementation | Successor verification needed |

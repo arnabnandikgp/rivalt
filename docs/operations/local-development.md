@@ -197,6 +197,21 @@ The first case follows the flat trader through a withdrawal. The second gives
 the winning maker only 502 eligible atoms against a 1,500-atom shortfall and
 checks that the cohort stays frozen.
 
+## BTC residual recovery
+
+Build clearing at `8024a37` with the P56 maker artifacts available. From the
+qualification checkout `1e05885`, build the matching helper, then launch each
+scenario on a fresh local chain and PostgreSQL database.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=btc-residual-qualification RIVALT_ATTRIBUTION_DIR=.local/profit-attribution/btc-residual-r1 bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/btc-residual-r1
+bash ops/build-settlement-helper.sh btc-residual-candidate
+for scenario in partial none multi; do
+  RIVALT_SETTLEMENT_PROBE="profit-attribution-btc-residual-$scenario" bash ops/scalable-settlement-smoke.sh
+done
+```
+
 ## Maker liquidation demonstration
 
 Build the separately pinned candidate at source revision `ab3f6c6` with
