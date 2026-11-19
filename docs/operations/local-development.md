@@ -533,3 +533,14 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$ordinary_attribution_build" \
 cargo build --locked -p default-plan-selection --example single_lot_assignment
 python3 tests/financial/check_inventory_book.py
 ```
+
+The corresponding successor uses the book candidate from clean clearing
+revision `d5cc624` and the same signed fills. Build the SBF from the pinned
+revision, then run the helper and harness from the current checkout.
+
+```bash
+bash ops/build-settlement-helper.sh book-inventory-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$book_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-inventory-book-apply \
+  bash ops/scalable-settlement-smoke.sh
+```

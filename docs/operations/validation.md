@@ -1,5 +1,28 @@
 # Validation and measured limits
 
+## Clearing-verified single-lot book
+
+On pinned clearing `d5cc624` and harness `3e8df69`, six of nine funded members
+held one BTC lot. Three debtor budgets of 1, 2 and 2 met three distinct opposing
+lots. The verifier used **40,457 CU and 803 signed bytes** with two writable
+frozen pages. Three signed incomplete or duplicated inputs failed. The original
+financial accounts and balances matched their pre-verification bytes after
+both rejection and certification.
+
+| Maker | Debtor | Price | Charge | Wallet withdrawal |
+|---:|---:|---:|---:|---:|
+| 0 | 6 | 40,001 | 1 | 20,001 |
+| 1 | 8 | 40,002 | 2 | 20,001 |
+| 2 | 7 | 40,002 | 2 | 20,001 |
+
+The worker restarted before verification and after the certificate. Nine
+insurance atoms were spent. All three SPL withdrawals landed and the vault
+ended at 6,000,030. Surfpool RPC/WS covered 284 harness outcomes and 59 signed
+worker transactions. Fresh PostgreSQL replay reproduced all 127 events and the
+certificate digest. This measurement covers one BTC book, three internal maker
+accounts and two active pages on the qualified local binary.
+[Certificate contract](../clearing/default-plan-verification.md#binding-the-single-lot-assignment-to-clearing).
+
 ## Population-wide matching on a three-debtor freeze
 
 Ordinary clearing SBF `33361d9` and clean harness `34882ca` funded nine roots.
@@ -27,8 +50,7 @@ A release build on this host verified 1,024 pairs among 2,048 economic members
 in one warm command invocation (68 ms including process startup and output).
 That case visited 2,097,152 member rows in its priority checks. This is a
 native scaling measurement. The nine-account run used ordinary on-chain
-payouts. Applying the general successor to wallets still requires signed
-clearing verification. [Selection contract](../clearing/default-plan-verification.md#matching-a-population-of-single-lot-debtors-and-winners).
+payouts. The subsequent signed candidate is measured above. [Selection contract](../clearing/default-plan-verification.md#matching-a-population-of-single-lot-debtors-and-winners).
 
 ## Scarce winning inventory and flat BTC claims
 

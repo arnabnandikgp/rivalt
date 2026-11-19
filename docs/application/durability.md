@@ -721,3 +721,13 @@ charges and the ETH creditor's original and adjusted entitlement. Reconciliation
 matches every term to the prepared header. During application the journal
 checks each effective claim against its own market debtor and winning account.
 [Certificate contract](../clearing/default-plan-verification.md#atomic-certificate-for-one-cross-market-creditor-chain).
+
+### Single-lot book verification
+
+The pinned book candidate journals the winning capacities and each selected
+debtor, winner, charge and execution price. Projection reconstructs the frozen
+faces and budgets, checks complete exposure and selects the pairs again. The
+receipt digest binds these ordered terms to the venue and epoch. Reconciliation
+checks the digest against the prepared account and each charge and capacity
+against its frozen page. Financial effects appear on subsequent member
+application and signed withdrawals. [Measured replay](../operations/validation.md#clearing-verified-single-lot-book).

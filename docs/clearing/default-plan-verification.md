@@ -793,3 +793,35 @@ A feasible suffix is essential. A priority check on a single pair can accept
 a choice that leaves a larger charge unfundable. The current native checker
 uses linear space and up to one full row scan per positive winner.
 [Proposer](../../crates/default-plan-selection/src/inventory_book.rs) · [Feasibility and priority checks](../../crates/default-plan-selection/src/inventory_choice.rs).
+
+### Binding the single-lot assignment to clearing
+
+The local book verifier takes the ascending financial ordinals of every active
+BTC position and the writable frozen pages that contain those ordinals. Each
+page is supplied once in increasing order. The preceding whole-membership scan
+captures each winning lot's eligible gain from clearing-owned entry and payment
+history. Each candidate row appends a u64 capacity and a u64 certified charge.
+Eight rows occupy a 1,284-byte page including the page header and discriminator.
+
+Clearing checks the frozen gross exposure against the number of distinct
+one-lot records, then checks the complete valuation totals against the named
+BTC debt. Negative faces must share a side, winners hold the opposite side,
+and both ETH claim totals, ETH exposure and both settlement pools must be
+zero. Omitted members can hold flat positive BTC claims. For each debtor the
+uncovered loss is the positive part of its face debt less its cash. With total
+uncovered loss L and original BTC insurance I, the whole budget is
+floor(loss × max(0, L − I) / L), or zero when L is zero.
+
+The instruction computes the matching directly, writes each participating
+member's charge and commits a digest of the epoch, ordered winning capacities
+and ordered pairs. The verifier changes scratch state only. Subsequent rate
+calculation adjusts the debtor and winner claims by opposite amounts and uses
+the original claims for cash collection. The journal reconstructs the winning
+targets and checks prospective debtor choices against the sorted remaining
+budgets. Reconciliation compares its digest with the clearing receipt and
+compares the per-member charge and capacity with the actual frozen page.
+
+The number of active positions and the number of distinct pages touched affect
+the certification transaction. The complete valuation and later distribution
+also visit flat members. The local deployment pins the extended layout and
+restricts release to its supported shape.

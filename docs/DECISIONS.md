@@ -1410,3 +1410,14 @@ A zero charge leaves that lot unused and carries a zero fill price. Flat BTC
 creditors share the remaining backing under ordinary terminal rounding. The
 new local receipt marker distinguishes these terms from D132’s full-coverage
 certificate. [Proof and eligibility](clearing/default-plan-verification.md#when-one-of-the-two-winning-lots-has-little-eligible-gain).
+
+## D134 — Authenticate the active single-lot matching from frozen rows
+
+20 November 2026. A separate local clearing candidate captures eligible BTC
+gain during valuation, then verifies the complete active one-lot book in one
+transaction. The worker supplies financial ordinals and canonical pages.
+Clearing computes the D116/D121 assignment and commits the charge to both
+members before rate verification can begin. Flat positive BTC creditors retain
+their claims. The checkpoint binds both winning capacities and the exact fill
+schedule to the frozen episode for journal replay.
+[State and limits](clearing/default-plan-verification.md#binding-the-single-lot-assignment-to-clearing).

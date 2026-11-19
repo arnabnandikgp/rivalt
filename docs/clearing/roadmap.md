@@ -78,8 +78,7 @@ With insufficient opposing gain, the
 [partial-inventory case](../operations/validation.md#scarce-winning-inventory-and-flat-btc-claims)
 also pays the flat maker 19,996 and checks both a zero-capacity winning lot and
 a rounded-zero debtor budget. The [general native matcher](default-plan-verification.md#matching-a-population-of-single-lot-debtors-and-winners)
-now verifies a three-debtor assignment against real frozen positions. Next bind
-the complete result to clearing and compare three actual successor withdrawals.
+now verifies a three-debtor assignment against real frozen positions. The [local clearing verifier](../operations/validation.md#clearing-verified-single-lot-book) paid all three predicted wallet amounts. Next measure how a larger set of active positions and writable frozen pages affects certification.
 [Measured comparison](../operations/validation.md#two-btc-debtors-sharing-winning-inventory).
 General linked selection,
 shared writes and broader cost qualification remain open.
