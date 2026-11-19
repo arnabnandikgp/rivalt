@@ -153,13 +153,13 @@ try {
         firstWinner:makers[0].capital,secondWinner:makers[1].capital};
       beforeScoring=await financialSnapshot();
       const scratch=await h.read(common.prepared);
-      for(const [reason,overrides] of [
-        ['one winning lot used twice',{ordinals:[ordinals[0],ordinals[1],ordinals[2],ordinals[2]],secondWinner:verify.firstWinner}],
-        ['less proportional assignment',{ordinals:[ordinals[0],ordinals[1],ordinals[3],ordinals[2]],firstWinner:verify.secondWinner,secondWinner:verify.firstWinner}],
-        ['charge above individual post-insurance budget',{charges:[3n,5n]}],
+      for(const [reason,expectedError,overrides] of [
+        ['one winning lot used twice',sdk.CLEARING_ERROR__ALIAS,{ordinals:[ordinals[0],ordinals[1],ordinals[2],ordinals[2]],secondWinner:verify.firstWinner}],
+        ['less proportional assignment',sdk.CLEARING_ERROR__RESOLUTION,{ordinals:[ordinals[0],ordinals[1],ordinals[3],ordinals[2]],firstWinner:verify.secondWinner,secondWinner:verify.firstWinner}],
+        ['charge above individual post-insurance budget',sdk.CLEARING_ERROR__RESOLUTION,{charges:[3n,5n]}],
       ] as const) {
         await h.send('reject '+reason,[sdk.getVerifySharedInventoryInstruction({...verify,...overrides,
-          ordinals:[...('ordinals' in overrides?overrides.ordinals:ordinals)],charges:[...('charges' in overrides?overrides.charges:verify.charges)]})],[],sdk.CLEARING_ERROR__RESOLUTION);
+          ordinals:[...('ordinals' in overrides?overrides.ordinals:ordinals)],charges:[...('charges' in overrides?overrides.charges:verify.charges)]})],[],expectedError);
       }
       assert.deepEqual(await h.read(common.prepared),scratch);
       assert.deepEqual(await financialSnapshot(),beforeScoring);
