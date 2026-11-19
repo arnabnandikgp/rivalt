@@ -45,3 +45,12 @@ it('carries the explicit inventory heap on both wire formats',()=>{
     expect(()=>inventoryBookWire(lots,33_000)).toThrow(/heap size/);
   }
 });
+
+it('reserves heap for a qualified certificate even inside a multi-instruction prefix',()=>{
+  const verification=sdk.getVerifyInventoryBookInstruction({...fixed,epoch:1n,revision:1n,ordinals:[0n,1n]});
+  const unrelated={...verification,data:new Uint8Array(8)};
+  expect(sdk.inventoryBookHeap('book-capacity-candidate',[unrelated,verification])).toBe(sdk.INVENTORY_BOOK_HEAP_BYTES);
+  expect(sdk.inventoryBookHeap('book-inventory-candidate',[verification])).toBeUndefined();
+  expect(sdk.inventoryBookHeap('book-capacity-candidate',[unrelated])).toBeUndefined();
+  expect(sdk.inventoryBookHeap('book-capacity-candidate',[{...verification,programAddress:key('foreign')}])).toBeUndefined();
+});
