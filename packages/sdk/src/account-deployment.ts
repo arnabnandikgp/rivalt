@@ -3,15 +3,21 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate';
+export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
+export const LINKED_FLAT_ARTIFACT_SET='linked-flat-30434d5';
 export const LINKED_PAIR_ARTIFACT_SET='linked-pair-0e027fc';
 export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
+  if(selection==='linked-flat-candidate')return {
+    artifactSet:LINKED_FLAT_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'30434d5e0cc77c296912ecd82d1036b8c674d9a9',
+    artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
+      bytes:2586864,sha256:'e55f48477a39977d10e33a85e87bab5d5ee00161307469ae1c88dae500d2cac9'}:artifact)
+  };
   if(selection==='linked-pair-candidate')return {
     artifactSet:LINKED_PAIR_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'0e027fcd5d5a658292218d40106c65b22c81da5c',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,

@@ -78,10 +78,12 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(runtime.deploymentSelection==='linked-pair-candidate' && (prepared.stage===4 || prepared.stage===6)) {
+    const allowFlat = runtime.deploymentSelection==='linked-flat-candidate';
+    if((allowFlat || runtime.deploymentSelection==='linked-pair-candidate') && (prepared.stage===4 || prepared.stage===6)) {
       const market=prepared.stage===4?0:1, other=1-market;
       type Member={ordinal:bigint; record:sdk.FrozenMargin; page:Address};
       let debtor:Member|undefined, winner:Member|undefined;
+      let flatCreditorSeen=false;
       for(let start=0n;start<header.count;start+=8n) {
         const {page,row}=await frozen(start);
         assert(row && row.rowCount===Number(header.count-start<8n?header.count-start:8n),'Incomplete joint frozen page');
@@ -91,6 +93,11 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
             if(debtor || record.claims[other]>=0n) return blocked('unsupported-linked-debtor');
             debtor=member;
           } else if(record.claims[market]>0n) {
+            if(allowFlat && market===0 && record.lots[0]===0n && record.lots[1]===0n && record.claims[1]===0n) {
+              if(flatCreditorSeen || record.claims[0]%1_000_000_000n!==0n) return blocked('unsupported-flat-btc-claims');
+              flatCreditorSeen=true;
+              continue;
+            }
             if(winner || record.claims[other]!==0n || record.lots[other]!==0n) return blocked('unsupported-linked-creditors');
             winner=member;
           }

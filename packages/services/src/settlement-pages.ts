@@ -14,10 +14,10 @@ type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
 export class SettlementPages {
   private readonly binary:string;
   constructor(directory?:string,selection:AccountDeployment='selected') {
-    const feature=selection==='linked-pair-candidate'?'linked-pair-qualification':selection==='btc-allocation-candidate'?'btc-allocation-qualification':selection==='btc-residual-candidate'?'btc-residual-qualification':
+    const feature=(selection==='linked-pair-candidate'||selection==='linked-flat-candidate')?'linked-pair-qualification':selection==='btc-allocation-candidate'?'btc-allocation-qualification':selection==='btc-residual-candidate'?'btc-residual-qualification':
       selection==='verified-pair-candidate'?'single-pair-default-qualification':undefined;
     directory=resolve(directory??process.env.RIVALT_SETTLEMENT_HELPER_DIR??
-      (selection==='linked-pair-candidate'?'.local/settlement-helper-linked-pair':selection==='btc-allocation-candidate'?'.local/settlement-helper-btc-allocation':selection==='btc-residual-candidate'?'.local/settlement-helper-btc-residual':feature?'.local/settlement-helper-verified-pair':'.local/settlement-helper'));
+      (selection==='linked-flat-candidate'?'.local/settlement-helper-linked-flat':selection==='linked-pair-candidate'?'.local/settlement-helper-linked-pair':selection==='btc-allocation-candidate'?'.local/settlement-helper-btc-allocation':selection==='btc-residual-candidate'?'.local/settlement-helper-btc-residual':feature?'.local/settlement-helper-verified-pair':'.local/settlement-helper'));
     const manifest=JSON.parse(readFileSync(resolve(directory,'manifest.json'),'utf8'));
     assert(manifest.version===2&&manifest.accountSchema===10&&manifest.programProfile===6
       &&manifest.binary==='rivalt-settlement-pages'&&manifest.revision===accountDeployment(selection).helperRevision&&manifest.trackedDirty===false
