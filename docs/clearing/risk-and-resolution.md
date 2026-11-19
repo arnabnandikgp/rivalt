@@ -8,6 +8,9 @@ The [research model](architecture-review.md#eligibility-at-the-freeze) covers
 multi-market eligibility. The [single BTC pair](default-plan-verification.md#single-btc-pair-in-financial-clearing)
 also has a separate local clearing implementation with a frozen selection
 receipt, whole-cohort reconciliation and the ordinary withdrawal gate.
+A separate [joint certificate](default-plan-verification.md#joint-certificate-for-a-single-cross-debtor)
+covers one cross debtor backed by two isolated winning accounts. It keeps
+the original cash allocation through both reductions and full-cohort payout.
 
 ## Scalable exact resolution candidate (P51B)
 

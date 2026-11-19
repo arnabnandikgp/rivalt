@@ -491,8 +491,9 @@ would have given them 2 and 5.
 The [two-market freeze comparison](../operations/validation.md#signed-two-market-default-comparison)
 now binds each native input to the same original clearing member and checks
 its claims independently against the two signed trades. The ordinary program
-paid out both makers. Proving the adjusted book on-chain and applying the
-selected joint charges through custody remain open.
+paid out both makers. The [joint certificate](#joint-certificate-for-a-single-cross-debtor)
+defines clearing's separate authority for the fully recoverable one-creditor
+case. General linked books still require selection and protected payout proofs.
 
 ### When the two markets trade places
 
@@ -566,3 +567,11 @@ The [eligibility calculation](../../crates/financial-core/src/clearing/scalable/
 and [clearing instructions](../../programs/clearing/src/instructions/account_safety/settlement/linked_pair.rs)
 implement this certificate. The eight-member D127 mirror fixture has several
 creditors per market and requires a broader proof.
+
+Adding a flat BTC creditor makes the economic boundary visible. In a four-member
+native case the debtor has 19,976 cash against 10,002 of debt in each market.
+The flat creditor is owed 4,996. The winning BTC and ETH positions are owed
+5,006 and 10,002. With insurance of 9 and 1, the ordinary payout credits the
+flat account with 4,994. Charging the open winners 5 and 13 pays it all 4,996
+and credits the BTC maker with 5,001, down from 5,003. ETH still receives
+9,989. That case provides an independent target for the next signed test.

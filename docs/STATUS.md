@@ -55,6 +55,7 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 | Linked-market cash allocation, creditor protection and ranking | Review | [PR #109](https://github.com/arnabnandikgp/rivalt/pull/109). At `56e276b`, 152 adjusted cohorts retained fractional cash ownership. At `1db483c`, native protected settlement matched 70 admissible joint payouts and rejected 30. D127 is implemented at `8af1a7a`. A signed diagnostic chose the expected 8/7 and 7/8 outcomes in two episodes, rejected the asymmetric case and reconciled 34 receipts in SQL. [Validation](operations/validation.md#native-linked-market-recovery). |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | Real linked BTC/ETH default comparison | Review | [PR #110](https://github.com/arnabnandikgp/rivalt/pull/110). Clean `7c299ca`; ordinary clearing paid 9,999 and 9,997 atoms through two SPL withdrawals. The BTC-only candidate refused both incomplete instructions. Independent native settlement reproduced the original and adjusted books; fresh SQL replay matched 104 and 75 events. [Validation](operations/validation.md#signed-two-market-default-comparison). |
+| Clearing-verified joint recovery | Review | [PR #111](https://github.com/arnabnandikgp/rivalt/pull/111). At `a956981`, local SBF `0e027fc` charged 3 and 5 while preserving the 9,996/9,996 cash split. After the partial certificate refused a withdrawal, both makers withdrew their funded recoveries. 265 harness outcomes, 56 worker originals and 105 fresh SQL events. [Validation](operations/validation.md#clearing-verified-linked-default-and-wallet-exit). |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -126,9 +127,10 @@ among eligible accounts. Native joint settlement preserves each foreign creditor
 fractional and whole-atom protection. D127 resolves exact market reflections
 using the frozen member order. Two genuine clearing freezes now bind the
 reference inputs. The ordinary program paid both makers and the BTC-only
-candidate kept the linked case frozen. The next action is to verify the joint
-3/5 schedule inside clearing and carry the original 9,996/9,996 cash split
-through the two wallet exits.
+candidate kept the linked case frozen. The separate linked clearing build now
+verifies both schedules, resumes between legs and pays both makers. The next
+action is to qualify a linked book with an additional flat BTC creditor against
+the native payout target of 4,996 atoms versus the ordinary 4,994.
 
 ## Earlier checkpoints
 

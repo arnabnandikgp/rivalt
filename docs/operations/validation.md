@@ -1,5 +1,44 @@
 # Validation and measured limits
 
+## Clearing-verified linked default and wallet exit
+
+Harness `a956981` deployed the local linked clearing build `0e027fc`
+(2,585,320 bytes, SHA-256 `7f627bc93748c7b4e6c36aa65a461900690387c77ab0e6169e4745dd0bad9086`).
+The eight real frozen accounts reproduced the [ordinary comparison](#signed-two-market-default-comparison).
+Clearing verified one lot per winner at 50,003 and 20,005, charging 3 and 5.
+The debtor’s cash contributed 9,996 to each market. Insurance paid 3 and 1.
+The two makers withdrew 9,999 and 9,997 to their operator's SPL wallet,
+which rose from zero to 19,996. The vault fell from 6,040,024 to 6,020,028.
+
+| Finalized transaction | CU | Wire bytes |
+|---|---:|---:|
+| Verify BTC and persist progress | 42,486 | 801 |
+| Verify ETH and commit both legs | 46,473 | 801 |
+| Withdraw each maker's funded recovery | 32,676 each | 806 each |
+| Highest worker batch in this run, 24 rate-work steps | 899,467 | 2,923 |
+
+The run recorded 265 harness outcomes and 56 separately signed worker
+originals. Each original matched finalized RPC bytes and its WS receipt. A
+replacement worker continued the partial certificate from PostgreSQL. Three
+signed refusals covered a BTC account passed as the ETH winner, starting
+settlement after BTC alone, and withdrawing one funded atom during the freeze.
+All eight roots and both token accounts reconciled. A fresh database reproduced
+105 events with byte-identical payloads and state, including the joint event.
+
+Independent rational calculations matched the paged rate and payment schedules
+for 33 reduced cohorts, including fractional original cash ownership. The
+scalar legacy regression passed 1,185 rate evaluations and 74 invalid proposals.
+The ordinary local clearing profile also compiled without an SBF stack warning.
+The [certificate](../clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor)
+requires one creditor in each market and a whole original split. The separate
+D127 mirror diagnostic remains the evidence for ranking several creditors.
+
+Earlier local attempts stopped at an unrecognized candidate layout during
+indexer reconciliation, continued with the scalar batch setting after restart,
+or expected a pause error when the earlier frozen-mode gate returned 6108.
+The completed run includes the corrected artifact binding, worker startup
+settings and exact error. [Reproduction](local-development.md#reproduce-clearing-verified-joint-recovery).
+
 ## Signed two-market default comparison
 
 At `7c299ca`, two fresh eight-account local deployments opened one BTC lot and
@@ -21,8 +60,9 @@ Each worker reopened its finalized original from PostgreSQL after a restart.
 Every worker original matched its finalized RPC wire and WS receipt. Fresh SQL
 replay reproduced the indexed financial events and state. The ordinary path
 and the model pay the same cash in this book because each market has only one
-creditor. The 3/5 schedule was evaluated off-chain. A clearing instruction
-that proves and applies both reductions is still required for successor custody.
+creditor. Those two profiles evaluated the 3/5 schedule off-chain. The
+[separate clearing candidate](#clearing-verified-linked-default-and-wallet-exit)
+subsequently executed it.
 [Reproduction](local-development.md#reproduce-the-linked-default-comparison).
 
 ## Native linked-market recovery

@@ -55,9 +55,11 @@ now has an approved final ordering under D127 and a signed diagnostic.
 The [two-market freeze comparison](../operations/validation.md#signed-two-market-default-comparison)
 binds the model to actual clearing roots. Ordinary recovery paid both maker
 accounts, while the BTC-only certificate correctly refused the linked book.
-Next verify both markets’ charges in clearing against the same frozen
-membership and preserve the original cash split through payout.
-Linked-market runtime proofs, shared writes and broader cost qualification remain open.
+The [linked clearing candidate](../operations/validation.md#clearing-verified-linked-default-and-wallet-exit)
+verified both charges against the same membership and preserved the original
+cash split through two SPL withdrawals. The next signed book adds a separate
+flat BTC creditor whose payout differs under the two rules. General linked
+selection, shared writes and broader cost qualification remain open.
 
 ## Functional ownership
 

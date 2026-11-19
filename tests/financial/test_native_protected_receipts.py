@@ -23,6 +23,20 @@ def protected_command(original, effective):
 
 
 class NativeProtectedReceipts(unittest.TestCase):
+    def test_additional_flat_creditor_changes_who_receives_two_funded_atoms(self):
+        original = MarketBook((Account(19_976, (-10_002, -10_002)), Account(19_970, (4_996, 0)),
+                               Account(1_000_000, (5_006, 0)), Account(1_000_000, (0, 10_002))),
+                              insurance=(9, 1), fees=(30, 6), frozen=True)
+        effective = MarketBook((Account(19_976, (-9_997, -9_989)), original.accounts[1],
+                                Account(1_000_000, (5_001, 0)), Account(1_000_000, (0, 9_989))),
+                               insurance=original.insurance, fees=original.fees, frozen=True)
+        before, after = [decode(line) for line in run([protected_command(original, proposed)
+                                                      for proposed in (original, effective)])]
+        self.assertEqual(before['cash'], (0, 24_964, 1_005_003, 1_009_989))
+        self.assertEqual(after['cash'], (0, 24_966, 1_005_001, 1_009_989))
+        self.assertEqual(before['spent'], after['spent'])
+        self.assertEqual(after['spent'], (9, 1))
+
     def test_protected_cash_and_fractional_ownership(self):
         half_rows = ((3, -8, 3), (2, 4, -3), (2, 4, -7), (1, 3, -4), (1, -3, 11))
         book = MarketBook(tuple(Account(cash, (btc, Fraction(eth, 2))) for cash, btc, eth in half_rows),
