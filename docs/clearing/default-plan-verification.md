@@ -924,3 +924,24 @@ matched lots, base fill price and count of lots conceding one additional tick.
 The worker can restart at this point. Each subsequent application verifies
 against the same basis. An inconclusive bound keeps the episode frozen under
 D122. [Clearing adapter](../../programs/clearing/src/instructions/account_safety/settlement/inventory_multi_lot.rs).
+
+## Verifying a proposed linked BTC/ETH schedule
+
+The [native financial entry point](../../crates/default-plan-selection/src/joint.rs)
+takes the original rows in stable member order, both frozen marks, both lot
+inventories and the clearing-owned entry/paid history for each member. Its other
+inputs are paired charges and untrusted settlement rate and remainder-order
+witnesses. It verifies the original rates before computing each debtor's
+market budget from its share of the original post-insurance loss, rounded
+down to whole collateral atoms.
+
+For each distinct debtor/winner pair the verifier consumes opposite signed
+lots, checks the winner's remaining positive face and charges only its eligible
+open gain on the matched lots. It constructs both adjusted claim columns,
+keeps the original cash collection split, verifies the revised greatest rates
+and runs protected rounding. The receipt includes the loss removed from each
+market capped at the charge, as an exact fraction. Eligibility of a proposed
+schedule is one requirement for release. Clearing also needs authenticated
+freeze membership and a proof that all competing allocations have been covered
+or bounded under D116–D127. General native feasibility alone cannot release
+funds. [Independent comparisons](../operations/validation.md#native-linked-market-reduction-admission).

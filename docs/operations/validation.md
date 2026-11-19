@@ -1,5 +1,26 @@
 # Validation and measured limits
 
+## Native linked-market reduction admission
+
+At `a64f834`, the opt-in Rust verifier admitted 88 and refused 54 of 142
+native checks across five books and malformed-input controls. The independent
+rational model supplied expectations for the paired quantities and prices,
+remaining positions, debtor budgets, exact recovered value, insurance,
+whole-atom receipts and wallet entitlements. Cases include a funded pool,
+fractional claims, a previously paid winning position and two markets that
+recover more when the reductions apply together.
+
+Four retained eight-member signed freezes reproduced their recorded successor
+cash balances. At the freeze with a BTC winner owing ETH creditors, charges
+of 9 BTC-market atoms and 33 ETH-market atoms recovered exactly 9 and
+307,515/10,001 atoms of loss respectively. The simultaneous two-winner
+case charged 4 and 9 in BTC and 12 in ETH. These are native replays of existing
+inputs. This run supplies no new signed release or throughput result.
+
+Reproduce with `cargo build --locked -p default-plan-selection --features native-joint --example joint_reduction_audit`
+and `python3 tests/financial/check_joint_reductions.py`. Pass a retained
+`linked-default.json` to also verify its signed inputs and predicted payout.
+
 ## Paired routes on the recovery candidate
 
 Harness `12f9902` on clearing `baef259` observed 36 of 36 signed routes finalize
