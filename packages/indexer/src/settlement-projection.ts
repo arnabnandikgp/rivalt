@@ -1,6 +1,6 @@
 /** Financial effects of the authenticated paged settlement, separate from its
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
-import {LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
+import {FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -15,6 +15,49 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void,artifactSet?:string) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='ForeignCreditorsVerified') {
+    eq(artifactSet,FOREIGN_CREDITOR_ARTIFACT_SET,'foreign creditor deployment');
+    accountCheck(current.stage===2 && !current.foreignCreditors && !current.joint && !current.pair && !current.allocation && !current.linkedAllocation,'unique recovery');
+    const {members,charges,eligible,matchedLots,basePrices,extraTickLots}=change;
+    eq(new Set(members).size,4,'distinct frozen creditor roles');
+    eq(current.poolsBefore,['0','0'],'empty settlement pools');
+    eq(String(state.members.length),current.count,'complete foreign-creditor membership');
+    const roles:AccountState['roots'][string][]=members.map((id:string)=>present(state.roots[state.identities[id]],'frozen creditor member'));
+    const faces=roles.map((member)=>claims(member,current.prices,current.funding).map(value=>{
+      eq(BigInt(value)%scale,0n,'whole original face');return BigInt(value)/scale;
+    }));
+    const [debt,flat,gain,ethDebt]=[-faces[0][0],faces[1][0],faces[2][0],faces[3][1]];
+    accountCheck(flat>0n && gain>0n && ethDebt>0n,'original creditor faces');
+    eq(faces,[[-debt,0n],[flat,0n],[gain,-ethDebt],[0n,ethDebt]],'complete creditor claims');
+    eq(debt,gain+flat,'BTC conservation');
+    const lots=roles.map((member)=>member.positions.map((pos:{lots:string})=>BigInt(pos.lots)));
+    eq(lots,[[-lots[2][0],0n],[0n,0n],[lots[2][0],-lots[3][1]],[0n,lots[3][1]]],'offsetting inventory');
+    for(const key of state.members) {
+      const member=state.roots[key];
+      if(!members.includes(member.id)) {
+        eq(claims(member,current.prices,current.funding),['0','0'],'neutral claims');
+        eq(member.positions.map(pos=>pos.lots),['0','0'],'neutral inventory');
+      }
+    }
+    const backing=BigInt(roles[0].cash)+BigInt(current.insuranceBefore[0]);
+    const ethCash=BigInt(roles[2].cash)+BigInt(current.insuranceBefore[1]);
+    const [btcCharge,ethCharge]=charges.map(BigInt);
+    const beforeEth=ethCash*debt+gain*backing, afterEth=ethCash+gain-btcCharge;
+    eq(btcCharge,debt-backing,'full BTC shortfall');
+    accountCheck(backing>0n && gain>btcCharge && ethDebt*debt>beforeEth,'supported linked obligations');
+    eq(ethCharge,(ethDebt*debt-beforeEth)/debt,'whole ETH shortfall');
+    accountCheck((afterEth+ethCharge)*debt>=beforeEth && afterEth<=ethDebt-ethCharge,'ETH exact and rounded protection');
+    for(const market of [0,1]) {
+      const signed=lots[market+2][market],quantity=signed<0n?-signed:signed;
+      const amount=BigInt(charges[market]),matched=BigInt(matchedLots[market]),capacity=BigInt(eligible[market]);
+      eq(2n*quantity,BigInt(current.remainingGross[market]),'exhausted frozen side');
+      accountCheck(amount>0n && amount<=capacity && capacity<=faces[market+2][market] && matched>0n && matched<=quantity,'admitted schedule');
+      eq(BigInt(basePrices[market]),BigInt(current.prices[market])-(signed>0n?1n:-1n)*(amount/matched),'fill price');
+      eq(BigInt(extraTickLots[market]),amount%matched,'extra ticks');
+    }
+    current.foreignCreditors={members,charges,eligible,matchedLots,basePrices,extraTickLots};
+    return;
+  }
   if(event.type==='FrozenJointReductionVerified') {
     accountCheck(current.stage===2 && !current.joint && !current.pair && !current.allocation,'unique joint freeze');
     const debtor=present(state.roots[state.identities[change.debtorId]],'joint debtor');
@@ -167,7 +210,15 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
-    if(current.linkedAllocation?.status===1) {
+    if(current.foreignCreditors) {
+      const {members,charges}=current.foreignCreditors;
+      const debtors=[members[0],members[2]];
+      for(const market of [0,1]) {
+        const charge=BigInt(charges[market]);
+        const delta=previous.id===debtors[market]?charge:previous.id===members[market+2]?-charge:0n;
+        economic[market]=(BigInt(economic[market])+delta*scale).toString();
+      }
+    } else if(current.linkedAllocation?.status===1) {
       const allocation=current.linkedAllocation;
       for(const market of [0,1]) {
         const adjustment=previous.id===allocation.debtorId?BigInt(allocation.targets[market]):-BigInt(allocation.charges[previous.id][market]);

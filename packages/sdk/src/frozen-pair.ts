@@ -40,3 +40,22 @@ export function frozenJointReceipt(prepared:PreparedSettlement) {
     'Invalid joint receipt progress.');
   return {epoch,debtor,shares,legs,complete};
 }
+
+/** Atomic BTC/ETH certificate, in debtor, flat creditor, cross winner, ETH winner order. */
+export function foreignCreditorReceipt(prepared: PreparedSettlement) {
+  const bytes = Uint8Array.from(prepared.state.membership);
+  if (new TextDecoder().decode(bytes.subarray(0, 8)) !== 'RVCHAIN1') return null;
+  const view = new DataView(bytes.buffer);
+  const word = (index: number) => view.getBigUint64(8 + index * 8, true);
+  const members = [word(1), word(2), word(3), word(4)];
+  requireValue((prepared.stage === 2 || prepared.stage === 3) && prepared.epoch === word(0)
+    && new Set(members).size === 4 && bytes.subarray(144).every(byte => byte === 0), 'Invalid foreign creditor certificate.');
+  const legs = [5, 11].map((offset, market) => {
+    const terms = {winner:word(offset), charge:word(offset+1), eligible:word(offset+2),
+      matched:word(offset+3), price:word(offset+4), extra:word(offset+5)};
+    requireValue(terms.winner === members[market+2] && terms.charge > 0n && terms.charge <= terms.eligible
+      && terms.price > 0n && terms.matched > 0n && terms.extra === terms.charge % terms.matched, 'Invalid foreign creditor schedule.');
+    return terms;
+  });
+  return {members, legs};
+}

@@ -10,6 +10,8 @@ import {allocationCutoff,frozenWinner,type Winner} from './btc-allocation.js';
 import {SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
 import {defaultProposal,matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
 
+import {foreignCreditorProposal,type FrozenMember} from './foreign-creditor-proposal.js';
+
 type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
 export type DefaultStep={status:'blocked';reason:string}|{status:'ready';reason:string;id:string;instruction:Instruction};
 const transports=new WeakMap<AccountRuntime,SettlementPages>();
@@ -78,6 +80,28 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       }
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
+    }
+    if(runtime.deploymentSelection==='foreign-creditor-candidate' && prepared.stage===4) {
+      const members:FrozenMember[]=[];
+      for(let start=0n; start<prepared.count; start+=8n) {
+        const {page,row}=await frozen(start);
+        assert(row && row.rowCount===Number(prepared.count-start<8n?prepared.count-start:8n),'Incomplete foreign creditor page');
+        for(const [offset,record] of row.rows.slice(0,row.rowCount).entries()) {
+          members.push({ordinal:start+BigInt(offset),page,row:record});
+        }
+      }
+      const proposal=foreignCreditorProposal(prepared,members);
+      if(!proposal)return blocked('unsupported-foreign-creditor-book');
+      for(const [market,key] of [proposal.crossWinner,proposal.ethWinner].entries()) {
+        const account=await read(key);
+        assert(account?.owner===sdk.CLEARING_PROGRAM_ADDRESS && !account.executable && account.data[1]==='base64','Foreign winner root');
+        const {positions,root}=sdk.decodeProfitAttribution(Buffer.from(account.data[0],'base64'),true);
+        const {row}=members[Number(proposal.ordinals[market+2])];
+        assert(root.venue===venue && root.id===row.id && root.revision===row.originalRevision,'Changed winner');
+        const winner=frozenWinner(row.id,row.lots[market],row.claims[market],prepared.prices[market],positions[market]);
+        if(winner.capacity<proposal.charges[market])return blocked('insufficient-foreign-creditor-capacity');
+      }
+      return ready('verify-foreign-creditors',sdk.getVerifyForeignCreditorsInstruction({...args,revision:prepared.revision,...proposal}));
     }
     if(linkedAllocation && prepared.stage===7) {
       const receipt=sdk.linkedAllocationReceipt(prepared);

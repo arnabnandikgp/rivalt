@@ -25,21 +25,22 @@ assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
 const foreignGate=probe==='profit-attribution-foreign-winner-gate';
-const foreignBook=foreignGate||probe==='profit-attribution-foreign-winner-ordinary';
+const foreignApply=probe==='profit-attribution-foreign-winner-apply';
+const foreignBook=foreignApply||foreignGate||probe==='profit-attribution-foreign-winner-ordinary';
 const allocationProfile = probe === 'profit-attribution-linked-allocation';
 const contested = allocationProfile || probe === 'profit-attribution-linked-contested';
 const flatCreditor = contested || probe === 'profit-attribution-linked-flat' || probe === 'profit-attribution-linked-flat-apply';
 const linked = contested || probe === 'profit-attribution-linked-apply' || probe === 'profit-attribution-linked-flat-apply';
-const selection = allocationProfile||foreignGate ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
+const selection = foreignApply?'foreign-creditor-candidate':allocationProfile||foreignGate ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
   gated ? 'btc-allocation-candidate' : 'profit-attribution-candidate';
-const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,allocationProfile||foreignGate ? 'allocation' : linked && flatCreditor ? 'flat' : linked);
+const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,foreignApply?'foreign':allocationProfile||foreignGate ? 'allocation' : linked && flatCreditor ? 'flat' : linked);
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
-  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked||foreignGate?'sponsored-profit':'profit-attribution',
+  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked||foreignGate||foreignApply?'sponsored-profit':'profit-attribution',
     shape:symmetricPayoutShape, traderCash:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
   const {guard,route,root} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = foreignBook?[setup.roots[1],setup.roots[0]]:setup.roots;
@@ -91,7 +92,7 @@ try {
   assert.deepEqual(frozen.prices,foreignBook?[40_000n,12_500n]:[50_000n,20_000n]);
   const members = await financialRoots(h,setup.venue,setup.registry);
   const rows = await Promise.all(members.map(async key=>{
-    const {root:value,positions:basis} = sdk.decodeProfitAttribution((await h.read(key))!,gated||linked||foreignGate);
+    const {root:value,positions:basis} = sdk.decodeProfitAttribution((await h.read(key))!,gated||linked||foreignGate||foreignApply);
     const claims = value.positions.map((position,index)=>position.lots*frozen.prices[index]*1_000_000_000n+
       position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled));
     return {key,id:value.id,revision:value.revision,generation:value.activationGeneration,cash:value.cash,
@@ -117,7 +118,7 @@ try {
     await runtime.open();
     return runtime;
   };
-  process.env.RIVALT_DEFAULT_BATCH_STEPS = gated||linked||foreignGate?'1':'32';
+  process.env.RIVALT_DEFAULT_BATCH_STEPS = gated||linked||foreignGate||foreignApply?'1':'32';
   worker = await openWorker();
   const originals: string[] = [];
   const workerCosts: {request:string; units:number; bytes:number}[] = [];
@@ -130,6 +131,39 @@ try {
     assert(originals.length<128,'eight-member recovery exceeded the test continuation budget');
     const current = await readAccountResolution(worker.rpc,setup.venue);
     const prepared=current.preparedState;
+    if(foreignApply && prepared.epoch===frozen.epoch && prepared.stage===4 && !rejectionChecked) {
+      const common=await accountDefaultContext(worker.rpc,current);
+      const ordinals=[debtor,makers[0].capital,otherTrader,makers[1].capital].map(key=>BigInt(members.indexOf(key)));
+      const pages=[...new Set(ordinals.map(value=>value/8n))].sort((a,b)=>a<b?-1:1);
+      const pageKeys=await Promise.all(pages.map(async index=>(await sdk.deriveFrozenMarginPage(setup.venue,index))[0]));
+      const verify={...common,epoch:frozen.epoch,revision:prepared.revision,ordinals,
+        firstPage:pageKeys[0],secondPage:pageKeys[1],thirdPage:pageKeys[2],fourthPage:pageKeys[3],
+        crossWinner:otherTrader,ethWinner:makers[1].capital};
+      beforeScoring=await financialSnapshot();
+      const scratch=await h.read(common.prepared);
+      for(const [description,override] of [
+        ['BTC alone',{charges:[9n,0n]}],['under-recovered joint plan',{charges:[8n,33n]}],
+        ['substituted flat creditor',{charges:[9n,33n],ordinals:[ordinals[0],ordinals[2],ordinals[2],ordinals[3]]}],
+      ] as const) {
+        await h.send('reject '+description,[sdk.getVerifyForeignCreditorsInstruction({...verify,...override,ordinals:[...('ordinals' in override?override.ordinals:ordinals)],charges:[...override.charges]})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      }
+      assert.deepEqual(await h.read(common.prepared),scratch);
+      assert.deepEqual(await financialSnapshot(),beforeScoring);
+      await worker.close();worker=await openWorker();
+      rejectionChecked=true;
+    }
+    if(foreignApply && rejectionChecked && !jointChecked && prepared.epoch===frozen.epoch && prepared.stage===2) {
+      const receipt=sdk.foreignCreditorReceipt(prepared);
+      assert(receipt);
+      assert.deepEqual(receipt.legs.map(leg=>leg.charge),comparison.charges.map(BigInt));
+      assert.deepEqual(receipt.members,[debtor,makers[0].capital,otherTrader,makers[1].capital].map(key=>rows.find(row=>row.key===key)!.id));
+      assert.deepEqual(receipt.legs.map(leg=>leg.matched),[1n,1n]);
+      assert.deepEqual(await financialSnapshot(),beforeScoring);
+      await journal.checkpoint('joint-foreign-creditors-certified-before-apply',true);
+      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+      await worker.close();worker=await openWorker();
+      jointChecked=true;
+    }
     if(foreignGate && prepared.epoch===frozen.epoch && prepared.stage===4) {
       assert.deepEqual(await worker.riskWork(setup.payer),{status:'blocked',reason:'unsupported-linked-debtor'});
       const common=await accountDefaultContext(worker.rpc,current);
@@ -322,13 +356,13 @@ try {
     }
   }
   assert.equal(refused,foreignGate||gated||contested&&!allocationProfile);
-  assert.equal(jointChecked,linked&&(!contested||allocationProfile));
+  assert.equal(jointChecked,foreignApply||linked&&(!contested||allocationProfile));
   if (refused) {
     assert.equal((await resolution()).stage,2);
     assert.deepEqual([await wallet(),await traderWallet(),await vault()],[before.wallet,before.traderWallet,before.vault]);
   } else {
     assert.deepEqual((await resolution()).insuranceSpent,foreignBook?[6n,3n]:allocationProfile?[13n,1n]:flatCreditor?[9n,1n]:[3n,1n]);
-    const target=linked?comparison.cash:comparison.ordinaryCash;
+    const target=linked||foreignApply?comparison.cash:comparison.ordinaryCash;
     for (const key of members) assert.equal(String((await root(key)).cash),target[key]);
     const traderPayout=flatCreditor?(linked?4_996n:4_994n):0n;
     if (flatCreditor) {
@@ -340,7 +374,7 @@ try {
       assert.deepEqual([await traderWallet(),await vault()],[before.traderWallet+traderPayout,before.vault-traderPayout]);
     }
     const payoutAccounts=allocationProfile?[makers[0],secondMaker,makers[1]]:makers;
-    const makerPayouts=foreignBook?[5_002n,34_970n]:allocationProfile?[5_002n,9_993n,9_990n]:flatCreditor?[linked?5_001n:5_003n,9_989n]:[9_999n,9_997n];
+    const makerPayouts=foreignApply?[5_004n,34_968n]:foreignBook?[5_002n,34_970n]:allocationProfile?[5_002n,9_993n,9_990n]:flatCreditor?[linked?5_001n:5_003n,9_989n]:[9_999n,9_997n];
     for (const [index,amount] of makerPayouts.entries()) {
       const margin=payoutAccounts[index].capital;
       await h.send('withdraw market recovery to maker wallet '+index,[sdk.getWithdrawFundedAccountInstruction({...setup.common,
@@ -358,7 +392,7 @@ try {
     assert.deepEqual([failed.status,failed.cursor,failed.recovered],[2,'8',['0','12']]);
     assert.equal(replay.state.resolution?.linkedAllocation?.status,1);
   }
-  const result={revision,rejectionChecked,profile:foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+  const result={revision,rejectionChecked,profile:foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
     inputs:input,traderWalletAfter:await traderWallet(),comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));
