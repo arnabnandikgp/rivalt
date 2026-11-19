@@ -79,13 +79,14 @@ try {
   if(!tie)assert.equal(result.fills.length,3);
   await journal.checkpoint('multi-lot-native-comparison',true);
 
+  if(apply)process.env.RIVALT_DEFAULT_BATCH_STEPS='1';
   worker=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,selection);
   await worker.open();
   const originals:{signature:string;reason:string;units:number;bytes:number}[]=[];
   const token=async(key:typeof setup.vault)=>getTokenDecoder().decode((await h.read(key))!).amount;
   const vaultBefore=await token(setup.vault),walletBefore=await token(setup.token.address);
   let rejected=false,certified=false;
-  if(apply)process.env.RIVALT_DEFAULT_BATCH_STEPS='1';
+  if(apply)assert.equal(worker.defaultContinuationSteps,1);
   for(let step=0;step<70;step++){
     const state=await readAccountResolution(worker.rpc,setup.venue);
     if(apply && state.header.stage===11)break;
@@ -98,10 +99,12 @@ try {
       assert.equal(await token(setup.vault),vaultBefore);
       for(const row of rows)assert.equal((await root(row.key)).cash,row.cash);
       certified=true;
-      await worker.close();worker=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,selection);
+      await worker.close();
+      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+      worker=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,selection);
       await worker.open();
       assert.equal((await worker.queue.get(originals.at(-1)!.reason)).status,'finalized');
-      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+      assert.equal(worker.defaultContinuationSteps,32);
     }
     if(apply) {
       if(next.status==='ready' && next.reason==='verify-inventory-book' && !rejected) {

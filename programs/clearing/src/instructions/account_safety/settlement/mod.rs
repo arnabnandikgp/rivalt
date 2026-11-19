@@ -115,7 +115,9 @@ pub(crate) fn value_member(
             .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
     #[cfg(all(feature="single-pair-default-qualification",not(feature="btc-residual-qualification")))]
     let acceptance=valuation.accept_single_pair_row(ordinal,id,&row,lots);
-    #[cfg(feature="linked-pair-qualification")]
+    #[cfg(feature="multi-lot-book-qualification")]
+    let acceptance=valuation.accept_inventory_row(ordinal,id,&row,lots);
+    #[cfg(all(feature="linked-pair-qualification",not(feature="multi-lot-book-qualification")))]
     let acceptance=valuation.accept_linked_row(ordinal,id,&row,lots);
     #[cfg(all(not(feature="linked-pair-qualification"),any(not(feature="single-pair-default-qualification"),feature="btc-residual-qualification")))]
     let acceptance=valuation.accept(ordinal,id,&row,lots);

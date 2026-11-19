@@ -9,6 +9,9 @@ pub(super) fn certify(
     header: &PreparedSettlement,
     positions: &mut [Position],
 ) -> Result<MultiLotBookVerified> {
+    SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(header))
+        .and_then(|scan| scan.verified_whole_btc_book())
+        .map_err(|_| ClearingError::Resolution)?;
     let mut debt = 0u128;
     let mut uncovered = 0u128;
     let mut debtors = Vec::new();

@@ -4,6 +4,34 @@ use super::*;
 use core::num::NonZeroU128;
 
 impl SnapshotScan {
+    /// Aggregate conservation can hide two fractional claims that add to one atom.
+    /// Record each original BTC claim during the complete authenticated traversal.
+    pub fn accept_inventory_row(
+        &mut self,
+        ordinal: u64,
+        id: u64,
+        row: &Row,
+        lots: [i64; 2],
+    ) -> Result<()> {
+        let prior = if self.processed == 0 {
+            true
+        } else {
+            self.whole_btc_book.ok_or(Error::Cohort)?
+        };
+        self.accept_linked_row(ordinal, id, row, lots)?;
+        self.whole_btc_book = Some(prior && row.claims[0] % SCALE == 0);
+        Ok(())
+    }
+
+    pub fn verified_whole_btc_book(&self) -> Result<()> {
+        self.result()?;
+        if self.whole_btc_book == Some(true) {
+            Ok(())
+        } else {
+            Err(Error::Cohort)
+        }
+    }
+
     /// Keep one authenticated whole BTC claim belonging to a fully flat account.
     /// Taking the maximum makes the witness independent of membership order.
     /// Release requires it to explain the *entire* positive remainder.
@@ -124,6 +152,51 @@ mod tests {
                 .unwrap();
         }
         scan
+    }
+
+    #[test]
+    fn inventory_certificate_checks_individual_flat_claims_across_restarts() {
+        let binding = SnapshotBinding {
+            count: 4,
+            allocated: 0,
+            pools: [0; 2],
+            insurance: [0; 2],
+            fees: [0; 2],
+            gross: [4, 0],
+        };
+        for flat in [[SCALE, 0], [SCALE / 2, SCALE / 2]] {
+            let mut scan = SnapshotScan::new(binding).unwrap();
+            let members = [(-3 * SCALE, 2), (2 * SCALE, -2), (flat[0], 0), (flat[1], 0)];
+            for (index, (face, qty)) in members.into_iter().enumerate() {
+                assert!(scan.verified_whole_btc_book().is_err());
+                scan.accept_inventory_row(
+                    index as u64,
+                    index as u64,
+                    &Row {
+                        cash: 0,
+                        claims: [face, 0],
+                    },
+                    [qty, 0],
+                )
+                .unwrap();
+                scan = SnapshotScan::from_checkpoint(&scan.checkpoint(), binding).unwrap();
+            }
+            assert_eq!(
+                scan.result().unwrap().positive[0],
+                ClaimTotal::scalar(3 * SCALE as u128)
+            );
+            assert_eq!(scan.verified_whole_btc_book().is_ok(), flat[1] == 0);
+        }
+        let mut legacy = SnapshotScan::new(binding).unwrap();
+        legacy
+            .accept_linked_row(0, 0, &row(0, [-3, 0]), [2, 0])
+            .unwrap();
+        let prefix = legacy.checkpoint();
+        assert_eq!(
+            legacy.accept_inventory_row(1, 1, &row(0, [2, 0]), [-2, 0]),
+            Err(Error::Cohort)
+        );
+        assert_eq!(legacy.checkpoint(), prefix);
     }
 
     #[test]
