@@ -560,11 +560,23 @@ pub(crate) fn run<'context, T: ScopedContext>(
     run_with_remaining(
         context,
         instruction,
-        if cfg!(feature="checked-funding-prefix") && instruction == [32,39,131,11,127,118,35,241] {
-            Remaining::FundingRegistrations
-        } else { Remaining::Roots(remaining_writable) },
+        Remaining::Roots(remaining_writable),
         handler,
     )
+}
+
+/// The checked publisher authenticates a fixed set of read-only registrations.
+#[inline(never)]
+pub(crate) fn run_funding<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    #[cfg(feature = "checked-funding-prefix")]
+    let access = Remaining::FundingRegistrations;
+    #[cfg(not(feature = "checked-funding-prefix"))]
+    let access = Remaining::Roots(false);
+    run_with_remaining(context, instruction, access, handler)
 }
 
 /// The plan is derived from authenticated work before the handler and retained
@@ -611,6 +623,7 @@ pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
 
 #[derive(Clone, Copy)]
 enum Remaining {
+    #[cfg(feature = "checked-funding-prefix")]
     FundingRegistrations,
     FrozenPlanPages,
     MembershipPath,
@@ -643,6 +656,7 @@ impl Remaining {
                 for account in accounts {scope.raw::<FrozenMarginPage>(account,Access::Write)?;}
                 Ok(())
             }
+            #[cfg(feature = "checked-funding-prefix")]
             Self::FundingRegistrations => {
                 require!(accounts.len()==3,ClearingError::Profile);
                 for account in accounts {scope.raw::<MakerRegistration>(account,Access::Read)?;}

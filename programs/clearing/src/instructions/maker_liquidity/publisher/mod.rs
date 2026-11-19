@@ -17,7 +17,7 @@ pub fn initialize(
     events: &mut crate::event_cpi::Payloads,
     publisher: Address,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let remaining_accounts = ctx.remaining_accounts()?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     execution_profile(&accounts.venue, &accounts.safety, &accounts.market)?;
@@ -72,7 +72,7 @@ pub fn configure(
     expected_authority: u64,
     publisher: Address,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let remaining_accounts = ctx.remaining_accounts()?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     require!(
@@ -128,7 +128,7 @@ pub fn publish(
     events: &mut crate::event_cpi::Payloads,
     report: FundingReport,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let remaining_accounts = ctx.remaining_accounts()?;
     #[cfg(not(feature="checked-funding-prefix"))]
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;

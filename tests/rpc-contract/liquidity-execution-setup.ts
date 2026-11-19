@@ -146,15 +146,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
           [fixture.updater],sdk.CLEARING_ERROR__PROFILE);
         await h.send('reject duplicate funding checkpoint',[sdk.withFundingCheckpoints(instruction,[checkpoints[0],checkpoints[0],checkpoints[2]])],
           [fixture.updater],sdk.CLEARING_ERROR__ALIAS);
-        // Reuse a foreign record whose bump derives a valid PDA for the tested
-        // position, so this exercises the market binding check specifically.
-        const foreign=await Promise.all(instances.slice(3).map(async maker=>({address:maker.registration,
-          bump:sdk.getMakerRegistrationDecoder().decode((await h.read(maker.registration))!).bump})));
-        const canonical=await sdk.makerRegistrationPdas(markets[index]);
-        const position=canonical.findIndex(([,bump])=>foreign.some(entry=>entry.bump===bump));
-        assert(position>=0,'Fixture requires a foreign registration sharing a valid target bump');
-        const substituted=checkpoints.slice();
-        substituted[position]=foreign.find(entry=>entry.bump===canonical[position][1])!.address;
+        const substituted=[instances[3].registration,...checkpoints.slice(1)];
         await h.send('reject foreign funding checkpoint',[sdk.withFundingCheckpoints(instruction,substituted)],
           [fixture.updater],sdk.CLEARING_ERROR__MAKER_BINDING);
         assert.deepEqual(await Promise.all([h.read(markets[index]),h.read(input.configuration)]),before);

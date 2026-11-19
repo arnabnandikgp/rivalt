@@ -112,6 +112,13 @@ mod candidate {
                 ClearingError::MakerBinding
             );
             let maker: MakerRegistration = crate::wire::read(&data[8..prefix])?;
+            require!(
+                maker.instance as usize == instance
+                    && maker.market == *market.address()
+                    && maker.venue == market.venue
+                    && maker.schema_version == SCHEMA_VERSION,
+                ClearingError::MakerBinding
+            );
             let address = create_program_address(
                 &[
                     b"maker-v4",
@@ -121,14 +128,7 @@ mod candidate {
                 ],
                 &crate::ID,
             )?;
-            require!(
-                account.address() == &address
-                    && maker.instance as usize == instance
-                    && maker.market == *market.address()
-                    && maker.venue == market.venue
-                    && maker.schema_version == SCHEMA_VERSION,
-                ClearingError::MakerBinding
-            );
+            require!(account.address() == &address, ClearingError::MakerBinding);
             lanes[instance] = load(&data[prefix + 32..], market.index)?;
         }
         let Some(source) = window(market) else {

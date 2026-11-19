@@ -917,10 +917,9 @@ pub mod clearing {
         ctx: &mut Context<PublishFundingReport>,
         report: state::liquidity::FundingReport,
     ) -> Result<()> {
-        scoped_history::run(
+        scoped_history::run_funding(
             ctx,
             [32, 39, 131, 11, 127, 118, 35, 241],
-            false,
             |ctx, events| maker_liquidity::publisher::publish(ctx, events, report),
         )
     }

@@ -182,7 +182,7 @@ mod candidate {
                     let next = u64::try_from(remaining).map_err(|_| ClearingError::Arithmetic)?;
                     require!(next <= MAX_GROSS_LOTS, ClearingError::Reconciliation);
                     bytes[16..24].copy_from_slice(&checkpoint.generation.to_le_bytes());
-                    bytes[24..].copy_from_slice(&next.to_le_bytes());
+                    bytes[24..32].copy_from_slice(&next.to_le_bytes());
                 }
                 Ok(())
             },
