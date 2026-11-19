@@ -828,9 +828,9 @@ restricts release to its supported shape.
 
 ### How many frozen pages fit in one inventory certificate
 
-The fixed revision scope contains ten reads and one write. Each distinct
-active frozen page adds one write to the same scope. Clearing allows 32
-revisioned accounts per invocation, which leaves room for 21 active pages.
+The original inventory verifier (`d5cc624`) uses ten fixed reads and one fixed
+write. Each distinct active frozen page adds one write. Its 32-entry revision
+scope leaves room for 21 active pages.
 Each page has eight frozen rows. Consequently 168 contiguous active rows is
 an upper bound from page addressing alone. As few as 22 positions on 22
 different pages already exceed it. Flat members between active ordinals can
@@ -846,6 +846,11 @@ increase the page count even when their rows do not enter the matching.
 
 These are serialized transactions using the generated instruction and the
 usual resource headers. Only the rows identified in the signed measurements
-have runtime evidence. The worker reports that paged verification is needed
-when the revision scope would overflow. This limit affects certification
-after default. Financial registration and normal routes have separate limits.
+have runtime evidence. On the separately selected local verifier (`eb011a5`), the scope allocates one
+entry per supplied frozen page in addition to the eleven fixed accounts. The
+8,192-byte scoped transition event uses 108 bytes of framing, 41 per read and
+49 per write. Its encoding alone permits 155 active pages. Packet size, account
+locks, compute and heap can bind earlier. The worker requests a 128 KiB heap for
+this certificate and checks its wire encoding before signing. Ordinary routes
+and registration have their own resource limits. The original selection retains
+its 21-page gate. [Signed measurements](../operations/validation.md#active-positions-and-frozen-page-placement).

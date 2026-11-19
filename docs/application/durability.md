@@ -19,6 +19,14 @@ assignments, charges and prices. At reconciliation it matches those terms to the
 from clearing before it derives effective claims or resumes payment.
 [Shared single-lot inventory](../clearing/default-plan-verification.md#shared-single-lot-inventory).
 
+The finalized journal accepts an inventory certificate with more than 32
+revisioned accounts only for the clearing program’s authenticated
+`verify_inventory_book` instruction. It checks ten ordered read roles, the
+prepared-settlement write, each frozen-page write, the event size, and account
+privileges. The same restrictions apply when replaying into an empty database.
+The 32-account rule still applies to other scoped transitions.
+[Scope and page placement](../clearing/default-plan-verification.md#how-many-frozen-pages-fit-in-one-inventory-certificate).
+
 ## Canonical membership migration (P55A2)
 
 P55A2 established schema 9/profile 5; D102 now uses schema 10/profile 6. Transport

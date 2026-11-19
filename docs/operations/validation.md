@@ -14,13 +14,47 @@ frozen claim expected by the journal.
 | `b2ada92` | 32 / 38 | 5 | 16 pairs, 128 atoms | 88,286 | 1,111 (v0) | 259 |
 | `28345d1` | 58 / 64 | 8 | 29 pairs, 232 atoms | 141,122 | 1,376 (v1) | 418 |
 | `97a8d5b` | 22 / 175 | 22 | Worker withheld submission. Direct signed call returned Profile (6108). | 20,106 | 1,550 (v1) | 654 |
+| `97a8d5b` | 162 / 168 | 21 | Default 32 KiB SVM heap exhausted. | 147,848 | 2,637 (v1) | Unverified |
 
-The three runs checked 519, 709 and 1,157 RPC/WS outcomes respectively. Their
+The original dense run stopped after the finalized failure because its harness
+did not recognize the SVM heap error. Its receipt establishes the failure and
+cost. Post-failure reconciliation was not observed on that run.
+
+The first three runs checked 519, 709 and 1,157 RPC/WS outcomes respectively. Their
 finalized certificate attempts each paid 5,000 local lamports at zero priority
 fee. The 22-page rejection preserved the prepared header, all active frozen
 pages, cash accounts and vault. These measurements end after certification or
 refusal. The three-wallet qualification below covers subsequent settlement.
 [Wire and revision scope](../clearing/default-plan-verification.md#how-many-frozen-pages-fit-in-one-inventory-certificate).
+
+On SBF `eb011a5`, harness `cd2d893` signed four simulations against each
+frozen book before the durable worker submitted its own 128 KiB transaction.
+Both workers paid 5,000 local lamports at zero priority fee. Their finalized
+wire bytes and CU matched the selected simulation. Custody and the original
+financial roots matched their pre-certificate bytes. Fresh SQL reconstructed
+all 11 and 81 assignments respectively, each charging eight atoms.
+
+| Active / Financial | Pages | 32 KiB CU | 64 KiB CU | 128 KiB CU landed | 256 KiB CU | v1 bytes landed | RPC harness outcomes | Fresh SQL events |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 22 / 175 | 22 | 92,422 | 92,446 | 92,494 | 92,590 | 1,554 | 1,156 | 655 |
+| 162 / 168 | 21 | 147,890, heap exhausted | 346,126, heap exhausted | 364,122 | 364,218 | 2,641 | 1,544 | 1,053 |
+
+Both measurement processes persisted and printed their reconciled results.
+Their outer Bash processes exited with a parse error after the script changed
+on disk during execution. The final script passed `bash -n` and ran end to
+end at `2c629e5` on the same SBF. That separate nine-member run included three
+signed refusals, worker restart, 59 finalized worker transactions and three SPL
+withdrawals of 20,001 atoms each. The vault ended at 6,000,030. Fresh SQL
+replayed 127 events across 284 harness outcomes. The two larger books were
+measured only through certification.
+
+Scalar preparation between freeze and certification used 75 transactions /
+2,547,094 CU for 38 Financial members, 104 / 3,718,375 for 64, 233 /
+8,247,044 for 175 and 225 / 8,533,739 for 168. At the observed 5,000 local
+lamports per transaction, those preparations cost 375,000, 520,000, 1,165,000
+and 1,125,000 lamports. The harness issued one preparation instruction per
+transaction. Batched production costs and larger-book exits need separate
+measurements.
 
 ## Clearing-verified single-lot book
 

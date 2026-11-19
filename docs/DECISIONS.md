@@ -1421,3 +1421,15 @@ members before rate verification can begin. Flat positive BTC creditors retain
 their claims. The checkpoint binds both winning capacities and the exact fill
 schedule to the frozen episode for journal replay.
 [State and limits](clearing/default-plan-verification.md#binding-the-single-lot-assignment-to-clearing).
+
+## D135 — Size inventory verification to the frozen pages it authenticates
+
+20 November 2026. The separate local book-capacity candidate sizes its
+revision scope from the supplied pages and their encoded event size. The
+journal validates the instruction and exact account roles before accepting a
+larger scope. The keeper budgets a 128 KiB heap specifically for this
+certificate, in both transaction formats and during batch simulation. Signed
+cases exposed two separate limits in the original verifier. A sparse book
+exhausted revision slots and a dense book exhausted the default SVM heap.
+This decision concerns verification resources. D116 and D121 still determine
+the financial assignment. [Measured cases](operations/validation.md#active-positions-and-frozen-page-placement).

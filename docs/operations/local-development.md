@@ -552,3 +552,15 @@ Use the same book candidate for the certification resource probe. Set
 roots are funded, flat members. For example, 11 pairs at stride 8 produce
 22 active pages across 175 Financial accounts. The commands use separate
 fresh run directories and database instances as above.
+
+To reproduce the revised certificate, build clearing at `eb011a5` with the
+same `book-inventory-qualification` feature and run
+`bash ops/build-settlement-helper.sh book-capacity-candidate`. Select the new
+artifact directory with `RIVALT_SETTLEMENT_ARTIFACT_DIR`. The
+`profit-attribution-inventory-book-expanded` probe simulates 32, 64, 128 and
+256 KiB heap requests against the same frozen rows. It then submits the
+worker’s chosen transaction, checks its finalized bytes and replays PostgreSQL.
+Use 11 pairs with stride 8 for the 22-page book or 81 pairs with stride 1
+for the 162-position book. The separate
+`profit-attribution-inventory-book-expanded-apply` probe follows three
+maker credits through settlement, worker restart and SPL withdrawal.
