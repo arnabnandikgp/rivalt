@@ -39,21 +39,31 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   const traderOwner = await fixtureKey('p32-trader'), traderToken = await fixtureKey('p32-trader-token');
   await h.send('fund local test participants', [primary, guard, traderOwner].map(signer => getTransferSolInstruction({
     source: payer, destination: signer.address, amount: 1_000_000_000n })));
-  await h.send('mint test trader collateral', [getCreateAccountInstruction({ payer, newAccount: traderToken,
-    lamports: await h.rent(165), space: 165n, programAddress: TOKEN_PROGRAM_ADDRESS }),
-    getInitializeAccount3Instruction({ account: traderToken.address, mint: fixture.mint.address, owner: traderOwner.address }),
-    getMintToInstruction({ mint: fixture.mint.address, token: traderToken.address, mintAuthority: payer, amount: (options.traderCash ?? 1_000_000n) * BigInt(traderCount) })], [traderToken]);
-  const [portfolio] = await sdk.deriveAccountPortfolio(venue, traderOwner.address, 0);
-  await h.send('create test trader portfolio', [await sdk.getCreatePortfolioInstructionAsync({
-    ...common, owner: traderOwner, portfolio, index: 0 })], [traderOwner]);
-  const roots: Address[] = [];
-  for (let subaccountIndex=0;subaccountIndex<traderCount;subaccountIndex++) {
-    const [margin] = await sdk.deriveMarginAccount(portfolio, subaccountIndex);
-    await registerFinancialTestMargin(h,common,payer,{owner:traderOwner,portfolio,margin,subaccountIndex,
-      mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:0,role:0});
-    await h.send('deposit actual test trader collateral', [await sdk.getDepositAccountInstructionAsync({ ...common,
-      owner: traderOwner, margin, quoteMint: fixture.mint.address, userToken: traderToken.address, amount: options.traderCash ?? 1_000_000n })], [traderOwner]);
-    roots.push(margin);
+  const roots:Address[]=[], traderOwners:(typeof traderOwner)[]=[];
+  const identityCapacity=4*9; // Four portfolios, each with one cross and eight isolated roots.
+  for(let first=0;first<traderCount;first+=identityCapacity) {
+    const owner=first===0?traderOwner:await fixtureKey('p32-scale-trader-'+first);
+    const token=first===0?traderToken:await fixtureKey('p32-scale-token-'+first);
+    const count=Math.min(identityCapacity,traderCount-first);
+    if(first>0)await h.send('fund additional local trader rent',[getTransferSolInstruction({
+      source:payer,destination:owner.address,amount:1_000_000_000n})]);
+    await h.send('mint test trader collateral',[getCreateAccountInstruction({payer,newAccount:token,
+      lamports:await h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
+      getInitializeAccount3Instruction({account:token.address,mint:fixture.mint.address,owner:owner.address}),
+      getMintToInstruction({mint:fixture.mint.address,token:token.address,mintAuthority:payer,
+        amount:(options.traderCash??1_000_000n)*BigInt(count)})],[token]);
+    for(let local=0;local<count;local++) {
+      const index=Math.floor(local/9),subaccountIndex=local%9;
+      const [portfolio]=await sdk.deriveAccountPortfolio(venue,owner.address,index);
+      if(subaccountIndex===0)await h.send('create test trader portfolio',[await sdk.getCreatePortfolioInstructionAsync({
+        ...common,owner,portfolio,index})],[owner]);
+      const [margin]=await sdk.deriveMarginAccount(portfolio,subaccountIndex);
+      await registerFinancialTestMargin(h,common,payer,{owner,portfolio,margin,subaccountIndex,
+        mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:0,role:0});
+      await h.send('deposit actual test trader collateral',[await sdk.getDepositAccountInstructionAsync({...common,
+        owner,margin,quoteMint:fixture.mint.address,userToken:token.address,amount:options.traderCash??1_000_000n})],[owner]);
+      roots.push(margin);traderOwners.push(owner);
+    }
   }
   const feeds: { index: number; feed: Address; authority: typeof primary }[] = [];
   for (let index = 0; index < 6; index++) {
@@ -137,6 +147,6 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   await qualify();
   const identity = { venue, marginLayout:options.marginLayout, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readAccountTradeSnapshot(rpc, identity, root, marketIndex);
-  return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, storage,
+  return { ...fixture, primary, guard, traderOwner, traderToken, roots, traderOwners, feeds, configurations, resolution, storage,
     safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, qualify, identity, snapshot };
 }

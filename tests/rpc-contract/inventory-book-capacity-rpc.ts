@@ -33,9 +33,9 @@ try {
     // Each long and short trades against the same flat-spread maker. Alternating
     // keeps that maker flat after each pair and earns it exactly four claim atoms.
     await setup.sample();
-    const side=index%2===0?0:1;
-    await h.send('open funded BTC trader '+index,[await route({trader,actor:setup.traderOwner,marketIndex:0,
-      side,makers:[setup.instances[0]],lots:[1n],maxFee:13n,allInLimit:side===0?60_015n:59_986n})],[setup.traderOwner]);
+    const side=index%2===0?0:1,actor=setup.traderOwners[index];
+    await h.send('open funded BTC trader '+index,[await route({trader,actor,marketIndex:0,
+      side,makers:[setup.instances[0]],lots:[1n],maxFee:13n,allInLimit:side===0?60_015n:59_986n})],[actor]);
   }
   setup.sourcePrices.btc=40_000_000_000n;
   await setup.freshSources();
