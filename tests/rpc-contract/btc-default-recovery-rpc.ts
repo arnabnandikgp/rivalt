@@ -6,6 +6,7 @@ import {getMintToInstruction, getTokenDecoder} from '@solana-program/token';
 import type {Address} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from '../../packages/indexer/src/events.js';
+import {readAccountResolution,accountDefaultContext} from '../../packages/services/src/account-worker-state.js';
 import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
 import {symmetricPayoutShape} from './canonical-maker-cases.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
@@ -24,9 +25,10 @@ const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RI
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 try {
-  const sponsored=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-sponsor-recovery';
+  const paired=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-verified-pair';
+  const sponsored=paired||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-sponsor-recovery';
   const candidate = (sponsored||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-recovery')
-    ? verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,sponsored) : undefined;
+    ? verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,sponsored,paired) : undefined;
   const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:sponsored?'sponsored-profit':candidate?'profit-attribution':'selected',shape:symmetricPayoutShape,makerCash:8_000n,verifyRejections:false});
   const [trader] = setup.roots, owner = setup.traderOwner;
   const first = setup.instances[0], second = setup.instances[2], debtor = first.capital, winner = second.capital;
@@ -110,14 +112,36 @@ try {
   }
   await journal.checkpoint('frozen',true);
   const openWorker = async () => {
-    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,sponsored?'sponsored-profit-candidate':candidate?'profit-attribution-candidate':'selected');
+    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,paired?'verified-pair-candidate':sponsored?'sponsored-profit-candidate':candidate?'profit-attribution-candidate':'selected');
     await runtime.open();
     return runtime;
   };
+  if(paired)process.env.RIVALT_DEFAULT_BATCH_STEPS='1';
   worker = await openWorker();
+  let exercisedPair=false;
   const originals: {requestId:string; signature:string; cu:number}[] = [];
   while ((await resolution()).stage!==11) {
     assert(originals.length<128,'Eight-member BTC recovery exceeded its continuation budget');
+    if(paired&&!exercisedPair) {
+      const current=await readAccountResolution(worker.rpc,setup.venue),prepared=current.preparedState;
+      if(prepared.epoch===frozen.epoch&&prepared.stage===4) {
+        const common=await accountDefaultContext(worker.rpc,current);
+        const debtorOrdinal=BigInt(members.indexOf(debtor)),winnerOrdinal=BigInt(members.indexOf(winner));
+        const [page]=await sdk.deriveFrozenMarginPage(setup.venue,debtorOrdinal/8n);
+        const args={...common,epoch:frozen.epoch,revision:prepared.revision,debtorOrdinal,winnerOrdinal,
+          debtorPage:page,winnerPage:undefined,debtor,winner};
+        const checkpoint=()=>Promise.all([common.prepared,debtor,winner,setup.vault].map(key=>h.read(key)));
+        const original=await checkpoint();
+        await h.send('reject substituting the flat creditor for the winning position',[sdk.getVerifyFrozenPairInstruction({
+          ...args,winner:trader})],[],sdk.CLEARING_ERROR__RESOLUTION);
+        await h.send('reject proportional progression before the BTC pair is verified',[
+          sdk.getAcceptDenominatorRowInstruction({...common,epoch:frozen.epoch,revision:prepared.revision,page})
+        ],[],sdk.CLEARING_ERROR__RESOLUTION);
+        assert.deepEqual(await checkpoint(),original);
+        exercisedPair=true;
+        await worker.close();process.env.RIVALT_DEFAULT_BATCH_STEPS='8';worker=await openWorker();
+      }
+    }
     const outcome = await worker.riskWork(setup.payer);
     assert.equal(outcome.status,'queued',json(outcome));
     const pending: {request_id:string; signature:string; wire:string}[] = (await worker.store.pool.query(
@@ -150,13 +174,20 @@ try {
     if(candidate)assert(sdk.decodeProfitAttribution((await h.read(key))!,sponsored).positions.every(slot=>slot.entryScaled===0n&&slot.paidScaled===0n));
     return [key,String(value.cash)];
   })));
-  assert.deepEqual(finalCash,comparison.onchainExpectedCash);
+  assert.deepEqual(finalCash,paired?comparison.successorModelCash:comparison.onchainExpectedCash);
+  if(paired) {
+    assert(exercisedPair);
+    const current=await readAccountResolution(worker.rpc,setup.venue);
+    const receipt=sdk.frozenPairReceipt(current.preparedState);
+    assert.deepEqual(receipt,{epoch:frozen.epoch,debtorId:(await root(debtor)).id,winnerId:(await root(winner)).id,
+      charge:1_500n,price:68_500n,unpaidGainCap:9_002n});
+  }
   const ledgers = await Promise.all(setup.ledgers.map(ledger));
   assert.deepEqual(ledgers.map(value=>[value.insurance,value.settlement,value.fees]),[[0n,0n,20n],[0n,0n,0n]]);
   assert.equal(await tokenBalance(setup.vault),vaultBefore);
   await journal.checkpoint('cash-distributed',true);
   const paid = BigInt(finalCash[trader])-999_974n;
-  assert.equal(paid,847n);
+  assert.equal(paid,paired?996n:847n);
   await h.send('withdraw funded BTC recovery to trader wallet',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
     btc:setup.markets[0],eth:setup.markets[1],owner,margin:trader,quoteMint:setup.mint.address,userToken:wallet,
     guard:await guard(trader),amount:paid})],[owner]);

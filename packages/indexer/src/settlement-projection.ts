@@ -14,6 +14,19 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='FrozenPairVerified') {
+    eq(current.stage,2,'pair at freeze');eq(current.prices[0],change.mark,'frozen BTC price');
+    accountCheck(!current.pair&&change.debtorId!==change.winnerId,'unique frozen pair');
+    const debtor=present(state.roots[state.identities[change.debtorId]],'paired debtor');
+    const winner=present(state.roots[state.identities[change.winnerId]],'paired winner');
+    const gain=BigInt(change.charge),mark=BigInt(change.mark),lots=BigInt(winner.positions[0].lots);
+    eq(current.remainingGross,['2','0'],'unique open pair');
+    eq(BigInt(debtor.positions[0].lots),-lots,'opposite lots');
+    accountCheck((lots===1n||lots===-1n)&&gain>=0n&&gain<=BigInt(change.unpaidGainCap),'eligible charge');
+    eq(BigInt(change.price),gain===0n?0n:mark-lots*gain,'paired execution price');
+    current.pair={debtorId:change.debtorId,winnerId:change.winnerId,charge:change.charge,price:change.price,unpaidGainCap:change.unpaidGainCap};
+    return;
+  }
   if(event.type==='SettlementMarginApplied') {
     const plan=present(state.pagedSettlement,'adopted plan'),id=BigInt(change.id),ordinal=BigInt(change.ordinal);
     accountCheck(current.stage===14&&plan.stage===9&&ordinal===BigInt(plan.cursor)&&ordinal<BigInt(plan.count),'paged next Apply');
@@ -23,7 +36,13 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     const previous=present(state.roots[change.member],'original margin');
     const frozen=present(current.rows[previous.id],'frozen row');
     accountCheck(!frozen.applied,'paged once-only root');
-    eq(change.cashBefore,previous.cash,'original cash');eq(change.claims,claims(previous,current.prices,current.funding),'claims');
+    eq(change.cashBefore,previous.cash,'original cash');
+    const economic=claims(previous,current.prices,current.funding),pair=current.pair;
+    if(pair) {
+      const delta=previous.id===pair.debtorId?BigInt(pair.charge):previous.id===pair.winnerId?-BigInt(pair.charge):0n;
+      economic[0]=(BigInt(economic[0])+delta*scale).toString();
+    }
+    eq(change.claims,economic,'claims');
     eq(change.lots,previous.positions.map(position=>position.lots),'lots');
     const movements=change.claims.map((claim:string,index:number)=>BigInt(claim)===0n?0n:(BigInt(claim)<0n?-1n:1n)*BigInt(change.flows[index]));
     eq(BigInt(change.state.cash),BigInt(previous.cash)+movements[0]+movements[1],'payout conservation');

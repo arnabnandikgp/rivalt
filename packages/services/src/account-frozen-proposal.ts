@@ -18,6 +18,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   const [canonical,bump]=await sdk.deriveAccountVenue(Uint8Array.from(venueState.domain));
   assert(canonical===venue&&venueState.bump===bump&&venueState.schemaVersion===10&&venueState.profileVersion===expectedProfile
     &&venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
+  const pair=sdk.frozenPairReceipt(header);
   const pageCount=(header.count+7n)/8n,rows:sdk.FrozenMargin[]=[],pages:Address[]=[];
   for(let start=0n;start<pageCount;start+=8n) {
     const keys=await Promise.all(Array.from({length:Number(pageCount-start<8n?pageCount-start:8n)},(_,offset)=>sdk.deriveFrozenMarginPage(venue,start+BigInt(offset))));
@@ -32,7 +33,9 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
         assert(row.activationGeneration>0n&&row.originalRevision>0n
           &&row.member!=='11111111111111111111111111111111'&&(!rows.length||rows.at(-1)!.id<row.id),'Wrong frozen member/order/application state.');
         const debts=row.claims.reduce((total,value)=>total+(value<0n?-value:0n),0n)/1_000_000_000n;
-        assert(row.collected===(row.cash<debts?row.cash:debts),'Frozen collection mismatch.');rows.push(row);
+        assert(row.collected===(row.cash<debts?row.cash:debts),'Frozen collection mismatch.');
+        const charge=(row.id===pair?.debtorId?pair.charge:row.id===pair?.winnerId?-pair.charge:0n)*1_000_000_000n;
+        rows.push({...row,claims:[row.claims[0]+charge,row.claims[1]]});
       }
       pages.push(key);
     }

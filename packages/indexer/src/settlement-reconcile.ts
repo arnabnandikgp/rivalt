@@ -45,6 +45,11 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(!resolution||value.epoch!==undefined&&value.epoch!==BigInt(resolution.epoch))return;
   if(kind===17) {
     const header=JSON.parse(json(value));
+    const pair=sdk.frozenPairReceipt(value);
+    if(resolution.pair||pair) {
+      assert(pair&&resolution.pair,'Missing verified pair receipt or event');
+      const {epoch,...terms}=JSON.parse(json(pair));assert.equal(epoch,resolution.epoch);assert.deepEqual(terms,resolution.pair);
+    }
     for(const [field,expected] of Object.entries({count:String(resolution.count),registryHash:resolution.registryHash,
       prices:resolution.prices,funding:resolution.funding,allocated:resolution.allocatedBefore,pools:resolution.poolsBefore,
       insurance:resolution.insuranceBefore,fees:resolution.feesBefore}))assert.deepEqual(header[field],expected,`Prepared ${field}`);

@@ -26,7 +26,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   };
   // An already frozen source supplies complete membership authority. Continuing
   // it needs immutable deployment binding, not fresh live candidate discovery.
-  if(runtime.deploymentSelection==='account-scale-candidate'||runtime.deploymentSelection==='selected'||(runtime.deploymentSelection==='profit-attribution-candidate'||runtime.deploymentSelection==='sponsored-profit-candidate')) {
+  if(runtime.deploymentSelection==='account-scale-candidate'||runtime.deploymentSelection==='selected'||(runtime.deploymentSelection==='profit-attribution-candidate'||runtime.deploymentSelection==='sponsored-profit-candidate'||runtime.deploymentSelection==='verified-pair-candidate')) {
     const binding=await runtime.environment(),frozen=await readAccountResolution(runtime.rpc,address(binding.venue));
     if([2,14].includes(frozen.header.stage)) {
       const step=await accountDefaultStep(runtime,key,frozen,await accountDefaultContext(runtime.rpc,frozen));
@@ -43,7 +43,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
         {status:'blocked',reason:'default-step-presently-unavailable'};
     }
   }
-  if((runtime.deploymentSelection==='profit-attribution-candidate'||runtime.deploymentSelection==='sponsored-profit-candidate'))return {status:'blocked',reason:'candidate-frozen-continuation-only'};
+  if((runtime.deploymentSelection==='profit-attribution-candidate'||runtime.deploymentSelection==='sponsored-profit-candidate'||runtime.deploymentSelection==='verified-pair-candidate'))return {status:'blocked',reason:'candidate-frozen-continuation-only'};
   const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
   const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;
   const common={...snapshot,...continuation,...accountRiskSources(snapshot)};
