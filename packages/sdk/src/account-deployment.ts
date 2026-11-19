@@ -3,11 +3,13 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate';
+export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
 export const SHARED_INVENTORY_ARTIFACT_SET='shared-inventory-59184c5';
+export const PARTIAL_INVENTORY_ARTIFACT_SET='partial-inventory-2256c51';
+export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY_ARTIFACT_SET || value===PARTIAL_INVENTORY_ARTIFACT_SET;
 export const FOREIGN_CREDITOR_ARTIFACT_SET='foreign-creditor-d177cc5';
 export const LINKED_ALLOCATION_ARTIFACT_SET='linked-allocation-d0ae474';
 export const LINKED_FLAT_ARTIFACT_SET='linked-flat-30434d5';
@@ -16,6 +18,11 @@ export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
+  if(selection==='partial-inventory-candidate')return {
+    artifactSet:PARTIAL_INVENTORY_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'2256c519e09c3f3c35816e3a0f578614de7f0654',
+    artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
+      bytes:2638216,sha256:'da2796230e4591aa53855b4fc0c6543ad424c017bd09cd2ec8c8f96535627e8e'}:artifact)
+  };
   if(selection==='shared-inventory-candidate')return {
     artifactSet:SHARED_INVENTORY_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'59184c58e1cfa0a3aabafaf11274a10a0c58154e',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,

@@ -82,7 +82,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(['foreign-creditor-candidate','shared-inventory-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
+    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
       const members:FrozenMember[]=[];
       for(let start=0n; start<prepared.count; start+=8n) {
         const {page,row}=await frozen(start);
@@ -98,8 +98,9 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
         assert(root.venue===venue && root.id===row.id && root.revision===row.originalRevision,'Changed winner');
         return frozenWinner(row.id,row.lots[market],row.claims[market],prepared.prices[market],positions[market]).capacity;
       };
-      if(runtime.deploymentSelection==='shared-inventory-candidate' && prepared.gross[1]===0n) {
-        const assignment=await sharedInventoryProposal(prepared,members,member=>capacity(member,0));
+      const partial=runtime.deploymentSelection==='partial-inventory-candidate';
+      if((partial||runtime.deploymentSelection==='shared-inventory-candidate') && prepared.gross[1]===0n) {
+        const assignment=await sharedInventoryProposal(prepared,members,member=>capacity(member,0),partial);
         if(!assignment)return blocked('unsupported-shared-inventory');
         return ready('verify-shared-inventory',sdk.getVerifySharedInventoryInstruction({...args,revision:prepared.revision,...assignment}));
       }

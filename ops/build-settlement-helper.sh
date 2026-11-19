@@ -9,6 +9,9 @@ set --
 helper_dir=.local/settlement-helper
 case "$selection" in
   selected) ;;
+  partial-inventory-candidate)
+    set -- --features clearing/partial-inventory-qualification
+    helper_dir=.local/settlement-helper-partial-inventory ;;
   shared-inventory-candidate)
     set -- --features clearing/shared-inventory-qualification
     helper_dir=.local/settlement-helper-shared-inventory ;;
@@ -54,7 +57,9 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'revision':sys.argv[1],
  'trackedDirty':False,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
-if sys.argv[2]=='shared-inventory-candidate':
+if sys.argv[2]=='partial-inventory-candidate':
+    manifest['feature']='partial-inventory-qualification'
+elif sys.argv[2]=='shared-inventory-candidate':
     manifest['feature']='shared-inventory-qualification'
 elif sys.argv[2]=='foreign-creditor-candidate':
     manifest['feature']='foreign-creditor-qualification'

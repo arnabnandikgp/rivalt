@@ -62,12 +62,13 @@ export function foreignCreditorReceipt(prepared: PreparedSettlement) {
 
 export function sharedInventoryReceipt(prepared:PreparedSettlement) {
   const bytes=Uint8Array.from(prepared.state.membership);
-  if(new TextDecoder().decode(bytes.subarray(0,8))!=='RVLOTS01')return null;
+  const marker=new TextDecoder().decode(bytes.subarray(0,8));
+  if(marker!=='RVLOTS01' && marker!=='RVLOTS02')return null;
   const view=new DataView(bytes.buffer),word=(index:number)=>view.getBigUint64(8+8*index,true);
   const members=[word(1),word(2),word(3),word(4)],charges=[word(5),word(6)];
   const eligible=[word(7),word(8)],prices=[word(9),word(10)];
   requireValue(word(0)===prepared.epoch && [2,3].includes(prepared.stage) && members[0]<members[1]
     && new Set(members).size===4 && bytes.subarray(96).every(byte=>byte===0)
-    && charges.every((charge,index)=>charge>0n && charge<=eligible[index] && prices[index]>0n),'Invalid shared inventory receipt.');
+    && charges.every((charge,index)=>charge<=eligible[index] && (charge===0n?marker==='RVLOTS02' && prices[index]===0n:prices[index]>0n)),'Invalid shared inventory receipt.');
   return {members,charges,eligible,prices};
 }

@@ -66,12 +66,12 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     } else if(projection)assert.equal(projection.status,2,'Lost linked scan');
     const shared=sdk.sharedInventoryReceipt(value);
     if(shared || resolution.sharedInventory) {
-      assert(binding.artifactSet===sdk.SHARED_INVENTORY_ARTIFACT_SET && shared && resolution.sharedInventory,'Missing shared inventory receipt or event');
+      assert(sdk.isSharedInventoryArtifact(binding.artifactSet) && shared && resolution.sharedInventory,'Missing shared inventory receipt or event');
       assert.deepEqual(JSON.parse(json(shared)),resolution.sharedInventory,'shared inventory terms');
     }
     const foreign=sdk.foreignCreditorReceipt(value);
     if(foreign || resolution.foreignCreditors) {
-      assert((binding.artifactSet===sdk.FOREIGN_CREDITOR_ARTIFACT_SET || binding.artifactSet===sdk.SHARED_INVENTORY_ARTIFACT_SET) && foreign && resolution.foreignCreditors,'Missing atomic foreign creditor receipt or event');
+      assert((binding.artifactSet===sdk.FOREIGN_CREDITOR_ARTIFACT_SET || sdk.isSharedInventoryArtifact(binding.artifactSet)) && foreign && resolution.foreignCreditors,'Missing atomic foreign creditor receipt or event');
       const {members,legs}=foreign;
       assert.deepEqual(JSON.parse(json({members,charges:legs.map(leg=>leg.charge),eligible:legs.map(leg=>leg.eligible),
         matchedLots:legs.map(leg=>leg.matched),basePrices:legs.map(leg=>leg.price),extraTickLots:legs.map(leg=>leg.extra)})),resolution.foreignCreditors);
