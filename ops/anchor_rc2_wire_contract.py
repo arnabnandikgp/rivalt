@@ -140,6 +140,9 @@ def check_domains():
                                             | {r'Rivalt/frozen-member-order/v1\0'})
     # Format marker for the separately qualified margin extension.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01', 'RVJALLOC', 'RVCHAIN1', 'RVLOTS01', 'RVLOTS02', 'RVBOOK01', 'Rivalt/inventory-book/v1'})
+    # Private native continuation domains bind the frozen source and proposed charge vector.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
+        r'Rivalt/multi-lot-charge-proposal/v1\0', r'Rivalt/whole-single-market-search/v1\0'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
