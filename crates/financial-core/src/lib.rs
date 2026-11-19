@@ -4,6 +4,8 @@
 pub mod clearing;
 pub mod backing;
 pub mod fee_lanes;
+#[cfg(feature = "parallel-market-prototype")]
+pub mod gross_capacity;
 pub mod liquidation;
 pub mod liquidity;
 pub mod margin;

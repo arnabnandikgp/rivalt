@@ -456,3 +456,70 @@ fn relevant_market_set_refuses_hidden_fractional_claims_and_preserves_empty_slot
     trader.positions[1].lots = 1;
     assert!(execute(&trader).is_err());
 }
+
+/// A maker-local copy of the last funding prefix that a fill actually used.
+/// The candidate would have to authenticate each lane, observation and clock.
+#[derive(Clone, Copy)]
+struct ObservedFundingPrefix {
+    market: u8,
+    config_epoch: u64,
+    observation: u64,
+    slot: u64,
+    through: i64,
+    index: i128,
+}
+
+#[test]
+fn maker_local_funding_prefix_preserves_expiry_and_recovery() {
+    // Native design comparison. Exercise the actual clearing materializer and
+    // sampler on a positive and a negative premium. The lower index can be
+    // the later observation. Even the Unix timestamp may move back across slots.
+    for premium in [-math::SCALE, math::SCALE] {
+        for times in [[1_008, 1_010], [1_010, 1_008]] {
+            let mut anchor = markets()[1].clone();
+            anchor.oracle.premium_scaled = premium;
+            let mut current = anchor.clone();
+            let mut lanes = Vec::new();
+            for (slot, now) in [101u64, 103].into_iter().zip(times) {
+                let tick = Clock { slot, unix_timestamp: now, ..clock() };
+                oracle::materialize(2, &mut current, &tick).unwrap();
+                let mut local = anchor.clone();
+                oracle::materialize(2, &mut local, &tick).unwrap();
+                lanes.push(ObservedFundingPrefix {
+                    market: local.index,
+                    config_epoch: local.config_epoch,
+                    observation: local.observation_sequence,
+                    slot, through: local.funding_time, index: local.funding_index_scaled,
+                });
+            }
+            let expected = premium * i128::from(times[1] - 1_006) / 3_600;
+            assert_eq!(current.funding_index_scaled, expected);
+            // A BTC observation and an expired ETH sample may have higher slots.
+            let last = lanes[1];
+            lanes.extend([
+                ObservedFundingPrefix { market: 0, slot: 104, ..last },
+                ObservedFundingPrefix { observation: 0, slot: 105, ..last },
+                ObservedFundingPrefix { config_epoch: 0, slot: 106, ..last },
+            ]);
+            let latest = lanes.iter().filter(|stamp| stamp.market == anchor.index
+                && stamp.config_epoch == anchor.config_epoch
+                && stamp.observation == anchor.observation_sequence)
+                .max_by_key(|stamp| stamp.slot).unwrap();
+            let mut merged = anchor.clone();
+            merged.funding_time = latest.through;
+            merged.funding_index_scaled = latest.index;
+            for (slot, now) in [(201, 1_016), (203, 1_047)] {
+                let expired = Clock { slot, unix_timestamp: now, ..clock() };
+                assert_eq!(oracle::effective(2, &anchor, &expired).unwrap(), 0);
+                assert_eq!(oracle::effective(2, &merged, &expired).unwrap(), expected);
+                let actual = oracle::sample_candidate(2, &current, &expired, None, [1; 4], None).unwrap();
+                let alternative = oracle::sample_candidate(2, &merged, &expired, None, [1; 4], None).unwrap();
+                assert_eq!(alternative.oracle.funding_base, expected);
+                assert_eq!(alternative.oracle.funding_base, actual.oracle.funding_base);
+                assert_eq!(alternative.oracle.covered_seconds, (times[1] - 1_006) as u64);
+                assert_eq!(alternative.oracle.covered_seconds, actual.oracle.covered_seconds);
+                assert_eq!(alternative.oracle.skipped_seconds, actual.oracle.skipped_seconds);
+            }
+        }
+    }
+}

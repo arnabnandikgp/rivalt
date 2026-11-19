@@ -12,7 +12,7 @@ python3 tests/financial/test_account_contract.py
 python3 tests/financial/test_clearing_network.py
 python3 tests/financial/test_bounded_clearing.py
 python3 tests/financial/test_market_settlement.py
-cargo test --locked -p financial-core
+cargo test --locked -p financial-core --features parallel-market-prototype
 cargo build --locked -p financial-core --bin reference-driver
 python3 tests/financial/reference.py | tee .local/p02-financial.json
 cargo build --locked -p financial-core --bin clearing-wide-driver --bin clearing-row-driver --bin clearing-atoms-driver
