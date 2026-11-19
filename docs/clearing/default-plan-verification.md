@@ -494,7 +494,7 @@ selection and completing signed linked-market payouts remain open.
 
 ### When the two markets trade places
 
-An eight-member frozen book exposes a remaining product choice. Each market
+An eight-member frozen book illustrates the D127 tie rule. Each market
 has a debtor owing 11 with 7 funded, insurance of 1, a winner with a gain of 3,
 a cross-account winner with a gain of 4 that owes 4 to the other market, and
 a flat creditor owed 8. The two cross-account winners are different members.
@@ -507,16 +507,26 @@ approved recovery comparisons.
 | BTC shares the charge more evenly | 2 and 1 | 3 and 0 | 7 / 8 | 1 / 1 |
 | ETH shares the charge more evenly | 3 and 0 | 2 and 1 | 8 / 7 | 1 / 1 |
 
-Each recovers 3 atoms per market and closes three lots in total. The preferable
-sharing score in one market is the less preferable score in the other. D120
-cannot distinguish them. D121 currently applies after the individual financial
-comparisons tie. The resumable reference flags each finalist as incomparable
-with the other. Native settlement independently reproduces both cash vectors
-from literal adjusted obligations.
+Each plan recovers 3 atoms per market and closes three lots. D120 ties. D127
+permits D121’s frozen-member priority after proving a single market swap
+matches the original book and both plans. The permutation must cover each member
+once, undo itself on a second swap, and preserve every debtor/winner link,
+fill, claim and receipt. The market buckets, original collections, member cash,
+basis, lots, paid gains, rates, impairments and whole payouts are checked.
+A one-atom difference in retained fees prevents either plan from winning under
+this rule. The swap provides evidence of matching economics. The original
+stable IDs always determine the winner.
 
-The proposed narrow extension would use frozen member order if the original
-market economics match and the two surviving plans exchange identical
-financial profiles under the market swap. This requires an explicit decision
-because it changes which flat creditor receives the eighth atom. General
-unequal trade-offs remain a separate question. This fixture is synthetic. A
-signed joint-market default has yet to be qualified.
+The [complete reference search](../../tests/financial/bounded_default_search.py)
+binds D127 into its checkpoint domain. For the all-zero test venue, member 3
+decides episode 1 in favour of the 7/8 plan, and member 2 decides episode 2
+in favour of 8/7. The [Rust comparator](../../crates/default-plan-selection/src/mirror.rs)
+checks an explicit permutation in one member pass, validates charge totals and
+matches each original pair with its reflected fill schedule. It breaks any
+remaining assignment tie in winner, market and debtor order.
+
+The [signed probe](../operations/validation.md#native-linked-market-recovery)
+uses the same Rust comparator on committed synthetic inputs. The full
+feasibility search and settlement of those inputs were checked off-chain.
+Authenticating the inputs against a real frozen clearing episode, verifying
+optimality there, applying both markets and releasing custody are separate gates.

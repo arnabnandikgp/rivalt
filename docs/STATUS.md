@@ -52,7 +52,7 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 | Verified BTC default payout | Review | [PR #106](https://github.com/arnabnandikgp/rivalt/pull/106). [Signed recovery and limits](operations/validation.md#verified-btc-default-payout). At `24bc87f` on SBF `447efef`, clearing paid the flat trader 996 atoms into the wallet, debited the winning maker 1,500 and protected both markets’ accounting. All eight roots and 116 fresh SQL payloads reconciled. At `0ac7019` the 502-atom case remained frozen. |
 | BTC residual recovery | Review | [PR #107](https://github.com/arnabnandikgp/rivalt/pull/107). [Three signed outcomes](operations/validation.md#btc-residual-recovery). At `1e05885` on SBF `8024a37`, actual wallet payouts were 8,498 with partial eligible gain, 8,498 with zero eligible gain and 26,988 with three opposite lots. Each run reconciled all eight roots and replayed 116 events in fresh SQL. |
 | Multi-winner BTC recovery | Review | [PR #108](https://github.com/arnabnandikgp/rivalt/pull/108). [Signed results](operations/validation.md#multi-winner-btc-recovery). On SBF `9e2cc00`, harness `c747189` verified the 1,656/1,839 split and an episode-ordered 1/0 tie. The flat creditor withdrew 996 in both runs; all eight accounts and 132/140 fresh SQL events reconciled. |
-| Linked-market cash allocation, creditor protection and ranking | Review | [PR #109](https://github.com/arnabnandikgp/rivalt/pull/109). At `56e276b`, 152 adjusted cohorts retained fractional cash ownership. At `1db483c`, native protected settlement matched 70 admissible joint payouts and rejected 30. Two equally recovering mirror plans pay 7/8 or 8/7. The reference withholds both pending a policy decision. [Validation](operations/validation.md#native-linked-market-recovery). |
+| Linked-market cash allocation, creditor protection and ranking | Review | [PR #109](https://github.com/arnabnandikgp/rivalt/pull/109). At `56e276b`, 152 adjusted cohorts retained fractional cash ownership. At `1db483c`, native protected settlement matched 70 admissible joint payouts and rejected 30. D127 is implemented at `8af1a7a`. A signed diagnostic chose the expected 8/7 and 7/8 outcomes in two episodes, rejected the asymmetric case and reconciled 34 receipts in SQL. [Validation](operations/validation.md#native-linked-market-recovery). |
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
@@ -122,10 +122,11 @@ paid the flat trader 996 on the matched default. The residual candidate now
 pays through the same withdrawal path for insufficient and zero eligible gain.
 The multi-winner candidate also paid a wallet after dividing the BTC loss
 among eligible accounts. Native joint settlement preserves each foreign creditor’s
-fractional and whole-atom protection. The next selection step requires deciding
-whether frozen-episode ordering can resolve two mirror plans that pay different
-creditors. Signed settlement of a linked default and its resource qualification
-remain open.
+fractional and whole-atom protection. D127 resolves exact market reflections
+using the frozen member order. Next bind the two-market financial inputs to
+authenticated frozen clearing roots and exercise linked recovery through wallet
+exit. The signed comparator exercised a synthetic book; custody qualification
+for a linked default remains open.
 
 ## Earlier checkpoints
 

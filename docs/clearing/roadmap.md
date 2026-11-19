@@ -51,7 +51,7 @@ a single BTC debtor holding its entire side of open interest. Next verify linked
 books where BTC and ETH recovery decisions depend on each other.
 Native linked settlement keeps the original debtor cash split and protects individual foreign-market payouts through final whole-atom rounding. [Settlement contract](default-plan-verification.md#joint-recovery-and-frozen-cash-ownership).
 The [mirror comparison](default-plan-verification.md#when-the-two-markets-trade-places)
-identifies a payout decision still needed for a complete joint plan.
+now has an approved final ordering under D127 and a signed diagnostic. The next clearing step is to bind the original and adjusted linked books to one real frozen episode before any Apply authority is granted.
 Linked-market runtime proofs, shared writes and broader cost qualification remain open.
 
 ## Functional ownership

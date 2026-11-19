@@ -12,7 +12,7 @@ were rejected. The ordinary kernel still matched 774 settlements and rejected
 and found 70 feasible. Rust reproduced the 6/6 baseline and the two finalist
 payouts of 7/8 and 8/7. These checks exercise native financial code. The
 [comparison](../clearing/default-plan-verification.md#when-the-two-markets-trade-places)
-identifies the outstanding policy choice.
+records the D127 decision and its acceptance.
 
 At `1db483c`, the native protected settlement verified 100 paired proposals
 from the two ten-plan markets in that book. All 70 admissible payouts matched
@@ -29,6 +29,25 @@ order were rejected. The ordinary rounding regression matched the independent
 graph on 774 paged executions. The new checks replay the native paged graph,
 including restoration of its checkpoints. Signed linked-market recovery and its
 on-chain resource costs remain open.
+
+At `8af1a7a`, four mirror cases, six restart/search cases, eight certificate
+cases, four protected-settlement cases, the Rust assignment-order unit test and
+TypeScript compilation passed. At the all-zero venue, the complete 256-vector
+reference sweep certified only ordinal 54 for episode 1 and only 99 for episode
+2. The three asymmetric books stayed uncertified. Each finalized native cash
+vector matches the independently derived whole-atom distribution.
+
+A new local Surfpool diagnostic at the same pin used a different venue and
+produced ordinal 99 (BTC/ETH 8/7) in episode 1 and 54 (7/8) in episode 2 with
+reversed proposal order. With asymmetric retained fees in episode 3 it accepted
+neither plan. All **34 signed outcomes** were observed over WS, fetched at
+finalized RPC and accounted for in PostgreSQL. Eleven deliberately rejected
+instructions preserved state. The two successful comparisons used **8,400 and
+8,424 CU**, each in 281 wire bytes. The fixture commits 2,372 input bytes
+per episode. Its authority ends at recording the winning candidate. These CU
+counts exclude solving for feasible plans and moving collateral. From a clean
+checkout with the local toolchain, rerun with
+`RIVALT_PROOF_SCOPE=mirror bash ops/default-proof-smoke.sh`.
 
 ## Multi-winner BTC recovery
 
