@@ -825,3 +825,27 @@ The number of active positions and the number of distinct pages touched affect
 the certification transaction. The complete valuation and later distribution
 also visit flat members. The local deployment pins the extended layout and
 restricts release to its supported shape.
+
+### How many frozen pages fit in one inventory certificate
+
+The fixed revision scope contains ten reads and one write. Each distinct
+active frozen page adds one write to the same scope. Clearing allows 32
+revisioned accounts per invocation, which leaves room for 21 active pages.
+Each page has eight frozen rows. Consequently 168 contiguous active rows is
+an upper bound from page addressing alone. As few as 22 positions on 22
+different pages already exceed it. Flat members between active ordinals can
+increase the page count even when their rows do not enter the matching.
+
+| Active positions | Writable frozen pages | Total scoped accounts | v0 bytes | Selected wire format and bytes |
+|---:|---:|---:|---:|---|
+| 6 | 2 | 13 | 803 | v0, 803 |
+| 32 | 5 | 16 | 1,111 | v0, 1,111 |
+| 58 | 8 | 19 | 1,418 | v1, 1,376 |
+| 168 | 21 | 32 | 2,727 | v1, 2,685 |
+| 22 spread across 22 pages | 22 | 33 | 1,592 | v1, 1,550 |
+
+These are serialized transactions using the generated instruction and the
+usual resource headers. Only the rows identified in the signed measurements
+have runtime evidence. The worker reports that paged verification is needed
+when the revision scope would overflow. This limit affects certification
+after default. Financial registration and normal routes have separate limits.

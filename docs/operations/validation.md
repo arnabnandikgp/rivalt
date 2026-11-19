@@ -1,5 +1,27 @@
 # Validation and measured limits
 
+## Active positions and frozen page placement
+
+These runs use the same clearing SBF `d5cc624`. Local funded traders alternated
+one-lot buys and sells through a single internal maker, which ended flat with
+four claim atoms per pair. All six maker accounts and the trader roots entered
+the complete freeze. The verifier charges eight atoms per pair in the measured
+16- and 29-pair books. Each eligible account had the original signed fill and
+frozen claim expected by the journal.
+
+| Harness | Active / Financial | Active pages | Finalized certificate | CU | Wire bytes | Fresh SQL events |
+|---|---:|---:|---|---:|---:|---:|
+| `b2ada92` | 32 / 38 | 5 | 16 pairs, 128 atoms | 88,286 | 1,111 (v0) | 259 |
+| `28345d1` | 58 / 64 | 8 | 29 pairs, 232 atoms | 141,122 | 1,376 (v1) | 418 |
+| `97a8d5b` | 22 / 175 | 22 | Worker withheld submission. Direct signed call returned Profile (6108). | 20,106 | 1,550 (v1) | 654 |
+
+The three runs checked 519, 709 and 1,157 RPC/WS outcomes respectively. Their
+finalized certificate attempts each paid 5,000 local lamports at zero priority
+fee. The 22-page rejection preserved the prepared header, all active frozen
+pages, cash accounts and vault. These measurements end after certification or
+refusal. The three-wallet qualification below covers subsequent settlement.
+[Wire and revision scope](../clearing/default-plan-verification.md#how-many-frozen-pages-fit-in-one-inventory-certificate).
+
 ## Clearing-verified single-lot book
 
 On pinned clearing `d5cc624` and harness `3e8df69`, six of nine funded members

@@ -544,3 +544,11 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$book_inventory_build" \
   RIVALT_SETTLEMENT_PROBE=profit-attribution-inventory-book-apply \
   bash ops/scalable-settlement-smoke.sh
 ```
+
+Use the same book candidate for the certification resource probe. Set
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-inventory-book-capacity` and
+`RIVALT_INVENTORY_PAIRS` to the number of long/short pairs. The optional
+`RIVALT_INVENTORY_STRIDE` selects every nth trader root. The intervening
+roots are funded, flat members. For example, 11 pairs at stride 8 produce
+22 active pages across 175 Financial accounts. The commands use separate
+fresh run directories and database instances as above.
