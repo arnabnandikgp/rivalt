@@ -401,3 +401,22 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_build" RIVALT_SETTLEMENT_PROBE=profit-at
 
 The fresh validator and PostgreSQL run reads and verifies both actual frozen
 maker positions. The worker records its original transaction for each step.
+
+### Reproduce the closed BTC trader's joint-default payout
+
+Run the same four signed trades twice, with fresh validators and databases.
+Use the ordinary attribution build from `33361d9`. Build the linked candidate
+from clean revision `30434d5` using `ops/build-profit-attribution.sh` with
+`RIVALT_ATTRIBUTION_PROFILE=linked-pair-qualification`. From the harness checkout:
+
+```bash
+bash ops/build-settlement-helper.sh linked-flat-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-flat \
+  bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_flat_build" RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-flat-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+Each run checks the flat trader's banked collateral separately from the claim
+payout, the maker wallet, the vault, the independently reconstructed frozen
+inputs and the events replayed into a fresh PostgreSQL database.

@@ -1348,3 +1348,19 @@ Wallet exit still requires full-cohort application and reconciliation.
 This implements D117 and D119 for a family whose eligibility can be proved
 from complete snapshot totals and two original maker positions. D127 governs
 exact mirror ties in larger books. [Certificate and limits](clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
+
+## D129 — Certify the closed BTC creditor from the frozen cohort
+
+19 November 2026. In the local linked recovery candidate, D128 also applies
+when one additional trader has closed every position and holds a whole BTC
+claim with zero ETH claim. One cross debtor still owns all debt and its entire
+side of each market. Each opposing maker holds its entire side. The BTC maker
+and flat trader must account for the complete positive BTC total. The ETH maker
+must own all ETH credit. Clearing must cover both shortfalls in full under the
+original cash split before settlement can pay the effective claims at face.
+
+The complete member scan records the largest observed whole BTC claim on a flat
+account with no ETH claim. The equality with the total proves that this one
+account holds the entire remainder. This avoids adding the trader as a writable
+account on either certificate transaction. D116 still selects the only eligible
+open winner in each market. [Verification contract](clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).

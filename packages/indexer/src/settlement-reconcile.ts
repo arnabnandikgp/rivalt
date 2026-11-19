@@ -56,7 +56,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     }
     const joint=sdk.frozenJointReceipt(value);
     if(resolution.joint || joint?.complete) {
-      assert([sdk.LINKED_PAIR_ARTIFACT_SET,sdk.LINKED_FLAT_ARTIFACT_SET].includes(binding.artifactSet) && joint?.complete && resolution.joint,
+      assert((binding.artifactSet===sdk.LINKED_PAIR_ARTIFACT_SET || binding.artifactSet===sdk.LINKED_FLAT_ARTIFACT_SET) && joint?.complete && resolution.joint,
         'Missing verified joint receipt or event');
       const {debtor,shares,legs}=joint;
       assert.deepEqual(JSON.parse(json({debtorId:debtor,shares,winners:legs.map(leg=>leg.winner),

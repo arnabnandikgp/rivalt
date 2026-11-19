@@ -57,9 +57,12 @@ binds the model to actual clearing roots. Ordinary recovery paid both maker
 accounts, while the BTC-only certificate correctly refused the linked book.
 The [linked clearing candidate](../operations/validation.md#clearing-verified-linked-default-and-wallet-exit)
 verified both charges against the same membership and preserved the original
-cash split through two SPL withdrawals. The next signed book adds a separate
-flat BTC creditor whose payout differs under the two rules. General linked
-selection, shared writes and broader cost qualification remain open.
+cash split through two SPL withdrawals. The next book adds a separate
+flat BTC creditor and compares both rules through signed withdrawals.
+Then introduce a second eligible BTC maker in the same two-market freeze:
+verify its proportional share against an independent complete search and bind
+all winning accounts before releasing a payout. General linked selection,
+shared writes and broader cost qualification remain open.
 
 ## Functional ownership
 

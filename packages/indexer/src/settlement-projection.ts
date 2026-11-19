@@ -1,5 +1,6 @@
 /** Financial effects of the authenticated paged settlement, separate from its
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
+import {LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -11,7 +12,7 @@ const scale=1_000_000_000n;
 const eq=(left:unknown,right:unknown,label:string)=>accountCheck(isDeepStrictEqual(left,right),`paged ${label}`);
 const claims=(root:AccountState['roots'][string],prices:string[],funding:string[])=>root.positions.map((position,index)=>
   (BigInt(position.virtualScaled)+BigInt(position.lots)*(BigInt(prices[index])*scale-BigInt(funding[index])+BigInt(position.fundingCheckpointScaled))).toString());
-export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void) {
+export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void,artifactSet?:string) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
   if(event.type==='FrozenJointReductionVerified') {
@@ -30,12 +31,29 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
       eq(winner.positions[1-market].lots,'0','isolated winner inventory');
       const won=claims(winner,current.prices,current.funding);
       eq(won[1-market],'0','isolated winner cash claim');
-      eq(BigInt(won[market]),debts[market]+BigInt(current.poolsBefore[market])*scale,'sole creditor');
+      const totalClaims=debts[market]+BigInt(current.poolsBefore[market])*scale;
+      const remainder=totalClaims-BigInt(won[market]);
+      if(market===0 && artifactSet===LINKED_FLAT_ARTIFACT_SET && remainder!==0n) {
+        accountCheck(remainder>0n && remainder%scale===0n,'whole flat BTC claim');
+        eq(String(state.members.length),current.count,'complete frozen membership');
+        const creditors=state.members.filter(key=>{
+          const member=state.roots[key];
+          if(member.id===change.debtorId || member.id===winner.id) return false;
+          const [btc,eth]=claims(member,current.prices,current.funding).map(BigInt);
+          if(btc===0n) return false;
+          accountCheck(btc===remainder && eth===0n && member.positions.every(position=>position.lots==='0'),
+            'flat BTC creditor identity and face');
+          return true;
+        });
+        eq(creditors.length,1,'one flat BTC creditor');
+      } else {
+        eq(remainder,0n,'sole creditor');
+      }
       const share=BigInt(change.shares[market]),charge=BigInt(change.charges[market]);
       eq(share*total,available*face[market],'frozen cash split');
       eq(charge,face[market]-share-BigInt(current.insuranceBefore[market]),'full verified loss');
       const matched=BigInt(change.matchedLots[market]);
-      accountCheck(charge>0n && charge<=BigInt(change.eligible[market]) && matched>0n && matched<=quantity,'joint capacity');
+      accountCheck(charge>0n && charge*scale<=BigInt(won[market]) && charge<=BigInt(change.eligible[market]) && matched>0n && matched<=quantity,'joint capacity');
       eq(BigInt(change.extraTickLots[market]),charge%matched,'joint extra ticks');
       eq(BigInt(change.basePrices[market]),BigInt(current.prices[market])-(signedLots>0n?1n:-1n)*(charge/matched),'joint fill');
     }

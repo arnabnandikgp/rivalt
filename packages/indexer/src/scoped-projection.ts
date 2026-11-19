@@ -23,7 +23,7 @@ export function projectedEntities(state:AccountState) {
 /** Apply a complete causal batch to a clone. Neither missing history nor a
  * later failing instruction can leak a partially projected financial effect. */
 export function projectScopedBatch(initial:AccountState,invocations:readonly AccountInvocation[],
-  binding:{venue:string;domain:string}) {
+  binding:{venue:string;domain:string;artifactSet?:string}) {
   const ordered=orderScopedTransactions(invocations,initial.revisions),state=structuredClone(initial);
   const byIdentity=new Map(invocations.map(value=>[`${value.signature}/${value.outer}/${value.invocation}`,value]));
   const applied:AccountInvocation[]=[];
@@ -33,7 +33,7 @@ export function projectScopedBatch(initial:AccountState,invocations:readonly Acc
     // immutable values, preserving array order and all financial fields.
     const before=new Map([...projectedEntities(state)].map(([key,value])=>[key,structuredClone(value)]));
     for(const write of invocation.writes)state.revisions[write.account]={kind:write.kind,revision:write.before};
-    for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4);
+    for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4,binding.artifactSet);
     const represented=projectedEntities(state),writes=new Map(invocation.writes.map(write=>[write.account,write]));
     for(const [key,value] of represented) {
       const expected=state.revisions[key];

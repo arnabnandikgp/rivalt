@@ -33,8 +33,8 @@ const progress=(overrides:any={})=>({venue:'venue',slot:'1',epoch:'3',plan:'plan
   remainingCash:'1',appliedCash:'0',marketMovements:['0','0'],gross:['0','0'],pools:['0','0'],insurance:['3','0'],insuranceSpent:['0','0'],
   fees:['2','0'],ledgerVersions:['1','1'],liabilityVersions:['1','1'],insuranceFeeRemainders:'0000',allocated:'6',actualVault:'6',
   resolutionStage:14,mode:2,paused:true,safetyEpoch:'7',...overrides});
-function emit(state:AccountState,type:AccountEvent['type'],data:any) {
-  projectAccounts(state,{type,data,signature:'signature',outer:0,inner:0,ordinal:0,slot:1,blockTime:1,bytes:''},'venue','00'.repeat(32));
+function emit(state:AccountState,type:AccountEvent['type'],data:any,artifactSet?:string) {
+  projectAccounts(state,{type,data,signature:'signature',outer:0,inner:0,ordinal:0,slot:1,blockTime:1,bytes:''},'venue','00'.repeat(32),4,artifactSet);
 }
 function apply(state:AccountState,id:number) {
   const previous=state.roots[`root${id}`],root=structuredClone(previous);
@@ -44,6 +44,37 @@ function apply(state:AccountState,id:number) {
     claims:[((id===0?-2n:1n)*scale).toString(),'0'],lots:['0','0'],flows:[id===2?'0':'1','0'],state:root};
 }
 describe('paged default independent one-atom ownership',()=>{
+  it('authenticates the whole flat BTC claim only on the corresponding linked deployment',()=>{
+    const state=fixture(), source=state.resolution!;
+    source.prices=['50000','20000'];source.insuranceBefore=['9','1'];source.remainingGross=['2','2'];source.count='4';
+    source.cashBefore='19976';source.remainingCash='19976';source.allocatedBefore='19988';
+    state.custody!.allocatedVault=source.allocatedBefore;
+    state.ledgers.bl.insurance='9';state.ledgers.el.insurance='1';
+    state.markets.btc.grossLots='2';state.markets.eth.grossLots='2';
+    state.registeredCount='4';state.nextMemberId='4';
+    state.roots.root0.cash=source.cashBefore;
+    state.roots.flat=structuredClone(state.roots.root1);state.roots.flat.id='3';
+    state.members.push('flat');state.identities['3']='flat';
+    const terms=[
+      ['root0',1,-10002,1,-10002], ['root1',-1,5006,0,0],
+      ['root2',0,0,-1,10002], ['flat',0,4996,0,0],
+    ] as const;
+    for(const [key,btcLots,btcClaim,ethLots,ethClaim] of terms) {
+      for(const [market,[lots,claim]] of [[btcLots,btcClaim],[ethLots,ethClaim]].entries()) {
+        const position=state.roots[key].positions[market];
+        position.lots=String(lots);
+        position.virtualScaled=String((BigInt(claim)-BigInt(lots)*BigInt(source.prices[market]))*scale);
+      }
+    }
+    const event={venue:'venue',epoch:'3',debtorId:'0',winners:['1','2'],shares:['9988','9988'],charges:['5','13'],
+      eligible:['5006','10002'],matchedLots:['1','1'],basePrices:['50005','20013'],extraTickLots:['0','0']};
+    const applyJoint=(snapshot:AccountState,artifactSet:string)=>emit(snapshot,'FrozenJointReductionVerified',event,artifactSet);
+    expect(()=>applyJoint(structuredClone(state),sdk.LINKED_PAIR_ARTIFACT_SET)).toThrow('sole creditor');
+    const foreign=structuredClone(state);foreign.roots.flat.positions[1].virtualScaled='1';
+    expect(()=>applyJoint(foreign,sdk.LINKED_FLAT_ARTIFACT_SET)).toThrow('flat BTC creditor identity and face');
+    applyJoint(state,sdk.LINKED_FLAT_ARTIFACT_SET);
+    expect(source.joint?.charges).toEqual(['5','13']);
+  });
   it('reads the flow owner from frozen membership after registration gaps',async()=>{
     const state=fixture();emit(state,'SettlementPlanProgress',progress());
     const resolution=state.resolution!,id='9007199254740993';

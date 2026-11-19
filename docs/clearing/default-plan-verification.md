@@ -536,7 +536,7 @@ optimality there, applying both markets and releasing custody are separate gates
 
 ### Joint certificate for a single cross debtor
 
-The `linked-pair-qualification` clearing build accepts a bounded proof from the
+The original `0e027fc` linked clearing build accepts a bounded proof from the
 two-market frozen snapshot. The debtor must own all negative claims and all
 lots on its side in each market. Each winner must own all the positive claims
 and opposing lots in its market, and have zero claims and lots in the other.
@@ -574,4 +574,18 @@ The flat creditor is owed 4,996. The winning BTC and ETH positions are owed
 5,006 and 10,002. With insurance of 9 and 1, the ordinary payout credits the
 flat account with 4,994. Charging the open winners 5 and 13 pays it all 4,996
 and credits the BTC maker with 5,001, down from 5,003. ETH still receives
-9,989. That case provides an independent target for the next signed test.
+9,989. These are independently derived payout targets.
+
+The `30434d5` candidate admits the additional flat BTC creditor by checking
+the complete positive BTC total against the open winner plus one authenticated
+flat claim. The snapshot records the largest whole BTC claim observed on a
+fully flat account with zero ETH claim. A second positive remainder, foreign
+exposure, fractional creditor, split debtor inventory or incomplete coverage
+prevents this certificate. The claim belongs to its original member throughout
+ordinary settlement and withdrawal.
+
+The 288-byte valuation checkpoint keeps version one when the scan has no
+witness. Version two stores the whole amount at bytes 264–271, little-endian.
+A zero version-two witness, a nonzero version-one witness and nonzero reserved
+bytes fail decoding. The authenticated frozen pages, original winner accounts
+and gross/claim totals still bind each financial decision.

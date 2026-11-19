@@ -57,7 +57,7 @@ const abs=(value:bigint)=>value<0n?-value:value;
 
 /** Only event fields are authoritative here. Canonical PDAs and complete decoded
  * financial accounts are checked separately against finalized RPC bytes. */
-export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:4=4) {
+export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:4=4,artifactSet?:string) {
   accountCheck(profile===4&&!!state.liquidity,'explicit projection profile');
   const change=structuredClone(event.data);
   accountCheck(change.venue===venue,'event venue');
@@ -221,7 +221,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     case 'FrozenBtcReductionVerified':
     case 'FrozenPairVerified':
     case 'SettlementPlanProgress':
-    case 'SettlementMarginApplied':projectSettlement(state,event,root);break;
+    case 'SettlementMarginApplied':projectSettlement(state,event,root,artifactSet);break;
     case 'AccountResolutionFrozenV3': {
       delete state.pagedSettlement;
       const previous=state.resolution;
