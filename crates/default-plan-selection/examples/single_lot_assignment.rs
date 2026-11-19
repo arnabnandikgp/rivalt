@@ -49,17 +49,27 @@ fn main() {
         }
         return;
     }
-    let select = if population {
-        default_plan_selection::inventory_book::assign
-    } else {
-        assign
-    };
-    if let Some(pairs) = select(
-        &venue,
-        epoch.parse().unwrap(),
-        &members(debtors).unwrap(),
-        &members(winners).unwrap(),
-    ) {
+    let epoch = epoch.parse().unwrap();
+    let debtors = members(debtors).unwrap();
+    let winners = members(winners).unwrap();
+    if population {
+        use default_plan_selection::{inventory_book, inventory_choice};
+        let Some(proof) = inventory_book::propose(&venue, epoch, &debtors, &winners) else {
+            println!("unsupported");
+            return;
+        };
+        assert!(inventory_choice::verify(
+            &venue, epoch, &debtors, &winners, &proof
+        ));
+        for entry in proof {
+            println!(
+                "{} {} {}",
+                entry.pair.debtor, entry.pair.winner, entry.pair.charge
+            );
+        }
+        return;
+    }
+    if let Some(pairs) = assign(&venue, epoch, &debtors, &winners) {
         for pair in pairs {
             println!("{} {} {}", pair.debtor, pair.winner, pair.charge);
         }

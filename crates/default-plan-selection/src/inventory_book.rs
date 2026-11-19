@@ -34,12 +34,17 @@ struct Threshold {
     spare: usize,
 }
 
-pub fn assign(
+pub struct WitnessedPair {
+    pub pair: Assignment,
+    pub threshold: u64,
+}
+
+pub fn propose(
     venue: &[u8; 32],
     epoch: u64,
     debtors: &[MemberAmount],
     winners: &[MemberAmount],
-) -> Option<Vec<Assignment>> {
+) -> Option<Vec<WitnessedPair>> {
     let ordered = |members: &[MemberAmount]| {
         members
             .windows(2)
@@ -97,6 +102,7 @@ pub fn assign(
             debtor.amount >= charge
                 && limit.is_none_or(|threshold| debtor.amount < threshold.amount)
         })?;
+        let threshold = limit.map_or(0, |bound| bound.amount);
         let debtor = available.remove(index);
         for threshold in thresholds
             .iter_mut()
@@ -104,10 +110,13 @@ pub fn assign(
         {
             threshold.spare = threshold.spare.checked_sub(1)?;
         }
-        pairs.push(Assignment {
-            debtor: debtor.id,
-            winner: winner.id,
-            charge,
+        pairs.push(WitnessedPair {
+            threshold,
+            pair: Assignment {
+                debtor: debtor.id,
+                winner: winner.id,
+                charge,
+            },
         });
     }
     Some(pairs)

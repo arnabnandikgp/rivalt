@@ -4,6 +4,7 @@
 use core::cmp::Ordering;
 pub mod foreign_creditor;
 pub mod inventory_book;
+pub mod inventory_choice;
 pub mod mirror;
 pub mod proportional;
 pub mod single_lot;
