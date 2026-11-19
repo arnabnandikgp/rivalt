@@ -501,3 +501,23 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$shared_inventory_build" \
   RIVALT_SETTLEMENT_PROBE=profit-attribution-shared-inventory-apply \
   bash ops/scalable-settlement-smoke.sh
 ```
+
+For the scarce-inventory comparison, build the local clearing program at
+`2256c51` using `RIVALT_ATTRIBUTION_PROFILE=partial-inventory-qualification`.
+Its native helper uses the same pin. Run each probe in a fresh run directory.
+
+```bash
+bash ops/build-settlement-helper.sh partial-inventory-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$ordinary_attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-one-ordinary \
+  bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$partial_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-one-apply \
+  bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$partial_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-zero-apply \
+  bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$partial_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-floor-apply \
+  bash ops/scalable-settlement-smoke.sh
+```

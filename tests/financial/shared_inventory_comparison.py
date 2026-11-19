@@ -19,13 +19,15 @@ def compare(data):
     winners = [by_key[key] for key in data['winners']]
     partial = data.get('smallWinnerEntry') is not None
     entry = int(data['smallWinnerEntry']) if partial else None
+    zero_debtor = data.get('zeroDebtorBudget',False)
+    assert not (partial and zero_debtor)
     assert len(rows) == len(by_key) == (9 if partial else 8) and len(set(debtors + winners)) == 4
     marks = tuple(map(int, data['marks']))
     assert marks == (40_000, 30_000) and list(map(int, data['funding'])) == [0, 0]
     third = by_key[data['thirdTrader']] if partial else None
     flat = by_key[data['flatMaker']] if partial else None
     deposits = set(debtors) | ({third} if partial else set())
-    cash = [(20_000 if partial else 20_010) if i in deposits else int(data['makerDeposit']) for i in range(len(rows))]
+    cash = [(20_000 if partial else 20_013 if zero_debtor else 20_010) if i in deposits else int(data['makerDeposit']) for i in range(len(rows))]
     lots, entries, virtual = [0]*len(rows), [None]*len(rows), [0]*len(rows)
     trades = [(debtors[0],flat if partial else winners[0],1,60_002), (debtors[1],winners[1],1,60_006)]
     if partial:
@@ -60,11 +62,11 @@ def compare(data):
                  Exposure(marks[1],(0,)*len(rows),(None,)*len(rows),(0,)*len(rows)))
     identity = FrozenIdentity(bytes.fromhex(data['venueHex']),int(data['epoch']),tuple(int(row['id']) for row in rows))
     search = FrozenSearch(book,exposures,identity,bytes.fromhex(data['sourceDigest']))
-    assert search.size == (324 if not partial else 572 if entry==40_001 else 154)
+    assert search.size == (4 if zero_debtor else 324 if not partial else 572 if entry==40_001 else 154)
     # A mix of the two rightful debtor budgets can fit within a single winner's
     # gain but both paired fills would consume the same sole opposite lot.
     _, budgets, edges, _ = search.inputs[0]
-    expected_budgets = [2,5] if not partial else [10,12] if entry==40_001 else [10,13]
+    expected_budgets = [0,1] if zero_debtor else [2,5] if not partial else [10,12] if entry==40_001 else [10,13]
     assert [budgets[index] for index in debtors] == expected_budgets
 
     def ordinal(edge_charges):
@@ -82,7 +84,7 @@ def compare(data):
     best = select_joint(book,exposures,identity)
     pairs = best.markets[0].pairs
     charges = [next((p.charge for p in pairs if p.debtor==debtor),0) for debtor in debtors]
-    expected_charges = [2,5] if not partial else ([1,12] if entry==40_001 else [0,13])
+    expected_charges = [0,1] if zero_debtor else [2,5] if not partial else ([1,12] if entry==40_001 else [0,13])
     assert charges==expected_charges
     assert {(p.debtor,p.winner) for p in pairs}=={(d,w) for d,w,c in zip(debtors,winners,charges) if c}
     assert [best.markets[0].winner_charges[index] for index in winners]==charges
@@ -104,7 +106,9 @@ def compare(data):
     def credits(plan):
         return [plan.cash[index]-cash[index] for index in ([flat,*winners] if partial else winners)]
 
-    if not partial:
+    if zero_debtor:
+        assert credits(search.baseline)==[20_001,20_005] and credits(best.payout)==[20_002,20_004]
+    elif not partial:
         assert credits(search.baseline)==[19_998,20_002] and credits(best.payout)==[20_000,20_000]
     elif entry==40_001:
         assert credits(search.baseline)==[19_990,1,19_994] and credits(best.payout)==[19_996,0,19_989]

@@ -25,8 +25,10 @@ const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).tr
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
-const partialInventory=probe?.startsWith('profit-attribution-scarce-inventory-')??false;
-const partialApply=partialInventory && probe!.endsWith('-apply');
+const scarceProbe=probe?.startsWith('profit-attribution-scarce-inventory-')??false;
+const zeroDebtorBudget=probe==='profit-attribution-scarce-inventory-floor-apply';
+const partialInventory=scarceProbe && !zeroDebtorBudget;
+const partialApply=scarceProbe && probe!.endsWith('-apply');
 const smallWinnerEntry=partialInventory?(probe!.includes('-zero-')?40_000n:40_001n):undefined;
 const sharedApply=partialApply||probe==='profit-attribution-shared-inventory-apply';
 const sharedInventory=partialInventory||sharedApply||probe==='profit-attribution-shared-inventory';
@@ -47,7 +49,7 @@ let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
   const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked||foreignGate||foreignApply||sharedApply?'sponsored-profit':'profit-attribution',
-    shape:symmetricPayoutShape,traderCount:partialInventory?3:2, traderCash:partialInventory?20_000n:sharedInventory?20_010n:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
+    shape:symmetricPayoutShape,traderCount:partialInventory?3:2, traderCash:zeroDebtorBudget?20_013n:partialInventory?20_000n:sharedInventory?20_010n:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
   const {guard,route,root} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = foreignBook?[setup.roots[1],setup.roots[0]]:setup.roots;
   const makers = [setup.instances[partialInventory?1:0], setup.instances[sharedInventory?2:3]];
@@ -112,7 +114,7 @@ try {
   assert.equal(freezes[0].data.trigger,debtor);
   const history = events.slice(0,events.indexOf(freezes[0]));
   assert(!history.some(event=>event.type==='AccountFinancialChangedV3' && [2,3].includes(event.data.kind)));
-  const input = {flatCreditor,smallWinnerEntry,thirdTrader:partialInventory?setup.roots[2]:undefined,flatMaker:partialInventory?setup.instances[0].capital:undefined,secondBtcWinner:contested?secondMaker.capital:undefined,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
+  const input = {flatCreditor,smallWinnerEntry,zeroDebtorBudget,thirdTrader:partialInventory?setup.roots[2]:undefined,flatMaker:partialInventory?setup.instances[0].capital:undefined,secondBtcWinner:contested?secondMaker.capital:undefined,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
     insurance:frozen.insuranceBefore,fees:frozen.feesBefore,markets:setup.markets,rows,makerDeposit,debtor,otherTrader,
     winners:makers.map(maker=>maker.capital),venueHex:Buffer.from(getAddressEncoder().encode(setup.venue)).toString('hex'),
     sourceDigest:createHash('sha256').update(json([setup.venue,frozen,rows,freezes[0].signature])).digest('hex'),
@@ -444,7 +446,7 @@ try {
     assert.deepEqual([failed.status,failed.cursor,failed.recovered],[2,'8',['0','12']]);
     assert.equal(replay.state.resolution?.linkedAllocation?.status,1);
   }
-  const result={revision,rejectionChecked,profile:partialInventory?(partialApply?'verified scarce winning inventory':'ordinary scarce winning inventory'):sharedApply?'verified shared winner inventory':sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+  const result={revision,rejectionChecked,profile:zeroDebtorBudget?'verified zero debtor budget':partialInventory?(partialApply?'verified scarce winning inventory':'ordinary scarce winning inventory'):sharedApply?'verified shared winner inventory':sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
     inputs:input,traderWalletAfter:await traderWallet(),comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));

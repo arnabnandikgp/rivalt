@@ -725,6 +725,34 @@ authenticates both winning roots at their frozen revisions, verifies the per-lot
 unpaid gain and re-runs the assignment. The resulting receipt binds debtor,
 winner, charge and fill price for each distinct pair. The ordinary denominator,
 rates and application steps consume those adjusted claims after verification.
-A separate test artifact selects this behavior. Partial coverage and other
-distributions of positions require their own recovery proof.
+A separate test artifact selects this behavior.
 [Allocator](../../crates/default-plan-selection/src/single_lot.rs) · [Independent enumeration](../../tests/financial/check_shared_inventory.py).
+
+### When one of the two winning lots has little eligible gain
+
+The partial-inventory build admits flat BTC creditors alongside the four open
+positions. Both original debtor faces must still account for every negative BTC
+claim. The gross exposure must still be exactly four BTC lots and zero ETH lots,
+and both aggregate ETH claim totals must be zero. A winning lot can have zero
+eligible gain. The verifier authenticates its original history even in that case.
+
+For a pairing of debtor D and winner W, its largest admissible charge is
+`min(D's original whole-atom budget, W's surviving eligible gain)`. Each pair
+uses a different debtor and winner. With no foreign obligations, each additional
+admissible atom cancels one atom of original uncovered debt and its matching
+unpaid gain. Giving either pair less cannot improve total recovery. Every possible
+set of disjoint fills is contained in one of the two complete pairings, so clearing
+can compare their maxima without looping over atom amounts.
+
+At equal total recovery, let q₀ and q₁ be the winning charges and c₀ and c₁
+the capacities in stable winner order. Minimizing `abs(q₀ × c₁ − q₁ × c₀)`
+implements the proportional-deviation objective for two winners. Each product
+fits in u128. If one capacity is zero, charges all fall on the eligible winner.
+Next prefer fewer positive fills, then compare the winner and pair charges in
+frozen-episode order. A zero charge has zero fill price and consumes no lot.
+Two empty assignments yield the same economic outcome.
+
+The local program stores the chosen terms under the eight-byte `RVLOTS02`
+receipt marker. It preserves original cash and the insurance budget through
+the same whole-cohort reconciliation. [Exact two-lot comparison](../../crates/default-plan-selection/src/two_debtors.rs)
+and [independent enumeration](../../tests/financial/check_partial_inventory.py).

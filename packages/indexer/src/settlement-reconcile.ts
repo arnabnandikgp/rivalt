@@ -64,7 +64,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
           assert.deepEqual(JSON.parse(json(linked[key])),projection[key],key);
       } else assert(!projection||projection.status===2&&BigInt(projection.attempt)<linked.attempt,'Invalid restarted linked scan');
     } else if(projection)assert.equal(projection.status,2,'Lost linked scan');
-    const shared=sdk.sharedInventoryReceipt(value);
+    const shared=sdk.sharedInventoryReceipt(value,binding.artifactSet);
     if(shared || resolution.sharedInventory) {
       assert(sdk.isSharedInventoryArtifact(binding.artifactSet) && shared && resolution.sharedInventory,'Missing shared inventory receipt or event');
       assert.deepEqual(JSON.parse(json(shared)),resolution.sharedInventory,'shared inventory terms');

@@ -1,4 +1,5 @@
 import type {PreparedSettlement} from './generated/index.js';
+import {PARTIAL_INVENTORY_ARTIFACT_SET,SHARED_INVENTORY_ARTIFACT_SET} from './account-deployment.js';
 import {requireValue} from './wallet-client.js';
 
 export function frozenPairReceipt(prepared:PreparedSettlement) {
@@ -60,10 +61,13 @@ export function foreignCreditorReceipt(prepared: PreparedSettlement) {
   return {members, legs};
 }
 
-export function sharedInventoryReceipt(prepared:PreparedSettlement) {
+type InventoryHeader=Pick<PreparedSettlement,'epoch'|'stage'> & {state:Pick<PreparedSettlement['state'],'membership'>};
+export function sharedInventoryReceipt(prepared:InventoryHeader,artifactSet?:string) {
   const bytes=Uint8Array.from(prepared.state.membership);
   const marker=new TextDecoder().decode(bytes.subarray(0,8));
   if(marker!=='RVLOTS01' && marker!=='RVLOTS02')return null;
+  if(artifactSet!==undefined)requireValue(artifactSet===(marker==='RVLOTS01'?SHARED_INVENTORY_ARTIFACT_SET:PARTIAL_INVENTORY_ARTIFACT_SET),
+    'Shared inventory receipt belongs to another deployment.');
   const view=new DataView(bytes.buffer),word=(index:number)=>view.getBigUint64(8+8*index,true);
   const members=[word(1),word(2),word(3),word(4)],charges=[word(5),word(6)];
   const eligible=[word(7),word(8)],prices=[word(9),word(10)];
