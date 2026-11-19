@@ -366,3 +366,20 @@ Here `allocation_build` is the absolute path produced by
 at the pinned revision. Qualification deploys both fresh 1,220-byte frozen
 pages and the artifact-bound worker. Previously deployed recovery pages use
 their original layout.
+
+### Reproduce the linked default comparison
+
+Use the attribution build at `33361d9` and the BTC allocation build at
+`9e2cc00` described above. From the harness checkout, run each profile on
+its own fresh local validator and PostgreSQL database. The launcher selects
+a new evidence directory for each invocation.
+
+```bash
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-linked bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$allocation_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-btc-allocation-linked bash ops/scalable-settlement-smoke.sh
+```
+
+Each run writes `linked-default.json` with the frozen inputs, financial
+comparison, worker signatures, wallet and vault balances.

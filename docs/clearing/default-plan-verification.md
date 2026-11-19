@@ -488,9 +488,11 @@ fund all floors together fails. The two positive ETH claims in one fixture
 receive 1 and 6 before and after a BTC reduction. Ordinary rounding alone
 would have given them 2 and 5.
 
-The native caller must bind corresponding ordinals to the same frozen member
-and supply already admitted charges. Authenticating both on-chain, proving
-selection and completing signed linked-market payouts remain open.
+The [two-market freeze comparison](../operations/validation.md#signed-two-market-default-comparison)
+now binds each native input to the same original clearing member and checks
+its claims independently against the two signed trades. The ordinary program
+paid out both makers. Proving the adjusted book on-chain and applying the
+selected joint charges through custody remain open.
 
 ### When the two markets trade places
 

@@ -1,5 +1,30 @@
 # Validation and measured limits
 
+## Signed two-market default comparison
+
+At `7c299ca`, two fresh eight-account local deployments opened one BTC lot and
+one ETH lot against distinct isolated makers. The same cross debtor paid 13
+and 7 atoms in taker fees. At the freeze its 19,992 cash backed debts of
+10,002 per market. An independent replay of the finalized fills reproduced
+the clearing roots, entries, paid gains and both market ledgers. Debtor cash
+covered 9,996 per market. Insurance supplied 3 BTC-market atoms and 1 ETH-market
+atom. The complete successor model searched 24 assignments and selected charges
+of 3 and 5, at prices 50,003 and 20,005. The native protected settlement kernel
+matched both the model's ordinary and adjusted payouts.
+
+| Signed clearing profile | Observed outcome | Harness outcomes / worker originals / replayed SQL events |
+|---|---|---:|
+| Ordinary attribution, SBF `33361d9` | The two makers withdrew 9,999 and 9,997 atoms from their distinct capital accounts to their operator's SPL wallet. Each transaction consumed 32,673 CU. | 262 / 14 / 104 |
+| BTC allocation, SBF `9e2cc00` | Omitting ETH and skipping directly to denominator verification each failed with clearing error 6130. The original page, roots, resolution, vault and wallet were preserved. | 262 / 41 / 75 |
+
+Each worker reopened its finalized original from PostgreSQL after a restart.
+Every worker original matched its finalized RPC wire and WS receipt. Fresh SQL
+replay reproduced the indexed financial events and state. The ordinary path
+and the model pay the same cash in this book because each market has only one
+creditor. The 3/5 schedule was evaluated off-chain. A clearing instruction
+that proves and applies both reductions is still required for successor custody.
+[Reproduction](local-development.md#reproduce-the-linked-default-comparison).
+
 ## Native linked-market recovery
 
 At `56e276b`, the compiled settlement kernel preserved the approved 60 BTC / 30
@@ -48,6 +73,8 @@ per episode. Its authority ends at recording the winning candidate. These CU
 counts exclude solving for feasible plans and moving collateral. From a clean
 checkout with the local toolchain, rerun with
 `RIVALT_PROOF_SCOPE=mirror bash ops/default-proof-smoke.sh`.
+After the executable moved to `tests/programs`, a fresh build and local
+deployment at `9614313` repeated all 34 outcomes and both CU measurements.
 
 ## Multi-winner BTC recovery
 
