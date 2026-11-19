@@ -45,7 +45,20 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
             .and_then(|scan| scan.result()),
     )?;
     #[cfg(feature="single-pair-default-qualification")]
-    let totals=arithmetic(totals.after_single_btc_charge(super::single_pair::verified_charge(header)?))?;
+    let totals = {
+        #[cfg(feature="linked-pair-qualification")]
+        let linked = super::linked_pair::Joint::read(header)?;
+        #[cfg(feature="linked-pair-qualification")]
+        if let Some(joint) = linked {
+            require!(header.stage == PROPOSAL, ClearingError::Resolution);
+            arithmetic(totals.after_market_charge(0, joint.legs[0].charge)
+                .and_then(|btc| btc.after_market_charge(1, joint.legs[1].charge)))?
+        } else {
+            arithmetic(totals.after_single_btc_charge(super::single_pair::verified_charge(header)?))?
+        }
+        #[cfg(not(feature="linked-pair-qualification"))]
+        { arithmetic(totals.after_single_btc_charge(super::single_pair::verified_charge(header)?))? }
+    };
     Ok(RateInput {
         count: header.count,
         common: Magnitude { register, used },
@@ -332,17 +345,12 @@ pub fn accept_rate_row(
         ClearingError::Resolution
     );
     let frozen = &accounts.page.rows[(ordinal % 8) as usize];
-    if work
-        .accept(
-            ordinal,
-            frozen.id,
-            Row {
-                cash: frozen.cash,
-                claims: super::single_pair::economic_claims(&accounts.prepared,frozen)?,
-            },
-        )
-        .is_err()
-    {
+    let effective = Row { cash: frozen.cash, claims: super::single_pair::economic_claims(&accounts.prepared,frozen)? };
+    #[cfg(feature="linked-pair-qualification")]
+    let accepted = work.accept_reduction(ordinal, frozen.id, Row { cash: frozen.cash, claims: frozen.claims }, effective);
+    #[cfg(not(feature="linked-pair-qualification"))]
+    let accepted = work.accept(ordinal, frozen.id, effective);
+    if accepted.is_err() {
         accounts.rates.stage = REJECTED_RATE;
         return Ok(());
     }

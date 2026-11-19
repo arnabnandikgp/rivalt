@@ -21,9 +21,16 @@ pub struct PairClose {
 impl SnapshotTotals {
     /// The certified transfer reduces the one debtor's obligation and the one
     /// winner's receivable by exactly the same amount. Gross funding is unchanged.
-    pub fn after_single_btc_charge(mut self, charge: u64) -> Result<Self> {
+    pub fn after_single_btc_charge(self, charge: u64) -> Result<Self> {
+        self.after_market_charge(0, charge)
+    }
+
+    pub fn after_market_charge(mut self, market: usize, charge: u64) -> Result<Self> {
+        if market >= 2 {
+            return Err(Error::Bounds);
+        }
         let scaled = u128::from(charge) * SCALE as u128;
-        for total in [&mut self.positive[0], &mut self.negative[0]] {
+        for total in [&mut self.positive[market], &mut self.negative[market]] {
             let [low, high, top] = total.words();
             if top != 0 {
                 return Err(Error::Bounds);

@@ -94,6 +94,9 @@ pub fn accept_denominator_row(
     let frozen = &accounts.page.rows[(ordinal % 8) as usize];
     let row = Row {
         cash: frozen.cash,
+        #[cfg(feature="linked-pair-qualification")]
+        claims: frozen.claims,
+        #[cfg(not(feature="linked-pair-qualification"))]
         claims: super::single_pair::economic_claims(&accounts.prepared,frozen)?,
     };
     work.accept(ordinal, frozen.id, &row)

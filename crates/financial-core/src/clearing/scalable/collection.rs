@@ -66,3 +66,72 @@ impl ReducedCollection {
         })
     }
 }
+
+/// Validate one authenticated original/effective row pair before using the
+/// original debt proportions. The caller proves cohort identity and selection.
+pub fn validate_reduction(before: &Row, after: &Row) -> Result<()> {
+    after.validate()?;
+    if before.cash != after.cash {
+        return Err(Error::Cohort);
+    }
+    let allocation = ReducedCollection::for_row(before)?;
+    for market in 0..2 {
+        let from = before.claims[market];
+        let to = after.claims[market];
+        if (to != 0 && from.signum() != to.signum())
+            || to.unsigned_abs() > from.unsigned_abs()
+            || from.abs_diff(to) % SCALE as u128 != 0
+        {
+            return Err(Error::Cohort);
+        }
+        // Compare exact rationals before any whole-atom division. An
+        // account cannot erase debt already assigned its funded cash.
+        let face =
+            crate::clearing::wide::product_small(to.min(0).unsigned_abs(), allocation.denominator)?;
+        if allocation.numerators[market]
+            .iter()
+            .rev()
+            .cmp(face.iter().rev())
+            .is_gt()
+        {
+            return Err(Error::Cohort);
+        }
+    }
+    Ok(())
+}
+
+/// Old work uses version one with an empty tail. Only a changed row needs
+/// version two, which binds both original claim numerators through a restart.
+pub(super) fn encode_basis(effective: Row, original: Row, tail: &mut [u8]) -> u8 {
+    if effective == original {
+        return 1;
+    }
+    for (target, claim) in tail.chunks_exact_mut(16).zip(original.claims) {
+        target.copy_from_slice(&claim.to_le_bytes());
+    }
+    2
+}
+
+pub(super) fn decode_basis(version: u8, effective: Row, tail: &[u8]) -> Result<Row> {
+    if tail.len() != 32 {
+        return Err(Error::Bounds);
+    }
+    match version {
+        1 if tail.iter().all(|byte| *byte == 0) => Ok(effective),
+        2 => {
+            let original = Row {
+                cash: effective.cash,
+                claims: [
+                    i128::from_le_bytes(tail[..16].try_into().unwrap()),
+                    i128::from_le_bytes(tail[16..].try_into().unwrap()),
+                ],
+            };
+            if original == effective {
+                return Err(Error::Bounds);
+            }
+            validate_reduction(&original, &effective)?;
+            Ok(original)
+        }
+        _ => Err(Error::Bounds),
+    }
+}

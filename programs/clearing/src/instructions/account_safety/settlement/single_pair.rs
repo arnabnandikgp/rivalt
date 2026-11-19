@@ -32,6 +32,11 @@ pub(super) fn economic_claims(
 ) -> Result<[i128; 2]> {
     #[cfg(feature = "single-pair-default-qualification")]
     {
+        #[cfg(feature="linked-pair-qualification")]
+        if let Some(joint) = super::linked_pair::Joint::read(header)? {
+            require!(matches!(header.stage, DENOMINATOR | PROPOSAL), ClearingError::Resolution);
+            return joint.claims(frozen);
+        }
         #[cfg(feature="btc-allocation-qualification")]
         if let Some(plan) = super::btc_allocation::committed(header)? {
             let delta = if frozen.id == plan.debtor { i128::from(plan.recovered) } else { -i128::from(frozen.btc_charge) };
@@ -89,7 +94,7 @@ pub fn verify(
     let prepared = &mut accounts.prepared;
     accounts.source.frozen().matches(prepared)?;
     require!(
-        prepared.stage == AWAIT_PAIR
+        (prepared.stage == AWAIT_PAIR || (cfg!(feature = "linked-pair-qualification") && prepared.stage == 6))
             && prepared.epoch == epoch
             && prepared.revision == revision
             && debtor_ordinal != winner_ordinal
@@ -110,6 +115,11 @@ pub fn verify(
     );
     plan::original_margin(prepared, &debtor, &accounts.debtor)?;
     plan::original_margin(prepared, &winner, &accounts.winner)?;
+    #[cfg(feature="linked-pair-qualification")]
+    if prepared.gross[1] > 0 {
+        return super::linked_pair::verify(prepared, debtor, winner, &accounts.winner, events,
+            accounts.event_authority.account().clone());
+    }
     let mark = prepared.prices[0];
     let side = |row: &FrozenMargin| FrozenSide {
         lots: row.lots[0],

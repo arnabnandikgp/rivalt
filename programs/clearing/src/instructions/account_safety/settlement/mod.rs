@@ -12,6 +12,8 @@ use financial_core::clearing::{
     },
 };
 
+#[cfg(feature = "linked-pair-qualification")]
+pub mod linked_pair;
 pub mod single_pair;
 pub mod btc_allocation;
 mod contexts;

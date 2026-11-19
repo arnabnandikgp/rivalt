@@ -102,15 +102,8 @@ fn hex(store: &Store, value: Magnitude) -> String {
         .map(|word| format!("{word:016x}"))
         .collect()
 }
-fn execute(text: &str) -> Result<String> {
-    let fields: Vec<_> = text.split('|').collect();
-    if !["rates", "flows", "orders"].contains(&fields[0])
-        || fields.len() != if fields[0] == "orders" { 8 } else { 7 }
-    {
-        return Err(Error::Bounds);
-    }
-    let rows = fields[1]
-        .split(';')
+fn parse_rows(text: &str) -> Result<Vec<Row>> {
+    text.split(';')
         .map(|text| {
             let row: Vec<_> = text.split(',').collect();
             if row.len() != 3 {
@@ -121,7 +114,31 @@ fn execute(text: &str) -> Result<String> {
                 claims: [decimal(row[1])?, decimal(row[2])?],
             })
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect()
+}
+
+fn execute(text: &str) -> Result<String> {
+    let fields: Vec<_> = text.split('|').collect();
+    if !["rates", "flows", "orders", "reduced-flows"].contains(&fields[0])
+        || fields.len()
+            != if matches!(fields[0], "orders" | "reduced-flows") {
+                8
+            } else {
+                7
+            }
+    {
+        return Err(Error::Bounds);
+    }
+    let rows = parse_rows(fields[1])?;
+    let original = if fields[0] == "reduced-flows" {
+        let original = parse_rows(fields[7])?;
+        if original.len() != rows.len() {
+            return Err(Error::Cohort);
+        }
+        Some(original)
+    } else {
+        None
+    };
     let capacity = required_limbs(rows.len() as u64)?;
     let pools = pair(fields[2])?;
     let budgets = pair(fields[3])?;
@@ -169,7 +186,7 @@ fn execute(text: &str) -> Result<String> {
     let mut store = Store {
         words: vec![
             vec![u64::MAX; capacity as usize];
-            if fields[0] == "flows" {
+            if matches!(fields[0], "flows" | "reduced-flows") {
                 41
             } else if fields[0] == "orders" {
                 46
@@ -228,7 +245,11 @@ fn execute(text: &str) -> Result<String> {
             if ordinal as usize != next {
                 return Err(Error::Invariant);
             }
-            work.accept(ordinal, ordinal * 2, rows[next])?;
+            if let Some(before) = original.as_ref() {
+                work.accept_reduction(ordinal, ordinal * 2, before[next], rows[next])?;
+            } else {
+                work.accept(ordinal, ordinal * 2, rows[next])?;
+            }
             next += 1;
         } else {
             for _ in 0..budget {
@@ -306,11 +327,16 @@ fn execute(text: &str) -> Result<String> {
         }
         return Ok(format!("orders|{steps}"));
     }
-    if fields[0] == "flows" {
+    if matches!(fields[0], "flows" | "reduced-flows") {
         let binding = work.verified_values()?;
         let mut outcomes = Vec::new();
         for (ordinal, row) in rows.iter().enumerate() {
-            let mut flow = FlowWork::new(binding, ordinal as u64, ordinal as u64 * 2, *row)?;
+            let member = ordinal as u64 * 2;
+            let mut flow = if let Some(before) = original.as_ref() {
+                FlowWork::new_reduction(binding, ordinal as u64, member, before[ordinal], *row)?
+            } else {
+                FlowWork::new(binding, ordinal as u64, member, *row)?
+            };
             if flow.result().is_ok() {
                 return Err(Error::Invariant);
             }

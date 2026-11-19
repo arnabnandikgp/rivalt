@@ -109,13 +109,20 @@ pub fn clear_resolved(root: &mut BorshAccount<MarginAccount>) -> Result<()> {
 
 #[cfg(feature="single-pair-default-qualification")]
 pub(crate) fn frozen_btc_history(root:&BorshAccount<MarginAccount>) -> Result<Attribution> {
+    frozen_history(root, 0)
+}
+
+#[cfg(feature="single-pair-default-qualification")]
+pub(crate) fn frozen_history(root:&BorshAccount<MarginAccount>, market:usize) -> Result<Attribution> {
+    require!(market < 2, ClearingError::Resolution);
     let account=root.account();
     require!(valid_margin_size(account.data_len()),ClearingError::Profile);
     let data=account.try_borrow()?;
     let bytes=&data[MARGIN_PREFIX..];
     require!(bytes.starts_with(MAGIC),ClearingError::Profile);
     let width=(slots_end(bytes)-8)/2;
-    Attribution::read(&bytes[8..8+width],root.positions[0].lots)
+    let start=8+width*market;
+    Attribution::read(&bytes[start..start+width],root.positions[market].lots)
         .map_err(|_| ClearingError::Resolution.into())
 }
 

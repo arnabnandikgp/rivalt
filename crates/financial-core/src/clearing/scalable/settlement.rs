@@ -304,35 +304,7 @@ pub fn verify_reduced_claims<'a>(
     }
     totals(original, pools, insurance, fees, arithmetic)?;
     for (before, after) in original.iter().zip(effective) {
-        after.validate()?;
-        if before.cash != after.cash {
-            return Err(Error::Cohort);
-        }
-        let allocation = ReducedCollection::for_row(before)?;
-        for market in 0..2 {
-            let from = before.claims[market];
-            let to = after.claims[market];
-            if (to != 0 && from.signum() != to.signum())
-                || to.unsigned_abs() > from.unsigned_abs()
-                || from.abs_diff(to) % SCALE as u128 != 0
-            {
-                return Err(Error::Cohort);
-            }
-            // Compare exact rationals before any whole-atom division. An
-            // account cannot erase debt already assigned its funded cash.
-            let face = crate::clearing::wide::product_small(
-                to.min(0).unsigned_abs(),
-                allocation.denominator,
-            )?;
-            if allocation.numerators[market]
-                .iter()
-                .rev()
-                .cmp(face.iter().rev())
-                .is_gt()
-            {
-                return Err(Error::Cohort);
-            }
-        }
+        super::collection::validate_reduction(before, after)?;
     }
     verify_bound_rows(
         effective, original, pools, insurance, fees, proposals, arithmetic,

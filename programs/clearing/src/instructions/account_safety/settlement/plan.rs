@@ -444,15 +444,12 @@ fn accept_row(
     let claims = super::single_pair::economic_claims(header,&frozen)?;
     match plan.stage {
         PLAN_FLOW_AWAIT => {
-            let work = exact(FlowWork::new(
-                values,
-                ordinal,
-                frozen.id,
-                Row {
-                    cash: frozen.cash,
-                    claims,
-                },
-            ))?;
+            let row = Row { cash: frozen.cash, claims };
+            #[cfg(feature="linked-pair-qualification")]
+            let work = exact(FlowWork::new_reduction(values, ordinal, frozen.id,
+                Row { cash: frozen.cash, claims: frozen.claims }, row))?;
+            #[cfg(not(feature="linked-pair-qualification"))]
+            let work = exact(FlowWork::new(values, ordinal, frozen.id, row))?;
             save(plan, &work.checkpoint());
             plan.stage = PLAN_FLOW_WORK;
         }

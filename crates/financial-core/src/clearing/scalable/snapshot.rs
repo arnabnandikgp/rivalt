@@ -3,6 +3,7 @@
 //! immutable freeze bindings. This arithmetic cannot authenticate an account.
 use crate::{clearing::row::Row, Error, Result, MAX_CASH, MAX_GROSS_LOTS, MAX_LOTS, SCALE};
 
+mod linked_pair;
 mod single_pair;
 pub use single_pair::{FrozenSide, PairClose};
 
