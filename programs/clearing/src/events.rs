@@ -788,3 +788,14 @@ pub struct InventoryBookVerified {
     pub capacities:Vec<[u64;2]>,
     pub pairs:Vec<[u64;4]>,
 }
+
+/// Frozen per-lot rates, pairable capacities and exact multi-lot fill schedules.
+#[event]
+pub struct MultiLotBookVerified {
+    pub venue: Address,
+    pub epoch: u64,
+    pub slot: u64,
+    pub total: u64,
+    pub capacities: Vec<[u64;4]>,
+    pub pairs: Vec<[u64;6]>,
+}

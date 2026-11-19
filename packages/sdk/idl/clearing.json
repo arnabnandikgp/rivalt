@@ -23597,6 +23597,19 @@
       ]
     },
     {
+      "name": "MultiLotBookVerified",
+      "discriminator": [
+        169,
+        89,
+        5,
+        88,
+        68,
+        151,
+        202,
+        85
+      ]
+    },
+    {
       "name": "RecoveryStorageRefunded",
       "discriminator": [
         103,
@@ -28126,6 +28139,55 @@
                 "u8",
                 544
               ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultiLotBookVerified",
+      "docs": [
+        "Frozen per-lot rates, pairable capacities and exact multi-lot fill schedules."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "capacities",
+            "type": {
+              "vec": {
+                "array": [
+                  "u64",
+                  4
+                ]
+              }
+            }
+          },
+          {
+            "name": "pairs",
+            "type": {
+              "vec": {
+                "array": [
+                  "u64",
+                  6
+                ]
+              }
             }
           }
         ]

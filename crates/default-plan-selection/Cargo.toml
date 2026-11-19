@@ -5,7 +5,8 @@ edition = "2021"
 publish = false
 
 [features]
-native-search = ["dep:clearing-accounting", "dep:num-bigint", "dep:num-integer", "dep:num-traits"]
+compact-book = ["dep:clearing-accounting"]
+native-search = ["compact-book", "dep:num-bigint", "dep:num-integer", "dep:num-traits"]
 
 [dependencies]
 clearing-accounting = { path = "../clearing-accounting", features = ["surviving-profit"], optional = true }

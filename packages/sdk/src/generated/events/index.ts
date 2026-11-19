@@ -41,6 +41,7 @@ export * from "./liquidityMakerChanged.js";
 export * from "./liquidityRegistryChanged.js";
 export * from "./liquidityRouteExecuted.js";
 export * from "./marginMembershipChanged.js";
+export * from "./multiLotBookVerified.js";
 export * from "./recoveryStorageRefunded.js";
 export * from "./retiredReserveWithdrawn.js";
 export * from "./settlementMarginApplied.js";

@@ -1,4 +1,7 @@
 use super::*;
+#[path = "lot_rate.rs"]
+mod lot_rate;
+pub use lot_rate::LotRate;
 
 // Whole lots, with a concession of base_ticks on every matched lot and one
 // extra tick on the first extra_tick_lots. Zero charge has an empty schedule.

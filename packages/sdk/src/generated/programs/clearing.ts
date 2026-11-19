@@ -869,6 +869,7 @@ export enum ClearingEvent {
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
   MarginMembershipChanged,
+  MultiLotBookVerified,
   RecoveryStorageRefunded,
   RetiredReserveWithdrawn,
   SettlementMarginApplied,
@@ -1264,6 +1265,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.MarginMembershipChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([169, 89, 5, 88, 68, 151, 202, 85]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MultiLotBookVerified;
   }
   if (
     containsBytes(

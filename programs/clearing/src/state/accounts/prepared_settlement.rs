@@ -63,6 +63,8 @@ pub struct FrozenMargin {
     pub linked_charges: [u64; 2],
     #[cfg(feature = "book-inventory-qualification")]
     pub book_capacity:u64,
+    #[cfg(feature = "multi-lot-book-qualification")]
+    pub lot_rate:[u64;2],
     #[cfg(feature = "book-inventory-qualification")]
     pub book_charge:u64,
 }

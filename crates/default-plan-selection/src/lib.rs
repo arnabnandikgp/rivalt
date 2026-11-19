@@ -2,6 +2,8 @@
 //! Member IDs 0 and 1 are debtors, 2..=7 are winners and 8 is the flat creditor.
 #![no_std]
 use core::cmp::Ordering;
+#[cfg(feature = "compact-book")]
+pub mod compact_book;
 pub mod foreign_creditor;
 pub mod inventory_book;
 pub mod inventory_choice;

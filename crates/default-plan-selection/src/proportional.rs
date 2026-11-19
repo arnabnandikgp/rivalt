@@ -56,24 +56,32 @@ impl Marginal {
     }
 
     pub fn compare(&self, other: &Self) -> Ordering {
-        // Each numerator can require 65 bits. Remove the integral part first:
-        // each remainder fits in 64 bits, so its cross product fits in 128.
-        let parts = |value: &Self| {
-            let numerator = 2 * u128::from(value.unit) - 1;
-            let capacity = u128::from(value.capacity);
-            (numerator / capacity, numerator % capacity)
-        };
-        let (left, left_rem) = parts(self);
-        let (right, right_rem) = parts(other);
-        left.cmp(&right)
-            .then_with(|| {
-                (left_rem * u128::from(other.capacity))
-                    .cmp(&(right_rem * u128::from(self.capacity)))
-            })
+        compare_unit_cost(self.unit, self.capacity, other.unit, other.capacity)
             .then(self.extra_lots.cmp(&other.extra_lots))
             .then(self.member.digest.cmp(&other.member.digest))
             .then(self.member.id.cmp(&other.member.id))
     }
+}
+
+/// Compare (2k−1)/c with full u64 inputs, including a 65-bit numerator.
+pub(crate) fn compare_unit_cost(
+    unit: u64,
+    capacity: u64,
+    other_unit: u64,
+    other_capacity: u64,
+) -> Ordering {
+    let parts = |unit: u64, capacity: u64| {
+        let numerator = 2 * u128::from(unit) - 1;
+        (
+            numerator / u128::from(capacity),
+            numerator % u128::from(capacity),
+        )
+    };
+    let (whole, rem) = parts(unit, capacity);
+    let (other_whole, other_rem) = parts(other_unit, other_capacity);
+    whole
+        .cmp(&other_whole)
+        .then_with(|| (rem * u128::from(other_capacity)).cmp(&(other_rem * u128::from(capacity))))
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

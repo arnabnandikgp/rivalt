@@ -44,6 +44,8 @@ struct Edge {
 }
 
 pub struct Book {
+    venue: [u8; 32],
+    epoch: u64,
     binding: [u8; 32],
     debtors: Vec<Debtor>,
     winners: Vec<Winner>,
@@ -185,6 +187,8 @@ impl Book {
         }
         Ok(Self {
             binding: binding.result().to_bytes(),
+            venue: *venue,
+            epoch,
             debtors,
             winners,
             edges,

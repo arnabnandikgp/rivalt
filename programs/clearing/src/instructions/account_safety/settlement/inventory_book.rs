@@ -21,6 +21,11 @@ mod qualified {
     use super::*;
     use default_plan_selection::{inventory_book::propose, single_lot::MemberAmount};
     const MARKER: &[u8; 8] = b"RVBOOK01";
+    #[cfg(feature = "multi-lot-book-qualification")]
+    mod multi_lot {
+        use super::*;
+        include!("inventory_multi_lot.rs");
+    }
     const PAGE_PREFIX: usize = 8 + 2 + 8 + 32 + 8 + 8 + 1;
     const SCALE: i128 = financial_core::SCALE;
 
@@ -34,7 +39,11 @@ mod qualified {
     impl Receipt {
         pub fn read(header: &PreparedSettlement) -> Result<Option<Self>> {
             let bytes = &header.state.membership;
-            if !bytes.starts_with(MARKER) {
+            #[cfg(feature = "multi-lot-book-qualification")]
+            let admitted = bytes.starts_with(MARKER) || bytes.starts_with(multi_lot::MARKER);
+            #[cfg(not(feature = "multi-lot-book-qualification"))]
+            let admitted = bytes.starts_with(MARKER);
+            if !admitted {
                 return Ok(None);
             }
             let value = crate::wire::read::<Self>(&bytes[8..64])?;
@@ -52,6 +61,8 @@ mod qualified {
         face: i128,
         cash: u64,
         capacity: u64,
+        #[cfg(feature = "multi-lot-book-qualification")]
+        rate: [u64; 2],
         charge: u64,
     }
 
@@ -91,7 +102,9 @@ mod qualified {
     ) -> Result<Vec<Position>> {
         require!(
             !ordinals.is_empty()
-                && header.gross == [ordinals.len() as u64, 0]
+                && header.gross[1] == 0
+                && (cfg!(feature = "multi-lot-book-qualification")
+                    || header.gross[0] == ordinals.len() as u64)
                 && header.pools == [0, 0]
                 && ordinals.windows(2).all(|pair| pair[0] < pair[1])
                 && *ordinals.last().unwrap() < header.count,
@@ -117,7 +130,9 @@ mod qualified {
                     &bytes[start..start + FrozenMargin::INIT_SPACE],
                 )?;
                 require!(
-                    row.lots[0].unsigned_abs() == 1
+                    (row.lots[0].unsigned_abs() == 1
+                        || (cfg!(feature = "multi-lot-book-qualification")
+                            && (row.lots[0] != 0 || row.claims[0] < 0)))
                         && row.lots[1] == 0
                         && row.claims[1] == 0
                         && row.claims[0] % SCALE == 0
@@ -131,6 +146,8 @@ mod qualified {
                     face: row.claims[0] / SCALE,
                     cash: row.cash,
                     capacity: row.book_capacity,
+                    #[cfg(feature = "multi-lot-book-qualification")]
+                    rate: row.lot_rate,
                     charge: 0,
                 });
                 cursor += 1;
@@ -140,7 +157,41 @@ mod qualified {
             cursor == ordinals.len() && positions.windows(2).all(|pair| pair[0].id < pair[1].id),
             ClearingError::Resolution
         );
+        let gross = positions
+            .iter()
+            .try_fold(0u64, |sum, row| sum.checked_add(row.lots.unsigned_abs()))
+            .ok_or(ClearingError::Arithmetic)?;
+        require!(gross == header.gross[0], ClearingError::Resolution);
         Ok(positions)
+    }
+
+    fn verify_totals(header: &PreparedSettlement, debt: u128) -> Result<()> {
+        let scaled = debt
+            .checked_mul(SCALE as u128)
+            .ok_or(ClearingError::Arithmetic)?;
+        let words = [scaled as u64, (scaled >> 64) as u64, 0];
+        let totals =
+            SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(header))
+                .and_then(|scan| scan.result())
+                .map_err(|_| ClearingError::Resolution)?;
+        require!(
+            totals.negative[0].words() == words
+                && totals.positive[0].words() == words
+                && totals.negative[1].words() == [0; 3]
+                && totals.positive[1].words() == [0; 3],
+            ClearingError::Resolution
+        );
+        Ok(())
+    }
+
+    fn post_insurance(uncovered: u64, total: u128, insurance: u64) -> Result<u64> {
+        if total <= u128::from(insurance) {
+            return Ok(0);
+        }
+        let covered = (u128::from(uncovered) * u128::from(insurance)).div_ceil(total);
+        uncovered
+            .checked_sub(u64::try_from(covered).map_err(|_| ClearingError::Arithmetic)?)
+            .ok_or(ClearingError::Arithmetic.into())
     }
 
     #[inline(never)]
@@ -187,34 +238,9 @@ mod qualified {
                 });
             }
         }
-        let scaled = debt
-            .checked_mul(SCALE as u128)
-            .ok_or(ClearingError::Arithmetic)?;
-        let words = [scaled as u64, (scaled >> 64) as u64, 0];
-        let totals =
-            SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(header))
-                .and_then(|scan| scan.result())
-                .map_err(|_| ClearingError::Resolution)?;
-        require!(
-            totals.negative[0].words() == words
-                && totals.positive[0].words() == words
-                && totals.negative[1].words() == [0; 3]
-                && totals.positive[1].words() == [0; 3],
-            ClearingError::Resolution
-        );
+        verify_totals(header, debt)?;
         for debtor in &mut debtors {
-            // floor(loss * (total - insurance) / total), without multiplying
-            // a u64 loss by a potentially wider aggregate loss.
-            debtor.atoms = if losses <= u128::from(header.insurance[0]) {
-                0
-            } else {
-                let covered =
-                    (u128::from(debtor.atoms) * u128::from(header.insurance[0])).div_ceil(losses);
-                debtor
-                    .atoms
-                    .checked_sub(covered as u64)
-                    .ok_or(ClearingError::Arithmetic)?
-            };
+            debtor.atoms = post_insurance(debtor.atoms, losses, header.insurance[0])?;
         }
         let plan = propose(&header.venue.to_bytes(), header.epoch, &debtors, &winners)
             .ok_or(ClearingError::Resolution)?;
@@ -272,6 +298,21 @@ mod qualified {
             ClearingError::Resolution
         );
         let mut positions = collect(header, &pages, &ordinals)?;
+        #[cfg(feature = "multi-lot-book-qualification")]
+        if positions
+            .iter()
+            .any(|position| position.lots.unsigned_abs() != 1)
+        {
+            let event = multi_lot::certify(header, &mut positions)?;
+            let receipt = Receipt {
+                epoch,
+                total: event.total,
+                pair_count: event.pairs.len() as u64,
+                digest: multi_lot::digest(&event),
+            };
+            persist(header, &mut pages, &positions, multi_lot::MARKER, &receipt)?;
+            return events.emit(&event, accounts.event_authority.account().clone());
+        }
         let event = certify(header, &mut positions)?;
         let mut digest = solana_sha256_hasher::hashv(&[
             b"Rivalt/inventory-book/v1",
@@ -298,6 +339,24 @@ mod qualified {
             ])
             .to_bytes();
         }
+        let receipt = Receipt {
+            epoch,
+            total: event.total,
+            pair_count: event.pairs.len() as u64,
+            digest,
+        };
+        persist(header, &mut pages, &positions, MARKER, &receipt)?;
+        events.emit(&event, accounts.event_authority.account().clone())
+    }
+
+    #[inline(never)]
+    fn persist(
+        header: &mut PreparedSettlement,
+        pages: &mut [AccountView],
+        positions: &[Position],
+        marker: &[u8; 8],
+        receipt: &Receipt,
+    ) -> Result<()> {
         let mut rows = positions.iter().peekable();
         for page in pages.iter_mut() {
             let mut bytes = page.try_borrow_mut()?;
@@ -309,17 +368,11 @@ mod qualified {
             }
         }
         require!(rows.next().is_none(), ClearingError::Resolution);
-        let receipt = Receipt {
-            epoch,
-            total: event.total,
-            pair_count: event.pairs.len() as u64,
-            digest,
-        };
         let bytes = &mut header.state.membership;
         bytes.fill(0);
-        bytes[..8].copy_from_slice(MARKER);
-        crate::wire::write(&receipt, &mut bytes[8..64])?;
+        bytes[..8].copy_from_slice(marker);
+        crate::wire::write(receipt, &mut bytes[8..64])?;
         header.stage = DENOMINATOR;
-        events.emit(&event, accounts.event_authority.account().clone())
+        Ok(())
     }
 }

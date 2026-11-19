@@ -7,7 +7,7 @@ use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 
 mod forced_close;
-pub use forced_close::{FrozenCapacity, PairedLots};
+pub use forced_close::{FrozenCapacity, LotRate, PairedLots};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Attribution {

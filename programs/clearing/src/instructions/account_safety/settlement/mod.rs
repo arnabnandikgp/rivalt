@@ -139,6 +139,8 @@ pub(crate) fn value_member(
         linked_charges: [0; 2],
         #[cfg(feature = "book-inventory-qualification")]
         book_capacity:0,
+        #[cfg(feature = "multi-lot-book-qualification")]
+        lot_rate:[0,1],
         #[cfg(feature = "book-inventory-qualification")]
         book_charge:0,
     };
