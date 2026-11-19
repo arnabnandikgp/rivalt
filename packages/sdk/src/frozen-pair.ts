@@ -16,3 +16,27 @@ export function frozenPairReceipt(prepared:PreparedSettlement) {
     'Invalid paired lots.');
   return {epoch,debtorId,winnerId,charge,price,unpaidGainCap,...schedule};
 }
+
+/** Authenticated header record for the linked qualification profile. The first
+ * verified leg is a continuation checkpoint. Only the completed pair can pay. */
+export function frozenJointReceipt(prepared:PreparedSettlement) {
+  const bytes = Uint8Array.from(prepared.state.membership);
+  if (new TextDecoder().decode(bytes.subarray(0,8)) !== 'RVLINK01') return null;
+  const view = new DataView(bytes.buffer);
+  const word = (index:number) => view.getBigUint64(8+index*8,true);
+  const epoch = word(0), debtor = word(1), shares = [word(2), word(3)];
+  const legs = [4,10].map(offset => ({
+    winner:word(offset), charge:word(offset+1), eligible:word(offset+2),
+    matched:word(offset+3), price:word(offset+4), extra:word(offset+5),
+  }));
+  const complete = prepared.stage === 2 || prepared.stage === 3;
+  requireValue((prepared.stage===6 || complete) && prepared.epoch===epoch
+    && bytes.subarray(136).every(value=>value===0), 'Invalid joint receipt header.');
+  for (const leg of complete ? legs : [legs[0]]) {
+    requireValue(leg.winner!==debtor && leg.charge>0n && leg.charge<=leg.eligible && leg.price>0n &&
+      leg.matched>0n && leg.extra===leg.charge%leg.matched, 'Invalid joint reduction.');
+  }
+  requireValue(complete ? legs[0].winner!==legs[1].winner : Object.values(legs[1]).every(value=>value===0n),
+    'Invalid joint receipt progress.');
+  return {epoch,debtor,shares,legs,complete};
+}

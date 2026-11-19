@@ -30,6 +30,7 @@ export * from "./accountsRetired.js";
 export * from "./accountTransition.js";
 export * from "./frozenBtcAllocationRow.js";
 export * from "./frozenBtcReductionVerified.js";
+export * from "./frozenJointReductionVerified.js";
 export * from "./frozenPairVerified.js";
 export * from "./fundingPublisherChanged.js";
 export * from "./fundingReportAccepted.js";

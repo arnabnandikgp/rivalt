@@ -22,14 +22,15 @@ const directory = process.env.RIVALT_RUN_DIR!, url = process.env.RIVALT_RPC_URL!
 const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
-const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated);
+const linked = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-linked-apply';
+const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,linked);
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
-  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated?'sponsored-profit':'profit-attribution',
+  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked?'sponsored-profit':'profit-attribution',
     shape:symmetricPayoutShape, traderCash:20_012n, makerCash:makerDeposit,verifyRejections:false});
   const {guard,route,root} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = setup.roots;
@@ -59,7 +60,7 @@ try {
   assert.deepEqual(frozen.prices,[50_000n,20_000n]);
   const members = await financialRoots(h,setup.venue,setup.registry);
   const rows = await Promise.all(members.map(async key=>{
-    const {root:value,positions:basis} = sdk.decodeProfitAttribution((await h.read(key))!,gated);
+    const {root:value,positions:basis} = sdk.decodeProfitAttribution((await h.read(key))!,gated||linked);
     const claims = value.positions.map((position,index)=>position.lots*frozen.prices[index]*1_000_000_000n+
       position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled));
     return {key,id:value.id,revision:value.revision,generation:value.activationGeneration,cash:value.cash,
@@ -81,17 +82,45 @@ try {
   await journal.checkpoint('frozen-two-market-debtor',true);
   const openWorker = async () => {
     const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,
-      gated?'btc-allocation-candidate':'profit-attribution-candidate');
+      linked?'linked-pair-candidate':gated?'btc-allocation-candidate':'profit-attribution-candidate');
     await runtime.open();
     return runtime;
   };
-  process.env.RIVALT_DEFAULT_BATCH_STEPS = gated?'1':'32';
+  process.env.RIVALT_DEFAULT_BATCH_STEPS = gated||linked?'1':'32';
   worker = await openWorker();
   const originals: string[] = [];
-  let refused = false;
+  let refused = false, partialChecked = false, jointChecked = false;
   while ((await resolution()).stage !== 11) {
     assert(originals.length<128,'eight-member recovery exceeded the test continuation budget');
     const current = await readAccountResolution(worker.rpc,setup.venue);
+    if (linked && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===6 && !partialChecked) {
+      const receipt=sdk.frozenJointReceipt(current.preparedState);
+      assert(receipt && !receipt.complete && receipt.legs[0].charge===3n);
+      const common=await accountDefaultContext(worker.rpc,current);
+      const debtorOrdinal=BigInt(members.indexOf(debtor)), winnerOrdinal=BigInt(members.indexOf(makers[0].capital));
+      const page=(await sdk.deriveFrozenMarginPage(setup.venue,debtorOrdinal/8n))[0];
+      const watched=[setup.resolution,common.prepared,setup.vault,setup.token.address,...members];
+      const snapshot=()=>Promise.all(watched.map(key=>h.read(key)));
+      const original=await snapshot();
+      await h.send('refuse BTC leg as an ETH winner',[sdk.getVerifyFrozenPairInstruction({...common,
+        epoch:frozen.epoch,revision:current.preparedState.revision,debtorOrdinal,winnerOrdinal,
+        debtor,winner:makers[0].capital,debtorPage:page})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      await h.send('refuse settlement after only BTC verified',[sdk.getAcceptDenominatorRowInstruction({...common,
+        epoch:frozen.epoch,revision:current.preparedState.revision,page})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      assert.deepEqual(await snapshot(),original);
+      await worker.close(); worker=await openWorker();
+      partialChecked=true;
+      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+    }
+    if(linked && partialChecked && !jointChecked && [2,3].includes(current.preparedState.stage)) {
+      const receipt=sdk.frozenJointReceipt(current.preparedState);
+      assert(receipt?.complete);
+      assert.deepEqual(receipt.shares,[9996n,9996n]);
+      assert.deepEqual(receipt.legs.map(leg=>leg.charge),[3n,5n]);
+      assert.deepEqual(receipt.legs.map(leg=>leg.price),[50003n,20005n]);
+      assert.deepEqual(receipt.legs.map(leg=>leg.matched),[1n,1n]);
+      jointChecked=true;
+    }
     if (gated && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
       const common = await accountDefaultContext(worker.rpc,current);
       const ordinal = BigInt(members.indexOf(debtor)), page = (await sdk.deriveFrozenMarginPage(setup.venue,ordinal/8n))[0];
@@ -132,6 +161,7 @@ try {
     }
   }
   assert.equal(refused,gated);
+  assert.equal(jointChecked,linked);
   if (gated) {
     assert.equal((await resolution()).stage,2);
     assert.deepEqual([await wallet(),await vault()],[before.wallet,before.vault]);
@@ -148,8 +178,8 @@ try {
   }
   await flush(); await journal.checkpoint(gated?'joint-certificate-required':'both-market-credits-withdrawn',true);
   const replay=await journal.finish();
-  const result={revision,profile:gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
-    inputs:input,comparison,refused,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,events:replay.events,harnessChecks:checks.length};
+  const result={revision,profile:linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+    inputs:input,comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));
 } finally {

@@ -21919,6 +21919,19 @@
       ]
     },
     {
+      "name": "FrozenJointReductionVerified",
+      "discriminator": [
+        160,
+        100,
+        107,
+        1,
+        59,
+        130,
+        248,
+        52
+      ]
+    },
+    {
       "name": "FrozenPairVerified",
       "discriminator": [
         1,
@@ -24204,6 +24217,96 @@
           {
             "name": "extra_tick_lots",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FrozenJointReductionVerified",
+      "docs": [
+        "Both reductions are final together for this frozen episode."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "debtor_id",
+            "type": "u64"
+          },
+          {
+            "name": "winners",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "shares",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "charges",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "eligible",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "matched_lots",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "base_prices",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "extra_tick_lots",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
           }
         ]
       }

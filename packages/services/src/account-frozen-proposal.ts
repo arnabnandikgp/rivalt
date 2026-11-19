@@ -19,6 +19,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   assert(canonical===venue&&venueState.bump===bump&&venueState.schemaVersion===10&&venueState.profileVersion===expectedProfile
     &&venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
   const pair=sdk.frozenPairReceipt(header),allocation=sdk.btcAllocationReceipt(header);
+  const joint=sdk.frozenJointReceipt(header), originalClaims:[bigint,bigint][]=[];
   const pageCount=(header.count+7n)/8n,rows:sdk.FrozenMargin[]=[],pages:Address[]=[];
   for(let start=0n;start<pageCount;start+=8n) {
     const keys=await Promise.all(Array.from({length:Number(pageCount-start<8n?pageCount-start:8n)},(_,offset)=>sdk.deriveFrozenMarginPage(venue,start+BigInt(offset))));
@@ -37,7 +38,18 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
         const allocated=allocation?(row.id===allocation.debtorId?allocation.recovered:
           -(row as sdk.FrozenMargin & {btcCharge:bigint}).btcCharge):0n;
         const charge=(allocation?allocated:row.id===pair?.debtorId?pair.charge:row.id===pair?.winnerId?-pair.charge:0n)*1_000_000_000n;
-        rows.push({...row,claims:[row.claims[0]+charge,row.claims[1]]});
+        if(joint) {
+          assert(joint.complete,'Unverified joint recovery');
+          originalClaims.push([row.claims[0],row.claims[1]]);
+          const adjusted=(market:number)=>{
+            const leg=joint.legs[market];
+            const amount=row.id===joint.debtor?leg.charge:row.id===leg.winner?-leg.charge:0n;
+            return row.claims[market]+amount*1_000_000_000n;
+          };
+          rows.push({...row,claims:[adjusted(0),adjusted(1)]});
+        } else {
+          rows.push({...row,claims:[row.claims[0]+charge,row.claims[1]]});
+        }
       }
       pages.push(key);
     }
@@ -48,7 +60,8 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
     &&insurance.readBigUInt64LE(8)===header.insurance[0]&&insurance.readBigUInt64LE(16)===header.insurance[1],'Foreign insurance checkpoint.');
   const budgets:[bigint,bigint]=[insurance.readBigUInt64LE(24),insurance.readBigUInt64LE(32)];
   assert(budgets.every((value,index)=>value<=header.insurance[index]),'Invalid insurance budget.');
-  const input:AccountRateInputs={rows:rows.map(row=>({cash:row.cash,claims:[row.claims[0],row.claims[1]]})),
+  const input:AccountRateInputs={rows:rows.map((row,index)=>({cash:row.cash,claims:[row.claims[0],row.claims[1]],
+    ...(joint?{originalClaims:originalClaims[index]}:{})})),
     pools:[header.pools[0],header.pools[1]],budgets};
   assert(input.rows.reduce((sum,row)=>sum+row.cash,0n)===before.header.cashBefore,'Frozen cash aggregate mismatch.');
   const proposal=proposeAccountRates(input),denominator=Buffer.from(header.state.denominator);

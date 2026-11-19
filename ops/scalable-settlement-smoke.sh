@@ -7,8 +7,10 @@ export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explici
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
 if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution* ]]; then
-  node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts"; verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,process.env.RIVALT_SETTLEMENT_PROBE.includes("sponsor"),process.env.RIVALT_SETTLEMENT_PROBE.includes("verified-pair"), process.env.RIVALT_SETTLEMENT_PROBE.includes("btc-residual"),process.env.RIVALT_SETTLEMENT_PROBE.includes("btc-allocation"));'
-  if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-btc-allocation* ]]; then
+  node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts"; verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,process.env.RIVALT_SETTLEMENT_PROBE.includes("sponsor"),process.env.RIVALT_SETTLEMENT_PROBE.includes("verified-pair"), process.env.RIVALT_SETTLEMENT_PROBE.includes("btc-residual"),process.env.RIVALT_SETTLEMENT_PROBE.includes("btc-allocation"),process.env.RIVALT_SETTLEMENT_PROBE==="profit-attribution-linked-apply");'
+  if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-linked-apply ]]; then
+    node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts"; new SettlementPages(undefined,"linked-pair-candidate");'
+  elif [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-btc-allocation* ]]; then
     node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts"; new SettlementPages(undefined,"btc-allocation-candidate");'
   elif [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-btc-residual* ]]; then
     node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts"; new SettlementPages(undefined,"btc-residual-candidate");'
@@ -76,7 +78,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     python3 tests/financial/check_default_worker.py "$RIVALT_RUN_DIR" > "$RIVALT_RUN_DIR/independent-worker-audit.json" ;;
   account-clients) pnpm build:trader
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
-  profit-attribution-linked|profit-attribution-btc-allocation-linked)
+  profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply)
     cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
     node --import tsx tests/rpc-contract/linked-default-recovery-rpc.ts ;;
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;

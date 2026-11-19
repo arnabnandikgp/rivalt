@@ -139,7 +139,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
                                             | {r'Rivalt/frozen-member-order/v1\0'})
     # Format marker for the separately qualified margin extension.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -161,6 +161,14 @@ def undo_liquidation_delta(actual, program):
     assert [item['name'] for item in allocation['accounts'] if item.get('writable')] == ['prepared','page']
     assert not any(item.get('signer') or item.get('optional') for item in allocation['accounts'])
     actual['instructions'].remove(allocation)
+    name = 'FrozenJointReductionVerified'
+    actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+    fields = [dict(name='venue', type='pubkey'), *[dict(name=key, type='u64') for key in ('epoch', 'slot', 'debtor_id')],
+              *[dict(name=key, type={'array': ['u64', 2]}) for key in
+                ('winners', 'shares', 'charges', 'eligible', 'matched_lots', 'base_prices', 'extra_tick_lots')]]
+    joint = next(item for item in actual['types'] if item['name'] == name)
+    assert clean(joint) == dict(name=name, type=dict(kind='struct', fields=fields))
+    actual['types'].remove(joint)
     name='FrozenBtcAllocationRow'
     event=dict(name=name,discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8]))
     actual['events'].remove(event)

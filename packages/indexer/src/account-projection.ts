@@ -17,6 +17,7 @@ export type AccountResolution = {
   prices:string[]; funding:string[]; frozenAt:string; cashBefore:string; poolsBefore:string[];
   insuranceBefore:string[]; feesBefore:string[]; allocatedBefore:string; budgets:string[]; insuranceSpent:string[];
   allocation?:{attempt:string;debtorId:string;shortfall:string;cursor:string;recovered:string;capacity:string;status:number;charges:Record<string,string>};
+  joint?:{debtorId:string;winners:string[];shares:string[];charges:string[];eligible:string[];matchedLots:string[];basePrices:string[];extraTickLots:string[]};
   pair?:{debtorId:string;winnerId:string;charge:string;price:string;unpaidGainCap:string;matchedLots?:string;extraTickLots?:string};
   evaluation:number; clippedMask:number; rows:Record<string,Row>; remainingCash:string; appliedCash:string;
   remainingLots:string[]; remainingGross:string[]; remainingClaims:string[];
@@ -215,6 +216,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       root(change.targetState,change.target);root(change.receiverState,change.receiver);
       partialMarkets(change.markets);partialLedgers(change.ledgers);
       equal(safety().epoch,change.safetyEpoch,'liquidation safety');break;
+    case 'FrozenJointReductionVerified':
     case 'FrozenBtcAllocationRow':
     case 'FrozenBtcReductionVerified':
     case 'FrozenPairVerified':

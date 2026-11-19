@@ -14,6 +14,35 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='FrozenJointReductionVerified') {
+    accountCheck(current.stage===2 && !current.joint && !current.pair && !current.allocation,'unique joint freeze');
+    const debtor=present(state.roots[state.identities[change.debtorId]],'joint debtor');
+    const debts=claims(debtor,current.prices,current.funding).map(value=>-BigInt(value));
+    accountCheck(debts.every(debt=>debt>0n && debt%scale===0n),'whole original debts');
+    const face=debts.map(debt=>debt/scale), total=face[0]+face[1];
+    const available=BigInt(debtor.cash)<total?BigInt(debtor.cash):total;
+    accountCheck(new Set([change.debtorId,...change.winners]).size===3,'distinct joint members');
+    for(const market of [0,1]) {
+      const winner=present(state.roots[state.identities[change.winners[market]]],'joint winner');
+      const signedLots=BigInt(winner.positions[market].lots), quantity=signedLots<0n?-signedLots:signedLots;
+      eq(BigInt(current.remainingGross[market]),2n*quantity,'complete maker inventory');
+      eq(BigInt(debtor.positions[market].lots),-signedLots,'complete opposite inventory');
+      eq(winner.positions[1-market].lots,'0','isolated winner inventory');
+      const won=claims(winner,current.prices,current.funding);
+      eq(won[1-market],'0','isolated winner cash claim');
+      eq(BigInt(won[market]),debts[market]+BigInt(current.poolsBefore[market])*scale,'sole creditor');
+      const share=BigInt(change.shares[market]),charge=BigInt(change.charges[market]);
+      eq(share*total,available*face[market],'frozen cash split');
+      eq(charge,face[market]-share-BigInt(current.insuranceBefore[market]),'full verified loss');
+      const matched=BigInt(change.matchedLots[market]);
+      accountCheck(charge>0n && charge<=BigInt(change.eligible[market]) && matched>0n && matched<=quantity,'joint capacity');
+      eq(BigInt(change.extraTickLots[market]),charge%matched,'joint extra ticks');
+      eq(BigInt(change.basePrices[market]),BigInt(current.prices[market])-(signedLots>0n?1n:-1n)*(charge/matched),'joint fill');
+    }
+    const {debtorId,winners,shares,charges,eligible,matchedLots,basePrices,extraTickLots}=change;
+    current.joint={debtorId,winners,shares,charges,eligible,matchedLots,basePrices,extraTickLots};
+    return;
+  }
   if(event.type==='FrozenBtcAllocationRow') {
     eq(current.stage,2,'allocation at freeze');
     const ordinal=BigInt(change.ordinal),id=change.memberId;
@@ -70,7 +99,14 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
-    if(current.allocation?.status===1) {
+    if(current.joint) {
+      const {charges,debtorId,winners}=current.joint;
+      for(const market of [0,1]) {
+        const charge=BigInt(charges[market]);
+        const delta=previous.id===debtorId?charge:previous.id===winners[market]?-charge:0n;
+        economic[market]=(BigInt(economic[market])+delta*scale).toString();
+      }
+    } else if(current.allocation?.status===1) {
       const allocation=current.allocation;
       const delta=previous.id===allocation.debtorId?BigInt(allocation.recovered):-BigInt(allocation.charges[previous.id]);
       economic[0]=(BigInt(economic[0])+delta*scale).toString();

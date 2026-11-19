@@ -842,6 +842,7 @@ export enum ClearingEvent {
   AccountsRetired,
   FrozenBtcAllocationRow,
   FrozenBtcReductionVerified,
+  FrozenJointReductionVerified,
   FrozenPairVerified,
   FundingPublisherChanged,
   FundingReportAccepted,
@@ -1122,6 +1123,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.FrozenBtcReductionVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([160, 100, 107, 1, 59, 130, 248, 52]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.FrozenJointReductionVerified;
   }
   if (
     containsBytes(

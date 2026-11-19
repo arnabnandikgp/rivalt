@@ -23,7 +23,7 @@ const positive=(value:Rational)=>maximum(value,ZERO);
 const floor=(value:Rational)=>{if(value.numerator<0n)throw new Error('Negative proposal floor');return value.numerator/value.denominator;};
 const bits=(value:bigint)=>value===0n?0:value.toString(2).length;
 const SCALE=1_000_000_000n,MAX_CASH=1_000_000_000_000_000n,MAX_CLAIM=100_300_000_000_000_000_000_000_000n;
-export type AccountRateInputs={rows:{cash:bigint;claims:[bigint,bigint]}[];pools:[bigint,bigint];budgets:[bigint,bigint]};
+export type AccountRateInputs={rows:{cash:bigint;claims:[bigint,bigint];originalClaims?:[bigint,bigint]}[];pools:[bigint,bigint];budgets:[bigint,bigint]};
 type Link={claim:Rational;cap:Rational};
 type Segment={lower:Rational;upper:Rational;intercept:Rational;slope:Rational};
 
@@ -60,14 +60,20 @@ export function proposeAccountRates(input:AccountRateInputs) {
   const incoming:[Link[],Link[]]=[[],[]],collections:[Rational[],Rational[]]=[[],[]];
   let common=1n;
   for(const row of input.rows) {
-    const debts=row.claims.map(claim=>claim<0n?-claim:0n),totalDebt=debts[0]+debts[1];
+    const debts=row.claims.map(claim=>claim<0n?-claim:0n);
+    const basis=row.originalClaims??row.claims;
+    if(basis.length!==2 || basis.some((value,market)=>typeof value!=='bigint'||abs(value)>MAX_CLAIM ||
+        abs(row.claims[market])>abs(value) || row.claims[market]*value<0n || (value-row.claims[market])%SCALE!==0n))
+      throw new Error('Invalid frozen collection basis');
+    const originalDebts=basis.map(claim=>claim<0n?-claim:0n),totalDebt=originalDebts[0]+originalDebts[1];
     const collected=totalDebt/SCALE<row.cash?totalDebt/SCALE:row.cash;
-    if(debts.every(debt=>debt>0n)&&collected>0n) {
-      const divisor=totalDebt/gcd(totalDebt,collected*SCALE*debts[0]);
+    if(originalDebts.every(debt=>debt>0n)&&collected>0n) {
+      const divisor=totalDebt/gcd(totalDebt,collected*SCALE*originalDebts[0]);
       common=common/gcd(common,divisor)*divisor;
     }
-    const collectedParts=debts.map(debt=>totalDebt===0n?ZERO:ratio(collected*debt,totalDebt));
+    const collectedParts=originalDebts.map(debt=>totalDebt===0n?ZERO:ratio(collected*debt,totalDebt));
     for(const market of [0,1]) {
+      if(compare(collectedParts[market], ratio(debts[market], SCALE))>0) throw new Error('Reduction consumed frozen cash');
       collections[market].push(collectedParts[market]);
       const claim=ratio(row.claims[market],SCALE),destination=1-market;
       const remaining=subtract(ratio(debts[destination],SCALE),collectedParts[destination]);

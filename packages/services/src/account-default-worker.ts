@@ -78,6 +78,31 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
+    if(runtime.deploymentSelection==='linked-pair-candidate' && (prepared.stage===4 || prepared.stage===6)) {
+      const market=prepared.stage===4?0:1, other=1-market;
+      type Member={ordinal:bigint; record:sdk.FrozenMargin; page:Address};
+      let debtor:Member|undefined, winner:Member|undefined;
+      for(let start=0n;start<header.count;start+=8n) {
+        const {page,row}=await frozen(start);
+        assert(row && row.rowCount===Number(header.count-start<8n?header.count-start:8n),'Incomplete joint frozen page');
+        for(const [offset,record] of row.rows.slice(0,row.rowCount).entries()) {
+          const member={ordinal:start+BigInt(offset),record,page};
+          if(record.claims[market]<0n) {
+            if(debtor || record.claims[other]>=0n) return blocked('unsupported-linked-debtor');
+            debtor=member;
+          } else if(record.claims[market]>0n) {
+            if(winner || record.claims[other]!==0n || record.lots[other]!==0n) return blocked('unsupported-linked-creditors');
+            winner=member;
+          }
+        }
+      }
+      if(!debtor || !winner || winner.record.lots[market]===0n ||
+        winner.record.lots[market]!==-debtor.record.lots[market]) return blocked('unsupported-linked-inventory');
+      if(market===1) assert(sdk.frozenJointReceipt(prepared)?.debtor===debtor.record.id,'Different frozen cross debtor');
+      return ready('verify-linked-pair-'+market,sdk.getVerifyFrozenPairInstruction({...args,revision:prepared.revision,
+        debtorOrdinal:debtor.ordinal,winnerOrdinal:winner.ordinal,debtor:debtor.record.member,winner:winner.record.member,
+        debtorPage:debtor.page,winnerPage:debtor.page===winner.page?undefined:winner.page}));
+    }
     if(allocation&&prepared.stage===5) {
       const receipt=sdk.btcAllocationReceipt(prepared);
       assert(receipt&&!receipt.committed,'Missing allocation scan');

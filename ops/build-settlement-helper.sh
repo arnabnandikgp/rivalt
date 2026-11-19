@@ -9,6 +9,9 @@ set --
 helper_dir=.local/settlement-helper
 case "$selection" in
   selected) ;;
+  linked-pair-candidate)
+    set -- --features clearing/linked-pair-qualification
+    helper_dir=.local/settlement-helper-linked-pair ;;
   btc-allocation-candidate)
     set -- --features clearing/btc-allocation-qualification
     helper_dir=.local/settlement-helper-btc-allocation ;;
@@ -23,7 +26,9 @@ esac
 helper_revision="$(node --import tsx --input-type=module -e 'import {accountDeployment} from "./packages/sdk/src/account-deployment.ts";process.stdout.write(accountDeployment(process.argv[1]).helperRevision)' "$selection")"
 helper_source="$(mktemp -d)"
 trap 'rm -rf "$helper_source"' EXIT
-git archive "$helper_revision" Cargo.toml Cargo.lock rust-toolchain.toml programs crates tests/fixtures | tar -x -C "$helper_source"
+program_paths=(tests/fixtures)
+if git cat-file -e "$helper_revision:tests/programs" 2>/dev/null; then program_paths+=(tests/programs); fi
+git archive "$helper_revision" Cargo.toml Cargo.lock rust-toolchain.toml programs crates "${program_paths[@]}" | tar -x -C "$helper_source"
 build_target="$PWD/target"
 (cd "$helper_source" && cargo build --locked --release --target-dir "$build_target" -p rivalt-settlement-pages "$@")
 export RIVALT_SETTLEMENT_HELPER_DIR="${RIVALT_SETTLEMENT_HELPER_DIR:-$helper_dir}"
@@ -37,7 +42,9 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'revision':sys.argv[1],
  'trackedDirty':False,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
-if sys.argv[2]=='btc-allocation-candidate':
+if sys.argv[2]=='linked-pair-candidate':
+    manifest['feature']='linked-pair-qualification'
+elif sys.argv[2]=='btc-allocation-candidate':
     manifest['feature']='btc-allocation-qualification'
 elif sys.argv[2]=='btc-residual-candidate':
     manifest['feature']='btc-residual-qualification'
