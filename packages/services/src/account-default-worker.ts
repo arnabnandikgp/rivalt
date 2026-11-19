@@ -7,7 +7,7 @@ import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime} from './account-runtime.js';
 import {decodeAccountWorker,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
 import {SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
-import {defaultProposal,proposeMarketOrder} from './account-default-proposal.js';
+import {defaultProposal,matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
 
 type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
 export type DefaultStep={status:'blocked';reason:string}|{status:'ready';reason:string;id:string;instruction:Instruction};
@@ -106,6 +106,11 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     if(rates.epoch!==epoch)return ready('initialize-rates',sdk.getInitializeSettlementRatesInstruction(args));
     if(rates.stage===0||rates.stage===3) {
       const {proposal}=await defaultProposal(runtime,state);
+      if(rates.stage===3 && await matchesRejectedRate(rates,proposal,async(market,index)=>{
+        const result=await limb({register:3+market,index,writable:false});
+        assert(!result.step,'Rejected rate page has a different epoch');
+        return result.value;
+      })) return blocked('rejected-identical-rate-proposal');
       return ready('begin-rates',sdk.getBeginSettlementRateProposalInstruction({...args,actor:key,revision:rates.revision,
         factor:proposal.factorWords,lengths:proposal.numeratorWords.map(words=>BigInt(words.length))}));
     }
