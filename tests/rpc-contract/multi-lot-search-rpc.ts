@@ -1,4 +1,4 @@
-// A native proposal against a real freeze. The deployed one-lot release gate must refuse it.
+// Compare signed frozen books against exhaustive search and follow certified cash to wallets.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -87,8 +87,9 @@ try {
   let rejected=false,certified=false;
   if(apply)process.env.RIVALT_DEFAULT_BATCH_STEPS='1';
   for(let step=0;step<70;step++){
-    const state=await readAccountResolution(worker.rpc,setup.venue),common=await accountDefaultContext(worker.rpc,state);
+    const state=await readAccountResolution(worker.rpc,setup.venue);
     if(apply && state.header.stage===11)break;
+    const common=await accountDefaultContext(worker.rpc,state);
     const next=await accountDefaultStep(worker,setup.payer,state,common);
     if(apply && state.preparedState.stage===2 && !certified) {
       const receipt=sdk.inventoryBookReceipt(state.preparedState,true);
@@ -136,7 +137,7 @@ try {
     const snapshot=()=>Promise.all(watched.map(key=>h.read(key)));
     const prior=await snapshot();
     const instruction=sdk.getVerifyInventoryBookInstruction({...common,epoch:state.preparedState.epoch,revision:state.preparedState.revision,ordinals:active});
-    await h.send('one-lot certificate must refuse the multi-lot book',[{...instruction,accounts:[...instruction.accounts,
+    await h.send('refuse an uncertified multi-lot book',[{...instruction,accounts:[...instruction.accounts,
       ...pages.map(address=>({address,role:AccountRole.WRITABLE}))]}],[],sdk.CLEARING_ERROR__RESOLUTION);
     await flush();
     assert.deepEqual(await snapshot(),prior);
