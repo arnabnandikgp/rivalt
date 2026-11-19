@@ -66,10 +66,12 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
           assert.deepEqual(JSON.parse(json(linked[key])),projection[key],key);
       } else assert(!projection||projection.status===2&&BigInt(projection.attempt)<linked.attempt,'Invalid restarted linked scan');
     } else if(projection)assert.equal(projection.status,2,'Lost linked scan');
-    const book=sdk.inventoryBookReceipt(value,Boolean(resolution.inventoryBook?.multiLot));
+    const multi=sdk.inventoryBookReceipt(value,true);
+    const book=multi??sdk.inventoryBookReceipt(value);
     if(book || resolution.inventoryBook) {
       const projected=resolution.inventoryBook;
       assert(sdk.isBookInventoryArtifact(binding.artifactSet) && book && projected,'Missing book certificate or event');
+      assert.equal(Boolean(multi),Boolean(projected.multiLot),'Book receipt kind');
       assert.deepEqual([book.digest,String(book.total),Number(book.count)],[projected.digest,projected.total,projected.pairs.length]);
     }
     const shared=sdk.sharedInventoryReceipt(value,binding.artifactSet);
