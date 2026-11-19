@@ -715,6 +715,16 @@ capacities the earlier D121 winner receives the larger charge. Within each
 equal-charge band, order winners and debtors by their frozen identities before
 pairing them. The sort takes O(n log n) comparisons and O(n) working memory.
 The signed two-debtor fixture compares this native result with full enumeration.
-Live clearing still needs authenticated per-debtor budgets, original positions,
-one-use lot assignments and complete-cohort verification before using the result.
+The local two-debtor clearing program verifies the full-coverage case from the
+finished frozen scan. Gross BTC exposure must be exactly four lots, both markets
+must have zero pool balances and ETH must have zero claims and exposure. The
+four named roots exhaust positive and negative BTC face, with one lot apiece.
+If each debtor's original unfunded loss is L and the sum of those losses is T,
+its whole-atom charge budget is floor(L × (T − BTC insurance) / T). Clearing
+authenticates both winning roots at their frozen revisions, verifies the per-lot
+unpaid gain and re-runs the assignment. The resulting receipt binds debtor,
+winner, charge and fill price for each distinct pair. The ordinary denominator,
+rates and application steps consume those adjusted claims after verification.
+A separate test artifact selects this behavior. Partial coverage and other
+distributions of positions require their own recovery proof.
 [Allocator](../../crates/default-plan-selection/src/single_lot.rs) · [Independent enumeration](../../tests/financial/check_shared_inventory.py).

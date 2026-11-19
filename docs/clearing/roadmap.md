@@ -72,9 +72,10 @@ original and effective creditor entitlements. [Payment and measured cost](../ope
 Two BTC debtors now compete for the same two single-lot winners in a real
 frozen book. Ordinary clearing paid 19,998 and 20,002 atoms. Independent
 exhaustive search and the native allocator selected separate one-lot closes
-and equal 20,000-atom credits. The next clearing deliverable is to authenticate
-those opposing lots and debtor budgets, reject lot reuse, and pay the selected
-assignment through the existing settlement and withdrawal flow.
+and equal 20,000-atom credits. The local clearing candidate now verifies
+both debtor budgets and distinct winning lots, and each maker withdrew 20,000.
+The next case measures what the flat creditor and the two open makers receive
+when one lot has too little eligible gain to cover either debtor’s budget.
 [Measured comparison](../operations/validation.md#two-btc-debtors-sharing-winning-inventory).
 General linked selection,
 shared writes and broader cost qualification remain open.

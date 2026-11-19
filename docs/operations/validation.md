@@ -9,7 +9,7 @@ The uncovered debts before insurance were 5 and 9. BTC insurance supplied
 six. Their exact residuals were 20/7 and 36/7; the maximum whole charges
 were two and five. One atom of aggregate loss remained after both budgets.
 
-| BTC maker | Original claim | Actual ordinary withdrawal | Native successor credit |
+| BTC maker | Original claim | Actual ordinary withdrawal | Verified successor withdrawal |
 |---|---:|---:|---:|
 | Member 0 | 20,002 | 19,998 | 20,000 |
 | Member 2 | 20,006 | 20,002 | 20,000 |
@@ -27,7 +27,19 @@ Native selector `981d269` assigned debtor 6 to maker 0 at 40,002 and debtor 7
 to maker 2 at 40,005. It also matched independent exhaustive permutations on
 120 books of one to six debtors (94 full recoveries and 26 insufficient-capacity
 results). Four malformed inputs and the maximum-u64 ordering boundary were
-checked separately. The successor assignment has native evidence only.
+checked separately. Clean harness `672cff0` subsequently ran on local clearing
+SBF `59184c5` (2,683,376 bytes, SHA-256
+`caf78f79e2e0bf1b6fc30f3ce5aef2cc0f453af2ef13e422a774055a4a833eef`).
+The signed verifier used 56,805 CU and 835 bytes. A repeated winning account,
+the inferior pairing, and a charge of three against a budget of two were each
+rejected. All watched financial accounts and the prepared certificate retained
+their original bytes across those refusals. The accepted certificate changed
+the prepared settlement. The worker restarted and applied it to all eight
+members. Both maker accounts each withdrew 20,000 to their operator’s SPL
+wallet (32,676 CU and 806 bytes per transaction). Custody retained 6,000,020.
+The run recorded 271 harness outcomes, 54 finalized worker transactions and
+111 events reproduced from scratch in PostgreSQL. The artifact covers the
+fully recoverable single-lot assignment on this two-debtor market.
 [Verification contract](../clearing/default-plan-verification.md#shared-single-lot-inventory).
 
 ## Atomic payment for a BTC winner with ETH debt

@@ -11,6 +11,14 @@ trader's accrued claim, zero positions and zero ETH claim. The original linked
 deployment still requires the open BTC winner to own all BTC credit.
 [Joint certificate](../clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
 
+For the shared-inventory candidate, the worker reads the complete frozen cohort
+and each winning root's surviving-profit history before proposing a pairing.
+The finalized indexer reconstructs each debtor's budget and checks both winning
+assignments, charges and prices. At reconciliation it matches those terms to the
+96-byte prepared-settlement receipt. A restarted worker obtains that receipt
+from clearing before it derives effective claims or resumes payment.
+[Shared single-lot inventory](../clearing/default-plan-verification.md#shared-single-lot-inventory).
+
 ## Canonical membership migration (P55A2)
 
 P55A2 established schema 9/profile 5; D102 now uses schema 10/profile 6. Transport

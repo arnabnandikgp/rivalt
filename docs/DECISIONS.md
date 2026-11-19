@@ -1391,3 +1391,13 @@ usage all satisfy D116–D120. The complete frozen scan remains resumable.
 Once the scan finishes, a single transaction can certify both markets.
 No keeper-selected allocation or additional settlement account is necessary.
 [Proof and supported scope](clearing/default-plan-verification.md#atomic-certificate-for-one-cross-market-creditor-chain).
+
+## D132 — Bind both debtor budgets and both opposing lots in one certificate
+
+19 November 2026. In the bounded, fully covered two-debtor BTC case, clearing
+authenticates the entire market exposure and both winners' original lots.
+A single prepared-settlement receipt commits both assignments before payment.
+Each debtor keeps its own original post-insurance budget and each winning lot
+can satisfy one debtor. The same receipt determines every downstream rate and
+member claim. D116 and D121 govern selection and ties.
+[Verification and release scope](clearing/default-plan-verification.md#shared-single-lot-inventory).

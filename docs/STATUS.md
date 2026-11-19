@@ -60,7 +60,8 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 | Competing BTC winners in a linked default | Review | [PR #113](https://github.com/arnabnandikgp/rivalt/pull/113). SBF `d0ae474`, signed harness `005230c`. Clearing certified BTC 4/9 and ETH 12 after rejecting 0/12. Four withdrawals paid 29,981 atoms. Eight accounts, 71 worker originals and 143 fresh SQL events reconciled. [Measured results](operations/validation.md#linked-allocation-across-competing-makers). |
 | BTC winner with an ETH debt | Review | [PR #114](https://github.com/arnabnandikgp/rivalt/pull/114). Clean `bb67d1f` on two local validators. Ordinary clearing paid 39,972 atoms; the linked candidate refused both debtor substitutions and stayed frozen. Fresh SQL reproduced 113 and 84 events. Independent search checked 340 assignments; Rust rejected the BTC-only plan and verified the joint 9/33 proposal. [Measured results](operations/validation.md#btc-winner-with-an-eth-debt). |
 | Foreign creditor protection through wallet exit | Review | [PR #115](https://github.com/arnabnandikgp/rivalt/pull/115). SBF `d177cc5`, clean signed harness `7f2b7e5`. Clearing rejected BTC-only, charged BTC/ETH 9/33 atomically and paid the two maker withdrawals of 5,004 and 34,968. All eight roots and 114 fresh PostgreSQL events reconciled. [Measured results](operations/validation.md#atomic-payment-for-a-btc-winner-with-eth-debt). |
-| Shared BTC winning inventory | Review | Clean signed harness `cfc2279`, ordinary SBF `33361d9`. Two withdrawals paid 40,000 atoms and 110 events replayed in fresh PostgreSQL. Native allocator `981d269` agreed with 324 assignments on the signed book and the independent oracle on 120 books of one to six debtors. [Results](operations/validation.md#two-btc-debtors-sharing-winning-inventory). |
+| Shared BTC winning inventory | Review | [PR #116](https://github.com/arnabnandikgp/rivalt/pull/116). Clean signed harness `cfc2279`, ordinary SBF `33361d9`. Two withdrawals paid 40,000 atoms and 110 events replayed in fresh PostgreSQL. Native allocator `981d269` agreed with 324 assignments on the signed book and the independent oracle on 120 books of one to six debtors. [Results](operations/validation.md#two-btc-debtors-sharing-winning-inventory). |
+| Verified two-debtor BTC payout | Review | Local SBF `59184c5`, clean signed harness `672cff0`. The certificate used 56,805 CU and 835 bytes. Both makers withdrew 20,000 atoms. Three invalid proposals refused, 54 worker transactions finalized, 111 events reproduced in fresh PostgreSQL. [Measured results](operations/validation.md#two-btc-debtors-sharing-winning-inventory). |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -143,10 +144,10 @@ that the BTC-only and joint plans pay identical whole cash, but only the
 joint plan respects the ETH creditor's entitlement. The linked candidate
 refused the book on chain. The separate foreign-creditor program has now paid
 both makers after verifying the direct charges and creditor floors in one
-54,281-CU instruction. The next signed freeze now demonstrates two BTC debtors competing
-for one-lot winners. Ordinary wallet payouts and the selected native assignment
-are recorded separately. Next, bind both debtor budgets and both opposing lots
-to the clearing certificate and verify the two successor wallet withdrawals.
+54,281-CU instruction. With two BTC debtors competing for one-lot winners, the
+separate shared-inventory verifier now pays both makers after restart. Next,
+test the same market with scarce opposing gain and a flat creditor. Compare
+ordinary withdrawals, the independently optimal charges and the signed successor payouts.
 General selection and production release remain open.
 
 ## Earlier checkpoints

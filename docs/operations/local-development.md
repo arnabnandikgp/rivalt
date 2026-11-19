@@ -490,3 +490,14 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" \
 cargo build --locked -p default-plan-selection --example single_lot_assignment
 python3 tests/financial/check_shared_inventory.py "$run_dir/linked-default.json"
 ```
+
+To reproduce the successor on the same book, build the separate program at
+`59184c5` with `RIVALT_ATTRIBUTION_PROFILE=shared-inventory-qualification`.
+From the signed harness revision in [validation](validation.md#two-btc-debtors-sharing-winning-inventory), run
+
+```bash
+bash ops/build-settlement-helper.sh shared-inventory-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$shared_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-shared-inventory-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
