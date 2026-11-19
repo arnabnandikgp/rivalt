@@ -19,9 +19,12 @@ pub use qualified::*;
 #[cfg(feature = "shared-inventory-qualification")]
 mod qualified {
     use super::*;
-    use default_plan_selection::single_lot::{assign, MemberAmount};
+    use default_plan_selection::single_lot::MemberAmount;
 
+    #[cfg(not(feature = "partial-inventory-qualification"))]
     const MARKER: &[u8; 8] = b"RVLOTS01";
+    #[cfg(feature = "partial-inventory-qualification")]
+    const MARKER: &[u8; 8] = b"RVLOTS02";
     const END: usize = 96;
 
     #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -88,7 +91,13 @@ mod qualified {
             require!(
                 row.lots == [if debtor { side } else { -side }, 0]
                     && row.claims[1] == 0
-                    && row.claims[0].signum() == if debtor { -1 } else { 1 }
+                    && if debtor {
+                        row.claims[0] < 0
+                    } else if cfg!(feature = "partial-inventory-qualification") {
+                        row.claims[0] >= 0
+                    } else {
+                        row.claims[0] > 0
+                    }
                     && row.claims[0] % financial_core::SCALE == 0,
                 ClearingError::Resolution
             );
@@ -97,8 +106,15 @@ mod qualified {
                     .map_err(|_| ClearingError::Arithmetic)?;
         }
         let face = u128::from(faces[0]) + u128::from(faces[1]);
+        // The complete snapshot below excludes any additional debtor or open lot.
+        // A flat creditor can retain the remainder of the positive BTC face.
+        let open_credit = u128::from(faces[2]) + u128::from(faces[3]);
         require!(
-            face == u128::from(faces[2]) + u128::from(faces[3]),
+            if cfg!(feature = "partial-inventory-qualification") {
+                open_credit <= face
+            } else {
+                open_credit == face
+            },
             ClearingError::Resolution
         );
         let scaled = face * financial_core::SCALE as u128;
@@ -140,6 +156,7 @@ mod qualified {
         charges: [u64; 2],
     ) -> Result<Receipt> {
         let budgets = debtor_budgets(header, rows)?;
+        #[cfg(not(feature = "partial-inventory-qualification"))]
         require!(charges == budgets, ClearingError::Resolution);
         let members = rows.each_ref().map(|row| row.id);
         let mut eligible = [0; 2];
@@ -155,10 +172,19 @@ mod qualified {
                 .schedule(charges[index])
                 .map_err(|_| ClearingError::Resolution)?;
             require!(
-                terms.matched == 1 && terms.extra_tick_lots == 0,
+                terms.matched
+                    == if cfg!(feature = "partial-inventory-qualification") {
+                        u64::from(charges[index] != 0)
+                    } else {
+                        1
+                    }
+                    && terms.extra_tick_lots == 0,
                 ClearingError::Resolution
             );
             eligible[index] = terms.eligible;
+            if terms.matched == 0 {
+                continue;
+            }
             prices[index] = if row.lots[0] > 0 {
                 header.prices[0].checked_sub(terms.base_ticks)
             } else {
@@ -175,16 +201,40 @@ mod qualified {
             atoms: eligible[index],
         });
         winners.sort_unstable_by_key(|entry| entry.id);
-        let assignment = assign(&header.venue.to_bytes(), header.epoch, &debtors, &winners)
+        #[cfg(feature = "partial-inventory-qualification")]
+        {
+            let plan = default_plan_selection::two_debtors::assign(
+                &header.venue.to_bytes(),
+                header.epoch,
+                debtors,
+                winners,
+            )
             .ok_or(ClearingError::Resolution)?;
-        for pair in assignment {
-            let index = usize::from(pair.debtor != members[0]);
             require!(
-                members[index] == pair.debtor
-                    && members[index + 2] == pair.winner
-                    && charges[index] == pair.charge,
+                charges == plan.charges
+                    && members[2] == winners[plan.winners[0]].id
+                    && members[3] == winners[plan.winners[1]].id,
                 ClearingError::Resolution
             );
+        }
+        #[cfg(not(feature = "partial-inventory-qualification"))]
+        {
+            let assignment = default_plan_selection::single_lot::assign(
+                &header.venue.to_bytes(),
+                header.epoch,
+                &debtors,
+                &winners,
+            )
+            .ok_or(ClearingError::Resolution)?;
+            for pair in assignment {
+                let index = usize::from(pair.debtor != members[0]);
+                require!(
+                    members[index] == pair.debtor
+                        && members[index + 2] == pair.winner
+                        && charges[index] == pair.charge,
+                    ClearingError::Resolution
+                );
+            }
         }
         Ok(Receipt {
             epoch: header.epoch,
