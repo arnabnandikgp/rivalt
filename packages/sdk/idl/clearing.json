@@ -21515,6 +21515,19 @@
       ]
     },
     {
+      "name": "FrozenBtcReductionVerified",
+      "discriminator": [
+        52,
+        208,
+        115,
+        207,
+        151,
+        136,
+        172,
+        57
+      ]
+    },
+    {
       "name": "FrozenPairVerified",
       "discriminator": [
         1,
@@ -23679,6 +23692,62 @@
           },
           {
             "name": "consumed_after",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FrozenBtcReductionVerified",
+      "docs": [
+        "Terminal BTC accounting. Each matched lot executes at base_price, except",
+        "extra_tick_lots which concede one additional tick in the winner's direction."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "debtor_id",
+            "type": "u64"
+          },
+          {
+            "name": "winner_id",
+            "type": "u64"
+          },
+          {
+            "name": "mark",
+            "type": "u64"
+          },
+          {
+            "name": "base_price",
+            "type": "u64"
+          },
+          {
+            "name": "charge",
+            "type": "u64"
+          },
+          {
+            "name": "unpaid_gain_cap",
+            "type": "u64"
+          },
+          {
+            "name": "matched_lots",
+            "type": "u64"
+          },
+          {
+            "name": "extra_tick_lots",
             "type": "u64"
           }
         ]

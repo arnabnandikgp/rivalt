@@ -139,7 +139,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
                                             | {r'Rivalt/frozen-member-order/v1\0'})
     # Format marker for the separately qualified margin extension.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -171,6 +171,16 @@ def undo_liquidation_delta(actual, program):
     event_type={'name':event_name,'type':{'kind':'struct','fields':fields}}
     assert actual['types'].count(event_type)==1
     actual['types'].remove(event_type)
+    residual_name='FrozenBtcReductionVerified'
+    residual_event={'name':residual_name,'discriminator':list(hashlib.sha256(f'event:{residual_name}'.encode()).digest()[:8])}
+    residual_fields=[{'name':name,'type':'pubkey' if name=='venue' else 'u64'} for name in
+                    ('venue','slot','epoch','debtor_id','winner_id','mark','base_price','charge','unpaid_gain_cap','matched_lots','extra_tick_lots')]
+    residual_type={'name':residual_name,'type':{'kind':'struct','fields':residual_fields}}
+    residual_types=[item for item in actual['types'] if item['name']==residual_name]
+    assert actual['events'].count(residual_event)==1 and len(residual_types)==1
+    assert {key:value for key,value in residual_types[0].items() if key!='docs'}==residual_type
+    actual['events'].remove(residual_event)
+    actual['types'].remove(residual_types[0])
     capacity = unique('manage_profit_capacity')
     assert capacity['discriminator'] == list(hashlib.sha256(b'global:manage_profit_capacity').digest()[:8])
     assert capacity['args'] == [{'name': name, 'type': kind} for name, kind in

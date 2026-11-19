@@ -9,6 +9,9 @@ set --
 helper_dir=.local/settlement-helper
 case "$selection" in
   selected) ;;
+  btc-residual-candidate)
+    set -- --features clearing/btc-residual-qualification
+    helper_dir=.local/settlement-helper-btc-residual ;;
   verified-pair-candidate)
     set -- --features clearing/single-pair-default-qualification
     helper_dir=.local/settlement-helper-verified-pair ;;
@@ -31,7 +34,9 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'revision':sys.argv[1],
  'trackedDirty':False,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
-if sys.argv[2]=='verified-pair-candidate':
+if sys.argv[2]=='btc-residual-candidate':
+    manifest['feature']='btc-residual-qualification'
+elif sys.argv[2]=='verified-pair-candidate':
     manifest['feature']='single-pair-default-qualification'
 (root/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(json.dumps(manifest))

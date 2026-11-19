@@ -14,17 +14,25 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
-  if(event.type==='FrozenPairVerified') {
+  if(event.type==='FrozenPairVerified'||event.type==='FrozenBtcReductionVerified') {
     eq(current.stage,2,'pair at freeze');eq(current.prices[0],change.mark,'frozen BTC price');
     accountCheck(!current.pair&&change.debtorId!==change.winnerId,'unique frozen pair');
     const debtor=present(state.roots[state.identities[change.debtorId]],'paired debtor');
     const winner=present(state.roots[state.identities[change.winnerId]],'paired winner');
     const gain=BigInt(change.charge),mark=BigInt(change.mark),lots=BigInt(winner.positions[0].lots);
-    eq(current.remainingGross,['2','0'],'unique open pair');
+    const quantity=lots<0n?-lots:lots,direction=lots<0n?-1n:1n;
+    const residual=event.type==='FrozenBtcReductionVerified';
+    const matched=residual?BigInt(change.matchedLots):gain===0n?0n:1n;
+    const extra=residual?BigInt(change.extraTickLots):0n;
+    const price=residual?change.basePrice:change.price;
+    eq(current.remainingGross,[(2n*quantity).toString(),'0'],'unique open pair');
     eq(BigInt(debtor.positions[0].lots),-lots,'opposite lots');
-    accountCheck((lots===1n||lots===-1n)&&gain>=0n&&gain<=BigInt(change.unpaidGainCap),'eligible charge');
-    eq(BigInt(change.price),gain===0n?0n:mark-lots*gain,'paired execution price');
-    current.pair={debtorId:change.debtorId,winnerId:change.winnerId,charge:change.charge,price:change.price,unpaidGainCap:change.unpaidGainCap};
+    accountCheck(quantity>0n&&(residual||quantity===1n)&&gain>=0n&&gain<=BigInt(change.unpaidGainCap),'eligible charge');
+    accountCheck(matched>=0n&&matched<=quantity&&(matched===0n)===(gain===0n),'matched lots');
+    eq(extra,matched===0n?0n:gain%matched,'extra tick lots');
+    eq(BigInt(price),matched===0n?0n:mark-direction*(gain/matched),'paired execution price');
+    current.pair={debtorId:change.debtorId,winnerId:change.winnerId,charge:change.charge,price,unpaidGainCap:change.unpaidGainCap,
+      ...(residual?{matchedLots:change.matchedLots,extraTickLots:change.extraTickLots}:{})};
     return;
   }
   if(event.type==='SettlementMarginApplied') {

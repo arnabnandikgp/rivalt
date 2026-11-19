@@ -76,8 +76,9 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(prepared.stage===4&&runtime.deploymentSelection==='verified-pair-candidate') {
-      if(header.remainingGross[0]!==2n||header.remainingGross[1]!==0n)return blocked('unsupported-frozen-book');
+    const residual=runtime.deploymentSelection==='btc-residual-candidate';
+    if(prepared.stage===4&&(residual||runtime.deploymentSelection==='verified-pair-candidate')) {
+      if((residual?header.remainingGross[0]<2n:header.remainingGross[0]!==2n)||header.remainingGross[1]!==0n)return blocked('unsupported-frozen-book');
       const sides:{ordinal:bigint;key:Address;claim:bigint;page:Address}[]=[];
       for(let ordinal=0n;ordinal<prepared.count;ordinal+=8n) {
         const found=await frozen(ordinal);
@@ -86,7 +87,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
           if(row.lots[0]!==0n)sides.push({ordinal:ordinal+BigInt(offset),key:row.member,claim:row.claims[0],page:found.page});
         }
       }
-      const debtor=sides.find(side=>side.claim<0n),winner=sides.find(side=>side.claim>0n);
+      const debtor=sides.find(side=>side.claim<0n),winner=sides.find(side=>residual?side.claim>=0n:side.claim>0n);
       if(sides.length!==2||!debtor||!winner)return blocked('unsupported-frozen-book');
       return ready('verify-frozen-pair',sdk.getVerifyFrozenPairInstruction({...args,revision:prepared.revision,
         debtorOrdinal:debtor.ordinal,winnerOrdinal:winner.ordinal,debtor:debtor.key,winner:winner.key,

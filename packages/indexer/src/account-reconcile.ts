@@ -106,6 +106,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
   let minSlot:number|undefined,maxSlot=0;
+  const sponsored=binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET||
+    binding.artifactSet===sdk.VERIFIED_PAIR_ARTIFACT_SET||binding.artifactSet===sdk.BTC_RESIDUAL_ARTIFACT_SET;
   for(let pass=0;pass<(captured?1:2);pass++)for(let offset=0;offset<keys.length;offset+=100) {
     const chunk=keys.slice(offset,offset+100),response=captured?undefined:await read(chunk);
     if(response){integer(response.context.slot);assert.equal(response.value.length,chunk.length);}
@@ -117,8 +119,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       if(entity) {
         assert(current?.owner===program&&current.data[1]==='base64',`Scoped owner/encoding ${key}`);
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
-        if(entity.kind===5 && (binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET||(binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET||binding.artifactSet===sdk.VERIFIED_PAIR_ARTIFACT_SET))) {
-          sdk.decodeProfitAttribution(bytes,(binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET||binding.artifactSet===sdk.VERIFIED_PAIR_ARTIFACT_SET));
+        if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
+          sdk.decodeProfitAttribution(bytes,sponsored);
         } else {
           assert(descriptor&&bytes.length===descriptor[1]&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
         }

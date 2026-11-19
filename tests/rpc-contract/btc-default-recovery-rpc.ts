@@ -25,12 +25,22 @@ const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RI
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 async function run() {
-  const limited=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-verified-pair-limited';
-  const paired=limited||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-verified-pair';
-  const sponsored=paired||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-sponsor-recovery';
-  const candidate = (sponsored||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-recovery')
-    ? verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,sponsored,paired) : undefined;
-  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:sponsored?'sponsored-profit':candidate?'profit-attribution':'selected',shape:symmetricPayoutShape,makerCash:8_000n,verifyRejections:false});
+  const probe=process.env.RIVALT_SETTLEMENT_PROBE??'';
+  const residual=probe.startsWith('profit-attribution-btc-residual-');
+  const scenario=residual?probe.slice('profit-attribution-btc-residual-'.length):'full';
+  assert(['full','partial','multi','none'].includes(scenario),'Unknown BTC payout scenario');
+  const limited=probe==='profit-attribution-verified-pair-limited';
+  const paired=residual||limited||probe==='profit-attribution-verified-pair';
+  const sponsored=paired||probe==='profit-attribution-sponsor-recovery';
+  const candidate=(sponsored||probe==='profit-attribution-recovery')
+    ?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,sponsored,paired,residual):undefined;
+  const multi=scenario==='multi',lots=multi?3n:1n,makerCash=multi?27_000n:8_000n;
+  const closeMid=limited||scenario==='partial'?69_500n:multi?69_000n:scenario==='none'?70_002n:61_000n;
+  const openGross=60_002n*lots,closeGross=(closeMid-2n)*lots;
+  const openFee=(openGross+4_999n)/5_000n,closeFee=(closeGross+4_999n)/5_000n;
+  const fees=openFee+closeFee,protectedFees=fees-fees/4n,initialCash=1_000_000n-fees;
+  const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:sponsored?'sponsored-profit':candidate?'profit-attribution':'selected',
+    shape:symmetricPayoutShape,makerCash,verifyRejections:false});
   const [trader] = setup.roots, owner = setup.traderOwner;
   const first = setup.instances[0], second = setup.instances[2], debtor = first.capital, winner = second.capital;
   assert.notEqual(first.pricingProgram,second.pricingProgram);
@@ -59,12 +69,12 @@ async function run() {
       reserveAuthority:setup.payer,donor:owner,donorToken:wallet,quoteMint:setup.mint.address,amount:492n})],[owner]);
   const vaultBefore = await tokenBalance(setup.vault), walletBefore = await tokenBalance(wallet);
   await setup.sample();
-  await h.send('open one BTC lot against the eventual debtor',[await route({actor:owner,trader,marketIndex:0,side:0,
-    makers:[first],lots:[1n],allInLimit:60_015n,maxFee:13n})],[owner]);
-  setup.sourcePrices.btc = limited?69_500_000_000n:61_000_000_000n;
+  await h.send('open BTC against the eventual debtor',[await route({actor:owner,trader,marketIndex:0,side:0,
+    makers:[first],lots:[lots],allInLimit:openGross+openFee,maxFee:openFee})],[owner]);
+  setup.sourcePrices.btc = closeMid*1_000_000n;
   await setup.qualify();
   await h.send('close trader against the open winner',[await route({actor:owner,trader,marketIndex:0,side:1,
-    makers:[second],lots:[1n],allInLimit:60_985n,maxFee:limited?14n:13n,reduceOnly:true,generation:(await root(trader)).positions[0].generation})],[owner]);
+    makers:[second],lots:[lots],allInLimit:closeGross-closeFee,maxFee:closeFee,reduceOnly:true,generation:(await root(trader)).positions[0].generation})],[owner]);
   const sources = {primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
     guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
   setup.sourcePrices.btc = 70_000_000_000n;
@@ -84,7 +94,7 @@ async function run() {
     return {key,id:value.id,cash:value.cash,btcLots:value.positions[0].lots,claims:value.positions.map((position,index)=>
       position.lots*frozen.prices[index]*1_000_000_000n+position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled))};
   }));
-  assert.equal((await root(trader)).cash,limited?999_973n:999_974n);
+  assert.equal((await root(trader)).cash,initialCash);
   journal = await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),candidate);
   const events = journal.initialEvents, freezes = events.filter(event=>event.type==='AccountResolutionFrozenV3');
   assert.equal(freezes.length,1);
@@ -101,29 +111,29 @@ async function run() {
     const [leg] = data.legs;
     return {signature,side:data.side,maker:leg.capital,traderId:data.rootStates[0].id,lots:leg.lots,gross:leg.gross};
   });
-  const inputs = {rows,debtor,winner,trader,mark:frozen.prices[0],funding:frozen.funding,pools:frozen.poolsBefore,
+  const inputs = {case:scenario,rows,debtor,winner,trader,mark:frozen.prices[0],funding:frozen.funding,pools:frozen.poolsBefore,
     fees:frozen.feesBefore,insurance:frozen.insuranceBefore,fills};
   const comparison = limited?undefined:JSON.parse(execFileSync('python3',['tests/financial/btc_default_comparison.py'],{input:json(inputs),encoding:'utf8'}));
   if(candidate) {
     for(const row of rows) {
       const {positions}=sdk.decodeProfitAttribution((await h.read(row.key))!,sponsored);
-      const entry=row.key===winner?(limited?69_498n:60_998n):row.key===debtor?60_002n:0n;
+      const entry=row.key===winner?closeMid-2n:row.key===debtor?60_002n:0n;
       assert.deepEqual(positions[0],{entryScaled:entry*1_000_000_000n,paidScaled:0n,denominator:1n});
     }
   }
   await journal.checkpoint('frozen',true);
   const openWorker = async () => {
-    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,paired?'verified-pair-candidate':sponsored?'sponsored-profit-candidate':candidate?'profit-attribution-candidate':'selected');
+    const runtime = new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,residual?'btc-residual-candidate':paired?'verified-pair-candidate':sponsored?'sponsored-profit-candidate':candidate?'profit-attribution-candidate':'selected');
     await runtime.open();
     return runtime;
   };
-  if(paired)process.env.RIVALT_DEFAULT_BATCH_STEPS='1';
+  if(paired)process.env.RIVALT_DEFAULT_BATCH_STEPS=residual?'32':'1';
   worker = await openWorker();
   let exercisedPair=false;
   const originals: {requestId:string; signature:string; cu:number}[] = [];
   while ((await resolution()).stage!==11) {
     assert(originals.length<128,'Eight-member BTC recovery exceeded its continuation budget');
-    if(paired&&!exercisedPair) {
+    if(paired&&!residual&&!exercisedPair) {
       const current=await readAccountResolution(worker.rpc,setup.venue),prepared=current.preparedState;
       if(prepared.epoch===frozen.epoch&&prepared.stage===4) {
         const common=await accountDefaultContext(worker.rpc,current);
@@ -184,7 +194,7 @@ async function run() {
   }
   assert(originals.length>1);
   const terminal = await resolution();
-  assert.deepEqual(terminal.insuranceSpent,[498n,0n]);
+  assert.deepEqual(terminal.insuranceSpent,[492n+fees/4n,0n]);
   const finalCash = Object.fromEntries(await Promise.all(members.map(async key=>{
     const value = await root(key);
     assert(value.positions.every(position=>position.lots===0n && position.virtualScaled===0n));
@@ -193,18 +203,19 @@ async function run() {
   })));
   assert.deepEqual(finalCash,paired?comparison.successorModelCash:comparison.onchainExpectedCash);
   if(paired) {
-    assert(exercisedPair);
+    assert(residual||exercisedPair);
     const current=await readAccountResolution(worker.rpc,setup.venue);
     const receipt=sdk.frozenPairReceipt(current.preparedState);
     assert.deepEqual(receipt,{epoch:frozen.epoch,debtorId:(await root(debtor)).id,winnerId:(await root(winner)).id,
-      charge:1_500n,price:68_500n,unpaidGainCap:9_002n});
+      charge:BigInt(comparison.winnerCharge),price:BigInt(comparison.forcedClosePrice),unpaidGainCap:(70_000n-closeMid+2n)*lots,
+      ...(residual?{matchedLots:BigInt(comparison.matchedLots),extraTickLots:BigInt(comparison.extraTickLots)}:{})});
   }
   const ledgers = await Promise.all(setup.ledgers.map(ledger));
-  assert.deepEqual(ledgers.map(value=>[value.insurance,value.settlement,value.fees]),[[0n,0n,20n],[0n,0n,0n]]);
+  assert.deepEqual(ledgers.map(value=>[value.insurance,value.settlement,value.fees]),[[0n,0n,protectedFees],[0n,0n,0n]]);
   assert.equal(await tokenBalance(setup.vault),vaultBefore);
   await journal.checkpoint('cash-distributed',true);
-  const paid = BigInt(finalCash[trader])-999_974n;
-  assert.equal(paid,paired?996n:847n);
+  const paid = BigInt(finalCash[trader])-initialCash;
+  assert.equal(paid,paired?BigInt(comparison.flatPayout):847n);
   await h.send('withdraw funded BTC recovery to trader wallet',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
     btc:setup.markets[0],eth:setup.markets[1],owner,margin:trader,quoteMint:setup.mint.address,userToken:wallet,
     guard:await guard(trader),amount:paid})],[owner]);
@@ -232,7 +243,7 @@ async function run() {
   assert.equal((await safety()).mode,0);
   await journal.checkpoint('withdrawn-and-recovered',true);
   const replay = await journal.finish();
-  assert.equal(replay.state.roots[trader].cash,'999974');
+  assert.equal(replay.state.roots[trader].cash,String(initialCash));
   const summary = {revision,artifactSet:replay.binding.artifactSet,inputs,freeze:cutoff.signature,comparison,finalCash,
     paid,walletBefore,walletAfter:await tokenBalance(wallet),vaultBefore,vaultAfter:await tokenBalance(setup.vault),
     insuranceSpent:terminal.insuranceSpent,originals,events:replay.events,signedHarnessChecks:checks.length};

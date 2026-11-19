@@ -14,13 +14,14 @@ type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
 export class SettlementPages {
   private readonly binary:string;
   constructor(directory?:string,selection:AccountDeployment='selected') {
-    const paired=selection==='verified-pair-candidate';
+    const feature=selection==='btc-residual-candidate'?'btc-residual-qualification':
+      selection==='verified-pair-candidate'?'single-pair-default-qualification':undefined;
     directory=resolve(directory??process.env.RIVALT_SETTLEMENT_HELPER_DIR??
-      (paired?'.local/settlement-helper-verified-pair':'.local/settlement-helper'));
+      (selection==='btc-residual-candidate'?'.local/settlement-helper-btc-residual':feature?'.local/settlement-helper-verified-pair':'.local/settlement-helper'));
     const manifest=JSON.parse(readFileSync(resolve(directory,'manifest.json'),'utf8'));
     assert(manifest.version===2&&manifest.accountSchema===10&&manifest.programProfile===6
       &&manifest.binary==='rivalt-settlement-pages'&&manifest.revision===accountDeployment(selection).helperRevision&&manifest.trackedDirty===false
-      &&(paired?manifest.feature==='single-pair-default-qualification':manifest.feature===undefined)
+      &&manifest.feature===feature
       &&/^[0-9a-f]{64}$/.test(manifest.sha256),'Unsupported settlement helper manifest');
     this.binary=resolve(directory,manifest.binary);
     const bytes=readFileSync(this.binary);

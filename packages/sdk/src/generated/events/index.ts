@@ -28,6 +28,7 @@ export * from "./accountRetirementProgress.js";
 export * from "./accountSafetyRecovery.js";
 export * from "./accountsRetired.js";
 export * from "./accountTransition.js";
+export * from "./frozenBtcReductionVerified.js";
 export * from "./frozenPairVerified.js";
 export * from "./fundingPublisherChanged.js";
 export * from "./fundingReportAccepted.js";
