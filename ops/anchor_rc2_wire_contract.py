@@ -155,6 +155,31 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    fees = unique('classify_market_fees')
+    assert fees['discriminator'] == list(hashlib.sha256(b'global:classify_market_fees').digest()[:8])
+    assert not fees['args']
+    assert [item['name'] for item in fees['accounts']] == 'venue safety ledger first second third event_authority program'.split()
+    assert [item['name'] for item in fees['accounts'] if item.get('writable')] == ['ledger']
+    assert not any(item.get('signer') or item.get('optional') for item in fees['accounts'])
+    assert fees['accounts'][:3] == unique('allocate_market_fees')['accounts'][:3]
+    assert fees['accounts'][-2:] == unique('allocate_market_fees')['accounts'][-2:]
+    actual['instructions'].remove(fees)
+    route_fields = next(item['type']['fields'] for item in actual['types'] if item['name']=='LiquidityRouteExecuted')
+    remove_split = {'insurance_credit','retained_fee','carry_before','carry_after'}
+    revised = [field for field in route_fields if field['name'] not in remove_split]
+    insert = next(i for i,field in enumerate(revised) if field['name']=='ledger')
+    def fields(items):
+        return [dict(name=name,type=kind) for name,kind in items]
+    revised[insert:insert] = fields([('lane_collected','u128'),('market_pending','u64')])
+    for name, expected in (
+        ('LiquidityRouteFeeRecorded', revised),
+        ('MarketFeesClassified', fields([('venue','pubkey'),('market','pubkey'),('slot','u64'),('classified','u128'),
+                                       ('amount','u64'),('insurance_credit','u64'),('ledger',{'defined':{'name':'MarketLedgerSnapshot'}})]))
+    ):
+        actual['events'].remove(dict(name=name,discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+        event_type = next(item for item in actual['types'] if item['name']==name)
+        assert clean(event_type) == dict(name=name,type=dict(kind='struct',fields=expected))
+        actual['types'].remove(event_type)
     book = unique('verify_inventory_book')
     assert book['discriminator'] == list(hashlib.sha256(b'global:verify_inventory_book').digest()[:8])
     assert book['args'] == [dict(name=key,type='u64') for key in ('epoch','revision')] + [dict(name='ordinals',type={'vec':'u64'})]

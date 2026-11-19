@@ -31,7 +31,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     const result=await runtime.rpc.call('getAccountInfo',[address,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(state.contextSlot)}]);
     assert(BigInt(result.context.slot)>=state.contextSlot,'Default read moved backwards');return result.value;
   };
-  const multi=runtime.deploymentSelection==='multi-lot-book-candidate';
+  const multi=sdk.isMultiLotDeployment(runtime.deploymentSelection);
   const book=sdk.isBookInventoryDeployment(runtime.deploymentSelection);
   const allocation=runtime.deploymentSelection==='btc-allocation-candidate';
   const linkedAllocation=runtime.deploymentSelection==='linked-allocation-candidate';
@@ -85,7 +85,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate','book-capacity-candidate','multi-lot-book-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
+    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate','book-capacity-candidate','multi-lot-book-candidate','aggregate-fee-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
       const members:FrozenMember[]=[];
       for(let start=0n; start<prepared.count; start+=8n) {
         const {page,row}=await frozen(start);

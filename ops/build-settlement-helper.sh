@@ -9,6 +9,9 @@ set --
 helper_dir=.local/settlement-helper
 case "$selection" in
   selected) ;;
+  aggregate-fee-candidate)
+    set -- --features clearing/aggregate-fee-qualification
+    helper_dir=.local/settlement-helper-aggregate-fees ;;
   multi-lot-book-candidate)
     set -- --features clearing/multi-lot-book-qualification
     helper_dir=.local/settlement-helper-multi-lot ;;
@@ -66,7 +69,9 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'revision':sys.argv[1],
  'trackedDirty':False,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
-if sys.argv[2]=='multi-lot-book-candidate':
+if sys.argv[2]=='aggregate-fee-candidate':
+    manifest['feature']='aggregate-fee-qualification'
+elif sys.argv[2]=='multi-lot-book-candidate':
     manifest['feature']='multi-lot-book-qualification'
 elif sys.argv[2] in ('book-inventory-candidate','book-capacity-candidate'):
     manifest['feature']='book-inventory-qualification'

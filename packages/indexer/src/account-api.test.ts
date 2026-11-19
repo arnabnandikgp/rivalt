@@ -1,4 +1,5 @@
 import {expect, it} from 'vitest';
+import {AGGREGATE_FEE_ARTIFACT_SET} from '@rivalt/sdk';
 import {accountApi} from './account-api.js';
 import {publishedSnapshot} from './store.js';
 import type {LiquidityIndexer} from './liquidity-indexer.js';
@@ -61,5 +62,30 @@ it('exposes Registered, frozen Apply and permanent retired identities from one p
     expect((await app.inject(`/v4/accounts/${retired}`)).json()).toMatchObject({account:null,lifecycle:'Retired',admission:'UnavailableRetiredNamespace',tombstone:{child:2}});
     const portfolios=(await app.inject(`/v4/portfolios/${owner}`)).json();
     expect(portfolios.portfolios[0].accounts[0].id).toBe(id);expect(portfolios.portfolios[0].retired[0].id).toBe('9007199254740994');
+  }finally{await app.close();}
+});
+
+
+it('reconstructs a partial page of aggregate fee receipts from the published market carry',async()=>{
+  const checkpoint={binding:{artifactSet:AGGREGATE_FEE_ARTIFACT_SET},state:{sequence:'41'},
+    checkpoint:'head',checkpoint_slot:'20',error:null,published_state:{sequence:'41'},published_checkpoint:'published',published_checkpoint_slot:'19',synced_at:new Date()};
+  const observations=[{sequence:'40',payload:{fee:'13',marketPending:'13',ledger:{insuranceFeeRemainder:0}}},
+    {sequence:'41',payload:{fee:'13',marketPending:'13',ledger:{insuranceFeeRemainder:3}}}];
+  const client={async query(sql:string,params?:unknown[]){
+    if(sql.startsWith('SELECT * FROM runs'))return {rows:[checkpoint]};
+    if(sql.includes('FROM events')){
+      expect(sql).toContain("AND kind='LiquidityRouteFeeRecorded'");
+      expect(params).toEqual(['fees','39',2,'41']);
+      return {rows:structuredClone(observations)};
+    }
+    return {rows:[]};
+  },release(){}};
+  const indexer={healthy:true,config:{runId:'fees'},store:{published:async()=>publishedSnapshot(checkpoint),pool:{connect:async()=>client}}};
+  const app=accountApi(indexer as unknown as LiquidityIndexer);
+  try {
+    const response=await app.inject('/v4/trades?after=39&limit=2');
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items.map((row:{reconstructedFeeSplit:unknown})=>row.reconstructedFeeSplit)).toEqual([
+      {insurance:'3',retained:'10',carry:1},{insurance:'4',retained:'9',carry:0}]);
   }finally{await app.close();}
 });

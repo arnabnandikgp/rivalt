@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "debca1f091d24e421b815409ce1b36babcaf7de709c7484b794e815e62c9c8d1",
+    "clearing": "3aa6f2270941f5f7f8579f50f261643d4b5d2c98eb784577bc2c2a099a73d37b",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -445,6 +445,24 @@
         "registry",
         "btc",
         "eth",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "classify_market_fees",
+      "write": [
+        "ledger"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "first",
+        "second",
+        "third",
         "event_authority",
         "program"
       ],

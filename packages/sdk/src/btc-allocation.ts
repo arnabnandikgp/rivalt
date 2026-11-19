@@ -5,7 +5,7 @@ import {
   type FixedSizeDecoder,type Instruction,getTupleDecoder,getU16Decoder,getU64Decoder,getU8Decoder,transformDecoder,
 } from '@solana/kit';
 import {CLEARING_PROGRAM_ADDRESS,VERIFY_INVENTORY_BOOK_DISCRIMINATOR,getFrozenMarginDecoder,type PreparedSettlement} from './generated/index.js';
-import type {AccountDeployment} from './account-deployment.js';
+import {isMultiLotDeployment,type AccountDeployment} from './account-deployment.js';
 import {requireValue} from './wallet-client.js';
 
 export function getBtcAllocationPageDecoder() {
@@ -25,7 +25,7 @@ export const INVENTORY_BOOK_ACTIVE_PAGE_LIMIT=32-11;
 export const INVENTORY_BOOK_EVENT_PAGE_LIMIT=Math.floor((8192-108-10*41-49)/49);
 export const INVENTORY_BOOK_HEAP_BYTES=128*1024;
 export function inventoryBookHeap(selection:AccountDeployment|undefined,instructions:readonly Instruction[]) {
-  if(selection!=='book-capacity-candidate'&&selection!=='multi-lot-book-candidate')return undefined;
+  if(selection!=='book-capacity-candidate'&&!isMultiLotDeployment(selection))return undefined;
   return instructions.some(ix=>ix.programAddress===CLEARING_PROGRAM_ADDRESS &&
     VERIFY_INVENTORY_BOOK_DISCRIMINATOR.every((byte,index)=>ix.data?.[index]===byte))?INVENTORY_BOOK_HEAP_BYTES:undefined;
 }
