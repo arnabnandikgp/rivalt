@@ -6,6 +6,8 @@ pub mod foreign_creditor;
 pub mod inventory_book;
 pub mod inventory_choice;
 pub mod mirror;
+#[cfg(feature = "native-search")]
+pub mod multi_lot;
 pub mod proportional;
 pub mod single_lot;
 pub mod two_debtors;

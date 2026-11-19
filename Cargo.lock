@@ -401,6 +401,11 @@ dependencies = [
 name = "default-plan-selection"
 version = "0.1.0"
 dependencies = [
+ "clearing-accounting",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "serde_json",
  "solana-sha256-hasher",
 ]
 
