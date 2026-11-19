@@ -693,3 +693,15 @@ verified input registers remain read-only, and missing I/O stops before the next
 step. No preview result or simulation is uploaded as a trusted financial effect.
 The existing three-descriptor instructions retain their wire contract. Windowed
 source/build/runtime acceptance is separate from prior scalar/batched evidence.
+
+## Linked allocation during a default
+
+On the local linked-allocation candidate, each score event identifies the
+frozen episode, proposal attempt, member ordinal and both market charges. The
+indexer checks the member against frozen ordering, the original debtor cash
+split, the per-market shortfalls, and each fill price and lot remainder. A
+rejected proposal remains in the journal. The next attempt starts at member
+zero. Only a complete successful attempt changes the claim basis used by
+settlement. RPC reconciliation compares the projected attempt and charges with
+the prepared header and frozen rows. Worker restarts resume from the on-chain
+ordinal. [Candidate contract](../clearing/default-plan-verification.md#linked-allocation-across-competing-winners).

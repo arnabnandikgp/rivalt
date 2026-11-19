@@ -1,5 +1,53 @@
 # Validation and measured limits
 
+## Linked allocation across competing makers
+
+At clean harness `005230c`, all five trades produced the same eight original
+cash balances, positions, claims and per-lot payment histories as the contested
+run at `89ef133`. Both markets' prices, funding, pools, insurance and fees
+matched. The independent reference enumerated 2,548 assignments. Clearing
+certified 4 and 9 atoms on the BTC makers and 12 on the ETH maker. Each
+reduction involved one lot, at 50,004, 50,009 and 20,012 respectively.
+The original debtor supplied 19,978 BTC-market atoms and 9,989 ETH-market
+atoms. Insurance supplied 13 and 1. Retained market fees were 39 and 6.
+
+| Recipient | Ordinary model credit | Actual funded withdrawal |
+|---|---:|---:|
+| Flat BTC trader | 4,993 | 4,996 |
+| First BTC maker | 5,003 | 5,002 |
+| Second BTC maker | 9,995 | 9,993 |
+| ETH maker | 9,990 | 9,990 |
+| Total collateral atoms | 29,981 | 29,981 |
+
+After the four signed SPL withdrawals the vault held 6,030,019 of its initial
+6,060,000 atoms. The trader retained 29,974 funded atoms and its wallet held
+4,996. The three maker accounts retained their original deposits and their
+common operator wallet held 24,985. The ordinary column is an independently
+computed comparison on this book. The preceding sole-winner binary kept it frozen.
+
+The wrong cutoff finished at 0/12 after eight members, and both markets stayed
+frozen. On the corrected attempt the worker reopened at ordinal three. A
+duplicate row, a skipped row, a premature denominator operation and a one-atom
+withdrawal were refused. The eight margin roots, both ledgers, resolution, vault
+and wallets retained their original bytes through certification. The final run recorded 290 harness
+outcomes and 71 separately signed worker originals. Finalized RPC/WS originals
+matched the submitted bytes. Fresh PostgreSQL reproduced 143 events and the
+projected state, including both allocation attempts and all four withdrawals.
+
+| Finalized operation | CU | Wire bytes |
+|---|---:|---:|
+| Open corrected allocation | 31,163 | 824 |
+| Score one member, range across both attempts | 31,716–43,488 | 760 |
+| Highest transaction, 24 rate steps | 898,690 | 2,923 |
+| Each owner withdrawal | 32,676 | 806 |
+
+Local clearing at `d0ae474` was 2,609,136 bytes, SHA-256
+`4e41342a10405a75e1539a8a249c97cbf6c955f4434f484996f9c2f0bf06bcd4`.
+The layout test verified the 1,284-byte frozen page. Eight focused worker
+and projection tests cover cutoff ordering and refused, resumed and completed
+scans. This run measured eight members with one cross debtor and disjoint
+creditors. [Reproduction](local-development.md#reproduce-the-linked-allocation-across-competing-makers).
+
 ## Closed BTC claim in a two-market default
 
 A cross debtor bought BTC and ETH. A second trader sold one BTC lot at
@@ -54,8 +102,8 @@ winner on its own and attempting to bypass certification all failed with 6130.
 The eight roots and freeze checkpoint stayed byte-identical. Wallets stayed
 empty and the vault kept all 6,060,000 atoms. The run recorded 284 harness
 outcomes, 41 worker originals and 96 events reproduced in fresh SQL.
-The 4/9/12 schedule is an independently verified target for the next clearing
-deliverable. This local program did not apply that schedule.
+The 4/9/12 schedule from that run supplied the target for the subsequent
+[competing-maker qualification](#linked-allocation-across-competing-makers).
 
 ## Clearing-verified linked default and wallet exit
 

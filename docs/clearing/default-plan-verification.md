@@ -589,3 +589,44 @@ witness. Version two stores the whole amount at bytes 264–271, little-endian.
 A zero version-two witness, a nonzero version-one witness and nonzero reserved
 bytes fail decoding. The authenticated frozen pages, original winner accounts
 and gross/claim totals still bind each financial decision.
+
+## Linked allocation across competing winners
+
+The local candidate admits a cross debtor with the complete negative claim and its
+entire side of open interest in each market. Every other member may have lots or
+a whole-atom claim in one market. Flat unpaid claims count as creditors. The
+debts, debtor's two original cash shares and creditor claims must all be whole
+atoms. In each market the debt left after that cash share and market insurance
+must be positive and fully recoverable from eligible opposite positions.
+
+The worker proposes the last selected marginal atom separately for BTC and ETH.
+Clearing fixes both proposals in the same prepared header and visits the frozen
+members in canonical order. At each open winner, clearing reads the original
+position and its exact entry and paid-profit history, derives eligible capacity,
+then counts the marginal atoms at or below the proposed boundary. For the kth atom
+the marginal cost is (2k−1) / eligible capacity. Equal costs use the additional
+lots needed for that atom, then frozen episode priority and stable member ID.
+Every admitted charge is consequently a prefix of the same total ordering within
+its market. If both sums equal the respective shortfalls, they identify the
+unique selected allocation under the approved tie rules. Disjoint creditors and
+the fixed cash split let the two markets attain their maxima together.
+
+A scoring transaction writes the prepared header and one frozen page. Each of
+its eight rows has two additional little-endian u64 charges in this candidate
+layout. Stage 7 records the next ordinal, attempt and recovered amounts. Excess
+recovery or a short final sum returns the header to stage 4. The next attempt
+overwrites the rows in order. Provisional charges have no effect on any root,
+insurance ledger or vault. Anyone can finish a pending scan from its stored
+cursor. Repeated submissions of losing cutoffs can consume time and fees; this
+candidate sets no production completion deadline. For N frozen members a
+successful proof takes one begin instruction and N scoring instructions. The
+prepared header serializes those instructions within one default episode.
+Only a complete scan opens denominator verification.
+Settlement keeps original debts for debtor cash attribution and applies the
+certified charges to market claims. A later owner-signed withdrawal moves the
+funded collateral.
+
+Multiple debtors, creditors exposed to both markets, fractional original cash
+shares and insufficient eligible gain require additional proof. The worker
+reports these shapes as unsupported in this candidate. The local artifact has
+its own page decoder and pinned helper. [Clearing implementation](../../programs/clearing/src/instructions/account_safety/settlement/linked_allocation.rs).

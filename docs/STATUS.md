@@ -56,7 +56,8 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 | Former P57–P62 audit sequence | Retired before implementation | [D111](DECISIONS.md#d111--clearing-roadmap) records the scope decision. |
 | Real linked BTC/ETH default comparison | Review | [PR #110](https://github.com/arnabnandikgp/rivalt/pull/110). Clean `7c299ca`; ordinary clearing paid 9,999 and 9,997 atoms through two SPL withdrawals. The BTC-only candidate refused both incomplete instructions. Independent native settlement reproduced the original and adjusted books; fresh SQL replay matched 104 and 75 events. [Validation](operations/validation.md#signed-two-market-default-comparison). |
 | Clearing-verified joint recovery | Review | [PR #111](https://github.com/arnabnandikgp/rivalt/pull/111). At `a956981`, local SBF `0e027fc` charged 3 and 5 while preserving the 9,996/9,996 cash split. After the partial certificate refused a withdrawal, both makers withdrew their funded recoveries. 265 harness outcomes, 56 worker originals and 105 fresh SQL events. [Validation](operations/validation.md#clearing-verified-linked-default-and-wallet-exit). |
-| Closed BTC creditor in a linked default | Review | On ordinary SBF `33361d9` the trader withdrew 4,994 atoms. On candidate `30434d5` its withdrawal paid 4,996. The independent reference enumerated 84 plans. At `89ef133` the successor replayed 124 events after three wallet exits. A second eligible BTC maker kept the contested book frozen (284 harness outcomes and 96 SQL events). [Measured comparison](operations/validation.md#closed-btc-claim-in-a-two-market-default). |
+| Closed BTC creditor in a linked default | Review | [PR #112](https://github.com/arnabnandikgp/rivalt/pull/112). On ordinary SBF `33361d9` the trader withdrew 4,994 atoms. On candidate `30434d5` its withdrawal paid 4,996. The independent reference enumerated 84 plans. At `89ef133` the successor replayed 124 events after three wallet exits. A second eligible BTC maker kept the contested book frozen (284 harness outcomes and 96 SQL events). [Measured comparison](operations/validation.md#closed-btc-claim-in-a-two-market-default). |
+| Competing BTC winners in a linked default | Review | SBF `d0ae474`, signed harness `005230c`. Clearing certified BTC 4/9 and ETH 12 after rejecting 0/12. Four withdrawals paid 29,981 atoms. Eight accounts, 71 worker originals and 143 fresh SQL events reconciled. [Measured results](operations/validation.md#linked-allocation-across-competing-makers). |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -131,9 +132,11 @@ reference inputs. The ordinary program paid both makers and the BTC-only
 candidate kept the linked case frozen. The separate linked clearing build now
 verifies both schedules, resumes between legs and pays both makers. The additional
 closed BTC creditor subsequently withdrew 4,996 atoms versus the ordinary 4,994.
-The next action is to certify the complete allocation between two eligible BTC
-makers in the same BTC/ETH freeze and reconcile the trader's withdrawal against
-the verified allocation.
+The competing makers' signed charges now reconcile to the independent
+4/9/12 allocation and the trader's full 4,996-atom withdrawal.
+Next, construct a signed freeze in which an open winner owes the other
+market, then compare every creditor's ordinary and protected payout before
+extending clearing admission to that case.
 
 ## Earlier checkpoints
 

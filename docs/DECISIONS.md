@@ -1364,3 +1364,14 @@ account with no ETH claim. The equality with the total proves that this one
 account holds the entire remainder. This avoids adding the trader as a writable
 account on either certificate transaction. D116 still selects the only eligible
 open winner in each market. [Verification contract](clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
+
+## D130 — Verify competing winners against one cutoff per market
+
+19 November 2026. For a local candidate with one cross debtor, market-local
+creditors, exact whole-atom cash shares and full recovery in both markets, use
+one resumable member scan for the two D116 cutoffs. All financial release waits
+for both exact totals. This extends the sole-open-winner proof in D128/D129 to
+competing makers under the same D117 cash attribution and D119 joint commitment.
+A permissionless caller can resume a submitted attempt. An incorrect total
+discards its authority and permits a new proposal. Candidate qualification
+covers the signed book recorded in validation. [Verification contract](clearing/default-plan-verification.md#linked-allocation-across-competing-winners).

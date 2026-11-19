@@ -425,3 +425,24 @@ To exercise competing BTC winners, run the same linked candidate and helper
 with `RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-contested`. This
 five-trade scenario compares the proposals to the frozen book and submits
 each incomplete pair to clearing on its own fresh chain.
+
+### Reproduce the linked allocation across competing makers
+
+At clean program revision `d0ae474`, build clearing with
+`RIVALT_ATTRIBUTION_PROFILE=linked-allocation-qualification` and
+`bash ops/build-profit-attribution.sh`. Keep its printed output directory. At the
+harness revision recorded in [validation](validation.md#linked-allocation-across-competing-makers),
+run the following with that directory in `linked_allocation_build`.
+
+```bash
+bash ops/build-settlement-helper.sh linked-allocation-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_allocation_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-allocation \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+The five fills produce two BTC winners, one ETH winner and a flat BTC creditor.
+The run first offers too little BTC alongside the correct ETH allocation, then
+restarts the worker during the corrected member scan. It compares all final
+margin accounts and four withdrawals to the independent fill-by-fill reference,
+and refetches the original transactions into a fresh PostgreSQL database.

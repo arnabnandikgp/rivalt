@@ -43,29 +43,33 @@ function apply(state:AccountState,id:number) {
   return {venue:'venue',slot:'1',epoch:'3',ordinal:String(id),id:String(id),member:`root${id}`,cashBefore:previous.cash,
     claims:[((id===0?-2n:1n)*scale).toString(),'0'],lots:['0','0'],flows:[id===2?'0':'1','0'],state:root};
 }
+function linkedBook() {
+  const state=fixture(), source=state.resolution!;
+  source.prices=['50000','20000'];source.insuranceBefore=['9','1'];source.remainingGross=['2','2'];source.count='4';
+  source.cashBefore='19976';source.remainingCash='19976';source.allocatedBefore='19988';
+  state.custody!.allocatedVault=source.allocatedBefore;
+  state.ledgers.bl.insurance='9';state.ledgers.el.insurance='1';
+  state.markets.btc.grossLots='2';state.markets.eth.grossLots='2';
+  state.registeredCount='4';state.nextMemberId='4';
+  state.roots.root0.cash=source.cashBefore;
+  state.roots.flat=structuredClone(state.roots.root1);state.roots.flat.id='3';
+  state.members.push('flat');state.identities['3']='flat';
+  const terms=[
+    ['root0',1,-10002,1,-10002], ['root1',-1,5006,0,0],
+    ['root2',0,0,-1,10002], ['flat',0,4996,0,0],
+  ] as const;
+  for(const [key,btcLots,btcClaim,ethLots,ethClaim] of terms) {
+    for(const [market,[lots,claim]] of [[btcLots,btcClaim],[ethLots,ethClaim]].entries()) {
+      const position=state.roots[key].positions[market];
+      position.lots=String(lots);
+      position.virtualScaled=String((BigInt(claim)-BigInt(lots)*BigInt(source.prices[market]))*scale);
+    }
+  }
+  return state;
+}
 describe('paged default independent one-atom ownership',()=>{
   it('authenticates the whole flat BTC claim only on the corresponding linked deployment',()=>{
-    const state=fixture(), source=state.resolution!;
-    source.prices=['50000','20000'];source.insuranceBefore=['9','1'];source.remainingGross=['2','2'];source.count='4';
-    source.cashBefore='19976';source.remainingCash='19976';source.allocatedBefore='19988';
-    state.custody!.allocatedVault=source.allocatedBefore;
-    state.ledgers.bl.insurance='9';state.ledgers.el.insurance='1';
-    state.markets.btc.grossLots='2';state.markets.eth.grossLots='2';
-    state.registeredCount='4';state.nextMemberId='4';
-    state.roots.root0.cash=source.cashBefore;
-    state.roots.flat=structuredClone(state.roots.root1);state.roots.flat.id='3';
-    state.members.push('flat');state.identities['3']='flat';
-    const terms=[
-      ['root0',1,-10002,1,-10002], ['root1',-1,5006,0,0],
-      ['root2',0,0,-1,10002], ['flat',0,4996,0,0],
-    ] as const;
-    for(const [key,btcLots,btcClaim,ethLots,ethClaim] of terms) {
-      for(const [market,[lots,claim]] of [[btcLots,btcClaim],[ethLots,ethClaim]].entries()) {
-        const position=state.roots[key].positions[market];
-        position.lots=String(lots);
-        position.virtualScaled=String((BigInt(claim)-BigInt(lots)*BigInt(source.prices[market]))*scale);
-      }
-    }
+    const state=linkedBook(),source=state.resolution!;
     const event={venue:'venue',epoch:'3',debtorId:'0',winners:['1','2'],shares:['9988','9988'],charges:['5','13'],
       eligible:['5006','10002'],matchedLots:['1','1'],basePrices:['50005','20013'],extraTickLots:['0','0']};
     const applyJoint=(snapshot:AccountState,artifactSet:string)=>emit(snapshot,'FrozenJointReductionVerified',event,artifactSet);
@@ -74,6 +78,27 @@ describe('paged default independent one-atom ownership',()=>{
     expect(()=>applyJoint(foreign,sdk.LINKED_FLAT_ARTIFACT_SET)).toThrow('flat BTC creditor identity and face');
     applyJoint(state,sdk.LINKED_FLAT_ARTIFACT_SET);
     expect(source.joint?.charges).toEqual(['5','13']);
+  });
+  it('requires both totals and canonical identities before accepting a restarted linked attempt',()=>{
+    const state=linkedBook();
+    const applyRow=(attempt:number,ordinal:number,btc:number,eth:number,status:number,snapshot=state)=>{
+      const term=(amount:number,market:number)=>amount===0?'0':String([50000,20000][market]+amount);
+      emit(snapshot,'FrozenLinkedAllocationRow',{venue:'venue',epoch:'3',ordinal:String(ordinal),attempt:String(attempt),
+        memberId:String(ordinal),debtorId:'0',shares:['9988','9988'],targets:['5','13'],
+        eligible:[ordinal===1?'5006':'0',ordinal===2?'10002':'0'],charges:[String(btc),String(eth)],
+        matchedLots:[btc?'1':'0',eth?'1':'0'],basePrices:[term(btc,0),term(eth,1)],extraTickLots:['0','0'],status},
+        sdk.LINKED_ALLOCATION_ARTIFACT_SET);
+    };
+    applyRow(11,0,0,0,0);
+    expect(()=>applyRow(11,2,0,13,0,structuredClone(state))).toThrow('linked scan binding');
+    applyRow(11,1,0,0,0);applyRow(11,2,0,13,0);
+    expect(()=>applyRow(11,3,0,0,1,structuredClone(state))).toThrow('linked proof outcome');
+    applyRow(11,3,0,0,2);
+    expect(()=>applyRow(11,0,0,0,0,structuredClone(state))).toThrow('new linked attempt');
+    applyRow(19,0,0,0,0);applyRow(19,1,5,0,0);applyRow(19,2,0,13,0);
+    expect(()=>applyRow(19,3,1,0,1,structuredClone(state))).toThrow('eligible linked terms');
+    applyRow(19,3,0,0,1);
+    expect(state.resolution?.linkedAllocation?.recovered).toEqual(['5','13']);
   });
   it('reads the flow owner from frozen membership after registration gaps',async()=>{
     const state=fixture();emit(state,'SettlementPlanProgress',progress());

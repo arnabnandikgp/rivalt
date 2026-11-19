@@ -1,6 +1,5 @@
-// Exact candidate page layout. Each original FrozenMargin has one appended
-// whole-atom BTC charge. These provisional fields become economic only after
-// the header certifies the entire scan.
+// Candidate frozen pages append either a BTC charge or a BTC/ETH pair to each row.
+// Only a completed allocation certificate activates the recorded amounts.
 import {
   fixDecoderSize,getAddressDecoder,getArrayDecoder,getBytesDecoder,getStructDecoder,
   type FixedSizeDecoder,getTupleDecoder,getU16Decoder,getU64Decoder,getU8Decoder,transformDecoder,
