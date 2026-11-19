@@ -181,6 +181,7 @@ import {
   getPublishFundingReportInstructionAsync,
   getQuarantineLiquidityInstructionAsync,
   getReactivateAccountsInstructionAsync,
+  getReadMarketGrossInstructionAsync,
   getReconcileSettlementMarginInstructionAsync,
   getRecoverAccountsInstructionAsync,
   getRefundRecoveryAllocationInstructionAsync,
@@ -273,6 +274,7 @@ import {
   parsePublishFundingReportInstruction,
   parseQuarantineLiquidityInstruction,
   parseReactivateAccountsInstruction,
+  parseReadMarketGrossInstruction,
   parseReconcileSettlementMarginInstruction,
   parseRecoverAccountsInstruction,
   parseRefundRecoveryAllocationInstruction,
@@ -424,6 +426,7 @@ import {
   type ParsedPublishFundingReportInstruction,
   type ParsedQuarantineLiquidityInstruction,
   type ParsedReactivateAccountsInstruction,
+  type ParsedReadMarketGrossInstruction,
   type ParsedReconcileSettlementMarginInstruction,
   type ParsedRecoverAccountsInstruction,
   type ParsedRefundRecoveryAllocationInstruction,
@@ -457,6 +460,7 @@ import {
   type PublishFundingReportAsyncInput,
   type QuarantineLiquidityAsyncInput,
   type ReactivateAccountsAsyncInput,
+  type ReadMarketGrossAsyncInput,
   type ReconcileSettlementMarginAsyncInput,
   type RecoverAccountsAsyncInput,
   type RefundRecoveryAllocationAsyncInput,
@@ -497,6 +501,7 @@ import {
   findFundingPublisherPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
+  findMakerRegistrationPda,
   findMarginAccountPda,
   findMarketLedgerPda,
   findPortfolioPda,
@@ -1431,6 +1436,7 @@ export enum ClearingInstruction {
   PublishFundingReport,
   QuarantineLiquidity,
   ReactivateAccounts,
+  ReadMarketGross,
   ReconcileSettlementMargin,
   RecoverAccounts,
   RefundRecoveryAllocation,
@@ -2183,6 +2189,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([118, 219, 1, 252, 97, 87, 10, 116]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ReadMarketGross;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([99, 140, 60, 92, 22, 220, 254, 2]),
       ),
       0,
@@ -2680,6 +2697,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.ReactivateAccounts;
     } & ParsedReactivateAccountsInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ReadMarketGross;
+    } & ParsedReadMarketGrossInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ReconcileSettlementMargin;
     } & ParsedReconcileSettlementMarginInstruction<TProgram>)
@@ -3220,6 +3240,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ReactivateAccounts,
         ...parseReactivateAccountsInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ReadMarketGross: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ReadMarketGross,
+        ...parseReadMarketGrossInstruction(instruction),
       };
     }
     case ClearingInstruction.ReconcileSettlementMargin: {
@@ -3809,6 +3836,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getReactivateAccountsInstructionAsync> &
     SelfPlanAndSendFunctions;
+  readMarketGross: (
+    input: ReadMarketGrossAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getReadMarketGrossInstructionAsync> &
+    SelfPlanAndSendFunctions;
   reconcileSettlementMargin: (
     input: ReconcileSettlementMarginAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3966,6 +3998,9 @@ export type ClearingPluginPdas = {
   certificate: typeof findCertificatePda;
   liquidityRegistry: typeof findLiquidityRegistryPda;
   venue: typeof findVenuePda;
+  makerRegistration: typeof findMakerRegistrationPda;
+  makerRegistration: typeof findMakerRegistrationPda;
+  makerRegistration: typeof findMakerRegistrationPda;
   capitalBinding: typeof findCapitalBindingPda;
   marginAccount: typeof findMarginAccountPda;
 };
@@ -4603,6 +4638,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          readMarketGross: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getReadMarketGrossInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           reconcileSettlementMargin: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -4913,6 +4956,21 @@ export function clearingProgram(
             }),
           venue: (seeds, pdaConfig) =>
             findVenuePda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          makerRegistration: (seeds, pdaConfig) =>
+            findMakerRegistrationPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          makerRegistration: (seeds, pdaConfig) =>
+            findMakerRegistrationPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          makerRegistration: (seeds, pdaConfig) =>
+            findMakerRegistrationPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

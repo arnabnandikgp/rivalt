@@ -315,6 +315,11 @@ pub fn apply_plan_margin(
         &accounts.prepared,
         &application_scan(&accounts.prepared, &accounts.plan)?,
     )?;
+    #[cfg(feature = "bounded-market-read")]
+    {
+        crate::market_capacity::reset(&mut accounts.source.btc, gross[0])?;
+        crate::market_capacity::reset(&mut accounts.source.eth, gross[1])?;
+    }
     accounts.source.btc.gross_lots = gross[0];
     accounts.source.eth.gross_lots = gross[1];
     accounts.plan.last_progress_slot = Clock::get()?.slot;

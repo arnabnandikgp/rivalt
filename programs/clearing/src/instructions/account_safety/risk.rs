@@ -163,6 +163,8 @@ pub fn liquidate(
     } else {
         &mut accounts.identity.eth
     };
+    #[cfg(feature = "bounded-market-read")]
+    crate::market_capacity::reset(selected.as_deref_mut().ok_or(ClearingError::OrderState)?, candidate.gross_lots)?;
     selected
         .as_deref_mut()
         .ok_or(ClearingError::OrderState)?

@@ -60,7 +60,7 @@ pub struct InitializeMarket {
     pub custody: Box<BorshAccount<Custody>>,
     #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<BorshAccount<VenueSafety>>,
-    #[account(init, payer = authority, space = 8 + Market::INIT_SPACE,
+    #[account(init, payer = authority, space = 8 + Market::INIT_SPACE + crate::market_capacity::MARKET_EXTRA,
         seeds = [b"market-v3", venue.address().as_ref(), &[index]], bump)]
     pub market: Box<BorshAccount<Market>>,
     #[account(init, payer = authority, space = 8 + MarketLedger::INIT_SPACE + crate::market_fees::LEDGER_EXTRA,

@@ -71,6 +71,7 @@ export * from "./prepareSettlementRateScratch.js";
 export * from "./publishFundingReport.js";
 export * from "./quarantineLiquidity.js";
 export * from "./reactivateAccounts.js";
+export * from "./readMarketGross.js";
 export * from "./reconcileSettlementMargin.js";
 export * from "./recoverAccounts.js";
 export * from "./refundRecoveryAllocation.js";

@@ -31,6 +31,7 @@ pub mod engine;
 pub mod error;
 mod event_cpi;
 mod market_fees;
+mod market_capacity;
 pub mod events;
 pub mod instructions;
 #[cfg(feature = "profit-attribution-qualification")]
@@ -549,6 +550,11 @@ pub mod clearing {
             false,
             |ctx, events| account_trading::activation::activate_liquidity(ctx, events),
         )
+    }
+
+    /// Read exact gross lots at this invocation from the canonical capacity accounts.
+    pub fn read_market_gross(ctx: &mut Context<ReadMarketGross>) -> Result<u64> {
+        market_capacity::read_gross(ctx)
     }
 
     pub fn classify_market_fees(ctx: &mut Context<ClassifyMarketFees>) -> Result<()> {

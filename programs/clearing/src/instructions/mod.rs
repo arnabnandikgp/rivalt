@@ -40,6 +40,10 @@ pub(crate) use account_cash::fees::__client_accounts_withdrawmarketfees;
 pub(crate) use account_cash::fees::__cpi_accounts_allocatemarketfees;
 #[cfg(feature = "cpi")]
 pub(crate) use account_cash::fees::__cpi_accounts_withdrawmarketfees;
+pub(crate) use crate::market_capacity::__client_accounts_readmarketgross;
+#[cfg(feature = "cpi")]
+pub(crate) use crate::market_capacity::__cpi_accounts_readmarketgross;
+pub use crate::market_capacity::ReadMarketGross;
 pub use account_cash::fees::{AllocateMarketFees, ClassifyMarketFees, WithdrawMarketFees};
 pub use account_cash::AccountFinancialIdentity;
 pub use account_cash::ChangeAccountClaim;

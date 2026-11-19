@@ -2,7 +2,7 @@
 //! A route escrows its full fee and appends it to the first maker's lane.
 //! The complete market checkpoint reclassifies earned insurance before spending.
 pub const LANE_EXTRA: usize = if cfg!(feature = "aggregate-fee-qualification") {
-    16
+    16 + crate::market_capacity::LANE_EXTRA
 } else {
     0
 };
@@ -27,7 +27,7 @@ mod candidate {
         Ok(())
     }
 
-    fn inspect<
+    pub(crate) fn inspect<
         T: anchor_lang::Space
             + Discriminator
             + for<'a> SchemaRead<'a, anchor_lang::BorshConfig, Dst = T>
@@ -68,12 +68,12 @@ mod candidate {
             maker,
             |bytes| {
                 lifetime = FeeLane {
-                    collected: u128::from_le_bytes(*bytes),
+                    collected: u128::from_le_bytes(bytes[..16].try_into().unwrap()),
                 }
                 .record(fee)
                 .map_err(|_| ClearingError::Arithmetic)?
                 .collected;
-                *bytes = lifetime.to_le_bytes();
+                bytes[..16].copy_from_slice(&lifetime.to_le_bytes());
                 Ok(())
             },
             true,
@@ -113,7 +113,7 @@ mod candidate {
             let bytes = registration.account().try_borrow()?;
             let prefix = 8 + MakerRegistration::INIT_SPACE;
             check(bytes.len() == prefix + LANE_EXTRA)?;
-            lanes[index].collected = u128::from_le_bytes(bytes[prefix..].try_into().unwrap());
+            lanes[index].collected = u128::from_le_bytes(bytes[prefix..prefix + 16].try_into().unwrap());
         }
         let mut result = None;
         let (insurance, available, carry) = (

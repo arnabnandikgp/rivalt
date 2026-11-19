@@ -77,6 +77,8 @@ pub(super) fn apply(
     let order = order_index.map(|index| identity.trader.book.orders[index].order);
     identity.maintain_trader(&next.trader)?;
     trading::commit_root(&mut identity.trader, &next.trader)?;
+    #[cfg(feature = "bounded-market-read")]
+    crate::market_capacity::record(&mut identity.market, &mut accounts.first_registration, next.gross_lots)?;
     identity.market.gross_lots = next.gross_lots;
     trading::materialize_optional(
         [
