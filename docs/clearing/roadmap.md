@@ -163,7 +163,11 @@ now isolate the cost of moving insurance classification to a market checkpoint.
 The remaining two shared writes maintain gross lots, funding and complete
 payment backing as well as fee escrow. A parallel fill must preserve the
 aggregate gross cap when traders switch makers, and the same funded gain must
-remain spendable after any valid interleaving.
+remain spendable after any valid interleaving. The native capacity and funding
+comparison reproduced the existing clearing totals. The next on-chain
+prototype depends on whether the current public read may span several
+accounts. The [read and accounting trade-off](../operations/performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills)
+covers all three responsibilities.
 
 Model ordinary payment from deposited collateral first. A settlement advance
 facility requires measured timing demand plus an identified funder, repayment

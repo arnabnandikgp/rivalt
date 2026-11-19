@@ -1,5 +1,22 @@
 # Validation and measured limits
 
+## Native market-capacity comparison
+
+Clean source `e1bb859`. Four gross-capacity tests, the backing-partition test
+and the clearing funding-prefix test passed. The Rust driver, fed by decoded
+finalized receipts, matched 37 paired-workload/exit-boundary fills and two
+default-workload fills with their signed market states and frozen roots.
+The existing on-chain receipts came from D137. There was no new SBF deployment
+for this comparison. [Results and public read constraint](performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills).
+
+To reproduce, use `cargo test --locked -p financial-core --features parallel-market-prototype --lib gross_capacity`,
+repeat with the `backing::partitions` filter, and run
+`cargo test --locked -p clearing --lib maker_local_funding_prefix_preserves_expiry_and_recovery`.
+Build the `gross_capacity_replay` example with the same financial-core feature.
+Run `node --import tsx tests/performance/replay-gross-capacity.ts <snapshot>` after
+loading `ops/env.sh`. Use the paired run's `sql-route-bursts-and-exit-snapshot.json`
+and the default run's `sql-multi-lot-native-comparison-snapshot.json`.
+
 ## Aggregate market insurance
 
 Fresh local clearing `5b1e964` (2,880,864 bytes, SHA-256

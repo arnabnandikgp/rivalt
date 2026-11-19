@@ -55,6 +55,31 @@ maintains the financial backing proof. The market maintains gross lots and the
 funding interval. Removing per-fill insurance attribution alone did not reduce
 contention in these receipts. [Financial checks](validation.md#aggregate-market-insurance).
 
+### Gross lots, funding and payment backing on parallel fills
+
+Native revision `e1bb859` compared three responsibilities of the two shared
+accounts. The receipts came from 37 signed routes on the fee workload and two
+signed BTC routes on the default workload. The new code ran off chain.
+
+| Property | Comparison | Result |
+|---|---|---|
+| Market gross cap | Assign unused cap to three makers. Subtract the change in absolute lots of every touched root. For a short lane, move exactly the missing allowance from other lanes in the same proposed fill. | All 39 signed post-fill market totals and both frozen root sets matched. In 28,812 boundary cases, the complete fallback admitted exactly the cases admitted by the single cap. None of the 39 low-volume fills needed the fallback. |
+| Funding after expiry or a gap | Compare the current shared materializer with the last valid fill by slot for the same market, config epoch and observation. Test both premium signs and increasing/decreasing timestamps. | Discarding the fill history returned zero. The actual funding indices were ±555,555 or ±1,111,111 scaled units. Restoring the last valid prefix matched the new sample's funding base and its covered/skipped seconds in all eight transitions. |
+| Backed profit payment | Assign each root to a stable partition independent of which maker it trades with. Combine all canonical summaries under the same proof, financial epoch and region before checking payment. | At debtor cash of 8, 9 and 8 atoms against 5 BTC and 4 ETH of debt, both computations denied, admitted, then denied the BTC backing check. Their serialized summaries matched. Missing, repeated, wrong-market and outdated inputs were refused. |
+
+At widths 2, 3, 4, 8 and 16, the *hypothetical backing writes* overlapped
+in zero of the six distinct-BTC-maker pairs and all six same-maker pairs.
+The same few trader IDs recurred. This comparison cannot establish an optimal
+width, deployed lock reduction or sustained throughput. The two current shared
+writes remain visible on chain.
+
+A market account that publishes an exact post-fill gross must be writable on
+every fill that changes gross. A parallel implementation can preserve an exact
+per-fill cap and offer one consistent read across a bounded set of accounts.
+A consumer then needs those accounts to obtain the current total. A single PDA
+can expose the last checkpoint with an explicit slot. A fresh artifact, event
+contract and readiness checks for each financial consumer would be required.
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,
