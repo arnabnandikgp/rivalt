@@ -57,7 +57,7 @@ class PagedFrozenCollections(unittest.TestCase):
                           for row in result.split(';')]
                 self.assertEqual(actual, expected)
 
-    def test_bad_original_or_common_factor_cannot_advance(self):
+    def test_bad_original_cannot_advance(self):
         original = [(90, (-80, -40)), (0, (20, 0)), (0, (60, 0)), (0, (0, 40))]
         effective = [(90, (-60, -40)), (0, (0, 0)), *original[2:]]
         request, expected, _ = paged_flows(original, effective, (0, 0), 1)

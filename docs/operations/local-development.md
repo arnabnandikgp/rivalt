@@ -383,3 +383,21 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$allocation_build" \
 
 Each run writes `linked-default.json` with the frozen inputs, financial
 comparison, worker signatures, wallet and vault balances.
+
+### Reproduce clearing-verified joint recovery
+
+Build the `linked-pair-qualification` program from clean revision `0e027fc`
+with the selected maker and oracle binaries installed. Use the resulting
+artifact directory in the harness checkout.
+
+```bash
+# Program checkout
+RIVALT_ATTRIBUTION_PROFILE=linked-pair-qualification bash ops/build-profit-attribution.sh
+# Harness checkout
+bash ops/build-settlement-helper.sh linked-pair-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_build" RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+The fresh validator and PostgreSQL run reads and verifies both actual frozen
+maker positions. The worker records its original transaction for each step.

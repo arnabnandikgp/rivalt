@@ -111,7 +111,7 @@ try {
       const margin=makers[0].capital;
       await h.send('refuse funded withdrawal between verified legs',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
         btc:setup.markets[0],eth:setup.markets[1],owner:setup.owner,margin,quoteMint:setup.mint.address,userToken:setup.token.address,
-        guard:await guard(margin),amount:1n})],[setup.owner],sdk.CLEARING_ERROR__PAUSED);
+        guard:await guard(margin),amount:1n})],[setup.owner],sdk.CLEARING_ERROR__PROFILE);
       assert.deepEqual(await snapshot(),original);
       await worker.close(); worker=await openWorker();
       await journal.checkpoint('btc-verified-eth-pending',true);

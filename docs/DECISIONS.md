@@ -1332,3 +1332,19 @@ episode order. Keep the original market order within each member. Retries of
 the same episode select the same result. D122 still requires proof of the
 winning plan and full settlement before any cash can be released.
 [Verification and example](clearing/default-plan-verification.md#when-the-two-markets-trade-places).
+
+## D128 — Joint release for a fully recoverable frozen book
+
+19 November 2026. A separate local clearing candidate may admit a joint plan
+when one cross debtor and one winner per market exhaust the frozen claims and
+positions. Both markets must have a whole original cash allocation, a positive
+shortfall after insurance and enough eligible opposing gain to cover it all.
+Each winning account must have zero claims and inventory in the other market.
+Under these conditions there is one maximum-recovery charge per market and all
+remaining claims receive face value. The first verified leg records progress.
+The second completes the joint certificate and releases settlement work.
+Wallet exit still requires full-cohort application and reconciliation.
+
+This implements D117 and D119 for a family whose eligibility can be proved
+from complete snapshot totals and two original maker positions. D127 governs
+exact mirror ties in larger books. [Certificate and limits](clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).

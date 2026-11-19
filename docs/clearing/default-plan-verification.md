@@ -532,3 +532,37 @@ uses the same Rust comparator on committed synthetic inputs. The full
 feasibility search and settlement of those inputs were checked off-chain.
 Authenticating the inputs against a real frozen clearing episode, verifying
 optimality there, applying both markets and releasing custody are separate gates.
+
+### Joint certificate for a single cross debtor
+
+The `linked-pair-qualification` clearing build accepts a bounded proof from the
+two-market frozen snapshot. The debtor must own all negative claims and all
+lots on its side in each market. Each winner must own all the positive claims
+and opposing lots in its market, and have zero claims and lots in the other.
+Both debts and each market's original cash allocation must be whole collateral
+atoms. The complete cohort totals establish these properties for any two
+members proposed by the keeper. Other members may retain funded cash.
+
+For each market, let `D_m` be its face debt and `C_m` its original share of
+the debtor’s collectible cash, proportional to `D_m`. The required charge is
+`D_m − C_m − market insurance`. Both charges must be positive and fully
+recoverable from the winners' eligible gains and available opposing lots.
+Every remaining claim can then be paid at face. The unique winner in each
+market eliminates a choice of loss bearer or a rounding conflict with another
+creditor. Clearing independently derives the minimum lots and their prices
+from the winning position's surviving entry and payment history.
+
+The BTC instruction records its terms in the prepared settlement and leaves
+the venue frozen. The ETH instruction authenticates the same episode, debtor,
+cash allocation and its own winning position. Only then can the denominator,
+rates and payout work begin. A single event records both fill schedules.
+The denominator uses original debts. Rate and payout work use adjusted claims
+for outstanding obligations and original debts for funded cash ownership.
+A stored cursor for a changed row carries both original claim numerators.
+Previously issued cursors keep their version-one encoding; both formats fit
+the existing 960-byte rate and 768-byte payout checkpoints.
+
+The [eligibility calculation](../../crates/financial-core/src/clearing/scalable/snapshot/linked_pair.rs)
+and [clearing instructions](../../programs/clearing/src/instructions/account_safety/settlement/linked_pair.rs)
+implement this certificate. The eight-member D127 mirror fixture has several
+creditors per market and requires a broader proof.

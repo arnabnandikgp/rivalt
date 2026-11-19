@@ -135,3 +135,30 @@ pub(super) fn decode_basis(version: u8, effective: Row, tail: &[u8]) -> Result<R
         _ => Err(Error::Bounds),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ordinary_and_reduced_checkpoint_formats_are_distinct_and_canonical() {
+        let effective = Row {
+            cash: 90,
+            claims: [-60 * SCALE, -40 * SCALE],
+        };
+        let original = Row {
+            cash: 90,
+            claims: [-80 * SCALE, -40 * SCALE],
+        };
+        let mut tail = [0; 32];
+        assert_eq!(encode_basis(effective, effective, &mut tail), 1);
+        assert_eq!(decode_basis(1, effective, &tail), Ok(effective));
+        assert_eq!(encode_basis(effective, original, &mut tail), 2);
+        assert_eq!(decode_basis(2, effective, &tail), Ok(original));
+        assert!(decode_basis(1, effective, &tail).is_err());
+        assert!(decode_basis(2, original, &tail).is_err());
+        assert!(decode_basis(3, effective, &tail).is_err());
+        tail[..16].copy_from_slice(&(-90 * SCALE).to_le_bytes());
+        assert!(decode_basis(2, effective, &tail).is_err());
+    }
+}

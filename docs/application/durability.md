@@ -1,5 +1,12 @@
 # Finalized state and durable execution
 
+On the local linked-pair profile, a worker may restart between the BTC and
+ETH verification instructions. It reads the original debtor and both market
+allocations from the prepared settlement before continuing. The finalized
+indexer projects the joint event only after both legs verify. Reconciliation
+compares each winner, quantity, price and charge with the clearing-owned
+receipt. [Joint certificate](../clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
+
 ## Canonical membership migration (P55A2)
 
 P55A2 established schema 9/profile 5; D102 now uses schema 10/profile 6. Transport
