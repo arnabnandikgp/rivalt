@@ -1,5 +1,13 @@
 # Validation and measured limits
 
+## Paired routes on the recovery candidate
+
+Harness `12f9902` on clearing `baef259` observed 36 of 36 signed routes finalize
+and reconciled 148 journal events from a fresh PostgreSQL database across nine
+financial members. All positions ended flat. A one-atom SPL withdrawal brought
+both allocated and actual vault balances to 8,999,999. The full run recorded 336
+harness outcomes. [Shared writes, costs and limitations](performance.md#paired-routes-on-the-recovery-candidate).
+
 ## Clearing-verified multi-lot recovery
 
 The separate local clearing build `baef259` is 2,855,600 bytes. Two signed runs

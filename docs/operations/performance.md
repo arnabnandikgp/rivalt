@@ -8,6 +8,35 @@ is not a public deployment. The completed P47 local
 qualification below compares Anchor RC2 against that immutable pre-migration baseline;
 [STATUS](../STATUS.md) records the verified P45–P47 stack integration.
 
+## Paired routes on the recovery candidate
+
+On clearing `baef259`, harness `12f9902` offered 36 one-lot trader routes
+to local Surfpool. Each pair used independently funded cross accounts and
+distinct fee payers. Both traders signed and simulated before a common broadcast
+barrier. The harness rotated the three workloads over three rounds, opened and
+closed positions, and decoded every finalized transaction to identify conflicting
+account accesses. Each row contains six pairs and twelve fills.
+
+| Where the two trades execute | Accounts both write | CU per trade, observed range | Median time for both confirmations from broadcast |
+|---|---|---:|---:|
+| BTC, same maker | BTC market, BTC ledger, maker capital and registration | 158,042–178,807 | 152 ms |
+| BTC, distinct makers | BTC market and BTC ledger | 157,287–171,943 | 155 ms |
+| BTC and ETH, distinct makers | None | 157,287–171,943 | 154 ms |
+
+All 36 fills finalized. Each signed v0 transaction occupied 846 bytes and its
+trader paid 5,000 local lamports. Both trades in every pair landed in the same
+slot. The experiment measures lock overlap directly. Two traders per burst
+and local confirmation times give no sustainable TPS estimate. The oracle and
+funding publishers refreshed inputs before each burst.
+
+The BTC ledger collected 375 fee atoms, credited insurance 93 and carried 3
+quarters of an atom. ETH collected 39, credited 9 and carried 3 quarters.
+Two BTC fills each charged 13 atoms, yet credited 3 and 4 respectively because
+they inherited different carries. This makes the current per-fill insurance
+receipt depend on the order of trades through the market ledger. The market
+account also tracks gross lots and the funding interval. Removing the ledger
+write alone would leave distinct BTC makers contending on that account.
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,

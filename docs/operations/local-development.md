@@ -583,3 +583,10 @@ revision in the deployment binding (currently `baef259`) using
 `bash ops/scalable-settlement-smoke.sh`. Repeat with a fresh run directory
 and `profit-attribution-multi-lot-tie` to verify refusal when the marginal
 costs tie. Each run creates its own local PostgreSQL instance.
+
+To reproduce the paired-route measurement, select the same multi-lot clearing
+artifact directory, a fresh run directory and
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-route-locks`. Run
+`bash ops/scalable-settlement-smoke.sh`. The harness writes the signed lock
+sets and per-pair confirmation times to `successor-route-locks.json` in the
+run directory.
