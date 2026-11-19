@@ -41,10 +41,13 @@ The [attribution candidate](../operations/validation.md#clearing-owned-surviving
 now retains exact per-lot entry and paid gain through fills, backed payment,
 compulsory reduction and the freeze. The [sponsored capacity qualification](../operations/validation.md#sponsored-profit-capacity)
 also admitted the previously rejected order, repaid a replacement contributor
-and preserved the rent credit through a restarted default. The subsequent
-user-visible milestone is the flat trader’s 996-atom payout from signed successor
-clearing on the matched BTC case. General linked-book verification and application,
-plus shared-write and cost qualification, remain open.
+and preserved the rent credit through a restarted default. The
+[verified BTC payout](../operations/validation.md#verified-btc-default-payout)
+now gets the 996 atoms into the flat trader’s wallet. The next milestone is a
+complete single-market recovery when eligible gain covers only part of the loss,
+including the final payout of each creditor and the effect of whole-atom
+rounding. Multi-winner and linked-market proofs, shared writes and broader
+cost qualification remain open.
 
 ## Functional ownership
 

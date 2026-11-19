@@ -1,5 +1,47 @@
 # Validation and measured limits
 
+## Verified BTC default payout
+
+At `24bc87f84e3861296fe1559786486dab6a77a877`, eight accounts on fresh
+Surfpool exercised the approved successor on the same obligations as #102.
+The insolvent maker owed 9,998 atoms, paid 8,000 from its own cash and used
+498 from BTC insurance. Clearing verified one paired lot at 68,500 against a
+70,000 frozen mark. The remaining BTC creditors received all adjusted claims.
+
+| Funded result in collateral atoms | Selected P56 (#102) | Verified BTC candidate |
+|---|---:|---:|
+| Flat trader gain withdrawn to SPL wallet | 847 | 996 |
+| Winning maker gain credited | 7,651 | 7,502 |
+| BTC insurance spent | 498 | 498 |
+| ETH insurance spent | 0 | 0 |
+| BTC trading fees retained | 20 | 20 |
+
+All eight cash balances matched independent Python replay. The wallet rose
+from 0 to 996 and the vault fell from 2,048,492 to 2,047,496. The winning
+maker’s storage sponsor recovered its principal after custody resumed. The
+harness recorded 281 signed outcomes and separately checked 67 finalized
+worker transactions over RPC and WS. The operator stepped through valuation
+individually to exercise the freeze boundary. Fresh PostgreSQL replay reproduced
+all 116 payloads and the final state. The proof instruction consumed 44,559 CU.
+Its eight-instruction recovery batch consumed 223,476 CU, used 1,190 wire bytes
+and cost 5,000 local lamports.
+
+At `0ac7019` on the same SBF, the winning maker had only 502 eligible atoms
+against the same 1,500 shortfall. Clearing rejected the pair, a substituted
+creditor and an attempt to bypass verification. After 271 signed harness
+outcomes and 41 worker transactions the original positions, vault and wallet
+remained at freeze. Fresh SQL replay reconstructed 82 payloads.
+
+Development runs exposed mismatched pre-charge rate totals, an older operator
+page helper and an indexer running sum that used adjusted payouts for as-yet
+unapplied original roots. The accepted run uses a revised rate checkpoint,
+a matching helper and separate original-claim and payout checks at each row.
+The 2,549,160-byte clearing SBF was built at `447efef`, SHA-256
+`ad877806d413e8708d8c33189dc4d2084392fb41995763f016506c7ae04b8f6a`.
+This family covers one BTC lot and full recovery with whole claims. Partial
+shortfalls, other winners and joint BTC/ETH plans remain open.
+[Reproduction commands](local-development.md#verified-btc-default-payout).
+
 ## Sponsored profit capacity
 
 Program `1763dc750dbb27c852fafd5fbda4fad486fd69cb` built a 2,516,448-byte SBF
