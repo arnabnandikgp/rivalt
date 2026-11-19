@@ -109,6 +109,7 @@ try {
         epoch:frozen.epoch,revision:current.preparedState.revision,page})],[],sdk.CLEARING_ERROR__RESOLUTION);
       assert.deepEqual(await snapshot(),original);
       await worker.close(); worker=await openWorker();
+      await journal.checkpoint('btc-verified-eth-pending',true);
       partialChecked=true;
       process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
     }

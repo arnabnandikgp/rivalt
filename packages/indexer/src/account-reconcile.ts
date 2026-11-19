@@ -107,7 +107,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
   let minSlot:number|undefined,maxSlot=0;
   const allocation=binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET;
-  const sponsored=allocation||binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET||
+  const sponsored=allocation||binding.artifactSet===sdk.LINKED_PAIR_ARTIFACT_SET||binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET||
     binding.artifactSet===sdk.VERIFIED_PAIR_ARTIFACT_SET||binding.artifactSet===sdk.BTC_RESIDUAL_ARTIFACT_SET;
   for(let pass=0;pass<(captured?1:2);pass++)for(let offset=0;offset<keys.length;offset+=100) {
     const chunk=keys.slice(offset,offset+100),response=captured?undefined:await read(chunk);

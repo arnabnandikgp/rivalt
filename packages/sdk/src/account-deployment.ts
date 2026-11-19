@@ -7,12 +7,13 @@ export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attri
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
+export const LINKED_PAIR_ARTIFACT_SET='linked-pair-0e027fc';
 export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
   if(selection==='linked-pair-candidate')return {
-    artifactSet:'linked-pair-0e027fc',schema:10,programProfile:6,helperRevision:'0e027fcd5d5a658292218d40106c65b22c81da5c',
+    artifactSet:LINKED_PAIR_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'0e027fcd5d5a658292218d40106c65b22c81da5c',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
       bytes:2585320,sha256:'7f627bc93748c7b4e6c36aa65a461900690387c77ab0e6169e4745dd0bad9086'}:artifact)
   };

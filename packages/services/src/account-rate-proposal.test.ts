@@ -91,3 +91,16 @@ it('cross-checks 80 new deterministic fractional cohorts with the independent Py
     expect(actual.insuranceSpent.map(String)).toEqual(expected[index].spent);expect(actual.fractional).toEqual(expected[index].fractional);
   }
 });
+
+it('keeps the frozen cash split after both whole-market gain reductions',()=>{
+  const book=input([[19_992n,[-9_999n,-9_997n]],[0n,[9_999n,0n]],[0n,[0n,9_997n]]],[3n,1n]);
+  book.rows[0].originalClaims=[-10_002n*SCALE,-10_002n*SCALE];
+  book.rows[1].originalClaims=[10_002n*SCALE,0n];
+  book.rows[2].originalClaims=[0n,10_002n*SCALE];
+  const result=proposeAccountRates(book);
+  expect(result.common).toBe(1n);
+  expect(result.insuranceSpent).toEqual([3n,1n]);
+  result.rates.forEach(rate=>equalRate(rate,1n));
+  book.rows[0].originalClaims=[-11_000n*SCALE,-10_002n*SCALE];
+  expect(()=>proposeAccountRates(book)).toThrow('Reduction consumed frozen cash');
+});
