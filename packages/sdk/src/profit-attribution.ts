@@ -52,9 +52,12 @@ export function decodeProfitAttribution(bytes:Uint8Array,allowSponsored=false) {
   return {root,positions,width,credit};
 }
 
-export type MarginLayout='profit-attribution'|'sponsored-profit'|'aggregate-fees'|'bounded-market'|'selected';
+export type MarginLayout='profit-attribution'|'sponsored-profit'|'aggregate-fees'|'bounded-market'|'checked-funding'|'selected';
+export const hasCapacityLayout=(layout?:MarginLayout)=>layout==='bounded-market'||layout==='checked-funding';
+export const hasFeeLayout=(layout?:MarginLayout)=>layout==='aggregate-fees'||hasCapacityLayout(layout);
+export const feeLaneLayout=(layout?:MarginLayout)=>layout==='checked-funding'?'checked-funding' as const:layout==='bounded-market';
 export function decodeMarginForLayout(bytes:Uint8Array,layout:MarginLayout='selected') {
-  if(layout==='profit-attribution'||layout==='sponsored-profit'||layout==='aggregate-fees'||layout==='bounded-market')return decodeProfitAttribution(bytes,layout!=='profit-attribution').root;
+  if(layout==='profit-attribution'||layout==='sponsored-profit'||hasFeeLayout(layout))return decodeProfitAttribution(bytes,layout!=='profit-attribution').root;
   requireValue(MARGIN_ACCOUNT_DISCRIMINATOR.every((byte,index)=>bytes[index]===byte),'Wrong account discriminator.');
   requireValue(layout==='selected'&&bytes.length===getMarginAccountSize(),'Invalid selected margin layout.');
   return getMarginAccountDecoder().decode(bytes);

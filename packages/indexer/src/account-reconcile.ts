@@ -106,6 +106,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
   let minSlot:number|undefined,maxSlot=0;
+  const checkedFunding=binding.artifactSet===sdk.CHECKED_FUNDING_ARTIFACT_SET;
+  const capacity=sdk.hasMarketCapacity(binding.artifactSet);
   const allocation=binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET;
   const linkedAllocation=binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET;
   const book=sdk.isBookInventoryArtifact(binding.artifactSet);
@@ -124,12 +126,12 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
         if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
           sdk.decodeProfitAttribution(bytes,sponsored);
-        } else if(binding.artifactSet===sdk.BOUNDED_MARKET_ARTIFACT_SET && entity.kind===6) {
-          sdk.decodeCapacityAnchor(bytes);
+        } else if(capacity && entity.kind===6) {
+          sdk.decodeCapacityAnchor(bytes,checkedFunding);
         } else if(sdk.hasAggregateFees(binding.artifactSet) && (entity.kind===7||entity.kind===15)) {
           assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
           const offset=descriptor[1];
-          assert.equal(bytes.length,offset+(entity.kind===7?24:binding.artifactSet===sdk.BOUNDED_MARKET_ARTIFACT_SET?32:16),'fee lane account size');
+          assert.equal(bytes.length,offset+(entity.kind===7?24:checkedFunding?64:capacity?32:16),'fee lane account size');
           const lifetime=bytes.readBigUInt64LE(offset)+(bytes.readBigUInt64LE(offset+8)<<64n);
           const market=entity.kind===7?state.ledgers[key].market:state.liquidity!.makers[key].market;
           const fees=state.liquidity?.feeAccounting?.[market];
@@ -149,7 +151,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     const account=observed.get(key);assert(account?.owner===owner&&account.data[1]==='base64',`Missing/foreign account ${key}`);
     const bytes=Buffer.from(account.data[0],'base64');if(discriminator)assert(bytes.subarray(0,8).equals(Buffer.from(discriminator)),`Discriminator ${key}`);return bytes;
   };
-  if(binding.artifactSet===sdk.BOUNDED_MARKET_ARTIFACT_SET){
+  if(capacity){
     for(const [market,projected] of Object.entries(state.markets)){
       const makers=Object.entries(state.liquidity?.makers??{}).filter(([,maker])=>maker.market===market)
         .sort(([,left],[,right])=>left.instance-right.instance);
@@ -158,8 +160,32 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         assert.equal(projected.grossLots,'0');
         continue;
       }
-      assert.equal(String(sdk.grossFromCapacity(address(market),raw(market),makers.map(([key])=>raw(key)))),
+      assert.equal(String(sdk.grossFromCapacity(address(market),raw(market),makers.map(([key])=>raw(key)),checkedFunding)),
         projected.grossLots,'bounded capacity versus finalized market gross');
+      if(checkedFunding){
+        const marketState=sdk.decodeCapacityAnchor(raw(market),true).market;
+        const observation=marketState.oracle;
+        const stamps=[market,...makers.map(([key])=>key)].map(key=>sdk.decodeFundingTouch(raw(key).subarray(-32)));
+        let latest:ReturnType<typeof sdk.decodeFundingTouch>=null;
+        const times=new Map<bigint,bigint>();
+        for(const stamp of stamps){
+          if(!stamp)continue;
+          assert(stamp.config<=marketState.configEpoch&&stamp.observation<=marketState.observationSequence,'future funding checkpoint');
+          if(stamp.config!==marketState.configEpoch||stamp.observation!==marketState.observationSequence)continue;
+          assert(stamp.slot>=marketState.validFrom&&stamp.slot<observation.heldSlot &&
+            stamp.timestamp>=observation.sampledAt&&stamp.timestamp-observation.sampledAt<=30n,'checkpoint outside funding window');
+          const previous=times.get(stamp.slot);
+          assert(previous===undefined||previous===stamp.timestamp,'inconsistent same-slot funding clock');
+          times.set(stamp.slot,stamp.timestamp);
+          if(!latest||latest.slot<stamp.slot)latest=stamp;
+        }
+        if(state.safety?.mode===1&&observation.heldEpoch===marketState.configEpoch&&observation.heldUntil>observation.sampledAt){
+          const end=latest && latest.timestamp<observation.heldUntil?latest.timestamp:latest?observation.heldUntil:observation.sampledAt;
+          assert.equal(marketState.fundingTime,end,'funding checkpoint time');
+          assert.equal(marketState.fundingIndexScaled,observation.fundingBase+observation.premiumScaled*(end-observation.sampledAt)/3600n,
+            'funding checkpoint versus finalized market index');
+        }
+      }
     }
   }
   // Settlement ordinals are the sorted stable IDs at freeze. Later membership

@@ -13,7 +13,7 @@ import {decodeAccountInvocations} from '../../packages/indexer/src/account-event
 const directory=process.argv[2];
 assert(directory,'Supply a completed cross-market funding run directory.');
 const {binding,state}=JSON.parse(readFileSync(join(directory,'sql-cross-market-funding-snapshot.json'),'utf8'));
-assert.equal(binding.artifactSet,sdk.BOUNDED_MARKET_ARTIFACT_SET);
+assert(sdk.hasMarketCapacity(binding.artifactSet));
 const [eventAuthority]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]});
 const fills=[];
 for(const name of readdirSync(directory).filter(value=>/^transaction-\d+\.json$/.test(value))){

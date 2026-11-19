@@ -12,9 +12,9 @@ export function decodeFeeLedger(bytes:Uint8Array) {
   requireValue(pendingFees<=state.fees&&state.insuranceFeeRemainder<4,'Invalid fee escrow.');
   return {state,classifiedFees,pendingFees,spendableFees:state.fees-pendingFees};
 }
-export function decodeMakerFeeLane(bytes:Uint8Array,boundedMarket=false) {
+export function decodeMakerFeeLane(bytes:Uint8Array,layout:boolean|'checked-funding'=false) {
   const decoder=getMakerRegistrationDecoder(), offset=decoder.fixedSize;
-  requireValue(bytes.length===offset+(boundedMarket?32:16)&&MAKER_REGISTRATION_DISCRIMINATOR.every((byte,index)=>byte===bytes[index]),'Invalid maker fee lane.');
+  requireValue(bytes.length===offset+(layout==='checked-funding'?64:layout?32:16)&&MAKER_REGISTRATION_DISCRIMINATOR.every((byte,index)=>byte===bytes[index]),'Invalid maker fee lane.');
   return {state:decoder.decode(bytes),collected:lifetime(new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),offset)};
 }
 

@@ -1,7 +1,7 @@
-import type {MarginLayout} from './profit-attribution.js';
-import {decodeCapacityAnchor} from './market-capacity.js';
+import {hasCapacityLayout,type MarginLayout} from './profit-attribution.js';
+import {decodeCapacityAnchor,makerRegistrationPdas} from './market-capacity.js';
 import { BTC_LOTS_PER_UNIT, ETH_LOTS_PER_UNIT, FUNDING_REFERENCE_NOTIONAL } from './price-policy.js';
-import { type Address, type FixedSizeDecoder, type ReadonlyUint8Array } from '@solana/kit';
+import { AccountRole,type Instruction,type Address, type FixedSizeDecoder, type ReadonlyUint8Array } from '@solana/kit';
 import * as clearing from './generated/index.js';
 import { ACCOUNT_CLOCK } from './account-snapshot.js';
 import { deriveAccountVenue, deriveAccountMarket, deriveVenueComponent } from './account-addresses.js';
@@ -43,10 +43,10 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   const sourceDiscovery = await rpc.call('getMultipleAccounts', [[market], { encoding: 'base64', commitment }]);
   requireValue(sourceDiscovery.value?.length === 1, 'Incomplete funding source discovery.');
   const decodeMarket = (account: LiquidityAccountMap extends ReadonlyMap<Address, infer Value> ? Value : never) => {
-    if (marginLayout !== 'bounded-market') return decode(account, clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
+    if (!hasCapacityLayout(marginLayout)) return decode(account, clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
     requireValue(account?.owner === clearing.CLEARING_PROGRAM_ADDRESS && !account.executable && account.data[1] === 'base64',
       'Missing or foreign funding market.');
-    return decodeCapacityAnchor(fromBase64(account!.data[0])).market;
+    return decodeCapacityAnchor(fromBase64(account!.data[0]),marginLayout==='checked-funding').market;
   };
   const discoveredMarket = decodeMarket(sourceDiscovery.value[0]);
   let discovery: Awaited<ReturnType<typeof discoverLiquidityAccounts>> | null = null;
@@ -54,7 +54,8 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   try { discovery = await discoverLiquidityAccounts(rpc, venue, market, commitment, marginLayout); }
   catch { coverageReason = 'invalid-maker-discovery'; }
   const [registry] = await clearing.findLiquidityRegistryPda({ market });
-  const keys = [...new Set([venue, market, configuration, safety, ACCOUNT_CLOCK, registry,
+  const checkpointAccounts=marginLayout==='checked-funding'?(await makerRegistrationPdas(market)).map(([key])=>key):[];
+  const keys = [...new Set([...checkpointAccounts,venue, market, configuration, safety, ACCOUNT_CLOCK, registry,
     ...discoveredMarket.oracle.sources, ...discovery?.keys ?? [], ...discovery?.capitals ?? []])];
   requireValue(keys.length <= 48, 'Funding snapshot exceeds bounded dependency set.');
   const discoveredSlot = rpcInteger(sourceDiscovery.context.slot);
@@ -127,8 +128,14 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
       } catch { coverageReason = 'invalid-maker-snapshot'; }
     }
   }
-  return { report, configuration, configurationState, marketState, contextSlot, accounts, allocations, coverageReason,
+  return { report, checkpointAccounts, configuration, configurationState, marketState, contextSlot, accounts, allocations, coverageReason,
     instructionAccounts: { venue, market, custody, safety, configuration,
       primaryAsset: marketState.oracle.sources[0], primaryCollateral: marketState.oracle.sources[1],
       guardAsset: marketState.oracle.sources[2], guardCollateral: marketState.oracle.sources[3] } };
+}
+
+/** Funding checkpoints follow the fixed publication accounts in market instance order. */
+export function withFundingCheckpoints(instruction:Instruction,addresses:readonly Address[]):Instruction {
+  if(!addresses.length)return instruction;
+  return {...instruction,accounts:[...instruction.accounts??[],...addresses.map(address=>({address,role:AccountRole.READONLY}))]};
 }

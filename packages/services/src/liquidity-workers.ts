@@ -48,8 +48,8 @@ export async function publishLiquidityFunding(runtime:AccountRuntime,marketIndex
   if(input.configurationState.publisher!==key.address)throw new Error('Restricted funding publisher signer mismatch');
   if(input.report.observedTime-input.marketState.oracle.sampledAt<intervalSeconds)return {status:'idle',reason:'report-not-due'};
   const [eventAuthority]=await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]});
-  const instruction=sdk.getPublishFundingReportInstruction({...input.instructionAccounts,publisher:key,eventAuthority,
-    program:sdk.CLEARING_PROGRAM_ADDRESS,report:input.report});
+  const instruction=sdk.withFundingCheckpoints(sdk.getPublishFundingReportInstruction({...input.instructionAccounts,publisher:key,eventAuthority,
+    program:sdk.CLEARING_PROGRAM_ADDRESS,report:input.report}),input.checkpointAccounts);
   const original=await runtime.enqueue(`funding:${marketIndex}:${input.report.authorityEpoch}:${input.report.sequence}`,[instruction],key,budget,
     {kind:'accountObservation',venue:identity.venue,account:input.report.market,value:input.marketState.observationSequence.toString()},false,
     {contextSlot:input.contextSlot,accounts:input.accounts,inputDigest:Uint8Array.from(input.report.inputDigest),

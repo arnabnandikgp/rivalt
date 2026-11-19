@@ -115,7 +115,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     }));
     await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
   }
-  async function sample(reportMarkets: readonly (0|1)[] = [0,1]) {
+  async function sample(reportMarkets: readonly (0|1)[] = [0,1], verifyCheckpoints=false) {
     const previous = await Promise.all([0, 1].map(marketState));
     const publishers = await Promise.all(configurations.map(async configuration =>
       sdk.getFundingPublisherDecoder().decode((await h.read(configuration))!)));
@@ -136,8 +136,30 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       const reference = index === 0 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n;
       assert.equal(input.report.referencePrice, reference);
       assert.equal(input.report.quantity, (6_000_000n + reference - 1n) / reference);
-      reports.push(sdk.getPublishFundingReportInstruction({ ...common,
-        ...input.instructionAccounts, publisher: fixture.updater, report: input.report }));
+      const instruction=sdk.getPublishFundingReportInstruction({ ...common,
+        ...input.instructionAccounts, publisher: fixture.updater, report: input.report });
+      if(verifyCheckpoints && index===0) {
+        const checkpoints=input.checkpointAccounts;
+        assert.equal(checkpoints.length,3);
+        const before=await Promise.all([h.read(markets[index]),h.read(input.configuration)]);
+        await h.send('reject omitted funding checkpoint',[sdk.withFundingCheckpoints(instruction,checkpoints.slice(1))],
+          [fixture.updater],sdk.CLEARING_ERROR__PROFILE);
+        await h.send('reject duplicate funding checkpoint',[sdk.withFundingCheckpoints(instruction,[checkpoints[0],checkpoints[0],checkpoints[2]])],
+          [fixture.updater],sdk.CLEARING_ERROR__ALIAS);
+        // Reuse a foreign record whose bump derives a valid PDA for the tested
+        // position, so this exercises the market binding check specifically.
+        const foreign=await Promise.all(instances.slice(3).map(async maker=>({address:maker.registration,
+          bump:sdk.getMakerRegistrationDecoder().decode((await h.read(maker.registration))!).bump})));
+        const canonical=await sdk.makerRegistrationPdas(markets[index]);
+        const position=canonical.findIndex(([,bump])=>foreign.some(entry=>entry.bump===bump));
+        assert(position>=0,'Fixture requires a foreign registration sharing a valid target bump');
+        const substituted=checkpoints.slice();
+        substituted[position]=foreign.find(entry=>entry.bump===canonical[position][1])!.address;
+        await h.send('reject foreign funding checkpoint',[sdk.withFundingCheckpoints(instruction,substituted)],
+          [fixture.updater],sdk.CLEARING_ERROR__MAKER_BINDING);
+        assert.deepEqual(await Promise.all([h.read(markets[index]),h.read(input.configuration)]),before);
+      }
+      reports.push(sdk.withFundingCheckpoints(instruction,input.checkpointAccounts));
     }
     await h.send(reportMarkets.length===2?'P32 publisher available two-market reports':'publish selected-market funding report', reports, [fixture.updater]);
   }
