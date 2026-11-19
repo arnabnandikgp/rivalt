@@ -19,6 +19,21 @@ export function getLinkedAllocationPageDecoder() {
   return allocationPage(row);
 }
 
+export function getInventoryBookPageDecoder() {
+  return allocationPage(transformDecoder(getTupleDecoder([getFrozenMarginDecoder(),getU64Decoder(),getU64Decoder()]),
+    ([original,bookCapacity,bookCharge])=>({...original,bookCapacity,bookCharge})));
+}
+
+export function inventoryBookReceipt(header:PreparedSettlement) {
+  const bytes=Uint8Array.from(header.state.membership);
+  if(new TextDecoder().decode(bytes.subarray(0,8))!=='RVBOOK01')return null;
+  const view=new DataView(bytes.buffer), epoch=view.getBigUint64(8,true);
+  const total=view.getBigUint64(16,true),count=view.getBigUint64(24,true);
+  requireValue(epoch===header.epoch && [2,3].includes(header.stage) && header.gross[1]===0n &&
+    count*2n<=header.gross[0] && total>=count && (count>0n||total===0n) && bytes.subarray(64).every(value=>value===0),'Invalid inventory book receipt.');
+  return {epoch,total,count,digest:Array.from(bytes.subarray(32,64),value=>value.toString(16).padStart(2,'0')).join('')};
+}
+
 function allocationPage<T>(row:FixedSizeDecoder<T>) {
   return getStructDecoder([
     ['discriminator',fixDecoderSize(getBytesDecoder(),8)],['schemaVersion',getU16Decoder()],

@@ -56,3 +56,47 @@ export function twoDebtorRecovery(venue:Address,epoch:bigint,debtors:Participant
   const best=difference>=0 && second.score[difference]>first.score[difference]?second:first;
   return {order:best.indices,charges:best.charges};
 }
+
+/** Replay the single-lot assignment from frozen budgets and surviving winning gains. */
+export function inventoryBookPlan(venue:Address,epoch:bigint,debtors:Participant[],winners:Participant[],side:bigint,mark:bigint) {
+  if(side!==1n && side!==-1n)throw new Error('Unknown debtor direction');
+  const ranked=(members:Participant[])=>members.filter(member=>member.amount>0n).map(member=>({
+    ...member,priority:frozenMemberRank(venue,epoch,member.id),
+  }));
+  type Member=ReturnType<typeof ranked>[number];
+  const byAmount=(a:bigint,b:bigint)=>a>b?-1:a<b?1:0;
+  const byPriority=(a:Member,b:Member)=>Buffer.compare(a.priority,b.priority)||byAmount(b.id,a.id);
+  const compare=(a:Member,b:Member)=>byAmount(a.amount,b.amount)||byPriority(a,b);
+  if(new Set([...debtors,...winners].map(member=>member.id)).size!==debtors.length+winners.length ||
+      [...debtors,...winners].some(member=>member.amount<0n))throw new Error('Invalid inventory book members');
+  const available=ranked(debtors).sort(compare), eligible=ranked(winners).sort(compare);
+  const targets=eligible.slice(0,available.length).map((winner,i)=>({
+    winner,charge:winner.amount<available[i].amount?winner.amount:available[i].amount,
+  })).sort((left,right)=>byPriority(left.winner,right.winner));
+  available.sort(byPriority);
+  const pairs:bigint[][]=[];
+  for(const [index,{winner,charge}] of targets.entries()) {
+    // Check the suffix directly. Each remaining target must have a distinct
+    // budget at least as large when both sequences are sorted descending.
+    const suffix=targets.slice(index+1).map(target=>target.charge).sort(byAmount);
+    const candidate=available.findIndex((debtor,position)=> {
+      if(debtor.amount<charge)return false;
+      const remaining=available.filter((_,i)=>i!==position).map(member=>member.amount).sort(byAmount);
+      return suffix.every((amount,i)=>remaining[i]>=amount);
+    });
+    if(candidate<0)throw new Error('Incomplete frozen inventory assignment');
+    const debtor=available.splice(candidate,1)[0];
+    pairs.push([debtor.id,winner.id,charge,mark+side*charge]);
+  }
+  const total=pairs.reduce((sum,pair)=>sum+pair[2],0n);
+  const words=(values:bigint[])=>{
+    const bytes=Buffer.alloc(8*values.length);
+    values.forEach((value,i)=>bytes.writeBigUInt64LE(value,i*8));
+    return bytes;
+  };
+  const capacities=[...winners].sort((a,b)=>byAmount(b.id,a.id)).map(member=>[member.id,member.amount]);
+  let digest=createHash('sha256').update('Rivalt/inventory-book/v1').update(getAddressEncoder().encode(venue) as Uint8Array)
+    .update(words([epoch,total])).digest();
+  for(const row of [...capacities,...pairs])digest=createHash('sha256').update(digest).update(words(row)).digest();
+  return {pairs,capacities,total,digest:digest.toString('hex')};
+}

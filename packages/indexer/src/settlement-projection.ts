@@ -1,8 +1,8 @@
 /** Financial effects of the authenticated paged settlement, separate from its
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
 import {address} from '@solana/kit';
-import {twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
-import {isSharedInventoryArtifact,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
+import {inventoryBookPlan,twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
+import {BOOK_INVENTORY_ARTIFACT_SET,isSharedInventoryArtifact,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -17,6 +17,50 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void,artifactSet?:string) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='InventoryBookVerified') {
+    accountCheck(artifactSet===BOOK_INVENTORY_ARTIFACT_SET && current.stage===2 && !current.inventoryBook &&
+      !current.sharedInventory && !current.foreignCreditors && !current.pair && !current.joint &&
+      !current.allocation && !current.linkedAllocation,'unique book certificate');
+    eq(current.poolsBefore,['0','0'],'empty frozen pools');
+    eq(String(state.members.length),current.count,'complete frozen membership');
+    const debtors:{id:bigint;amount:bigint}[]=[], winners:{id:bigint;amount:bigint}[]=[];
+    const capacity=new Map<string,string>(change.capacities.map(([id,amount]:string[])=>[id,amount]));
+    let debtSide=0n,winnerSide=0n,totalFace=0n;
+    for(const key of state.members) {
+      const member=state.roots[key], id=BigInt(member.id);
+      const [btc,eth]=claims(member,current.prices,current.funding).map(BigInt);
+      const [lots,ethLots]=member.positions.map(position=>BigInt(position.lots));
+      eq([eth,ethLots],[0n,0n],'empty ETH claims and positions');
+      totalFace+=btc;
+      if(lots===0n) {
+        accountCheck(btc>=0n,'flat creditor');continue;
+      }
+      eq(btc%scale,0n,'whole active face');
+      accountCheck(lots===1n||lots===-1n,'one lot per member');
+      if(btc<0n) {
+        accountCheck(!debtSide||debtSide===lots,'consistent debtor side');debtSide=lots;
+        const loss=-btc/scale-BigInt(member.cash);
+        debtors.push({id,amount:loss>0n?loss:0n});
+      } else {
+        accountCheck(!winnerSide||winnerSide===lots,'consistent winner side');winnerSide=lots;
+        const amount=BigInt(present(capacity.get(member.id),'frozen winning capacity'));
+        accountCheck(amount>=0n && amount<=btc/scale,'capacity within original claim');
+        winners.push({id,amount});
+      }
+    }
+    eq(totalFace,0n,'BTC conservation');
+    eq(winnerSide,-debtSide,'opposing sides');
+    eq(current.remainingGross,[String(debtors.length+winners.length),'0'],'complete gross exposure');
+    const losses=debtors.reduce((sum,member)=>sum+member.amount,0n);
+    const residual=losses-BigInt(current.insuranceBefore[0]);
+    const budgets=debtors.map(member=>({...member,amount:residual>0n?member.amount*residual/losses:0n}));
+    const plan=inventoryBookPlan(address(change.venue),BigInt(change.epoch),budgets,winners,debtSide,BigInt(current.prices[0]));
+    eq(plan.capacities.map(row=>row.map(String)),change.capacities,'complete winning capacities');
+    eq(plan.pairs.map(row=>row.map(String)),change.pairs,'canonical charges and prices');
+    eq(String(plan.total),change.total,'recovered amount');
+    current.inventoryBook={digest:plan.digest,total:change.total,capacities:change.capacities,pairs:change.pairs};
+    return;
+  }
   if(event.type==='SharedInventoryVerified') {
     accountCheck(isSharedInventoryArtifact(artifactSet),'shared inventory deployment');
     const partial=artifactSet===PARTIAL_INVENTORY_ARTIFACT_SET;
@@ -273,7 +317,10 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
-    if(current.sharedInventory) {
+    if(current.inventoryBook) {
+      const pair=current.inventoryBook.pairs.find(([debtor,winner])=>previous.id===debtor||previous.id===winner);
+      if(pair)economic[0]=String(BigInt(economic[0])+(previous.id===pair[0]?1n:-1n)*BigInt(pair[2])*scale);
+    } else if(current.sharedInventory) {
       const {members,charges}=current.sharedInventory;
       const index=members.indexOf(previous.id);
       if(index>=0) {

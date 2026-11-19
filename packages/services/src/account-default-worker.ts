@@ -30,12 +30,13 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     const result=await runtime.rpc.call('getAccountInfo',[address,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(state.contextSlot)}]);
     assert(BigInt(result.context.slot)>=state.contextSlot,'Default read moved backwards');return result.value;
   };
+  const book=runtime.deploymentSelection==='book-inventory-candidate';
   const allocation=runtime.deploymentSelection==='btc-allocation-candidate';
   const linkedAllocation=runtime.deploymentSelection==='linked-allocation-candidate';
   const frozen=async(ordinal:bigint,initialize=false)=>{
     assert(ordinal>=0n&&ordinal<header.count,'Invalid frozen ordinal');
     const [page,bump]=await sdk.deriveFrozenMarginPage(venue,ordinal/8n);
-    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
+    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,book?sdk.getInventoryBookPageDecoder():linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
     assert(row.schemaVersion===10&&row.venue===venue&&row.pageIndex===ordinal/8n&&row.bump===bump&&row.revision>0n,'Foreign frozen row page');
     if(row.epoch!==epoch) {
       assert(initialize&&row.epoch<epoch,'Unavailable frozen row epoch');
@@ -82,7 +83,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
+    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
       const members:FrozenMember[]=[];
       for(let start=0n; start<prepared.count; start+=8n) {
         const {page,row}=await frozen(start);
@@ -90,6 +91,17 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
         for(const [offset,record] of row.rows.slice(0,row.rowCount).entries()) {
           members.push({ordinal:start+BigInt(offset),page,row:record});
         }
+      }
+      if(book) {
+        const active=members.filter(member=>member.row.lots.some(lots=>lots!==0n));
+        const side=active.find(member=>member.row.claims[0]<0n)?.row.lots[0];
+        if((side!==1n && side!==-1n) || prepared.pools.some(pool=>pool!==0n) ||
+          members.some(({row})=>row.claims[1]!==0n || row.lots[1]!==0n ||
+            (row.lots[0]===0n ? row.claims[0]<0n : row.claims[0]%1_000_000_000n!==0n ||
+              row.lots[0] !== (row.claims[0]<0n?side:-side))))return blocked('unsupported-inventory-book');
+        const metas=[...new Set(active.map(member=>member.page))].map(address=>({address,role:AccountRole.WRITABLE}));
+        return ready('verify-inventory-book',withPages(sdk.getVerifyInventoryBookInstruction({
+          ...args,revision:prepared.revision,ordinals:active.map(member=>member.ordinal)}),metas));
       }
       const capacity=async(member:FrozenMember,market:number)=>{
         const {row}=member, account=await read(row.member);
