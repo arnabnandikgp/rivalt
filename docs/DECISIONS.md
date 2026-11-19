@@ -1472,3 +1472,7 @@ valid materialized prefix through an outage. Profit payments still require the
 complete backing proof at consumption. Only verified financial effects can be
 published by the SDK and indexer. Deployment promotion requires separate
 end-to-end evidence. [Comparison](operations/performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills).
+
+The qualified prototype keeps a serial comparison and fallback during this
+transition. Its public view derives gross from the capacity accounts. The cap
+remains enforced on every fill. [Signed view, receiver and recovery checks](operations/validation.md#signed-bounded-market-gross).

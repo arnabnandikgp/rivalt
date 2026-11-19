@@ -1,5 +1,27 @@
 # Validation and measured limits
 
+## Signed bounded market gross
+
+SBF `3ace707`, 2,900,728 bytes, SHA-256
+`62c35c3bd7c5decac5d9f6cc6feaa7aad94b554e8aba535c3afbec0225832b8d`.
+All three runs used fresh Surfpool deployments, signed transactions, RPC/WS and
+PostgreSQL. The normal launcher still uses P56.
+
+| Clean harness | Scenario | Observed outcome |
+|---|---|---|
+| `856c205` | A/B fill, B/C fill, close against C and freeze | Four direct clearing returns were 0, 4, 8 and 6. The external CPI returned 6 immediately after close. All five matched single-context RPC reads. A foreign ETH registration failed with `InvalidSeeds`. 267 harness outcomes, 76 fresh SQL events. |
+| `d9b36d4` | Distressed trader, maker fill, consenting receiver and unwind | BTC gross was 100 after opening, after partial liquidation and after the receiver took five lots. The transfer advanced the capacity generation. The receiver unwound against an opposing maker and gross fell to 90. Twelve signed rejection cases preserved state. 293 harness outcomes, 92 fresh SQL events. |
+| `fffc5d9` | Complete eight-member BTC default | Gross was 8 at freeze. Individual application receipts sampled gross of 4, 4, 2 and 0, matching the sum of the absolute lots on all eight roots. Clearing spent 12 insurance atoms. Two actual wallet transfers paid 20,000 and 20,004. 272 harness outcomes, 67 finalized worker transactions and 113 fresh SQL events. |
+
+The initial integration found a publisher that accepted only the shorter market
+layout and a fill that dereferenced an Anchor account after releasing its borrow.
+The measured build validates the selected layout on both publisher reads and
+mutates the registration tail with one scoped borrow. The correction also
+derives the consumed capacity from the touched positions. The signed fills fit
+within their first maker's capacity. The full-size near-cap fallback has native
+boundary coverage only. [Per-transaction cost](performance.md#signed-bounded-gross-read)
+and [reproduction](local-development.md#reproduce-the-bounded-market-read).
+
 ## Native market-capacity comparison
 
 Clean source `e1bb859`. Four gross-capacity tests, the backing-partition test

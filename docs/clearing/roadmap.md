@@ -164,7 +164,7 @@ The remaining two shared writes maintain gross lots, funding and complete
 payment backing as well as fee escrow. A parallel fill must preserve the
 aggregate gross cap when traders switch makers, and the same funded gain must
 remain spendable after any valid interleaving. The native capacity and funding
-comparison reproduced the existing clearing totals. D138 authorizes an on-chain prototype whose current market read spans a bounded set of clearing accounts. The [read and accounting trade-off](../operations/performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills)
+comparison reproduced the existing clearing totals. The [D138 local program](../operations/validation.md#signed-bounded-market-gross) now returns current gross from the market and its maker capacities. Removing the shared market write also requires recovering the last valid funding index when the next action occurs after expiry, including funding materialized for ETH by a BTC cross-account fill. The [read and accounting trade-off](../operations/performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills)
 covers all three responsibilities.
 
 Model ordinary payment from deposited collateral first. A settlement advance

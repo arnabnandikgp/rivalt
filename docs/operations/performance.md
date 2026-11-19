@@ -80,6 +80,29 @@ A consumer then needs those accounts to obtain the current total. A single PDA
 can expose the last checkpoint with an explicit slot. A fresh artifact, event
 contract and readiness checks for each financial consumer would be required.
 
+### Signed bounded gross read
+
+On clearing `3ace707`, the SDK and clearing returned the same totals throughout
+the stored-order workload. Only the fee payer appeared writable in each compiled
+read transaction. All five clearing accounts were read-only.
+
+| Transaction | BTC gross after | Finalized CU | Wire bytes |
+|---|---:|---:|---:|
+| Read empty market | 0 | 4,536 | 404 |
+| First stored fill against A and B | 4 | 218,578 | 971 |
+| Read first fill | 4 | 4,536 | 404 |
+| Second stored fill against B and C | 8 | 314,386 | 1,035 |
+| Read second fill | 8 | 4,535 | 404 |
+| Close the trader against C | 6 | 172,892 | 950 |
+| Read through an external program CPI | 6 | 15,820 | 453 |
+| Read after fee classification and freeze | 6 | 4,533 | 404 |
+
+Against the D137 signed order scenario, those three fills cost an additional
+834, 575 and 571 CU respectively. The route continues to write the selected
+market and ledger. These figures give a cost for serving an exact aggregate
+read and maintaining the capacity accounts. They establish no improvement
+in concurrent fills or sustainable throughput. [Settlement and liquidation checks](validation.md#signed-bounded-market-gross).
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,
