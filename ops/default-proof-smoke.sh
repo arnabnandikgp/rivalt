@@ -44,6 +44,9 @@ case "${RIVALT_PROOF_SCOPE:-selection}" in
     cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
     node --import tsx tests/rpc-contract/default-proof-rpc.ts start
     node --import tsx tests/rpc-contract/default-proof-rpc.ts resume ;;
+  mirror)
+    cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
+    node --import tsx tests/rpc-contract/mirror-order-rpc.ts ;;
   attribution) node --import tsx tests/rpc-contract/attribution-storage-rpc.ts ;;
   *) echo 'Unknown local proof scope' >&2; exit 1 ;;
 esac

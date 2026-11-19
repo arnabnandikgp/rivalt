@@ -27,7 +27,7 @@ class FrozenSearch:
         require(book.frozen and len(exposures) == 2 and len(identity.member_ids) == len(book.accounts)
                 and tuple(sorted(identity.member_ids)) == identity.member_ids, "complete canonical frozen source required")
         require(type(source_digest) is bytes and len(source_digest) == 32, "authenticated freeze digest required")
-        self.book, self.identity = book, identity
+        self.book, self.exposures, self.identity = book, exposures, identity
         self.baseline = terminal(book)
         self.shortfalls = market_losses(self.baseline)
         self.inputs = tuple(frozen_market_inputs(book, market, exposure, self.baseline)
@@ -37,7 +37,7 @@ class FrozenSearch:
         self.radices = tuple(min(budgets[debtor], pos.cap) + 1 for _, budgets, edges, _ in self.inputs
                              for debtor, pos in edges)
         self.size = prod(self.radices)
-        fields = ("rivalt-joint-search/D121/1", source_digest.hex(), identity.venue.hex(), identity.episode,
+        fields = ("rivalt-joint-search/D127/1", source_digest.hex(), identity.venue.hex(), identity.episode,
                   identity.member_ids, book.pools, book.insurance, book.fees,
                   [(a.cash, a.claims) for a in book.accounts],
                   [(e.mark, e.lots, e.entries, e.unpaid_gains) for e in exposures])
@@ -106,7 +106,7 @@ class FrozenSearch:
                 # Any remaining incomparable economic objectives keep the proposal
                 # uncertified. A caller cannot choose a payout with its submission order.
                 try:
-                    if _break_exact_ties([proposed, other], self.identity) is proposed:
+                    if _break_exact_ties([proposed, other], self.identity, self.book, self.exposures, self.baseline) is proposed:
                         continue
                 except IncomparableFinancialProfiles:
                     return replace(audit, status="incomparable", next_ordinal=ordinal + 1, challenger=ordinal)

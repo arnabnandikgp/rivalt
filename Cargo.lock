@@ -410,6 +410,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "default-plan-selection",
+ "solana-sha256-hasher",
 ]
 
 [[package]]

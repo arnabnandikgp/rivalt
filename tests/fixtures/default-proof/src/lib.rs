@@ -2,8 +2,10 @@
 //! restartable selection result. It has no clearing account or custody authority.
 use anchor_lang::prelude::*;
 mod basis;
+mod mirror;
 use basis::*;
 use default_plan_selection as selection;
+use mirror::*;
 use selection::{Plan, PARTITIONS};
 
 declare_id!("sDPXvpEPwCzVKHdpxntiM1khVvtCj2V6ozCr5euajBi");
@@ -47,6 +49,30 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    pub fn start_mirror(
+        ctx: &mut Context<StartMirror>,
+        episode: u64,
+        commitment: [u8; 32],
+    ) -> Result<()> {
+        let probe = &mut ctx.accounts.probe;
+        probe.venue = *ctx.accounts.payer.address();
+        probe.episode = episode;
+        probe.commitment = commitment;
+        Ok(())
+    }
+
+    pub fn write_mirror(ctx: &mut Context<WriteMirror>, offset: u16, bytes: Vec<u8>) -> Result<()> {
+        mirror::append(&mut ctx.accounts.probe, offset, &bytes)
+    }
+
+    pub fn decide_mirror(
+        ctx: &mut Context<DecideMirror>,
+        permutation: [u8; 8],
+        proposed: u8,
+    ) -> Result<()> {
+        mirror::decide(&mut ctx.accounts.probe, permutation, proposed)
+    }
 
     pub fn start_basis(ctx: &mut Context<StartBasis>) -> Result<()> {
         ctx.accounts.basis.numerator = 101u64.to_le_bytes().to_vec();
@@ -136,4 +162,5 @@ pub enum ProofError {
     InvalidCount,
     Incomplete,
     StorageFunding,
+    WrongMirrorWinner,
 }

@@ -1313,3 +1313,22 @@ member. Winner charges reside alongside original frozen rows until the next
 episode. A rejected cutoff cannot release a payment, and a worker needs no prior
 proposer's signature to continue. The [cutoff proof](clearing/default-plan-verification.md#one-btc-debtor-and-several-winning-accounts)
 applies D116 and D121 to one market with enough opposing lots.
+
+## D127 — Frozen member order for an exact BTC/ETH market reflection
+
+19 November 2026. The user approved D121 member priority for the remaining
+trade-off when the two markets and the competing plans are exact reflections.
+First apply the existing D116–D120 financial admissibility and recovery
+comparisons. Both plans must recover the same amount and spend the same
+insurance in each labelled market. A single reversible mapping of the complete
+membership must exchange the two markets’ original economic inputs,
+settlements, charges, paired fills and individual exact and rounded receipts.
+The original baseline must also reflect under that mapping. Unequal trade-offs
+stay uncertified.
+
+The mapping proves symmetry. The original stable member IDs determine priority.
+Compare winner charges, then individual pair charges, using D121’s venue and
+episode order. Keep the original market order within each member. Retries of
+the same episode select the same result. D122 still requires proof of the
+winning plan and full settlement before any cash can be released.
+[Verification and example](clearing/default-plan-verification.md#when-the-two-markets-trade-places).

@@ -6,6 +6,7 @@ import unittest
 
 from account_contract_reference import Account, InvalidTransition
 from default_plan_certificate import AssignmentProof, ThreeLotBook, exact_primary_recovery, verify
+from settlement_liquidation_model import terminal
 from frozen_plan_selection import FrozenIdentity, _break_exact_ties, select_joint
 from joint_reduction_model import Exposure, compare_joint
 from market_settlement_reference import MarketBook
@@ -92,7 +93,7 @@ class DefaultPlanCertificate(unittest.TestCase):
             freeze = replace(identity, episode=epoch)
             self.assertEqual([freeze.member_ids[i] for i in freeze.order()], order)
             selected = select_joint(book, exposures, freeze)
-            self.assertEqual(_break_exact_ties(list(reversed(plans)), freeze), selected)
+            self.assertEqual(_break_exact_ties(list(reversed(plans)), freeze, book, exposures, terminal(book)), selected)
             self.assertEqual(selected.payout.cash, cash)
             self.assertEqual(decode(run([frozen_book_command(selected.book)])[0])['cash'], cash)
 
