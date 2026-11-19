@@ -89,6 +89,7 @@ try {
   process.env.RIVALT_DEFAULT_BATCH_STEPS = gated||linked?'1':'32';
   worker = await openWorker();
   const originals: string[] = [];
+  const workerCosts: {request:string; units:number; bytes:number}[] = [];
   let refused = false, partialChecked = false, jointChecked = false;
   while ((await resolution()).stage !== 11) {
     assert(originals.length<128,'eight-member recovery exceeded the test continuation budget');
@@ -107,11 +108,14 @@ try {
         debtor,winner:makers[0].capital,debtorPage:page})],[],sdk.CLEARING_ERROR__RESOLUTION);
       await h.send('refuse settlement after only BTC verified',[sdk.getAcceptDenominatorRowInstruction({...common,
         epoch:frozen.epoch,revision:current.preparedState.revision,page})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      const margin=makers[0].capital;
+      await h.send('refuse funded withdrawal between verified legs',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
+        btc:setup.markets[0],eth:setup.markets[1],owner:setup.owner,margin,quoteMint:setup.mint.address,userToken:setup.token.address,
+        guard:await guard(margin),amount:1n})],[setup.owner],sdk.CLEARING_ERROR__PAUSED);
       assert.deepEqual(await snapshot(),original);
       await worker.close(); worker=await openWorker();
       await journal.checkpoint('btc-verified-eth-pending',true);
       partialChecked=true;
-      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
     }
     if(linked && partialChecked && !jointChecked && [2,3].includes(current.preparedState.stage)) {
       const receipt=sdk.frozenJointReceipt(current.preparedState);
@@ -120,6 +124,9 @@ try {
       assert.deepEqual(receipt.legs.map(leg=>leg.charge),[3n,5n]);
       assert.deepEqual(receipt.legs.map(leg=>leg.price),[50003n,20005n]);
       assert.deepEqual(receipt.legs.map(leg=>leg.matched),[1n,1n]);
+      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+      await worker.close(); worker=await openWorker();
+      assert.equal(worker.defaultContinuationSteps,32);
       jointChecked=true;
     }
     if (gated && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
@@ -155,6 +162,8 @@ try {
     assert.equal((await ws.notification(subscription)).params.result.value.err,null);
     const receipt = await rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     assert.equal(receipt.transaction[0],intent.wire);
+    assert(Number.isSafeInteger(receipt.meta.computeUnitsConsumed) && receipt.meta.computeUnitsConsumed>0);
+    workerCosts.push({request:intent.request_id,units:receipt.meta.computeUnitsConsumed,bytes:Buffer.from(intent.wire,'base64').length});
     originals.push(intent.signature);
     if (originals.length===1) {
       await worker.close(); worker=await openWorker();
@@ -180,7 +189,7 @@ try {
   await flush(); await journal.checkpoint(gated?'joint-certificate-required':'both-market-credits-withdrawn',true);
   const replay=await journal.finish();
   const result={revision,profile:linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
-    inputs:input,comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,events:replay.events,harnessChecks:checks.length};
+    inputs:input,comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));
 } finally {
