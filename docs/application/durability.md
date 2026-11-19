@@ -739,3 +739,10 @@ receipt digest binds these ordered terms to the venue and epoch. Reconciliation
 checks the digest against the prepared account and each charge and capacity
 against its frozen page. Financial effects appear on subsequent member
 application and signed withdrawals. [Measured replay](../operations/validation.md#clearing-verified-single-lot-book).
+
+The multi-lot candidate stores the frozen rate alongside every winning capacity.
+The journal reconstructs the original budgets and verifies the ordered fills,
+including their quantities and price remainders. RPC reconciliation matches
+the per-member charge, rate, receipt kind and digest to clearing-owned pages.
+A fresh database can reproduce the certificate after the worker process exits.
+[Verification contract](../clearing/default-plan-verification.md#how-the-multi-lot-clearing-certificate-binds-the-inputs).

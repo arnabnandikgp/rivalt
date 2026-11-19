@@ -891,6 +891,34 @@ can establish the same result without iterating over possible charges.
    its edge, debtor budget and winner total after the preceding pairs.
 
 A missed bound leaves the proposal unproved by this method. Complete search
-can still certify it. The runtime currently admits its qualified one-lot
-certificate. The eight-member multi-lot comparison finishes with the venue
-frozen. [Signed example and measurements](../operations/validation.md#exact-multi-lot-btc-comparison).
+can still certify it off chain. The earlier one-lot deployment kept the
+eight-member multi-lot comparison frozen. [Signed example and measurements](../operations/validation.md#exact-multi-lot-btc-comparison).
+
+### How the multi-lot clearing certificate binds the inputs
+
+In the local multi-lot candidate, valuation reads the original position and
+its closed-first payment history. For a position of Q lots it stores the
+greatest fraction below or equal to its exact eligible gain per lot with a
+denominator at most Q. Every threshold for charging an integer atom on k lots
+has denominator at most k. The stored rate therefore gives exactly the same
+whole-atom capacity for every k from 1 through Q, including the minimum lots
+needed for a charge. It occupies two eight-byte words per frozen row.
+[Rate conversion](../../crates/clearing-accounting/src/attribution/lot_rate.rs).
+
+The valuation cursor records whether every BTC claim visited was whole, including
+flat creditors whose rows the keeper can omit from the matching instruction.
+The cursor persists that fact across restarts. A previously unchecked prefix
+cannot establish it. Snapshot formats 1 and 2 continue to identify the earlier
+valuation paths. Formats 3 and 4 record a checked prefix with all-whole claims
+or one containing a fraction. Original BTC/ETH claims retain their exact scaled
+values in every format.
+
+Clearing checks the complete valuation, listed gross lots, total face debt,
+frozen market and settlement pools. It derives the budgets and capacities,
+then reconstructs the compact plan under the four bounds above. A successful
+certificate stores the charge against each side. Its receipt binds the original
+capacity and rate of each winner, plus debtor ID, winner ID, charged atoms,
+matched lots, base fill price and count of lots conceding one additional tick.
+The worker can restart at this point. Each subsequent application verifies
+against the same basis. An inconclusive bound keeps the episode frozen under
+D122. [Clearing adapter](../../programs/clearing/src/instructions/account_safety/settlement/inventory_multi_lot.rs).

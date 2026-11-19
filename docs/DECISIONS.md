@@ -1433,3 +1433,13 @@ cases exposed two separate limits in the original verifier. A sparse book
 exhausted revision slots and a dense book exhausted the default SVM heap.
 This decision concerns verification resources. D116 and D121 still determine
 the financial assignment. [Measured cases](operations/validation.md#active-positions-and-frozen-page-placement).
+
+## D136 — Bind multi-lot recovery to the complete original BTC book
+
+20 November 2026. The local multi-lot candidate records the whole-claim check
+for every frozen BTC member and a two-word rate derived from each original
+winning position. Clearing may release the compact result when all recovery,
+sharing, lot and member-order bounds meet. The prepared receipt fixes all fills
+before any member can receive funded cash. The worker cannot substitute its
+own off-chain search result when the short proof is inconclusive.
+[State and arithmetic](clearing/default-plan-verification.md#how-the-multi-lot-clearing-certificate-binds-the-inputs).
