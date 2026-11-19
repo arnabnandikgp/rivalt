@@ -1,5 +1,45 @@
 # Validation and measured limits
 
+## BTC winner with an ETH debt
+
+At clean harness `bb67d1f`, three genuine routes produced the same eight
+frozen margin accounts and both market ledgers on two separate validators.
+The isolated trader bought BTC at 60,002. The cross trader sold one BTC lot
+at 54,998 to the same maker, leaving that maker flat, then bought two ETH lots
+at 30,002 from a different maker. At marks of 40,000 and 12,500 the cross
+trader's BTC claim was 14,998 and its ETH debt was 35,004. The two runs had
+separate clocks and oracle observation windows.
+
+| Creditor gain in atoms | Ordinary, signed | BTC-only, model | Joint, model |
+|---|---:|---:|---:|
+| Flat BTC maker | 5,002 | 5,004 | 5,004 |
+| ETH maker | 34,970 | 34,968 | 34,968 |
+| Direct charges on BTC / ETH | 0 / 0 | 9 / 0 | 9 / 33 |
+
+The Rust verifier rejected the BTC-only proposal with `Entitlement`. The
+ETH maker's exact entitlement would fall by 22,518/10,001 atoms without a
+direct ETH charge. The independent search checked 340 assignments and
+selected 9/33. Native protected settlement verified that plan's exact
+financial conditions, per-member cash and movements, and 6/3 insurance use.
+The two proposal columns have identical final balances and different
+eligibility under the approved rules. A focused Rust-driver regression checks
+both outcomes. [Proof obligations](../clearing/default-plan-verification.md#a-winner-whose-btc-claim-backs-an-eth-obligation).
+
+Ordinary SBF `33361d9` finalized the two SPL withdrawals, paying 39,972
+atoms into the maker operator's wallet. The vault went from 6,040,000 to
+6,000,028 with zero unallocated surplus across 224 reconciled accounts. The
+run recorded 271 harness outcomes, 15 worker originals and 113 events
+reproduced in fresh PostgreSQL.
+
+Candidate SBF `d0ae474` refused both proposed sole debtors and premature
+payment with program error 6130. The two refusals used 21,384 and 21,562 CU
+at 824 bytes. The frozen vault still held 6,040,000 and both wallets held
+zero. All eight roots, both ledgers, financial source, scratch and token
+balances matched across the rejected transactions. The candidate run recorded
+272 harness outcomes, 41 worker originals and 84 events reproduced in fresh
+PostgreSQL. Neither successor proposal was released by this candidate.
+[Reproduction](local-development.md#reproduce-a-winner-with-debt-in-the-other-market).
+
 ## Linked allocation across competing makers
 
 At clean harness `005230c`, all five trades produced the same eight original

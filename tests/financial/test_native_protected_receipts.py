@@ -23,6 +23,21 @@ def protected_command(original, effective):
 
 
 class NativeProtectedReceipts(unittest.TestCase):
+    def test_identical_rounded_receipts_can_have_different_direct_charge_authority(self):
+        book = MarketBook((Account(19_987, (-20_002, 0)), Account(19_976, (14_998, -35_004)),
+                           Account(1_000_000, (5_004, 0)), Account(1_000_000, (0, 35_004))),
+                          insurance=(6, 3), fees=(18, 10), frozen=True)
+        def adjusted(eth_charge):
+            return MarketBook((Account(19_987, (-19_993, 0)), Account(19_976, (14_989, -35_004 + eth_charge)),
+                               book.accounts[2], Account(1_000_000, (0, 35_004 - eth_charge))),
+                              insurance=book.insurance, fees=book.fees, frozen=True)
+        ordinary, btc_only, joint = run([protected_command(book, proposed) for proposed in
+                                         (book, adjusted(0), adjusted(33))])
+        self.assertEqual(decode(ordinary)['cash'], (0, 0, 1_005_002, 1_034_970))
+        self.assertEqual(btc_only, 'err:Entitlement')
+        outcome = decode(joint)
+        self.assertEqual((outcome['cash'], outcome['spent']), ((0, 0, 1_005_004, 1_034_968), (6, 3)))
+
     def test_additional_flat_creditor_changes_who_receives_two_funded_atoms(self):
         original = MarketBook((Account(19_976, (-10_002, -10_002)), Account(19_970, (4_996, 0)),
                                Account(1_000_000, (5_006, 0)), Account(1_000_000, (0, 10_002))),

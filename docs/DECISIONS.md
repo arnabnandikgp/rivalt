@@ -1159,6 +1159,11 @@ demonstrates why the successor must check each actual foreign claim payment as
 well. D118 selects the rounding rule. Linked simultaneous reductions remain an
 implementation gate.
 
+The [signed foreign-winner comparison](operations/validation.md#btc-winner-with-an-eth-debt)
+also distinguishes two proposals with equal rounded cash. When a BTC winner
+owes ETH, a BTC-only charge cannot lower the ETH creditor's recovery. A
+separately verified direct ETH charge changes that creditor's protected floor.
+
 ## D118 — Protected rounding for foreign creditor payouts
 
 18 November 2026. The user approved protected rounding for the successor.

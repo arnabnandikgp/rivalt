@@ -65,11 +65,15 @@ targets must be satisfied before any member can receive money. The
 [verification contract](default-plan-verification.md#linked-allocation-across-competing-winners)
 specifies the exact scope.
 
-The next financial boundary is a winner with an obligation in the other market.
-Reconstruct one such account from signed trades and compute ordinary and
-protected receipts for each creditor. Compare those receipts before admitting
-any reduction that affects the other market's backing. Several debtors competing
-for the same winning lots require an additional inventory-allocation proof.
+The next clearing deliverable is to verify a winner with a foreign obligation
+through actual payment. Start from the signed three-trade book. Carry the
+ordinary payout and exact per-member entitlements alongside the proposed joint
+schedule. Bind each direct charge to its owner, verify both the fractional
+and whole-atom floors and compare competing schedules before opening Apply.
+The BTC-only proposal and the jointly admissible proposal have identical
+rounded amounts; another balance-only test cannot distinguish them.
+Several debtors competing for the same winning lots also require an
+inventory-allocation proof.
 General linked selection,
 shared writes and broader cost qualification remain open.
 

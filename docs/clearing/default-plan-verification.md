@@ -616,8 +616,8 @@ its eight rows has two additional little-endian u64 charges in this candidate
 layout. Stage 7 records the next ordinal, attempt and recovered amounts. Excess
 recovery or a short final sum returns the header to stage 4. The next attempt
 overwrites the rows in order. Provisional charges have no effect on any root,
-insurance ledger or vault. Anyone can finish a pending scan from its stored
-cursor. Repeated submissions of losing cutoffs can consume time and fees; this
+insurance ledger or vault. On a supported book, anyone can finish a pending
+scan from its stored cursor. Repeated submissions of losing cutoffs can consume time and fees; this
 candidate sets no production completion deadline. For N frozen members a
 successful proof takes one begin instruction and N scoring instructions. The
 prepared header serializes those instructions within one default episode.
@@ -630,3 +630,32 @@ Multiple debtors, creditors exposed to both markets, fractional original cash
 shares and insufficient eligible gain require additional proof. The worker
 reports these shapes as unsupported in this candidate. The local artifact has
 its own page decoder and pinned helper. [Clearing implementation](../../programs/clearing/src/instructions/account_safety/settlement/linked_allocation.rs).
+
+### A winner whose BTC claim backs an ETH obligation
+
+One signed book has an isolated BTC debtor and a cross account holding the
+winning BTC short and two losing ETH lots. The flat BTC maker and the ETH
+maker are the final creditors. The cross account has 19,976 funded atoms,
+14,998 of unpaid BTC gain and an ETH obligation of 35,004. In terminal
+settlement, collections on that BTC claim contribute to payment of the ETH
+maker. Ordinary BTC has 19,993 funded atoms against 20,002 of face claims.
+The cross account therefore receives an exact 14,998 × 19,993 / 20,002 before
+whole-atom rounding. A nine-atom BTC charge brings that receipt down to 14,989.
+This removes exactly 22,518/10,001 atoms of backing from the ETH creditor.
+
+With the original book, the two makers' gains are 5,002 and 34,970 atoms.
+A nine-atom BTC reduction would pay them 5,004 and 34,968. The ETH maker
+would lose two atoms despite having no direct reduction. D117 rules out that
+proposal. A joint plan charging nine to the BTC winner and 33 to the ETH
+winner produces the *same two rounded receipts*. This time the ETH maker
+has a verified direct reduction, and its exact and rounded claims satisfy
+the foreign-market protections. Together the two direct charges reduce ETH
+impairment by exactly 307,515/10,001 atoms. The distinction matters when
+implementing a general verifier: checking only final vault and root balances
+cannot authenticate who was eligible to bear each charge.
+
+The complete native comparison checks ordinary cash, each member's signed
+market movements and insurance; its independent search tries all 340
+assignments. A future clearing proof for this family needs original and
+effective per-market rates, direct-charge ownership, and both exact and
+whole-atom creditor floors before releasing either market. [Reference comparison](../../tests/financial/foreign_winner_comparison.py).

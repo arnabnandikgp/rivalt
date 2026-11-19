@@ -446,3 +446,21 @@ The run first offers too little BTC alongside the correct ETH allocation, then
 restarts the worker during the corrected member scan. It compares all final
 margin accounts and four withdrawals to the independent fill-by-fill reference,
 and refetches the original transactions into a fresh PostgreSQL database.
+
+### Reproduce a winner with debt in the other market
+
+Run the same three signed trades on fresh validators and PostgreSQL databases.
+Use the ordinary attribution artifact from `33361d9` and the linked allocation
+artifact and helper from `d0ae474`. The first run measures ordinary payment
+and exit. The second submits both debtors to the current permissionless proof
+and checks the frozen roots after rejection.
+
+```bash
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-ordinary \
+  bash ops/scalable-settlement-smoke.sh
+bash ops/build-settlement-helper.sh linked-allocation-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_allocation_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-gate \
+  bash ops/scalable-settlement-smoke.sh
+```
