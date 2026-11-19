@@ -19,7 +19,7 @@ it('selects the same cutoff as buying individually ranked marginal units',()=>{
     for(let loss=0;loss<=units.length+1;loss++) {
       const end=units[Math.min(loss,units.length)-1];
       const expected=end?[end.unit,end.cap,end.extra,end.id]:[0n,0n,0n,0n];
-      expect(btcCutoff(venue,epoch,BigInt(loss),winners.toReversed())).toEqual(expected);
+      expect(btcCutoff(venue,epoch,BigInt(loss),[...winners].reverse())).toEqual(expected);
     }
   }
 });
