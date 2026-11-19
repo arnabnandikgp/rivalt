@@ -1,3 +1,4 @@
+import {decodeFeeLedger} from './market-fees.js';
 import {decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
 import {address,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
 import {getMintDecoder,getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
@@ -44,7 +45,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const makerKeys:Address[]=[];
   let makerDiscoverySlot=0n;
   const liquidityDiscovery=liquidityMarketIndex===undefined?undefined:
-    await discoverLiquidityAccounts(rpc,venue,markets[liquidityMarketIndex],commitment);
+    await discoverLiquidityAccounts(rpc,venue,markets[liquidityMarketIndex],commitment,identity.marginLayout);
   if(liquidityDiscovery) { makerDiscoverySlot=liquidityDiscovery.contextSlot;makerKeys.push(...liquidityDiscovery.keys); }
   const margins=[...new Set([...selectedMargins,...liquidityDiscovery?.capitals??[]])];
   const discovery=await rpc.call('getMultipleAccounts',[margins,{encoding:'base64',commitment,minContextSlot:Number(makerDiscoverySlot)}]);
@@ -75,8 +76,9 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.index===index&&value.bump===marketPdas[index][1]&&
       value.lotsPerUnit===(index===0?1_000_000n:100_000n),'Market identity/units mismatch.');return value;
   });
+  const feeEscrow=identity.marginLayout==='aggregate-fees'?ledgers.map(key=>decodeFeeLedger(raw(accounts.get(key)))):undefined;
   const ledgerStates=ledgers.map((key,index)=>{
-    const value=decode(accounts.get(key),protocol.MARKET_LEDGER_DISCRIMINATOR,protocol.getMarketLedgerDecoder());
+    const value=feeEscrow?.[index].state??decode(accounts.get(key),protocol.MARKET_LEDGER_DISCRIMINATOR,protocol.getMarketLedgerDecoder());
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.market===markets[index]&&value.marketIndex===index&&value.bump===ledgerPdas[index][1]&&
       value.insuranceFeeRemainder<4,'Market ledger identity/carry mismatch.');return value;
   });
@@ -115,7 +117,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,marginLayout:identity.marginLayout,
     market:markets[liquidityMarketIndex],marketIndex:liquidityMarketIndex,domain:venueState.domain,slot,now,contextSlot},accounts);
   return {commitment,venue,custody,safety,vault,markets,btc:markets[0],eth:markets[1],ledgers,btcLedger:ledgers[0],ethLedger:ledgers[1],
-    venueState,custodyState,safetyState,marketStates,ledgerStates,roots,portfolios,actualVault:token.amount,liquidity,
+    venueState,custodyState,safetyState,marketStates,ledgerStates,feeEscrow,roots,portfolios,actualVault:token.amount,liquidity,
     slot,now,contextSlot};
 }
 export type AccountSnapshot=Awaited<ReturnType<typeof readAccountSnapshot>>;

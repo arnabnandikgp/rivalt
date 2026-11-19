@@ -44,7 +44,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   const discoveredMarket = decode(sourceDiscovery.value[0], clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
   let discovery: Awaited<ReturnType<typeof discoverLiquidityAccounts>> | null = null;
   let coverageReason: string | null = null;
-  try { discovery = await discoverLiquidityAccounts(rpc, venue, market, commitment); }
+  try { discovery = await discoverLiquidityAccounts(rpc, venue, market, commitment, marginLayout); }
   catch { coverageReason = 'invalid-maker-discovery'; }
   const [registry] = await clearing.findLiquidityRegistryPda({ market });
   const keys = [...new Set([venue, market, configuration, safety, ACCOUNT_CLOCK, registry,

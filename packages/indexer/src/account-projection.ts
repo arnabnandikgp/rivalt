@@ -312,7 +312,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     }
     default:
       accountCheck(profile===4,'unsupported account projection event');
-      projectLiquidity(state,event,{root,market,ledger});
+      projectLiquidity(state,event,{root,market,ledger},artifactSet);
   }
   state.sequence=(BigInt(state.sequence)+1n).toString();
   reconcileAccountLedger(state);

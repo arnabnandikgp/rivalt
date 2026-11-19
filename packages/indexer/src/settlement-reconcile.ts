@@ -24,7 +24,7 @@ const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(valu
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
   binding:{venue:string;program:string;artifactSet?:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
-  const allocation=kind===18&&binding.artifactSet===sdk.MULTI_LOT_ARTIFACT_SET?sdk.getMultiLotBookPageDecoder():
+  const allocation=kind===18&&sdk.isMultiLotArtifact(binding.artifactSet)?sdk.getMultiLotBookPageDecoder():
     kind===18&&sdk.isBookInventoryArtifact(binding.artifactSet)?sdk.getInventoryBookPageDecoder():
     kind===18&&binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET?sdk.getLinkedAllocationPageDecoder():
     kind===18&&binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET?sdk.getBtcAllocationPageDecoder():undefined;

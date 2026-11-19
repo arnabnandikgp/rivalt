@@ -1,3 +1,4 @@
+import {decodeMakerFeeLane} from './market-fees.js';
 import {decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
 import { MAX_PRICE } from './price-policy.js';
 import { address, getAddressDecoder, getAddressEncoder, getProgramDerivedAddress, type Address, type ReadonlyUint8Array } from '@solana/kit';
@@ -74,7 +75,7 @@ export function canonicalShapeFromAccount(state: canonical.LiquidityShape): Cano
 /** Discovery chooses dependencies only. Every value is read and authenticated
  * again in the final financial batch; discovery never supplies a quote value. */
 export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venue: Address, market: Address,
-  commitment: 'confirmed' | 'finalized') {
+  commitment: 'confirmed' | 'finalized', layout?:MarginLayout) {
   const [registry] = await clearing.findLiquidityRegistryPda({ market });
   const registrations = await Promise.all([0,1,2].map(async instance => (await getProgramDerivedAddress({
     programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
@@ -85,7 +86,8 @@ export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venu
   const accounts: LiquidityAccountMap = new Map(registrations.map((key,index) => [key,discovery.value[index]]));
   const capitals: Address[] = [], dependencies: Address[] = [registry,...registrations];
   for (const [instance,key] of registrations.entries()) {
-    const state = decode(bytes(accounts,key,clearing.CLEARING_PROGRAM_ADDRESS),clearing.MAKER_REGISTRATION_DISCRIMINATOR,
+    const raw = bytes(accounts,key,clearing.CLEARING_PROGRAM_ADDRESS);
+    const state = layout==='aggregate-fees'?decodeMakerFeeLane(raw).state:decode(raw,clearing.MAKER_REGISTRATION_DISCRIMINATOR,
       clearing.getMakerRegistrationDecoder());
     requireValue(state.schemaVersion === 10 && state.venue === venue && state.market === market && state.instance === instance,
       'Foreign liquidity discovery.');
@@ -118,7 +120,8 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
   for (const [instance, registrationKey] of registry.registrations.entries()) {
     const [expectedRegistration, registrationBump] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
       seeds: [new TextEncoder().encode('maker-v4'), KEY.encode(snapshot.market), Uint8Array.of(instance)] });
-    const registration = decode(bytes(accounts,registrationKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.MAKER_REGISTRATION_DISCRIMINATOR,
+    const rawRegistration=bytes(accounts,registrationKey,clearing.CLEARING_PROGRAM_ADDRESS);
+    const registration = snapshot.marginLayout==='aggregate-fees'?decodeMakerFeeLane(rawRegistration).state:decode(rawRegistration, clearing.MAKER_REGISTRATION_DISCRIMINATOR,
       clearing.getMakerRegistrationDecoder());
     requireValue(registrationKey === expectedRegistration && registration.bump === registrationBump && registration.schemaVersion === 10
       && registration.venue === snapshot.venue && registration.market === snapshot.market && registration.instance === instance

@@ -52,9 +52,9 @@ export function decodeProfitAttribution(bytes:Uint8Array,allowSponsored=false) {
   return {root,positions,width,credit};
 }
 
-export type MarginLayout='profit-attribution'|'sponsored-profit'|'selected';
+export type MarginLayout='profit-attribution'|'sponsored-profit'|'aggregate-fees'|'selected';
 export function decodeMarginForLayout(bytes:Uint8Array,layout:MarginLayout='selected') {
-  if(layout==='profit-attribution'||layout==='sponsored-profit')return decodeProfitAttribution(bytes,layout==='sponsored-profit').root;
+  if(layout==='profit-attribution'||layout==='sponsored-profit'||layout==='aggregate-fees')return decodeProfitAttribution(bytes,layout!=='profit-attribution').root;
   requireValue(MARGIN_ACCOUNT_DISCRIMINATOR.every((byte,index)=>bytes[index]===byte),'Wrong account discriminator.');
   requireValue(layout==='selected'&&bytes.length===getMarginAccountSize(),'Invalid selected margin layout.');
   return getMarginAccountDecoder().decode(bytes);

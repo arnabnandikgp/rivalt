@@ -1,12 +1,13 @@
 import {accountDeployment,type AccountDeployment} from '@rivalt/sdk';
 import {BACKING_ARTIFACTS,verifyTestBuild} from './backing-artifacts.js';
 
-type Linked = boolean|'flat'|'allocation'|'foreign'|'shared'|'partial'|'book'|'capacity'|'multi';
+type Linked = boolean|'flat'|'allocation'|'foreign'|'shared'|'partial'|'book'|'capacity'|'multi'|'fees';
 const linkedBuilds = {
   pair:['linked-pair-candidate','linked-pair-qualification'],
   flat:['linked-flat-candidate','linked-pair-qualification'],
   allocation:['linked-allocation-candidate','linked-allocation-qualification'],
   foreign:['foreign-creditor-candidate','foreign-creditor-qualification'],
+  fees:['aggregate-fee-candidate','aggregate-fee-qualification'],
   multi:['multi-lot-book-candidate','multi-lot-book-qualification'],
   capacity:['book-capacity-candidate','book-inventory-qualification'],
   book:['book-inventory-candidate','book-inventory-qualification'],

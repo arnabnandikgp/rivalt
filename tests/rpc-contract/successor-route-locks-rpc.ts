@@ -18,7 +18,8 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'multi');
+const aggregate=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-fee-lanes';
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,aggregate?'fees':'multi');
 const payers=new Map<string,Keypair>();
 let broadcast:((label:string)=>Promise<void>)|undefined;
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
@@ -29,7 +30,7 @@ type Receipt={signature:string;slot:number;cu:number;bytes:number;fee:number;loc
 const bursts:{workload:Workload;round:number;side:number;elapsedMs:number;overlap:string[];receipts:Receipt[]}[]=[];
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
-  const setup=await liquidityExecutionSetup(h,rpc,{independentTraders:true,traderCount:3,marginLayout:'sponsored-profit',shape:symmetricPayoutShape,verifyRejections:false});
+  const setup=await liquidityExecutionSetup(h,rpc,{independentTraders:true,traderCount:3,marginLayout:aggregate?'aggregate-fees':'sponsored-profit',shape:symmetricPayoutShape,verifyRejections:false});
   const {root,route,guard}=executionTestHelpers(h,setup);
   assert.equal(new Set(setup.traderOwners.map(owner=>owner.address)).size,3);
   await flush();
@@ -108,6 +109,30 @@ try {
   for(const key of accounts){const member=await root(key);assert.equal(member.cash,cash.get(key));
     assert.deepEqual(member.positions.map(position=>position.lots),[0n,0n]);
     assert.deepEqual(member.positions.map(position=>position.virtualScaled),virtual.get(key));}
+  const readFee=async(index:number)=>sdk.decodeFeeLedger((await h.read(setup.ledgers[index]))!);
+  const classify=(index:number)=>{
+    const [first,second,third]=setup.instances.slice(index*3,index*3+3).map(maker=>maker.registration);
+    return sdk.getClassifyMarketFeesInstruction({...setup.common,ledger:setup.ledgers[index],first,second,third});
+  };
+  if(aggregate){
+    for(const market of [0,1]){
+      const ledger=await readFee(market),pending=fees[market];
+      assert.equal(ledger.pendingFees,pending);assert.equal(ledger.spendableFees,0n);
+      assert.equal(ledger.state.insurance,0n);
+    }
+    const btcBefore=await h.read(setup.ledgers[0]);
+    await h.send('unclassified fee escrow cannot be spent by treasury',[sdk.getAllocateMarketFeesInstruction({
+      ...setup.common,ledger:setup.ledgers[0],feeAuthority:setup.payer,marketIndex:0,amount:1n})],[],sdk.CLEARING_ERROR__RECONCILIATION);
+    assert.deepEqual(await h.read(setup.ledgers[0]),btcBefore);
+    await h.send('classify BTC fees independently of ETH',[classify(0)]);
+    assert.equal((await readFee(1)).pendingFees,fees[1]);
+    await h.send('classify ETH fees',[classify(1)]);
+    const beforeRepeat=await readFee(0);
+    await h.send('repeat a complete BTC checkpoint',[classify(0)]);
+    const retry=await readFee(0);
+    assert.deepEqual([retry.state.insurance,retry.state.fees,retry.state.version,retry.pendingFees,retry.classifiedFees],
+      [beforeRepeat.state.insurance,beforeRepeat.state.fees,beforeRepeat.state.version,0n,fees[0]]);
+  }
   for(const [index,key] of setup.ledgers.entries()){
     const ledger=sdk.getMarketLedgerDecoder().decode((await h.read(key))!);
     assert.deepEqual([ledger.insurance,ledger.fees,BigInt(ledger.insuranceFeeRemainder)],[fees[index]/4n,fees[index]-fees[index]/4n,fees[index]%4n]);
@@ -119,11 +144,48 @@ try {
     userToken:setup.traderToken.address,guard:await guard(setup.roots[0]),amount:1n})],[setup.traderOwner]);
   assert.deepEqual([await token(setup.vault),await token(setup.traderToken.address),(await root(setup.roots[0])).cash],
     [originalVault-1n,walletBefore+1n,cash.get(setup.roots[0])!-1n]);
+  let additionalFee=0n;
+  if(aggregate){
+    const trader=setup.roots[0],owner=setup.traderOwners[0];
+    const amount=50n;
+    await setup.sample();
+    await h.send('open BTC position before joint fee and freeze boundary',[await route({actor:owner,trader,marketIndex:0,side:0,
+      makers:[setup.instances[0]],lots:[amount],minimalMarkets:true})],[owner]);
+    additionalFee=(60_002n*amount+4999n)/5000n;
+    assert.equal((await readFee(0)).pendingFees,additionalFee);
+    const sources={primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
+      guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
+    setup.sourcePrices.btc=25_000_000_000n;await setup.freshSources();
+    const freeze=sdk.getFreezeAccountsInstruction({...setup.safetyCommon,...sources,caller:setup.payer,target:trader,
+      members:(await sdk.deriveMemberPage(setup.venue,(await root(trader)).id/64n))[0],
+      safetyEpoch:sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).epoch,
+      resolutionEpoch:sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!).epoch,emergency:false});
+    await h.send('freeze rejects an unclassified market',[freeze],[],sdk.CLEARING_ERROR__RECONCILIATION);
+    await h.send('atomic classify both markets and freeze with complete insurance',[classify(0),classify(1),freeze]);
+    const frozen=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
+    assert.deepEqual(frozen.insuranceBefore,[(fees[0]+additionalFee)/4n,fees[1]/4n]);
+    assert.deepEqual(frozen.feesBefore,[(fees[0]+additionalFee)-frozen.insuranceBefore[0],fees[1]-frozen.insuranceBefore[1]]);
+    assert.equal(frozen.stage,2);
+  }
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
-  const routes=journal.initialEvents.filter(event=>event.type==='LiquidityRouteExecutedV4');
+  const routes=journal.initialEvents.filter(event=>event.type===(aggregate?'LiquidityRouteFeeRecorded':'LiquidityRouteExecutedV4'));
   const signed=bursts.flatMap(burst=>burst.receipts.map(receipt=>receipt.signature));
+  if(aggregate)signed.push(String(checks.find(row=>row.label==='open BTC position before joint fee and freeze boundary')!.signature));
   assert.deepEqual(routes.map(event=>event.signature).sort(),[...signed].sort());
+  if(aggregate){
+    const totals=[0n,0n],credits=[0n,0n];
+    const splits=routes.map(event=>{
+      const market=setup.markets.indexOf(event.data.market),fee=BigInt(event.data.fee);
+      const receipt=sdk.attributeFinalizedFee(totals[market],fee);
+      totals[market]=receipt.cumulative;credits[market]+=receipt.insurance;
+      return {signature:event.signature,fee,market,insurance:receipt.insurance,retained:receipt.retained};
+    });
+    assert.deepEqual(totals,[fees[0]+additionalFee,fees[1]]);
+    assert.deepEqual(credits,totals.map(total=>total/4n));
+    assert.deepEqual([...new Set(splits.filter(row=>row.market===0&&row.fee===13n).map(row=>String(row.insurance)))].sort(),['3','4']);
+    writeFileSync(directory+'/reconstructed-fees.json',json(splits));
+  }
   await journal.checkpoint('route-bursts-and-exit',true);
   const replay=await journal.finish();
   const result={revision,sbf:build.revision,bursts,fees,originalVault,freshEvents:replay.events,harnessChecks:checks.length};

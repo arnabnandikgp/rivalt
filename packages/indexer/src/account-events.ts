@@ -24,6 +24,8 @@ const decoders = [
   ['LiquidityMakerChangedV4', sdk.LIQUIDITY_MAKER_CHANGED_EVENT_DISCRIMINATOR, sdk.getLiquidityMakerChangedEventDecoder()],
   ['FundingPublisherChangedV4', sdk.FUNDING_PUBLISHER_CHANGED_EVENT_DISCRIMINATOR, sdk.getFundingPublisherChangedEventDecoder()],
   ['FundingReportAcceptedV4', sdk.FUNDING_REPORT_ACCEPTED_EVENT_DISCRIMINATOR, sdk.getFundingReportAcceptedEventDecoder()],
+  ['LiquidityRouteFeeRecorded', sdk.LIQUIDITY_ROUTE_FEE_RECORDED_EVENT_DISCRIMINATOR, sdk.getLiquidityRouteFeeRecordedEventDecoder()],
+  ['MarketFeesClassified', sdk.MARKET_FEES_CLASSIFIED_EVENT_DISCRIMINATOR, sdk.getMarketFeesClassifiedEventDecoder()],
   ['LiquidityRouteExecutedV4', sdk.LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR, sdk.getLiquidityRouteExecutedEventDecoder()],
   ['AccountAuthorityChangedV3', sdk.ACCOUNT_AUTHORITY_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountAuthorityChangedEventDecoder()],
   ['AccountBackingChangedV3', sdk.ACCOUNT_BACKING_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountBackingChangedEventDecoder()],
