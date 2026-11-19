@@ -9,6 +9,9 @@ set --
 helper_dir=.local/settlement-helper
 case "$selection" in
   selected) ;;
+  bounded-market-candidate)
+    set -- --features clearing/bounded-market-read
+    helper_dir=.local/settlement-helper-bounded-market ;;
   aggregate-fee-candidate)
     set -- --features clearing/aggregate-fee-qualification
     helper_dir=.local/settlement-helper-aggregate-fees ;;
@@ -69,7 +72,9 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'revision':sys.argv[1],
  'trackedDirty':False,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
-if sys.argv[2]=='aggregate-fee-candidate':
+if sys.argv[2]=='bounded-market-candidate':
+    manifest['feature']='bounded-market-read'
+elif sys.argv[2]=='aggregate-fee-candidate':
     manifest['feature']='aggregate-fee-qualification'
 elif sys.argv[2]=='multi-lot-book-candidate':
     manifest['feature']='multi-lot-book-qualification'

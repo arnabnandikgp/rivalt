@@ -85,7 +85,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate','book-capacity-candidate','multi-lot-book-candidate','aggregate-fee-candidate'].includes(runtime.deploymentSelection) && prepared.stage===4) {
+    if((book||['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate'].includes(runtime.deploymentSelection)) && prepared.stage===4) {
       const members:FrozenMember[]=[];
       for(let start=0n; start<prepared.count; start+=8n) {
         const {page,row}=await frozen(start);

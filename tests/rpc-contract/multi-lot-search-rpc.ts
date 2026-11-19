@@ -22,15 +22,16 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory=process.env.RIVALT_RUN_DIR!, url=process.env.RIVALT_RPC_URL!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const aggregate=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-fee-lanes-apply';
+const bounded=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-bounded-market-apply';
+const aggregate=bounded||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-fee-lanes-apply';
 const apply=aggregate||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-multi-lot-apply';
 const tie=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-multi-lot-tie';
-const selection=aggregate?'aggregate-fee-candidate':apply||tie?'multi-lot-book-candidate':'book-capacity-candidate';
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,aggregate?'fees':apply||tie?'multi':'capacity');
+const selection=bounded?'bounded-market-candidate':aggregate?'aggregate-fee-candidate':apply||tie?'multi-lot-book-candidate':'book-capacity-candidate';
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,bounded?'market':aggregate?'fees':apply||tie?'multi':'capacity');
 const {h,rpc,ws,flush,checks}=await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,{deferFinality:true});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,worker:AccountRuntime|undefined;
 try {
-  const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:aggregate?'aggregate-fees':'sponsored-profit',shape:symmetricPayoutShape,
+  const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:bounded?'bounded-market':aggregate?'aggregate-fees':'sponsored-profit',shape:symmetricPayoutShape,
     traderCount:2,traderDeposits:[20_021n,tie?20_019n:20_021n],verifyRejections:false});
   const {root,route,guard}=executionTestHelpers(h,setup);
   for(const [index,reference] of [60_000n,tie?60_000n:60_003n].entries()) {
@@ -63,6 +64,7 @@ try {
   await h.send('freeze a multi-lot BTC debtor with signed prices',aggregate?[classify(0),classify(1),freeze]:[freeze]);
   await flush();
   const frozen=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
+  if(bounded)assert.equal((await sdk.readMarketGross(rpc,setup.venue,0)).grossLots,8n);
   assert.deepEqual(frozen.prices,[50_000n,30_000n]);
   assert.deepEqual(frozen.poolsBefore,[0n,0n]);
   const keys=await financialRoots(h,setup.venue,setup.registry);
@@ -141,6 +143,12 @@ try {
       assert.equal((await ws.notification(subscription)).params.result.value.err,null);
       const receipt=await rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
       assert.equal(receipt.transaction[0],intent.wire);
+      if(bounded && next.status==='ready' && next.reason==='apply-member'){
+        // Read each member only after the worker's original finalized and before it queues the next.
+        const lots=await Promise.all(keys.map(async key=>(await root(key)).positions[0].lots));
+        const gross=lots.reduce((sum,lots)=>sum+(lots<0n?-lots:lots),0n);
+        assert.equal((await sdk.readMarketGross(rpc,setup.venue,0)).grossLots,gross);
+      }
       originals.push({signature:intent.signature,reason:intent.request_id,units:receipt.meta.computeUnitsConsumed,bytes:Buffer.from(intent.wire,'base64').length});
       continue;
     }
@@ -163,6 +171,7 @@ try {
     assert(certified);
     const final=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
     assert.equal(final.stage,11);
+    if(bounded)assert.equal((await sdk.readMarketGross(rpc,setup.venue,0)).grossLots,0n);
     assert.deepEqual(final.insuranceSpent,[12n,0n]);
     for(const [index,key] of keys.entries())assert.equal((await root(key)).cash,BigInt(result.cash[index]));
     for(const [index,amount] of [20_000n,20_004n].entries()) {

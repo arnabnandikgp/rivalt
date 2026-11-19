@@ -16,7 +16,7 @@ export const BOUNDED_MARKET_ARTIFACT_SET='bounded-market-684803e';
 export const hasAggregateFees=(set?:string)=>set===AGGREGATE_FEE_ARTIFACT_SET||set===BOUNDED_MARKET_ARTIFACT_SET;
 export const isMultiLotArtifact=(set?:string)=>set===MULTI_LOT_ARTIFACT_SET||hasAggregateFees(set);
 export const isBookInventoryArtifact=(set?:string)=>set===BOOK_INVENTORY_ARTIFACT_SET||set===BOOK_CAPACITY_ARTIFACT_SET||isMultiLotArtifact(set);
-export const isMultiLotDeployment=(selection?:AccountDeployment)=>selection==='multi-lot-book-candidate'||selection==='aggregate-fee-candidate';
+export const isMultiLotDeployment=(selection?:AccountDeployment)=>selection==='multi-lot-book-candidate'||selection==='aggregate-fee-candidate'||selection==='bounded-market-candidate';
 export const isBookInventoryDeployment=(selection:AccountDeployment)=>selection==='book-inventory-candidate'||selection==='book-capacity-candidate'||isMultiLotDeployment(selection);
 export const PARTIAL_INVENTORY_ARTIFACT_SET='partial-inventory-2256c51';
 export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY_ARTIFACT_SET || value===PARTIAL_INVENTORY_ARTIFACT_SET;
