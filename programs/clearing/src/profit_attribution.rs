@@ -108,7 +108,7 @@ pub fn clear_resolved(root: &mut BorshAccount<MarginAccount>) -> Result<()> {
 }
 
 #[cfg(feature="single-pair-default-qualification")]
-pub fn frozen_cap(root: &BorshAccount<MarginAccount>, mark:u64, claim:i128) -> Result<u64> {
+fn frozen_btc_history(root:&BorshAccount<MarginAccount>) -> Result<Attribution> {
     let account=root.account();
     require!(valid_margin_size(account.data_len()),ClearingError::Profile);
     let data=account.try_borrow()?;
@@ -116,6 +116,19 @@ pub fn frozen_cap(root: &BorshAccount<MarginAccount>, mark:u64, claim:i128) -> R
     require!(bytes.starts_with(MAGIC),ClearingError::Profile);
     let width=(slots_end(bytes)-8)/2;
     Attribution::read(&bytes[8..8+width],root.positions[0].lots)
-        .and_then(|attribution|attribution.charge_cap(root.positions[0].lots,mark,claim,1))
+        .map_err(|_| ClearingError::Resolution.into())
+}
+
+#[cfg(all(feature="single-pair-default-qualification",not(feature="btc-residual-qualification")))]
+pub fn frozen_cap(root: &BorshAccount<MarginAccount>, mark:u64, claim:i128) -> Result<u64> {
+    frozen_btc_history(root)?.charge_cap(root.positions[0].lots,mark,claim,1)
+        .map_err(|_|ClearingError::Resolution.into())
+}
+
+#[cfg(feature="btc-residual-qualification")]
+pub fn btc_reduction(root:&BorshAccount<MarginAccount>, mark:u64, claim:i128, shortfall:u64)
+    -> Result<clearing_accounting::attribution::PairedLots> {
+    let lots=root.positions[0].lots;
+    frozen_btc_history(root)?.paired_lots(lots,mark,claim,lots.unsigned_abs(),shortfall)
         .map_err(|_|ClearingError::Resolution.into())
 }

@@ -679,3 +679,20 @@ pub struct FrozenPairVerified {
     pub charge:u64,
     pub unpaid_gain_cap:u64,
 }
+
+/// Terminal BTC accounting. Each matched lot executes at base_price, except
+/// extra_tick_lots which concede one additional tick in the winner's direction.
+#[event]
+pub struct FrozenBtcReductionVerified {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub debtor_id: u64,
+    pub winner_id: u64,
+    pub mark: u64,
+    pub base_price: u64,
+    pub charge: u64,
+    pub unpaid_gain_cap: u64,
+    pub matched_lots: u64,
+    pub extra_tick_lots: u64,
+}

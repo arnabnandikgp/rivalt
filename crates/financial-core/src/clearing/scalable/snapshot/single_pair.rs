@@ -51,6 +51,33 @@ impl SnapshotScan {
         self.accept(ordinal, id, row, lots)
     }
 
+    /// One debtor and a single opposite position exhaust verified BTC inventory.
+    /// Every positive claim over the original debt is already backed by the
+    /// settlement pool. No ETH edge can reallocate this debtor's cash.
+    pub fn sole_btc_shortfall(&self, debtor: FrozenSide, winner: FrozenSide) -> Result<u64> {
+        let totals = self.result()?;
+        let quantity = debtor.lots.unsigned_abs();
+        if quantity == 0
+            || quantity.checked_mul(2) != Some(self.binding.gross[0])
+            || self.binding.gross[1] != 0
+            || debtor.lots.checked_neg() != Some(winner.lots)
+            || totals.negative[1] != ClaimTotal::default()
+            || totals.positive[1] != ClaimTotal::default()
+            || debtor.claim >= 0
+            || winner.claim < 0
+            || totals.negative[0] != ClaimTotal::scalar(debtor.claim.unsigned_abs())
+        {
+            return Err(Error::Cohort);
+        }
+        // Only whole atoms can be charged. Flooring after subtracting whole
+        // cash and insurance gives the same integer as flooring the debt first.
+        let owed = u64::try_from(debtor.claim.unsigned_abs() / SCALE as u128)
+            .map_err(|_| Error::Bounds)?;
+        Ok(owed
+            .saturating_sub(debtor.cash)
+            .saturating_sub(self.binding.insurance[0]))
+    }
+
     pub fn select_single_btc_pair(
         &self,
         debtor: FrozenSide,
@@ -58,26 +85,15 @@ impl SnapshotScan {
         mark: u64,
         history_cap: u64,
     ) -> Result<PairClose> {
-        let totals = self.result()?;
-        if self.binding.gross != [2, 0]
-            || totals.negative[1] != ClaimTotal::default()
-            || totals.positive[1] != ClaimTotal::default()
-            || !matches!(debtor.lots, -1 | 1)
-            || winner.lots != -debtor.lots
-            || debtor.claim >= 0
+        if debtor.lots.unsigned_abs() != 1
             || debtor.claim % SCALE != 0
             || winner.claim <= 0
-            || totals.negative[0] != ClaimTotal::scalar(debtor.claim.unsigned_abs())
             || mark == 0
             || mark > crate::MAX_PRICE
         {
             return Err(Error::Cohort);
         }
-        let owed = u64::try_from(debtor.claim.unsigned_abs() / SCALE as u128)
-            .map_err(|_| Error::Bounds)?;
-        let shortfall = owed
-            .saturating_sub(debtor.cash)
-            .saturating_sub(self.binding.insurance[0]);
+        let shortfall = self.sole_btc_shortfall(debtor, winner)?;
         let winner_atoms = u64::try_from(winner.claim / SCALE).map_err(|_| Error::Bounds)?;
         let price_room = if winner.lots > 0 {
             mark - 1
@@ -193,6 +209,61 @@ mod tests {
             )
             .is_err());
         assert_eq!(scan.next(), Ok(0));
+    }
+
+    #[test]
+    fn fractional_single_market_shortfall_preserves_preexisting_pool_backing() {
+        let mut scan = SnapshotScan::new(SnapshotBinding {
+            count: 3,
+            allocated: 7,
+            pools: [1, 0],
+            insurance: [2, 0],
+            fees: [0, 0],
+            gross: [6, 0],
+        })
+        .unwrap();
+        for (ordinal, (cash, claim, lots)) in [
+            (4, -50 * SCALE / 4, 3),
+            (0, 11 * SCALE / 4, -3),
+            (0, 43 * SCALE / 4, 0),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            scan.accept(
+                ordinal as u64,
+                50 + ordinal as u64,
+                &Row {
+                    cash,
+                    claims: [claim, 0],
+                },
+                [lots, 0],
+            )
+            .unwrap();
+        }
+        let debtor = FrozenSide {
+            cash: 4,
+            claim: -50 * SCALE / 4,
+            lots: 3,
+        };
+        let winner = FrozenSide {
+            cash: 0,
+            claim: 11 * SCALE / 4,
+            lots: -3,
+        };
+        assert_eq!(scan.sole_btc_shortfall(debtor, winner), Ok(6));
+        assert!(scan
+            .sole_btc_shortfall(debtor, FrozenSide { lots: -2, ..winner })
+            .is_err());
+        assert!(scan
+            .sole_btc_shortfall(
+                FrozenSide {
+                    claim: -12 * SCALE,
+                    ..debtor
+                },
+                winner
+            )
+            .is_err());
     }
 
     #[test]

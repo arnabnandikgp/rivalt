@@ -3,7 +3,12 @@
 //! episode-bound selection receipt. Frozen financial rows remain immutable.
 use super::*;
 pub const AWAIT_PAIR: u8 = 4;
-#[cfg(feature = "single-pair-default-qualification")]
+#[cfg(feature = "btc-residual-qualification")]
+const RECEIPT: &[u8; 8] = b"RVPAIR02";
+#[cfg(all(
+    feature = "single-pair-default-qualification",
+    not(feature = "btc-residual-qualification")
+))]
 const RECEIPT: &[u8; 8] = b"RVPAIR01";
 
 #[cfg(feature = "single-pair-default-qualification")]
@@ -98,46 +103,91 @@ pub fn verify(
     plan::original_margin(prepared, &debtor, &accounts.debtor)?;
     plan::original_margin(prepared, &winner, &accounts.winner)?;
     let mark = prepared.prices[0];
-    let cap = crate::profit_attribution::frozen_cap(&accounts.winner, mark, winner.claims[0])?;
     let side = |row: &FrozenMargin| FrozenSide {
         lots: row.lots[0],
         claim: row.claims[0],
         cash: row.cash,
     };
-    let pair = SnapshotScan::from_checkpoint(&prepared.state.valuation, snapshot_binding(prepared))
-        .and_then(|scan| scan.select_single_btc_pair(side(&debtor), side(&winner), mark, cap))
+    let scan = SnapshotScan::from_checkpoint(&prepared.state.valuation, snapshot_binding(prepared))
         .map_err(|_| ClearingError::Resolution)?;
+    #[cfg(not(feature = "btc-residual-qualification"))]
+    let (charge, price, cap) = {
+        let cap = crate::profit_attribution::frozen_cap(&accounts.winner, mark, winner.claims[0])?;
+        let plan = scan
+            .select_single_btc_pair(side(&debtor), side(&winner), mark, cap)
+            .map_err(|_| ClearingError::Resolution)?;
+        (plan.charge, plan.price.unwrap_or(0), cap)
+    };
+    #[cfg(feature = "btc-residual-qualification")]
+    let (charge, price, cap, matched, extra) = {
+        let shortfall = scan
+            .sole_btc_shortfall(side(&debtor), side(&winner))
+            .map_err(|_| ClearingError::Resolution)?;
+        let terms = crate::profit_attribution::btc_reduction(
+            &accounts.winner,
+            mark,
+            winner.claims[0],
+            shortfall,
+        )?;
+        let price = if terms.matched == 0 {
+            0
+        } else if winner.lots[0] > 0 {
+            mark.checked_sub(terms.base_ticks)
+                .ok_or(ClearingError::Arithmetic)?
+        } else {
+            mark.checked_add(terms.base_ticks)
+                .ok_or(ClearingError::Arithmetic)?
+        };
+        (
+            terms.charge,
+            price,
+            terms.eligible,
+            terms.matched,
+            terms.extra_tick_lots,
+        )
+    };
     // No other claim or funded amount moves. Preserve original rows for the
     // custody reconciliation that authenticates every root just before payout.
     let bytes = &mut prepared.state.membership;
     bytes.fill(0);
     bytes[..8].copy_from_slice(RECEIPT);
-    for (index, value) in [
-        epoch,
-        debtor.id,
-        winner.id,
-        pair.charge,
-        pair.price.unwrap_or(0),
-        cap,
-    ]
-    .iter()
-    .enumerate()
+    for (index, value) in [epoch, debtor.id, winner.id, charge, price, cap]
+        .iter()
+        .enumerate()
     {
         bytes[8 + 8 * index..16 + 8 * index].copy_from_slice(&value.to_le_bytes());
     }
+    #[cfg(feature = "btc-residual-qualification")]
+    {
+        bytes[56..64].copy_from_slice(&matched.to_le_bytes());
+        bytes[64..72].copy_from_slice(&extra.to_le_bytes());
+    }
     prepared.stage = DENOMINATOR;
-    events.emit(
-        &crate::events::FrozenPairVerified {
-            venue: prepared.venue,
-            slot: Clock::get()?.slot,
-            epoch,
-            debtor_id: debtor.id,
-            winner_id: winner.id,
-            mark,
-            price: pair.price.unwrap_or(0),
-            charge: pair.charge,
-            unpaid_gain_cap: cap,
-        },
-        accounts.event_authority.account().clone(),
-    )
+    #[cfg(feature = "btc-residual-qualification")]
+    let event = crate::events::FrozenBtcReductionVerified {
+        venue: prepared.venue,
+        slot: Clock::get()?.slot,
+        epoch,
+        debtor_id: debtor.id,
+        winner_id: winner.id,
+        mark,
+        base_price: price,
+        charge,
+        unpaid_gain_cap: cap,
+        matched_lots: matched,
+        extra_tick_lots: extra,
+    };
+    #[cfg(not(feature = "btc-residual-qualification"))]
+    let event = crate::events::FrozenPairVerified {
+        venue: prepared.venue,
+        slot: Clock::get()?.slot,
+        epoch,
+        debtor_id: debtor.id,
+        winner_id: winner.id,
+        mark,
+        price,
+        charge,
+        unpaid_gain_cap: cap,
+    };
+    events.emit(&event, accounts.event_authority.account().clone())
 }

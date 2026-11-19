@@ -6,6 +6,9 @@ use num_bigint::{BigInt, BigUint, Sign};
 use num_integer::Integer;
 use num_traits::{One, ToPrimitive, Zero};
 
+mod forced_close;
+pub use forced_close::PairedLots;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Attribution {
     entry: BigUint,
@@ -114,34 +117,8 @@ impl Attribution {
         claim_scaled: i128,
         matched: u64,
     ) -> Result<u64> {
-        let quantity = lots.unsigned_abs();
-        if mark == 0
-            || quantity > MAX_LOTS as u64
-            || matched > quantity
-            || self.entry.is_zero() != (lots == 0)
-        {
-            return Err(Error::Bounds);
-        }
-        if matched == 0 || claim_scaled <= 0 {
-            return Ok(0);
-        }
-        let gross = self.price_profit(lots, mark);
-        let unit = &self.denominator * quantity * SCALE as u64;
-        if gross.sign() != Sign::Plus {
-            return Ok(0);
-        }
-        let gross = gross.magnitude();
-        let paid = &self.paid * quantity;
-        if gross <= &paid {
-            return Ok(0);
-        }
-        let tick_cap = (gross / &unit) * matched;
-        let unpaid_cap = ((gross - paid) * matched) / &unit;
-        tick_cap
-            .min(unpaid_cap)
-            .min(BigUint::from((claim_scaled / SCALE) as u128))
-            .to_u64()
-            .ok_or(Error::Overflow)
+        self.paired_lots(lots, mark, claim_scaled, matched, 0)
+            .map(|plan| plan.eligible)
     }
 
     /// Pre-fund all monotonically reducing lot counts and any interleaved

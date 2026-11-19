@@ -106,9 +106,9 @@ pub(crate) fn value_member(
     let mut valuation =
         SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(header))
             .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
-    #[cfg(feature="single-pair-default-qualification")]
+    #[cfg(all(feature="single-pair-default-qualification",not(feature="btc-residual-qualification")))]
     let acceptance=valuation.accept_single_pair_row(ordinal,id,&row,lots);
-    #[cfg(not(feature="single-pair-default-qualification"))]
+    #[cfg(any(not(feature="single-pair-default-qualification"),feature="btc-residual-qualification"))]
     let acceptance=valuation.accept(ordinal,id,&row,lots);
     acceptance.map_err(|_|ProgramError::from(ClearingError::Reconciliation))?;
     membership
