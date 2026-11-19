@@ -22,3 +22,7 @@ parallel-market-prototype = []
 [[example]]
 name = "gross_capacity_replay"
 required-features = ["parallel-market-prototype"]
+
+[[example]]
+name = "funding_prefix_replay"
+required-features = ["parallel-market-prototype"]

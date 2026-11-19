@@ -1,4 +1,7 @@
 //! Finite synthetic source/funding profile. Authentication is the adapter's job.
+#[cfg(feature = "parallel-market-prototype")]
+pub mod prefix;
+
 pub use super::price_policy::{DEVNET_SOURCE_AGE, FUTURE_SKEW, SOURCE_AGE};
 use super::{price_policy::*, Error, Result, MAX_FUNDING, SCALE};
 pub const SAMPLE_INTERVAL: i64 = 2;
