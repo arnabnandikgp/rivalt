@@ -24,7 +24,8 @@ const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(valu
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
   binding:{venue:string;program:string;artifactSet?:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
-  const allocation=kind===18&&binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET?sdk.getBtcAllocationPageDecoder():undefined;
+  const allocation=kind===18&&binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET?sdk.getLinkedAllocationPageDecoder():
+    kind===18&&binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET?sdk.getBtcAllocationPageDecoder():undefined;
   assert.equal(bytes.length,allocation?.fixedSize??descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
   const value=(allocation??descriptor[2]).decode(bytes) as any;
   assert.equal(value.schemaVersion,10);assert.equal(value.venue,binding.venue);
@@ -54,9 +55,18 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
       for(const key of ['attempt','debtorId','shortfall','cursor','capacity','recovered'] as const)
         assert.equal(receipt[key].toString(),projected[key],key);
     }
+    const linked=sdk.linkedAllocationReceipt(value),projection=resolution.linkedAllocation;
+    if(linked || projection?.status===1) {
+      assert(linked&&binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET,'Missing linked certificate');
+      if(linked.cursor>0n) {
+        assert(projection && projection.status===(linked.committed?1:0),'Missing linked scan');
+        for(const key of ['attempt','debtorId','cursor','shares','targets','recovered'] as const)
+          assert.deepEqual(JSON.parse(json(linked[key])),projection[key],key);
+      } else assert(!projection||projection.status===2&&BigInt(projection.attempt)<linked.attempt,'Invalid restarted linked scan');
+    } else if(projection)assert.equal(projection.status,2,'Lost linked scan');
     const joint=sdk.frozenJointReceipt(value);
     if(resolution.joint || joint?.complete) {
-      assert((binding.artifactSet===sdk.LINKED_PAIR_ARTIFACT_SET || binding.artifactSet===sdk.LINKED_FLAT_ARTIFACT_SET) && joint?.complete && resolution.joint,
+      assert((binding.artifactSet===sdk.LINKED_PAIR_ARTIFACT_SET || binding.artifactSet===sdk.LINKED_FLAT_ARTIFACT_SET || binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET) && joint?.complete && resolution.joint,
         'Missing verified joint receipt or event');
       const {debtor,shares,legs}=joint;
       assert.deepEqual(JSON.parse(json({debtorId:debtor,shares,winners:legs.map(leg=>leg.winner),
@@ -73,12 +83,20 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     const source=Object.entries(state.revisions).find(([,entry])=>entry.kind===10);assert(source);assert.equal(header.source,source[0]);
     if(plan)assert.equal(BigInt(header.sourceRevision)+1n,BigInt(plan.adoptionRevision));
   }
+  if(kind===18&&!plan&&resolution.linkedAllocation) {
+    const scan=resolution.linkedAllocation;
+    for(let offset=0;offset<value.rowCount;offset++) {
+      const row=value.rows[offset],charge=scan.charges[String(row.id)];
+      if(charge)assert.deepEqual(row.linkedCharges.map(String),charge,'Scored frozen charges');
+    }
+  }
   if(kind===18&&plan) {
     for(let within=0;within<value.rowCount;within++) {
       const ordinal=value.pageIndex*8n+BigInt(within),row=value.rows[within];
       assert(ordinal<BigInt(frozenIds.length),'Complete frozen row');
       const id=frozenIds[Number(ordinal)],frozen:FrozenRow=resolution.rows[id];
       const actual=JSON.parse(json(row));
+      if(resolution.linkedAllocation?.status===1)assert.deepEqual(actual.linkedCharges,resolution.linkedAllocation.charges[id],'Frozen linked charges');
       if(resolution.allocation?.status===1)assert.equal(actual.btcCharge,resolution.allocation.charges[id],'Frozen allocated BTC charge');
       for(const [field,expected] of Object.entries({id,member:frozen.member,cash:frozen.cashBefore,
         lots:frozen.lots,generations:frozen.generations,claims:frozen.claimsScaled,collected:frozen.collected,

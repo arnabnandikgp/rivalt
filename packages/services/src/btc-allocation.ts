@@ -18,7 +18,7 @@ export function frozenWinner(id:bigint,lots:bigint,claim:bigint,mark:bigint,hist
     return charge===0n?0n:(charge*unit+perLot-1n)/perLot;}};
 }
 
-export function btcCutoff(venue:Address,epoch:bigint,shortfall:bigint,winners:readonly Winner[]):[bigint,bigint,bigint,bigint] {
+export function allocationCutoff(venue:Address,epoch:bigint,shortfall:bigint,winners:readonly Winner[]):[bigint,bigint,bigint,bigint] {
   const target=min(shortfall,winners.reduce((total,winner)=>total+winner.capacity,0n));
   if(target===0n)return [0n,0n,0n,0n];
   // Distinct fractions with u64 denominators are more than 2^-128 apart.
@@ -45,7 +45,7 @@ export function btcCutoff(venue:Address,epoch:bigint,shortfall:bigint,winners:re
   }
   const cmp=(a:bigint,b:bigint)=>a<b?-1:a>b?1:0;
   ties.sort((a,b)=>cmp(a.extra,b.extra)||Buffer.compare(a.digest,b.digest)||cmp(a.winner.id,b.winner.id));
-  assert(remaining>0n&&remaining<=BigInt(ties.length),'Unreachable BTC recovery target');
+  assert(remaining>0n&&remaining<=BigInt(ties.length),'Unreachable market recovery target');
   const {winner,unit,extra}=ties[Number(remaining-1n)];
   return [unit,winner.capacity,extra,winner.id];
 }

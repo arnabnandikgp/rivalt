@@ -6,7 +6,7 @@ import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime} from './account-runtime.js';
 import {decodeAccountWorker,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
-import {btcCutoff,frozenWinner,type Winner} from './btc-allocation.js';
+import {allocationCutoff,frozenWinner,type Winner} from './btc-allocation.js';
 import {SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
 import {defaultProposal,matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
 
@@ -28,10 +28,11 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
     assert(BigInt(result.context.slot)>=state.contextSlot,'Default read moved backwards');return result.value;
   };
   const allocation=runtime.deploymentSelection==='btc-allocation-candidate';
+  const linkedAllocation=runtime.deploymentSelection==='linked-allocation-candidate';
   const frozen=async(ordinal:bigint,initialize=false)=>{
     assert(ordinal>=0n&&ordinal<header.count,'Invalid frozen ordinal');
     const [page,bump]=await sdk.deriveFrozenMarginPage(venue,ordinal/8n);
-    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
+    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
     assert(row.schemaVersion===10&&row.venue===venue&&row.pageIndex===ordinal/8n&&row.bump===bump&&row.revision>0n,'Foreign frozen row page');
     if(row.epoch!==epoch) {
       assert(initialize&&row.epoch<epoch,'Unavailable frozen row epoch');
@@ -77,6 +78,52 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       }
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
+    }
+    if(linkedAllocation && prepared.stage===7) {
+      const receipt=sdk.linkedAllocationReceipt(prepared);
+      assert(receipt && !receipt.committed,'Missing linked allocation cursor');
+      const {page,row}=await frozen(receipt.cursor);
+      const offset=Number(receipt.cursor%8n);
+      assert(row && offset<row.rowCount,'Missing linked allocation member');
+      return ready('score-linked-allocation',sdk.getAdvanceLinkedAllocationInstruction({...args,revision:prepared.revision,
+        ordinal:receipt.cursor,page,margin:row.rows[offset].member,cutoffs:null}));
+    }
+    if(linkedAllocation && prepared.stage===4) {
+      const winners:[Winner[],Winner[]]=[[],[]];
+      let debtor:{ordinal:bigint;page:Address;record:sdk.FrozenMargin}|undefined;
+      for(let start=0n;start<header.count;start+=8n) {
+        const {page,row}=await frozen(start);
+        assert(row && row.rowCount===Number(header.count-start<8n?header.count-start:8n),'Incomplete frozen allocation page');
+        for(const [offset,record] of row.rows.slice(0,row.rowCount).entries()) {
+          const scale=1_000_000_000n;
+          if(record.claims.some(claim=>claim%scale!==0n))return blocked('fractional-linked-claims');
+          if(record.claims.some(claim=>claim<0n)) {
+            if(debtor || !record.claims.every((claim,market)=>{
+              const lots=record.lots[market];return claim<0n && lots!==0n && 2n*(lots<0n?-lots:lots)===header.remainingGross[market];
+            }))return blocked('unsupported-linked-debtor');
+            debtor={ordinal:start+BigInt(offset),page,record};
+            continue;
+          }
+          if([0,1].every(market=>record.claims[market]!==0n||record.lots[market]!==0n))return blocked('linked-creditor-obligations');
+          const market=record.lots.findIndex((lots,index)=>lots!==0n && record.claims[index]>0n);
+          if(market<0)continue;
+          const account=await read(record.member);
+          assert(account?.owner===sdk.CLEARING_PROGRAM_ADDRESS&&!account.executable&&account.data[1]==='base64','Foreign winning account');
+          const {root,positions}=sdk.decodeProfitAttribution(Buffer.from(account.data[0],'base64'),true);
+          assert(root.venue===venue&&root.id===record.id&&root.revision===record.originalRevision,'Winning account changed');
+          winners[market].push(frozenWinner(record.id,record.lots[market],record.claims[market],prepared.prices[market],positions[market]));
+        }
+      }
+      if(!debtor)return blocked('missing-linked-debtor');
+      const debts=debtor.record.claims.map(claim=>-claim/1_000_000_000n),total=debts[0]+debts[1];
+      const available=debtor.record.cash<total?debtor.record.cash:total;
+      if(debts.some(debt=>available*debt%total!==0n))return blocked('fractional-linked-cash-split');
+      const targets=debts.map((debt,market)=>debt-available*debt/total-prepared.insurance[market]);
+      if(targets.some((target,market)=>target<=0n||target>winners[market].reduce((sum,winner)=>sum+winner.capacity,0n)))
+        return blocked('unsupported-linked-shortfall');
+      const cutoffs=targets.map((target,market)=>allocationCutoff(venue,epoch,target,winners[market]));
+      return ready('begin-linked-allocation',sdk.getAdvanceLinkedAllocationInstruction({...args,revision:prepared.revision,
+        ordinal:debtor.ordinal,page:debtor.page,margin:debtor.record.member,cutoffs}));
     }
     const allowFlat = runtime.deploymentSelection==='linked-flat-candidate';
     if((allowFlat || runtime.deploymentSelection==='linked-pair-candidate') && (prepared.stage===4 || prepared.stage===6)) {
@@ -142,7 +189,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
         }
       }
       if(!debtor)return blocked('unsupported-debtor-inventory');
-      const cutoff=btcCutoff(venue,epoch,debtor.shortfall,winners);
+      const cutoff=allocationCutoff(venue,epoch,debtor.shortfall,winners);
       return ready('begin-btc-allocation',sdk.getAdvanceBtcAllocationInstruction({...args,revision:prepared.revision,
         ordinal:debtor.ordinal,page:debtor.page,margin:debtor.member,cutoff}));
     }

@@ -23,12 +23,13 @@ const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).tr
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
-const contested = probe === 'profit-attribution-linked-contested';
+const allocationProfile = probe === 'profit-attribution-linked-allocation';
+const contested = allocationProfile || probe === 'profit-attribution-linked-contested';
 const flatCreditor = contested || probe === 'profit-attribution-linked-flat' || probe === 'profit-attribution-linked-flat-apply';
 const linked = contested || probe === 'profit-attribution-linked-apply' || probe === 'profit-attribution-linked-flat-apply';
-const selection = linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
+const selection = allocationProfile ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
   gated ? 'btc-allocation-candidate' : 'profit-attribution-candidate';
-const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,linked && flatCreditor ? 'flat' : linked);
+const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,allocationProfile ? 'allocation' : linked && flatCreditor ? 'flat' : linked);
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
@@ -117,10 +118,75 @@ try {
   const originals: string[] = [];
   const workerCosts: {request:string; units:number; bytes:number}[] = [];
   let refused = false, partialChecked = false, jointChecked = false;
+  let badAttempt:bigint|undefined,rejectionChecked=false;
+  const financialSnapshot=()=>Promise.all([setup.resolution,setup.vault,setup.token.address,setup.traderToken.address,
+    ...setup.ledgers,...members].map(key=>h.read(key)));
+  let beforeScoring:Awaited<ReturnType<typeof financialSnapshot>>|undefined;
   while ((await resolution()).stage !== 11) {
     assert(originals.length<128,'eight-member recovery exceeded the test continuation budget');
     const current = await readAccountResolution(worker.rpc,setup.venue);
-    if(contested && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
+    const prepared=current.preparedState;
+    if(allocationProfile && prepared.epoch===frozen.epoch) {
+      if(prepared.stage===4 && badAttempt===undefined) {
+        const common=await accountDefaultContext(worker.rpc,current);
+        const ordinal=BigInt(members.indexOf(debtor)),[page]=await sdk.deriveFrozenMarginPage(setup.venue,ordinal/8n);
+        beforeScoring=await financialSnapshot();
+        badAttempt=prepared.revision;
+        // Admit the correct ETH prefix and zero BTC atoms, then drive the entire failed attempt through the worker.
+        await h.send('propose insufficient BTC recovery alongside the full ETH charge',[sdk.getAdvanceLinkedAllocationInstruction({
+          ...common,epoch:frozen.epoch,revision:prepared.revision,ordinal,page,margin:debtor,
+          cutoffs:[[1n,0xffff_ffff_ffff_ffffn,0n,0n],[12n,10_002n,0n,(await root(makers[1].capital)).id]]})]);
+        await flush();
+        continue;
+      }
+      if(prepared.stage===4 && badAttempt!==undefined && !rejectionChecked) {
+        assert.equal(sdk.linkedAllocationReceipt(prepared),null);
+        assert.deepEqual(await financialSnapshot(),beforeScoring);
+        await journal.checkpoint('insufficient-btc-cutoff-rejected',true);
+        rejectionChecked=true;
+      }
+      const scan=sdk.linkedAllocationReceipt(prepared);
+      if(scan && rejectionChecked && scan.cursor===3n && !partialChecked) {
+        assert(scan.attempt>badAttempt!&&!scan.committed);
+        const common=await accountDefaultContext(worker.rpc,current);
+        const [page]=await sdk.deriveFrozenMarginPage(setup.venue,scan.cursor/8n);
+        const beforeScratch=await Promise.all([common.prepared,page].map(key=>h.read(key)));
+        for(const ordinal of [scan.cursor-1n,scan.cursor+1n]) {
+          await h.send('refuse noncanonical linked member '+ordinal,[sdk.getAdvanceLinkedAllocationInstruction({...common,
+            epoch:frozen.epoch,revision:prepared.revision,ordinal,page,margin:members[Number(ordinal)],cutoffs:null})],[],sdk.CLEARING_ERROR__RESOLUTION);
+        }
+        await h.send('refuse payment calculations during linked scan',[sdk.getAcceptDenominatorRowInstruction({...common,
+          epoch:frozen.epoch,revision:prepared.revision,page})],[],sdk.CLEARING_ERROR__RESOLUTION);
+        const margin=makers[0].capital;
+        await h.send('refuse withdrawal during linked scan',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
+          btc:setup.markets[0],eth:setup.markets[1],owner:setup.owner,margin,quoteMint:setup.mint.address,userToken:setup.token.address,
+          guard:await guard(margin),amount:1n})],[setup.owner],sdk.CLEARING_ERROR__PROFILE);
+        assert.deepEqual(await financialSnapshot(),beforeScoring);
+        assert.deepEqual(await Promise.all([common.prepared,page].map(key=>h.read(key))),beforeScratch);
+        await worker.close();worker=await openWorker();
+        await journal.checkpoint('linked-allocation-restart-at-member-three',true);
+        partialChecked=true;
+      }
+      if(scan?.committed&&!jointChecked) {
+        assert(rejectionChecked&&partialChecked);
+        assert.deepEqual(scan.shares,comparison.collections.map(BigInt));
+        assert.deepEqual(scan.recovered,comparison.charges.map(BigInt));
+        for(let start=0;start<members.length;start+=8) {
+          const [page]=await sdk.deriveFrozenMarginPage(setup.venue,BigInt(start/8));
+          const frozenPage=sdk.getLinkedAllocationPageDecoder().decode((await h.read(page))!);
+          for(const record of frozenPage.rows.slice(0,frozenPage.rowCount)) {
+            const expected=BigInt(comparison.winnerCharges[record.member]??0);
+            assert.deepEqual(record.linkedCharges,record.member===makers[1].capital?[0n,expected]:[expected,0n]);
+          }
+        }
+        assert.deepEqual(await financialSnapshot(),beforeScoring);
+        process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+        await worker.close();worker=await openWorker();
+        await journal.checkpoint('joint-allocation-certified-before-payment',true);
+        jointChecked=true;
+      }
+    }
+    if(contested && !allocationProfile && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
       const blocked=await worker.riskWork(setup.payer);
       assert.deepEqual(blocked,{status:'blocked',reason:'unsupported-linked-creditors'});
       const common=await accountDefaultContext(worker.rpc,current);
@@ -142,7 +208,7 @@ try {
       refused=true;
       break;
     }
-    if (linked && flatCreditor && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
+    if (!allocationProfile && linked && flatCreditor && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
       const common=await accountDefaultContext(worker.rpc,current);
       const debtorOrdinal=BigInt(members.indexOf(debtor)), flatOrdinal=BigInt(members.indexOf(otherTrader));
       const [page]=await sdk.deriveFrozenMarginPage(setup.venue,debtorOrdinal/8n);
@@ -178,7 +244,7 @@ try {
       await journal.checkpoint('btc-verified-eth-pending',true);
       partialChecked=true;
     }
-    if(linked && partialChecked && !jointChecked && [2,3].includes(current.preparedState.stage)) {
+    if(!allocationProfile && linked && partialChecked && !jointChecked && [2,3].includes(current.preparedState.stage)) {
       const receipt=sdk.frozenJointReceipt(current.preparedState);
       assert(receipt?.complete);
       assert.deepEqual(receipt.shares,comparison.collections.map(BigInt));
@@ -231,13 +297,13 @@ try {
       assert.equal((await worker.queue.get(intent.request_id)).status,'finalized');
     }
   }
-  assert.equal(refused,gated||contested);
-  assert.equal(jointChecked,linked&&!contested);
-  if (gated||contested) {
+  assert.equal(refused,gated||contested&&!allocationProfile);
+  assert.equal(jointChecked,linked&&(!contested||allocationProfile));
+  if (refused) {
     assert.equal((await resolution()).stage,2);
     assert.deepEqual([await wallet(),await traderWallet(),await vault()],[before.wallet,before.traderWallet,before.vault]);
   } else {
-    assert.deepEqual((await resolution()).insuranceSpent,flatCreditor?[9n,1n]:[3n,1n]);
+    assert.deepEqual((await resolution()).insuranceSpent,allocationProfile?[13n,1n]:flatCreditor?[9n,1n]:[3n,1n]);
     const target=linked?comparison.cash:comparison.ordinaryCash;
     for (const key of members) assert.equal(String((await root(key)).cash),target[key]);
     const traderPayout=flatCreditor?(linked?4_996n:4_994n):0n;
@@ -246,22 +312,29 @@ try {
       await h.send('withdraw the flat BTC claim into the trader wallet',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
         btc:setup.markets[0],eth:setup.markets[1],owner,margin:otherTrader,quoteMint:setup.mint.address,
         userToken:setup.traderToken.address,guard:await guard(otherTrader),amount:traderPayout})],[owner]);
-      assert.equal((await root(otherTrader)).cash,19_970n);
+      assert.equal((await root(otherTrader)).cash,allocationProfile?29_974n:19_970n);
       assert.deepEqual([await traderWallet(),await vault()],[before.traderWallet+traderPayout,before.vault-traderPayout]);
     }
-    const makerPayouts=flatCreditor?[linked?5_001n:5_003n,9_989n]:[9_999n,9_997n];
+    const payoutAccounts=allocationProfile?[makers[0],secondMaker,makers[1]]:makers;
+    const makerPayouts=allocationProfile?[5_002n,9_993n,9_990n]:flatCreditor?[linked?5_001n:5_003n,9_989n]:[9_999n,9_997n];
     for (const [index,amount] of makerPayouts.entries()) {
-      const margin=makers[index].capital;
+      const margin=payoutAccounts[index].capital;
       await h.send('withdraw market recovery to maker wallet '+index,[sdk.getWithdrawFundedAccountInstruction({...setup.common,
         btc:setup.markets[0],eth:setup.markets[1],owner:setup.owner,margin,quoteMint:setup.mint.address,userToken:setup.token.address,
         guard:await guard(margin),amount})],[setup.owner]);
     }
-    const makerTotal=makerPayouts[0]+makerPayouts[1];
+    const makerTotal=makerPayouts.reduce((total,payout)=>total+payout,0n);
+    for(const maker of payoutAccounts)assert.equal((await root(maker.capital)).cash,makerDeposit);
     assert.deepEqual([await wallet(),await vault()],[before.wallet+makerTotal,before.vault-makerTotal-traderPayout]);
   }
   await flush(); await journal.checkpoint(refused?'joint-certificate-required':'both-market-credits-withdrawn',true);
   const replay=await journal.finish();
-  const result={revision,profile:contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+  if(allocationProfile) {
+    const failed=replay.checkpoints.find(point=>point.name==='insufficient-btc-cutoff-rejected')!.state.resolution.linkedAllocation;
+    assert.deepEqual([failed.status,failed.cursor,failed.recovered],[2,'8',['0','12']]);
+    assert.equal(replay.state.resolution?.linkedAllocation?.status,1);
+  }
+  const result={revision,rejectionChecked,profile:allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
     inputs:input,traderWalletAfter:await traderWallet(),comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));

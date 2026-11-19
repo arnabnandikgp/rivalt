@@ -8,6 +8,7 @@ import {integer} from './rpc.js';
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
   ['FrozenJointReductionVerified',sdk.FROZEN_JOINT_REDUCTION_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenJointReductionVerifiedEventDecoder()],
+  ['FrozenLinkedAllocationRow',sdk.FROZEN_LINKED_ALLOCATION_ROW_EVENT_DISCRIMINATOR,sdk.getFrozenLinkedAllocationRowEventDecoder()],
   ['FrozenBtcAllocationRow',sdk.FROZEN_BTC_ALLOCATION_ROW_EVENT_DISCRIMINATOR,sdk.getFrozenBtcAllocationRowEventDecoder()],
   ['FrozenBtcReductionVerified',sdk.FROZEN_BTC_REDUCTION_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenBtcReductionVerifiedEventDecoder()],
   ['FrozenPairVerified',sdk.FROZEN_PAIR_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenPairVerifiedEventDecoder()],

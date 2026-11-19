@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {address} from '@solana/kit';
 import {expect,it} from 'vitest';
-import {btcCutoff,frozenWinner} from './btc-allocation.js';
+import {allocationCutoff,frozenWinner} from './btc-allocation.js';
 
 const venue=address('11111111111111111111111111111111');
 it('selects the same cutoff as buying individually ranked marginal units',()=>{
@@ -19,7 +19,7 @@ it('selects the same cutoff as buying individually ranked marginal units',()=>{
     for(let loss=0;loss<=units.length+1;loss++) {
       const end=units[Math.min(loss,units.length)-1];
       const expected=end?[end.unit,end.cap,end.extra,end.id]:[0n,0n,0n,0n];
-      expect(btcCutoff(venue,epoch,BigInt(loss),[...winners].reverse())).toEqual(expected);
+      expect(allocationCutoff(venue,epoch,BigInt(loss),[...winners].reverse())).toEqual(expected);
     }
   }
 });
@@ -30,5 +30,5 @@ it('quotes the matched unpaid share after earlier payments and compares nearly e
   expect(partial.capacity).toBe(5n);expect(partial.lotsFor(4n)).toBe(3n);
   const largest=2n**64n-1n;
   const winners=[largest,largest-1n].map((capacity,i)=>({id:BigInt(i),capacity,lotsFor:(k:bigint)=>k}));
-  expect(btcCutoff(venue,5n,1n,winners)).toEqual([1n,largest,1n,0n]);
+  expect(allocationCutoff(venue,5n,1n,winners)).toEqual([1n,largest,1n,0n]);
 });

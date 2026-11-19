@@ -9,6 +9,9 @@ set --
 helper_dir=.local/settlement-helper
 case "$selection" in
   selected) ;;
+  linked-allocation-candidate)
+    set -- --features clearing/linked-allocation-qualification
+    helper_dir=.local/settlement-helper-linked-allocation ;;
   linked-flat-candidate)
     set -- --features clearing/linked-pair-qualification
     helper_dir=.local/settlement-helper-linked-flat ;;
@@ -45,7 +48,9 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'revision':sys.argv[1],
  'trackedDirty':False,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
-if sys.argv[2] in ('linked-pair-candidate','linked-flat-candidate'):
+if sys.argv[2]=='linked-allocation-candidate':
+    manifest['feature']='linked-allocation-qualification'
+elif sys.argv[2] in ('linked-pair-candidate','linked-flat-candidate'):
     manifest['feature']='linked-pair-qualification'
 elif sys.argv[2]=='btc-allocation-candidate':
     manifest['feature']='btc-allocation-qualification'

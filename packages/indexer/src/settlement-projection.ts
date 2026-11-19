@@ -1,6 +1,6 @@
 /** Financial effects of the authenticated paged settlement, separate from its
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
-import {LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
+import {LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -33,7 +33,7 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
       eq(won[1-market],'0','isolated winner cash claim');
       const totalClaims=debts[market]+BigInt(current.poolsBefore[market])*scale;
       const remainder=totalClaims-BigInt(won[market]);
-      if(market===0 && artifactSet===LINKED_FLAT_ARTIFACT_SET && remainder!==0n) {
+      if(market===0 && (artifactSet===LINKED_FLAT_ARTIFACT_SET || artifactSet===LINKED_ALLOCATION_ARTIFACT_SET) && remainder!==0n) {
         accountCheck(remainder>0n && remainder%scale===0n,'whole flat BTC claim');
         eq(String(state.members.length),current.count,'complete frozen membership');
         const creditors=state.members.filter(key=>{
@@ -59,6 +59,56 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     }
     const {debtorId,winners,shares,charges,eligible,matchedLots,basePrices,extraTickLots}=change;
     current.joint={debtorId,winners,shares,charges,eligible,matchedLots,basePrices,extraTickLots};
+    return;
+  }
+  if(event.type==='FrozenLinkedAllocationRow') {
+    eq(artifactSet,LINKED_ALLOCATION_ARTIFACT_SET,'linked allocation deployment');
+    eq(current.stage,2,'allocation at freeze');
+    const ordinal=BigInt(change.ordinal);
+    accountCheck(ordinal<BigInt(current.count)&&BigInt(current.count)===BigInt(state.members.length),'complete linked membership');
+    const member=state.roots[state.members[Number(ordinal)]];
+    eq(member.id,change.memberId,'canonical linked member');
+    if(ordinal===0n) {
+      const previous=current.linkedAllocation;
+      accountCheck(!current.joint&&!current.pair&&!current.allocation&&(!previous||
+        previous.status===2&&BigInt(previous.attempt)<BigInt(change.attempt)),'new linked attempt');
+      const debtor=present(state.roots[state.identities[change.debtorId]],'linked debtor');
+      const debts=claims(debtor,current.prices,current.funding).map(claim=>-BigInt(claim));
+      accountCheck(debts.every(debt=>debt>0n&&debt%scale===0n),'whole debtor claims');
+      const face=debts.map(debt=>debt/scale),total=face[0]+face[1];
+      const available=BigInt(debtor.cash)<total?BigInt(debtor.cash):total;
+      for(const market of [0,1]) {
+        const lots=BigInt(debtor.positions[market].lots);
+        eq(BigInt(current.remainingGross[market]),2n*(lots<0n?-lots:lots),'original market side');
+        eq(BigInt(change.shares[market])*total,available*face[market],'original market cash');
+        eq(BigInt(change.targets[market]),face[market]-BigInt(change.shares[market])-BigInt(current.insuranceBefore[market]),'full market recovery');
+        accountCheck(lots!==0n&&BigInt(change.targets[market])>0n,'positive market exposure');
+      }
+      current.linkedAllocation={attempt:change.attempt,debtorId:change.debtorId,shares:change.shares,targets:change.targets,
+        cursor:'0',recovered:['0','0'],status:0,charges:{}};
+    }
+    const plan=present(current.linkedAllocation,'linked allocation');
+    eq([plan.attempt,plan.debtorId,plan.shares,plan.targets,plan.cursor,plan.status],
+      [change.attempt,change.debtorId,change.shares,change.targets,change.ordinal,0],'linked scan binding');
+    const face=claims(member,current.prices,current.funding).map(BigInt);
+    const lots=member.positions.map(pos=>BigInt(pos.lots));
+    if(member.id!==plan.debtorId)accountCheck(face.every(value=>value>=0n&&value%scale===0n)
+      &&lots.some((lot,market)=>lot===0n&&face[market]===0n),'separate creditor markets');
+    let excess=false;
+    for(const market of [0,1]) {
+      const charge=BigInt(change.charges[market]),eligible=BigInt(change.eligible[market]),matched=BigInt(change.matchedLots[market]);
+      const open=lots[market],quantity=open<0n?-open:open;
+      accountCheck(charge<=eligible && matched<=quantity && (charge===0n)===(matched===0n) &&
+        (member.id===plan.debtorId||open===0n?eligible===0n:eligible*scale<=face[market]),'eligible linked terms');
+      eq(BigInt(change.extraTickLots[market]),matched===0n?0n:charge%matched,'linked price remainder');
+      eq(BigInt(change.basePrices[market]),matched===0n?0n:BigInt(current.prices[market])-(open>0n?1n:-1n)*(charge/matched),'linked fill price');
+      const total=BigInt(plan.recovered[market])+charge;
+      if(total>BigInt(plan.targets[market]))excess=true;else plan.recovered[market]=String(total);
+    }
+    plan.charges[member.id]=change.charges;plan.cursor=String(ordinal+1n);
+    const complete=plan.cursor===current.count;
+    plan.status=excess||complete&&plan.recovered.some((amount,market)=>amount!==plan.targets[market])?2:complete?1:0;
+    eq(change.status,plan.status,'linked proof outcome');
     return;
   }
   if(event.type==='FrozenBtcAllocationRow') {
@@ -117,7 +167,13 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
-    if(current.joint) {
+    if(current.linkedAllocation?.status===1) {
+      const allocation=current.linkedAllocation;
+      for(const market of [0,1]) {
+        const adjustment=previous.id===allocation.debtorId?BigInt(allocation.targets[market]):-BigInt(allocation.charges[previous.id][market]);
+        economic[market]=(BigInt(economic[market])+adjustment*scale).toString();
+      }
+    } else if(current.joint) {
       const {charges,debtorId,winners}=current.joint;
       for(const market of [0,1]) {
         const charge=BigInt(charges[market]);
