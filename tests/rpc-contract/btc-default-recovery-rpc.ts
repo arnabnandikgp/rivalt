@@ -24,8 +24,9 @@ const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RI
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
-try {
-  const paired=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-verified-pair';
+async function run() {
+  const limited=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-verified-pair-limited';
+  const paired=limited||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-verified-pair';
   const sponsored=paired||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-sponsor-recovery';
   const candidate = (sponsored||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-recovery')
     ? verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,sponsored,paired) : undefined;
@@ -60,10 +61,10 @@ try {
   await setup.sample();
   await h.send('open one BTC lot against the eventual debtor',[await route({actor:owner,trader,marketIndex:0,side:0,
     makers:[first],lots:[1n],allInLimit:60_015n,maxFee:13n})],[owner]);
-  setup.sourcePrices.btc = 61_000_000_000n;
+  setup.sourcePrices.btc = limited?69_500_000_000n:61_000_000_000n;
   await setup.qualify();
   await h.send('close trader against the open winner',[await route({actor:owner,trader,marketIndex:0,side:1,
-    makers:[second],lots:[1n],allInLimit:60_985n,maxFee:13n,reduceOnly:true,generation:(await root(trader)).positions[0].generation})],[owner]);
+    makers:[second],lots:[1n],allInLimit:60_985n,maxFee:limited?14n:13n,reduceOnly:true,generation:(await root(trader)).positions[0].generation})],[owner]);
   const sources = {primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
     guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
   setup.sourcePrices.btc = 70_000_000_000n;
@@ -83,7 +84,7 @@ try {
     return {key,id:value.id,cash:value.cash,btcLots:value.positions[0].lots,claims:value.positions.map((position,index)=>
       position.lots*frozen.prices[index]*1_000_000_000n+position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled))};
   }));
-  assert.equal((await root(trader)).cash,999_974n);
+  assert.equal((await root(trader)).cash,limited?999_973n:999_974n);
   journal = await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),candidate);
   const events = journal.initialEvents, freezes = events.filter(event=>event.type==='AccountResolutionFrozenV3');
   assert.equal(freezes.length,1);
@@ -95,18 +96,18 @@ try {
   assert(!history.some(event=>event.type==='AccountFinancialChangedV3'&&[2,3].includes(event.data.kind)));
   const fills = history.filter(event=>event.type==='LiquidityRouteExecutedV4').map(({signature,data})=>{
     assert.equal(data.market,setup.markets[0]);
-    assert.equal(data.fee,'13');
+    assert.equal(data.fee,limited&&data.side===1?'14':'13');
     assert.equal(data.legs.length,1);
     const [leg] = data.legs;
     return {signature,side:data.side,maker:leg.capital,traderId:data.rootStates[0].id,lots:leg.lots,gross:leg.gross};
   });
   const inputs = {rows,debtor,winner,trader,mark:frozen.prices[0],funding:frozen.funding,pools:frozen.poolsBefore,
     fees:frozen.feesBefore,insurance:frozen.insuranceBefore,fills};
-  const comparison = JSON.parse(execFileSync('python3',['tests/financial/btc_default_comparison.py'],{input:json(inputs),encoding:'utf8'}));
+  const comparison = limited?undefined:JSON.parse(execFileSync('python3',['tests/financial/btc_default_comparison.py'],{input:json(inputs),encoding:'utf8'}));
   if(candidate) {
     for(const row of rows) {
       const {positions}=sdk.decodeProfitAttribution((await h.read(row.key))!,sponsored);
-      const entry=row.key===winner?60_998n:row.key===debtor?60_002n:0n;
+      const entry=row.key===winner?(limited?69_498n:60_998n):row.key===debtor?60_002n:0n;
       assert.deepEqual(positions[0],{entryScaled:entry*1_000_000_000n,paidScaled:0n,denominator:1n});
     }
   }
@@ -138,11 +139,27 @@ try {
           sdk.getAcceptDenominatorRowInstruction({...common,epoch:frozen.epoch,revision:prepared.revision,page})
         ],[],sdk.CLEARING_ERROR__RESOLUTION);
         assert.deepEqual(await checkpoint(),original);
+        if(limited) {
+          // Independent economics for the 69,498 last buy: the only winner has
+          // 502 atoms eligible against 9,998 debt less 8,000 cash and 498 insurance.
+          const debtorRow=rows.find(row=>row.key===debtor)!,winnerRow=rows.find(row=>row.key===winner)!;
+          assert.equal(-debtorRow.claims[0]/1_000_000_000n-debtorRow.cash-frozen.insuranceBefore[0],1_500n);
+          assert.equal(winnerRow.claims[0]/1_000_000_000n,502n);
+          await h.send('reject 502 eligible atoms against 1500 required',[sdk.getVerifyFrozenPairInstruction(args)],[],sdk.CLEARING_ERROR__RESOLUTION);
+          assert.deepEqual(await checkpoint(),original);
+          await flush();await journal.checkpoint('incomplete-pair-remains-frozen',true);
+          const recovered=await journal.finish();assert.equal(recovered.state.safety?.mode,2);
+          assert.equal(await tokenBalance(wallet),walletBefore);assert.equal(await tokenBalance(setup.vault),vaultBefore);
+          writeFileSync(directory+'/limited-pair.json',json({revision,eligible:502,shortfall:1500,events:recovered.events,
+            originals:originals.length,checks:checks.length,stage:prepared.stage}));
+          console.log('Insufficient pair remained frozen',json({checks:checks.length,events:recovered.events,originals:originals.length}));
+          return;
+        }
         exercisedPair=true;
         await worker.close();process.env.RIVALT_DEFAULT_BATCH_STEPS='8';worker=await openWorker();
       }
     }
-    const outcome = await worker.riskWork(setup.payer);
+    const outcome:Awaited<ReturnType<AccountRuntime['riskWork']>> = await worker.riskWork(setup.payer);
     assert.equal(outcome.status,'queued',json(outcome));
     const pending: {request_id:string; signature:string; wire:string}[] = (await worker.store.pool.query(
       "SELECT request_id,signature,wire FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[worker.runId])).rows;
@@ -221,7 +238,8 @@ try {
     insuranceSpent:terminal.insuranceSpent,originals,events:replay.events,signedHarnessChecks:checks.length};
   writeFileSync(directory+'/btc-default-recovery.json',json(summary));
   console.log('BTC default recovery',json({paid,events:replay.events,continuations:originals.length,harnessChecks:checks.length}));
-} finally {
+}
+try {await run();} finally {
   await worker?.close();await journal?.close();
   try {await flush();} finally {ws.close();}
 }

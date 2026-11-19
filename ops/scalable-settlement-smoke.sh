@@ -70,7 +70,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   account-clients) pnpm build:trader
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;
-  profit-attribution-recovery|profit-attribution-sponsor-recovery|profit-attribution-verified-pair) node --import tsx tests/rpc-contract/btc-default-recovery-rpc.ts ;;
+  profit-attribution-recovery|profit-attribution-sponsor-recovery|profit-attribution-verified-pair|profit-attribution-verified-pair-limited) node --import tsx tests/rpc-contract/btc-default-recovery-rpc.ts ;;
   profit-attribution) node --import tsx tests/rpc-contract/profit-attribution-rpc.ts ;;
   maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
   whole-account-risk) node --import tsx tests/rpc-contract/whole-account-risk-rpc.ts ;;
