@@ -756,3 +756,40 @@ The local program stores the chosen terms under the eight-byte `RVLOTS02`
 receipt marker. It preserves original cash and the insurance budget through
 the same whole-cohort reconciliation. [Exact two-lot comparison](../../crates/default-plan-selection/src/two_debtors.rs)
 and [independent enumeration](../../tests/financial/check_partial_inventory.py).
+
+### Matching a population of single-lot debtors and winners
+
+For one market, sort the original debtor budgets and the surviving winning
+capacities in descending order. The target for the winner at rank k is the
+smaller of its capacity and the kth debtor budget. Missing entries contribute
+zero. This admits unequal numbers of eligible participants and zero amounts.
+At every integer threshold t, at most the smaller of the two counts at or
+above t can contribute a t-th atom. The sorted pairing reaches that bound at
+every threshold simultaneously.
+
+For equal recovery, consider exchanging two inverted pairs. When both budgets
+fit within both capacities, sending the larger charge to the larger capacity
+reduces the sum of charge squared divided by capacity. When both capacities
+fit both budgets the winning charges are already fixed. Otherwise a strict
+overlap between the two budget values and the two capacity values improves
+recovery on exchange. Equal capacities award the larger charge to the earlier
+D121 winner. These exchanges give the optimal winner targets. Each positive
+target requires exactly one opposing lot.
+
+The final debtor assignment still matters. In frozen winner order, a small
+target may encounter a high-budget debtor that a later winner needs. For each
+remaining positive target t, count unassigned debtors with budget ≥ t and
+subtract unassigned winners needing ≥ t. Call this the spare count. Assigning
+budget b to a target q consumes one spare precisely at thresholds q < t ≤ b.
+Choose the earliest eligible debtor whose removal consumes no tight threshold.
+The native proposer stores one threshold per pair for checking that choice.
+
+The verifier first checks the complete feasible assignment: each positive
+winner target occurs once, each debtor occurs at most once, and each assigned
+budget suffices. Next it checks each winner in D121 order against the same
+assignment. A supplied tight threshold must have equal remaining counts. Every
+earlier debtor must have too little budget or be needed above that threshold.
+A feasible suffix is essential. A priority check on a single pair can accept
+a choice that leaves a larger charge unfundable. The current native checker
+uses linear space and up to one full row scan per positive winner.
+[Proposer](../../crates/default-plan-selection/src/inventory_book.rs) · [Feasibility and priority checks](../../crates/default-plan-selection/src/inventory_choice.rs).

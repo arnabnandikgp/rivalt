@@ -1,5 +1,35 @@
 # Validation and measured limits
 
+## Population-wide matching on a three-debtor freeze
+
+Ordinary clearing SBF `33361d9` and clean harness `34882ca` funded nine roots.
+Three BTC traders bought at 60,002, 60,003 and 60,004 from three separate maker
+accounts. Each trader retained 19,998 after its 13-atom fee. At the 40,000
+freeze their uncovered losses were 4, 5 and 6. Insurance supplied 9. The
+resulting whole budgets were 1, 2 and 2.
+
+| Maker ID | Actual ordinary SPL withdrawal | Independently selected successor credit | Selected debtor |
+|---|---:|---:|---:|
+| 0 | 20,000 | 20,001 | 6 |
+| 1 | 20,001 | 20,001 | 8 |
+| 2 | 20,002 | 20,001 | 7 |
+
+Both books conserve 60,003 atoms of maker recovery. The ordinary run finalized
+15 worker transactions and three withdrawals, audited 281 harness outcomes,
+and reproduced 126 events in fresh PostgreSQL. The final vault held 6,000,030.
+The reference checked all 5,832 proposals. The two-atom buyers consume different
+lots at 40,002. The other pair executes at 40,001.
+
+Native proposer and verifier `870ea08` matched exact independent enumeration
+on 432 small books with 95,610 admissible assignments. Two targeted Rust tests
+also rejected incomplete, reused, infeasible and lower-priority assignments.
+A release build on this host verified 1,024 pairs among 2,048 economic members
+in one warm command invocation (68 ms including process startup and output).
+That case visited 2,097,152 member rows in its priority checks. This is a
+native scaling measurement. The nine-account run used ordinary on-chain
+payouts. Applying the general successor to wallets still requires signed
+clearing verification. [Selection contract](../clearing/default-plan-verification.md#matching-a-population-of-single-lot-debtors-and-winners).
+
 ## Scarce winning inventory and flat BTC claims
 
 Clean harness `f462fc6` used four signed BTC fills and nine funded internal

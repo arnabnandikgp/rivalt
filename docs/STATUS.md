@@ -63,6 +63,7 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 | Shared BTC winning inventory | Review | [PR #116](https://github.com/arnabnandikgp/rivalt/pull/116). Clean signed harness `cfc2279`, ordinary SBF `33361d9`. Two withdrawals paid 40,000 atoms and 110 events replayed in fresh PostgreSQL. Native allocator `981d269` agreed with 324 assignments on the signed book and the independent oracle on 120 books of one to six debtors. [Results](operations/validation.md#two-btc-debtors-sharing-winning-inventory). |
 | Verified two-debtor BTC payout | Review | [PR #117](https://github.com/arnabnandikgp/rivalt/pull/117). Local SBF `59184c5`, clean signed harness `672cff0`. The certificate used 56,805 CU and 835 bytes. Both makers withdrew 20,000 atoms. Three invalid proposals refused, 54 worker transactions finalized, 111 events reproduced in fresh PostgreSQL. [Measured results](operations/validation.md#two-btc-debtors-sharing-winning-inventory). |
 | Scarce BTC winning inventory and zero-budget recovery | Review | [PR #118](https://github.com/arnabnandikgp/rivalt/pull/118). SBF `2256c51`, signed harnesses `f462fc6` and `f95fbc7`. The flat maker withdrew 19,996 against the ordinary 19,990. Zero eligible gain and zero rounded budget both resumed through actual payouts and fresh SQL replay. [Results](operations/validation.md#scarce-winning-inventory-and-flat-btc-claims). |
+| Population-wide single-lot matching | Review | Clean `34882ca` on ordinary SBF `33361d9` paid three makers 20,000/20,001/20,002 after a real nine-account freeze. Native `870ea08` and independent enumeration select 20,001 each. 126 fresh SQL events, 432 native comparison books. [Evidence and limits](operations/validation.md#population-wide-matching-on-a-three-debtor-freeze). |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -148,9 +149,10 @@ both makers after verifying the direct charges and creditor floors in one
 54,281-CU instruction. With two BTC debtors competing for one-lot winners, the
 separate shared-inventory verifier now pays both makers after restart. The
 partial-capacity build also pays when an opposing gain is exhausted or one
-debtor’s after-insurance budget falls below one atom. Next, verify allocation
-across more than two debtors without introducing a separate rule for each
-population size.
+debtor’s after-insurance budget falls below one atom. The population-wide native matcher now
+selects three distinct pairs on a signed freeze. Next, make clearing authenticate
+the winning capacities and the complete assignment, then verify all three
+successor SPL withdrawals and fresh journal replay.
 General selection and production release remain open.
 
 ## Earlier checkpoints

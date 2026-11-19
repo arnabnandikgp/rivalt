@@ -521,3 +521,15 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$partial_inventory_build" \
   RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-floor-apply \
   bash ops/scalable-settlement-smoke.sh
 ```
+
+For the three-debtor comparison use the ordinary SBF at `33361d9`. The
+harness builds the population selector and separately replays the signed
+transactions and terminal settlement.
+
+```bash
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$ordinary_attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-inventory-book-ordinary \
+  bash ops/scalable-settlement-smoke.sh
+cargo build --locked -p default-plan-selection --example single_lot_assignment
+python3 tests/financial/check_inventory_book.py
+```
