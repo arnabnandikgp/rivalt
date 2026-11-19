@@ -18,12 +18,12 @@ const discriminator = (name: string) => createHash('sha256').update(`global:${na
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
   options: { traderCount?:number; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; verifyRejections?: boolean } = {}) {
   const traderCount=options.traderCount??2;
-  assert(Number.isSafeInteger(traderCount)&&traderCount>0&&traderCount<=58,'The fixture provisions 64 Financial members including six maker roots');
+  assert(Number.isSafeInteger(traderCount)&&traderCount>0&&traderCount+6<=1024,'Requested Financial members must fit the qualification storage fixture');
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
     bidCount: 1, askCount: 1, bids: region(2n), asks: region(3n) };
-  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash);
+  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash,BigInt(Math.max(64,traderCount+6)));
   const { payer, common, markets, instances, venue } = fixture;
   const now = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigInt64LE(32);
   const slot = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigUInt64LE(0);

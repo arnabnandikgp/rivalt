@@ -27,7 +27,7 @@ export const symmetricPayoutShape={...goldenShape,skewTick:0n,longCap:4096n,shor
 
 export async function provisionCanonicalMakers(h: CanonicalHarness,
   shape: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs) = goldenShape,
-  makerMarkets: readonly (0|1)[] = [0,1], initialCash = 1_000_000n) {
+  makerMarkets: readonly (0|1)[] = [0,1], initialCash = 1_000_000n, recoveryCapacity=64n) {
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
@@ -65,7 +65,7 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
     await h.send(`initialize market ${marketIndex}`, [sdk.getInitializeMarketInstruction({ ...admin, index: marketIndex,
       market: markets[marketIndex], ledger: ledgers[marketIndex] })]);
   }
-  const storage=await provisionRecoveryWorkspace(h,common,payer);
+  const storage=await provisionRecoveryWorkspace(h,common,payer,recoveryCapacity);
   const instances = [];
   for (const marketIndex of makerMarkets) {
     const market = markets[marketIndex];
