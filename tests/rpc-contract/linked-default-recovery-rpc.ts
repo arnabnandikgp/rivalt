@@ -23,8 +23,9 @@ const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).tr
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
-const flatCreditor = probe === 'profit-attribution-linked-flat' || probe === 'profit-attribution-linked-flat-apply';
-const linked = probe === 'profit-attribution-linked-apply' || probe === 'profit-attribution-linked-flat-apply';
+const contested = probe === 'profit-attribution-linked-contested';
+const flatCreditor = contested || probe === 'profit-attribution-linked-flat' || probe === 'profit-attribution-linked-flat-apply';
+const linked = contested || probe === 'profit-attribution-linked-apply' || probe === 'profit-attribution-linked-flat-apply';
 const selection = linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
   gated ? 'btc-allocation-candidate' : 'profit-attribution-candidate';
 const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,linked && flatCreditor ? 'flat' : linked);
@@ -35,7 +36,7 @@ let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
   const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked?'sponsored-profit':'profit-attribution',
-    shape:symmetricPayoutShape, traderCash:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
+    shape:symmetricPayoutShape, traderCash:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
   const {guard,route,root} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = setup.roots;
   const makers = [setup.instances[0], setup.instances[3]];
@@ -54,6 +55,13 @@ try {
     await h.send('open one lot against isolated maker '+market,[await route({trader:debtor,actor:setup.traderOwner,
       marketIndex:market, side:0, makers:[makers[market]], lots:[1n], allInLimit:gross+fee,maxFee:fee})],[setup.traderOwner]);
   }
+  const secondMaker=setup.instances[2];
+  if (contested) {
+    await setup.sample();
+    await h.send('cross debtor buys another BTC lot from an independent capital account',[
+      await route({trader:debtor,actor:setup.traderOwner,marketIndex:0,side:0,makers:[secondMaker],
+        lots:[1n],allInLimit:60_015n,maxFee:13n})],[setup.traderOwner]);
+  }
   if (flatCreditor) {
     setup.sourcePrices.btc=65_000_000_000n;
     await setup.qualify();
@@ -65,7 +73,7 @@ try {
       marketIndex:0, side:0, makers:[makers[0]], lots:[1n], allInLimit:60_015n,maxFee:13n,
       reduceOnly:true,generation:(await root(otherTrader)).positions[0].generation})],[setup.traderOwner]);
     const closed=await root(otherTrader);
-    assert.deepEqual([closed.cash,closed.positions[0].lots,closed.positions[0].virtualScaled],[19_970n,0n,4_996_000_000_000n]);
+    assert.deepEqual([closed.cash,closed.positions[0].lots,closed.positions[0].virtualScaled],[contested?29_974n:19_970n,0n,4_996_000_000_000n]);
   }
   setup.sourcePrices.btc = 50_000_000_000n;
   setup.sourcePrices.eth = 2_000_000_000n;
@@ -91,7 +99,7 @@ try {
   assert.equal(freezes[0].data.trigger,debtor);
   const history = events.slice(0,events.indexOf(freezes[0]));
   assert(!history.some(event=>event.type==='AccountFinancialChangedV3' && [2,3].includes(event.data.kind)));
-  const input = {flatCreditor,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
+  const input = {flatCreditor,secondBtcWinner:contested?secondMaker.capital:undefined,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
     insurance:frozen.insuranceBefore,fees:frozen.feesBefore,markets:setup.markets,rows,makerDeposit,debtor,otherTrader,
     winners:makers.map(maker=>maker.capital),venueHex:Buffer.from(getAddressEncoder().encode(setup.venue)).toString('hex'),
     sourceDigest:createHash('sha256').update(json([setup.venue,frozen,rows,freezes[0].signature])).digest('hex'),
@@ -112,6 +120,28 @@ try {
   while ((await resolution()).stage !== 11) {
     assert(originals.length<128,'eight-member recovery exceeded the test continuation budget');
     const current = await readAccountResolution(worker.rpc,setup.venue);
+    if(contested && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
+      const blocked=await worker.riskWork(setup.payer);
+      assert.deepEqual(blocked,{status:'blocked',reason:'unsupported-linked-creditors'});
+      const common=await accountDefaultContext(worker.rpc,current);
+      const debtorOrdinal=BigInt(members.indexOf(debtor));
+      const [page]=await sdk.deriveFrozenMarginPage(setup.venue,debtorOrdinal/8n);
+      const watched=[common.prepared,page,setup.resolution,setup.vault,setup.token.address,setup.traderToken.address,...members];
+      const snapshot=()=>Promise.all(watched.map(key=>h.read(key)));
+      const beforeAttempt=await snapshot();
+      for(const maker of [makers[0],secondMaker]) {
+        const winnerOrdinal=BigInt(members.indexOf(maker.capital));
+        const [winnerPage]=await sdk.deriveFrozenMarginPage(setup.venue,winnerOrdinal/8n);
+        await h.send('refuse certifying just one of two open BTC winners',[sdk.getVerifyFrozenPairInstruction({...common,
+          epoch:frozen.epoch,revision:current.preparedState.revision,debtorOrdinal,winnerOrdinal,debtor,winner:maker.capital,
+          debtorPage:page,winnerPage:winnerPage===page?undefined:winnerPage})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      }
+      await h.send('refuse releasing the contested book without a joint certificate',[sdk.getAcceptDenominatorRowInstruction({
+        ...common,epoch:frozen.epoch,revision:current.preparedState.revision,page})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      assert.deepEqual(await snapshot(),beforeAttempt);
+      refused=true;
+      break;
+    }
     if (linked && flatCreditor && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
       const common=await accountDefaultContext(worker.rpc,current);
       const debtorOrdinal=BigInt(members.indexOf(debtor)), flatOrdinal=BigInt(members.indexOf(otherTrader));
@@ -201,11 +231,11 @@ try {
       assert.equal((await worker.queue.get(intent.request_id)).status,'finalized');
     }
   }
-  assert.equal(refused,gated);
-  assert.equal(jointChecked,linked);
-  if (gated) {
+  assert.equal(refused,gated||contested);
+  assert.equal(jointChecked,linked&&!contested);
+  if (gated||contested) {
     assert.equal((await resolution()).stage,2);
-    assert.deepEqual([await wallet(),await vault()],[before.wallet,before.vault]);
+    assert.deepEqual([await wallet(),await traderWallet(),await vault()],[before.wallet,before.traderWallet,before.vault]);
   } else {
     assert.deepEqual((await resolution()).insuranceSpent,flatCreditor?[9n,1n]:[3n,1n]);
     const target=linked?comparison.cash:comparison.ordinaryCash;
@@ -229,9 +259,9 @@ try {
     const makerTotal=makerPayouts[0]+makerPayouts[1];
     assert.deepEqual([await wallet(),await vault()],[before.wallet+makerTotal,before.vault-makerTotal-traderPayout]);
   }
-  await flush(); await journal.checkpoint(gated?'joint-certificate-required':'both-market-credits-withdrawn',true);
+  await flush(); await journal.checkpoint(refused?'joint-certificate-required':'both-market-credits-withdrawn',true);
   const replay=await journal.finish();
-  const result={revision,profile:linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+  const result={revision,profile:contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
     inputs:input,traderWalletAfter:await traderWallet(),comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));
