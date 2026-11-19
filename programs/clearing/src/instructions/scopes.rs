@@ -125,6 +125,9 @@ context!(ActivateAccounts, qualification.venue, qualification.event_authority;
 
 
 
+context!(ClassifyMarketFees, identity.venue, event_authority;
+[identity.venue: Read, identity.safety: Read, identity.ledger: Write, first: Read, second: Read, third: Read]; []);
+
 context!(AllocateMarketFees, identity.venue, event_authority;
 [
     identity.venue: Read,

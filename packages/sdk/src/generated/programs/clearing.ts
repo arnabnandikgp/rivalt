@@ -134,6 +134,7 @@ import {
   getCancelRecoveryProvisionInstructionAsync,
   getCheckAccountRetirementInstructionAsync,
   getCheckMarketBackingInstructionAsync,
+  getClassifyMarketFeesInstructionAsync,
   getClassifyMarketSurplusInstructionAsync,
   getCollectAccountLossInstructionAsync,
   getCompleteSettlementApplicationInstructionAsync,
@@ -225,6 +226,7 @@ import {
   parseCancelRecoveryProvisionInstruction,
   parseCheckAccountRetirementInstruction,
   parseCheckMarketBackingInstruction,
+  parseClassifyMarketFeesInstruction,
   parseClassifyMarketSurplusInstruction,
   parseCollectAccountLossInstruction,
   parseCompleteSettlementApplicationInstruction,
@@ -316,6 +318,7 @@ import {
   type CancelRecoveryProvisionAsyncInput,
   type CheckAccountRetirementAsyncInput,
   type CheckMarketBackingAsyncInput,
+  type ClassifyMarketFeesAsyncInput,
   type ClassifyMarketSurplusAsyncInput,
   type CollectAccountLossAsyncInput,
   type CompleteSettlementApplicationAsyncInput,
@@ -374,6 +377,7 @@ import {
   type ParsedCancelRecoveryProvisionInstruction,
   type ParsedCheckAccountRetirementInstruction,
   type ParsedCheckMarketBackingInstruction,
+  type ParsedClassifyMarketFeesInstruction,
   type ParsedClassifyMarketSurplusInstruction,
   type ParsedCollectAccountLossInstruction,
   type ParsedCompleteSettlementApplicationInstruction,
@@ -868,7 +872,9 @@ export enum ClearingEvent {
   LiquidityMakerChanged,
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
+  LiquidityRouteFeeRecorded,
   MarginMembershipChanged,
+  MarketFeesClassified,
   MultiLotBookVerified,
   RecoveryStorageRefunded,
   RetiredReserveWithdrawn,
@@ -1259,12 +1265,34 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([124, 19, 28, 74, 171, 207, 28, 187]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.LiquidityRouteFeeRecorded;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([11, 17, 246, 185, 107, 17, 174, 47]),
       ),
       0,
     )
   ) {
     return ClearingEvent.MarginMembershipChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([216, 80, 14, 69, 228, 102, 106, 197]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarketFeesClassified;
   }
   if (
     containsBytes(
@@ -1356,6 +1384,7 @@ export enum ClearingInstruction {
   CancelRecoveryProvision,
   CheckAccountRetirement,
   CheckMarketBacking,
+  ClassifyMarketFees,
   ClassifyMarketSurplus,
   CollectAccountLoss,
   CompleteSettlementApplication,
@@ -1632,6 +1661,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.CheckMarketBacking;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([119, 160, 87, 122, 107, 187, 203, 113]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ClassifyMarketFees;
   }
   if (
     containsBytes(
@@ -2500,6 +2540,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.CheckMarketBacking;
     } & ParsedCheckMarketBackingInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ClassifyMarketFees;
+    } & ParsedClassifyMarketFeesInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ClassifyMarketSurplus;
     } & ParsedClassifyMarketSurplusInstruction<TProgram>)
   | ({
@@ -2848,6 +2891,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.CheckMarketBacking,
         ...parseCheckMarketBackingInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ClassifyMarketFees: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ClassifyMarketFees,
+        ...parseClassifyMarketFeesInstruction(instruction),
       };
     }
     case ClearingInstruction.ClassifyMarketSurplus: {
@@ -3524,6 +3574,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCheckMarketBackingInstructionAsync> &
     SelfPlanAndSendFunctions;
+  classifyMarketFees: (
+    input: ClassifyMarketFeesAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getClassifyMarketFeesInstructionAsync> &
+    SelfPlanAndSendFunctions;
   classifyMarketSurplus: (
     input: ClassifyMarketSurplusAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -4147,6 +4202,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getCheckMarketBackingInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          classifyMarketFees: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getClassifyMarketFeesInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

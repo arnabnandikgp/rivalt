@@ -137,6 +137,8 @@ pub fn check(
 ) -> Result<()> {
     let remaining = ctx.remaining_accounts()?;
     let accounts = &mut ctx.accounts;
+    #[cfg(feature="aggregate-fee-qualification")]
+    { crate::market_fees::clean(&mut accounts.identity.btc_ledger)?; crate::market_fees::clean(&mut accounts.identity.eth_ledger)?; }
     global_flat(&accounts.identity)?;
     require!(matches!(accounts.identity.safety.mode, CUSTODY | ACTIVE) && accounts.identity.safety.paused,
         ClearingError::Resolution);
@@ -191,6 +193,8 @@ pub fn retire(
     let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut ctx.accounts;
+    #[cfg(feature="aggregate-fee-qualification")]
+    { crate::market_fees::clean(&mut accounts.identity.btc_ledger)?; crate::market_fees::clean(&mut accounts.identity.eth_ledger)?; }
     global_flat(&accounts.identity)?;
     registry_valid(&accounts.registry)?;
     require!(
@@ -283,6 +287,8 @@ pub fn withdraw(
         ClearingError::Profile
     );
     account_custody::vault_backed(&identity.custody, identity.vault.amount())?;
+    #[cfg(feature="aggregate-fee-qualification")]
+    crate::market_fees::clean(&mut identity.ledger)?;
     account_cash::fees::treasury_profile(
         &identity.venue,
         &identity.safety,

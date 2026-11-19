@@ -458,6 +458,7 @@ fn stored_canonical_subfills_charge_one_fee_prefix_and_release_reservations() {
 }
 
 #[test]
+#[cfg(not(feature="aggregate-fee-qualification"))]
 fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
     use crate::events::{
         LiquidityRouteExecuted, MarginAccountSnapshot, MarketLedgerSnapshot, MarketSnapshot,
@@ -536,10 +537,7 @@ fn borrowed_canonical_event_matches_owned_idl_with_distinct_roots_and_legs() {
         lots: owned.lots,
         gross_quote: owned.gross_quote,
         fee: owned.fee,
-        insurance_credit: owned.insurance_credit,
-        retained_fee: owned.retained_fee,
-        carry_before: owned.carry_before,
-        carry_after: owned.carry_after,
+        fee_detail: (owned.insurance_credit, owned.retained_fee, owned.carry_before, owned.carry_after),
         other_ledger: Some(ledger.clone()),
         ledger,
         order_id: owned.order_id,

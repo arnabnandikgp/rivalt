@@ -110,6 +110,8 @@ pub fn freeze(
     require!(remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut ctx.accounts;
     let identity = &mut *accounts.identity;
+    #[cfg(feature="aggregate-fee-qualification")]
+    { crate::market_fees::clean(&mut identity.btc_ledger)?; crate::market_fees::clean(&mut identity.eth_ledger)?; }
     profile(&identity)?;
     let header = &mut accounts.resolution;
     require!(

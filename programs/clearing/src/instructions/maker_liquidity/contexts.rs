@@ -36,7 +36,7 @@ pub struct RegisterLiquidity {
     #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()],
         bump = capital.bump, has_one = venue, has_one = owner)]
     pub capital: Box<BorshAccount<MarginAccount>>,
-    #[account(init, payer = owner, space = 8 + MakerRegistration::INIT_SPACE,
+    #[account(init, payer = owner, space = 8 + MakerRegistration::INIT_SPACE + crate::market_fees::LANE_EXTRA,
         seeds = [b"maker-v4", market.address().as_ref(), &[instance]], bump)]
     pub registration: Box<BorshAccount<MakerRegistration>>,
     #[account(init, payer = owner, space = 8 + CapitalBinding::INIT_SPACE,

@@ -88,8 +88,13 @@ pub(super) fn apply(
         ],
         clock,
     )?;
-    let (insurance_credit, retained_fee, carry_before) =
-        trading::split_fee(&mut identity.ledger, next.fee)?;
+    #[cfg(not(feature="aggregate-fee-qualification"))]
+    let fee_detail = {
+        let (insurance, retained, before) = trading::split_fee(&mut identity.ledger, next.fee)?;
+        (insurance, retained, before, identity.ledger.insurance_fee_remainder)
+    };
+    #[cfg(feature="aggregate-fee-qualification")]
+    let fee_detail = crate::market_fees::escrow(&mut identity.ledger,&mut accounts.first_registration,next.fee)?;
 
     emit(
         events,
@@ -98,15 +103,18 @@ pub(super) fn apply(
         order,
         next.gross,
         next.fee,
-        insurance_credit,
-        retained_fee,
-        carry_before,
+        fee_detail,
         clock.slot,
         executed,
     )
 }
 
-/// Wire-identical to LiquidityRouteExecuted. Borrow full roots/registrations so
+#[cfg(not(feature="aggregate-fee-qualification"))]
+type FeeDetail = (u64,u64,u8,u8);
+#[cfg(feature="aggregate-fee-qualification")]
+type FeeDetail = (u128,u64);
+
+/// Wire-identical to the selected route event. Borrow full roots/registrations so
 /// event serialization does not allocate multiple full order-book copies.
 #[derive(AnchorSerialize)]
 pub(super) struct RouteEventView<'a> {
@@ -120,10 +128,7 @@ pub(super) struct RouteEventView<'a> {
     pub lots: u64,
     pub gross_quote: u64,
     pub fee: u64,
-    pub insurance_credit: u64,
-    pub retained_fee: u64,
-    pub carry_before: u8,
-    pub carry_after: u8,
+    pub fee_detail: FeeDetail,
     pub ledger: crate::events::MarketLedgerSnapshot,
     pub other_ledger: Option<crate::events::MarketLedgerSnapshot>,
     pub order_id: u64,
@@ -141,9 +146,7 @@ fn emit(
     order: Option<crate::state::OrderRecord>,
     gross: u64,
     fee: u64,
-    insurance_credit: u64,
-    retained_fee: u64,
-    carry_before: u8,
+    fee_detail: FeeDetail,
     slot: u64,
     legs: Vec<ExecutedLeg>,
 ) -> Result<()> {
@@ -166,10 +169,7 @@ fn emit(
         lots: intent.lots,
         gross_quote: gross,
         fee,
-        insurance_credit,
-        retained_fee,
-        carry_before,
-        carry_after: identity.ledger.insurance_fee_remainder,
+        fee_detail,
         ledger: crate::instructions::account_custody::ledger_snapshot(&identity.ledger),
         other_ledger: identity
             .other_ledger
@@ -181,7 +181,11 @@ fn emit(
         maker_states: makers,
         legs,
     };
-    events.emit_borrowed::<crate::events::LiquidityRouteExecuted, _>(
+    #[cfg(not(feature="aggregate-fee-qualification"))]
+    type RouteEvent = crate::events::LiquidityRouteExecuted;
+    #[cfg(feature="aggregate-fee-qualification")]
+    type RouteEvent = crate::events::LiquidityRouteFeeRecorded;
+    events.emit_borrowed::<RouteEvent, _>(
         &event,
         accounts.event_authority.account().clone(),
     )

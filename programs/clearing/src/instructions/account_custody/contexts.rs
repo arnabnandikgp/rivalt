@@ -63,7 +63,7 @@ pub struct InitializeMarket {
     #[account(init, payer = authority, space = 8 + Market::INIT_SPACE,
         seeds = [b"market-v3", venue.address().as_ref(), &[index]], bump)]
     pub market: Box<BorshAccount<Market>>,
-    #[account(init, payer = authority, space = 8 + MarketLedger::INIT_SPACE,
+    #[account(init, payer = authority, space = 8 + MarketLedger::INIT_SPACE + crate::market_fees::LEDGER_EXTRA,
         seeds = [b"ledger-v3", market.address().as_ref()], bump)]
     pub ledger: Box<BorshAccount<MarketLedger>>,
     pub system_program: Program<System>,

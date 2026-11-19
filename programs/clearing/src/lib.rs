@@ -23,10 +23,14 @@ macro_rules! profile_cu {
 ))]
 compile_error!("CU tracing requires the explicit bounded local qualification profile");
 
+#[cfg(all(feature="aggregate-fee-qualification", feature="devnet-test-profile"))]
+compile_error!("aggregate fee qualification uses a fresh local deployment");
+
 pub mod constants;
 pub mod engine;
 pub mod error;
 mod event_cpi;
+mod market_fees;
 pub mod events;
 pub mod instructions;
 #[cfg(feature = "profit-attribution-qualification")]
@@ -547,6 +551,10 @@ pub mod clearing {
         )
     }
 
+    pub fn classify_market_fees(ctx: &mut Context<ClassifyMarketFees>) -> Result<()> {
+        scoped_history::run(ctx, [119, 160, 87, 122, 107, 187, 203, 113], false,
+            |ctx, events| account_cash::fees::classify(ctx, events))
+    }
     pub fn allocate_market_fees(
         ctx: &mut Context<AllocateMarketFees>,
         market_index: u8,

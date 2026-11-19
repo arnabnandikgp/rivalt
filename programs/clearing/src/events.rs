@@ -269,6 +269,40 @@ pub struct LiquidityRouteExecuted {
 }
 
 #[event]
+pub struct LiquidityRouteFeeRecorded {
+    pub venue: Address,
+    pub slot: u64,
+    pub market: Address,
+    pub market_state: MarketSnapshot,
+    pub other_market_state: Option<MarketSnapshot>,
+    pub nonce: u64,
+    pub side: u8,
+    pub lots: u64,
+    pub gross_quote: u64,
+    pub fee: u64,
+    pub lane_collected: u128,
+    pub market_pending: u64,
+    pub ledger: MarketLedgerSnapshot,
+    pub other_ledger: Option<MarketLedgerSnapshot>,
+    pub order_id: u64,
+    pub order_version: u64,
+    pub root_states: Vec<MarginAccountSnapshot>,
+    pub maker_states: Vec<crate::state::liquidity::MakerRegistrationPayload>,
+    pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
+}
+#[event]
+pub struct MarketFeesClassified {
+    pub venue: Address,
+    pub market: Address,
+    pub slot: u64,
+    pub classified: u128,
+    pub amount: u64,
+    pub insurance_credit: u64,
+    pub ledger: MarketLedgerSnapshot,
+}
+
+
+#[event]
 pub struct AccountQualification {
     pub venue: Address,
     pub slot: u64,

@@ -24,6 +24,7 @@ export * from "./beginSettlementRateProposal.js";
 export * from "./cancelRecoveryProvision.js";
 export * from "./checkAccountRetirement.js";
 export * from "./checkMarketBacking.js";
+export * from "./classifyMarketFees.js";
 export * from "./classifyMarketSurplus.js";
 export * from "./collectAccountLoss.js";
 export * from "./completeSettlementApplication.js";

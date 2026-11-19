@@ -32,12 +32,15 @@ pub(crate) use account_cash::certificate::__cpi_accounts_initializemarketbacking
 pub use account_cash::certificate::CheckMarketBacking;
 pub use account_cash::certificate::InitializeMarketBacking;
 pub(crate) use account_cash::fees::__client_accounts_allocatemarketfees;
+pub(crate) use account_cash::fees::__client_accounts_classifymarketfees;
+#[cfg(feature = "cpi")]
+pub(crate) use account_cash::fees::__cpi_accounts_classifymarketfees;
 pub(crate) use account_cash::fees::__client_accounts_withdrawmarketfees;
 #[cfg(feature = "cpi")]
 pub(crate) use account_cash::fees::__cpi_accounts_allocatemarketfees;
 #[cfg(feature = "cpi")]
 pub(crate) use account_cash::fees::__cpi_accounts_withdrawmarketfees;
-pub use account_cash::fees::{AllocateMarketFees, WithdrawMarketFees};
+pub use account_cash::fees::{AllocateMarketFees, ClassifyMarketFees, WithdrawMarketFees};
 pub use account_cash::AccountFinancialIdentity;
 pub use account_cash::ChangeAccountClaim;
 pub use account_cash::NetAccountClaims;

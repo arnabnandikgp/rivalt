@@ -5268,6 +5268,105 @@
       ]
     },
     {
+      "name": "classify_market_fees",
+      "discriminator": [
+        119,
+        160,
+        87,
+        122,
+        107,
+        187,
+        203,
+        113
+      ],
+      "accounts": [
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "ledger"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ledger",
+          "writable": true
+        },
+        {
+          "name": "first"
+        },
+        {
+          "name": "second"
+        },
+        {
+          "name": "third"
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "classify_market_surplus",
       "discriminator": [
         148,
@@ -23584,6 +23683,19 @@
       ]
     },
     {
+      "name": "LiquidityRouteFeeRecorded",
+      "discriminator": [
+        124,
+        19,
+        28,
+        74,
+        171,
+        207,
+        28,
+        187
+      ]
+    },
+    {
       "name": "MarginMembershipChanged",
       "discriminator": [
         11,
@@ -23594,6 +23706,19 @@
         17,
         174,
         47
+      ]
+    },
+    {
+      "name": "MarketFeesClassified",
+      "discriminator": [
+        216,
+        80,
+        14,
+        69,
+        228,
+        102,
+        106,
+        197
       ]
     },
     {
@@ -26941,6 +27066,128 @@
       }
     },
     {
+      "name": "LiquidityRouteFeeRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_state",
+            "type": {
+              "defined": {
+                "name": "MarketSnapshot"
+              }
+            }
+          },
+          {
+            "name": "other_market_state",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "MarketSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross_quote",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "lane_collected",
+            "type": "u128"
+          },
+          {
+            "name": "market_pending",
+            "type": "u64"
+          },
+          {
+            "name": "ledger",
+            "type": {
+              "defined": {
+                "name": "MarketLedgerSnapshot"
+              }
+            }
+          },
+          {
+            "name": "other_ledger",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "MarketLedgerSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "order_version",
+            "type": "u64"
+          },
+          {
+            "name": "root_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "maker_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MakerRegistrationPayload"
+                }
+              }
+            }
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ExecutedLeg"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "LiquidityRouteIntent",
       "type": {
         "kind": "struct",
@@ -27765,6 +28012,46 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketFeesClassified",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "classified",
+            "type": "u128"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "insurance_credit",
+            "type": "u64"
+          },
+          {
+            "name": "ledger",
+            "type": {
+              "defined": {
+                "name": "MarketLedgerSnapshot"
+              }
+            }
           }
         ]
       }
