@@ -10,7 +10,7 @@ import { CanonicalConformance } from './canonical-maker-conformance.js';
 import { WireRpc, WireSubscriptions, eventually } from './wire.js';
 
 export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: string,
-  options: { computeUnitLimit?: (label: string,instructions: readonly unknown[]) => number;
+  options: { computeUnitLimit?: (label: string,instructions: readonly unknown[]) => number|undefined;
     heapSize?: (label:string)=>number|undefined;
     maxLoadedAccounts?: (label: string) => number | undefined;
     observeOutcomes?: (label: string) => boolean;
