@@ -1,5 +1,29 @@
 # Validation and measured limits
 
+## Clearing-verified funding checkpoints
+
+Clean harness `1637f8f`, SBF `2da3e90`, 2,920,496 bytes, SHA-256
+`ef02d96b5d689c04e3b68854560073248507c956229bc0892d5423fa3170bec8`.
+The ETH fill wrote its maker checkpoint. A BTC fill on the same cross account
+wrote its BTC maker checkpoint and advanced the canonical ETH checkpoint. After
+31 seconds the next two-market publication recovered BTC from its maker and ETH
+from its market. ETH retained 5,555,555 scaled units, two covered seconds and
+29 skipped. The independent Rust replay of finalized originals agreed.
+
+Three signed BTC reports, each with an omitted, repeated or ETH registration,
+failed with `Profile`, `Alias` and `MakerBinding` respectively. The market and
+publisher configuration matched byte-for-byte before and after all three. Fresh
+PostgreSQL replay reproduced 71 events from 259 signed harness outcomes. Every
+recorded original was fetched at finalized RPC and checked against its wire and WS
+notification. An initial build panicked in simulation on the first ETH fill because
+a capacity write extended into the adjacent funding field. The tested build binds
+that write to bytes 24–31 of the registration extension.
+
+The candidate still keeps a serial comparison for each publication. Other account
+classes, emergency controls, payment and default have not been qualified on this
+binary. [Costs](performance.md#signed-funding-checkpoint-cost) and
+[reproduction](local-development.md#reproduce-checked-funding-publication).
+
 ## Cross-market funding after a publication gap
 
 On clearing `3ace707`, signed harness `3abe03e` opened one ETH lot and then

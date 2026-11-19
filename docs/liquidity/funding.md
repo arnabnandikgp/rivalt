@@ -186,3 +186,18 @@ determine the exact index. The slot orders touches even when the premium is
 negative or wall-clock time decreases. Equal-slot touches must agree on time.
 A new observation or configuration makes earlier touches ineligible.
 [Signed funding-gap comparison](../operations/validation.md#cross-market-funding-after-a-publication-gap).
+
+The explicit `funding-prefix-candidate` stores a 32-byte checkpoint on the first
+executing maker's registration. A fill that also consumes funding on a sibling
+market stores the sibling checkpoint on that market. Other materializing actions
+use the market checkpoint. Each record stores config epoch, observation sequence,
+chain slot and signed Unix time as four little-endian 64-bit integers. An all-zero
+record is empty. Market, registration and ledger sizes are 503, 405 and 397 bytes.
+
+Each candidate funding report appends the target market's three canonical
+registrations in instance order as read-only accounts. Before accepting the report
+clearing derives the prior earned index from those registrations and its market
+checkpoint, and requires it to equal the serial index and timestamp. The SDK
+derives these three addresses even when quote discovery reports unavailable depth.
+Existing funded cash, index-derived risk and the six-second hold still govern
+every fill. The tested route writes the selected market and ledger.

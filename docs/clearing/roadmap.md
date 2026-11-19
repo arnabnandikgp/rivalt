@@ -165,7 +165,10 @@ payment backing as well as fee escrow. A parallel fill must preserve the
 aggregate gross cap when traders switch makers, and the same funded gain must
 remain spendable after any valid interleaving. The native capacity and funding
 comparison reproduced the existing clearing totals. The [D138 local program](../operations/validation.md#signed-bounded-market-gross) now returns current gross from the market and its maker capacities. Removing the shared market write also requires recovering the last valid funding index when the next action occurs after expiry, including funding materialized for ETH by a BTC cross-account fill. The [read and accounting trade-off](../operations/performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills)
-covers all three responsibilities.
+covers all three responsibilities. The [signed checkpoint publisher](../operations/validation.md#clearing-verified-funding-checkpoints)
+now preserves both markets through a publication gap. The next route must make
+the selected market read-only on the common path, reconcile financial consumers
+against the current aggregate and measure the physical locks on landed originals.
 
 Model ordinary payment from deposited collateral first. A settlement advance
 facility requires measured timing demand plus an identified funder, repayment

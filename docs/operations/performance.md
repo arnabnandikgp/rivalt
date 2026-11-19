@@ -126,6 +126,23 @@ Build the `funding_prefix_replay` example for `financial-core` with
 `--features parallel-market-prototype`, then run
 `node --import tsx tests/performance/replay-cross-fill-funding.ts <run-directory>`.
 
+### Signed funding checkpoint cost
+
+The same account identities and two-tick premium were used on both fresh local
+deployments. The checked publisher reads three additional registrations per
+market. The trader signs the same account lists on both builds.
+
+| Finalized transaction | Serial comparison CU / bytes | Checked funding CU / bytes |
+|---|---:|---:|
+| Open ETH against one maker | 172,504 / 942 v0 | 173,475 / 942 v0 |
+| Open BTC with sibling ETH exposure | 176,704 / 1,006 v0 | 178,577 / 1,006 v0 |
+| Publish BTC and ETH before the fills | 44,316 / 1,192 v0 | 54,438 / 1,348 v1 |
+| Publish both after the 31-second gap | — | 52,332 / 1,348 v1 |
+
+The paired publisher crosses the v0 packet boundary. These are observed local
+CU and wire sizes. The route still locks the selected market and ledger for
+writing. [Signed funding and rollback](validation.md#clearing-verified-funding-checkpoints).
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,

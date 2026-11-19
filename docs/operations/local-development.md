@@ -618,3 +618,14 @@ Run `bash ops/scalable-settlement-smoke.sh` once per
 | `profit-attribution-bounded-market` | Complete and foreign-market reads, two stored fills, cross-maker close, external CPI and freeze |
 | `profit-attribution-bounded-market-apply` | Frozen population, funded default application, actual token withdrawals and fresh database replay |
 | `profit-attribution-bounded-market-receiver` | Distressed trader, eligible maker fill, funded receiver transfer and unwind |
+
+### Reproduce checked funding publication
+
+Build clean program `2da3e90` with
+`RIVALT_ATTRIBUTION_PROFILE=checked-funding-prefix bash ops/build-profit-attribution.sh`.
+Use harness `1637f8f` or the corresponding ready branch. Export the printed
+absolute build directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR` and run
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-checked-funding bash ops/scalable-settlement-smoke.sh`
+with a fresh run directory. For independent replay build the `funding_prefix_replay`
+example in `financial-core` with `--features parallel-market-prototype` and run
+`node --import tsx tests/performance/replay-cross-fill-funding.ts <run-directory>`.

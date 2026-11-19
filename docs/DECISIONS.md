@@ -1476,3 +1476,10 @@ end-to-end evidence. [Comparison](operations/performance.md#gross-lots-funding-a
 The qualified prototype keeps a serial comparison and fallback during this
 transition. Its public view derives gross from the capacity accounts. The cap
 remains enforced on every fill. [Signed view, receiver and recovery checks](operations/validation.md#signed-bounded-market-gross).
+
+The local checked-funding implementation places a selected-market fill's
+checkpoint on the already writable first maker registration. When the fill
+also materializes the other market it checkpoints that market directly.
+Each publisher can reconstruct its own market with three read-only maker
+accounts and the market anchor. A cross fill still writes the sibling market.
+[Signed cost and funding evidence](operations/validation.md#clearing-verified-funding-checkpoints).
