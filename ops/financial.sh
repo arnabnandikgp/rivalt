@@ -57,3 +57,5 @@ python3 tests/financial/test_maintained_backing.py
 cargo test --locked -p default-plan-selection --features native-search --test multi_lot
 cargo build --locked -p default-plan-selection --features native-search --example multi_lot_audit
 python3 tests/financial/check_multi_lot_search.py
+cargo build --locked -p default-plan-selection --features native-joint --example joint_reduction_audit
+python3 tests/financial/check_joint_reductions.py
