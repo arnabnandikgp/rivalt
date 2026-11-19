@@ -74,6 +74,23 @@ fn parse_rows(value: &str) -> Result<Vec<Row>> {
         })
         .collect()
 }
+fn parse_proposals(text: &str, capacity: u64) -> Result<Vec<Proposal>> {
+    text.split(';')
+        .map(|text| {
+            let values: Vec<_> = text.split(',').collect();
+            if values.len() != 3 {
+                return Err(Error::Bounds);
+            }
+            Ok(Proposal {
+                factor: parse(values[0], 5)?,
+                rates: [parse(values[1], capacity)?, parse(values[2], capacity)?],
+            })
+        })
+        .collect()
+}
+fn order(text: &str) -> Result<Vec<u64>> {
+    text.split(',').map(decimal).collect()
+}
 fn execute(line: &str) -> Result<String> {
     let fields: Vec<_> = line.split('|').collect();
     if fields.len() == 5 && ["atoms", "product"].contains(&fields[0]) {
@@ -91,35 +108,31 @@ fn execute(line: &str) -> Result<String> {
             arithmetic.steps
         ));
     }
-    let reduced = fields[0] == "reduced";
-    if (reduced && fields.len() != 10)
-        || (!reduced && (fields.len() != 9 || !["full", "compact", "paged"].contains(&fields[0])))
-    {
+    let protected = fields[0] == "protected";
+    let reduced = fields[0] == "reduced" || protected;
+    let expected_fields = match fields[0] {
+        "full" | "compact" | "paged" => 9,
+        "reduced" => 10,
+        "protected" => 13,
+        _ => return Err(Error::Bounds),
+    };
+    if fields.len() != expected_fields {
         return Err(Error::Bounds);
     }
     let rows = parse_rows(fields[1])?;
     let capacity = required_limbs(u64::try_from(rows.len()).map_err(|_| Error::Bounds)?)?;
     let budget: u64 = decimal(fields[8])?;
     let mut arithmetic = Arithmetic::new(capacity, budget)?;
-    let proposals = fields[5]
-        .split(';')
-        .map(|text| {
-            let values: Vec<_> = text.split(',').collect();
-            if values.len() != 3 {
-                return Err(Error::Bounds);
-            }
-            Ok(Proposal {
-                factor: parse(values[0], 5)?,
-                rates: [parse(values[1], capacity)?, parse(values[2], capacity)?],
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-    let original;
+    let proposals = parse_proposals(fields[5], capacity)?;
+    let original = if reduced {
+        parse_rows(fields[9])?
+    } else {
+        Vec::new()
+    };
     let pools = pair(fields[2])?;
     let insurance = pair(fields[3])?;
     let fees = pair(fields[4])?;
     let plan = if reduced {
-        original = parse_rows(fields[9])?;
         verify_reduced_claims(
             &original,
             &rows,
@@ -132,12 +145,27 @@ fn execute(line: &str) -> Result<String> {
     } else {
         verify(&rows, pools, insurance, fees, &proposals, &mut arithmetic)?
     };
-    let orders = [fields[6], fields[7]]
-        .map(|text| text.split(',').map(decimal).collect::<Result<Vec<u64>>>());
-    let [first, second] = orders;
-    let (first, second) = (first?, second?);
-    let mut graph = Circulation::new(&plan, [&first, &second], &mut arithmetic)?;
-    let paged = if fields[0] == "paged" {
+    let (first, second) = (order(fields[6])?, order(fields[7])?);
+    let orders = [&first[..], &second[..]];
+    let mut graph = if protected {
+        let original_plan = verify(
+            &original,
+            pools,
+            insurance,
+            fees,
+            &parse_proposals(fields[10], capacity)?,
+            &mut arithmetic,
+        )?;
+        let (btc, eth) = (order(fields[11])?, order(fields[12])?);
+        let mut baseline = Circulation::new(&original_plan, [&btc, &eth], &mut arithmetic)?;
+        while !baseline.is_done() {
+            baseline.step()?;
+        }
+        Circulation::after_reduction(&plan, &baseline, orders, &mut arithmetic)?
+    } else {
+        Circulation::new(&plan, orders, &mut arithmetic)?
+    };
+    let paged = if fields[0] == "paged" || protected {
         Some(graph.run_paged(budget, [&first, &second], &mut arithmetic)?)
     } else {
         None
@@ -195,7 +223,7 @@ fn execute(line: &str) -> Result<String> {
         .collect::<Vec<_>>()
         .join(";");
     let mut attribution = Vec::new();
-    if ["full", "paged", "reduced"].contains(&fields[0]) {
+    if ["full", "paged", "reduced", "protected"].contains(&fields[0]) {
         for index in 0..rows.len() {
             let row = plan.attribution(index, &mut arithmetic)?;
             attribution.push(

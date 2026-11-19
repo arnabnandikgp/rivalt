@@ -162,10 +162,10 @@ impl Circulation<'_, '_> {
                 .enumerate()
                 .map(|(index, row)| paged::Root {
                     cash: row.cash,
-                    whole: self.plan.floors[index].whole,
+                    whole: self.bounds(index).whole,
                     order: [0, 1, 2], // Replaced by exact verified root order below before construction.
                     directions: row.claims.map(|claim| claim.signum() as i8),
-                    fractional: self.plan.floors[index].fractional,
+                    fractional: self.bounds(index).fractional,
                 })
                 .collect(),
             active: vec![u64::MAX; hierarchy.words() as usize],
@@ -284,8 +284,8 @@ impl Circulation<'_, '_> {
             let flow = FlowRecord {
                 id: index as u64,
                 cash: row.cash,
-                whole: self.plan.floors[index].whole,
-                fractional: self.plan.floors[index].fractional,
+                whole: self.bounds(index).whole,
+                fractional: self.bounds(index).fractional,
                 directions: row.claims.map(|claim| claim.signum() as i8),
                 order: store.roots[index].order,
                 seen_attempt: 1,
