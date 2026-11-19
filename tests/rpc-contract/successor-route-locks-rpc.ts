@@ -31,7 +31,7 @@ type Receipt={signature:string;slot:number;cu:number;bytes:number;fee:number;loc
 const bursts:{workload:Workload;round:number;side:number;elapsedMs:number;overlap:string[];receipts:Receipt[]}[]=[];
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
-  const setup=await liquidityExecutionSetup(h,rpc,{independentTraders:true,traderCount:3,marketCheckpoints:lane,marginLayout:lane?'checked-funding':aggregate?'aggregate-fees':'sponsored-profit',shape:symmetricPayoutShape,verifyRejections:false});
+  const setup=await liquidityExecutionSetup(h,rpc,{independentTraders:true,traderCount:3,marketCheckpoints:lane,marginLayout:lane?'market-lanes':aggregate?'aggregate-fees':'sponsored-profit',shape:symmetricPayoutShape,verifyRejections:false});
   const {root,route,guard}=executionTestHelpers(h,setup);
   const checkpointBoth=async()=>lane?Promise.all(([0,1] as const).map(setup.checkpoint)):[];
   assert.equal(new Set(setup.traderOwners.map(owner=>owner.address)).size,3);
@@ -172,7 +172,14 @@ try {
       await h.send('old checkpoint cannot authorize funded withdrawal',[withdrawal],[owner],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
       await h.send('other market checkpoint cannot authorize funded withdrawal',[await setup.checkpoint(1),withdrawal],[owner],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
       assert.equal(await token(setup.traderToken.address),beforeWallet);
-      await setup.sample();
+      await setup.qualify();
+      const neighbor=setup.roots[1],neighborOwner=setup.traderOwners[1],neighborBefore=await h.read(neighbor);
+      const intervening=await route({actor:neighborOwner,trader:neighbor,marketIndex:0,side:0,
+        makers:[setup.instances[1]],lots:[1n],minimalMarkets:true,marketLane:true});
+      await h.send('intervening fill invalidates checkpoint and rolls back',[
+        await setup.checkpoint(0),intervening,withdrawal],[owner,neighborOwner],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
+      assert.deepEqual(await h.read(neighbor),neighborBefore);
+      assert.equal(await token(setup.traderToken.address),beforeWallet);
       await h.send('checkpoint BTC and withdraw while position remains open',[await setup.checkpoint(0),withdrawal],[owner]);
       assert.equal(await token(setup.traderToken.address),beforeWallet+1n);
     }

@@ -1,6 +1,7 @@
 import {getAddressEncoder,getProgramDerivedAddress,type Address} from '@solana/kit';
 import {CLEARING_PROGRAM_ADDRESS,getMarketDecoder,getVenueDecoder,MARKET_DISCRIMINATOR,VENUE_DISCRIMINATOR} from './generated/index.js';
 import {deriveAccountMarket,deriveAccountVenue} from './account-addresses.js';
+import {BASIS_POINTS,FUNDING_CAP_BPS,MAX_REFERENCE_PRICE} from './price-policy.js';
 import {decodeMakerFeeLane} from './market-fees.js';
 import {fromBase64,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
@@ -71,4 +72,40 @@ export function decodeFundingTouch(bytes:Uint8Array){
   const slot=view.getBigUint64(16,true),timestamp=view.getBigInt64(24,true);
   requireValue(config>0n&&observation>0n&&slot>0n,'Invalid funding checkpoint identity.');
   return {config,observation,slot,timestamp};
+}
+
+
+/** Reconstruct the committed market from its authenticated account and all three
+ * registrations from the same RPC context. The Clock only fences the read. */
+export function marketFromExecutionLanes(marketKey:Address,marketBytes:Uint8Array,
+  registrations:readonly {bytes:Uint8Array;bump:number}[],slot:bigint,active:boolean){
+  const {market}=decodeCapacityAnchor(marketBytes,true);
+  const rows=registrations.map(({bytes,bump})=>{
+    requireValue(decodeMakerFeeLane(bytes,'checked-funding').state.bump===bump,'Invalid execution lane bump.');
+    return bytes;
+  });
+  const grossLots=grossFromCapacity(marketKey,marketBytes,rows,true);
+  const oracle=market.oracle;
+  if(!active||oracle.heldEpoch!==market.configEpoch||oracle.heldUntil<=oracle.sampledAt)return {...market,grossLots};
+  const maxPremium=MAX_REFERENCE_PRICE*1_000_000_000n*FUNDING_CAP_BPS/BASIS_POINTS;
+  const withinIndex=(index:bigint)=>index>=-1_000_000_000_000_000n&&index<=1_000_000_000_000_000n;
+  requireValue(market.configEpoch>0n&&market.observationSequence>0n&&oracle.sampledAt>0n&&
+    oracle.heldUntil-oracle.sampledAt<=6n&&oracle.heldSlot>market.validFrom&&withinIndex(oracle.fundingBase)&&
+    oracle.premiumScaled>=-maxPremium&&oracle.premiumScaled<=maxPremium,'Invalid funding window.');
+  const materializations=new Map<bigint,bigint>();
+  let latestSlot=-1n,through=oracle.sampledAt;
+  for(const bytes of [marketBytes,...rows]){
+    const stamp=decodeFundingTouch(bytes.subarray(-32));
+    if(!stamp)continue;
+    requireValue(stamp.slot<=slot&&stamp.config<=market.configEpoch&&stamp.observation<=market.observationSequence,'Future funding checkpoint.');
+    if(stamp.config!==market.configEpoch||stamp.observation!==market.observationSequence)continue;
+    const elapsed=stamp.timestamp-oracle.sampledAt,previous=materializations.get(stamp.slot);
+    requireValue(stamp.slot>=market.validFrom&&stamp.slot<oracle.heldSlot&&elapsed>=0n&&elapsed<=30n&&
+      (previous===undefined||previous===stamp.timestamp),'Invalid funding checkpoint clock.');
+    materializations.set(stamp.slot,stamp.timestamp);
+    if(stamp.slot>latestSlot){latestSlot=stamp.slot;through=stamp.timestamp<oracle.heldUntil?stamp.timestamp:oracle.heldUntil;}
+  }
+  const fundingIndexScaled=oracle.fundingBase+oracle.premiumScaled*(through-oracle.sampledAt)/3600n;
+  requireValue(withinIndex(fundingIndexScaled),'Funding index exceeds the supported range.');
+  return {...market,grossLots,fundingTime:through,fundingIndexScaled};
 }
