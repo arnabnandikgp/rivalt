@@ -565,6 +565,14 @@ pub(crate) fn run_pages<'context, T: ScopedContext>(
     run_with_remaining(context, instruction, Remaining::Limbs(plan), handler)
 }
 
+pub(crate) fn run_frozen_pages<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::FrozenPlanPages, handler)
+}
+
 pub(crate) fn run_membership<'context, T: ScopedContext>(
     context: &mut Context<'context, T>,
     instruction: [u8; 8],
@@ -590,6 +598,7 @@ pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
 
 #[derive(Clone, Copy)]
 enum Remaining {
+    FrozenPlanPages,
     MembershipPath,
     MembershipScan(bool),
     Roots(bool),
@@ -614,6 +623,10 @@ impl Remaining {
                         scope.raw::<MarginAccount>(account, if root_write { Access::Write } else { Access::Read })?;
                     }
                 }
+                Ok(())
+            }
+            Self::FrozenPlanPages => {
+                for account in accounts {scope.raw::<FrozenMarginPage>(account,Access::Write)?;}
                 Ok(())
             }
             Self::MembershipPath => {

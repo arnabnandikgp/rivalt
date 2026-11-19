@@ -107,5 +107,16 @@ pub fn value(ctx: &mut Context<ValuePreparedMember>, _epoch: u64, revision: u64)
         *accounts.margin.address(),
         &entry,
         &accounts.margin,
-    )
+    )?;
+    #[cfg(feature = "book-inventory-qualification")]
+    {
+        let index=usize::from(accounts.page.row_count)-1;
+        let row=&mut accounts.page.rows[index];
+        if row.lots[0].unsigned_abs()==1 && row.claims[0]>0 {
+            row.book_capacity=crate::profit_attribution::frozen_history(&accounts.margin,0)?
+                .frozen_capacity(row.lots[0],accounts.prepared.prices[0],row.claims[0],1)
+                .map_err(|_|ClearingError::Resolution)?.eligible;
+        }
+    }
+    Ok(())
 }

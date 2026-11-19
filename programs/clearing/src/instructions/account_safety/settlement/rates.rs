@@ -57,6 +57,8 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
             Some(receipt) => Some([receipt.total_charge()?, 0]),
             None => charges,
         };
+        #[cfg(feature="book-inventory-qualification")]
+        let charges = super::inventory_book::Receipt::read(header)?.map(|book|[book.total,0]).or(charges);
         #[cfg(feature="linked-pair-qualification")]
         if let Some(charges) = charges {
             require!(header.stage == PROPOSAL, ClearingError::Resolution);

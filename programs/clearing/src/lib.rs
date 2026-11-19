@@ -66,6 +66,10 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn verify_inventory_book(ctx: &mut Context<VerifyInventoryBook>, epoch:u64,revision:u64,ordinals:Vec<u64>) -> Result<()> {
+        scoped_history::run_frozen_pages(ctx,[144,97,136,219,210,27,178,218],|ctx,events|
+            account_safety::settlement::inventory_book::verify(ctx,events,epoch,revision,ordinals))
+    }
     pub fn verify_shared_inventory(ctx: &mut Context<VerifySharedInventory>, epoch: u64, revision: u64,
         ordinals: [u64; 4], charges: [u64; 2]) -> Result<()> {
         scoped_history::run(ctx, [178, 83, 143, 6, 220, 82, 240, 191], false, |ctx, events|

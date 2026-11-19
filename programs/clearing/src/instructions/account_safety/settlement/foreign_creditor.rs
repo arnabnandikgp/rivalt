@@ -197,6 +197,7 @@ mod qualified {
         ordinals: [u64; 4],
         charges: [u64; 2],
     ) -> Result<()> {
+        require!(!cfg!(feature="book-inventory-qualification"),ClearingError::Profile);
         require!(
             ctx.remaining_accounts()?.is_empty(),
             ClearingError::Resolution

@@ -16,6 +16,7 @@ use financial_core::clearing::{
 pub mod linked_pair;
 pub mod foreign_creditor;
 pub mod shared_inventory;
+pub mod inventory_book;
 pub mod single_pair;
 pub mod btc_allocation;
 pub mod linked_allocation;
@@ -136,6 +137,10 @@ pub(crate) fn value_member(
         btc_charge: 0,
         #[cfg(feature = "linked-allocation-qualification")]
         linked_charges: [0; 2],
+        #[cfg(feature = "book-inventory-qualification")]
+        book_capacity:0,
+        #[cfg(feature = "book-inventory-qualification")]
+        book_charge:0,
     };
     page.row_count += 1;
     header.state.valuation = valuation.checkpoint();

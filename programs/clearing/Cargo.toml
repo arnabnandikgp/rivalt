@@ -16,6 +16,7 @@ liquidity-execution-qualification = []
 # Fresh local margin layout only. The selected binary uses the prefix layout.
 shared-inventory-qualification = ["foreign-creditor-qualification"]
 partial-inventory-qualification = ["shared-inventory-qualification"]
+book-inventory-qualification = ["partial-inventory-qualification"]
 foreign-creditor-qualification = ["linked-pair-qualification", "dep:default-plan-selection"]
 linked-allocation-qualification = ["linked-pair-qualification", "dep:default-plan-selection"]
 linked-pair-qualification = ["btc-residual-qualification"]

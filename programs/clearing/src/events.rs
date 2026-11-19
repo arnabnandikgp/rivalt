@@ -777,3 +777,14 @@ pub struct FrozenLinkedAllocationRow {
     pub extra_tick_lots: [u64; 2],
     pub status: u8,
 }
+
+/// Original single-lot capacities and verified disjoint fills, in frozen priority order.
+#[event]
+pub struct InventoryBookVerified {
+    pub venue: Address,
+    pub epoch:u64,
+    pub slot:u64,
+    pub total:u64,
+    pub capacities:Vec<[u64;2]>,
+    pub pairs:Vec<[u64;4]>,
+}

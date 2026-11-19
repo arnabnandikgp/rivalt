@@ -200,6 +200,7 @@ import {
   getValuePreparedMemberInstructionAsync,
   getVerifyForeignCreditorsInstructionAsync,
   getVerifyFrozenPairInstructionAsync,
+  getVerifyInventoryBookInstructionAsync,
   getVerifyRecoveryAllocationInstructionAsync,
   getVerifySharedInventoryInstructionAsync,
   getWithdrawAccountCustodyInstructionAsync,
@@ -290,6 +291,7 @@ import {
   parseValuePreparedMemberInstruction,
   parseVerifyForeignCreditorsInstruction,
   parseVerifyFrozenPairInstruction,
+  parseVerifyInventoryBookInstruction,
   parseVerifyRecoveryAllocationInstruction,
   parseVerifySharedInventoryInstruction,
   parseWithdrawAccountCustodyInstruction,
@@ -438,6 +440,7 @@ import {
   type ParsedValuePreparedMemberInstruction,
   type ParsedVerifyForeignCreditorsInstruction,
   type ParsedVerifyFrozenPairInstruction,
+  type ParsedVerifyInventoryBookInstruction,
   type ParsedVerifyRecoveryAllocationInstruction,
   type ParsedVerifySharedInventoryInstruction,
   type ParsedWithdrawAccountCustodyInstruction,
@@ -470,6 +473,7 @@ import {
   type ValuePreparedMemberAsyncInput,
   type VerifyForeignCreditorsAsyncInput,
   type VerifyFrozenPairAsyncInput,
+  type VerifyInventoryBookAsyncInput,
   type VerifyRecoveryAllocationAsyncInput,
   type VerifySharedInventoryAsyncInput,
   type WithdrawAccountCustodyAsyncInput,
@@ -860,6 +864,7 @@ export enum ClearingEvent {
   FrozenPairVerified,
   FundingPublisherChanged,
   FundingReportAccepted,
+  InventoryBookVerified,
   LiquidityMakerChanged,
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
@@ -1209,6 +1214,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([95, 101, 202, 50, 193, 199, 200, 34]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.InventoryBookVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([93, 199, 88, 43, 57, 76, 217, 187]),
       ),
       0,
@@ -1394,6 +1410,7 @@ export enum ClearingInstruction {
   ValuePreparedMember,
   VerifyForeignCreditors,
   VerifyFrozenPair,
+  VerifyInventoryBook,
   VerifyRecoveryAllocation,
   VerifySharedInventory,
   WithdrawAccountCustody,
@@ -2334,6 +2351,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([144, 97, 136, 219, 210, 27, 178, 218]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifyInventoryBook;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([204, 213, 63, 59, 88, 246, 243, 60]),
       ),
       0,
@@ -2657,6 +2685,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.VerifyFrozenPair;
     } & ParsedVerifyFrozenPairInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.VerifyInventoryBook;
+    } & ParsedVerifyInventoryBookInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.VerifyRecoveryAllocation;
     } & ParsedVerifyRecoveryAllocationInstruction<TProgram>)
@@ -3269,6 +3300,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseVerifyFrozenPairInstruction(instruction),
       };
     }
+    case ClearingInstruction.VerifyInventoryBook: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifyInventoryBook,
+        ...parseVerifyInventoryBookInstruction(instruction),
+      };
+    }
     case ClearingInstruction.VerifyRecoveryAllocation: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3803,6 +3841,11 @@ export type ClearingPluginInstructions = {
     input: VerifyFrozenPairAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getVerifyFrozenPairInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  verifyInventoryBook: (
+    input: VerifyInventoryBookAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifyInventoryBookInstructionAsync> &
     SelfPlanAndSendFunctions;
   verifyRecoveryAllocation: (
     input: VerifyRecoveryAllocationAsyncInput,
@@ -4641,6 +4684,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getVerifyFrozenPairInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verifyInventoryBook: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyInventoryBookInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

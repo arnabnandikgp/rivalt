@@ -690,3 +690,13 @@ pub struct VerifySharedInventory {
         constraint=second_winner.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub second_winner: Box<BorshAccount<MarginAccount>>,
 }
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct VerifyInventoryBook {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+}

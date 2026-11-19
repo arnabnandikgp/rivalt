@@ -32,6 +32,12 @@ pub(super) fn economic_claims(
 ) -> Result<[i128; 2]> {
     #[cfg(feature = "single-pair-default-qualification")]
     {
+        #[cfg(feature="book-inventory-qualification")]
+        if super::inventory_book::Receipt::read(header)?.is_some() {
+            let charge=i128::from(frozen.book_charge)*financial_core::SCALE;
+            let delta=if frozen.claims[0]<0 {charge} else {-charge};
+            return Ok([frozen.claims[0].checked_add(delta).ok_or(ClearingError::Arithmetic)?,frozen.claims[1]]);
+        }
         #[cfg(feature="shared-inventory-qualification")]
         if let Some(receipt) = super::shared_inventory::Receipt::read(header)? {
             return receipt.claims(frozen);
