@@ -3,6 +3,9 @@
 //! immutable freeze bindings. This arithmetic cannot authenticate an account.
 use crate::{clearing::row::Row, Error, Result, MAX_CASH, MAX_GROSS_LOTS, MAX_LOTS, SCALE};
 
+mod single_pair;
+pub use single_pair::{FrozenSide, PairClose};
+
 pub const CHECKPOINT_BYTES: usize = 288;
 
 /// Unsigned aggregate <2^151: u64 participants times a per-root claim <2^87.

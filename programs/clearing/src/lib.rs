@@ -66,6 +66,9 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn verify_frozen_pair(ctx:&mut Context<VerifyFrozenPair>, epoch:u64, revision:u64, debtor_ordinal:u64, winner_ordinal:u64) -> Result<()> {
+        scoped_history::run(ctx, [246, 61, 80, 20, 225, 73, 63, 215], false, |ctx, events| account_safety::settlement::single_pair::verify(ctx,events,epoch,revision,debtor_ordinal,winner_ordinal))
+    }
     pub fn manage_profit_capacity(ctx: &mut Context<ManageProfitCapacity>, slot_bytes: u16, revision: u64, max_payment: u64) -> Result<()> {
         scoped_history::run(ctx, [127, 131, 245, 73, 221, 170, 34, 48], false, |ctx, _events| profit_capacity::manage(ctx, slot_bytes, revision, max_payment))
     }

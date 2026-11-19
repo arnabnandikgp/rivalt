@@ -606,3 +606,24 @@ pub struct CompleteSettlementPlan {
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
 }
+
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct VerifyFrozenPair {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&debtor_page.page_index.to_le_bytes()],bump=debtor_page.bump)]
+    pub debtor_page: Box<BorshAccount<FrozenMarginPage>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&winner_page.page_index.to_le_bytes()],bump=winner_page.bump)]
+    pub winner_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"margin-v3",debtor.portfolio.as_ref(),&debtor.subaccount_index.to_le_bytes()],bump=debtor.bump,
+        constraint=debtor.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub debtor: Box<BorshAccount<MarginAccount>>,
+    #[account(seeds=[b"margin-v3",winner.portfolio.as_ref(),&winner.subaccount_index.to_le_bytes()],bump=winner.bump,
+        constraint=winner.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub winner: Box<BorshAccount<MarginAccount>>,
+}

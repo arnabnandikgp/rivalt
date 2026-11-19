@@ -94,7 +94,7 @@ pub fn accept_denominator_row(
     let frozen = &accounts.page.rows[(ordinal % 8) as usize];
     let row = Row {
         cash: frozen.cash,
-        claims: frozen.claims,
+        claims: super::single_pair::economic_claims(&accounts.prepared,frozen)?,
     };
     work.accept(ordinal, frozen.id, &row)
         .map_err(|_| ProgramError::from(ClearingError::Resolution))?;

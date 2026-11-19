@@ -106,3 +106,16 @@ pub fn clear_resolved(root: &mut BorshAccount<MarginAccount>) -> Result<()> {
         Ok(())
     })
 }
+
+#[cfg(feature="single-pair-default-qualification")]
+pub fn frozen_cap(root: &BorshAccount<MarginAccount>, mark:u64, claim:i128) -> Result<u64> {
+    let account=root.account();
+    require!(valid_margin_size(account.data_len()),ClearingError::Profile);
+    let data=account.try_borrow()?;
+    let bytes=&data[MARGIN_PREFIX..];
+    require!(bytes.starts_with(MAGIC),ClearingError::Profile);
+    let width=(slots_end(bytes)-8)/2;
+    Attribution::read(&bytes[8..8+width],root.positions[0].lots)
+        .and_then(|attribution|attribution.charge_cap(root.positions[0].lots,mark,claim,1))
+        .map_err(|_|ClearingError::Resolution.into())
+}

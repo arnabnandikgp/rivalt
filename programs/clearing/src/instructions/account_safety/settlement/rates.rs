@@ -336,7 +336,7 @@ pub fn accept_rate_row(
             frozen.id,
             Row {
                 cash: frozen.cash,
-                claims: frozen.claims,
+                claims: super::single_pair::economic_claims(&accounts.prepared,frozen)?,
             },
         )
         .is_err()

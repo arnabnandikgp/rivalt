@@ -221,7 +221,7 @@ fn apply_margin(
         frozen.id,
         Row {
             cash: frozen.cash,
-            claims: frozen.claims,
+            claims: super::super::single_pair::economic_claims(header,frozen)?,
         },
         frozen.lots,
         *flow,
@@ -400,7 +400,7 @@ fn reconcile_margin(
             && flow.id == frozen.id
             && flow.seen_attempt == plan.order_attempt
             && flow.cash == frozen.cash
-            && flow.directions == frozen.claims.map(|claim| claim.signum() as i8),
+            && flow.directions == super::super::single_pair::economic_claims(header,frozen)?.map(|claim| claim.signum() as i8),
         ClearingError::Resolution
     );
     reconciled_margin(header, frozen, root, flow.whole[2])?;
@@ -634,7 +634,7 @@ fn emit_margin(
             id: frozen.id,
             member: frozen.member,
             cash_before: frozen.cash,
-            claims: frozen.claims,
+            claims: super::super::single_pair::economic_claims(header,frozen)?,
             lots: frozen.lots,
             flows: [flow.whole[0], flow.whole[1]],
             state: root,

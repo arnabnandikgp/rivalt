@@ -139,7 +139,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
                                             | {r'Rivalt/frozen-member-order/v1\0'})
     # Format marker for the separately qualified margin extension.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -152,6 +152,25 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    pair=unique('verify_frozen_pair')
+    assert pair['discriminator']==list(hashlib.sha256(b'global:verify_frozen_pair').digest()[:8])
+    assert pair['args']==[{'name':name,'type':'u64'} for name in ('epoch','revision','debtor_ordinal','winner_ordinal')]
+    assert [field['name'] for field in pair['accounts']]==(
+        'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared debtor_page '
+        'winner_page debtor winner event_authority program').split()
+    assert [field['name'] for field in pair['accounts'] if field.get('writable')]==['prepared']
+    assert not any(field.get('signer') for field in pair['accounts'])
+    assert [field['name'] for field in pair['accounts'] if field.get('optional')]==['winner_page']
+    actual['instructions'].remove(pair)
+    event_name='FrozenPairVerified'
+    event={'name':event_name,'discriminator':list(hashlib.sha256(f'event:{event_name}'.encode()).digest()[:8])}
+    assert actual['events'].count(event)==1
+    actual['events'].remove(event)
+    fields=[{'name':name,'type':'pubkey' if name=='venue' else 'u64'} for name in
+            ('venue','slot','epoch','debtor_id','winner_id','mark','price','charge','unpaid_gain_cap')]
+    event_type={'name':event_name,'type':{'kind':'struct','fields':fields}}
+    assert actual['types'].count(event_type)==1
+    actual['types'].remove(event_type)
     capacity = unique('manage_profit_capacity')
     assert capacity['discriminator'] == list(hashlib.sha256(b'global:manage_profit_capacity').digest()[:8])
     assert capacity['args'] == [{'name': name, 'type': kind} for name, kind in

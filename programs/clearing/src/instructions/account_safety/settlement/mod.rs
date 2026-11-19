@@ -12,6 +12,7 @@ use financial_core::clearing::{
     },
 };
 
+pub mod single_pair;
 mod contexts;
 mod denominator;
 pub use denominator::*;
@@ -144,7 +145,9 @@ pub(crate) fn finish_value(header: &mut PreparedSettlement) -> Result<()> {
     header.state.denominator = DenominatorPass::new(header.count, capacity)
         .map_err(|_| ProgramError::from(ClearingError::Arithmetic))?
         .checkpoint();
-    header.stage = DENOMINATOR;
+    header.stage = if cfg!(feature="single-pair-default-qualification") {
+        single_pair::AWAIT_PAIR
+    } else { DENOMINATOR };
     Ok(())
 }
 

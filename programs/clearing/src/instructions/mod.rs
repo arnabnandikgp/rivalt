@@ -375,3 +375,8 @@ pub use profit_capacity::ManageProfitCapacity;
 pub(crate) use profit_capacity::__client_accounts_manageprofitcapacity;
 #[cfg(feature="cpi")]
 pub(crate) use profit_capacity::__cpi_accounts_manageprofitcapacity;
+
+pub use account_safety::settlement::VerifyFrozenPair;
+pub(crate) use account_safety::settlement::__client_accounts_verifyfrozenpair;
+#[cfg(feature="cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_verifyfrozenpair;

@@ -666,3 +666,16 @@ pub struct RecoveryStorageRefunded {
     pub refunded_lamports: u64,
     pub retained_lamports: u64,
 }
+
+#[event]
+pub struct FrozenPairVerified {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub debtor_id:u64,
+    pub winner_id:u64,
+    pub mark:u64,
+    pub price:u64,
+    pub charge:u64,
+    pub unpaid_gain_cap:u64,
+}

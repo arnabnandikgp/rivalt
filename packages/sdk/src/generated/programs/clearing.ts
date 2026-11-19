@@ -196,6 +196,7 @@ import {
   getUploadSettlementRateInstructionAsync,
   getValueAccountResolutionInstructionAsync,
   getValuePreparedMemberInstructionAsync,
+  getVerifyFrozenPairInstructionAsync,
   getVerifyRecoveryAllocationInstructionAsync,
   getWithdrawAccountCustodyInstructionAsync,
   getWithdrawFundedAccountInstructionAsync,
@@ -281,6 +282,7 @@ import {
   parseUploadSettlementRateInstruction,
   parseValueAccountResolutionInstruction,
   parseValuePreparedMemberInstruction,
+  parseVerifyFrozenPairInstruction,
   parseVerifyRecoveryAllocationInstruction,
   parseWithdrawAccountCustodyInstruction,
   parseWithdrawFundedAccountInstruction,
@@ -422,6 +424,7 @@ import {
   type ParsedUploadSettlementRateInstruction,
   type ParsedValueAccountResolutionInstruction,
   type ParsedValuePreparedMemberInstruction,
+  type ParsedVerifyFrozenPairInstruction,
   type ParsedVerifyRecoveryAllocationInstruction,
   type ParsedWithdrawAccountCustodyInstruction,
   type ParsedWithdrawFundedAccountInstruction,
@@ -451,6 +454,7 @@ import {
   type UploadSettlementRateAsyncInput,
   type ValueAccountResolutionAsyncInput,
   type ValuePreparedMemberAsyncInput,
+  type VerifyFrozenPairAsyncInput,
   type VerifyRecoveryAllocationAsyncInput,
   type WithdrawAccountCustodyAsyncInput,
   type WithdrawFundedAccountAsyncInput,
@@ -832,6 +836,7 @@ export enum ClearingEvent {
   AccountSafetyRecovery,
   AccountTransition,
   AccountsRetired,
+  FrozenPairVerified,
   FundingPublisherChanged,
   FundingReportAccepted,
   LiquidityMakerChanged,
@@ -1094,6 +1099,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([1, 178, 227, 95, 165, 67, 16, 148]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.FrozenPairVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([132, 225, 243, 18, 105, 81, 138, 44]),
       ),
       0,
@@ -1286,6 +1302,7 @@ export enum ClearingInstruction {
   UploadSettlementRate,
   ValueAccountResolution,
   ValuePreparedMember,
+  VerifyFrozenPair,
   VerifyRecoveryAllocation,
   WithdrawAccountCustody,
   WithdrawFundedAccount,
@@ -2181,6 +2198,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([246, 61, 80, 20, 225, 73, 63, 215]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifyFrozenPair;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([204, 213, 63, 59, 88, 246, 243, 60]),
       ),
       0,
@@ -2481,6 +2509,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.ValuePreparedMember;
     } & ParsedValuePreparedMemberInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.VerifyFrozenPair;
+    } & ParsedVerifyFrozenPairInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.VerifyRecoveryAllocation;
     } & ParsedVerifyRecoveryAllocationInstruction<TProgram>)
@@ -3062,6 +3093,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseValuePreparedMemberInstruction(instruction),
       };
     }
+    case ClearingInstruction.VerifyFrozenPair: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifyFrozenPair,
+        ...parseVerifyFrozenPairInstruction(instruction),
+      };
+    }
     case ClearingInstruction.VerifyRecoveryAllocation: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3569,6 +3607,11 @@ export type ClearingPluginInstructions = {
     input: ValuePreparedMemberAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getValuePreparedMemberInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  verifyFrozenPair: (
+    input: VerifyFrozenPairAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifyFrozenPairInstructionAsync> &
     SelfPlanAndSendFunctions;
   verifyRecoveryAllocation: (
     input: VerifyRecoveryAllocationAsyncInput,
@@ -4370,6 +4413,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getValuePreparedMemberInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verifyFrozenPair: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyFrozenPairInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
