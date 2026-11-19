@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
-import {getAddressEncoder,type Address} from '@solana/kit';
+import {frozenMemberRank} from '@rivalt/sdk/frozen-order';
+import {type Address} from '@solana/kit';
 import {MAX_PRICE,type PerLotProfit} from '@rivalt/sdk';
 
 const scale=1_000_000_000n;
 
 const min=(left:bigint,right:bigint)=>left<right?left:right;
-const word=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 export type Winner={id:bigint;capacity:bigint;lotsFor:(charge:bigint)=>bigint};
 export function frozenWinner(id:bigint,lots:bigint,claim:bigint,mark:bigint,history:PerLotProfit):Winner {
   const quantity=lots<0n?-lots:lots,direction=lots<0n?-1n:1n,unit=scale*history.denominator;
@@ -32,7 +31,6 @@ export function allocationCutoff(venue:Address,epoch:bigint,shortfall:bigint,win
     if(winners.reduce((n,w)=>n+count(mid,w.capacity),0n)>=target)high=mid;else low=mid;
   }
   let remaining=target;
-  const prefix=Buffer.concat([Buffer.from('Rivalt/frozen-member-order/v1\0'),Buffer.from(getAddressEncoder().encode(venue)),word(epoch)]);
   const ties=[];
   for(const winner of winners) {
     const before=count(low,winner.capacity),unit=count(high,winner.capacity);
@@ -40,7 +38,7 @@ export function allocationCutoff(venue:Address,epoch:bigint,shortfall:bigint,win
     if(unit>before) {
       assert(unit===before+1n,'Distinct costs landed on the same dyadic tick');
       ties.push({winner,unit,extra:winner.lotsFor(unit)-winner.lotsFor(before),
-        digest:createHash('sha256').update(prefix).update(word(winner.id)).digest()});
+        digest:frozenMemberRank(venue,epoch,winner.id)});
     }
   }
   const cmp=(a:bigint,b:bigint)=>a<b?-1:a>b?1:0;

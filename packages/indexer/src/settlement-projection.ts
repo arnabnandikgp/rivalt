@@ -1,6 +1,8 @@
 /** Financial effects of the authenticated paged settlement, separate from its
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
-import {FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
+import {address} from '@solana/kit';
+import {singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
+import {SHARED_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -15,9 +17,56 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void,artifactSet?:string) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='SharedInventoryVerified') {
+    eq(artifactSet,SHARED_INVENTORY_ARTIFACT_SET,'shared inventory deployment');
+    accountCheck(current.stage===2 && !current.sharedInventory && !current.foreignCreditors && !current.pair && !current.joint &&
+      !current.allocation && !current.linkedAllocation,'one certificate per freeze');
+    const {members,charges,eligible,prices}=change;
+    eq(new Set(members).size,4,'four inventory owners');
+    accountCheck(BigInt(members[0])<BigInt(members[1]),'canonical debtor order');
+    eq(current.poolsBefore,['0','0'],'empty frozen pools');
+    eq(current.remainingGross,['4','0'],'complete one-lot market');
+    eq(String(state.members.length),current.count,'complete membership');
+    const roles=members.map((id:string)=>{
+      const key=state.identities[id];
+      accountCheck(state.members.includes(key),'financial inventory owner');
+      return state.roots[key];
+    }) as AccountState['roots'][string][];
+    const side=BigInt(roles[0].positions[0].lots);
+    accountCheck(side===1n||side===-1n,'one lot per owner');
+    const face=roles.map((member,index)=>{
+      const [btc,eth]=claims(member,current.prices,current.funding).map(BigInt);
+      eq([btc%scale,eth],[0n,0n],'whole original BTC claim');
+      eq(member.positions.map(pos=>BigInt(pos.lots)),[index<2?side:-side,0n],'opposing single lot');
+      accountCheck(index<2?btc<0n:btc>0n,'inventory claim direction');
+      return btc/scale;
+    });
+    eq(face.reduce((a,b)=>a+b),0n,'complete faces');
+    for(const key of state.members) {
+      const member=state.roots[key];
+      if(!members.includes(member.id)) {
+        eq(claims(member,current.prices,current.funding),['0','0'],'neutral claims');
+        eq(member.positions.map(pos=>pos.lots),['0','0'],'neutral lots');
+      }
+    }
+    const losses=roles.slice(0,2).map((member,index)=>-face[index]-BigInt(member.cash));
+    const total=losses[0]+losses[1], residual=total-BigInt(current.insuranceBefore[0]);
+    accountCheck(residual>0n && losses.every(loss=>loss>0n),'positive uncovered losses');
+    const budgets=losses.map(loss=>loss*residual/total);
+    eq(charges.map(BigInt),budgets,'verified debtor shares');
+    for(const i of [0,1]) {
+      accountCheck(budgets[i]>0n && budgets[i]<=BigInt(eligible[i]) && BigInt(eligible[i])<=face[i+2],'covered by original winner');
+      eq(BigInt(prices[i]),BigInt(current.prices[0])+side*budgets[i],'one-lot fill price');
+    }
+    const participants=(ids:string[],amounts:bigint[])=>ids.map((id,i)=>({id:BigInt(id),amount:amounts[i]}));
+    eq(singleLotWinnerOrder(address(change.venue),BigInt(change.epoch),participants(members.slice(0,2),budgets),
+      participants(members.slice(2),eligible.map(BigInt))),[0,1],'optimal pairing');
+    current.sharedInventory={members,charges,eligible,prices};
+    return;
+  }
   if(event.type==='ForeignCreditorsVerified') {
-    eq(artifactSet,FOREIGN_CREDITOR_ARTIFACT_SET,'foreign creditor deployment');
-    accountCheck(current.stage===2 && !current.foreignCreditors && !current.joint && !current.pair && !current.allocation && !current.linkedAllocation,'unique recovery');
+    accountCheck(artifactSet===FOREIGN_CREDITOR_ARTIFACT_SET || artifactSet===SHARED_INVENTORY_ARTIFACT_SET,'foreign creditor deployment');
+    accountCheck(current.stage===2 && !current.sharedInventory && !current.foreignCreditors && !current.joint && !current.pair && !current.allocation && !current.linkedAllocation,'unique recovery');
     const {members,charges,eligible,matchedLots,basePrices,extraTickLots}=change;
     eq(new Set(members).size,4,'distinct frozen creditor roles');
     eq(current.poolsBefore,['0','0'],'empty settlement pools');
@@ -210,7 +259,14 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
-    if(current.foreignCreditors) {
+    if(current.sharedInventory) {
+      const {members,charges}=current.sharedInventory;
+      const index=members.indexOf(previous.id);
+      if(index>=0) {
+        const adjustment=index<2?BigInt(charges[index]):-BigInt(charges[index-2]);
+        economic[0]=(BigInt(economic[0])+adjustment*scale).toString();
+      }
+    } else if(current.foreignCreditors) {
       const {members,charges}=current.foreignCreditors;
       const debtors=[members[0],members[2]];
       for(const market of [0,1]) {

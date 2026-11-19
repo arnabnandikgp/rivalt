@@ -1,11 +1,28 @@
-import {accountDeployment} from '@rivalt/sdk';
+import {accountDeployment,type AccountDeployment} from '@rivalt/sdk';
 import {BACKING_ARTIFACTS,verifyTestBuild} from './backing-artifacts.js';
 
-export function verifyProfitBuild(directory:string,sponsored=false,paired=false,residual=false,allocation=false,linked:boolean|'flat'|'allocation'|'foreign'=false) {
-  const revision=linked?accountDeployment(linked==='foreign'?'foreign-creditor-candidate':linked==='allocation'?'linked-allocation-candidate':linked==='flat'?'linked-flat-candidate':'linked-pair-candidate').helperRevision:allocation?accountDeployment('btc-allocation-candidate').helperRevision:residual?'8024a3776e8d57807ace6f782fef972f89c5f196':paired?'447efef3d434496c483715c06cbc8e5341da10c1':sponsored?'1763dc750dbb27c852fafd5fbda4fad486fd69cb':'33361d969978543716697373826a3f3675e1edc4';
-  const deployment=accountDeployment(linked==='foreign'?'foreign-creditor-candidate':linked==='allocation'?'linked-allocation-candidate':linked==='flat'?'linked-flat-candidate':linked?'linked-pair-candidate':allocation?'btc-allocation-candidate':residual?'btc-residual-candidate':paired?'verified-pair-candidate':sponsored?'sponsored-profit-candidate':'profit-attribution-candidate');
+type Linked = boolean|'flat'|'allocation'|'foreign'|'shared';
+const linkedBuilds = {
+  pair:['linked-pair-candidate','linked-pair-qualification'],
+  flat:['linked-flat-candidate','linked-pair-qualification'],
+  allocation:['linked-allocation-candidate','linked-allocation-qualification'],
+  foreign:['foreign-creditor-candidate','foreign-creditor-qualification'],
+  shared:['shared-inventory-candidate','shared-inventory-qualification'],
+} as const;
+
+export function verifyProfitBuild(directory:string,sponsored=false,paired=false,residual=false,allocation=false,linked:Linked=false) {
+  let selection:AccountDeployment,feature:string;
+  if(linked) [selection,feature]=linkedBuilds[linked===true?'pair':linked];
+  else if(allocation) [selection,feature]=['btc-allocation-candidate','btc-allocation-qualification'];
+  else if(residual) [selection,feature]=['btc-residual-candidate','btc-residual-qualification'];
+  else if(paired) [selection,feature]=['verified-pair-candidate','single-pair-default-qualification'];
+  else [selection,feature]=[sponsored?'sponsored-profit-candidate':'profit-attribution-candidate','profit-attribution-qualification'];
+  const deployment=accountDeployment(selection);
+  // The first two attribution builds use the pre-existing arithmetic helper.
+  const revision=selection==='profit-attribution-candidate'?'33361d969978543716697373826a3f3675e1edc4':
+    selection==='sponsored-profit-candidate'?'1763dc750dbb27c852fafd5fbda4fad486fd69cb':deployment.helperRevision;
   const pinned=deployment.artifacts.find(artifact=>artifact.name==='clearing')!;
   const artifacts={...BACKING_ARTIFACTS,clearing:{bytes:pinned.bytes,sha256:pinned.sha256}};
-  verifyTestBuild(directory,revision,artifacts,linked==='foreign'?'foreign-creditor-qualification':linked==='allocation'?'linked-allocation-qualification':linked?'linked-pair-qualification':allocation?'btc-allocation-qualification':residual?'btc-residual-qualification':paired?'single-pair-default-qualification':'profit-attribution-qualification');
+  verifyTestBuild(directory,revision,artifacts,feature);
   return {artifactSet:deployment.artifactSet,artifacts,revision};
 }

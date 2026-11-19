@@ -24,7 +24,8 @@ const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).tr
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
-const sharedInventory=probe==='profit-attribution-shared-inventory';
+const sharedApply=probe==='profit-attribution-shared-inventory-apply';
+const sharedInventory=sharedApply||probe==='profit-attribution-shared-inventory';
 const foreignGate=probe==='profit-attribution-foreign-winner-gate';
 const foreignApply=probe==='profit-attribution-foreign-winner-apply';
 const foreignBook=foreignApply||foreignGate||probe==='profit-attribution-foreign-winner-ordinary';
@@ -32,16 +33,16 @@ const allocationProfile = probe === 'profit-attribution-linked-allocation';
 const contested = allocationProfile || probe === 'profit-attribution-linked-contested';
 const flatCreditor = contested || probe === 'profit-attribution-linked-flat' || probe === 'profit-attribution-linked-flat-apply';
 const linked = contested || probe === 'profit-attribution-linked-apply' || probe === 'profit-attribution-linked-flat-apply';
-const selection = foreignApply?'foreign-creditor-candidate':allocationProfile||foreignGate ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
+const selection = sharedApply?'shared-inventory-candidate':foreignApply?'foreign-creditor-candidate':allocationProfile||foreignGate ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
   gated ? 'btc-allocation-candidate' : 'profit-attribution-candidate';
-const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,foreignApply?'foreign':allocationProfile||foreignGate ? 'allocation' : linked && flatCreditor ? 'flat' : linked);
+const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,sharedApply?'shared':foreignApply?'foreign':allocationProfile||foreignGate ? 'allocation' : linked && flatCreditor ? 'flat' : linked);
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
-  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked||foreignGate||foreignApply?'sponsored-profit':'profit-attribution',
+  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:gated||linked||foreignGate||foreignApply||sharedApply?'sponsored-profit':'profit-attribution',
     shape:symmetricPayoutShape, traderCash:sharedInventory?20_010n:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
   const {guard,route,root} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = foreignBook?[setup.roots[1],setup.roots[0]]:setup.roots;
@@ -101,7 +102,7 @@ try {
   assert.deepEqual(frozen.prices,sharedInventory?[40_000n,30_000n]:foreignBook?[40_000n,12_500n]:[50_000n,20_000n]);
   const members = await financialRoots(h,setup.venue,setup.registry);
   const rows = await Promise.all(members.map(async key=>{
-    const {root:value,positions:basis} = sdk.decodeProfitAttribution((await h.read(key))!,gated||linked||foreignGate||foreignApply);
+    const {root:value,positions:basis} = sdk.decodeProfitAttribution((await h.read(key))!,gated||linked||foreignGate||foreignApply||sharedApply);
     const claims = value.positions.map((position,index)=>position.lots*frozen.prices[index]*1_000_000_000n+
       position.virtualScaled-position.lots*(frozen.funding[index]-position.fundingCheckpointScaled));
     return {key,id:value.id,revision:value.revision,generation:value.activationGeneration,cash:value.cash,
@@ -128,7 +129,7 @@ try {
     await runtime.open();
     return runtime;
   };
-  process.env.RIVALT_DEFAULT_BATCH_STEPS = gated||linked||foreignGate||foreignApply?'1':'32';
+  process.env.RIVALT_DEFAULT_BATCH_STEPS = gated||linked||foreignGate||foreignApply||sharedApply?'1':'32';
   worker = await openWorker();
   const originals: string[] = [];
   const workerCosts: {request:string; units:number; bytes:number}[] = [];
@@ -141,6 +142,42 @@ try {
     assert(originals.length<128,'eight-member recovery exceeded the test continuation budget');
     const current = await readAccountResolution(worker.rpc,setup.venue);
     const prepared=current.preparedState;
+    if(sharedApply && prepared.epoch===frozen.epoch && prepared.stage===4 && !rejectionChecked) {
+      const common=await accountDefaultContext(worker.rpc,current);
+      const roleKeys=[debtor,otherTrader,makers[0].capital,makers[1].capital];
+      const ordinals=roleKeys.map(key=>BigInt(members.indexOf(key)));
+      const indices=[...new Set(ordinals.map(ordinal=>ordinal/8n))].sort((a,b)=>a<b?-1:1);
+      const pages=await Promise.all(indices.map(async index=>(await sdk.deriveFrozenMarginPage(setup.venue,index))[0]));
+      const verify={...common,epoch:frozen.epoch,revision:prepared.revision,ordinals,charges:[2n,5n],
+        firstPage:pages[0],secondPage:pages[1],thirdPage:pages[2],fourthPage:pages[3],
+        firstWinner:makers[0].capital,secondWinner:makers[1].capital};
+      beforeScoring=await financialSnapshot();
+      const scratch=await h.read(common.prepared);
+      for(const [reason,overrides] of [
+        ['one winning lot used twice',{ordinals:[ordinals[0],ordinals[1],ordinals[2],ordinals[2]],secondWinner:verify.firstWinner}],
+        ['less proportional assignment',{ordinals:[ordinals[0],ordinals[1],ordinals[3],ordinals[2]],firstWinner:verify.secondWinner,secondWinner:verify.firstWinner}],
+        ['charge above individual post-insurance budget',{charges:[3n,5n]}],
+      ] as const) {
+        await h.send('reject '+reason,[sdk.getVerifySharedInventoryInstruction({...verify,...overrides,
+          ordinals:[...('ordinals' in overrides?overrides.ordinals:ordinals)],charges:[...('charges' in overrides?overrides.charges:verify.charges)]})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      }
+      assert.deepEqual(await h.read(common.prepared),scratch);
+      assert.deepEqual(await financialSnapshot(),beforeScoring);
+      await worker.close();worker=await openWorker();
+      rejectionChecked=true;
+    }
+    if(sharedApply && rejectionChecked && !jointChecked && prepared.epoch===frozen.epoch && prepared.stage===2) {
+      const certificate=sdk.sharedInventoryReceipt(prepared);
+      assert(certificate);
+      assert.deepEqual(certificate.charges,comparison.charges.map(BigInt));
+      assert.deepEqual(certificate.members,[debtor,otherTrader,makers[0].capital,makers[1].capital].map(key=>rows.find(row=>row.key===key)!.id));
+      assert.deepEqual(certificate.prices,comparison.schedules.map((pair:{fills:number[][]})=>BigInt(pair.fills[0][1])));
+      assert.deepEqual(await financialSnapshot(),beforeScoring);
+      await journal.checkpoint('shared-inventory-certified-before-apply',true);
+      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+      await worker.close();worker=await openWorker();
+      jointChecked=true;
+    }
     if(foreignApply && prepared.epoch===frozen.epoch && prepared.stage===4 && !rejectionChecked) {
       const common=await accountDefaultContext(worker.rpc,current);
       const ordinals=[debtor,makers[0].capital,otherTrader,makers[1].capital].map(key=>BigInt(members.indexOf(key)));
@@ -366,13 +403,13 @@ try {
     }
   }
   assert.equal(refused,foreignGate||gated||contested&&!allocationProfile);
-  assert.equal(jointChecked,foreignApply||linked&&(!contested||allocationProfile));
+  assert.equal(jointChecked,sharedApply||foreignApply||linked&&(!contested||allocationProfile));
   if (refused) {
     assert.equal((await resolution()).stage,2);
     assert.deepEqual([await wallet(),await traderWallet(),await vault()],[before.wallet,before.traderWallet,before.vault]);
   } else {
     assert.deepEqual((await resolution()).insuranceSpent,sharedInventory?[6n,0n]:foreignBook?[6n,3n]:allocationProfile?[13n,1n]:flatCreditor?[9n,1n]:[3n,1n]);
-    const target=linked||foreignApply?comparison.cash:comparison.ordinaryCash;
+    const target=linked||foreignApply||sharedApply?comparison.cash:comparison.ordinaryCash;
     for (const key of members) assert.equal(String((await root(key)).cash),target[key]);
     const traderPayout=flatCreditor?(linked?4_996n:4_994n):0n;
     if (flatCreditor) {
@@ -384,7 +421,7 @@ try {
       assert.deepEqual([await traderWallet(),await vault()],[before.traderWallet+traderPayout,before.vault-traderPayout]);
     }
     const payoutAccounts=allocationProfile?[makers[0],secondMaker,makers[1]]:makers;
-    const makerPayouts:bigint[]=sharedInventory?comparison.ordinaryCredits.map(BigInt):foreignApply?[5_004n,34_968n]:foreignBook?[5_002n,34_970n]:allocationProfile?[5_002n,9_993n,9_990n]:flatCreditor?[linked?5_001n:5_003n,9_989n]:[9_999n,9_997n];
+    const makerPayouts:bigint[]=sharedInventory?(sharedApply?comparison.successorCredits:comparison.ordinaryCredits).map(BigInt):foreignApply?[5_004n,34_968n]:foreignBook?[5_002n,34_970n]:allocationProfile?[5_002n,9_993n,9_990n]:flatCreditor?[linked?5_001n:5_003n,9_989n]:[9_999n,9_997n];
     for (const [index,amount] of makerPayouts.entries()) {
       const margin=payoutAccounts[index].capital;
       await h.send('withdraw market recovery to maker wallet '+index,[sdk.getWithdrawFundedAccountInstruction({...setup.common,
@@ -402,7 +439,7 @@ try {
     assert.deepEqual([failed.status,failed.cursor,failed.recovered],[2,'8',['0','12']]);
     assert.equal(replay.state.resolution?.linkedAllocation?.status,1);
   }
-  const result={revision,rejectionChecked,profile:sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+  const result={revision,rejectionChecked,profile:sharedApply?'verified shared winner inventory':sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
     inputs:input,traderWalletAfter:await traderWallet(),comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
   console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges}));

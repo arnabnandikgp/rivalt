@@ -16,6 +16,7 @@ export type AccountResolution = {
   safetyEpoch:string; termsEpoch:string; configEpochs:string[]; sourceObservations:string[]; sourceDeadlines:string[];
   prices:string[]; funding:string[]; frozenAt:string; cashBefore:string; poolsBefore:string[];
   insuranceBefore:string[]; feesBefore:string[]; allocatedBefore:string; budgets:string[]; insuranceSpent:string[];
+  sharedInventory?:{members:string[];charges:string[];eligible:string[];prices:string[]};
   foreignCreditors?:{members:string[];charges:string[];eligible:string[];matchedLots:string[];basePrices:string[];extraTickLots:string[]};
   linkedAllocation?:{attempt:string;debtorId:string;shares:string[];targets:string[];cursor:string;recovered:string[];status:number;charges:Record<string,string[]>};
   allocation?:{attempt:string;debtorId:string;shortfall:string;cursor:string;recovered:string;capacity:string;status:number;charges:Record<string,string>};
@@ -218,6 +219,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       root(change.targetState,change.target);root(change.receiverState,change.receiver);
       partialMarkets(change.markets);partialLedgers(change.ledgers);
       equal(safety().epoch,change.safetyEpoch,'liquidation safety');break;
+    case 'SharedInventoryVerified':
     case 'ForeignCreditorsVerified':
     case 'FrozenJointReductionVerified':
     case 'FrozenLinkedAllocationRow':

@@ -27,7 +27,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   // An already frozen source supplies complete membership authority. Continuing
   // it needs immutable deployment binding, not fresh live candidate discovery.
   const selection=runtime.deploymentSelection;
-  const frozenOnly=['profit-attribution-candidate','sponsored-profit-candidate','verified-pair-candidate','btc-residual-candidate','btc-allocation-candidate','linked-pair-candidate','linked-flat-candidate','linked-allocation-candidate','foreign-creditor-candidate'].includes(selection);
+  const frozenOnly=['profit-attribution-candidate','sponsored-profit-candidate','verified-pair-candidate','btc-residual-candidate','btc-allocation-candidate','linked-pair-candidate','linked-flat-candidate','linked-allocation-candidate','foreign-creditor-candidate','shared-inventory-candidate'].includes(selection);
   if(selection==='account-scale-candidate'||selection==='selected'||frozenOnly) {
     const binding=await runtime.environment(),frozen=await readAccountResolution(runtime.rpc,address(binding.venue));
     if([2,14].includes(frozen.header.stage)) {
