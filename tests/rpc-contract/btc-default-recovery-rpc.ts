@@ -106,7 +106,7 @@ async function run() {
   assert(!history.some(event=>event.type==='AccountFinancialChangedV3'&&[2,3].includes(event.data.kind)));
   const fills = history.filter(event=>event.type==='LiquidityRouteExecutedV4').map(({signature,data})=>{
     assert.equal(data.market,setup.markets[0]);
-    assert.equal(data.fee,limited&&data.side===1?'14':'13');
+    assert.equal(data.fee,String(data.side===0?openFee:closeFee));
     assert.equal(data.legs.length,1);
     const [leg] = data.legs;
     return {signature,side:data.side,maker:leg.capital,traderId:data.rootStates[0].id,lots:leg.lots,gross:leg.gross};

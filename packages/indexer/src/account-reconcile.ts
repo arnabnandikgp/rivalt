@@ -135,6 +135,10 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     const account=observed.get(key);assert(account?.owner===owner&&account.data[1]==='base64',`Missing/foreign account ${key}`);
     const bytes=Buffer.from(account.data[0],'base64');if(discriminator)assert(bytes.subarray(0,8).equals(Buffer.from(discriminator)),`Discriminator ${key}`);return bytes;
   };
+  // Settlement ordinals are the sorted stable IDs at freeze. Later membership
+  // changes and retired roots cannot renumber a completed episode.
+  const frozenIds=state.pagedSettlement&&state.resolution
+    ?Object.keys(state.resolution.rows).map(BigInt).sort((left,right)=>left<right?-1:left>right?1:0).map(String):[];
   for(const [key,entity] of Object.entries(state.revisions)) {
     if(identities.has(key))continue;
     if(entity.kind===8) {
@@ -146,7 +150,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       const [canonical,bump]=await component('resolution');
       assert.equal(key,canonical);assert.equal(value.venue,venue);assert.equal(value.bump,bump);
     } else if([19,20,24,25].includes(entity.kind))await reconcileMembershipStorage(key,entity.kind,raw(key),state,binding,raw);
-    else if(entity.kind>=17&&entity.kind<=23)await reconcileSettlementScratch(key,entity.kind,raw(key),state,binding);
+    else if(entity.kind>=17&&entity.kind<=23)await reconcileSettlementScratch(key,entity.kind,raw(key),state,binding,frozenIds);
     else throw new Error(`Missing projected entity kind ${entity.kind}`);
   }
   for(const [key,identity] of identities) {

@@ -5,6 +5,7 @@ import {address,getAddressEncoder,getProgramDerivedAddress} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
 import type {AccountState} from './account-projection.js';
+type FrozenRow=NonNullable<AccountState['resolution']>['rows'][string];
 export const settlementDescriptors=[
   [sdk.PREPARED_SETTLEMENT_DISCRIMINATOR,1460,sdk.getPreparedSettlementDecoder()],
   [sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,1156,sdk.getFrozenMarginPageDecoder()],
@@ -21,7 +22,7 @@ export function scopedSchema(kind:number) {
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
-  binding:{venue:string;program:string}) {
+  binding:{venue:string;program:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
   assert.equal(bytes.length,descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
   const value=descriptor[2].decode(bytes) as any;
@@ -59,9 +60,10 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(kind===18&&plan) {
     for(let within=0;within<value.rowCount;within++) {
       const ordinal=value.pageIndex*8n+BigInt(within),row=value.rows[within];
-      const frozen:NonNullable<AccountState['resolution']>['rows'][string]|undefined=Object.values(resolution.rows).find(row=>row.member===state.members[Number(ordinal)]);assert(frozen,'Complete frozen row');
+      assert(ordinal<BigInt(frozenIds.length),'Complete frozen row');
+      const id=frozenIds[Number(ordinal)],frozen:FrozenRow=resolution.rows[id];
       const actual=JSON.parse(json(row));
-      for(const [field,expected] of Object.entries({id:state.roots[frozen.member].id,member:frozen.member,cash:frozen.cashBefore,
+      for(const [field,expected] of Object.entries({id,member:frozen.member,cash:frozen.cashBefore,
         lots:frozen.lots,generations:frozen.generations,claims:frozen.claimsScaled,collected:frozen.collected,
         activationGeneration:frozen.activationGeneration,originalRevision:frozen.originalRevision}))assert.deepEqual(actual[field],expected,`Frozen ${field}`);
     }
@@ -77,9 +79,10 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     for(let offset=0;offset+7<=value.wordCount;offset+=7) {
       const ordinal=value.pageIndex*36n+BigInt(offset/7);
       if(ordinal>=BigInt(plan.count))break;
-      const row:NonNullable<AccountState['resolution']>['rows'][string]|undefined=Object.values(resolution.rows).find(row=>row.member===state.members[Number(ordinal)]);assert(row);
+      assert(ordinal<BigInt(frozenIds.length),'Complete frozen flow');
+      const id=frozenIds[Number(ordinal)],row:FrozenRow=resolution.rows[id];
       const flags=Buffer.alloc(16);flags.writeBigUInt64LE(words[offset+5]);flags.writeBigUInt64LE(words[offset+6],8);
-      assert.equal(words[offset],ordinal);assert.equal(words[offset+1],BigInt(row.cashBefore));
+      assert.equal(words[offset],BigInt(id));assert.equal(words[offset+1],BigInt(row.cashBefore));
       assert.equal(flags[15],row.applied?1:0);
       if(row.applied)assert.deepEqual(words.slice(offset+2,offset+5).map(String),[...row.flows!,row.cashAfter!]);
     }

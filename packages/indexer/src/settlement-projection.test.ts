@@ -3,6 +3,7 @@ import * as sdk from '@rivalt/sdk';
 import {accountFields,projectAccounts,reconcileAccountLedger,type AccountState} from './account-projection.js';
 import {emptyLiquidity} from './liquidity-projection.js';
 import type {AccountEvent} from './account-events.js';
+import {reconcileSettlementScratch} from './settlement-reconcile.js';
 const zero='11111111111111111111111111111111',scale=1_000_000_000n;
 function fixture() {
   const state=emptyLiquidity(),blank=<T>(decoder:{fixedSize:number;decode(bytes:Uint8Array):T})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize)));
@@ -43,6 +44,21 @@ function apply(state:AccountState,id:number) {
     claims:[((id===0?-2n:1n)*scale).toString(),'0'],lots:['0','0'],flows:[id===2?'0':'1','0'],state:root};
 }
 describe('paged default independent one-atom ownership',()=>{
+  it('reads the flow owner from frozen membership after registration gaps',async()=>{
+    const state=fixture();emit(state,'SettlementPlanProgress',progress());
+    const resolution=state.resolution!,id='9007199254740993';
+    resolution.rows={[id]:resolution.rows['0']};
+    state.pagedSettlement!.count='1';
+    const venue=sdk.CLEARING_PROGRAM_ADDRESS;
+    const [key,bump]=await sdk.deriveSettlementLimbPage(venue,64,0n);
+    const encode=(owner:bigint)=>{
+      const words=Array<bigint>(256).fill(0n);words[0]=owner;words[1]=1n;
+      return Buffer.from(sdk.getSettlementLimbPageEncoder().encode({schemaVersion:10,revision:1,epoch:3,
+        venue,attempt:1,register:64,pageIndex:0,wordCount:7,bump,payload:{words}}));
+    };
+    await reconcileSettlementScratch(key,21,encode(BigInt(id)),state,{venue,program:venue},[id]);
+    await expect(reconcileSettlementScratch(key,21,encode(0n),state,{venue,program:venue},[id])).rejects.toThrow();
+  });
   it('keeps unapplied root claims separate from the verified payout basis between paired members',()=>{
     const state=fixture(),source=state.resolution!;
     state.ledgers.bl.insurance='0';source.insuranceBefore=['0','0'];source.budgets=['0','0'];
