@@ -1,5 +1,32 @@
 # Validation and measured limits
 
+## Exact multi-lot BTC comparison
+
+Harness `4faefa7` executed two signed two-lot BTC buys against different
+isolated makers on clearing SBF `eb011a5`. The buys cost 120,004 and 120,010
+atoms plus 25 atoms in taker fees each. At a frozen mark of 50,000 both
+debtors had 19,996 cash. Their uncovered debts of 8 and 14 shared 12 insurance
+atoms. Their whole forced-reduction budgets were 3 and 6.
+
+Independent complete-book selection and the native verifier agreed across
+784 candidate allocations. The search traversed 47 bounded ranges. The first
+debtor charged three atoms to maker 0. The second charged one to maker 0 and
+five to maker 1. Three matched lots suffice. The two computed maker cash
+balances are 1,020,000 and 1,020,004. The worker withheld the unsupported
+one-lot action. A direct signed attempt failed and preserved all eight roots,
+the vault, frozen page and prepared header. Fresh PostgreSQL replay reproduced
+81 events across 308 harness outcomes. No multi-lot payout was released.
+
+On revision `397fd01` the compact proof certified that same frozen input.
+Checking all 784 proposals found no other bound-certified allocation. Across
+24 independent synthetic books with both position directions, partial payment
+and insurance, exact selection agreed on all 24 and the compact proof
+certified 14. It selected no different result across 4,754 tested allocations.
+A separate four-member native case certified a 140,000-atom allocation over
+a raw space of 24,011,372,029,400,280,001 combinations using the bounds alone.
+The last number counts mathematical combinations. No on-chain compute measurement was taken for this proof.
+[Verification rules](../clearing/default-plan-verification.md#several-multi-lot-debtors-and-winners-in-one-market).
+
 ## Active positions and frozen page placement
 
 These runs use the same clearing SBF `d5cc624`. Local funded traders alternated

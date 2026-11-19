@@ -564,3 +564,11 @@ Use 11 pairs with stride 8 for the 22-page book or 81 pairs with stride 1
 for the 162-position book. The separate
 `profit-attribution-inventory-book-expanded-apply` probe follows three
 maker credits through settlement, worker restart and SPL withdrawal.
+
+For the multi-lot comparison use the same book-capacity artifacts and
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-multi-lot-search`. The launcher
+builds the native verifier, executes two real two-lot trades, freezes the
+eight-member book and checks the existing signed release gate. To rerun the
+economic comparison on its saved inputs use
+`python3 tests/financial/check_multi_lot_search.py "$run_dir/multi-lot-frozen.json"`.
+Omit the file argument to check the independent synthetic books.

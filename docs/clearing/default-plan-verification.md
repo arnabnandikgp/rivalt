@@ -854,3 +854,43 @@ locks, compute and heap can bind earlier. The worker requests a 128 KiB heap for
 this certificate and checks its wire encoding before signing. Ordinary routes
 and registration have their own resource limits. The original selection retains
 its 21-page gate. [Signed measurements](../operations/validation.md#active-positions-and-frozen-page-placement).
+
+## Several multi-lot debtors and winners in one market
+
+The [native verifier](../../crates/default-plan-selection/src/multi_lot.rs)
+accepts a complete BTC book with whole claims, no settlement pool and no ETH
+obligation or exposure. All member IDs are distinct and ordered. Signed lots
+and claims each sum to zero. Flat creditors and uncovered debts with no
+pairable lots still enter the accounting. Each debtor's whole budget is its
+uncovered loss less its ceiling-rounded share of the available insurance.
+Clearing's existing attribution kernel supplies the affordable charge and
+minimum lots for each opposite pair, including previously paid open gain.
+
+One digit records the whole charge from a specific debtor to a specific
+winner. The sum of a debtor’s charges cannot exceed its budget. The sums of
+charged gains and matched lots must fit each original position. The verifier
+orders feasible plans by descending recovery, ascending sum of squared
+charges divided by eligible capacity, ascending matched lots, then D121
+winner and pair priority. It uses integer comparisons throughout. An exact
+search can resume from a trusted prefix bound to the original freeze and
+proposal. A candidate with a feasible fill can still lose to a later one.
+Only complete verification returns its fill schedules.
+
+The [short proof](../../crates/default-plan-selection/src/multi_lot_bounds.rs)
+can establish the same result without iterating over possible charges.
+
+1. The proposed recovery must exhaust all debtor budgets or all eligible gains.
+2. Each winner’s last selected marginal cost must be strictly below every
+   first unselected cost. For the kth atom at capacity c, the cost is
+   `(2k−1)/c`. This proves the winner totals are the unique best distribution.
+3. The proposed lots must attain a lower bound from the winner schedules and
+   the minimum number of participating debtors. When N fully charged debtors
+   face N charged winners, closing just N lots requires their budget and
+   charge multisets to match. Different multisets require at least N+1 lots.
+4. In D121 order, each pair must take the greatest charge still allowed by
+   its edge, debtor budget and winner total after the preceding pairs.
+
+A missed bound leaves the proposal unproved by this method. Complete search
+can still certify it. The runtime currently admits its qualified one-lot
+certificate. The eight-member multi-lot comparison finishes with the venue
+frozen. [Signed example and measurements](../operations/validation.md#exact-multi-lot-btc-comparison).
