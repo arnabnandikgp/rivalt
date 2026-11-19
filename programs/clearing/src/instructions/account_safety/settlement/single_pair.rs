@@ -32,6 +32,10 @@ pub(super) fn economic_claims(
 ) -> Result<[i128; 2]> {
     #[cfg(feature = "single-pair-default-qualification")]
     {
+        #[cfg(feature="shared-inventory-qualification")]
+        if let Some(receipt) = super::shared_inventory::Receipt::read(header)? {
+            return receipt.claims(frozen);
+        }
         #[cfg(feature="foreign-creditor-qualification")]
         if let Some(receipt) = super::foreign_creditor::Receipt::read(header)? {
             return receipt.claims(frozen);

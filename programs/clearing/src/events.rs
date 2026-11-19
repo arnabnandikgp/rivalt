@@ -715,6 +715,18 @@ pub struct FrozenBtcAllocationRow {
     pub status: u8,
 }
 
+/// Debtors in stable ID order followed by their respective winning counterparties.
+#[event]
+pub struct SharedInventoryVerified {
+    pub venue: Address,
+    pub epoch: u64,
+    pub slot: u64,
+    pub members: [u64; 4],
+    pub charges: [u64; 2],
+    pub eligible: [u64; 2],
+    pub prices: [u64; 2],
+}
+
 /// Complete frozen obligations and executable schedules for a BTC winner carrying ETH debt.
 #[event]
 pub struct ForeignCreditorsVerified {

@@ -201,6 +201,7 @@ import {
   getVerifyForeignCreditorsInstructionAsync,
   getVerifyFrozenPairInstructionAsync,
   getVerifyRecoveryAllocationInstructionAsync,
+  getVerifySharedInventoryInstructionAsync,
   getWithdrawAccountCustodyInstructionAsync,
   getWithdrawFundedAccountInstructionAsync,
   getWithdrawMarketFeesInstructionAsync,
@@ -290,6 +291,7 @@ import {
   parseVerifyForeignCreditorsInstruction,
   parseVerifyFrozenPairInstruction,
   parseVerifyRecoveryAllocationInstruction,
+  parseVerifySharedInventoryInstruction,
   parseWithdrawAccountCustodyInstruction,
   parseWithdrawFundedAccountInstruction,
   parseWithdrawMarketFeesInstruction,
@@ -437,6 +439,7 @@ import {
   type ParsedVerifyForeignCreditorsInstruction,
   type ParsedVerifyFrozenPairInstruction,
   type ParsedVerifyRecoveryAllocationInstruction,
+  type ParsedVerifySharedInventoryInstruction,
   type ParsedWithdrawAccountCustodyInstruction,
   type ParsedWithdrawFundedAccountInstruction,
   type ParsedWithdrawMarketFeesInstruction,
@@ -468,6 +471,7 @@ import {
   type VerifyForeignCreditorsAsyncInput,
   type VerifyFrozenPairAsyncInput,
   type VerifyRecoveryAllocationAsyncInput,
+  type VerifySharedInventoryAsyncInput,
   type WithdrawAccountCustodyAsyncInput,
   type WithdrawFundedAccountAsyncInput,
   type WithdrawMarketFeesAsyncInput,
@@ -864,6 +868,7 @@ export enum ClearingEvent {
   RetiredReserveWithdrawn,
   SettlementMarginApplied,
   SettlementPlanProgress,
+  SharedInventoryVerified,
 }
 
 export function identifyClearingEvent(
@@ -1288,6 +1293,17 @@ export function identifyClearingEvent(
   ) {
     return ClearingEvent.SettlementPlanProgress;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([79, 37, 111, 67, 65, 175, 253, 148]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.SharedInventoryVerified;
+  }
   throw new Error(
     "The provided event could not be identified as a clearing event.",
   );
@@ -1379,6 +1395,7 @@ export enum ClearingInstruction {
   VerifyForeignCreditors,
   VerifyFrozenPair,
   VerifyRecoveryAllocation,
+  VerifySharedInventory,
   WithdrawAccountCustody,
   WithdrawFundedAccount,
   WithdrawMarketFees,
@@ -2328,6 +2345,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([178, 83, 143, 6, 220, 82, 240, 191]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifySharedInventory;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([211, 165, 24, 154, 201, 22, 195, 210]),
       ),
       0,
@@ -2632,6 +2660,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.VerifyRecoveryAllocation;
     } & ParsedVerifyRecoveryAllocationInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.VerifySharedInventory;
+    } & ParsedVerifySharedInventoryInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.WithdrawAccountCustody;
     } & ParsedWithdrawAccountCustodyInstruction<TProgram>)
@@ -3245,6 +3276,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseVerifyRecoveryAllocationInstruction(instruction),
       };
     }
+    case ClearingInstruction.VerifySharedInventory: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifySharedInventory,
+        ...parseVerifySharedInventoryInstruction(instruction),
+      };
+    }
     case ClearingInstruction.WithdrawAccountCustody: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3770,6 +3808,11 @@ export type ClearingPluginInstructions = {
     input: VerifyRecoveryAllocationAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getVerifyRecoveryAllocationInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  verifySharedInventory: (
+    input: VerifySharedInventoryAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifySharedInventoryInstructionAsync> &
     SelfPlanAndSendFunctions;
   withdrawAccountCustody: (
     input: WithdrawAccountCustodyAsyncInput,
@@ -4606,6 +4649,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getVerifyRecoveryAllocationInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verifySharedInventory: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifySharedInventoryInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

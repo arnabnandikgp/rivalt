@@ -15,6 +15,41 @@ pub fn verify(
 
 #[cfg(feature = "foreign-creditor-qualification")]
 pub use qualified::*;
+#[cfg(feature = "foreign-creditor-qualification")]
+pub(super) fn four_rows(
+    header: &PreparedSettlement,
+    pages: [Option<&BorshAccount<FrozenMarginPage>>; 4],
+    ordinals: [u64; 4],
+) -> Result<[FrozenMargin; 4]> {
+    let mut indices = ordinals.map(|ordinal| ordinal / 8);
+    indices.sort_unstable();
+    let mut previous = None;
+    let mut supplied = pages.iter().flatten();
+    for index in indices {
+        if previous != Some(index) {
+            require!(
+                supplied.next().map(|page| page.page_index) == Some(index),
+                ClearingError::Resolution
+            );
+            previous = Some(index);
+        }
+    }
+    require!(supplied.next().is_none(), ClearingError::Resolution);
+    let row = |ordinal| {
+        let page = pages
+            .iter()
+            .flatten()
+            .find(|page| page.page_index == ordinal / 8)
+            .ok_or(ClearingError::Resolution)?;
+        plan::frozen_row(header, page, ordinal)
+    };
+    Ok([
+        row(ordinals[0])?,
+        row(ordinals[1])?,
+        row(ordinals[2])?,
+        row(ordinals[3])?,
+    ])
+}
 
 #[cfg(feature = "foreign-creditor-qualification")]
 mod qualified {
@@ -181,34 +216,7 @@ mod qualified {
             accounts.third_page.as_deref(),
             accounts.fourth_page.as_deref(),
         ];
-        let mut indices = ordinals.map(|ordinal| ordinal / 8);
-        indices.sort_unstable();
-        let mut previous = None;
-        let mut supplied = pages.iter().flatten();
-        for index in indices {
-            if previous != Some(index) {
-                require!(
-                    supplied.next().map(|page| page.page_index) == Some(index),
-                    ClearingError::Resolution
-                );
-                previous = Some(index);
-            }
-        }
-        require!(supplied.next().is_none(), ClearingError::Resolution);
-        let row = |ordinal| {
-            let page = pages
-                .iter()
-                .flatten()
-                .find(|page| page.page_index == ordinal / 8)
-                .ok_or(ClearingError::Resolution)?;
-            plan::frozen_row(header, page, ordinal)
-        };
-        let rows = [
-            row(ordinals[0])?,
-            row(ordinals[1])?,
-            row(ordinals[2])?,
-            row(ordinals[3])?,
-        ];
+        let rows = super::four_rows(header, pages, ordinals)?;
         require!(
             rows[2].member == *accounts.cross_winner.address()
                 && rows[3].member == *accounts.eth_winner.address(),

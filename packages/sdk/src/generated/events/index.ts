@@ -44,3 +44,4 @@ export * from "./recoveryStorageRefunded.js";
 export * from "./retiredReserveWithdrawn.js";
 export * from "./settlementMarginApplied.js";
 export * from "./settlementPlanProgress.js";
+export * from "./sharedInventoryVerified.js";

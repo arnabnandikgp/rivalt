@@ -139,7 +139,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
                                             | {r'Rivalt/frozen-member-order/v1\0'})
     # Format marker for the separately qualified margin extension.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01', 'RVJALLOC', 'RVCHAIN1'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01', 'RVJALLOC', 'RVCHAIN1', 'RVLOTS01'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -152,6 +152,25 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    shared = unique('verify_shared_inventory')
+    assert shared['discriminator'] == list(hashlib.sha256(b'global:verify_shared_inventory').digest()[:8])
+    assert shared['args'] == [dict(name=key, type='u64') for key in ('epoch', 'revision')] + [
+        dict(name=key, type={'array':['u64',width]}) for key,width in [('ordinals',4),('charges',2)]]
+    assert [item['name'] for item in shared['accounts']] == (
+        'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared first_page '
+        'second_page third_page fourth_page first_winner second_winner event_authority program').split()
+    assert [item['name'] for item in shared['accounts'] if item.get('writable')] == ['prepared']
+    assert not any(item.get('signer') for item in shared['accounts'])
+    assert [item['name'] for item in shared['accounts'] if item.get('optional')] == ['second_page','third_page','fourth_page']
+    actual['instructions'].remove(shared)
+    name = 'SharedInventoryVerified'
+    actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+    fields = [dict(name='venue', type='pubkey'), *[dict(name=key, type='u64') for key in ('epoch', 'slot')],
+              dict(name='members', type={'array':['u64',4]}), *[dict(name=key, type={'array':['u64',2]})
+              for key in ('charges','eligible','prices')]]
+    shared_type = next(item for item in actual['types'] if item['name'] == name)
+    assert clean(shared_type) == dict(name=name, type=dict(kind='struct', fields=fields))
+    actual['types'].remove(shared_type)
     foreign = unique('verify_foreign_creditors')
     assert foreign['discriminator'] == list(hashlib.sha256(b'global:verify_foreign_creditors').digest()[:8])
     assert foreign['args'] == [dict(name=key, type='u64') for key in ('epoch', 'revision')] + [

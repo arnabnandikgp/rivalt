@@ -14,6 +14,7 @@ devnet-test-profile = ["oracle-fixture/devnet-test-profile"]
 # Explicit bounded local trading/safety candidate; default/devnet stay disabled.
 liquidity-execution-qualification = []
 # Fresh local margin layout only. The selected binary uses the prefix layout.
+shared-inventory-qualification = ["foreign-creditor-qualification"]
 foreign-creditor-qualification = ["linked-pair-qualification", "dep:default-plan-selection"]
 linked-allocation-qualification = ["linked-pair-qualification", "dep:default-plan-selection"]
 linked-pair-qualification = ["btc-residual-qualification"]

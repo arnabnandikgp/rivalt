@@ -52,6 +52,11 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
         let charges = super::linked_allocation::charges(header)?.or_else(|| linked.map(|joint| joint.legs.map(|leg| leg.charge)));
         #[cfg(feature="foreign-creditor-qualification")]
         let charges = super::foreign_creditor::Receipt::read(header)?.map(|receipt| receipt.legs.map(|leg| leg.charge)).or(charges);
+        #[cfg(feature="shared-inventory-qualification")]
+        let charges = match super::shared_inventory::Receipt::read(header)? {
+            Some(receipt) => Some([receipt.total_charge()?, 0]),
+            None => charges,
+        };
         #[cfg(feature="linked-pair-qualification")]
         if let Some(charges) = charges {
             require!(header.stage == PROPOSAL, ClearingError::Resolution);
