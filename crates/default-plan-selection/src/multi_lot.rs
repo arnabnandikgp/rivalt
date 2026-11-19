@@ -1,6 +1,8 @@
 //! Exact native search over a single frozen market. A caller must authenticate
 //! the complete cohort and the absence of foreign claims and settlement pools.
 extern crate alloc;
+#[path = "multi_lot_bounds.rs"]
+mod bounds;
 use crate::member_priority;
 use alloc::{vec, vec::Vec};
 use clearing_accounting::{

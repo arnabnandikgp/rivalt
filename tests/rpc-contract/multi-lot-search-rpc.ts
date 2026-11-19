@@ -70,7 +70,7 @@ try {
   const inputPath=directory+'/multi-lot-frozen.json';
   writeFileSync(inputPath,json(input));
   const result=JSON.parse(execFileSync('python3',['tests/financial/check_multi_lot_search.py',inputPath],{encoding:'utf8'}));
-  assert.equal(result.candidates,'784');
+  assert.deepEqual([result.candidates,result.boundComparisons,result.boundCertified],['784',784,true]);
   assert.deepEqual(result.charges,[9,0]);
   assert.equal(result.fills.length,3);
   await journal.checkpoint('multi-lot-native-comparison',true);

@@ -150,3 +150,56 @@ fn unmatched_positions_unbalanced_claims_and_uncanonical_history_are_refused() {
         assert!(create(&rows).is_err());
     }
 }
+
+#[test]
+fn a_multi_lot_book_can_certify_without_iterating_over_atom_amounts() {
+    let mut short = vec![0; 32];
+    let mut long = vec![0; 32];
+    Attribution::default()
+        .fill(0, -2, 400_000)
+        .unwrap()
+        .write(&mut short)
+        .unwrap();
+    Attribution::default()
+        .fill(0, 2, 400_000)
+        .unwrap()
+        .write(&mut long)
+        .unwrap();
+    let rows: Vec<_> = (0..4)
+        .map(|id| {
+            if id < 2 {
+                Member {
+                    id,
+                    lots: 2,
+                    face_scaled: -200_000 * SCALE,
+                    cash: 130_000,
+                    history: &long,
+                }
+            } else {
+                Member {
+                    id,
+                    lots: -2,
+                    face_scaled: 200_000 * SCALE,
+                    cash: 0,
+                    history: &short,
+                }
+            }
+        })
+        .collect();
+    let book = Book::from_members(&[9; 32], 3, &[1; 32], 100_000, 0, &rows).unwrap();
+    // Each of the four edges ranges from zero through 70,000 inclusive.
+    assert_eq!(book.candidates(), &BigUint::from(70_001u32).pow(4));
+    assert!(book.candidates() > &BigUint::from(u64::MAX));
+    // In D121 order the first winner gets its charge from the first debtor.
+    assert!(book.verifies_by_bounds(&[70_000, 0, 0, 70_000]).unwrap());
+    assert!(!book.verifies_by_bounds(&[0, 70_000, 70_000, 0]).unwrap());
+    assert!(!book.verifies_by_bounds(&[35_000; 4]).unwrap());
+    assert!(!book.verifies_by_bounds(&[69_999, 0, 0, 70_000]).unwrap());
+    let mut unsearched = book.begin(vec![70_000, 0, 0, 70_000]).unwrap();
+    assert_eq!(
+        unsearched
+            .advance(&book, &0u8.into(), NonZeroU32::new(17).unwrap())
+            .unwrap(),
+        &Verdict::Pending
+    );
+}

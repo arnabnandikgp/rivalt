@@ -93,6 +93,9 @@ fn run(input: Value) -> Result<Value, String> {
     if !pairs.is_empty() {
         return Err("unknown pair".into());
     }
+    let bounds = book
+        .verifies_by_bounds(&proposed)
+        .map_err(|err| format!("{err:?}"))?;
     let budget: NonZeroU32 = number(&input["chunk"])?;
     let limit: BigUint = number(&input["limit"])?;
     let mut audit = book
@@ -139,7 +142,7 @@ fn run(input: Value) -> Result<Value, String> {
             .collect::<Vec<_>>()
     });
     Ok(
-        json!({"status":status,"challenger":challenger,"checked":audit.cursor().to_string(),"space":book.candidates().to_string(),"chunks":chunks.to_string(),"fills":fills}),
+        json!({"status":status,"bounds":bounds,"challenger":challenger,"checked":audit.cursor().to_string(),"space":book.candidates().to_string(),"chunks":chunks.to_string(),"fills":fills}),
     )
 }
 fn main() {

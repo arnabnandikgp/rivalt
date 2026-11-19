@@ -8,8 +8,9 @@ from sys import argv
 
 from account_contract_reference import Account
 from frozen_plan_selection import FrozenIdentity, select_joint
-from joint_reduction_model import Exposure
+from joint_reduction_model import Exposure, frozen_market_inputs
 from market_settlement_reference import MarketBook
+from settlement_liquidation_model import terminal
 from test_scalable_settlement import SCALE
 
 BINARY = Path(__file__).resolve().parents[2] / 'target/debug/examples/multi_lot_audit'
@@ -24,7 +25,7 @@ def history(basis, lots):
     return (b''.join(len(limb).to_bytes(2, 'little') for limb in limbs) + b''.join(limbs)).hex()
 
 
-def comparison(data, *, partial=True):
+def comparison(data, *, partial=True, inspect_bounds=False):
     rows = data['rows']
     venue, epoch = bytes.fromhex(data['venueHex']), int(data['epoch'])
     ids = tuple(int(row['id']) for row in rows)
@@ -76,7 +77,29 @@ def comparison(data, *, partial=True):
         assert checks[1]['status'] == 'pending' and checks[1]['fills'] is None
         if proposed:
             assert checks[2]['status'] == 'outscored' and checks[2]['fills'] is None
-    return dict(candidates=actual['space'], chunks=actual['chunks'], fills=actual['fills'],
+    if partial and proposed:
+        assert not checks[2]['bounds']
+    challengers = 0
+    if inspect_bounds:
+        _, budgets, edges, _ = frozen_market_inputs(book, 0, exposures[0], terminal(book))
+        edge_limits = [range(min(budgets[debtor], pos.cap)+1) for debtor,pos in edges]
+        vectors, proposals = [], []
+        for amounts in product(*edge_limits):
+            pairs = {(ids[d],ids[pos.member]):amount for (d,pos),amount in zip(edges,amounts) if amount}
+            proposals.append(pairs)
+            vectors.append(dict(cmd, limit='0', proposed=[[str(d),str(w),str(x)] for (d,w),x in pairs.items()]))
+        compared = run([str(BINARY)], input=''.join(json.dumps(vector)+'\n' for vector in vectors),
+                       text=True, capture_output=True, check=True)
+        verdicts = [json.loads(line) for line in compared.stdout.splitlines()]
+        assert len(verdicts) == len(proposals)
+        expected = {pair:terms[0] for pair,terms in wanted.items()}
+        for rival, verdict in zip(proposals, verdicts, strict=True):
+            if 'error' in verdict:
+                assert verdict['error'] == 'Cohort', verdict
+            if verdict.get('bounds'):
+                assert rival == expected, (rival, expected)
+        challengers = len(verdicts)
+    return dict(boundCertified=actual['bounds'], boundComparisons=challengers, candidates=actual['space'], chunks=actual['chunks'], fills=actual['fills'],
                 charges=winner.charges, cash=list(winner.payout.cash), compared=len(checks))
 
 
@@ -100,8 +123,10 @@ def vectors():
 if __name__ == '__main__':
     if len(argv)>1:
         raw = json.loads(Path(argv[1]).read_text())
-        print(json.dumps(comparison(raw.get('inputs', raw))))
+        print(json.dumps(comparison(raw.get('inputs', raw), inspect_bounds=True)))
     else:
-        results = [comparison(vector) for vector in vectors()]
+        results = [comparison(vector, inspect_bounds=True) for vector in vectors()]
         print(json.dumps(dict(books=len(results), candidates=sum(int(r['candidates']) for r in results),
-                              proposedOrPrefixChecks=sum(r['compared'] for r in results))))
+                              proposedOrPrefixChecks=sum(r['compared'] for r in results),
+                              boundCertified=sum(r['boundCertified'] for r in results),
+                              boundComparisons=sum(r['boundComparisons'] for r in results))))
