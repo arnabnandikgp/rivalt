@@ -44,6 +44,8 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
         SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(header))
             .and_then(|scan| scan.result()),
     )?;
+    #[cfg(feature="single-pair-default-qualification")]
+    let totals=arithmetic(totals.after_single_btc_charge(super::single_pair::verified_charge(header)?))?;
     Ok(RateInput {
         count: header.count,
         common: Magnitude { register, used },

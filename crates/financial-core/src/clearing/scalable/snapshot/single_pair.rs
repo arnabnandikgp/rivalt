@@ -18,6 +18,23 @@ pub struct PairClose {
     pub winner_claim: i128,
 }
 
+impl SnapshotTotals {
+    /// The certified transfer reduces the one debtor's obligation and the one
+    /// winner's receivable by exactly the same amount. Gross funding is unchanged.
+    pub fn after_single_btc_charge(mut self, charge: u64) -> Result<Self> {
+        let scaled = u128::from(charge) * SCALE as u128;
+        for total in [&mut self.positive[0], &mut self.negative[0]] {
+            let [low, high, top] = total.words();
+            if top != 0 {
+                return Err(Error::Bounds);
+            }
+            let original = u128::from(low) | (u128::from(high) << 64);
+            *total = ClaimTotal::scalar(original.checked_sub(scaled).ok_or(Error::Bounds)?);
+        }
+        Ok(self)
+    }
+}
+
 impl SnapshotScan {
     /// Full payment of whole remaining claims proves the individual payout
     /// floors without relying on a new rounding allocation for this family.
@@ -142,6 +159,17 @@ mod tests {
         assert_eq!((result.charge, result.price), (1_500, Some(68_500)));
         assert_eq!(result.debtor_claim, -8_498 * SCALE);
         assert_eq!(result.winner_claim, 7_502 * SCALE);
+        let effective = snapshot
+            .result()
+            .unwrap()
+            .after_single_btc_charge(result.charge)
+            .unwrap();
+        assert_eq!(
+            effective.positive[0],
+            ClaimTotal::scalar(8_498 * SCALE as u128)
+        );
+        assert_eq!(effective.negative, effective.positive);
+        assert_eq!(effective.cash, 8_000);
         for cap in [0, 125, 1_499] {
             assert!(snapshot
                 .select_single_btc_pair(debtor, winner, 70_000, cap)

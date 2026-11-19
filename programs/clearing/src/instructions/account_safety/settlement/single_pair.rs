@@ -6,22 +6,31 @@ pub const AWAIT_PAIR: u8 = 4;
 #[cfg(feature = "single-pair-default-qualification")]
 const RECEIPT: &[u8; 8] = b"RVPAIR01";
 
+#[cfg(feature = "single-pair-default-qualification")]
+fn receipt(header: &PreparedSettlement) -> Result<(u64, u64, u64)> {
+    let bytes = &header.state.membership;
+    require!(bytes.starts_with(RECEIPT), ClearingError::Resolution);
+    let read = |offset: usize| u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
+    require!(read(8) == header.epoch, ClearingError::Resolution);
+    Ok((read(16), read(24), read(32)))
+}
+#[cfg(feature = "single-pair-default-qualification")]
+pub(super) fn verified_charge(header: &PreparedSettlement) -> Result<u64> {
+    Ok(receipt(header)?.2)
+}
+
 pub(super) fn economic_claims(
     header: &PreparedSettlement,
     frozen: &FrozenMargin,
 ) -> Result<[i128; 2]> {
     #[cfg(feature = "single-pair-default-qualification")]
     {
-        let bytes = &header.state.membership;
-        require!(bytes.starts_with(RECEIPT), ClearingError::Resolution);
-        let read =
-            |offset: usize| u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap());
-        require!(read(8) == header.epoch, ClearingError::Resolution);
-        let charge = i128::from(read(32)) * financial_core::SCALE;
-        let delta = if frozen.id == read(16) {
-            charge
-        } else if frozen.id == read(24) {
-            -charge
+        let (debtor, winner, charge) = receipt(header)?;
+        let scaled = i128::from(charge) * financial_core::SCALE;
+        let delta = if frozen.id == debtor {
+            scaled
+        } else if frozen.id == winner {
+            -scaled
         } else {
             0
         };
