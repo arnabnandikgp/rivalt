@@ -602,3 +602,19 @@ Run `bash ops/scalable-settlement-smoke.sh` with
 `RIVALT_SETTLEMENT_PROBE=profit-attribution-fee-lanes` for paired trades and
 with `RIVALT_SETTLEMENT_PROBE=profit-attribution-fee-lanes-apply` for a default
 that draws on earned insurance. Use a separate fresh run directory each time.
+
+### Reproduce the bounded market read
+
+Build from clean program revision `3ace707` with
+`RIVALT_ATTRIBUTION_PROFILE=bounded-market-read bash ops/build-profit-attribution.sh`.
+Return to the qualification revision, export `RIVALT_SETTLEMENT_ARTIFACT_DIR`
+as the absolute printed build directory and run
+`bash ops/build-settlement-helper.sh bounded-market-candidate`.
+Run `bash ops/scalable-settlement-smoke.sh` once per
+`RIVALT_SETTLEMENT_PROBE` value, using fresh run directories.
+
+| Probe | Check |
+|---|---|
+| `profit-attribution-bounded-market` | Complete and foreign-market reads, two stored fills, cross-maker close, external CPI and freeze |
+| `profit-attribution-bounded-market-apply` | Frozen population, funded default application, actual token withdrawals and fresh database replay |
+| `profit-attribution-bounded-market-receiver` | Distressed trader, eligible maker fill, funded receiver transfer and unwind |

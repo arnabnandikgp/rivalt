@@ -99,9 +99,10 @@ try {
   const originals:{signature:string;reason:string;units:number;bytes:number}[]=[];
   const token=async(key:typeof setup.vault)=>getTokenDecoder().decode((await h.read(key))!).amount;
   const vaultBefore=await token(setup.vault),walletBefore=await token(setup.token.address);
+  const applicationGross:string[]=[];
   let rejected=false,certified=false;
   if(apply)assert.equal(worker.defaultContinuationSteps,1);
-  for(let step=0;step<70;step++){
+  for(let step=0;step<(bounded?110:70);step++){
     const state=await readAccountResolution(worker.rpc,setup.venue);
     if(apply && state.header.stage===11)break;
     const common=await accountDefaultContext(worker.rpc,state);
@@ -132,6 +133,12 @@ try {
         }
         assert.deepEqual(await scratch(),prior);rejected=true;
       }
+      if(bounded && next.status==='ready' && next.reason==='apply-member' && worker.defaultContinuationSteps!==1){
+        await worker.close();
+        process.env.RIVALT_DEFAULT_BATCH_STEPS='1';
+        worker=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',url,4,selection);
+        await worker.open();
+      }
       const queued:Awaited<ReturnType<AccountRuntime['riskWork']>>=await worker.riskWork(setup.payer);
       assert.equal(queued.status,'queued',json(queued));
       const pending:{request_id:string;signature:string;wire:string}[]=(await worker.store.pool.query("SELECT request_id,signature,wire FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[worker.runId])).rows;
@@ -148,6 +155,7 @@ try {
         const lots=await Promise.all(keys.map(async key=>(await root(key)).positions[0].lots));
         const gross=lots.reduce((sum,lots)=>sum+(lots<0n?-lots:lots),0n);
         assert.equal((await sdk.readMarketGross(rpc,setup.venue,0)).grossLots,gross);
+        applicationGross.push(String(gross));
       }
       originals.push({signature:intent.signature,reason:intent.request_id,units:receipt.meta.computeUnitsConsumed,bytes:Buffer.from(intent.wire,'base64').length});
       continue;
@@ -171,7 +179,10 @@ try {
     assert(certified);
     const final=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
     assert.equal(final.stage,11);
-    if(bounded)assert.equal((await sdk.readMarketGross(rpc,setup.venue,0)).grossLots,0n);
+    if(bounded){
+      assert(applicationGross.some(gross=>BigInt(gross)>0n&&BigInt(gross)<8n),'Missing partially applied gross');
+      assert.equal((await sdk.readMarketGross(rpc,setup.venue,0)).grossLots,0n);
+    }
     assert.deepEqual(final.insuranceSpent,[12n,0n]);
     for(const [index,key] of keys.entries())assert.equal((await root(key)).cash,BigInt(result.cash[index]));
     for(const [index,amount] of [20_000n,20_004n].entries()) {
@@ -192,7 +203,7 @@ try {
     const expected=result.fills.map(([debtor,winner,charge,qty,ticks,extra]:string[])=>[debtor,winner,charge,qty,String(50_000n+BigInt(ticks)),extra]);
     assert.deepEqual(proof.pairs,expected);
   }else assert.equal(proof,undefined);
-  const evidence={revision,sbf:build.revision,originals,certified,result,financialRoots:keys.length,freshEvents:replay.events,harnessChecks:checks.length};
+  const evidence={revision,...(bounded?{applicationGross}:{}),sbf:build.revision,originals,certified,result,financialRoots:keys.length,freshEvents:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/multi-lot-comparison.json',json(evidence));
   console.log(json(evidence));
 } finally {

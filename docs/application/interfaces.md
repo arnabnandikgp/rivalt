@@ -228,3 +228,18 @@ fees in that receipt. `/v4/events` also exposes `MarketFeesClassified`, the
 on-chain transfer into insurance. Summing both as revenue would count the same
 collection twice. The SDK's `decodeFeeLedger` separates escrow from spendable
 treasury cash on this artifact.
+
+## Reading current market gross
+
+Select `bounded-market-candidate` on the qualified local artifact. An on-chain
+caller can invoke `read_market_gross` with the venue, market and all three
+canonical maker registrations, then check the return program and decode exactly
+eight bytes as a little-endian u64. An RPC client can call
+`readMarketGross(rpc, venue, marketIndex)`. The SDK authenticates all five
+accounts from one finalized `getMultipleAccounts` response and returns the
+gross and its context slot. These reads require no signer at the instruction level.
+
+The indexer compares the derived capacity total against finalized market
+events during reconciliation. The pure read produces no financial event or
+revision. Both source discovery and the final funding snapshot require the
+account layout selected by the caller. [Layout and identity](../clearing/accounts.md#bounded-market-gross-on-the-local-candidate).

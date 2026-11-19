@@ -797,3 +797,18 @@ Release pays the recorded contributor even if another party signs. Retirement
 requires this release first. Frozen recovery retains the receipt until ordinary
 access resumes. See [D125](../DECISIONS.md#d125--refundable-attribution-capacity)
 and the [measured lifecycle](../operations/validation.md#sponsored-profit-capacity).
+
+## Bounded market gross on the local candidate
+
+The explicit D138 deployment creates fresh accounts. It appends two little-endian
+u64 fields to the 455-byte market account: capacity generation and gross lots at
+the start of that generation. Each of the three 341-byte maker registrations has
+a 16-byte cumulative fee counter followed by two u64 fields for its capacity
+generation and unused gross lots. The resulting sizes are 471 and 373 bytes.
+
+`ReadMarketGross` takes the venue, the market and the canonical registrations for
+instances 0, 1 and 2, all read-only. It returns a little-endian u64. Missing
+registrations prevent the read until market setup is complete. The program
+authenticates the venue, market binding, account owners, instances and maker
+addresses, then computes the total from the capacity fields. See the
+[capacity accounting rule](accounting.md#reserved-gross-capacity).

@@ -6,14 +6,14 @@ import {execFileSync} from 'node:child_process';
 import {existsSync,readdirSync,readFileSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {getProgramDerivedAddress} from '@solana/kit';
-import {AGGREGATE_FEE_ARTIFACT_SET,CLEARING_PROGRAM_ADDRESS} from '@rivalt/sdk';
+import {hasAggregateFees,CLEARING_PROGRAM_ADDRESS} from '@rivalt/sdk';
 import {decodeAccountInvocations} from '../../packages/indexer/src/account-events.js';
 
 const snapshotPath=process.argv[2];
 assert(snapshotPath,'Supply the frozen SQL snapshot from the aggregate fee run.');
 const directory=dirname(snapshotPath);
 const {binding,state}=JSON.parse(readFileSync(snapshotPath,'utf8'));
-assert.equal(binding.artifactSet,AGGREGATE_FEE_ARTIFACT_SET);
+assert(hasAggregateFees(binding.artifactSet));
 assert.equal(binding.program,CLEARING_PROGRAM_ADDRESS);
 assert.equal(state.resolution.stage,2);
 const [eventAuthority]=await getProgramDerivedAddress({programAddress:CLEARING_PROGRAM_ADDRESS,seeds:[Buffer.from('__event_authority')]});
