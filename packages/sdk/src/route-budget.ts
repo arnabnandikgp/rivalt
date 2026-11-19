@@ -26,8 +26,9 @@ export function walletComputeBudget(instructions: Instruction[], units: 400_000 
   return [limit, loaded, price, ...economic];
 }
 /** G10 page ceiling; acceptance requires at least 20% measured headroom. */
+export const RESOLUTION_COMPUTE_UNITS = 1_200_000;
 export function resolutionComputeBudget(): Instruction {
-  const ix=ComputeBudgetProgram.setComputeUnitLimit({units:1_200_000});
+  const ix=ComputeBudgetProgram.setComputeUnitLimit({units:RESOLUTION_COMPUTE_UNITS});
   return {programAddress:address(ix.programId.toBase58()),accounts:[],data:ix.data};
 }
 

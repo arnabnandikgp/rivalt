@@ -113,8 +113,12 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
         const metas=[...new Set(active.map(member=>member.page))].map(address=>({address,role:AccountRole.WRITABLE}));
         const limit=multi||runtime.deploymentSelection==='book-capacity-candidate'?sdk.INVENTORY_BOOK_EVENT_PAGE_LIMIT:sdk.INVENTORY_BOOK_ACTIVE_PAGE_LIMIT;
         if(metas.length>limit)return blocked('inventory-book-requires-paged-verification');
-        return ready('verify-inventory-book',withPages(sdk.getVerifyInventoryBookInstruction({
-          ...args,revision:prepared.revision,ordinals:active.map(member=>member.ordinal)}),metas));
+        const instruction=withPages(sdk.getVerifyInventoryBookInstruction({
+          ...args,revision:prepared.revision,ordinals:active.map(member=>member.ordinal)}),metas);
+        if(!sdk.fitsCanonicalPacket(key.publicKey,[instruction],{computeUnitLimit:sdk.RESOLUTION_COMPUTE_UNITS,
+          loadedAccountsDataSizeLimit:8*1024*1024,heapSize:sdk.inventoryBookHeap(runtime.deploymentSelection,[instruction])}))
+          return blocked('inventory-book-requires-paged-verification');
+        return ready('verify-inventory-book',instruction);
       }
       const capacity=async(member:FrozenMember,market:number)=>{
         const {row}=member, account=await read(row.member);

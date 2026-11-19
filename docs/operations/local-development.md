@@ -572,3 +572,14 @@ eight-member book and checks the existing signed release gate. To rerun the
 economic comparison on its saved inputs use
 `python3 tests/financial/check_multi_lot_search.py "$run_dir/multi-lot-frozen.json"`.
 Omit the file argument to check the independent synthetic books.
+
+For a clearing-verified multi-lot payout, build the candidate at the source
+revision in the deployment binding (currently `baef259`) using
+`RIVALT_ATTRIBUTION_PROFILE=multi-lot-book-qualification` with
+`bash ops/build-profit-attribution.sh`. From the qualification revision, run
+`bash ops/build-settlement-helper.sh multi-lot-book-candidate`. Point
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` at that program build, select
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-multi-lot-apply` and run
+`bash ops/scalable-settlement-smoke.sh`. Repeat with a fresh run directory
+and `profit-attribution-multi-lot-tie` to verify refusal when the marginal
+costs tie. Each run creates its own local PostgreSQL instance.

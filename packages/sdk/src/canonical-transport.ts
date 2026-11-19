@@ -1,9 +1,10 @@
 import type { Instruction } from '@solana/kit';
 import { ComputeBudgetProgram, Connection, Keypair, TransactionMessage, VersionedTransaction, type PublicKey } from '@solana/web3.js';
-import type {Blockhash} from '@solana/kit';
+import {blockhash,type Blockhash} from '@solana/kit';
 
 export const V0_PACKET_LIMIT = 1_232;
 export const V1_PACKET_LIMIT = 4_096;
+export class CanonicalPacketSizeError extends Error {}
 export type CanonicalTransactionBudget = {
   computeUnitLimit: number;
   heapSize?:number;
@@ -41,8 +42,19 @@ export function compileCanonicalTransaction(
   }).compileToV1Message({ ...budget, priorityFeeLamports: 0n }));
   const wireBytes = transaction.serialize().length;
   const limit = transaction.version === 0 ? V0_PACKET_LIMIT : V1_PACKET_LIMIT;
-  if (wireBytes > limit) throw new Error(`Canonical transaction is ${wireBytes} bytes; v${transaction.version} limit is ${limit}`);
+  if (wireBytes > limit) throw new CanonicalPacketSizeError(`Canonical transaction is ${wireBytes} bytes; v${transaction.version} limit is ${limit}`);
   return {transaction,v0Bytes,wireBytes};
+}
+
+/** The blockhash always occupies 32 bytes. Use the real payer for account deduplication. */
+export function fitsCanonicalPacket(payerKey:PublicKey,instructions:Instruction[],budget:CanonicalTransactionBudget) {
+  try {
+    compileCanonicalTransaction({payerKey,recentBlockhash:blockhash('11111111111111111111111111111111')},instructions,budget);
+    return true;
+  } catch(error) {
+    if(error instanceof CanonicalPacketSizeError)return false;
+    throw error;
+  }
 }
 
 export async function signCanonicalInstructions(

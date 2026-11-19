@@ -851,7 +851,9 @@ entry per supplied frozen page in addition to the eleven fixed accounts. The
 8,192-byte scoped transition event uses 108 bytes of framing, 41 per read and
 49 per write. Its encoding alone permits 155 active pages. Packet size, account
 locks, compute and heap can bind earlier. The worker requests a 128 KiB heap for
-this certificate and checks its wire encoding before signing. Ordinary routes
+this certificate. Before proposing it, the worker serializes the actual accounts
+and ordinals with the payer and resource headers. A packet exceeding 4,096 bytes
+returns the paged-verification status even if its pages fit in the revision event. Ordinary routes
 and registration have their own resource limits. The original selection retains
 its 21-page gate. [Signed measurements](../operations/validation.md#active-positions-and-frozen-page-placement).
 

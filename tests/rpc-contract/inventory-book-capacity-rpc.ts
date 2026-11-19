@@ -30,7 +30,7 @@ const selection=expanded?'book-capacity-candidate':'book-inventory-candidate';
 const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,expanded?'capacity':'book');
 const label='certify every active BTC lot';
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,{
-  deferFinality:true,heapSize:value=>expanded&&value===label?sdk.INVENTORY_BOOK_HEAP_BYTES:undefined,computeUnitLimit:value=>value===label?1_200_000:1_000_000,observeOutcomes:value=>value===label,
+  deferFinality:true,heapSize:value=>expanded&&value===label?sdk.INVENTORY_BOOK_HEAP_BYTES:undefined,computeUnitLimit:value=>value===label?sdk.RESOLUTION_COMPUTE_UNITS:1_000_000,observeOutcomes:value=>value===label,
 });
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,worker:AccountRuntime|undefined;
 try {
@@ -93,7 +93,7 @@ try {
       const connection=new Connection(url,'confirmed');
       for(const heap of [32,64,128,256]) {
         const {transaction}=await sdk.signCanonicalInstructions(connection,setup.payer,[instruction],{
-          computeUnitLimit:1_200_000,loadedAccountsDataSizeLimit:8*1024*1024,...(heap>32?{heapSize:heap*1024}:{}),
+          computeUnitLimit:sdk.RESOLUTION_COMPUTE_UNITS,loadedAccountsDataSizeLimit:8*1024*1024,...(heap>32?{heapSize:heap*1024}:{}),
         });
         const simulated=await rpc.call('simulateTransaction',[Buffer.from(transaction.serialize()).toString('base64'),{
           encoding:'base64',sigVerify:true,commitment:'confirmed',
@@ -113,9 +113,11 @@ try {
       assert.equal((await ws.notification(subscription)).params.result.value.err,null);
       const receipt=await rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
       assert.equal(receipt.transaction[0],intent.wire);
+      assert(Number.isSafeInteger(receipt.meta.computeUnitsConsumed) && receipt.meta.computeUnitsConsumed>0 &&
+        receipt.meta.computeUnitsConsumed<=sdk.RESOLUTION_COMPUTE_UNITS*0.8,'Finalized inventory certificate requires 20% CU headroom');
       const wire=Buffer.from(intent.wire,'base64'),signed=VersionedTransaction.deserialize(wire);
       outcome={signature:intent.signature,version:signed.version,bytes:wire.length,fee:receipt.meta.fee,
-        computeUnits:receipt.meta.computeUnitsConsumed,computeUnitLimit:1_200_000,error:receipt.meta.err};
+        computeUnits:receipt.meta.computeUnitsConsumed,computeUnitLimit:sdk.RESOLUTION_COMPUTE_UNITS,error:receipt.meta.err};
       assert.equal(receipt.meta.computeUnitsConsumed,simulations.find(test=>test.heap*1024===sdk.INVENTORY_BOOK_HEAP_BYTES)!.units);
       writeFileSync(directory+'/inventory-worker-finalized.json',json(receipt));
     } else {
