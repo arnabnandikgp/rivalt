@@ -58,7 +58,8 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 | Clearing-verified joint recovery | Review | [PR #111](https://github.com/arnabnandikgp/rivalt/pull/111). At `a956981`, local SBF `0e027fc` charged 3 and 5 while preserving the 9,996/9,996 cash split. After the partial certificate refused a withdrawal, both makers withdrew their funded recoveries. 265 harness outcomes, 56 worker originals and 105 fresh SQL events. [Validation](operations/validation.md#clearing-verified-linked-default-and-wallet-exit). |
 | Closed BTC creditor in a linked default | Review | [PR #112](https://github.com/arnabnandikgp/rivalt/pull/112). On ordinary SBF `33361d9` the trader withdrew 4,994 atoms. On candidate `30434d5` its withdrawal paid 4,996. The independent reference enumerated 84 plans. At `89ef133` the successor replayed 124 events after three wallet exits. A second eligible BTC maker kept the contested book frozen (284 harness outcomes and 96 SQL events). [Measured comparison](operations/validation.md#closed-btc-claim-in-a-two-market-default). |
 | Competing BTC winners in a linked default | Review | [PR #113](https://github.com/arnabnandikgp/rivalt/pull/113). SBF `d0ae474`, signed harness `005230c`. Clearing certified BTC 4/9 and ETH 12 after rejecting 0/12. Four withdrawals paid 29,981 atoms. Eight accounts, 71 worker originals and 143 fresh SQL events reconciled. [Measured results](operations/validation.md#linked-allocation-across-competing-makers). |
-| BTC winner with an ETH debt | Review | Clean `bb67d1f` on two local validators. Ordinary clearing paid 39,972 atoms; the linked candidate refused both debtor substitutions and stayed frozen. Fresh SQL reproduced 113 and 84 events. Independent search checked 340 assignments; Rust rejected the BTC-only plan and verified the joint 9/33 proposal. [Measured results](operations/validation.md#btc-winner-with-an-eth-debt). |
+| BTC winner with an ETH debt | Review | [PR #114](https://github.com/arnabnandikgp/rivalt/pull/114). Clean `bb67d1f` on two local validators. Ordinary clearing paid 39,972 atoms; the linked candidate refused both debtor substitutions and stayed frozen. Fresh SQL reproduced 113 and 84 events. Independent search checked 340 assignments; Rust rejected the BTC-only plan and verified the joint 9/33 proposal. [Measured results](operations/validation.md#btc-winner-with-an-eth-debt). |
+| Foreign creditor protection through wallet exit | Review | SBF `d177cc5`, clean signed harness `7f2b7e5`. Clearing rejected BTC-only, charged BTC/ETH 9/33 atomically and paid the two maker withdrawals of 5,004 and 34,968. All eight roots and 114 fresh PostgreSQL events reconciled. [Measured results](operations/validation.md#atomic-payment-for-a-btc-winner-with-eth-debt). |
 | P50 architecture constraint audit | Closed | [PR #71](https://github.com/arnabnandikgp/rivalt/pull/71) merged; source/provenance inspection of `2a77c24`; [findings](operations/constraints.md) now mapped into the requested remediation plan |
 | P48 exact interval allocation | Closed | [PR #68](https://github.com/arnabnandikgp/rivalt/pull/68) merged; clean `5e5aede`: 715 independent cases, 23 affected SDK/service checks, 130 signed RPC/WS outcomes; old limits retained at its revision |
 | P49 expanded quantities | Closed | [PR #69](https://github.com/arnabnandikgp/rivalt/pull/69) merged; SBF `49c343e`, verifier `125a2b3`: 231 signed outcomes, 188-event PostgreSQL replay and 146 matched full-book outcomes; review fix `d63e3b1` accepted |
@@ -139,9 +140,12 @@ Three further signed trades produced a cross winner whose BTC claim backs an
 ETH creditor. Ordinary clearing paid both makers. Native comparison showed
 that the BTC-only and joint plans pay identical whole cash, but only the
 joint plan respects the ETH creditor's entitlement. The linked candidate
-refused the book on chain. Next, implement a resumable clearing comparison
-of the baseline and joint plan that binds each direct charge and verifies
-exact entitlements and whole payouts before releasing this signed case.
+refused the book on chain. The separate foreign-creditor program has now paid
+both makers after verifying the direct charges and creditor floors in one
+54,281-CU instruction. Next, reproduce two debtors competing for the same
+winner inventory in a signed freeze and compare all feasible assignments
+against ordinary wallet payouts. General selection and production release
+remain open.
 
 ## Earlier checkpoints
 

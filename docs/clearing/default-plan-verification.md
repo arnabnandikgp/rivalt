@@ -656,6 +656,39 @@ cannot authenticate who was eligible to bear each charge.
 
 The complete native comparison checks ordinary cash, each member's signed
 market movements and insurance; its independent search tries all 340
-assignments. A future clearing proof for this family needs original and
-effective per-market rates, direct-charge ownership, and both exact and
-whole-atom creditor floors before releasing either market. [Reference comparison](../../tests/financial/foreign_winner_comparison.py).
+assignments. The bounded clearing certificate below authenticates the two
+winning roots and their direct charges before releasing either market. [Reference comparison](../../tests/financial/foreign_winner_comparison.py).
+
+### Atomic certificate for one cross-market creditor chain
+
+The keeper identifies four frozen rows in role order. Clearing checks the BTC
+debtor, the flat BTC creditor, the BTC winner with ETH debt and the ETH winner
+against the canonical pages for the completed episode. Their positive and
+negative claims must separately exhaust both snapshot totals. The opposing
+positions must exhaust gross lots in each market. Other members can hold cash.
+Pools must be empty and the four faces must be whole atoms. The program reads
+both winning margin roots at their original revisions and verifies that each
+winner's attributable unpaid price gain can fund its complete price schedule.
+One successful instruction commits both schedules into the prepared header.
+The regular settlement worker uses this receipt throughout rates, planning
+and application. Each original debtor has debt in exactly one market, which
+determines where its cash is collected.
+
+Let **D** be the BTC debt, **F** the flat BTC claim, **G** the cross account's
+BTC claim, **A** the BTC debtor's cash plus BTC insurance, **E** the ETH debt
+and **C** the cross debtor's cash plus ETH insurance. This certificate requires
+D = F + G, 0 < A < D, and G > D − A. The BTC charge is **x = D − A**. The
+original ETH receipt before rounding is **B = C + GA/D**. The ETH charge is
+**y = E − ceil(B)**. The final exact ETH receipt is **H = C + G − x**.
+
+| What clearing proves | Why it suffices in this family |
+|---|---|
+| x and y are positive, with H ≤ E − y | Both original debtors use their funded cash, and each market uses its original insurance budget. |
+| H + y ≥ ceil(B) | The ETH maker receives at least its original exact entitlement and its greatest possible original rounded receipt, after its own verified charge. |
+| The adjusted BTC rate is one | The flat BTC creditor receives F. The cross debtor receives G − x. Both cover their original rounded BTC receipts less their own charges. All resulting market movements are integral. |
+| Both charges exhaust their original market limits | At an intermediate BTC charge u the ETH backing loss is AFu/[D(D−u)]. Each additional BTC atom costs strictly less than one ETH atom since F < A and D−u ≥ A. Total exact recovery increases with either charge. The feasible upper corner uniquely maximizes recovery. |
+
+The signed book can use this constant-size proof because there is one eligible
+winner on each side and both schedules are executable. Competing debtors for
+one lot, circular obligations, fractional original claims and insufficient
+winning capacity remain outside its scope. [Program adapter](../../programs/clearing/src/instructions/account_safety/settlement/foreign_creditor.rs) · [Arithmetic](../../crates/default-plan-selection/src/foreign_creditor.rs).

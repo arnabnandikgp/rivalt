@@ -464,3 +464,15 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_allocation_build" \
   RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-gate \
   bash ops/scalable-settlement-smoke.sh
 ```
+
+To test joint payment for the same book, build the local program at
+`d177cc5` with `RIVALT_ATTRIBUTION_PROFILE=foreign-creditor-qualification`
+and `bash ops/build-profit-attribution.sh`. From the harness revision in
+[validation](validation.md#atomic-payment-for-a-btc-winner-with-eth-debt), run
+
+```bash
+bash ops/build-settlement-helper.sh foreign-creditor-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$foreign_creditor_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-apply \
+  bash ops/scalable-settlement-smoke.sh
+```

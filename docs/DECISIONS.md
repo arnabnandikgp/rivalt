@@ -1380,3 +1380,14 @@ competing makers under the same D117 cash attribution and D119 joint commitment.
 A permissionless caller can resume a submitted attempt. An incorrect total
 discards its authority and permits a new proposal. Candidate qualification
 covers the signed book recorded in validation. [Verification contract](clearing/default-plan-verification.md#linked-allocation-across-competing-winners).
+
+## D131 — Verify the two linked charges in one frozen-book instruction
+
+19 November 2026. For the bounded local family where a BTC winner owes the
+sole ETH creditor, verify the complete financial shape from the finished
+valuation and four original members. Admit only the joint maximum whose
+executable schedules, exact entitlements, rounded receipts and insurance
+usage all satisfy D116–D120. The complete frozen scan remains resumable.
+Once the scan finishes, a single transaction can certify both markets.
+No keeper-selected allocation or additional settlement account is necessary.
+[Proof and supported scope](clearing/default-plan-verification.md#atomic-certificate-for-one-cross-market-creditor-chain).

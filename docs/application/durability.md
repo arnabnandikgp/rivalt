@@ -705,3 +705,11 @@ zero. Only a complete successful attempt changes the claim basis used by
 settlement. RPC reconciliation compares the projected attempt and charges with
 the prepared header and frozen rows. Worker restarts resume from the on-chain
 ordinal. [Candidate contract](../clearing/default-plan-verification.md#linked-allocation-across-competing-winners).
+
+On the foreign-creditor candidate, the finalized `ForeignCreditorsVerified`
+event identifies four members and two execution schedules. Replay reconstructs
+the original claims and inventory of the complete cohort, the limits on both
+charges and the ETH creditor's original and adjusted entitlement. Reconciliation
+matches every term to the prepared header. During application the journal
+checks each effective claim against its own market debtor and winning account.
+[Certificate contract](../clearing/default-plan-verification.md#atomic-certificate-for-one-cross-market-creditor-chain).

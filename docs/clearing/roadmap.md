@@ -65,15 +65,14 @@ targets must be satisfied before any member can receive money. The
 [verification contract](default-plan-verification.md#linked-allocation-across-competing-winners)
 specifies the exact scope.
 
-The next clearing deliverable is to verify a winner with a foreign obligation
-through actual payment. Start from the signed three-trade book. Carry the
-ordinary payout and exact per-member entitlements alongside the proposed joint
-schedule. Bind each direct charge to its owner, verify both the fractional
-and whole-atom floors and compare competing schedules before opening Apply.
-The BTC-only proposal and the jointly admissible proposal have identical
-rounded amounts; another balance-only test cannot distinguish them.
-Several debtors competing for the same winning lots also require an
-inventory-allocation proof.
+A BTC winner whose gain backs an ETH debt now has a signed path through both
+wallet withdrawals. One transaction authenticates both winners' charges and the
+original and effective creditor entitlements. [Payment and measured cost](../operations/validation.md#atomic-payment-for-a-btc-winner-with-eth-debt).
+
+The next inventory case has two debtors competing for the same eligible winner
+lots. Construct the competing exposures through real trades, independently
+enumerate feasible lot assignments, and measure what ordinary settlement pays.
+A certificate may count each winning lot only once across all debtor schedules.
 General linked selection,
 shared writes and broader cost qualification remain open.
 

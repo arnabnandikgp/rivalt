@@ -1,5 +1,35 @@
 # Validation and measured limits
 
+## Atomic payment for a BTC winner with ETH debt
+
+Clean program `d177cc5` (2,603,744 bytes, SHA-256
+`3d7b0b64d71aad7943b265ac66011fd8231f8d195846a2c49d0fcbe0825ee76b`)
+and clean harness `7f2b7e5` reproduced the three fills and eight-member freeze
+from the [ordinary comparison](#btc-winner-with-an-eth-debt). Both markets
+had zero pool cash. BTC and ETH insurance supplied six and three atoms.
+
+| Signed transaction | Result | CU | Wire bytes |
+|---|---|---:|---:|
+| Charge BTC 9, ETH 0 | Rejected, 6130 | 26,361 | 835 |
+| Charge BTC 8, ETH 33 | Rejected, 6130 | 26,361 | 835 |
+| Substitute the cross account for the flat creditor | Rejected, 6130 | 22,473 | 835 |
+| Charge BTC 9, ETH 33 | One lot per winner at 40,009 and 12,533 | 54,281 | 835 |
+| Flat BTC maker withdraws | 5,004 funded atoms | 32,676 | 806 |
+| ETH maker withdraws | 34,968 funded atoms | 32,676 | 806 |
+
+The prepared header, financial accounts, ledgers, vault and wallet bytes matched
+across the refusals. The completed certificate also left the financial balances
+intact until application. After a worker restart, settlement paid 39,972 atoms
+to the maker operator's wallet and left 6,000,028 in the vault. Each maker root
+retained its original 1,000,000 cash. Both trader roots ended with zero cash.
+All eight balances matched the independent reconstruction, which enumerated 340
+charge assignments. The run recorded 274 harness outcomes and 55 finalized
+worker originals via RPC/WS. Fresh PostgreSQL replay reproduced 114 events.
+
+The signed case used one frozen page. A keeper unit test covers four different
+pages in a 32-row input. Multiple debtors competing for one position, cycles and
+fractional original claims still need qualification. [Reproduction](local-development.md#reproduce-a-winner-with-debt-in-the-other-market).
+
 ## BTC winner with an ETH debt
 
 At clean harness `bb67d1f`, three genuine routes produced the same eight
