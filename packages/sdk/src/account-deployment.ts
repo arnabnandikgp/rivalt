@@ -13,7 +13,7 @@ export const BOOK_CAPACITY_ARTIFACT_SET='book-capacity-eb011a5';
 export const MULTI_LOT_ARTIFACT_SET='multi-lot-baef259';
 export const AGGREGATE_FEE_ARTIFACT_SET='aggregate-fees-5b1e964';
 export const BOUNDED_MARKET_ARTIFACT_SET='bounded-market-3ace707';
-export const CHECKED_FUNDING_ARTIFACT_SET='funding-prefix-999a29c';
+export const CHECKED_FUNDING_ARTIFACT_SET='funding-prefix-2da3e90';
 export const hasMarketCapacity=(set?:string)=>set===BOUNDED_MARKET_ARTIFACT_SET||set===CHECKED_FUNDING_ARTIFACT_SET;
 export const hasAggregateFees=(set?:string)=>set===AGGREGATE_FEE_ARTIFACT_SET||hasMarketCapacity(set);
 export const isMultiLotArtifact=(set?:string)=>set===MULTI_LOT_ARTIFACT_SET||hasAggregateFees(set);
@@ -31,9 +31,9 @@ export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
   if(selection==='funding-prefix-candidate')return {
-    artifactSet:CHECKED_FUNDING_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'999a29c5f6f2813edfda04d5270ff644129aab40',
+    artifactSet:CHECKED_FUNDING_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'2da3e904060aa2d1d1b174a88bf5740f99b71002',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
-      bytes:2920544,sha256:'b7eed41a7986d2117a02b1758b62c2c5a783f209bb86d419aaf7f4b6cda8a43f'}:artifact)
+      bytes:2920496,sha256:'ef02d96b5d689c04e3b68854560073248507c956229bc0892d5423fa3170bec8'}:artifact)
   };
   if(selection==='bounded-market-candidate')return {
     artifactSet:BOUNDED_MARKET_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'3ace707834ffb80a5e3df5a3fe0fa8285ef89a39',
