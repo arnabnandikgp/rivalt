@@ -15,11 +15,13 @@ import {goldenShape} from './canonical-maker-cases.js';
 import {fixtureKey} from './harness.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
+import {verifyProfitBuild} from './profit-attribution-build.js';
 import {verifyLiquidationBuild} from './maker-liquidation-build.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const directory=process.env.RIVALT_RUN_DIR!;
-const build=verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
+const bounded=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-bounded-market-receiver';
+const build=bounded?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'market'):verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const scale=1_000_000_000n;
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
@@ -30,7 +32,10 @@ const shape=(instance:number)=>{
   return {...goldenShape,skewTick:0n,longCap:4096n,shortCap:4096n,bidCount:1,askCount:1,bids:regions,asks:regions};
 };
 try {
-  const setup=await liquidityExecutionSetup(h,rpc,{shape,traderCash:564_000n,verifyRejections:false});
+  const setup=await liquidityExecutionSetup(h,rpc,{shape,marginLayout:bounded?'bounded-market':undefined,traderCash:564_000n,verifyRejections:false});
+  const checkGross=async(expected:bigint)=>{
+    if(bounded)assert.equal((await sdk.readMarketGross(rpc,setup.venue,0,'confirmed')).grossLots,expected);
+  };
   const {root,route,guard}=executionTestHelpers(h,setup);
   const [target]=setup.roots, owner=setup.traderOwner, keeper=setup.payer;
   const receiverOwner=await fixtureKey('liquidation-backstop'),token=await fixtureKey('liquidation-backstop-token');
@@ -61,6 +66,7 @@ try {
   await setup.sample();
   await h.send('liquidation open 50 BTC lots at 61000',[await route({trader:target,actor:owner,marketIndex:0,side:0,
     makers:[setup.instances[0]],lots:[50n]})],[owner]);
+  await checkGross(100n);
   await reject('healthy target',await forced(1n),sdk.CLEARING_ERROR__LIQUIDATION);
   const slot=await setup.slot();
   await h.send('place target ETH risk-increasing order',[sdk.getManageAccountOrderInstruction({...common,actor:owner,margin:target,
@@ -100,6 +106,7 @@ try {
   assert(beforeFill.book.orders.some(entry=>entry.marketIndex===1&&!entry.order.reduceOnly&&entry.order.reserve>0n));
   assert(beforeFill.positions[1].lots===0n&&beforeFill.positions[1].virtualScaled===0n);
   await h.send('liquidation keeper sells ten lots to maker B',[fill]);
+  await checkGross(100n);
   await verifyTarget('Maker filled ten',40n,563_286n,-2_530_020n,12_574n);
   assert.equal((await root(target)).reserved,0n);
   assert.equal((await root(setup.instances[2].capital)).positions[0].lots,10n);
@@ -113,7 +120,11 @@ try {
   await verifyTarget('No eligible liquidity or funded receiver',40n,563_286n,-2_530_020n,12_574n);
   await fund(99_999n);
   const transfer=await takeover(5n);
+  const generation=async()=>sdk.decodeCapacityAnchor((await h.read(setup.markets[0]))!).generation;
+  const beforeTransfer=bounded?await generation():0n;
   await h.send('liquidation funded receiver takes five lots',[transfer],[receiverOwner]);
+  await checkGross(100n);
+  if(bounded)assert.equal(await generation(),beforeTransfer+1n);
   await verifyTarget('Receiver restores maintenance',35n,563_156n,-2_270_020n,0n);
   const received=await root(receiver);
   assert.equal(received.cash,100_130n);assert.equal(received.positions[0].lots,5n);
@@ -122,6 +133,7 @@ try {
   await reject('liquidation stops at restored maintenance',await forced(1n),sdk.CLEARING_ERROR__LIQUIDATION);
   await h.send('liquidation receiver unwinds at the remaining wide bid',[await route({trader:receiver,actor:receiverOwner,
     marketIndex:0,side:1,makers:[setup.instances[0]],lots:[5n],reduceOnly:true,generation:received.positions[0].generation})],[receiverOwner]);
+  await checkGross(90n);
   const unwound=await root(receiver);
   assert.equal(unwound.cash,100_079n);assert.equal(unwound.positions[0].lots,0n);
   assert.equal(unwound.positions[0].virtualScaled,-5000n*scale);
