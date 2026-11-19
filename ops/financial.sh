@@ -45,7 +45,8 @@ python3 tests/financial/test_native_protected_receipts.py
 python3 tests/financial/test_default_plan_certificate.py
 python3 tests/financial/test_bounded_default_search.py
 cargo test --locked -p default-plan-selection --lib --test proportional
-cargo build --locked -p default-plan-selection --example measure
+cargo build --locked -p default-plan-selection --example measure --example single_lot_assignment
+python3 tests/financial/check_shared_inventory.py
 python3 tests/financial/test_metered_default_proof.py
 python3 tests/financial/test_frozen_attribution_input.py
 python3 tests/financial/test_scalable_clearing.py

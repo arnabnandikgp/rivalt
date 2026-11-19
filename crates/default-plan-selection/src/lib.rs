@@ -5,6 +5,7 @@ use core::cmp::Ordering;
 pub mod foreign_creditor;
 pub mod mirror;
 pub mod proportional;
+pub mod single_lot;
 
 // Every unordered partition contains winner 0 in exactly one triple.
 const PARTNERS: [(usize, usize); 10] = [
