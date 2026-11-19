@@ -12,7 +12,7 @@ export const BOOK_INVENTORY_ARTIFACT_SET='inventory-book-d5cc624';
 export const BOOK_CAPACITY_ARTIFACT_SET='book-capacity-eb011a5';
 export const MULTI_LOT_ARTIFACT_SET='multi-lot-baef259';
 export const AGGREGATE_FEE_ARTIFACT_SET='aggregate-fees-5b1e964';
-export const BOUNDED_MARKET_ARTIFACT_SET='bounded-market-684803e';
+export const BOUNDED_MARKET_ARTIFACT_SET='bounded-market-3ace707';
 export const hasAggregateFees=(set?:string)=>set===AGGREGATE_FEE_ARTIFACT_SET||set===BOUNDED_MARKET_ARTIFACT_SET;
 export const isMultiLotArtifact=(set?:string)=>set===MULTI_LOT_ARTIFACT_SET||hasAggregateFees(set);
 export const isBookInventoryArtifact=(set?:string)=>set===BOOK_INVENTORY_ARTIFACT_SET||set===BOOK_CAPACITY_ARTIFACT_SET||isMultiLotArtifact(set);
@@ -29,9 +29,9 @@ export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
   if(selection==='bounded-market-candidate')return {
-    artifactSet:BOUNDED_MARKET_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'684803ee98d074e828f26f438c815af30f1bafec',
+    artifactSet:BOUNDED_MARKET_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'3ace707834ffb80a5e3df5a3fe0fa8285ef89a39',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
-      bytes:2900800,sha256:'59cbca2a9fa5301184a1c41d8f5aaa60a8c3ebdbe098c9f3804c5d3dcf630379'}:artifact)
+      bytes:2900728,sha256:'62c35c3bd7c5decac5d9f6cc6feaa7aad94b554e8aba535c3afbec0225832b8d'}:artifact)
   };
   if(selection==='aggregate-fee-candidate')return {
     artifactSet:AGGREGATE_FEE_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'5b1e964c309612908329aa39ace0042714622a0e',

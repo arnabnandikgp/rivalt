@@ -151,7 +151,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   };
   if(binding.artifactSet===sdk.BOUNDED_MARKET_ARTIFACT_SET){
     for(const [market,projected] of Object.entries(state.markets)){
-      const makers=Object.entries(state.liquidity!.makers).filter(([,maker])=>maker.market===market)
+      const makers=Object.entries(state.liquidity?.makers??{}).filter(([,maker])=>maker.market===market)
         .sort(([,left],[,right])=>left.instance-right.instance);
       // Unsealed or partially initialized markets do not yet expose the capacity view.
       if(makers.length<3){

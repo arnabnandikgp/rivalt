@@ -1,7 +1,6 @@
 import {scanMetas} from './membership-scan-helper.js';
 // P40B: actual nested financial CPI, atomic rollback and paused retirement.
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {AccountRole,type Instruction} from '@solana/kit';
@@ -13,7 +12,7 @@ import {json} from '../../packages/indexer/src/events.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {provisionCanonicalMakers} from './canonical-maker-cases.js';
 import {initializationSignature} from './liquidity-journal.js';
-import {ORACLE_FIXTURE} from './oracle-fixture.js';
+import {forwardClearing} from './forward-clearing.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,databaseUrl=process.env.RIVALT_DATABASE_URL!;
 assert(databaseUrl);
@@ -25,7 +24,6 @@ const {h,rpc,ws,checks,conformance,flush}=await openCanonicalRpcHarness(process.
     if(++batchArrivals===3)releaseBatch();await batchReady;
   }});
 let indexer:LiquidityIndexer|undefined,replay:LiquidityIndexer|undefined;
-const u32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 try {
   const setup=await provisionCanonicalMakers(h),{owner,payer,venue,custody,safety,registry,common,markets,instances}=setup;
   const roots=instances.map(value=>value.capital),root=async(key=roots[0])=>sdk.getMarginAccountDecoder().decode((await h.read(key))!);
@@ -63,17 +61,11 @@ try {
   }
   assert(sameSlot.length>0,'Bounded probe did not observe multiple finalized originals in one slot');
   assert((await Promise.all(roots.map(key=>root(key)))).every(value=>value.cash===1_000_000n));
-  const forward=(instructions:Instruction[]):Instruction=>{
-    assert(instructions.length>0);for(const instruction of instructions)assert.deepEqual(instruction.accounts,instructions[0].accounts);
-    return {programAddress:ORACLE_FIXTURE,accounts:[{address:sdk.CLEARING_PROGRAM_ADDRESS,role:AccountRole.READONLY},...instructions[0].accounts!],
-      data:Buffer.concat([createHash('sha256').update('global:forward_clearing').digest().subarray(0,8),u32(instructions.length),
-        ...instructions.flatMap(instruction=>[u32(instruction.data!.length),Buffer.from(instruction.data!)])])};
-  };
   const two=[transfer(1n),transfer(1n)];
-  await h.send('P40B two financial calls beneath one external frame',[forward(two)],[owner]);conformance.record(two);
+  await h.send('P40B two financial calls beneath one external frame',[forwardClearing(two)],[owner]);conformance.record(two);
   assert.deepEqual([(await root()).cash,(await root(roots[1])).cash],[999_998n,1_000_002n]);
   const before=await state();
-  await h.send('P40B second nested call rolls back first event and revisions',[forward([transfer(1n),transfer(1_000_000n)])],[owner],sdk.CLEARING_ERROR__ARITHMETIC);
+  await h.send('P40B second nested call rolls back first event and revisions',[forwardClearing([transfer(1n),transfer(1_000_000n)])],[owner],sdk.CLEARING_ERROR__ARITHMETIC);
   assert.deepEqual(await state(),before);
   await h.send('P40B zero-payload retirement storage',[sdk.getInitializeAccountRetirementInstruction({payer,venue,safety,certificate,eventAuthority:common.eventAuthority,program:common.program})]);
   const certificateState=async()=>sdk.getRetirementCertificateDecoder().decode((await h.read(certificate))!);

@@ -7,6 +7,7 @@ import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {symmetricPayoutShape} from './canonical-maker-cases.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
+import {forwardClearing} from './forward-clearing.js';
 import {verifyProfitBuild} from './profit-attribution-build.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
@@ -31,9 +32,14 @@ try {
         market:setup.markets[0],first:setup.instances[3].registration,second,third})],[],'InvalidSeeds');
     }
     assert(read.accounts.every(account=>account.role===0));
-    await h.send(label,[read]);await flush();
+    const external=label==='bounded gross with flat trader and three open makers';
+    await h.send(label,[external?forwardClearing([read]):read]);await flush();
     const signature=checks.find(check=>check.label===label)!.signature;
     const original=await rpc.call('getTransaction',[signature,{commitment:'finalized',encoding:'json',maxSupportedTransactionVersion:1}]);
+    if(external){
+      assert(original.meta.innerInstructions.some((group:{instructions:{stackHeight:number;programIdIndex:number}[]})=>
+        group.instructions.some(ix=>ix.stackHeight===2&&original.transaction.message.accountKeys[ix.programIdIndex]===sdk.CLEARING_PROGRAM_ADDRESS)));
+    }
     assert.equal(original.meta.returnData.programId,sdk.CLEARING_PROGRAM_ADDRESS);
     const bytes=Buffer.from(original.meta.returnData.data[0],'base64');
     assert.equal(bytes.length,8);assert.equal(bytes.readBigUInt64LE(),expected);
