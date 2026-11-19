@@ -11,7 +11,7 @@ use crate::{
 use anchor_lang::prelude::*;
 
 pub const MARKET_EXTRA: usize = if cfg!(feature = "bounded-market-read") {
-    16
+    16 + crate::market_funding::EXTRA
 } else {
     0
 };
@@ -76,7 +76,7 @@ mod candidate {
         let start = 8 + Market::INIT_SPACE;
         require!(bytes.len() == start + MARKET_EXTRA, ClearingError::Profile);
         let generation = word(&bytes[start..start + 8])?;
-        let gross = word(&bytes[start + 8..])?;
+        let gross = word(&bytes[start + 8..start + 16])?;
         require!(
             gross <= MAX_GROSS_LOTS && (generation != 0 || gross == 0),
             ClearingError::Reconciliation
@@ -118,8 +118,9 @@ mod candidate {
                 ClearingError::MakerBinding
             );
             let bytes = maker.account().try_borrow()?;
+            require!(bytes.len() == 8 + MakerRegistration::INIT_SPACE + crate::market_fees::LANE_EXTRA, ClearingError::Profile);
             let tail = bytes
-                .get(8 + MakerRegistration::INIT_SPACE + 16..)
+                .get(8 + MakerRegistration::INIT_SPACE + 16..8 + MakerRegistration::INIT_SPACE + 32)
                 .ok_or(ClearingError::Profile)?;
             gross = gross
                 .checked_sub(available(tail, maker.instance, checkpoint)?)
@@ -140,7 +141,7 @@ mod candidate {
                     .checked_add(1)
                     .ok_or(ClearingError::Arithmetic)?;
                 bytes[..8].copy_from_slice(&generation.to_le_bytes());
-                bytes[8..].copy_from_slice(&gross.to_le_bytes());
+                bytes[8..16].copy_from_slice(&gross.to_le_bytes());
                 Ok(())
             },
             true,
@@ -173,7 +174,7 @@ mod candidate {
         inspect::<_, { crate::market_fees::LANE_EXTRA }>(
             maker,
             |bytes| {
-                let free = available(&bytes[16..], instance, checkpoint)?;
+                let free = available(&bytes[16..32], instance, checkpoint)?;
                 let remaining = i128::from(free) - position_delta;
                 if remaining < 0 {
                     needs_rebalance = true;

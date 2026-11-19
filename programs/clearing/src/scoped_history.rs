@@ -193,7 +193,7 @@ impl Scope {
         );
         let bytes = account.try_borrow()?;
         require!(
-            (if T::KIND == MarginAccount::KIND { crate::state::accounts::valid_margin_size(bytes.len()) } else { bytes.len() == 8 + T::INIT_SPACE }) && bytes[..8] == *T::DISCRIMINATOR,
+            (if T::KIND == MarginAccount::KIND { crate::state::accounts::valid_margin_size(bytes.len()) } else if T::KIND == MakerRegistration::KIND { bytes.len() == 8 + T::INIT_SPACE + crate::market_fees::LANE_EXTRA } else { bytes.len() == 8 + T::INIT_SPACE }) && bytes[..8] == *T::DISCRIMINATOR,
             ClearingError::Profile
         );
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
@@ -560,7 +560,9 @@ pub(crate) fn run<'context, T: ScopedContext>(
     run_with_remaining(
         context,
         instruction,
-        Remaining::Roots(remaining_writable),
+        if cfg!(feature="checked-funding-prefix") && instruction == [32,39,131,11,127,118,35,241] {
+            Remaining::FundingRegistrations
+        } else { Remaining::Roots(remaining_writable) },
         handler,
     )
 }
@@ -609,6 +611,7 @@ pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
 
 #[derive(Clone, Copy)]
 enum Remaining {
+    FundingRegistrations,
     FrozenPlanPages,
     MembershipPath,
     MembershipScan(bool),
@@ -638,6 +641,11 @@ impl Remaining {
             }
             Self::FrozenPlanPages => {
                 for account in accounts {scope.raw::<FrozenMarginPage>(account,Access::Write)?;}
+                Ok(())
+            }
+            Self::FundingRegistrations => {
+                require!(accounts.len()==3,ClearingError::Profile);
+                for account in accounts {scope.raw::<MakerRegistration>(account,Access::Read)?;}
                 Ok(())
             }
             Self::MembershipPath => {

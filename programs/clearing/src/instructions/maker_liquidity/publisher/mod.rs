@@ -129,10 +129,13 @@ pub fn publish(
     report: FundingReport,
 ) -> Result<()> {
     let mut remaining_accounts = ctx.remaining_accounts()?;
+    #[cfg(not(feature="checked-funding-prefix"))]
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     execution_profile(&accounts.venue, &accounts.safety, &accounts.market)?;
     let clock = Clock::get()?;
+    #[cfg(feature="checked-funding-prefix")]
+    crate::market_funding::check(&mut accounts.market,&remaining_accounts,&clock,accounts.safety.mode==ACTIVE)?;
     validate_report(
         &accounts.venue,
         &accounts.market,

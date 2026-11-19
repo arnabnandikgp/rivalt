@@ -32,6 +32,7 @@ pub mod error;
 mod event_cpi;
 mod market_fees;
 mod market_capacity;
+mod market_funding;
 pub mod events;
 pub mod instructions;
 #[cfg(feature = "profit-attribution-qualification")]

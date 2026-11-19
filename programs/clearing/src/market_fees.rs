@@ -2,7 +2,7 @@
 //! A route escrows its full fee and appends it to the first maker's lane.
 //! The complete market checkpoint reclassifies earned insurance before spending.
 pub const LANE_EXTRA: usize = if cfg!(feature = "aggregate-fee-qualification") {
-    16 + crate::market_capacity::LANE_EXTRA
+    16 + crate::market_capacity::LANE_EXTRA + crate::market_funding::EXTRA
 } else {
     0
 };

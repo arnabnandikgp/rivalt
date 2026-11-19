@@ -16,6 +16,7 @@ liquidity-execution-qualification = []
 # Fresh local margin layout only. The selected binary uses the prefix layout.
 shared-inventory-qualification = ["foreign-creditor-qualification"]
 partial-inventory-qualification = ["shared-inventory-qualification"]
+checked-funding-prefix = ["bounded-market-read"]
 bounded-market-read = ["aggregate-fee-qualification", "financial-core/parallel-market-prototype"]
 aggregate-fee-qualification = ["multi-lot-book-qualification"]
 multi-lot-book-qualification = ["book-inventory-qualification", "default-plan-selection/compact-book"]

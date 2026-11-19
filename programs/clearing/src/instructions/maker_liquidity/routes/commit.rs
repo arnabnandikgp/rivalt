@@ -90,6 +90,13 @@ pub(super) fn apply(
         ],
         clock,
     )?;
+    #[cfg(feature="checked-funding-prefix")]
+    {
+        crate::market_funding::selected(&identity.market, &mut accounts.first_registration, clock)?;
+        if let Some(sibling) = identity.other_market.as_deref_mut() {
+            crate::market_funding::canonical(sibling, clock)?;
+        }
+    }
     #[cfg(not(feature="aggregate-fee-qualification"))]
     let fee_detail = {
         let (insurance, retained, before) = trading::split_fee(&mut identity.ledger, next.fee)?;
