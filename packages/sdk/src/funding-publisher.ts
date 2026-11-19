@@ -1,4 +1,5 @@
 import type {MarginLayout} from './profit-attribution.js';
+import {decodeCapacityAnchor} from './market-capacity.js';
 import { BTC_LOTS_PER_UNIT, ETH_LOTS_PER_UNIT, FUNDING_REFERENCE_NOTIONAL } from './price-policy.js';
 import { type Address, type FixedSizeDecoder, type ReadonlyUint8Array } from '@solana/kit';
 import * as clearing from './generated/index.js';
@@ -41,7 +42,13 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   const [configuration, configurationBump] = await clearing.findFundingPublisherPda({ market });
   const sourceDiscovery = await rpc.call('getMultipleAccounts', [[market], { encoding: 'base64', commitment }]);
   requireValue(sourceDiscovery.value?.length === 1, 'Incomplete funding source discovery.');
-  const discoveredMarket = decode(sourceDiscovery.value[0], clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
+  const decodeMarket = (account: LiquidityAccountMap extends ReadonlyMap<Address, infer Value> ? Value : never) => {
+    if (marginLayout !== 'bounded-market') return decode(account, clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
+    requireValue(account?.owner === clearing.CLEARING_PROGRAM_ADDRESS && !account.executable && account.data[1] === 'base64',
+      'Missing or foreign funding market.');
+    return decodeCapacityAnchor(fromBase64(account!.data[0])).market;
+  };
+  const discoveredMarket = decodeMarket(sourceDiscovery.value[0]);
   let discovery: Awaited<ReturnType<typeof discoverLiquidityAccounts>> | null = null;
   let coverageReason: string | null = null;
   try { discovery = await discoverLiquidityAccounts(rpc, venue, market, commitment, marginLayout); }
@@ -57,7 +64,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   requireValue(response.value?.length === keys.length && contextSlot >= minContextSlot, 'Incomplete or regressed funding snapshot.');
   const accounts: LiquidityAccountMap = new Map(keys.map((key, index) => [key, response.value[index]]));
   const venueState = decode(accounts.get(venue) ?? null, clearing.VENUE_DISCRIMINATOR, clearing.getVenueDecoder());
-  const marketState = decode(accounts.get(market) ?? null, clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
+  const marketState = decodeMarket(accounts.get(market) ?? null);
   const safetyState = decode(accounts.get(safety) ?? null, clearing.VENUE_SAFETY_DISCRIMINATOR, clearing.getVenueSafetyDecoder());
   const configurationState = decode(accounts.get(configuration) ?? null, clearing.FUNDING_PUBLISHER_DISCRIMINATOR,
     clearing.getFundingPublisherDecoder());
