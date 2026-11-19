@@ -1,5 +1,27 @@
 # Validation and measured limits
 
+## Clearing-verified multi-lot recovery
+
+The separate local clearing build `baef259` is 2,855,600 bytes. Two signed runs
+at harness `f7e76c9` used fresh Surfpool and PostgreSQL instances. On the
+eight-member book below, the three-fill certificate consumed **46,606 CU**
+in a **762-byte v0 transaction**. Both an omitted lot holder and a repeated
+ordinal were refused. The certificate preserved the original cash and vault.
+After the keeper restarted, 12 BTC insurance atoms and the verified 9-atom
+charge settled the book.
+
+| Signed outcome | Clearing and wallet | Fresh PostgreSQL replay |
+|---|---|---|
+| Different winning capacities, 784 candidate plans | 54 worker transactions finalized. Maker roots 0 and 1 withdrew 20,000 and 20,004 atoms into the operator’s SPL account. Both roots retained 1,000,000 each. Actual and allocated vaults both ended at 6,000,038. | 111 events, 224 reconciled accounts, 8 financial members, 270 harness outcomes |
+| Equal marginal costs, 144 candidate plans | Worker withheld the incomplete proof. Direct submission failed. Both headers, the frozen page, every root and the vault retained their original bytes. Exact native search selected a five-atom allocation. | 81 events, 308 harness outcomes |
+
+The signed refusal demonstrates the boundary of this short proof. The earlier
+single-lot and native comparisons remain separately reproducible. The test
+for two flat half-atom claims checks the complete valuation in Rust. Six
+checkpoint tests passed. The lot-rate tests cover each permitted lot count in
+small rational cases and 1,024-bit historical inputs at the maximum lot count.
+The financial source is [specified here](../clearing/default-plan-verification.md#how-the-multi-lot-clearing-certificate-binds-the-inputs).
+
 ## Exact multi-lot BTC comparison
 
 Harness `4faefa7` executed two signed two-lot BTC buys against different
