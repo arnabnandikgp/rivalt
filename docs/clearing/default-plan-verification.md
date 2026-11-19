@@ -476,9 +476,21 @@ are 60 and 30. Closing 20 of the BTC debt leaves face debts of 60 and 40.
 Recalculating the shares would pay 54 and 36. Keeping the original allocation
 pays 60 and 30. The native path also handles fractions that cannot be
 represented by depositing whole tokens into intermediate market pools.
-The verifier requires corresponding member ordinals. Authenticating them to
-the frozen roots, proving the proposed charges, protecting foreign creditors’
-individual floors and applying a linked plan on-chain remain separate gates.
+For any market affected by a close in the other market, the native
+[payout check](../../crates/financial-core/src/clearing/scalable/rounding/protection.rs)
+compares the proposal with the fully settled original book. Market impairment
+and insurance use cannot rise. A creditor may lose at most the verified direct
+charge on its own claim, both in exact fractional entitlement and in whole
+atoms received. Clearing first tries the ordinary deterministic payout. If a
+creditor would lose a protected atom, it fixes every required receipt as a
+lower bound and solves the conserving graph again. A proposal that cannot
+fund all floors together fails. The two positive ETH claims in one fixture
+receive 1 and 6 before and after a BTC reduction. Ordinary rounding alone
+would have given them 2 and 5.
+
+The native caller must bind corresponding ordinals to the same frozen member
+and supply already admitted charges. Authenticating both on-chain, proving
+selection and completing signed linked-market payouts remain open.
 
 ### When the two markets trade places
 

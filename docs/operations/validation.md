@@ -14,6 +14,22 @@ payouts of 7/8 and 8/7. These checks exercise native financial code. The
 [comparison](../clearing/default-plan-verification.md#when-the-two-markets-trade-places)
 identifies the outstanding policy choice.
 
+At `1db483c`, the native protected settlement verified 100 paired proposals
+from the two ten-plan markets in that book. All 70 admissible payouts matched
+the independent rational model account by account, including per-market cash
+movements and insurance. The other 30 failed. This count starts after each
+individual market's inventory and shortfall checks. The 256 above includes
+assignments that fail those earlier checks.
+
+Separate fractional cases preserved the original ETH receipts of 1 and 6
+where ordinary rounding would assign 2 and 5. A full BTC reduction that would
+cut an ETH payout from 24 to 15 was rejected, as was the variation that would
+take nine more atoms from ETH insurance. Forged baseline rates and receipt
+order were rejected. The ordinary rounding regression matched the independent
+graph on 774 paged executions. The new checks replay the native paged graph,
+including restoration of its checkpoints. Signed linked-market recovery and its
+on-chain resource costs remain open.
+
 ## Multi-winner BTC recovery
 
 Two independent eight-account Surfpool/RPC/WS/PostgreSQL runs at `c747189`
