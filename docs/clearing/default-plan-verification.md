@@ -204,7 +204,7 @@ atom to add or remove. Equal marginal costs use D121 winner order. Each
 partition also gets its preferred debtor labeling. The final comparison uses
 all winner charges before any debtor-pair preference.
 
-The [program](../../tests/fixtures/default-proof/src/lib.rs) initializes one
+The [program](../../tests/programs/default-proof/src/lib.rs) initializes one
 107-byte account per fixture venue signer and episode. Its synthetic budget,
 cash and gains are immutable. Only the program advances its cursor. Each worker
 supplies the expected cursor and number of partitions. Sealing requires all ten.
@@ -310,7 +310,7 @@ the records to clearing's successful transitions and verified freeze.
 
 ### Signed storage boundary
 
-The [dyadic-basis fixture](../../tests/fixtures/default-proof/src/basis.rs)
+The [dyadic-basis fixture](../../tests/programs/default-proof/src/basis.rs)
 holds one surviving long. A cycle buys one lot at 100 then sells one at 100.
 Starting at 101, the exact remaining entry is `100 + 1/2^n` after `n`
 cycles. The fixture stores the numerator and exponent and advances from an

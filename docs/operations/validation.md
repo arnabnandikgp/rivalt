@@ -42,7 +42,7 @@ produced ordinal 99 (BTC/ETH 8/7) in episode 1 and 54 (7/8) in episode 2 with
 reversed proposal order. With asymmetric retained fees in episode 3 it accepted
 neither plan. All **34 signed outcomes** were observed over WS, fetched at
 finalized RPC and accounted for in PostgreSQL. Eleven deliberately rejected
-instructions preserved state. The two successful comparisons used **8,400 and
+instructions preserved state. Signature WS echoed each rejection. The separate logs subscription omitted the error field on those eleven receipts. The two successful comparisons used **8,400 and
 8,424 CU**, each in 281 wire bytes. The fixture commits 2,372 input bytes
 per episode. Its authority ends at recording the winning candidate. These CU
 counts exclude solving for feasible plans and moving collateral. From a clean

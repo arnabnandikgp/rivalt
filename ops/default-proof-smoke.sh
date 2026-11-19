@@ -11,7 +11,7 @@ test ! -e "$RIVALT_RUN_DIR"
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" "$RIVALT_PG_PORT"
 mkdir -p "$RIVALT_RUN_DIR"
 git rev-parse HEAD > "$RIVALT_RUN_DIR/revision"
-cargo build-sbf --manifest-path tests/fixtures/default-proof/Cargo.toml --tools-version v1.52 --arch v0 \
+cargo build-sbf --manifest-path tests/programs/default-proof/Cargo.toml --tools-version v1.52 --arch v0 \
   --sbf-out-dir "$RIVALT_RUN_DIR" -- --locked --offline > "$RIVALT_RUN_DIR/build.log" 2>&1
 if rg 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' "$RIVALT_RUN_DIR/build.log"; then exit 1; fi
 node --import tsx tests/rpc-contract/default-proof-rpc.ts write-fixture-key
