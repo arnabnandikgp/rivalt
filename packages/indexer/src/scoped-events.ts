@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {address, getAddressDecoder, getBase58Encoder} from '@solana/kit';
 import clearingIdl from '../../sdk/idl/clearing.json' with {type: 'json'};
 import {integer} from './rpc.js';
-import type {ScopedEnvelope, ScopedRead, ScopedWrite} from './scoped-history.js';
+import {inventoryInstruction, isValidTransitionScope, type ScopedEnvelope, type ScopedRead, type ScopedWrite} from './scoped-history.js';
 
 const eventTag = Buffer.from('e445a52e51cb9a1d', 'hex');
 const transitionTag = createHash('sha256').update('event:AccountTransition').digest().subarray(0, 8);
@@ -25,7 +25,7 @@ export type ScopedInvocation = ScopedEnvelope & {instruction: string; venue: str
 /** Independent strict Borsh envelope reader, checked against generated codecs
  * during successor integration. Every read is bounded before slicing. */
 export function decodeTransition(bytes: Buffer) {
-  if (bytes.length < 100 || bytes.length > 1668 || !bytes.subarray(0, 8).equals(transitionTag))
+  if (bytes.length < 100 || bytes.length > 8184 || !bytes.subarray(0, 8).equals(transitionTag))
     throw new Error('Invalid scoped envelope size/discriminator');
   let offset = 8;
   const take = (count: number) => {
@@ -38,6 +38,8 @@ export function decodeTransition(bytes: Buffer) {
   const key = () => addressDecoder.decode(take(32));
   if (u16() !== 10) throw new Error('Unsupported scoped envelope schema');
   const venue = key(), domain = take(32).toString('hex'), slot = u64(), instruction = take(8).toString('hex');
+  const wideBook=instruction===inventoryInstruction;
+  if(!wideBook && bytes.length>1668)throw new Error('Invalid scoped envelope size/discriminator');
   const payloadCount = u16();
   if (payloadCount > 4) throw new Error('Scoped payload count exceeds bound');
   const reads: ScopedRead[] = [], writes: ScopedWrite[] = [], entities = new Set<string>();
@@ -54,12 +56,14 @@ export function decodeTransition(bytes: Buffer) {
     reads.push({...identity, revision: revision.toString()});
   }
   const writeCount = u32();
-  if (writeCount < 1 || writeCount + readCount > 32) throw new Error('Scoped entity count');
+  if (writeCount < 1 || (!wideBook && writeCount + readCount > 32)) throw new Error('Scoped entity count');
+  if(writeCount>Math.floor((bytes.length-offset)/49))throw new Error('Truncated scoped envelope');
   for (let index = 0; index < writeCount; index++) {
     const identity = entity(), before = u64(), after = u64();
     if (after !== before + 1n) throw new Error('Nonconsecutive scoped mutation');
     writes.push({...identity, before: before.toString(), after: after.toString()});
   }
+  if(!isValidTransitionScope(instruction,reads,writes))throw new Error('Invalid inventory page scope');
   if (offset !== bytes.length) throw new Error('Trailing scoped envelope bytes');
   if (![...reads, ...writes].some(entity => entity.account === venue && entity.kind === 0))
     throw new Error('Scoped venue dependency missing');

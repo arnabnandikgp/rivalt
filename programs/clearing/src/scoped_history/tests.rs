@@ -592,3 +592,14 @@ fn terminal_storage_relabelling_is_limited_to_exact_recovery_shapes() {
     let mut member = TestAccount::new(key, crate::ID, &member, true, false);
     assert!(Scope::new().retire_storage(&mut member.view()).is_err());
 }
+
+#[cfg(feature = "book-inventory-qualification")]
+#[test]
+fn inventory_page_scope_reserves_only_supplied_pages_and_fits_the_event() {
+    assert_eq!(Scope::new().limit, 32);
+    assert_eq!(Scope::inventory_pages(2).unwrap().limit, 13);
+    assert_eq!(Scope::inventory_pages(22).unwrap().limit, 33);
+    assert_eq!(Scope::inventory_pages(155).unwrap().limit, 166);
+    assert!(Scope::inventory_pages(156).is_err());
+    assert!(Scope::inventory_pages(usize::MAX).is_err());
+}

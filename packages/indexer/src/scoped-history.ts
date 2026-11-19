@@ -1,13 +1,24 @@
 /** Active schema-9 causal ordering for the finalized journal.
  * Input must come from authenticated, complete finalized transaction envelopes.
  * A SQL commit still owns deduplication, payload projection and checkpointing. */
+import {VERIFY_INVENTORY_BOOK_DISCRIMINATOR} from '@rivalt/sdk';
+export const inventoryInstruction=Buffer.from(VERIFY_INVENTORY_BOOK_DISCRIMINATOR).toString('hex');
+
+export function isValidTransitionScope(instruction:string|undefined,reads:ScopedRead[],writes:ScopedWrite[]) {
+  if(writes.length===0)return false;
+  if(reads.length+writes.length<=32)return true;
+  const kinds=[0,1,2,3,24,10,6,6,7,7];
+  return instruction===inventoryInstruction && reads.length===kinds.length &&
+    reads.every((entry,index)=>entry.kind===kinds[index]) && writes[0].kind===17 &&
+    writes.slice(1).every(entry=>entry.kind===18) && 108+41*reads.length+49*writes.length<=8192;
+}
 export type EntityRevision={kind:number;revision:string};
 export type ScopedRead=EntityRevision&{account:string};
 export type ScopedWrite={account:string;kind:number;before:string;after:string};
 export type ScopedRetirement={account:string;from:number;to:26|27};
 export type ScopedEnvelope={signature:string;slot:bigint;transactionIndex:number;
   /** Set only after instruction + matching payload authentication. */
-  retirements?:ScopedRetirement[];
+  retirements?:ScopedRetirement[];instruction?:string;
   outer:number;invocation:number;reads:ScopedRead[];writes:ScopedWrite[]};
 export type RevisionVector=Record<string,EntityRevision>;
 
@@ -46,7 +57,7 @@ function atomicTransactions(envelopes:readonly ScopedEnvelope[]) {
     for(const envelope of transaction.envelopes) {
       const invocation=`${envelope.outer}/${envelope.invocation}`;
       if(invocations.has(invocation))throw new Error('Duplicate scoped invocation');invocations.add(invocation);
-      if(envelope.writes.length===0||envelope.reads.length+envelope.writes.length>32)
+      if(!isValidTransitionScope(envelope.instruction,envelope.reads,envelope.writes))
         throw new Error('Scoped entity count');
       const retirements=new Map<string,ScopedRetirement>();
       for(const change of envelope.retirements??[]) {

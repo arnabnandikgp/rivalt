@@ -7,7 +7,7 @@ use anchor_lang::solana_program::{
 };
 use anchor_lang::{prelude::*, Event};
 
-const MAX_EVENT_BYTES: usize = 8_192;
+pub(crate) const MAX_EVENT_BYTES: usize = 8_192;
 
 /// Invocation-local count of successfully emitted financial payloads. It is
 /// passed explicitly through handlers; no account or global counter is written.

@@ -78,14 +78,25 @@ struct Entry {
 
 pub(crate) struct Scope {
     entries: Vec<Entry>,
+    limit: usize,
     cursor: Option<usize>,
 }
 impl Scope {
     fn new() -> Self {
-        Self {
-            entries: Vec::with_capacity(MAX_ENTITIES),
-            cursor: None,
-        }
+        Self::with_limit(MAX_ENTITIES)
+    }
+
+    fn with_limit(limit: usize) -> Self {
+        Self { entries: Vec::with_capacity(limit), limit, cursor: None }
+    }
+
+    #[cfg(feature = "book-inventory-qualification")]
+    fn inventory_pages(pages: usize) -> Result<Self> {
+        // Fixed event tags and footer fields occupy 108 bytes. This instruction
+        // reads ten revisioned accounts and writes the prepared header and pages.
+        const FIXED: usize = 108 + 10 * 41 + 49;
+        require!(pages <= (event_cpi::MAX_EVENT_BYTES - FIXED) / 49, ClearingError::Profile);
+        Ok(Self::with_limit(11 + pages))
     }
 
     /// Shared validation for typed and manually serialized remaining accounts.
@@ -118,7 +129,7 @@ impl Scope {
                     .ok_or_else(|| ProgramError::from(ClearingError::Arithmetic))
             }
         } else {
-            require!(self.entries.len() < MAX_ENTITIES, ClearingError::Profile);
+            require!(self.entries.len() < self.limit, ClearingError::Profile);
             require!(
                 !self.entries.iter().any(|entry| entry.account == account),
                 ClearingError::Alias
@@ -463,7 +474,7 @@ unsafe impl<'a> SchemaWrite<anchor_lang::BorshConfig> for ScopedRows<'a> {
             .iter()
             .filter(|entry| (entry.access != Access::Read) == value.writes)
             .count();
-        if count > MAX_ENTITIES {
+        if count > event_cpi::MAX_EVENT_BYTES / if value.writes { 49 } else { 41 } {
             return Err(anchor_lang::wincode::WriteError::Custom(
                 "too many scoped rows",
             ));
@@ -650,9 +661,16 @@ fn run_with_remaining<'context, T: ScopedContext>(
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
     profile_cu!("scope-enter");
+    let mut remaining = context.remaining_accounts()?;
+    #[cfg(feature = "book-inventory-qualification")]
+    let mut scope = if matches!(access, Remaining::FrozenPlanPages) {
+        Scope::inventory_pages(remaining.len())?
+    } else {
+        Scope::new()
+    };
+    #[cfg(not(feature = "book-inventory-qualification"))]
     let mut scope = Scope::new();
     context.accounts.visit(&mut scope)?;
-    let mut remaining = context.remaining_accounts()?;
     access.visit(&mut scope, &mut remaining)?;
     let mut payloads = event_cpi::Payloads::default();
     profile_cu!("handler-enter");
