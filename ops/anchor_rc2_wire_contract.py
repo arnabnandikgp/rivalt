@@ -139,7 +139,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
                                             | {r'Rivalt/frozen-member-order/v1\0'})
     # Format marker for the separately qualified margin extension.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -152,6 +152,21 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    allocation = unique('advance_btc_allocation')
+    assert allocation['discriminator'] == list(hashlib.sha256(b'global:advance_btc_allocation').digest()[:8])
+    assert allocation['args'] == [dict(name=name, type='u64') for name in ('epoch','revision','ordinal')] + [
+        dict(name='cutoff', type={'option': {'array': ['u64', 4]}})]
+    assert [item['name'] for item in allocation['accounts']] == (
+        'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared page margin event_authority program').split()
+    assert [item['name'] for item in allocation['accounts'] if item.get('writable')] == ['prepared','page']
+    assert not any(item.get('signer') or item.get('optional') for item in allocation['accounts'])
+    actual['instructions'].remove(allocation)
+    name='FrozenBtcAllocationRow'
+    event=dict(name=name,discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8]))
+    actual['events'].remove(event)
+    fields=[dict(name=field,type='u64') for field in (
+        'slot epoch attempt ordinal debtor_id member_id shortfall eligible charge matched_lots base_price extra_tick_lots').split()]
+    actual['types'].remove(dict(name=name,type=dict(kind='struct',fields=[dict(name='venue',type='pubkey'),*fields,dict(name='status',type='u8')])))
     pair=unique('verify_frozen_pair')
     assert pair['discriminator']==list(hashlib.sha256(b'global:verify_frozen_pair').digest()[:8])
     assert pair['args']==[{'name':name,'type':'u64'} for name in ('epoch','revision','debtor_ordinal','winner_ordinal')]

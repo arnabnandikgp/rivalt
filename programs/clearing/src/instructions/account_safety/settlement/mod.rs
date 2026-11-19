@@ -13,6 +13,7 @@ use financial_core::clearing::{
 };
 
 pub mod single_pair;
+pub mod btc_allocation;
 mod contexts;
 mod denominator;
 pub use denominator::*;
@@ -124,6 +125,8 @@ pub(crate) fn value_member(
         generations: root.positions.map(|position| position.generation),
         claims,
         collected,
+        #[cfg(feature = "btc-allocation-qualification")]
+        btc_charge: 0,
     };
     page.row_count += 1;
     header.state.valuation = valuation.checkpoint();

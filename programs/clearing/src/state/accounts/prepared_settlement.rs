@@ -57,6 +57,8 @@ pub struct FrozenMargin {
     pub generations: [u64; 2],
     pub claims: [i128; 2],
     pub collected: u64,
+    #[cfg(feature = "btc-allocation-qualification")]
+    pub btc_charge: u64,
 }
 #[account(borsh)]
 #[derive(InitSpace, Default)]

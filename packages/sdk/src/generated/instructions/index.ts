@@ -12,6 +12,7 @@ export * from "./acceptSettlementRateRow.js";
 export * from "./activateLiquidity.js";
 export * from "./activateMargin.js";
 export * from "./adoptSettlementPlan.js";
+export * from "./advanceBtcAllocation.js";
 export * from "./advancePreparedMembership.js";
 export * from "./allocateMarketFees.js";
 export * from "./applySettlementMargin.js";

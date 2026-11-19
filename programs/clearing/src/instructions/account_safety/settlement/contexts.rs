@@ -627,3 +627,18 @@ pub struct VerifyFrozenPair {
         constraint=winner.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub winner: Box<BorshAccount<MarginAccount>>,
 }
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct AdvanceBtcAllocation {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(mut,seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page.page_index.to_le_bytes()],bump=page.bump)]
+    pub page: Box<BorshAccount<FrozenMarginPage>>,
+    #[account(seeds=[b"margin-v3",margin.portfolio.as_ref(),&margin.subaccount_index.to_le_bytes()],bump=margin.bump,
+        constraint=margin.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub margin: Box<BorshAccount<MarginAccount>>,
+}

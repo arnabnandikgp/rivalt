@@ -1,7 +1,8 @@
-//! Exact selection for the funded two-debtor ThreeLotBook only.
+//! Frozen-episode default plan selection. The three-lot family below has two debtors.
 //! Member IDs 0 and 1 are debtors, 2..=7 are winners and 8 is the flat creditor.
 #![no_std]
 use core::cmp::Ordering;
+pub mod proportional;
 
 // Every unordered partition contains winner 0 in exactly one triple.
 const PARTNERS: [(usize, usize); 10] = [
@@ -28,17 +29,20 @@ pub fn valid_book(budget: u16, gains: &[u16; 6], cash: u16) -> bool {
         && gains.iter().map(|&gain| u32::from(gain)).sum::<u32>() == 2 * budget
 }
 
+/// D121 final ordering, shared by the native proposer and clearing.
+pub fn member_priority(venue: &[u8], episode: u64, member: u64) -> [u8; 32] {
+    solana_sha256_hasher::hashv(&[
+        b"Rivalt/frozen-member-order/v1\0",
+        venue,
+        &episode.to_le_bytes(),
+        &member.to_le_bytes(),
+    ])
+    .to_bytes()
+}
+
 pub fn priorities(venue: &[u8], episode: u64) -> ([u8; 6], u8) {
-    let digest = |member: u64| {
-        solana_sha256_hasher::hashv(&[
-            b"Rivalt/frozen-member-order/v1\0",
-            venue,
-            &episode.to_le_bytes(),
-            &member.to_le_bytes(),
-        ])
-        .to_bytes()
-    };
-    let hashes: [[u8; 32]; 8] = core::array::from_fn(|member| digest(member as u64));
+    let hashes: [[u8; 32]; 8] =
+        core::array::from_fn(|member| member_priority(venue, episode, member as u64));
     let mut winners = [0, 1, 2, 3, 4, 5];
     winners.sort_unstable_by_key(|&winner| (hashes[2 + winner as usize], winner));
     (winners, u8::from(hashes[1] < hashes[0]))

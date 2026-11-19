@@ -66,6 +66,11 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn advance_btc_allocation(ctx: &mut Context<AdvanceBtcAllocation>, epoch: u64, revision: u64,
+        ordinal: u64, cutoff: Option<[u64; 4]>) -> Result<()> {
+        scoped_history::run(ctx, [142, 42, 150, 24, 31, 163, 139, 71], false, |ctx, events|
+            account_safety::settlement::btc_allocation::advance(ctx, events, epoch, revision, ordinal, cutoff))
+    }
     pub fn verify_frozen_pair(ctx:&mut Context<VerifyFrozenPair>, epoch:u64, revision:u64, debtor_ordinal:u64, winner_ordinal:u64) -> Result<()> {
         scoped_history::run(ctx, [246, 61, 80, 20, 225, 73, 63, 215], false, |ctx, events| account_safety::settlement::single_pair::verify(ctx,events,epoch,revision,debtor_ordinal,winner_ordinal))
     }

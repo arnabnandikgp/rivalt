@@ -11,6 +11,36 @@ pub struct PairedLots {
     pub extra_tick_lots: u64,
 }
 
+/// Fixed frozen inputs for all charge proposals on this position.
+#[derive(Clone, Debug)]
+pub struct FrozenCapacity {
+    pub eligible: u64,
+    unit: BigUint,
+    per_lot: BigUint,
+}
+
+impl FrozenCapacity {
+    pub fn schedule(&self, charge: u64) -> Result<PairedLots> {
+        if charge > self.eligible {
+            return Err(Error::Bounds);
+        }
+        let mut plan = PairedLots {
+            eligible: self.eligible,
+            charge,
+            ..Default::default()
+        };
+        if charge > 0 {
+            plan.matched = (&self.unit * charge)
+                .div_ceil(&self.per_lot)
+                .to_u64()
+                .ok_or(Error::Overflow)?;
+            plan.base_ticks = charge / plan.matched;
+            plan.extra_tick_lots = charge % plan.matched;
+        }
+        Ok(plan)
+    }
+}
+
 impl Attribution {
     /// The price of each lot stays between mark and entry and inside the price
     /// domain. A partial reduction may charge only the matched share of unpaid
@@ -23,6 +53,22 @@ impl Attribution {
         available_lots: u64,
         shortfall: u64,
     ) -> Result<PairedLots> {
+        let terms = self.frozen_capacity(lots, mark, claim, available_lots)?;
+        terms.schedule(shortfall.min(terms.eligible))
+    }
+
+    pub fn frozen_capacity(
+        &self,
+        lots: i64,
+        mark: u64,
+        claim: i128,
+        available_lots: u64,
+    ) -> Result<FrozenCapacity> {
+        let empty = || FrozenCapacity {
+            eligible: 0,
+            per_lot: BigUint::zero(),
+            unit: BigUint::one(),
+        };
         let quantity = lots.unsigned_abs();
         if mark == 0
             || mark > MAX_PRICE
@@ -33,44 +79,28 @@ impl Attribution {
             return Err(Error::Bounds);
         }
         if claim <= 0 || available_lots == 0 {
-            return Ok(PairedLots::default());
+            return Ok(empty());
         }
         let unit = &self.denominator * SCALE as u64;
         let gain = self.price_profit(lots.signum(), mark);
         if gain.sign() != Sign::Plus || gain.magnitude() <= &self.paid {
-            return Ok(PairedLots::default());
+            return Ok(empty());
         }
         let gain = gain.magnitude();
         let room = if lots > 0 { mark - 1 } else { MAX_PRICE - mark };
         let ticks = (gain / &unit).min(room.into());
         let per_lot = (ticks * &unit).min(gain - &self.paid);
         if per_lot.is_zero() {
-            return Ok(PairedLots::default());
+            return Ok(empty());
         }
         let eligible = ((&per_lot * available_lots) / &unit)
             .min(BigUint::from((claim / SCALE) as u128))
             .to_u64()
             .ok_or(Error::Overflow)?;
-        let charge = shortfall.min(eligible);
-        if charge == 0 {
-            return Ok(PairedLots {
-                eligible,
-                ..Default::default()
-            });
-        }
-        let matched = (&unit * charge)
-            .div_ceil(&per_lot)
-            .to_u64()
-            .ok_or(Error::Overflow)?;
-        if matched == 0 || matched > available_lots {
-            return Err(Error::Invariant);
-        }
-        Ok(PairedLots {
+        Ok(FrozenCapacity {
             eligible,
-            charge,
-            matched,
-            base_ticks: charge / matched,
-            extra_tick_lots: charge % matched,
+            per_lot,
+            unit,
         })
     }
 }

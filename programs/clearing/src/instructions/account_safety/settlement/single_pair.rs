@@ -21,6 +21,8 @@ fn receipt(header: &PreparedSettlement) -> Result<(u64, u64, u64)> {
 }
 #[cfg(feature = "single-pair-default-qualification")]
 pub(super) fn verified_charge(header: &PreparedSettlement) -> Result<u64> {
+    #[cfg(feature="btc-allocation-qualification")]
+    if let Some(plan) = super::btc_allocation::committed(header)? { return Ok(plan.recovered); }
     Ok(receipt(header)?.2)
 }
 
@@ -30,6 +32,12 @@ pub(super) fn economic_claims(
 ) -> Result<[i128; 2]> {
     #[cfg(feature = "single-pair-default-qualification")]
     {
+        #[cfg(feature="btc-allocation-qualification")]
+        if let Some(plan) = super::btc_allocation::committed(header)? {
+            let delta = if frozen.id == plan.debtor { i128::from(plan.recovered) } else { -i128::from(frozen.btc_charge) };
+            let claim = frozen.claims[0].checked_add(delta * financial_core::SCALE).ok_or(ClearingError::Arithmetic)?;
+            return Ok([claim, frozen.claims[1]]);
+        }
         let (debtor, winner, charge) = receipt(header)?;
         let scaled = i128::from(charge) * financial_core::SCALE;
         let delta = if frozen.id == debtor {

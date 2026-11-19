@@ -696,3 +696,21 @@ pub struct FrozenBtcReductionVerified {
     pub matched_lots: u64,
     pub extra_tick_lots: u64,
 }
+
+#[event]
+pub struct FrozenBtcAllocationRow {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub attempt: u64,
+    pub ordinal: u64,
+    pub debtor_id: u64,
+    pub member_id: u64,
+    pub shortfall: u64,
+    pub eligible: u64,
+    pub charge: u64,
+    pub matched_lots: u64,
+    pub base_price: u64,
+    pub extra_tick_lots: u64,
+    pub status: u8,
+}

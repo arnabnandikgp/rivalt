@@ -55,16 +55,24 @@ impl SnapshotScan {
     /// Every positive claim over the original debt is already backed by the
     /// settlement pool. No ETH edge can reallocate this debtor's cash.
     pub fn sole_btc_shortfall(&self, debtor: FrozenSide, winner: FrozenSide) -> Result<u64> {
+        if debtor.lots.checked_neg() != Some(winner.lots) || winner.claim < 0 {
+            return Err(Error::Cohort);
+        }
+        self.unique_btc_debtor_shortfall(debtor)
+    }
+
+    /// A complete conserved cohort has zero net lots. If twice this member's
+    /// quantity exhausts gross, it owns its entire side of the BTC book. The
+    /// negative total proves it also owns every BTC debt, including flat debt.
+    pub fn unique_btc_debtor_shortfall(&self, debtor: FrozenSide) -> Result<u64> {
         let totals = self.result()?;
         let quantity = debtor.lots.unsigned_abs();
         if quantity == 0
             || quantity.checked_mul(2) != Some(self.binding.gross[0])
             || self.binding.gross[1] != 0
-            || debtor.lots.checked_neg() != Some(winner.lots)
             || totals.negative[1] != ClaimTotal::default()
             || totals.positive[1] != ClaimTotal::default()
             || debtor.claim >= 0
-            || winner.claim < 0
             || totals.negative[0] != ClaimTotal::scalar(debtor.claim.unsigned_abs())
         {
             return Err(Error::Cohort);

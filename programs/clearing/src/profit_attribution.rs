@@ -108,7 +108,7 @@ pub fn clear_resolved(root: &mut BorshAccount<MarginAccount>) -> Result<()> {
 }
 
 #[cfg(feature="single-pair-default-qualification")]
-fn frozen_btc_history(root:&BorshAccount<MarginAccount>) -> Result<Attribution> {
+pub(crate) fn frozen_btc_history(root:&BorshAccount<MarginAccount>) -> Result<Attribution> {
     let account=root.account();
     require!(valid_margin_size(account.data_len()),ClearingError::Profile);
     let data=account.try_borrow()?;

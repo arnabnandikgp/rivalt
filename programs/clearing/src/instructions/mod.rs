@@ -380,3 +380,8 @@ pub use account_safety::settlement::VerifyFrozenPair;
 pub(crate) use account_safety::settlement::__client_accounts_verifyfrozenpair;
 #[cfg(feature="cpi")]
 pub(crate) use account_safety::settlement::__cpi_accounts_verifyfrozenpair;
+
+pub use account_safety::settlement::AdvanceBtcAllocation;
+pub(crate) use account_safety::settlement::__client_accounts_advancebtcallocation;
+#[cfg(feature="cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_advancebtcallocation;
