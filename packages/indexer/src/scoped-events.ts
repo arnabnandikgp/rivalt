@@ -8,6 +8,7 @@ import {inventoryInstruction, isValidTransitionScope, type ScopedEnvelope, type 
 
 const eventTag = Buffer.from('e445a52e51cb9a1d', 'hex');
 const transitionTag = createHash('sha256').update('event:AccountTransition').digest().subarray(0, 8);
+const grossView = createHash('sha256').update('global:read_market_gross').digest().subarray(0,8);
 const instructions = new Set(clearingIdl.instructions.map(instruction => Buffer.from(instruction.discriminator).toString('hex')));
 const payloadTags = new Set(clearingIdl.events.filter(event => event.name !== 'AccountTransition')
   .map(event => createHash('sha256').update(`event:${event.name}`).digest().subarray(0, 8).toString('hex')));
@@ -144,6 +145,10 @@ export function scopedInvocations(signature: string, transaction: any, transacti
     let invocationIndex = 0;
     const start = (current: Instruction): Invocation | null => {
       if (current.program !== binding.program) return null;
+      if(current.bytes.equals(grossView)){
+        if(current.accounts.length!==5)throw new Error('Invalid read-only market view');
+        return null; // Five read-only accounts, eight bytes of return data, zero financial effects.
+      }
       if (!instructions.has(current.bytes.subarray(0, 8).toString('hex'))) throw new Error('Unknown clearing entrypoint');
       const invocation = {outer, invocation: invocationIndex++, instruction: current, payloads: [], footer: null};
       invocations.push(invocation); return invocation;

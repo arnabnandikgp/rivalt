@@ -155,6 +155,14 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    view = unique('read_market_gross')
+    assert view['discriminator'] == list(hashlib.sha256(b'global:read_market_gross').digest()[:8])
+    assert view.get('returns') == 'u64' and not view['args']
+    assert [item['name'] for item in view['accounts']] == 'venue market first second third'.split()
+    assert not any(item.get('signer') or item.get('writable') or item.get('optional') for item in view['accounts'])
+    for index, lane in enumerate(view['accounts'][2:]):
+        assert lane['pda']['seeds'] == [dict(kind='const',value=list(b'maker-v4')),dict(kind='account',path='market'),dict(kind='const',value=[index])]
+    actual['instructions'].remove(view)
     fees = unique('classify_market_fees')
     assert fees['discriminator'] == list(hashlib.sha256(b'global:classify_market_fees').digest()[:8])
     assert not fees['args']

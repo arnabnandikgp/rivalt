@@ -15,12 +15,12 @@ import {
   type ProgramDerivedAddress,
 } from "@solana/kit";
 
-export type MakerRegistrationSeeds = {
+export type ThirdMakerRegistrationSeeds = {
   market: Address | HasAddress;
 };
 
-export async function findMakerRegistrationPda(
-  seeds: MakerRegistrationSeeds,
+export async function findThirdMakerRegistrationPda(
+  seeds: ThirdMakerRegistrationSeeds,
   config: { programAddress?: Address | HasAddress | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {

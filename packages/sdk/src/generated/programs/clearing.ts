@@ -498,16 +498,18 @@ import {
   findEthLedgerPda,
   findEthPda,
   findEventAuthorityPda,
+  findFirstMakerRegistrationPda,
   findFundingPublisherPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
-  findMakerRegistrationPda,
   findMarginAccountPda,
   findMarketLedgerPda,
   findPortfolioPda,
   findReceiptPda,
   findResolutionPda,
+  findSecondMakerRegistrationPda,
   findStoragePda,
+  findThirdMakerRegistrationPda,
   findVenuePda,
   findVenueRegistryPda,
   findVenueSafetyPda,
@@ -3998,9 +4000,9 @@ export type ClearingPluginPdas = {
   certificate: typeof findCertificatePda;
   liquidityRegistry: typeof findLiquidityRegistryPda;
   venue: typeof findVenuePda;
-  makerRegistration: typeof findMakerRegistrationPda;
-  makerRegistration: typeof findMakerRegistrationPda;
-  makerRegistration: typeof findMakerRegistrationPda;
+  firstMakerRegistration: typeof findFirstMakerRegistrationPda;
+  secondMakerRegistration: typeof findSecondMakerRegistrationPda;
+  thirdMakerRegistration: typeof findThirdMakerRegistrationPda;
   capitalBinding: typeof findCapitalBindingPda;
   marginAccount: typeof findMarginAccountPda;
 };
@@ -4959,18 +4961,18 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          makerRegistration: (seeds, pdaConfig) =>
-            findMakerRegistrationPda(seeds, {
+          firstMakerRegistration: (seeds, pdaConfig) =>
+            findFirstMakerRegistrationPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          makerRegistration: (seeds, pdaConfig) =>
-            findMakerRegistrationPda(seeds, {
+          secondMakerRegistration: (seeds, pdaConfig) =>
+            findSecondMakerRegistrationPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
-          makerRegistration: (seeds, pdaConfig) =>
-            findMakerRegistrationPda(seeds, {
+          thirdMakerRegistration: (seeds, pdaConfig) =>
+            findThirdMakerRegistrationPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

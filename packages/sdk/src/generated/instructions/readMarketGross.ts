@@ -36,7 +36,11 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
-import { findMakerRegistrationPda } from "../pdas/index.js";
+import {
+  findFirstMakerRegistrationPda,
+  findSecondMakerRegistrationPda,
+  findThirdMakerRegistrationPda,
+} from "../pdas/index.js";
 import { CLEARING_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const READ_MARKET_GROSS_DISCRIMINATOR: ReadonlyUint8Array =
@@ -191,7 +195,7 @@ export async function getReadMarketGrossInstructionAsync<
 
   // Resolve default values.
   if (!accounts.first.value) {
-    accounts.first.value = await findMakerRegistrationPda(
+    accounts.first.value = await findFirstMakerRegistrationPda(
       {
         market: getAddressFromResolvedInstructionAccount(
           "market",
@@ -202,7 +206,7 @@ export async function getReadMarketGrossInstructionAsync<
     );
   }
   if (!accounts.second.value) {
-    accounts.second.value = await findMakerRegistrationPda(
+    accounts.second.value = await findSecondMakerRegistrationPda(
       {
         market: getAddressFromResolvedInstructionAccount(
           "market",
@@ -213,7 +217,7 @@ export async function getReadMarketGrossInstructionAsync<
     );
   }
   if (!accounts.third.value) {
-    accounts.third.value = await findMakerRegistrationPda(
+    accounts.third.value = await findThirdMakerRegistrationPda(
       {
         market: getAddressFromResolvedInstructionAccount(
           "market",

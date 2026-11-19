@@ -1,3 +1,4 @@
+import {decodeCapacityAnchor} from './market-capacity.js';
 import {decodeFeeLedger} from './market-fees.js';
 import {decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
 import {address,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
@@ -72,11 +73,11 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(custodyState.schemaVersion===10&&custodyState.venue===venue&&custodyState.bump===custodyBump&&
     safetyState.schemaVersion===10&&safetyState.venue===venue&&safetyState.bump===safetyBump&&[0,1,2,3,4].includes(safetyState.mode),'Account custody/safety identity.');
   const marketStates=markets.map((key,index)=>{
-    const value=decode(accounts.get(key),protocol.MARKET_DISCRIMINATOR,protocol.getMarketDecoder());
+    const value=identity.marginLayout==='bounded-market'?decodeCapacityAnchor(raw(accounts.get(key))).market:decode(accounts.get(key),protocol.MARKET_DISCRIMINATOR,protocol.getMarketDecoder());
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.index===index&&value.bump===marketPdas[index][1]&&
       value.lotsPerUnit===(index===0?1_000_000n:100_000n),'Market identity/units mismatch.');return value;
   });
-  const feeEscrow=identity.marginLayout==='aggregate-fees'?ledgers.map(key=>decodeFeeLedger(raw(accounts.get(key)))):undefined;
+  const feeEscrow=(identity.marginLayout==='aggregate-fees'||identity.marginLayout==='bounded-market')?ledgers.map(key=>decodeFeeLedger(raw(accounts.get(key)))):undefined;
   const ledgerStates=ledgers.map((key,index)=>{
     const value=feeEscrow?.[index].state??decode(accounts.get(key),protocol.MARKET_LEDGER_DISCRIMINATOR,protocol.getMarketLedgerDecoder());
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.market===markets[index]&&value.marketIndex===index&&value.bump===ledgerPdas[index][1]&&

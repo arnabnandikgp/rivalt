@@ -86,6 +86,15 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
           name = pda.name;
         }
       }
+      if (name === 'makerRegistration') {
+        const instance = pda.seeds?.[2];
+        if (isNode(instance,'constantPdaSeedNode')) {
+          assert(isNode(instance.value,'bytesValueNode') && instance.value.encoding==='base58');
+          const ordinals:Record<string,string>={'1':'first','2':'second','3':'third'};
+          assert(Object.hasOwn(ordinals,instance.value.data),'Unknown sealed maker instance');
+          name=ordinals[instance.value.data]+'MakerRegistration';
+        }
+      }
       if (name === 'marketLedger') {
         const marketSeed = pda.seeds?.[1];
         assert(isNode(marketSeed, 'variablePdaSeedNode'));

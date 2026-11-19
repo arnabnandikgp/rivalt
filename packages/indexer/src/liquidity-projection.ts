@@ -25,7 +25,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
   const marketIndex=venue.markets.indexOf(change.market??change.state?.market);
   check(marketIndex>=0&&marketIndex<venue.marketCount,'liquidity market');
   const feesForMarket=()=>{
-    check(artifactSet===sdk.AGGREGATE_FEE_ARTIFACT_SET,'fee lane deployment');
+    check(sdk.hasAggregateFees(artifactSet),'fee lane deployment');
     liquidity.feeAccounting??={};
     return liquidity.feeAccounting[change.market]??={lanes:{},classified:'0',pending:'0'};
   };
@@ -109,7 +109,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
         accounting.lanes[lane]=String(collected);
         accounting.pending=String(pending);
       } else {
-        check(artifactSet!==sdk.AGGREGATE_FEE_ARTIFACT_SET,'unexpected serial fee receipt');
+        check(!sdk.hasAggregateFees(artifactSet),'unexpected serial fee receipt');
         same(BigInt(change.fee),BigInt(change.insuranceCredit)+BigInt(change.retainedFee),'canonical fee partition');
         check(BigInt(change.insuranceCredit)===(BigInt(change.fee)+BigInt(change.carryBefore))/4n
           &&BigInt(change.carryAfter)===(BigInt(change.fee)+BigInt(change.carryBefore))%4n,'canonical insurance fee carry');

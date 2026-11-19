@@ -87,7 +87,7 @@ export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venu
   const capitals: Address[] = [], dependencies: Address[] = [registry,...registrations];
   for (const [instance,key] of registrations.entries()) {
     const raw = bytes(accounts,key,clearing.CLEARING_PROGRAM_ADDRESS);
-    const state = layout==='aggregate-fees'?decodeMakerFeeLane(raw).state:decode(raw,clearing.MAKER_REGISTRATION_DISCRIMINATOR,
+    const state = (layout==='aggregate-fees'||layout==='bounded-market')?decodeMakerFeeLane(raw,layout==='bounded-market').state:decode(raw,clearing.MAKER_REGISTRATION_DISCRIMINATOR,
       clearing.getMakerRegistrationDecoder());
     requireValue(state.schemaVersion === 10 && state.venue === venue && state.market === market && state.instance === instance,
       'Foreign liquidity discovery.');
@@ -121,7 +121,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
     const [expectedRegistration, registrationBump] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
       seeds: [new TextEncoder().encode('maker-v4'), KEY.encode(snapshot.market), Uint8Array.of(instance)] });
     const rawRegistration=bytes(accounts,registrationKey,clearing.CLEARING_PROGRAM_ADDRESS);
-    const registration = snapshot.marginLayout==='aggregate-fees'?decodeMakerFeeLane(rawRegistration).state:decode(rawRegistration, clearing.MAKER_REGISTRATION_DISCRIMINATOR,
+    const registration = (snapshot.marginLayout==='aggregate-fees'||snapshot.marginLayout==='bounded-market')?decodeMakerFeeLane(rawRegistration,snapshot.marginLayout==='bounded-market').state:decode(rawRegistration, clearing.MAKER_REGISTRATION_DISCRIMINATOR,
       clearing.getMakerRegistrationDecoder());
     requireValue(registrationKey === expectedRegistration && registration.bump === registrationBump && registration.schemaVersion === 10
       && registration.venue === snapshot.venue && registration.market === snapshot.market && registration.instance === instance

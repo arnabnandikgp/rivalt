@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import {AGGREGATE_FEE_ARTIFACT_SET,attributeFinalizedFee} from '@rivalt/sdk';
+import {hasAggregateFees,attributeFinalizedFee} from '@rivalt/sdk';
 import type {LiquidityIndexer} from './liquidity-indexer.js';
 import {publishedSnapshot} from './store.js';
 
@@ -56,7 +56,7 @@ export function accountApi(indexer:LiquidityIndexer) {
       try {
         await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
         const row=publishedSnapshot<any,any>((await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0]);
-        const aggregate=row.binding.artifactSet===AGGREGATE_FEE_ARTIFACT_SET;
+        const aggregate=hasAggregateFees(row.binding.artifactSet);
         const tradeKind=aggregate?'LiquidityRouteFeeRecorded':'LiquidityRouteExecutedV4';
         const result=await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
           WHERE run_id=$1 AND sequence>$2 AND sequence<=$4 ${endpoint==='trades'?`AND kind='${tradeKind}'`:''}

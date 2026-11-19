@@ -124,10 +124,12 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
         if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
           sdk.decodeProfitAttribution(bytes,sponsored);
-        } else if(binding.artifactSet===sdk.AGGREGATE_FEE_ARTIFACT_SET && (entity.kind===7||entity.kind===15)) {
+        } else if(binding.artifactSet===sdk.BOUNDED_MARKET_ARTIFACT_SET && entity.kind===6) {
+          sdk.decodeCapacityAnchor(bytes);
+        } else if(sdk.hasAggregateFees(binding.artifactSet) && (entity.kind===7||entity.kind===15)) {
           assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
           const offset=descriptor[1];
-          assert.equal(bytes.length,offset+(entity.kind===7?24:16),'fee lane account size');
+          assert.equal(bytes.length,offset+(entity.kind===7?24:binding.artifactSet===sdk.BOUNDED_MARKET_ARTIFACT_SET?32:16),'fee lane account size');
           const lifetime=bytes.readBigUInt64LE(offset)+(bytes.readBigUInt64LE(offset+8)<<64n);
           const market=entity.kind===7?state.ledgers[key].market:state.liquidity!.makers[key].market;
           const fees=state.liquidity?.feeAccounting?.[market];
@@ -147,6 +149,19 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     const account=observed.get(key);assert(account?.owner===owner&&account.data[1]==='base64',`Missing/foreign account ${key}`);
     const bytes=Buffer.from(account.data[0],'base64');if(discriminator)assert(bytes.subarray(0,8).equals(Buffer.from(discriminator)),`Discriminator ${key}`);return bytes;
   };
+  if(binding.artifactSet===sdk.BOUNDED_MARKET_ARTIFACT_SET){
+    for(const [market,projected] of Object.entries(state.markets)){
+      const makers=Object.entries(state.liquidity!.makers).filter(([,maker])=>maker.market===market)
+        .sort(([,left],[,right])=>left.instance-right.instance);
+      // Unsealed or partially initialized markets do not yet expose the capacity view.
+      if(makers.length<3){
+        assert.equal(projected.grossLots,'0');
+        continue;
+      }
+      assert.equal(String(sdk.grossFromCapacity(address(market),raw(market),makers.map(([key])=>raw(key)))),
+        projected.grossLots,'bounded capacity versus finalized market gross');
+    }
+  }
   // Settlement ordinals are the sorted stable IDs at freeze. Later membership
   // changes and retired roots cannot renumber a completed episode.
   const frozenIds=state.pagedSettlement&&state.resolution

@@ -40,3 +40,4 @@ export * from './frozen-pair.js';
 export * from './btc-allocation.js';
 
 export * from './market-fees.js';
+export * from './market-capacity.js';
