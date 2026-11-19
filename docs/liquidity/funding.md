@@ -174,3 +174,15 @@ pricing implementation twice. Clearing bounds a dishonest authorized publisher's
 effect but does not prove coverage or optimality. Financially unexecutable published
 depth can influence funding. Failure-based automatic maker exclusion remains
 deferred; quarantine invalidates complete coverage rather than creating a new set.
+
+## Market funding consumed by another market
+
+A BTC execution can materialize the ETH index for a cross account. Once the
+held observation expires, rebuilding ETH from only the fills that traded ETH can
+understate what the trader already paid. For a single observation, the candidate
+fold uses the latest valid chain slot among all actions that materialized the
+target market. Its timestamp, the original premium and the observation's base
+determine the exact index. The slot orders touches even when the premium is
+negative or wall-clock time decreases. Equal-slot touches must agree on time.
+A new observation or configuration makes earlier touches ineligible.
+[Signed funding-gap comparison](../operations/validation.md#cross-market-funding-after-a-publication-gap).

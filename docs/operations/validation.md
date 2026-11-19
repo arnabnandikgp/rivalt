@@ -1,5 +1,23 @@
 # Validation and measured limits
 
+## Cross-market funding after a publication gap
+
+On clearing `3ace707`, signed harness `3abe03e` opened one ETH lot and then
+one BTC lot on the same cross account. No ETH maker registration appeared in
+the BTC transaction. ETH's two-tick premium raised its funding index from
+4,444,444 to 5,555,555 scaled units on that BTC fill. The trader's ETH virtual
+balance fell by exactly 1,111,111 scaled units. After a 31-second publication
+gap the next ETH report retained 5,555,555, credited two covered seconds and
+recorded 29 skipped. The BTC original used 176,704 CU and 1,006 v0 bytes.
+256 signed harness outcomes and 70 events replayed in fresh PostgreSQL.
+
+Rust revision `da46c8f` recovered both indices from the finalized route receipts
+and the subsequent market account. Two focused native tests also exercised
+negative funding, decreasing timestamps, equal-slot conflicts, old generations
+and expired observations. This is a financial dependency for removing the
+market write. The deployed fills in this comparison still use the serial funding
+index. [Funding contract](../liquidity/funding.md#market-funding-consumed-by-another-market).
+
 ## Signed bounded market gross
 
 SBF `3ace707`, 2,900,728 bytes, SHA-256

@@ -103,6 +103,29 @@ market and ledger. These figures give a cost for serving an exact aggregate
 read and maintaining the capacity accounts. They establish no improvement
 in concurrent fills or sustainable throughput. [Settlement and liquidation checks](validation.md#signed-bounded-market-gross).
 
+### Funding checkpoint accounts on a cross fill
+
+The ETH-only v0 original was 942 bytes. A BTC trade that consumed the trader's
+open ETH funding was 1,006 bytes. Recompiling the same messages with additional
+writable accounts produced the following sizes. Only the original transactions
+were submitted.
+
+| Funding checkpoint placement | ETH-only bytes | BTC with ETH exposure bytes | Accounts needed for a target-market funding check |
+|---|---:|---:|---|
+| Two market slots in the first maker registration | 942 | 1,006 | Six registrations across the two markets |
+| Target market's registration with the first maker's instance number | 942 | 1,039 | Three target-market registrations |
+| Dedicated target-market accounts by maker instance | 975 | 1,072 | Three target-market funding accounts |
+
+The middle option keeps the recovery read local to the market and adds one
+writable account to this cross fill. It can create contention with an ETH fill
+using the same instance. Extra accounts imply no extra maker signature. The
+wire comparison measures neither CU nor contention on an altered deployment.
+Reproduce with `RIVALT_SETTLEMENT_PROBE=profit-attribution-cross-fill-funding`
+on the [bounded-market build](local-development.md#reproduce-the-bounded-market-read).
+Build the `funding_prefix_replay` example for `financial-core` with
+`--features parallel-market-prototype`, then run
+`node --import tsx tests/performance/replay-cross-fill-funding.ts <run-directory>`.
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,
