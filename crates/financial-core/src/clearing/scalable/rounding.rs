@@ -509,7 +509,7 @@ impl<'a, 'rows> Circulation<'a, 'rows> {
                 }
             }
             if cash[index] > MAX_CASH
-                || cash[index] < row.cash - row.collected()?
+                || cash[index] < row.cash - plan.collection_rows[index].collected()?
                 || i128::from(cash[index])
                     != i128::from(row.cash)
                         + i128::from(movements[index][0])

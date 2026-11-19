@@ -39,6 +39,7 @@ python3 tests/financial/test_cross_market_adl.py
 python3 tests/financial/test_creditor_payout_floors.py
 python3 tests/financial/test_joint_reductions.py
 python3 tests/financial/test_joint_market_ties.py
+python3 tests/financial/test_frozen_cash_allocation.py
 python3 tests/financial/test_default_plan_certificate.py
 python3 tests/financial/test_bounded_default_search.py
 cargo test --locked -p default-plan-selection --test proportional

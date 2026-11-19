@@ -5,7 +5,7 @@ use financial_core::{
         scalable::{
             number::{Arithmetic, Number},
             rounding::Circulation,
-            settlement::{verify, Proposal},
+            settlement::{verify, verify_reduced_claims, Proposal},
             wide::required_limbs,
         },
     },
@@ -59,6 +59,21 @@ fn decimals(values: impl IntoIterator<Item = u64>) -> String {
         .collect::<Vec<_>>()
         .join(",")
 }
+fn parse_rows(value: &str) -> Result<Vec<Row>> {
+    value
+        .split(';')
+        .map(|text| {
+            let values: Vec<_> = text.split(',').collect();
+            if values.len() != 3 {
+                return Err(Error::Bounds);
+            }
+            Ok(Row {
+                cash: decimal(values[0])?,
+                claims: [decimal(values[1])?, decimal(values[2])?],
+            })
+        })
+        .collect()
+}
 fn execute(line: &str) -> Result<String> {
     let fields: Vec<_> = line.split('|').collect();
     if fields.len() == 5 && ["atoms", "product"].contains(&fields[0]) {
@@ -76,22 +91,13 @@ fn execute(line: &str) -> Result<String> {
             arithmetic.steps
         ));
     }
-    if fields.len() != 9 || !["full", "compact", "paged"].contains(&fields[0]) {
+    let reduced = fields[0] == "reduced";
+    if (reduced && fields.len() != 10)
+        || (!reduced && (fields.len() != 9 || !["full", "compact", "paged"].contains(&fields[0])))
+    {
         return Err(Error::Bounds);
     }
-    let rows = fields[1]
-        .split(';')
-        .map(|text| {
-            let values: Vec<_> = text.split(',').collect();
-            if values.len() != 3 {
-                return Err(Error::Bounds);
-            }
-            Ok(Row {
-                cash: decimal(values[0])?,
-                claims: [decimal(values[1])?, decimal(values[2])?],
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
+    let rows = parse_rows(fields[1])?;
     let capacity = required_limbs(u64::try_from(rows.len()).map_err(|_| Error::Bounds)?)?;
     let budget: u64 = decimal(fields[8])?;
     let mut arithmetic = Arithmetic::new(capacity, budget)?;
@@ -108,14 +114,24 @@ fn execute(line: &str) -> Result<String> {
             })
         })
         .collect::<Result<Vec<_>>>()?;
-    let plan = verify(
-        &rows,
-        pair(fields[2])?,
-        pair(fields[3])?,
-        pair(fields[4])?,
-        &proposals,
-        &mut arithmetic,
-    )?;
+    let original;
+    let pools = pair(fields[2])?;
+    let insurance = pair(fields[3])?;
+    let fees = pair(fields[4])?;
+    let plan = if reduced {
+        original = parse_rows(fields[9])?;
+        verify_reduced_claims(
+            &original,
+            &rows,
+            pools,
+            insurance,
+            fees,
+            &proposals,
+            &mut arithmetic,
+        )?
+    } else {
+        verify(&rows, pools, insurance, fees, &proposals, &mut arithmetic)?
+    };
     let orders = [fields[6], fields[7]]
         .map(|text| text.split(',').map(decimal).collect::<Result<Vec<u64>>>());
     let [first, second] = orders;
@@ -179,7 +195,7 @@ fn execute(line: &str) -> Result<String> {
         .collect::<Vec<_>>()
         .join(";");
     let mut attribution = Vec::new();
-    if ["full", "paged"].contains(&fields[0]) {
+    if ["full", "paged", "reduced"].contains(&fields[0]) {
         for index in 0..rows.len() {
             let row = plan.attribution(index, &mut arithmetic)?;
             attribution.push(

@@ -26,6 +26,7 @@ pub struct Floors {
 #[derive(Debug)]
 pub struct Verified<'a> {
     pub(crate) rows: &'a [Row],
+    pub(crate) collection_rows: &'a [Row],
     pub(crate) pools: [u64; 2],
     pub(crate) common: Number,
     pub(crate) factor: Number,
@@ -126,7 +127,7 @@ impl Verified<'_> {
     /// denominator. Only a constant number of wide registers is live per row.
     pub(crate) fn flow(&self, index: usize, arithmetic: &mut Arithmetic) -> Result<Flow> {
         let row = self.rows.get(index).ok_or(Error::Bounds)?;
-        let collection = ReducedCollection::for_row(row)?;
+        let collection = ReducedCollection::for_row(&self.collection_rows[index])?;
         let (base, remainder) = arithmetic.divide_small(&self.common, collection.denominator)?;
         if remainder != 0 {
             return Err(Error::Invariant);
@@ -218,7 +219,7 @@ impl Verified<'_> {
     pub fn attribution(&self, index: usize, arithmetic: &mut Arithmetic) -> Result<Attribution> {
         let flows = self.flow(index, arithmetic)?.values;
         let row = &self.rows[index];
-        let reduced = ReducedCollection::for_row(row)?;
+        let reduced = ReducedCollection::for_row(&self.collection_rows[index])?;
         let (base, remainder) = arithmetic.divide_small(&self.common, reduced.denominator)?;
         if remainder != 0 {
             return Err(Error::Invariant);
@@ -283,6 +284,70 @@ pub fn verify<'a>(
     proposals: &[Proposal],
     arithmetic: &mut Arithmetic,
 ) -> Result<Verified<'a>> {
+    verify_bound_rows(rows, rows, pools, insurance, fees, proposals, arithmetic)
+}
+
+/// D117 native settlement of already admitted paired reductions. Corresponding
+/// ordinals must identify the same original member; the eventual on-chain
+/// adapter must authenticate this identity and independently certify selection.
+pub fn verify_reduced_claims<'a>(
+    original: &'a [Row],
+    effective: &'a [Row],
+    pools: [u64; 2],
+    insurance: [u64; 2],
+    fees: [u64; 2],
+    proposals: &[Proposal],
+    arithmetic: &mut Arithmetic,
+) -> Result<Verified<'a>> {
+    if original.len() != effective.len() {
+        return Err(Error::Cohort);
+    }
+    totals(original, pools, insurance, fees, arithmetic)?;
+    for (before, after) in original.iter().zip(effective) {
+        after.validate()?;
+        if before.cash != after.cash {
+            return Err(Error::Cohort);
+        }
+        let allocation = ReducedCollection::for_row(before)?;
+        for market in 0..2 {
+            let from = before.claims[market];
+            let to = after.claims[market];
+            if (to != 0 && from.signum() != to.signum())
+                || to.unsigned_abs() > from.unsigned_abs()
+                || from.abs_diff(to) % SCALE as u128 != 0
+            {
+                return Err(Error::Cohort);
+            }
+            // Compare exact rationals before any whole-atom division. An
+            // account cannot erase debt already assigned its funded cash.
+            let face = crate::clearing::wide::product_small(
+                to.min(0).unsigned_abs(),
+                allocation.denominator,
+            )?;
+            if allocation.numerators[market]
+                .iter()
+                .rev()
+                .cmp(face.iter().rev())
+                .is_gt()
+            {
+                return Err(Error::Cohort);
+            }
+        }
+    }
+    verify_bound_rows(
+        effective, original, pools, insurance, fees, proposals, arithmetic,
+    )
+}
+
+fn verify_bound_rows<'a>(
+    rows: &'a [Row],
+    collection_rows: &'a [Row],
+    pools: [u64; 2],
+    insurance: [u64; 2],
+    fees: [u64; 2],
+    proposals: &[Proposal],
+    arithmetic: &mut Arithmetic,
+) -> Result<Verified<'a>> {
     let count = u64::try_from(rows.len()).map_err(|_| Error::Bounds)?;
     if proposals.is_empty() || proposals.len() > 3 || arithmetic.capacity != required_limbs(count)?
     {
@@ -290,7 +355,7 @@ pub fn verify<'a>(
     }
     let totals = totals(rows, pools, insurance, fees, arithmetic)?;
     let mut common = Number::from(1);
-    for row in rows {
+    for row in collection_rows {
         common = arithmetic.lcm(&common, ReducedCollection::for_row(row)?.denominator)?;
     }
     let aggregate_bits = 87 + u64::from(64 - (count - 1).leading_zeros());
@@ -317,6 +382,7 @@ pub fn verify<'a>(
         }
         let mut plan = Verified {
             rows,
+            collection_rows,
             pools,
             common: common.clone(),
             factor: proposal.factor.clone(),

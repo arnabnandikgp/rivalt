@@ -34,17 +34,21 @@ def proposal(common, rates):
     return factor, *(int(rate * common * factor) for rate in rates)
 
 
-def independent_input(rows, pools, insurance, fees=(0, 0)):
+def independent_input(rows, pools, insurance, fees=(0, 0), *, frozen_collections=None):
     accounts = tuple(Account(cash, tuple(Fraction(claim, SCALE) for claim in claims)) for cash, claims in rows)
     budgets, proposals, common = list(insurance), [], 1
-    for cash, claims in rows:
+    for index, (cash, claims) in enumerate(rows):
+        if frozen_collections is not None:
+            common = lcm(common, *((amount * SCALE).denominator for amount in frozen_collections[index]))
+            continue
         debts = tuple(max(-claim, 0) for claim in claims)
         total = sum(debts)
         if total:
             collected = min(cash, total // SCALE)
             common = lcm(common, *(Fraction(collected*SCALE*debt, total).denominator for debt in debts))
     for _ in range(3):
-        benchmark = clear_rational_cohort(accounts, pools, tuple(budgets), fees, whole_cash_collection=True)
+        benchmark = clear_rational_cohort(accounts, pools, tuple(budgets), fees, whole_cash_collection=True,
+                                          frozen_collections=frozen_collections)
         proposals.append(proposal(common, benchmark.rates))
         fractional = [market for market in range(2) if benchmark.insurance_spent[market].denominator != 1]
         if not fractional:
