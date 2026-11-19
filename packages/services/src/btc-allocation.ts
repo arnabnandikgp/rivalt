@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {getAddressEncoder,type Address} from '@solana/kit';
-import type {PerLotProfit} from '@rivalt/sdk';
-import {MAX_PRICE} from '../../sdk/src/price-policy-constants.js';
+import {MAX_PRICE,type PerLotProfit} from '@rivalt/sdk';
 
 const scale=1_000_000_000n;
 

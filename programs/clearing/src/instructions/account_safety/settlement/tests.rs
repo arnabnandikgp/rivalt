@@ -403,8 +403,16 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
     .unwrap();
     bytes.clear();
     crate::wire::write_discriminated(&page, &mut bytes).unwrap();
-    assert_eq!(bytes.len(), 1156);
-    assert_eq!(8 + FrozenMarginPage::INIT_SPACE, 1156);
+    let size = if cfg!(feature = "btc-allocation-qualification") { 1220 } else { 1156 };
+    assert_eq!(bytes.len(), size);
+    assert_eq!(8 + FrozenMarginPage::INIT_SPACE, size);
+    #[cfg(feature = "btc-allocation-qualification")]
+    {
+        page.rows[0].btc_charge = 201;
+        bytes.clear();
+        crate::wire::write_discriminated(&page, &mut bytes).unwrap();
+        assert_eq!(&bytes[203..211], &201u64.to_le_bytes());
+    }
     assert_eq!(bytes[66], 1);
     assert_eq!(&bytes[75..107], fixture.member_keys[0].as_ref());
     assert_eq!(&bytes[163..179], &(-8_750_000_000i128).to_le_bytes());

@@ -344,3 +344,25 @@ through explicit `RIVALT_DEFAULT_POPULATION=1024`; it must be measured before an
 operator enables that workload. Omitting population in the low-level candidate
 probe retains the eight-root comparison. Only the exact qualified artifact set
 may run through normal launchers.
+
+### Reproduce the multi-winner BTC recovery
+
+Use the locally pinned clearing source `9e2cc00` for the
+`btc-allocation-qualification` SBF and the selected maker binaries. From the
+current harness checkout, build the matching helper and run each case with a
+fresh run directory, loopback validator and PostgreSQL database.
+
+```bash
+bash ops/build-settlement-helper.sh btc-allocation-candidate
+for scenario in unequal tie; do
+  RIVALT_SETTLEMENT_ARTIFACT_DIR="$allocation_build" \
+    RIVALT_SETTLEMENT_PROBE="profit-attribution-btc-allocation-$scenario" \
+    bash ops/scalable-settlement-smoke.sh || break
+done
+```
+
+Here `allocation_build` is the absolute path produced by
+`RIVALT_ATTRIBUTION_PROFILE=btc-allocation-qualification bash ops/build-profit-attribution.sh`
+at the pinned revision. Qualification deploys both fresh 1,220-byte frozen
+pages and the artifact-bound worker. Previously deployed recovery pages use
+their original layout.

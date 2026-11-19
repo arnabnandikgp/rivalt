@@ -408,3 +408,54 @@ explicitly selects this layout. The original deployment reader keeps its exact
 size check. Neither growable sponsorship nor the general default verifier is
 active in this build. Separate acceptance must establish contributor refunds,
 capacity growth and resource limits before changing normal admission.
+
+### One BTC debtor and several winning accounts
+
+The local allocation candidate handles a complete frozen book when one member
+owes every BTC debt and holds its entire side of BTC open interest. Clearing
+checks the member against the sum of all negative claims, verifies that twice
+its absolute lots equals gross BTC lots, and requires zero ETH lots and claims.
+The frozen scan also proves zero net lots. These conditions give each winner
+enough opposing debtor lots to execute independently. A flat creditor can
+receive a payout but supplies no eligible lots.
+
+Let `Cᵢ` be the whole-atom capacity from member i's frozen entry, previously
+paid gain, lots, tick range and accrued claim. Let `R` be the whole-atom
+shortfall after debtor cash and BTC insurance. The target is
+`T = min(R, Σ Cᵢ)`. A charge of k atoms consumes the minimum matched lots
+`mᵢ(k)` permitted by the position's surviving unpaid gain. Each of those lots
+executes at one of two adjacent prices inside the entry-to-mark interval.
+
+At fixed total T, minimizing the D116 weighted squared deviation is equivalent
+to minimizing `Σ kᵢ²/Cᵢ` over positive capacities. The kth atom on a position
+adds `(2k−1)/Cᵢ` to that cost. These marginal costs strictly increase on each
+position. The T least costly units therefore attain maximum recovery and
+minimum deviation. Only the units tied at the last cost can change the result.
+Each position contributes at most one such unit. Selecting the smaller
+`mᵢ(k)−mᵢ(k−1)` first minimizes forced lots among those ties. The last tie
+uses D121's frozen member order.
+
+The worker proposes **one cutoff** consisting of its unit, capacity, additional
+lots and member ID. Clearing hashes that ID against its own venue and episode.
+For each original member, clearing independently counts the units at or below
+the cutoff and recomputes its actual schedule. A cutoff need not be trusted
+or unique. Every qualifying cutoff selects the same prefix of the strict unit
+ordering. The proof of maximality is the final equality between that prefix's
+charge and T across *all* original members.
+
+- A wrong ordinal, row, revision or margin address rejects the instruction.
+  Anyone can continue a valid prefix from the stored cursor.
+- A cutoff recovering too much, or too little once all rows have been read,
+  returns to the frozen proposal gate. Provisional charges have no payment
+  authority. Each new attempt overwrites every row before release.
+- Frozen row pages on this fresh deployment grow from 1,156 to 1,220 bytes.
+  Each of the eight original records appends a u64 charge. The other frozen
+  values remain available for original-account reconciliation. The scan uses
+  the existing header checkpoint. Later settlement still checks actual inputs,
+  verifies its rate and conserving transfers and reconciles custody before exit.
+
+The [exact cutoff](../../crates/default-plan-selection/src/proportional.rs),
+[charge schedule](../../crates/clearing-accounting/src/attribution/forced_close.rs)
+and [on-chain scan](../../programs/clearing/src/instructions/account_safety/settlement/btc_allocation.rs)
+own the three corresponding rules. This proof does not cover competing debtors,
+scarce opposing inventory or linked-market claims.

@@ -1,5 +1,36 @@
 # Validation and measured limits
 
+## Multi-winner BTC recovery
+
+Two independent eight-account Surfpool/RPC/WS/PostgreSQL runs at `c747189`
+used clearing SBF `9e2cc00` (2,581,008 bytes, SHA-256
+`cfca283a6c024d0839c4f9167bcef78ab15ca2d7346b814db4bda496503f02b9`).
+One maker supplied all opposing debtor lots. A second maker and a separate
+trader account held profitable longs. A third trader account had closed. The
+independent checker replayed the three finalized fills and enumerated all
+feasible divisions of the loss using rational arithmetic.
+
+| Frozen BTC book | Charge to winning maker / open trader | Flat trader’s SPL withdrawal | Harness outcomes / worker originals / fresh SQL events |
+|---|---:|---:|---:|
+| Gains 9,002 and 9,998, shortfall 3,495 | 1,656 / 1,839 | 996 | 291 / 56 / 132 |
+| Gains 9,002 and 9,002, shortfall 1 | 1 / 0 by episode priority | 996 | 299 / 56 / 140 |
+
+Both runs proved rejection of a solvent substitute and a skipped row. Scanning
+a zero cutoff across all eight roots returned the program to its frozen proposal
+gate with the wallet and vault intact. The valid attempt resumed after worker
+restart at row two. All eight cash balances, the funded withdrawal, 501 atoms
+of BTC insurance, zero ETH insurance, 30 atoms of retained BTC fees and the
+sponsor's rent refund reconciled. A fresh SQL replay reproduced the finalized
+payloads. Beginning the scan cost 29,217 CU. The first two unbatched rows used
+31,070 and 31,058 CU. The peak transaction used 890,597 CU including other
+batched settlement instructions. These are local measurements on eight accounts.
+
+The native verifier checked 16,470 candidate vectors against independently
+enumerated optima. The default and candidate Anchor IDLs differ only by the
+additional u64 in each frozen row. The [proof and scope](../clearing/default-plan-verification.md#one-btc-debtor-and-several-winning-accounts)
+and [reproduction steps](local-development.md#reproduce-the-multi-winner-btc-recovery)
+describe the fresh-deployment requirement.
+
 ## BTC residual recovery
 
 At `1e05885` three independent eight-account runs used signed Surfpool RPC/WS,

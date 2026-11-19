@@ -45,9 +45,10 @@ and preserved the rent credit through a restarted default. The
 [verified BTC payout](../operations/validation.md#verified-btc-default-payout)
 now gets the 996 atoms into the flat trader’s wallet. [BTC residual recovery](../operations/validation.md#btc-residual-recovery)
 also pays the trader when eligible gain covers part or none of the loss and
-when the forced reduction needs several lots at two prices. The next milestone
-is a single BTC debtor with multiple eligible opposite accounts. It must verify
-the division of loss, the fewest necessary lots and episode tie ordering.
+when the forced reduction needs several lots at two prices. The [multi-winner recovery](../operations/validation.md#multi-winner-btc-recovery)
+now covers proportional charges, minimum lots and frozen-episode tie ordering for
+a single BTC debtor holding its entire side of open interest. Next verify linked
+books where BTC and ETH recovery decisions depend on each other.
 Linked-market proofs, shared writes and broader cost qualification remain open.
 
 ## Functional ownership

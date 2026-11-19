@@ -1307,3 +1307,9 @@ maximum recoverable whole charge and fewest matched lots follow directly from
 the recorded per-lot gain. Remaining loss follows D112. Its
 [separate signed qualification](operations/validation.md#btc-residual-recovery)
 includes zero gain, insufficient gain and a three-lot charge.
+
+The multi-winner BTC candidate verifies a single cutoff against every original
+member. Winner charges reside alongside original frozen rows until the next
+episode. A rejected cutoff cannot release a payment, and a worker needs no prior
+proposer's signature to continue. The [cutoff proof](clearing/default-plan-verification.md#one-btc-debtor-and-several-winning-accounts)
+applies D116 and D121 to one market with enough opposing lots.
