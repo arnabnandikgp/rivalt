@@ -158,6 +158,7 @@ landed. The account overlap comes from the finalized message bytes.
 
 | Financial action | CU | Signed bytes |
 |---|---:|---:|
+| Two-maker BTC reversal, payer and trader sign (`aa0a209`) | 207,428 | 1,110 v0 |
 | Checkpoint one market | 21,422 | 471 v0 |
 | Checkpoint BTC and withdraw with an open position | 72,244 | 857 v0 |
 | Checkpoint both markets and execute a BTC trade with ETH exposure | 222,331 | 1,204 v0 |

@@ -25,7 +25,13 @@ BTC-only instruction rejected the ETH exposure. The ordinary BTC route with both
 checkpoints brought ETH to 5,555,555 and charged the exact difference to its
 position. After a separate BTC fill the market PDA stayed byte-identical. The
 next publication recovered 6,111,110 from its maker registration after a
-31-second interval, with one second covered and 30 skipped. The funded wallet
+31-second interval, with one second covered and 30 skipped. Follow-up harness
+`aa0a209` repeated the gap and reversed a trader from +1 to −1 BTC lots
+against two different makers. Each maker received one lot. The trader paid
+24 fee atoms, recorded once on the first registration. The entire stored market
+was unchanged, and the SDK trade snapshot matched gross lots across all eight
+participant accounts. This run reproduced 111 events from 275 signed outcomes.
+The funded wallet
 and freeze checks apply to this fresh local artifact. General default payouts,
 receiver exits and sustained throughput require their own qualification.
 [Costs](performance.md#read-only-selected-market) and

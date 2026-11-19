@@ -639,5 +639,6 @@ At clean harness revision `d45eae7`, run
 `RIVALT_SETTLEMENT_PROBE=profit-attribution-market-lanes bash ops/scalable-settlement-smoke.sh`
 for paired fills, withdrawal and freeze, and
 `RIVALT_SETTLEMENT_PROBE=profit-attribution-market-lane-funding bash ops/scalable-settlement-smoke.sh`
-for the nonzero-premium cross-account and outage cases. Each invocation owns a
+for the nonzero-premium cross-account and outage cases. Run the latter at
+`aa0a209` to include the two-maker reversal. Each invocation owns a
 fresh Surfpool instance and PostgreSQL database.
