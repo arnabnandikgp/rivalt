@@ -49,7 +49,11 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
         #[cfg(feature="linked-pair-qualification")]
         let linked = super::linked_pair::Joint::read(header)?;
         #[cfg(feature="linked-pair-qualification")]
-        if let Some(charges) = super::linked_allocation::charges(header)?.or_else(|| linked.map(|joint| joint.legs.map(|leg| leg.charge))) {
+        let charges = super::linked_allocation::charges(header)?.or_else(|| linked.map(|joint| joint.legs.map(|leg| leg.charge)));
+        #[cfg(feature="foreign-creditor-qualification")]
+        let charges = super::foreign_creditor::Receipt::read(header)?.map(|receipt| receipt.legs.map(|leg| leg.charge)).or(charges);
+        #[cfg(feature="linked-pair-qualification")]
+        if let Some(charges) = charges {
             require!(header.stage == PROPOSAL, ClearingError::Resolution);
             arithmetic(totals.after_market_charge(0, charges[0])
                 .and_then(|btc| btc.after_market_charge(1, charges[1])))?

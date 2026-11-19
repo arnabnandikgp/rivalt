@@ -715,6 +715,21 @@ pub struct FrozenBtcAllocationRow {
     pub status: u8,
 }
 
+/// Complete frozen obligations and executable schedules for a BTC winner carrying ETH debt.
+#[event]
+pub struct ForeignCreditorsVerified {
+    pub venue: Address,
+    pub epoch: u64,
+    pub slot: u64,
+    /// BTC debtor, flat BTC creditor, cross winner, ETH winner.
+    pub members: [u64; 4],
+    pub charges: [u64; 2],
+    pub eligible: [u64; 2],
+    pub matched_lots: [u64; 2],
+    pub base_prices: [u64; 2],
+    pub extra_tick_lots: [u64; 2],
+}
+
 /// Both reductions are final together for this frozen episode.
 #[event]
 pub struct FrozenJointReductionVerified {

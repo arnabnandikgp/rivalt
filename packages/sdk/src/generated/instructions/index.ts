@@ -88,6 +88,7 @@ export * from "./transferFundedAccount.js";
 export * from "./uploadSettlementRate.js";
 export * from "./valueAccountResolution.js";
 export * from "./valuePreparedMember.js";
+export * from "./verifyForeignCreditors.js";
 export * from "./verifyFrozenPair.js";
 export * from "./verifyRecoveryAllocation.js";
 export * from "./withdrawAccountCustody.js";

@@ -1046,6 +1046,11 @@ impl ScopedContext for RefundRecoveryAllocation {
 context!(ManageProfitCapacity, venue, event_authority;
 [venue: Read, safety: Read, margin: Write]; []);
 
+context!(VerifyForeignCreditors, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+prepared: Write, first_page: Read, cross_winner: Read, eth_winner: Read]; [second_page: Read, third_page: Read, fourth_page: Read]);
+
 context!(VerifyFrozenPair, source.venue, event_authority;
 [source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
 source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,

@@ -642,3 +642,27 @@ pub struct AdvanceBtcAllocation {
         constraint=margin.venue == *source.venue.address() @ ClearingError::Resolution)]
     pub margin: Box<BorshAccount<MarginAccount>>,
 }
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct VerifyForeignCreditors {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&first_page.page_index.to_le_bytes()],bump=first_page.bump)]
+    pub first_page: Box<BorshAccount<FrozenMarginPage>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&second_page.page_index.to_le_bytes()],bump=second_page.bump)]
+    pub second_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&third_page.page_index.to_le_bytes()],bump=third_page.bump)]
+    pub third_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&fourth_page.page_index.to_le_bytes()],bump=fourth_page.bump)]
+    pub fourth_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"margin-v3",cross_winner.portfolio.as_ref(),&cross_winner.subaccount_index.to_le_bytes()],bump=cross_winner.bump,
+        constraint=cross_winner.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub cross_winner: Box<BorshAccount<MarginAccount>>,
+    #[account(seeds=[b"margin-v3",eth_winner.portfolio.as_ref(),&eth_winner.subaccount_index.to_le_bytes()],bump=eth_winner.bump,
+        constraint=eth_winner.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub eth_winner: Box<BorshAccount<MarginAccount>>,
+}

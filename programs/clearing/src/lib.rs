@@ -66,6 +66,11 @@ compile_error!("local and devnet financial profiles are mutually exclusive");
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn verify_foreign_creditors(ctx: &mut Context<VerifyForeignCreditors>, epoch: u64, revision: u64,
+        ordinals: [u64; 4], charges: [u64; 2]) -> Result<()> {
+        scoped_history::run(ctx, [13, 110, 192, 171, 37, 177, 185, 193], false, |ctx, events|
+            account_safety::settlement::foreign_creditor::verify(ctx, events, epoch, revision, ordinals, charges))
+    }
     pub fn advance_linked_allocation(ctx: &mut Context<AdvanceBtcAllocation>, epoch: u64, revision: u64,
         ordinal: u64, cutoffs: Option<[[u64; 4]; 2]>) -> Result<()> {
         scoped_history::run(ctx, [122, 174, 162, 136, 46, 73, 226, 57], false, |ctx, events|

@@ -2,6 +2,7 @@
 //! Member IDs 0 and 1 are debtors, 2..=7 are winners and 8 is the flat creditor.
 #![no_std]
 use core::cmp::Ordering;
+pub mod foreign_creditor;
 pub mod mirror;
 pub mod proportional;
 

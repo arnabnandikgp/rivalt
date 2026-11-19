@@ -32,6 +32,10 @@ pub(super) fn economic_claims(
 ) -> Result<[i128; 2]> {
     #[cfg(feature = "single-pair-default-qualification")]
     {
+        #[cfg(feature="foreign-creditor-qualification")]
+        if let Some(receipt) = super::foreign_creditor::Receipt::read(header)? {
+            return receipt.claims(frozen);
+        }
         #[cfg(feature="linked-allocation-qualification")]
         if let Some(plan) = super::linked_allocation::committed(header)? {
             return plan.claims(frozen);
@@ -89,6 +93,8 @@ pub fn verify(
     debtor_ordinal: u64,
     winner_ordinal: u64,
 ) -> Result<()> {
+    // The foreign-creditor build qualifies only its complete atomic certificate.
+    require!(!cfg!(feature = "foreign-creditor-qualification"), ClearingError::Profile);
     use financial_core::clearing::scalable::snapshot::FrozenSide;
     require!(
         ctx.remaining_accounts()?.is_empty(),
