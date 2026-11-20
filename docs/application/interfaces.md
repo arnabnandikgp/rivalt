@@ -288,7 +288,7 @@ account from the payer, venue, episode, revision and selected rank. Clearing
 verifies each proposed exclusion interval. Ties with the incumbent require
 individual financial checks. Each signed proof step has its own queue identity.
 
-Only the two explicit local search builds support sponsorship. Without a
+The original one-page and integrated local search builds accept exactly eight members. Without a
 schedule budget, an eight-member freeze continues to accept an external proof
 and the risk worker reports `recovery-search-pending`. A different population
 returns `recovery-unsupported-cohort`. A search larger than the configured
@@ -306,3 +306,19 @@ supplies both market ledgers includes both fee classifications before the
 deposit. A prior transaction in the same slot cannot satisfy that check.
 The [combined lifecycle](../operations/validation.md#combined-clearing-lifecycle)
 exercises the rejected and accepted forms.
+
+The separate `paged-recovery-candidate` reads the prepared header and
+membership pages at a monotonic RPC slot, then checks every original margin
+history against its frozen revision. Its SDK subpath `@rivalt/sdk/paged-recovery`
+decodes the proof and frozen rows. `pagedRecoveryHeader` gives the bound
+schedule and market totals. Each member’s claim changes, market movements
+and final cash live on their original frozen page. A reader must fetch every
+page of that epoch to reconstruct the distribution.
+
+The paged witness carries one to three insurance-rate triples and one complete
+rounding order per market. The worker requests 1.35M CU for a full schedule
+comparison if the original or adjusted payout has multiple rounds. Other
+individual recovery steps retain their 1.2M budget. Preflight and the
+on-chain resource limits still apply. The sponsor funds a 10,240-byte search
+account. Supported book shapes depend on the serialized histories, eligible
+pairs, packet size and compute cost. [Signed cases and limits](../operations/validation.md#recovery-selection-across-two-membership-pages).

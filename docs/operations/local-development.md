@@ -696,3 +696,26 @@ for one frozen book, from 1 to 65,536. Omit it to leave submission to another
 payer. A larger budget increases native CPU and memory use. The ordinary P56
 runtime has its own recovery worker. The [successor worker contract](../application/interfaces.md#local-joint-recovery-selection)
 lists its blocked outcomes and restart behavior.
+
+### Reproduce recovery across two frozen pages
+
+Build the clearing SBF from clean revision `37672622` with
+`RIVALT_ATTRIBUTION_PROFILE=paged-recovery-qualification bash ops/build-profit-attribution.sh`.
+Export the printed directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR`. From the
+[harness revision](validation.md#recovery-selection-across-two-membership-pages),
+run `bash ops/build-settlement-helper.sh paged-recovery-candidate`. Each command
+starts its own Surfpool venue and PostgreSQL database.
+
+```sh
+export RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_RECOVERY_SCHEDULE_BUDGET=3000
+export RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-paged
+RIVALT_FROZEN_PLAN_CASE=paged-wallet bash ops/scalable-settlement-smoke.sh
+RIVALT_FROZEN_PLAN_CASE=paged-insurance bash ops/scalable-settlement-smoke.sh
+```
+
+Both cases include a flat BTC creditor on the second page. The insurance case
+changes the collateral deposit before the five fills, causing a second rate
+calculation. If a keeper preflight refuses a step, the harness saves its
+source accounts and both signed simulation wires in `blocked-paged-step.json`.
+Reproduce the CU and error against the same binary with
+`node --import tsx tests/rpc-contract/replay-paged-step.ts <capture> <clearing.so>`.

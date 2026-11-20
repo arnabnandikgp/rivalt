@@ -25,6 +25,9 @@ for(const [index,key] of capture.keys.entries()) {
 for(const {wire,computeUnitLimit,result} of capture.simulations) {
   const replay=vm.simulateTransaction(getTransactionDecoder().decode(Buffer.from(wire,'base64')));
   const failed=replay instanceof FailedTransactionMetadata, meta=replay.meta();
+  assert.equal(failed,result.value.err!==null,'Replay disagrees with the RPC outcome');
+  assert.equal(meta.computeUnitsConsumed(),BigInt(result.value.unitsConsumed),'Replay disagrees with the RPC compute meter');
+  assert.deepEqual(meta.logs().slice(-2),result.value.logs.slice(-2),'Replay disagrees with the final program logs');
   console.log(JSON.stringify({step:capture.reason,computeUnitLimit,rpcUnits:result.value.unitsConsumed,rpcError:result.value.err,
     replayUnits:String(meta.computeUnitsConsumed()),replayError:failed?replay.err().toString():null,logs:meta.logs().slice(-6)}));
 }

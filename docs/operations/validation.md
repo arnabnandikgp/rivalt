@@ -3738,6 +3738,24 @@ validator ceiling. LiteSVM replay of both original wires and captured account
 bytes reproduced both measurements exactly. Multi-pass individual comparisons
 now request 1.35M CU. The run measured a simulation and moved no payout.
 
+Harness `ae1c59ea` on clearing SBF `37672622` settled nine members with two
+insurance calculations before and after the forced reduction. Clearing checked
+all three possible schedules, selected rank 2 and charged two ETH-market
+atoms. The original BTC/ETH debtor cash allocation stayed fixed. The markets
+spent six and one insurance atoms and retained seven and zero respectively.
+The flat BTC creditor withdrew 4,996 atoms. Three maker withdrawals totalled
+30,003, matching the 34,999-atom reduction in the vault. A restarted worker
+completed application and reconciliation. The fresh PostgreSQL database
+reproduced all 134 events and matched the live accounts. The harness recorded
+291 outcomes and 79 finalized worker transactions.
+
+The 16 recovery-proof transactions used 1,965,510 CU in total and 80,000 local
+lamports in fees. The sponsor also posted 52,669,440 in rent. The full
+comparison used 1,221,755 CU in a 424-byte packet. Binding used 40,218 CU
+and 792 bytes. The peak comparison used 90.5% of the requested 1.35M CU.
+These are local measurements on this two-pass book. The separate
+2,548-schedule book reached binding, with terminal replay still pending.
+
 On `9b9894dc` a fresh local `efbaa02` clearing deployment froze nine Financial
 accounts after five signed fills. Member 8 was flat with a 4,996-atom BTC
 claim. The worker read both original pages, fenced each margin-history
