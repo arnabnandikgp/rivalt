@@ -2,6 +2,7 @@ use super::*;
 use crate::instructions::account_trading::contexts::{
     __client_accounts_accountrouteidentity, __cpi_accounts_accountrouteidentity,
     AccountRouteIdentity, AccountRouteIdentityBumps, ReadOnlyMarketIdentity, ReadOnlyMarketIdentityBumps,
+    ReadOnlyLedgerIdentity, ReadOnlyLedgerIdentityBumps, __client_accounts_readonlyledgeridentity, __cpi_accounts_readonlyledgeridentity,
     __client_accounts_readonlymarketidentity, __cpi_accounts_readonlymarketidentity, RouteIdentityView,
 };
 use crate::{ProgramData, UpgradeableProgramAddress};
@@ -60,6 +61,7 @@ pub struct $name {
 }
 route_context!(ExecuteLiquidityRoute, AccountRouteIdentity);
 route_context!(ExecuteMarketLane, ReadOnlyMarketIdentity);
+route_context!(ExecuteLedgerLane, ReadOnlyLedgerIdentity);
 
 pub(super) struct RouteAccounts<'a> {
     pub identity: RouteIdentityView<'a>,

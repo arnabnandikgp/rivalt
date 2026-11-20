@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "b182a436fe3df969238363aa21513f56de864e7218af895acb2aa2095e15bc6a",
+    "clearing": "d24445ea1134b75389f1ddb47d880ab8b75933cf20878ed50e049d437d0511a2",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -808,6 +808,50 @@
       "optional": [
         "btc_ledger",
         "eth_ledger"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "execute_ledger_lane",
+      "write": [
+        "other_market",
+        "other_ledger",
+        "trader",
+        "first_capital",
+        "first_registration",
+        "second_capital",
+        "second_registration"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "market",
+        "ledger",
+        "registry",
+        "first_program",
+        "first_program_data",
+        "first_config",
+        "first_price",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": [
+        "other_market",
+        "other_ledger",
+        "second_capital",
+        "second_registration",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price"
       ]
     },
     {

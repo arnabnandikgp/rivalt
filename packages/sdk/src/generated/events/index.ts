@@ -37,6 +37,7 @@ export * from "./frozenPairVerified.js";
 export * from "./fundingPublisherChanged.js";
 export * from "./fundingReportAccepted.js";
 export * from "./inventoryBookVerified.js";
+export * from "./ledgerLaneFilled.js";
 export * from "./liquidityMakerChanged.js";
 export * from "./liquidityRegistryChanged.js";
 export * from "./liquidityRouteExecuted.js";

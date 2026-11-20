@@ -62,7 +62,7 @@ pub fn checkpoint(ctx: &mut Context<CheckpointMarket>, events: &mut Payloads) ->
 /// Only a successful same-parent instruction in this transaction can serve as
 /// a checkpoint. Checking the immediate siblings excludes an intervening fill,
 /// including a fill that lands in the same slot.
-#[cfg(feature = "read-only-route-market")]
+#[cfg(all(feature = "read-only-route-market",not(feature = "read-only-route-ledger")))]
 pub(crate) fn require_recent(markets: impl Iterator<Item = Address>) -> Result<()> {
     let mut required = [None; 2];
     let mut count = 0;
@@ -82,6 +82,36 @@ pub(crate) fn require_recent(markets: impl Iterator<Item = Address>) -> Result<(
         let member = required.iter_mut().find(|value| value.as_ref().is_some_and(|market| market.as_ref() == key.pubkey.as_ref()))
             .ok_or(ClearingError::MarketCheckpoint)?;
         *member = None;
+    }
+    Ok(())
+}
+
+/// Both checkpoint instructions authenticate three registrations and update
+/// only their own market or ledger. A contiguous block can cover the complete
+/// set in any order. No mutation may intervene before financial consumption.
+#[cfg(feature = "read-only-route-ledger")]
+pub(crate) fn require_financial_checkpoints(instruction: [u8;8], entries: impl Iterator<Item=(u8,Address)>) -> Result<()> {
+    const MARKET: [u8;8]=[234,231,222,47,209,237,138,64];
+    const LEDGER: [u8;8]=[119,160,87,122,107,187,203,113];
+    const MARKET_LANE: [u8;8]=[154,97,38,114,234,143,70,85];
+    let mut required=[None;4];
+    let mut count=0;
+    for (kind,address) in entries {
+        let needs_market=kind==6 && instruction!=MARKET && instruction!=MARKET_LANE;
+        let needs_ledger=kind==7 && instruction!=LEDGER;
+        if needs_market||needs_ledger {
+            require!(count<required.len(),ClearingError::Profile);
+            required[count]=Some((kind,address));count+=1;
+        }
+    }
+    for prior in 0..count {
+        let ix=solana_instruction::syscalls::get_processed_sibling_instruction(prior).ok_or(ClearingError::MarketCheckpoint)?;
+        require!(ix.program_id.as_ref()==crate::ID.as_ref(),ClearingError::MarketCheckpoint);
+        let kind=if ix.data==MARKET {6} else if ix.data==LEDGER {7} else {return Err(ClearingError::MarketCheckpoint.into());};
+        let key=ix.accounts.get(2).ok_or(ClearingError::MarketCheckpoint)?;
+        let entry=required.iter_mut().find(|entry| entry.is_some_and(|(expected,address)| expected==kind && address.as_ref()==key.pubkey.as_ref()))
+            .ok_or(ClearingError::MarketCheckpoint)?;
+        *entry=None;
     }
     Ok(())
 }

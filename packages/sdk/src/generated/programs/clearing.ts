@@ -149,6 +149,7 @@ import {
   getCreatePortfolioInstructionAsync,
   getDeactivateMarginInstructionAsync,
   getDepositAccountInstructionAsync,
+  getExecuteLedgerLaneInstructionAsync,
   getExecuteLiquidityOrderInstructionAsync,
   getExecuteLiquidityRouteInstructionAsync,
   getExecuteMarketLaneInstructionAsync,
@@ -244,6 +245,7 @@ import {
   parseCreatePortfolioInstruction,
   parseDeactivateMarginInstruction,
   parseDepositAccountInstruction,
+  parseExecuteLedgerLaneInstruction,
   parseExecuteLiquidityOrderInstruction,
   parseExecuteLiquidityRouteInstruction,
   parseExecuteMarketLaneInstruction,
@@ -339,6 +341,7 @@ import {
   type CreatePortfolioAsyncInput,
   type DeactivateMarginAsyncInput,
   type DepositAccountAsyncInput,
+  type ExecuteLedgerLaneAsyncInput,
   type ExecuteLiquidityOrderAsyncInput,
   type ExecuteLiquidityRouteAsyncInput,
   type ExecuteMarketLaneAsyncInput,
@@ -400,6 +403,7 @@ import {
   type ParsedCreatePortfolioInstruction,
   type ParsedDeactivateMarginInstruction,
   type ParsedDepositAccountInstruction,
+  type ParsedExecuteLedgerLaneInstruction,
   type ParsedExecuteLiquidityOrderInstruction,
   type ParsedExecuteLiquidityRouteInstruction,
   type ParsedExecuteMarketLaneInstruction,
@@ -884,6 +888,7 @@ export enum ClearingEvent {
   FundingPublisherChanged,
   FundingReportAccepted,
   InventoryBookVerified,
+  LedgerLaneFilled,
   LiquidityMakerChanged,
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
@@ -1249,6 +1254,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([235, 42, 138, 209, 232, 110, 15, 137]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.LedgerLaneFilled;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([93, 199, 88, 43, 57, 76, 217, 187]),
       ),
       0,
@@ -1438,6 +1454,7 @@ export enum ClearingInstruction {
   CreatePortfolio,
   DeactivateMargin,
   DepositAccount,
+  ExecuteLedgerLane,
   ExecuteLiquidityOrder,
   ExecuteLiquidityRoute,
   ExecuteMarketLane,
@@ -1868,6 +1885,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.DepositAccount;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([1, 178, 168, 44, 243, 136, 161, 76]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteLedgerLane;
   }
   if (
     containsBytes(
@@ -2660,6 +2688,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.DepositAccount;
     } & ParsedDepositAccountInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ExecuteLedgerLane;
+    } & ParsedExecuteLedgerLaneInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ExecuteLiquidityOrder;
     } & ParsedExecuteLiquidityOrderInstruction<TProgram>)
   | ({
@@ -3080,6 +3111,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.DepositAccount,
         ...parseDepositAccountInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteLedgerLane: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteLedgerLane,
+        ...parseExecuteLedgerLaneInstruction(instruction),
       };
     }
     case ClearingInstruction.ExecuteLiquidityOrder: {
@@ -3753,6 +3791,11 @@ export type ClearingPluginInstructions = {
     input: DepositAccountAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getDepositAccountInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeLedgerLane: (
+    input: ExecuteLedgerLaneAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteLedgerLaneInstructionAsync> &
     SelfPlanAndSendFunctions;
   executeLiquidityOrder: (
     input: ExecuteLiquidityOrderAsyncInput,
@@ -4445,6 +4488,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getDepositAccountInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeLedgerLane: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteLedgerLaneInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

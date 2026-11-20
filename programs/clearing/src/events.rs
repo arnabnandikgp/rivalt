@@ -271,7 +271,7 @@ pub struct LiquidityRouteExecuted {
 // The two route events share the financial payload. The lane event carries
 // the earned funding so consumers can combine the fill with its physical checkpoint.
 macro_rules! fee_route_event {
-    ($name:ident $(, $field:ident: $ty:ty)*) => {
+    ($name:ident, $pending:ident $(, $field:ident: $ty:ty)*) => {
 #[event]
 pub struct $name {
     pub venue: Address,
@@ -285,7 +285,7 @@ pub struct $name {
     pub gross_quote: u64,
     pub fee: u64,
     pub lane_collected: u128,
-    pub market_pending: u64,
+    pub $pending: u64,
     pub ledger: MarketLedgerSnapshot,
     pub other_ledger: Option<MarketLedgerSnapshot>,
     pub order_id: u64,
@@ -297,8 +297,9 @@ pub struct $name {
         }
     };
 }
-fee_route_event!(LiquidityRouteFeeRecorded);
-fee_route_event!(MarketLaneFilled, through: i64, index: i128);
+fee_route_event!(LiquidityRouteFeeRecorded, market_pending);
+fee_route_event!(MarketLaneFilled, market_pending, through: i64, index: i128);
+fee_route_event!(LedgerLaneFilled, lane_pending, through: i64, index: i128);
 
 #[event]
 pub struct MarketCheckpointed {

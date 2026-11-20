@@ -2,7 +2,7 @@
 use super::*;
 
 macro_rules! route_identity {
-    ($name:ident $(, $mutable:ident)?) => {
+    ($name:ident, [$($market_mut:ident)?], [$($ledger_mut:ident)?]) => {
 #[derive(Accounts)]
 pub struct $name {
     pub actor: Signer,
@@ -10,13 +10,13 @@ pub struct $name {
     pub venue: Box<BorshAccount<Venue>>,
     #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<BorshAccount<VenueSafety>>,
-    #[account($($mutable,)? seeds = [b"market-v3", venue.address().as_ref(), &[market.index]], bump = market.bump, has_one = venue,
+    #[account($($market_mut,)? seeds = [b"market-v3", venue.address().as_ref(), &[market.index]], bump = market.bump, has_one = venue,
         constraint = market.index < 2 @ ClearingError::Profile)]
     pub market: Box<BorshAccount<Market>>,
     #[account(mut, seeds = [b"market-v3", venue.address().as_ref(), &[other_market.index]], bump = other_market.bump,
         has_one = venue, constraint = other_market.address().to_owned() != market.address().to_owned() @ ClearingError::Alias)]
     pub other_market: Option<Box<BorshAccount<Market>>>,
-    #[account(mut, seeds = [b"ledger-v3", market.address().as_ref()], bump = ledger.bump, has_one = venue, has_one = market)]
+    #[account($($ledger_mut,)? seeds = [b"ledger-v3", market.address().as_ref()], bump = ledger.bump, has_one = venue, has_one = market)]
     pub ledger: Box<BorshAccount<MarketLedger>>,
     #[account(mut, seeds = [b"ledger-v3", venue.markets[1 - market.index as usize].as_ref()], bump = other_ledger.bump, has_one = venue,
         constraint = other_ledger.market == venue.markets[1 - market.index as usize] @ ClearingError::Profile)]
@@ -26,8 +26,9 @@ pub struct $name {
 }
     };
 }
-route_identity!(AccountRouteIdentity, mut);
-route_identity!(ReadOnlyMarketIdentity);
+route_identity!(AccountRouteIdentity, [mut], [mut]);
+route_identity!(ReadOnlyMarketIdentity, [], [mut]);
+route_identity!(ReadOnlyLedgerIdentity, [], []);
 
 pub(crate) struct RouteIdentityView<'a> {
     pub actor: &'a Signer,
@@ -53,6 +54,7 @@ macro_rules! identity_view {
 }
 identity_view!(AccountRouteIdentity);
 identity_view!(ReadOnlyMarketIdentity);
+identity_view!(ReadOnlyLedgerIdentity);
 
 impl RouteIdentityView<'_> {
     pub(crate) fn maintain_root(

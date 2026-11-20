@@ -31,6 +31,8 @@ pub mod engine;
 pub mod error;
 mod event_cpi;
 mod market_fees;
+#[cfg(feature = "read-only-route-ledger")]
+mod ledger_lane;
 mod market_capacity;
 mod market_checkpoint;
 mod market_funding;
@@ -561,6 +563,10 @@ pub mod clearing {
 
     pub fn execute_market_lane(ctx: &mut Context<ExecuteMarketLane>, args: LiquidityRouteIntent) -> Result<()> {
         scoped_history::run(ctx, [154, 97, 38, 114, 234, 143, 70, 85], false, |ctx, events| maker_liquidity::routes::execute_lane(ctx, events, args))
+    }
+
+    pub fn execute_ledger_lane(ctx: &mut Context<ExecuteLedgerLane>, args: LiquidityRouteIntent) -> Result<()> {
+        scoped_history::run(ctx, [1, 178, 168, 44, 243, 136, 161, 76], false, |ctx, events| maker_liquidity::routes::execute_ledger_lane(ctx, events, args))
     }
 
     pub fn checkpoint_market(ctx: &mut Context<CheckpointMarket>) -> Result<()> {

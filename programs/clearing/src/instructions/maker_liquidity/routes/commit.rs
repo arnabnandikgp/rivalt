@@ -10,7 +10,7 @@ pub(super) fn apply(
     clock: &Clock,
     next: &candidates::Candidate,
     quotes: &[canonical::MakerQuoteResponse],
-    lane: bool,
+    path: RoutePath,
 ) -> Result<()> {
     let identity = &mut accounts.identity;
     let cash_before = u128::from(identity.trader.cash)
@@ -59,26 +59,33 @@ pub(super) fn apply(
             crate::profit_attribution::fill(second, market, next.makers[1].positions[market].lots, quotes[1].gross)?;
         }
     }
+    #[cfg(feature="read-only-route-ledger")]
+    let local_fee = if path == RoutePath::ReadOnlyLedger {
+        let roots = std::iter::once((&**identity.trader, next.trader.as_ref()))
+            .chain(std::iter::once((&**accounts.first_capital, &next.makers[0])))
+            .chain(accounts.second_capital.as_deref().zip(next.makers.get(1)).map(|(old,new)| (&**old,new)));
+        Some(crate::ledger_lane::record(identity.ledger, identity.safety, accounts.first_registration, roots, next.fee)?)
+    } else { None };
     consume(&mut accounts.first_registration, &quotes[0])?;
     executed.push(leg(
         &accounts.first_registration,
         accounts.first_capital.address().to_owned(),
         &quotes[0],
     ));
-    identity.maintain_root(&accounts.first_capital, &next.makers[0])?;
+    if path != RoutePath::ReadOnlyLedger { identity.maintain_root(&accounts.first_capital, &next.makers[0])?; }
     trading::commit_root(&mut accounts.first_capital, &next.makers[0])?;
     if quotes.len() == 2 {
         let registration = accounts.second_registration.as_deref_mut().unwrap();
         let capital = accounts.second_capital.as_deref_mut().unwrap();
         consume(registration, &quotes[1])?;
         executed.push(leg(registration, capital.address().to_owned(), &quotes[1]));
-        identity.maintain_root(capital, &next.makers[1])?;
+        if path != RoutePath::ReadOnlyLedger { identity.maintain_root(capital, &next.makers[1])?; }
         trading::commit_root(capital, &next.makers[1])?;
     }
     let order = order_index.map(|index| identity.trader.book.orders[index].order);
-    identity.maintain_trader(&next.trader)?;
+    if path != RoutePath::ReadOnlyLedger { identity.maintain_trader(&next.trader)?; }
     trading::commit_root(&mut identity.trader, &next.trader)?;
-    if lane {
+    if path != RoutePath::Serial {
         #[cfg(feature = "read-only-route-market")]
         crate::market_capacity::record_local(identity.market, accounts.first_registration, next.position_delta)?;
         #[cfg(not(feature = "read-only-route-market"))]
@@ -110,12 +117,14 @@ pub(super) fn apply(
         let (insurance, retained, before) = trading::split_fee(&mut identity.ledger, next.fee)?;
         (insurance, retained, before, identity.ledger.insurance_fee_remainder)
     };
-    #[cfg(feature="aggregate-fee-qualification")]
+    #[cfg(feature="read-only-route-ledger")]
+    let fee_detail = match local_fee { Some(detail) => detail, None => crate::market_fees::escrow(identity.ledger,accounts.first_registration,next.fee)? };
+    #[cfg(all(feature="aggregate-fee-qualification",not(feature="read-only-route-ledger")))]
     let fee_detail = crate::market_fees::escrow(&mut identity.ledger,&mut accounts.first_registration,next.fee)?;
 
-    let progress = if lane {
+    let progress = if path != RoutePath::Serial {
         let funded = crate::engine::oracle::effective(crate::state::accounts::ACTIVE, identity.market, clock)?;
-        Some((clock.unix_timestamp, funded))
+        Some((clock.unix_timestamp, funded, path))
     } else { None };
     emit(
         events,
@@ -171,7 +180,7 @@ fn emit(
     fee_detail: FeeDetail,
     slot: u64,
     legs: Vec<ExecutedLeg>,
-    progress: Option<(i64,i128)>,
+    progress: Option<(i64,i128,RoutePath)>,
 ) -> Result<()> {
     let identity = &accounts.identity;
     let mut roots: Vec<&MarginAccount> = vec![&identity.trader, &accounts.first_capital];
@@ -204,16 +213,20 @@ fn emit(
         maker_states: makers,
         legs,
     };
-    if let Some((through, index)) = progress {
+    if let Some((through, index, path)) = progress {
         #[cfg(feature = "read-only-route-market")]
         {
             #[derive(AnchorSerialize)]
             struct LaneView<'a> { route: &'a RouteEventView<'a>, through: i64, index: i128 }
+            if path == RoutePath::ReadOnlyLedger {
+                return events.emit_borrowed::<crate::events::LedgerLaneFilled, _>(
+                    &LaneView { route: &event, through, index }, accounts.event_authority.clone());
+            }
             return events.emit_borrowed::<crate::events::MarketLaneFilled, _>(
                 &LaneView { route: &event, through, index }, accounts.event_authority.clone());
         }
         #[cfg(not(feature = "read-only-route-market"))]
-        { let _ = (through, index); return Err(ClearingError::Profile.into()); }
+        { let _ = (through, index, path); return Err(ClearingError::Profile.into()); }
     }
     #[cfg(not(feature="aggregate-fee-qualification"))]
     type RouteEvent = crate::events::LiquidityRouteExecuted;

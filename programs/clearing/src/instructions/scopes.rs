@@ -260,6 +260,24 @@ context!(ExecuteMarketLane, identity.venue, event_authority;
     second_registration: Write,
 ]);
 
+context!(ExecuteLedgerLane, identity.venue, event_authority;
+[
+    identity.venue: Read,
+    identity.safety: Read,
+    identity.market: Read,
+    identity.ledger: Read,
+    identity.trader: Write,
+    registry: Read,
+    first_capital: Write,
+    first_registration: Write,
+];
+[
+    identity.other_market: Write,
+    identity.other_ledger: Write,
+    second_capital: Write,
+    second_registration: Write,
+]);
+
 context!(FreezeAccounts, identity.venue, event_authority;
 [
     identity.venue: Write,

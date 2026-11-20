@@ -172,6 +172,12 @@ def undo_liquidation_delta(actual, program):
     assert selected.pop('writable')
     assert lane['accounts'] == expected_metas
     actual['instructions'].remove(lane)
+    ledger_lane = unique('execute_ledger_lane')
+    assert ledger_lane['discriminator'] == list(hashlib.sha256(b'global:execute_ledger_lane').digest()[:8])
+    assert ledger_lane['args'] == ordinary['args']
+    assert next(meta for meta in expected_metas if meta['name'] == 'ledger').pop('writable')
+    assert ledger_lane['accounts'] == expected_metas
+    actual['instructions'].remove(ledger_lane)
     actual['errors'].remove(dict(code=6132, name='MarketCheckpoint',
         msg='A current funding and gross checkpoint is required for each market'))
     view = unique('read_market_gross')
@@ -200,6 +206,7 @@ def undo_liquidation_delta(actual, program):
     revised[insert:insert] = fields([('lane_collected','u128'),('market_pending','u64')])
     for name, expected in (
         ('LiquidityRouteFeeRecorded', revised),
+        ('LedgerLaneFilled', [dict(field, name='lane_pending') if field['name']=='market_pending' else field for field in revised] + fields([('through','i64'),('index','i128')])),
         ('MarketLaneFilled', revised + fields([('through','i64'),('index','i128')])),
         ('MarketCheckpointed', fields([('venue','pubkey'),('market','pubkey'),('slot','u64'),('state',{'defined':{'name':'MarketSnapshot'}})])),
         ('MarketFeesClassified', fields([('venue','pubkey'),('market','pubkey'),('slot','u64'),('classified','u128'),

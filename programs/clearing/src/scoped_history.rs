@@ -706,7 +706,15 @@ fn run_with_remaining<'context, T: ScopedContext>(
     context.accounts.visit(&mut scope)?;
     access.visit(&mut scope, &mut remaining)?;
     let mut payloads = event_cpi::Payloads::default();
-    #[cfg(feature = "read-only-route-market")]
+    #[cfg(feature = "read-only-route-ledger")]
+    if scope.entries.iter().any(|entry| matches!(entry.kind, 6 | 7) && entry.access != Access::Create) {
+        let mode=scope.venue_mode.ok_or(ClearingError::Profile)?;
+        if mode == crate::state::accounts::ACTIVE && instruction != [1,178,168,44,243,136,161,76] {
+        crate::market_checkpoint::require_financial_checkpoints(instruction, scope.entries.iter()
+            .filter(|entry| entry.access != Access::Create).map(|entry| (entry.kind,entry.account)))?;
+        }
+    }
+    #[cfg(all(feature = "read-only-route-market", not(feature = "read-only-route-ledger")))]
     if instruction != [234, 231, 222, 47, 209, 237, 138, 64] && instruction != [154, 97, 38, 114, 234, 143, 70, 85] {
         let markets = scope.entries.iter().filter(|entry| entry.kind == Market::KIND && entry.access != Access::Create)
             .map(|entry| entry.account);

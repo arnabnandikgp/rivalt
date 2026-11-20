@@ -74,6 +74,8 @@ pub fn classify(ctx:&mut Context<ClassifyMarketFees>, events:&mut crate::event_c
         let a=&mut ctx.accounts;
         require!(a.identity.venue.insurance_fee_share_bps==2500 && a.identity.safety.mode!=FROZEN, ClearingError::Profile);
         let ledger=&mut a.identity.ledger;
+        #[cfg(feature="read-only-route-ledger")]
+        crate::ledger_lane::fold(ledger, [&a.first,&a.second,&a.third])?;
         let (classified,amount,credit)=crate::market_fees::collect(ledger,[&mut a.first,&mut a.second,&mut a.third])?;
         events.emit(&crate::events::MarketFeesClassified{venue:ledger.venue,market:ledger.market,slot:Clock::get()?.slot,classified,amount,insurance_credit:credit,
             ledger:super::super::account_custody::ledger_snapshot(ledger)},a.event_authority.account().clone())

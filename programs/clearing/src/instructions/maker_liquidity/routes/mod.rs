@@ -18,6 +18,9 @@ mod commit;
 #[cfg(test)]
 mod tests;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum RoutePath { Serial, ReadOnlyMarket, ReadOnlyLedger }
+
 pub fn execute(
     ctx: &mut Context<ExecuteLiquidityRoute>,
     events: &mut crate::event_cpi::Payloads,
@@ -26,7 +29,7 @@ pub fn execute(
 ) -> Result<()> {
     let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
-    execute_intent(&mut ctx.accounts.view(), events, args, forced, false)
+    execute_intent(&mut ctx.accounts.view(), events, args, forced, RoutePath::Serial)
 }
 
 pub fn execute_lane(
@@ -36,7 +39,12 @@ pub fn execute_lane(
 ) -> Result<()> {
     require!(cfg!(feature = "read-only-route-market"), ClearingError::Profile);
     require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Profile);
-    execute_intent(&mut ctx.accounts.view(), events, args, false, true)
+    execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyMarket)
+}
+
+pub fn execute_ledger_lane(ctx: &mut Context<ExecuteLedgerLane>, events: &mut crate::event_cpi::Payloads, args: LiquidityRouteIntent) -> Result<()> {
+    require!(cfg!(feature = "read-only-route-ledger") && ctx.remaining_accounts()?.is_empty(), ClearingError::Profile);
+    execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyLedger)
 }
 
 fn execute_intent(
@@ -44,7 +52,7 @@ fn execute_intent(
     events: &mut crate::event_cpi::Payloads,
     args: LiquidityRouteIntent,
     forced: bool,
-    lane: bool,
+    path: RoutePath,
 ) -> Result<()> {
     args.guard.check(
         &accounts.identity.venue,
@@ -77,7 +85,7 @@ fn execute_intent(
         generation: args.generation,
         legs: shared_legs(&args.legs),
     };
-    execute_core(accounts, events, intent, None, forced, lane, &args.legs, &clock)
+    execute_core(accounts, events, intent, None, forced, path, &args.legs, &clock)
 }
 
 pub fn execute_order(
@@ -117,7 +125,7 @@ pub fn execute_order(
         intent,
         Some(index),
         false,
-        false,
+        RoutePath::Serial,
         &args.legs,
         &clock,
     )
@@ -130,14 +138,14 @@ fn execute_core(
     intent: RouteIntent,
     order_index: Option<usize>,
     forced: bool,
-    lane: bool,
+    path: RoutePath,
     signed_legs: &[LiquidityRouteLeg],
     clock: &Clock,
 ) -> Result<()> {
     let identity = &accounts.identity;
     execution_profile(&identity.venue, &identity.safety, &identity.market)?;
     require!(identity.safety.mode == ACTIVE, ClearingError::Profile);
-    if lane {
+    if path != RoutePath::Serial {
         require!(cfg!(feature = "read-only-route-market") && identity.other_market.is_none() && identity.other_ledger.is_none(),
             ClearingError::Profile);
         let held = &identity.market.oracle;
@@ -200,7 +208,7 @@ fn execute_core(
             Some(market_view(&identity.market)?),
         ]
     };
-    if lane {
+    if path != RoutePath::Serial {
         // The ordinary financial engine also checks the total of its touched
         // roots. The lane independently enforces the complete market cap.
         let mut touched = identity.trader.positions[selected].lots.unsigned_abs()
@@ -290,7 +298,7 @@ fn execute_core(
         clock,
         &next,
         &actual_quotes,
-        lane,
+        path,
     )
 }
 

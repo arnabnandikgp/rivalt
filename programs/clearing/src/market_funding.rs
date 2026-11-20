@@ -84,7 +84,7 @@ mod candidate {
             inspect::<_, { crate::market_fees::LANE_EXTRA }>(
                 maker,
                 |bytes| {
-                    store(&mut bytes[32..], stamp);
+                    store(&mut bytes[32..64], stamp);
                     Ok(())
                 },
                 true,
@@ -131,7 +131,7 @@ mod candidate {
                 &crate::ID,
             )?;
             require!(account.address() == &address, ClearingError::MakerBinding);
-            lanes[instance] = load(&data[prefix + 32..], market.index)?;
+            lanes[instance] = load(&data[prefix + 32..prefix + 64], market.index)?;
         }
         let Some(source) = window(market) else {
             return Ok(None);
