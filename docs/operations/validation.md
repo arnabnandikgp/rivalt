@@ -3676,12 +3676,39 @@ the retained independent results from the cross-creditor and tied-gain books.
 Only the cross-creditor book was redeployed for this change. The harness still
 supplied the schedule numbers, exclusion intervals and submission loop.
 
+### Automatic recovery keeper
+
+On `453e8c5c`, the risk worker read the eight frozen margin histories and
+compared all 340 BTC/ETH schedules. It chose rank 339, with charges of 9 and
+33 atoms. A separate process instance resumed from the first landed exclusion
+interval. Clearing bound the result, refused withdrawal before application, and
+paid the two wallets 5,004 and 34,968 atoms. Fresh PostgreSQL replay matched
+142 events. There were 273 main harness outcomes and 78 worker originals. A
+one-schedule budget blocked the same episode before the sponsor rented an
+account. The run used the combined `5d7a7c0f` clearing SBF on Surfpool.
+
+| Frozen book | Signed proof transactions, including binding | Total CU | Peak CU / bytes | Sponsor fees | Rent deposited |
+|---|---:|---:|---:|---:|---:|
+| Cross-creditor, 340 schedules | 23 | 5,979,755 | 922,695 / 726 | 115,000 lamports | 42,636,440 lamports |
+| Tied BTC gains, 2,548 schedules | 67 | 14,765,834 | 994,013 / 726 | 335,000 lamports | 42,636,440 lamports |
+
+On worker `94f14ee5` the tied-gain book selected rank 1,364 of 2,548 from
+the authenticated freeze. The selection agreed with the independent reference
+on charges of 13 BTC and 12 ETH collateral atoms. The flat trader withdrew
+4,996 atoms. The three maker withdrawals were 9,995, 9,996 and 9,990 atoms.
+The run recorded 286 main harness outcomes, 122 worker originals and 128
+events in a fresh PostgreSQL replay. It used the owned-recovery local SBF from
+`efbaa02`. Both runs stopped and reopened the worker after a landed interval.
+
+The RPC receipts distinguish the fee from the extra debit to create the
+payer’s proof account. Reopening the worker reused the original account.
+Both isolated Anchor clients reproduced all eight recovery instructions and
+two emitted events. The amounts are local test collateral and lamports.
+
 The recovery proof admits exactly eight members and the supported rate witnesses.
 The nine-member route workload qualified contention and the freeze boundary.
 Its terminal settlement is outside this proof. A sponsor supplied the exact
-proposal and witnesses in the original recovery run at `49a90358`. Operating an autonomous proposer,
-recovering larger cohorts and establishing a sustained throughput limit remain
-open. P56 remains the selected local runtime.
+proposal and witnesses in the original recovery run at `49a90358`. The automatic keeper covers the admitted profile. Recovering larger cohorts and establishing a sustained throughput limit remain open. P56 remains the selected local runtime.
 
 On harness `b026dcba` the funding, ordinary payout and receiver runs stopped
 during setup with filesystem `ENOSPC`. Their partial evidence was excluded. The successful cases above ran sequentially
