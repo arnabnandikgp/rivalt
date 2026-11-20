@@ -21,10 +21,11 @@ import {openLiquidationDriver} from './automatic-liquidation-driver.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const directory=process.env.RIVALT_RUN_DIR!;
-const automatic=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-automatic-liquidation';
+const successor=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-successor-automatic-liquidation';
+const automatic=successor||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-automatic-liquidation';
 const integrated=automatic||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-receiver';
 const bounded=integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-bounded-market-receiver';
-const build=bounded?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,integrated?'integrated':'market'):verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
+const build=bounded?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,successor?'successor':integrated?'integrated':'market'):verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const scale=1_000_000_000n;
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
@@ -140,7 +141,7 @@ try {
   if(automatic){
     await flush();
     liveJournal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
-    worker=await openLiquidationDriver(rpc,ws,liveJournal,flush,()=>setup.sample([0]),receiverOwner,receiver);
+    worker=await openLiquidationDriver(rpc,ws,liveJournal,flush,()=>setup.sample([0]),receiverOwner,receiver,successor?'local-successor-candidate':'integrated-recovery-candidate');
     await worker.maker();
   }else await h.send('liquidation keeper sells ten lots to maker B',await checked(fill));
   await checkGross(100n);

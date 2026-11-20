@@ -3,7 +3,7 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
+export type AccountDeployment='local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
@@ -21,7 +21,8 @@ export const INTEGRATED_RECOVERY_ARTIFACT_SET='integrated-recovery-5d7a7c0';
 // or deployment selection accepts them as authority to operate a venue.
 export const DOMAIN_BASELINE_ARTIFACT_SET='financial-domains-before-84ef28f3';
 export const DOMAIN_EXTRACTED_ARTIFACT_SET='financial-domains-after-90d71835';
-const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET
+export const LOCAL_SUCCESSOR_ARTIFACT_SET='local-successor-d9a2a55b';
+const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET
   ||set===DOMAIN_BASELINE_ARTIFACT_SET||set===DOMAIN_EXTRACTED_ARTIFACT_SET;
 export const hasLedgerLanes=(set?:string)=>set===READ_ONLY_LEDGER_ARTIFACT_SET||integratedLayout(set);
 export const hasMarketLanes=(set?:string)=>set===READ_ONLY_MARKET_ARTIFACT_SET||hasLedgerLanes(set);
@@ -30,12 +31,16 @@ export const hasMarketCapacity=(set?:string)=>set===BOUNDED_MARKET_ARTIFACT_SET|
 export const hasAggregateFees=(set?:string)=>set===AGGREGATE_FEE_ARTIFACT_SET||hasMarketCapacity(set);
 export const isMultiLotArtifact=(set?:string)=>set===MULTI_LOT_ARTIFACT_SET||hasAggregateFees(set);
 export const isBookInventoryArtifact=(set?:string)=>set===BOOK_INVENTORY_ARTIFACT_SET||set===BOOK_CAPACITY_ARTIFACT_SET||isMultiLotArtifact(set);
-export const isMultiLotDeployment=(selection?:AccountDeployment)=>selection==='integrated-recovery-candidate'||selection==='multi-lot-book-candidate'||selection==='aggregate-fee-candidate'||selection==='bounded-market-candidate';
+export const isMultiLotDeployment=(selection?:AccountDeployment)=>selection==='local-successor-candidate'||selection==='integrated-recovery-candidate'||selection==='multi-lot-book-candidate'||selection==='aggregate-fee-candidate'||selection==='bounded-market-candidate';
 export const isBookInventoryDeployment=(selection:AccountDeployment)=>selection==='book-inventory-candidate'||selection==='book-capacity-candidate'||isMultiLotDeployment(selection);
 export const PARTIAL_INVENTORY_ARTIFACT_SET='partial-inventory-2256c51';
 export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY_ARTIFACT_SET || value===PARTIAL_INVENTORY_ARTIFACT_SET;
 export const PAGED_RECOVERY_ARTIFACT_SET='paged-recovery-37672622';
 export const RECOVERY_SEARCH_ARTIFACT_SET='recovery-search-efbaa02';
+export const hasPagedRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET;
+export type RecoveryDeployment='local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
+export const usesRecoverySearch=(selection?:AccountDeployment):selection is RecoveryDeployment=>
+  selection==='local-successor-candidate'||selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate';
 export const hasJointRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===RECOVERY_SEARCH_ARTIFACT_SET||integratedLayout(set);
 export const FOREIGN_CREDITOR_ARTIFACT_SET='foreign-creditor-d177cc5';
 export const LINKED_ALLOCATION_ARTIFACT_SET='linked-allocation-d0ae474';
@@ -45,6 +50,11 @@ export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
+  if(selection==='local-successor-candidate')return {
+    artifactSet:LOCAL_SUCCESSOR_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'d9a2a55b8c43f490b83c70b1151ebf306543f74c',
+    artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
+      bytes:3199280,sha256:'5be8497c6ae059d1864fb17e92be268cb3cd7a11adfb3542556d659fbb8806e6'}:artifact)
+  };
   if(selection==='read-only-ledger-candidate')return {
     artifactSet:READ_ONLY_LEDGER_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'8bc01bb942126022e783ff62392ecccedf969edc',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,

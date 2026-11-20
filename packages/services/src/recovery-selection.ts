@@ -70,7 +70,7 @@ export async function selectRecovery(book:Inputs,venue:Address,epoch:bigint,budg
 }
 
 export async function loadRecoverySelection(rpc:Pick<Rpc,'call'>,venue:Address,
-  selection:'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate',epoch:bigint,revision:bigint,budget:number,
+  selection:sdk.RecoveryDeployment,epoch:bigint,revision:bigint,budget:number,
   profile:{format:'one-page'|'paged';count:bigint}={format:'one-page',count:8n}) {
   const book=await readRecoveryWitnessBook(rpc,venue,selection,epoch,revision,profile.count);
   const rows = [];

@@ -77,12 +77,12 @@ export function recoveryRateWitness(book:FrozenRecoveryBook, edges:readonly sdk.
 /** Read each batch with both canonical headers. Advancing either revision
  * invalidates the freeze before any result is used for selection. */
 export async function readRecoveryWitnessBook(rpc:Pick<Rpc,'call'>, venue:Address,
-  deployment:'paged-recovery-candidate'|'recovery-search-candidate'|'integrated-recovery-candidate', epoch:bigint, revision:bigint, count=8n) {
+  deployment:sdk.RecoveryDeployment, epoch:bigint, revision:bigint, count=8n) {
   assert(count > 0n && count <= maxU64 && epoch > 0n && revision > 0n, 'Invalid frozen recovery identity');
   const [[prepared, preparedBump], [resolution, resolutionBump]] = await Promise.all([
     sdk.deriveSettlementWorkspace(venue, 'prepared'), sdk.deriveVenueComponent(venue, 'resolution'),
   ]);
-  const decoder = deployment === 'paged-recovery-candidate' ? paged.getFrozenMarginPageDecoder() : deployment === 'integrated-recovery-candidate' ? sdk.getMultiLotBookPageDecoder() : sdk.getFrozenMarginPageDecoder();
+  const decoder = deployment === 'local-successor-candidate' ? sdk.getLocalSuccessorPageDecoder() : deployment === 'paged-recovery-candidate' ? paged.getFrozenMarginPageDecoder() : deployment === 'integrated-recovery-candidate' ? sdk.getMultiLotBookPageDecoder() : sdk.getFrozenMarginPageDecoder();
   const pageCount = (count + 7n) / 8n;
   const pages: Address[] = [], rows: sdk.FrozenMargin[] = [], members = new Set<Address>();
   let contextSlot = 0;

@@ -9,6 +9,9 @@ set --
 helper_dir=.local/settlement-helper
 case "$selection" in
   selected) ;;
+  local-successor-candidate)
+    set -- --features clearing/local-successor-qualification
+    helper_dir=.local/settlement-helper-local-successor ;;
   integrated-recovery-candidate)
     set -- --features clearing/integrated-recovery-qualification
     helper_dir=.local/settlement-helper-integrated-recovery ;;
@@ -81,7 +84,9 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'revision':sys.argv[1],
  'trackedDirty':False,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
-if sys.argv[2]=='integrated-recovery-candidate':
+if sys.argv[2]=='local-successor-candidate':
+    manifest['feature']='local-successor-qualification'
+elif sys.argv[2]=='integrated-recovery-candidate':
     manifest['feature']='integrated-recovery-qualification'
 elif sys.argv[2]=='paged-recovery-candidate':
     manifest['feature']='paged-recovery-qualification'
