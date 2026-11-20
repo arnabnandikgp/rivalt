@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import type {Address,KeyPairSigner,Instruction} from '@solana/kit';
+import * as paged from '@rivalt/sdk/paged-recovery';
+import {excludedRecoveryEnd} from './recovery-proof-worker.js';
+import {recoverySettlementCalculation,type readRecoveryWitnessBook} from './recovery-witness.js';
+
+type Book=Awaited<ReturnType<typeof readRecoveryWitnessBook>>;
+type Schedule={rank:bigint;count:bigint;edges:paged.SearchEdge[]};
+
+/** Each transaction is derived from the authenticated frozen rows and the
+ * program’s landed cursor. Returning null means clearing has sealed the proof. */
+export function nextPagedProofInstruction(book:Book,choice:Schedule,
+  args:{payer:KeyPairSigner;resolution:Address;search:Address;epoch:bigint;revision:bigint;nonce:bigint},
+  proof:paged.PagedRecoverySearch|null,programAddress:Address):{action:string;instruction:Instruction}|null {
+  const {rank,count,edges}=choice;
+  const accounts={...args,prepared:book.prepared},program={programAddress};
+  const witness=(dimensions:paged.SearchEdge[],index:bigint)=>{
+    const {rounds,orders}=recoverySettlementCalculation(book,dimensions,index);
+    assert(rounds.flat().every(value=>value>=0n && value<(1n<<64n)),'Paged recovery rate exceeds its wire width');
+    assert(orders.every(order=>order.every(ordinal=>ordinal<=255n)),'Paged recovery order exceeds its wire width');
+    return {rates:rounds,orders:orders.map(order=>Uint8Array.from(order,Number))};
+  };
+  if(!proof)return {action:'open',instruction:paged.getOpenSearchInstruction({...accounts,rank,original:witness([],0n)},program)};
+  assert(proof.prepared===book.prepared && proof.epoch===args.epoch && proof.revision===args.revision
+    && proof.proposed===rank,'Foreign paged recovery proof');
+  if(proof.stage===0){
+    const ordinal=proof.rows.length;
+    assert(ordinal<book.rows.length,'Invalid paged recovery capture cursor');
+    return {action:'capture-'+ordinal,instruction:paged.getCaptureMemberInstruction({...accounts,ordinal,
+      page:book.pages[Math.floor(ordinal/8)],margin:book.rows[ordinal].member},program)};
+  }
+  assert.deepEqual(proof.rows.map(row=>row.id),book.rows.map(row=>row.id),'Incomplete captured membership');
+  if(proof.stage===1)return {action:'derive-pairs',instruction:paged.getDerivePairsInstruction(accounts,program)};
+  assert.deepEqual(proof.edges,edges,'Paged clearing dimensions disagree with the native selector');
+  assert(proof.count===count && proof.cursor<=count && proof.budgets.length===book.rows.length,'Invalid paged comparison cursor');
+  if(proof.stage===2)return {action:'verify-winner',instruction:paged.getVerifyIncumbentInstruction({...accounts,after:witness(edges,rank)},program)};
+  if(proof.stage===4){assert.equal(proof.cursor,count);return null;}
+  assert.equal(proof.stage,3,'Unknown paged comparison stage');
+  if(proof.cursor===count)return {action:'seal',instruction:paged.getSealSearchInstruction(accounts,program)};
+  const end=excludedRecoveryEnd(proof);
+  if(end>=proof.cursor)return {action:'range-'+proof.cursor,instruction:paged.getCoverRangeInstruction({...accounts,first:proof.cursor,last:end},program)};
+  return {action:'rank-'+proof.cursor,instruction:paged.getCoverPlanInstruction({...accounts,rank:proof.cursor,after:witness(edges,proof.cursor)},program)};
+}

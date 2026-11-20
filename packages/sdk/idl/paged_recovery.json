@@ -1,0 +1,1005 @@
+{
+  "address": "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo",
+  "metadata": {
+    "name": "clearing",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "bind_recovery_selection",
+      "discriminator": [
+        232,
+        106,
+        150,
+        46,
+        25,
+        38,
+        74,
+        226
+      ],
+      "accounts": [
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "registry",
+            "storage",
+            "resolution",
+            "btc",
+            "eth",
+            "btc_ledger",
+            "eth_ledger"
+          ]
+        },
+        {
+          "name": "custody",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "storage",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  111,
+                  118,
+                  101,
+                  114,
+                  121,
+                  45,
+                  115,
+                  116,
+                  111,
+                  114,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "btc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "eth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared",
+          "writable": true
+        },
+        {
+          "name": "search"
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "capture_member",
+      "discriminator": [
+        5,
+        170,
+        103,
+        107,
+        77,
+        131,
+        128,
+        143
+      ],
+      "accounts": [
+        {
+          "name": "search",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "page"
+        },
+        {
+          "name": "margin"
+        }
+      ],
+      "args": [
+        {
+          "name": "ordinal",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "cover_plan",
+      "discriminator": [
+        242,
+        138,
+        5,
+        220,
+        17,
+        55,
+        200,
+        55
+      ],
+      "accounts": [
+        {
+          "name": "search",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        }
+      ],
+      "args": [
+        {
+          "name": "rank",
+          "type": "u128"
+        },
+        {
+          "name": "after",
+          "type": {
+            "defined": {
+              "name": "RateWitness"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "cover_range",
+      "discriminator": [
+        252,
+        11,
+        168,
+        255,
+        134,
+        211,
+        118,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "search",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        }
+      ],
+      "args": [
+        {
+          "name": "first",
+          "type": "u128"
+        },
+        {
+          "name": "last",
+          "type": "u128"
+        }
+      ]
+    },
+    {
+      "name": "derive_pairs",
+      "discriminator": [
+        14,
+        127,
+        240,
+        66,
+        47,
+        0,
+        249,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "search",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "open_search",
+      "discriminator": [
+        171,
+        205,
+        228,
+        112,
+        98,
+        209,
+        63,
+        53
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "search",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  114,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        },
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "rank",
+          "type": "u128"
+        },
+        {
+          "name": "original",
+          "type": {
+            "defined": {
+              "name": "RateWitness"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "seal_search",
+      "discriminator": [
+        196,
+        45,
+        6,
+        67,
+        91,
+        46,
+        14,
+        207
+      ],
+      "accounts": [
+        {
+          "name": "search",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "verify_incumbent",
+      "discriminator": [
+        204,
+        129,
+        101,
+        246,
+        52,
+        66,
+        71,
+        75
+      ],
+      "accounts": [
+        {
+          "name": "search",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        }
+      ],
+      "args": [
+        {
+          "name": "after",
+          "type": {
+            "defined": {
+              "name": "RateWitness"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "PagedRecoverySearch",
+      "discriminator": [
+        23,
+        220,
+        157,
+        20,
+        5,
+        154,
+        180,
+        108
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "PagedRecoverySearch",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "prepared",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          },
+          {
+            "name": "proposed",
+            "type": "u128"
+          },
+          {
+            "name": "count",
+            "type": "u128"
+          },
+          {
+            "name": "cursor",
+            "type": "u128"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "score_num",
+            "type": "i128"
+          },
+          {
+            "name": "score_den",
+            "type": "u128"
+          },
+          {
+            "name": "cash",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "movements",
+            "type": {
+              "vec": {
+                "array": [
+                  "i64",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "remaining_insurance",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "retained_fees",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "original",
+            "type": {
+              "defined": {
+                "name": "RateWitness"
+              }
+            }
+          },
+          {
+            "name": "rows",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "SearchMember"
+                }
+              }
+            }
+          },
+          {
+            "name": "edges",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "SearchEdge"
+                }
+              }
+            }
+          },
+          {
+            "name": "budgets",
+            "type": {
+              "vec": {
+                "array": [
+                  "u64",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "weights",
+            "type": {
+              "vec": {
+                "array": [
+                  "u64",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "type": {
+              "defined": {
+                "name": "Priorities"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Priorities",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fractions",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "StoredRatio"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "deviation",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "StoredRatio"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "costs",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u128",
+                    2
+                  ]
+                },
+                2
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RateWitness",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rates",
+            "type": {
+              "vec": {
+                "array": [
+                  "u64",
+                  3
+                ]
+              }
+            }
+          },
+          {
+            "name": "orders",
+            "type": {
+              "array": [
+                {
+                  "vec": "u8"
+                },
+                2
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SearchEdge",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "u8"
+          },
+          {
+            "name": "debtor",
+            "type": "u64"
+          },
+          {
+            "name": "winner",
+            "type": "u64"
+          },
+          {
+            "name": "maximum",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SearchMember",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "claims",
+            "type": {
+              "array": [
+                "i128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "lots",
+            "type": {
+              "array": [
+                "i64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "histories",
+            "type": {
+              "array": [
+                {
+                  "vec": "u8"
+                },
+                2
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "StoredRatio",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "numerator",
+            "type": "i128"
+          },
+          {
+            "name": "denominator",
+            "type": "u128"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 7100,
+      "name": "Source",
+      "msg": "Invalid frozen recovery source"
+    },
+    {
+      "code": 7101,
+      "name": "Cursor",
+      "msg": "Recovery proof cursor or revision mismatch"
+    },
+    {
+      "code": 7102,
+      "name": "Commitment",
+      "msg": "Recovery proof commitment mismatch"
+    },
+    {
+      "code": 7103,
+      "name": "Unsupported",
+      "msg": "Recovery proof exceeds this verifier's resource bounds"
+    },
+    {
+      "code": 7104,
+      "name": "Charge",
+      "msg": "Invalid proposed charge or recovery rank"
+    },
+    {
+      "code": 7105,
+      "name": "Incomplete",
+      "msg": "Recovery proof has incomplete coverage"
+    },
+    {
+      "code": 7106,
+      "name": "Priority",
+      "msg": "A competing plan prevents this recovery from being selected"
+    },
+    {
+      "code": 7107,
+      "name": "Accounting",
+      "msg": "Recovery verification failed its financial checks"
+    }
+  ]
+}

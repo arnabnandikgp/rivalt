@@ -83,6 +83,7 @@ impl BoundResult {
         Ok(increments)
     }
 }
+#[cfg(not(feature = "paged-recovery-qualification"))]
 pub fn bind(
     ctx: &mut Context<BindRecoverySelection>,
     events: &mut crate::event_cpi::Payloads,
@@ -193,4 +194,15 @@ pub fn bind(
         },
         accounts.event_authority.account().clone(),
     )
+}
+
+#[cfg(feature = "paged-recovery-qualification")]
+pub fn bind(
+    _: &mut Context<BindRecoverySelection>,
+    _: &mut crate::event_cpi::Payloads,
+    _: u64,
+    _: u64,
+) -> Result<()> {
+    // An expanded proof cannot release a member through the original eight-row receipt.
+    Err(ClearingError::Profile.into())
 }

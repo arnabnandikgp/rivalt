@@ -10,6 +10,7 @@ name = "frozen_plan_probe"
 
 [features]
 default = []
+paged-recovery-qualification = []
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []

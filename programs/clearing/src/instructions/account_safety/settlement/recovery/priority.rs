@@ -40,7 +40,7 @@ impl Priorities {
         for (target, score) in fractions.iter_mut().zip(recovered.fractions) {
             *target = StoredRatio::pack(score)?;
         }
-        let mut totals = [[0u64; 2]; 8];
+        let mut totals = vec![[0u64; 2]; search.rows.len()];
         let mut cost = [(0u128, 0u128); 2];
         require!(charges.len() == receipt.fills.len(), ProofError::Accounting);
         for (charge, fill) in charges.iter().zip(&receipt.fills) {
@@ -106,12 +106,12 @@ pub fn episode_order(
         })
         .collect();
     order.sort_unstable();
-    let mut ranks = [0usize; 8];
+    let mut ranks = vec![0usize; search.rows.len()];
     for (rank, (_, _, ordinal)) in order.into_iter().enumerate() {
         ranks[ordinal] = rank;
     }
     let ordered = |charges: &[Charge]| -> Result<(_, _)> {
-        let mut totals = [[0u64; 2]; 8];
+        let mut totals = vec![[0u64; 2]; search.rows.len()];
         let mut pairs = PairOrder::new();
         for charge in charges {
             let winner = ranks[ordinal(&search.rows, charge.winner)?];

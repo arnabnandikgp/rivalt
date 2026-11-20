@@ -5,13 +5,15 @@ cd "$(dirname "$0")/.."
 source ops/env.sh
 case "${RIVALT_SETTLEMENT_PROBE:-}" in
   profit-attribution-linked-contested|profit-attribution-foreign-winner-apply) ;;
-  profit-attribution-owned-tie) test "${RIVALT_FROZEN_PLAN_CASE:-}" = paged-meter ;;
+  profit-attribution-owned-tie) [[ "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-meter || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-coverage ]] ;;
   *) exit 1 ;;
 esac
 test "$RIVALT_RPC_URL" = "http://127.0.0.1:$RIVALT_RPC_PORT"
 : "${RIVALT_RUN_DIR:?}"
+set --
+if [[ "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-coverage ]]; then set -- --features paged-recovery-qualification; fi
 cargo build-sbf --manifest-path tests/programs/frozen-plan/Cargo.toml --tools-version v1.52 --arch v0 \
-  --sbf-out-dir "$RIVALT_RUN_DIR" -- --locked --offline > "$RIVALT_RUN_DIR/proof-build.log" 2>&1
+  --sbf-out-dir "$RIVALT_RUN_DIR" -- --locked --offline "$@" > "$RIVALT_RUN_DIR/proof-build.log" 2>&1
 if rg 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' "$RIVALT_RUN_DIR/proof-build.log"; then exit 1; fi
 node --import tsx tests/rpc-contract/frozen-plan-rpc.ts write-key
 solana-keygen new --silent --no-bip39-passphrase --outfile "$RIVALT_RUN_DIR/proof-buffer.json" >/dev/null

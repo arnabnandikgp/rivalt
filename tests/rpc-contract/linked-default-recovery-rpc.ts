@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync,spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdirSync,writeFileSync} from 'node:fs';
+import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
 import {AccountRole,getAddressEncoder} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
@@ -45,7 +45,8 @@ const foreignGate=probe==='profit-attribution-foreign-winner-gate';
 const foreignApply=probe==='profit-attribution-foreign-winner-apply';
 const foreignBook=ownedCross||foreignApply||foreignGate||probe==='profit-attribution-foreign-winner-ordinary';
 const pagedMeter=process.env.RIVALT_FROZEN_PLAN_CASE==='paged-meter';
-const pagedRead=pagedMeter||process.env.RIVALT_FROZEN_PLAN_CASE==='paged-read';
+const pagedCoverage=process.env.RIVALT_FROZEN_PLAN_CASE==='paged-coverage';
+const pagedRead=pagedCoverage||pagedMeter||process.env.RIVALT_FROZEN_PLAN_CASE==='paged-read';
 const equalWinners=pagedRead||process.env.RIVALT_FROZEN_PLAN_CASE==='equal-winners';
 if(pagedRead)assert(ownedTie && automatic);
 if(equalWinners)assert((ownedTie||probe==='profit-attribution-linked-contested') && process.env.RIVALT_FROZEN_PLAN_PROOF==='1');
@@ -183,6 +184,20 @@ try {
       assert.equal(book.rows[8].member,otherTrader);
       assert.deepEqual(book.rows[8].lots,[0n,0n]);
       assert.deepEqual(book.rows[8].claims,[4_996_000_000_000n,0n]);
+      if(pagedCoverage) {
+        writeFileSync(directory+'/paged-source.json',json({venue:setup.venue,resolution:current.resolution,epoch:frozen.epoch,
+          revision:prepared.revision,members:prepared.count}));
+        for(const phase of ['start','resume'])await new Promise<void>((resolve,reject)=>{
+          const child=spawn(process.execPath,['--import','tsx','tests/rpc-contract/paged-search-rpc.ts',phase],{stdio:'inherit'});
+          child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(new Error('Paged search '+phase+' exited '+code)));
+        });
+        const result=JSON.parse(readFileSync(directory+'/paged-search-resume/result.json','utf8'));
+        assert.deepEqual([result.rank,result.cursor,result.count],[String(outcome.rank),String(outcome.count),String(outcome.count)]);
+        assert.deepEqual(result.cash,members.map(key=>comparison.cash[key]));
+        assert.deepEqual(result.movements,comparison.terminal.movements);
+        assert.deepEqual(result.remainingInsurance,comparison.terminal.remainingInsurance);
+        assert.deepEqual(result.retainedFees,comparison.terminal.retainedFees);
+      }
       if(pagedMeter)pagedCost=await measurePagedRecovery(setup.venue,current.resolution,frozen.epoch,prepared.revision,book,outcome,comparison);
       assert.deepEqual(await financialSnapshot(),prior);
       pagedSelection={rank:outcome.rank,count:outcome.count,pages:book.pages};

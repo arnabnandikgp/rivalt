@@ -8,6 +8,17 @@ use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::ToPrimitive;
 
+#[cfg(feature = "paged-recovery-qualification")]
+fn fits(search: &BorshAccount<RecoverySearch>) -> Result<()> {
+    let size = anchor_lang::wincode::config::serialized_size(&**search, anchor_lang::BORSH_CONFIG)
+        .map_err(|_| ProofError::Unsupported)?;
+    require!(
+        size + 8 <= search.account().data_len() as u64,
+        ProofError::Unsupported
+    );
+    Ok(())
+}
+
 pub fn open(
     accounts: &mut OpenSearch,
     epoch: u64,
@@ -16,7 +27,24 @@ pub fn open(
 ) -> Result<()> {
     accounts.source.check(epoch)?;
     let header = &accounts.source.prepared;
+    #[cfg(not(feature = "paged-recovery-qualification"))]
     require!(header.count == MEMBERS as u64, ProofError::Unsupported);
+    #[cfg(feature = "paged-recovery-qualification")]
+    {
+        let count = usize::try_from(header.count).map_err(|_| ProofError::Unsupported)?;
+        original.validate_shape(count)?;
+        // Only the sponsor pays for this proof. Check that all members and their
+        // result fields can fit before starting capture. Edge storage is checked
+        // once the authenticated debtor budgets determine which pairs exist.
+        // Seventy-two bytes hold an ID, balances, lots and two empty history vectors.
+        let minimum = count
+            .checked_mul(72 + 8 + 3 * 16)
+            .ok_or(ProofError::Unsupported)?;
+        require!(
+            minimum < accounts.search.account().data_len(),
+            ProofError::Unsupported
+        );
+    }
     let search = &mut accounts.search;
     search.prepared = *header.address();
     search.epoch = epoch;
@@ -47,15 +75,27 @@ pub fn capture(accounts: &mut CaptureSearch, ordinal: u64) -> Result<()> {
         cash: row.cash,
         lots: row.lots,
         claims: row.claims,
+        #[cfg(not(feature = "paged-recovery-qualification"))]
         histories: [[0; 256]; 2],
+        #[cfg(feature = "paged-recovery-qualification")]
+        histories: [vec![0; 256], vec![0; 256]],
     };
     for (market, history) in member.histories.iter_mut().enumerate() {
         read_profit_history(&accounts.margin, market)?
             .write(history)
             .map_err(|_| ProofError::Source)?;
+        #[cfg(feature = "paged-recovery-qualification")]
+        history.truncate(
+            history
+                .iter()
+                .rposition(|byte| *byte != 0)
+                .map_or(0, |last| last + 1),
+        );
     }
     search.rows.push(member);
-    if search.rows.len() == MEMBERS {
+    #[cfg(feature = "paged-recovery-qualification")]
+    fits(search)?;
+    if search.rows.len() as u64 == header.count {
         search.stage = 1;
     }
     Ok(())
@@ -136,6 +176,13 @@ pub fn dimensions(accounts: &mut AdvanceSearch) -> Result<()> {
     search.count = count;
     search.budgets = budgets;
     search.weights = weights;
+    #[cfg(feature = "paged-recovery-qualification")]
+    {
+        // Reserve the elected result in the same serialization that will hold it.
+        search.cash = vec![0; search.rows.len()];
+        search.movements = vec![[0; 2]; search.rows.len()];
+        fits(search)?;
+    }
     search.stage = 2;
     Ok(())
 }
@@ -164,6 +211,8 @@ fn evaluate(
     rank: u128,
     after: &RateWitness,
 ) -> Result<Option<Receipt>> {
+    #[cfg(feature = "paged-recovery-qualification")]
+    after.validate_shape(search.rows.len())?;
     let charges = charges(&search.edges, rank);
     with_book(search, header, |book| {
         match search.original.with(|before| {
@@ -281,8 +330,8 @@ fn visit_digits(
     Ok(())
 }
 fn bounded_recovery(search: &RecoverySearch, first: u128, last: u128) -> Result<Option<u128>> {
-    let mut minimum = [[0u128; 2]; MEMBERS];
-    let mut maximum = minimum;
+    let mut minimum = vec![[0u128; 2]; search.budgets.len()];
+    let mut maximum = minimum.clone();
     visit_digits(&search.edges, first, last, |edge, low, high| {
         let debtor = search
             .rows
@@ -371,6 +420,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "paged-recovery-qualification"))]
     #[test]
     fn budget_bounds_preserve_all_feasible_alternatives_even_across_digit_wraps() {
         let rows = (4..6)

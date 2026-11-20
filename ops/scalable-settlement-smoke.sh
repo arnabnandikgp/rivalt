@@ -100,7 +100,7 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
 if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution* || "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk || "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation || "${RIVALT_SETTLEMENT_PROBE:-default}" == freeze-cutoff || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
-if [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && ( "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-owned-* || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-meter ) ]]; then bash ops/deploy-frozen-plan-probe.sh; fi
+if [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && ( "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-owned-* || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-meter || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-coverage ) ]]; then bash ops/deploy-frozen-plan-probe.sh; fi
 case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
   maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;

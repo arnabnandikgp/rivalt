@@ -20,14 +20,4 @@ mod source;
 pub use layout::*;
 
 #[cfg(feature = "recovery-search-qualification")]
-#[error_code(offset = 7100)]
-pub enum ProofError {
-    Source,
-    Cursor,
-    Commitment,
-    Unsupported,
-    Charge,
-    Incomplete,
-    Priority,
-    Accounting,
-}
+pub use crate::ClearingError as ProofError;

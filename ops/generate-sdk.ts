@@ -22,7 +22,8 @@ function snapshot(path: string): Record<string, string> {
     }).sort(([a], [b]) => a.localeCompare(b)));
 }
 execFileSync('python3', ['ops/generate-price-policy.py', ...(process.argv.includes('--check') ? ['--check'] : [])], { stdio: 'inherit' });
-for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generatedMakerA'], ['maker_b', 'generatedMakerB']]) {
+for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generatedMakerA'], ['maker_b', 'generatedMakerB'], ['paged_recovery', 'generatedPagedRecovery']]) {
+  if (process.argv.includes('--paged-recovery') && program !== 'paged_recovery') continue;
   const path = `packages/sdk/src/${folder}`;
   const before = process.argv.includes('--check') ? snapshot(path) : undefined;
   const idl = JSON.parse(readFileSync(`packages/sdk/idl/${program}.json`, 'utf8'));
