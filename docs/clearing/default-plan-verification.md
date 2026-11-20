@@ -1323,3 +1323,26 @@ full-recovery amounts. Joint settlement must still verify that the resulting
 BTC and ETH claims can both be honored under the original creditor protections.
 [Clearing instructions](../../programs/clearing/src/instructions/account_safety/settlement/ordered_pairs)
 · [Pair arithmetic](../../crates/default-plan-selection/src/joint/ordered_fill.rs)
+
+### Verifying adjusted payments after both books are paired
+
+A proposal opens against the same frozen epoch, completed BTC and ETH pair
+certificates, original rate registers and original insurance result. Clearing
+opens both winner commitments on each frozen page. It adds the debtor's verified
+budget and subtracts the winner's direct charge to obtain that member's changes
+in claims. The original cash allocation still determines cross-market funding.
+
+The populated profile uses a sufficient per-creditor rounding bound. When the
+other market has a charge, the floor of the adjusted exact receipt plus the
+member's own direct charge must cover the ceiling of the original exact receipt.
+If the bound fails, this proof cannot authorize settlement. The existing rate
+verifier recomputes the adjusted rates against every member and verifies all
+insurance rounds. Adjusted gross payouts must cover original gross payouts in
+each market, and a change in one market may not increase spending of the other
+market's insurance.
+
+Only a complete proposal can bind the financial workspace. Permissionless
+continuations copy the certified signed claim changes and numerical registers.
+The final copy checks that the canonical rate verifier restores the same result.
+The ordinary conserving graph then determines atom ownership. Vault reconciliation
+and the complete-cohort application still precede wallet exits.

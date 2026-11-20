@@ -53,19 +53,28 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
         #[cfg(all(feature="foreign-creditor-qualification", not(feature="recovery-search-qualification")))]
         let charges = super::foreign_creditor::Receipt::read(header)?.map(|receipt| receipt.legs.map(|leg| leg.charge)).or(charges);
         #[cfg(feature="recovery-search-qualification")]
-        let charges = Some(super::recovery::binding::BoundResult::read(header)?.charges);
+        let charges = {
+            #[cfg(feature="populated-recovery-qualification")]
+            let receipt = super::joint_payment::binding::receipt(header)?.map(|value| value.charges);
+            #[cfg(not(feature="populated-recovery-qualification"))]
+            let receipt: Option<[u128; 2]> = None;
+            Some(match receipt {
+                Some(charges) => charges,
+                None => super::recovery::binding::BoundResult::read(header)?.charges.map(u128::from),
+            })
+        };
         #[cfg(feature="shared-inventory-qualification")]
         let charges = match super::shared_inventory::Receipt::read(header)? {
-            Some(receipt) => Some([receipt.total_charge()?, 0]),
+            Some(receipt) => Some([receipt.total_charge()?.into(), 0]),
             None => charges,
         };
         #[cfg(feature="book-inventory-qualification")]
-        let charges = super::inventory_book::Receipt::read(header)?.map(|book|[book.total,0]).or(charges);
+        let charges = super::inventory_book::Receipt::read(header)?.map(|book|[book.total.into(),0]).or(charges);
         #[cfg(feature="linked-pair-qualification")]
         if let Some(charges) = charges {
             require!(header.stage == PROPOSAL, ClearingError::Resolution);
-            arithmetic(totals.after_market_charge(0, charges[0])
-                .and_then(|btc| btc.after_market_charge(1, charges[1])))?
+            arithmetic(totals.after_market_charge_wide(0, u128::from(charges[0]))
+                .and_then(|btc| btc.after_market_charge_wide(1, u128::from(charges[1]))))?
         } else {
             arithmetic(totals.after_single_btc_charge(super::single_pair::verified_charge(header)?))?
         }

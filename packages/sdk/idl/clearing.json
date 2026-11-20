@@ -2334,6 +2334,47 @@
       ]
     },
     {
+      "name": "advance_joint_payment",
+      "discriminator": [
+        89,
+        84,
+        130,
+        250,
+        83,
+        30,
+        75,
+        33
+      ],
+      "accounts": [
+        {
+          "name": "payment",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "frozen_page"
+        },
+        {
+          "name": "delta_page"
+        }
+      ],
+      "args": [
+        {
+          "name": "revision",
+          "type": "u64"
+        },
+        {
+          "name": "steps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "advance_linked_allocation",
       "discriminator": [
         122,
@@ -4764,6 +4805,368 @@
       ]
     },
     {
+      "name": "bind_joint_payment",
+      "discriminator": [
+        83,
+        218,
+        252,
+        191,
+        61,
+        16,
+        243,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "registry",
+            "storage",
+            "resolution",
+            "btc",
+            "eth",
+            "btc_ledger",
+            "eth_ledger"
+          ]
+        },
+        {
+          "name": "custody",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "storage",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  111,
+                  118,
+                  101,
+                  114,
+                  121,
+                  45,
+                  115,
+                  116,
+                  111,
+                  114,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "btc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "eth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared",
+          "writable": true
+        },
+        {
+          "name": "rates"
+        },
+        {
+          "name": "payment"
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "bind_recovery_selection",
       "discriminator": [
         232,
@@ -5254,6 +5657,112 @@
         {
           "name": "revision",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "capture_joint_payment",
+      "discriminator": [
+        59,
+        30,
+        85,
+        28,
+        4,
+        33,
+        243,
+        89
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "payment",
+          "writable": true
+        },
+        {
+          "name": "delta_page",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  105,
+                  110,
+                  116,
+                  45,
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  45,
+                  112,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payment"
+              },
+              {
+                "kind": "arg",
+                "path": "index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "frozen_page"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u64"
+        },
+        {
+          "name": "prior",
+          "type": {
+            "array": [
+              {
+                "array": [
+                  "u8",
+                  32
+                ]
+              },
+              2
+            ]
+          }
+        },
+        {
+          "name": "openings",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "JointMemberOpening"
+              }
+            }
+          }
         }
       ]
     },
@@ -9042,6 +9551,744 @@
               "name": "CurveControl"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "copy_joint_claims",
+      "discriminator": [
+        211,
+        81,
+        170,
+        171,
+        165,
+        168,
+        79,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "registry",
+            "storage",
+            "resolution",
+            "btc",
+            "eth",
+            "btc_ledger",
+            "eth_ledger"
+          ]
+        },
+        {
+          "name": "custody",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "storage",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  111,
+                  118,
+                  101,
+                  114,
+                  121,
+                  45,
+                  115,
+                  116,
+                  111,
+                  114,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "btc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "eth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared",
+          "writable": true
+        },
+        {
+          "name": "page",
+          "writable": true
+        },
+        {
+          "name": "delta_page"
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "index",
+          "type": "u64"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "copy_joint_register",
+      "discriminator": [
+        194,
+        89,
+        232,
+        254,
+        80,
+        134,
+        147,
+        141
+      ],
+      "accounts": [
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "registry",
+            "storage",
+            "resolution",
+            "btc",
+            "eth",
+            "btc_ledger",
+            "eth_ledger"
+          ]
+        },
+        {
+          "name": "custody",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "storage",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  111,
+                  118,
+                  101,
+                  114,
+                  121,
+                  45,
+                  115,
+                  116,
+                  111,
+                  114,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "btc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "eth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared",
+          "writable": true
+        },
+        {
+          "name": "rates",
+          "writable": true
+        },
+        {
+          "name": "payment"
+        },
+        {
+          "name": "page",
+          "writable": true
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "register",
+          "type": "u32"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
         }
       ]
     },
@@ -15967,6 +17214,118 @@
         {
           "name": "amount",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "open_joint_payment",
+      "discriminator": [
+        240,
+        15,
+        176,
+        109,
+        180,
+        53,
+        106,
+        68
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "payment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  106,
+                  111,
+                  105,
+                  110,
+                  116,
+                  45,
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "rates"
+        },
+        {
+          "name": "btc_pairs"
+        },
+        {
+          "name": "eth_pairs"
+        },
+        {
+          "name": "btc_allocation"
+        },
+        {
+          "name": "eth_allocation"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        },
+        {
+          "name": "account_bytes",
+          "type": "u16"
+        },
+        {
+          "name": "width",
+          "type": "u16"
+        },
+        {
+          "name": "proposals",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "PaymentProposal"
+              }
+            }
+          }
+        },
+        {
+          "name": "revisions",
+          "type": {
+            "array": [
+              "u64",
+              3
+            ]
+          }
         }
       ]
     },
@@ -25442,6 +26801,32 @@
       ]
     },
     {
+      "name": "JointPaymentPage",
+      "discriminator": [
+        191,
+        60,
+        195,
+        229,
+        56,
+        217,
+        228,
+        61
+      ]
+    },
+    {
+      "name": "JointPaymentProof",
+      "discriminator": [
+        133,
+        174,
+        189,
+        222,
+        241,
+        218,
+        129,
+        212
+      ]
+    },
+    {
       "name": "LiquidityRegistry",
       "discriminator": [
         1,
@@ -29299,6 +30684,206 @@
       }
     },
     {
+      "name": "JointMemberOpening",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "weights",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "charges",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "JointPaymentPage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payment",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "count",
+            "type": "u8"
+          },
+          {
+            "name": "deltas",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "i64",
+                    2
+                  ]
+                },
+                8
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JointPaymentProof",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "prepared",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "attempt",
+            "type": "u64"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "pair_certificates",
+            "type": {
+              "array": [
+                "pubkey",
+                2
+              ]
+            }
+          },
+          {
+            "name": "charges",
+            "type": {
+              "array": [
+                "u128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "target_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "members_left",
+            "type": "u64"
+          },
+          {
+            "name": "original",
+            "type": {
+              "defined": {
+                "name": "PaymentProposal"
+              }
+            }
+          },
+          {
+            "name": "original_spent",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "common_register",
+            "type": "u32"
+          },
+          {
+            "name": "common",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "proposals",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "PaymentProposal"
+                }
+              }
+            }
+          },
+          {
+            "name": "round",
+            "type": "u8"
+          },
+          {
+            "name": "row_cursor",
+            "type": "u64"
+          },
+          {
+            "name": "spent",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "checkpoints",
+            "type": {
+              "defined": {
+                "name": "RateCheckpoints"
+              }
+            }
+          },
+          {
+            "name": "width",
+            "type": "u16"
+          },
+          {
+            "name": "registers",
+            "type": {
+              "vec": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "LedgerLaneFilled",
       "type": {
         "kind": "struct",
@@ -32004,6 +33589,34 @@
           {
             "name": "paired_atoms",
             "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentProposal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "factor",
+            "type": {
+              "array": [
+                "u64",
+                5
+              ]
+            }
+          },
+          {
+            "name": "rates",
+            "type": {
+              "array": [
+                {
+                  "vec": "u64"
+                },
+                2
+              ]
+            }
           }
         ]
       }

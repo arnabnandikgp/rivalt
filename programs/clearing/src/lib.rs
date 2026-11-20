@@ -68,6 +68,13 @@ pub(crate) use instructions::account_safety::settlement::ordered_pairs::{
     __client_accounts_openpairschedule, __client_accounts_appendpairorder,
     __client_accounts_checkpairmembers, __client_accounts_matchpairpage,
 };
+pub use instructions::account_safety::settlement::joint_payment::{
+    OpenJointPayment, CaptureJointPayment, AdvanceJointPayment, PaymentProposal, JointMemberOpening,
+};
+pub(crate) use instructions::account_safety::settlement::joint_payment::{
+    __client_accounts_openjointpayment,__client_accounts_capturejointpayment,__client_accounts_advancejointpayment,
+};
+pub use instructions::account_safety::settlement::{BindJointPayment, __client_accounts_bindjointpayment, CopyJointClaims, __client_accounts_copyjointclaims, CopyJointRegister, __client_accounts_copyjointregister};
 pub use state::*;
 pub use state::accounts::SettlementPageAccess;
 
@@ -175,6 +182,56 @@ pub mod clearing {
         {account_safety::settlement::ordered_pairs::match_page(ctx,revision)}
         #[cfg(not(feature="populated-recovery-qualification"))]
         {Err(ClearingError::Profile.into())}
+    }
+    pub fn open_joint_payment(ctx:&mut Context<OpenJointPayment>,nonce:u64,account_bytes:u16,width:u16,
+        proposals:Vec<PaymentProposal>,revisions:[u64;3])->Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {let _=nonce;account_safety::settlement::joint_payment::open(ctx,account_bytes,width,proposals,revisions)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn capture_joint_payment(ctx:&mut Context<CaptureJointPayment>,index:u64,prior:[[u8;32];2],
+        openings:Vec<JointMemberOpening>)->Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::joint_payment::capture(ctx,index,prior,openings)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn advance_joint_payment(ctx:&mut Context<AdvanceJointPayment>,revision:u64,steps:u16)->Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::joint_payment::advance(ctx,revision,steps)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn bind_joint_payment(ctx:&mut Context<BindJointPayment>, epoch:u64, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _ = epoch;
+            scoped_history::run(ctx, [83, 218, 252, 191, 61, 16, 243, 218], false, |ctx, _|
+                account_safety::settlement::joint_payment::binding::bind(ctx, revision))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }
+    pub fn copy_joint_claims(ctx:&mut Context<CopyJointClaims>, epoch:u64, index:u64, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _ = epoch;
+            scoped_history::run(ctx, [211, 81, 170, 171, 165, 168, 79, 166], false, |ctx, _|
+                account_safety::settlement::joint_payment::binding::copy_claims(ctx, index, revision))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }
+    pub fn copy_joint_register(ctx:&mut Context<CopyJointRegister>, epoch:u64, register:u32, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _ = epoch;
+            scoped_history::run(ctx, [194, 89, 232, 254, 80, 134, 147, 141], false, |ctx, _|
+                account_safety::settlement::joint_payment::binding::copy_register(ctx, register, revision))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
     }
     pub fn open_search(
         ctx: &mut Context<OpenSearch>,

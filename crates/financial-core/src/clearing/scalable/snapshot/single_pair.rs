@@ -25,18 +25,32 @@ impl SnapshotTotals {
         self.after_market_charge(0, charge)
     }
 
-    pub fn after_market_charge(mut self, market: usize, charge: u64) -> Result<Self> {
+    pub fn after_market_charge(self, market: usize, charge: u64) -> Result<Self> {
+        self.after_market_charge_wide(market, u128::from(charge))
+    }
+
+    /// Market sums may exceed a single member's quantity. Subtract the scaled
+    /// whole-atom charge across all three words of the signed cohort snapshot.
+    pub fn after_market_charge_wide(mut self, market: usize, charge: u128) -> Result<Self> {
         if market >= 2 {
             return Err(Error::Bounds);
         }
-        let scaled = u128::from(charge) * SCALE as u128;
+        let low = u128::from(charge as u64) * SCALE as u128;
+        let high = (charge >> 64) * SCALE as u128 + (low >> 64);
+        let change = [low as u64, high as u64, (high >> 64) as u64];
         for total in [&mut self.positive[market], &mut self.negative[market]] {
-            let [low, high, top] = total.words();
-            if top != 0 {
+            let mut words = total.words();
+            let mut borrow = false;
+            for (word, sub) in words.iter_mut().zip(change) {
+                let (difference, first) = word.overflowing_sub(sub);
+                let (difference, second) = difference.overflowing_sub(u64::from(borrow));
+                *word = difference;
+                borrow = first || second;
+            }
+            if borrow {
                 return Err(Error::Bounds);
             }
-            let original = u128::from(low) | (u128::from(high) << 64);
-            *total = ClaimTotal::scalar(original.checked_sub(scaled).ok_or(Error::Bounds)?);
+            *total = ClaimTotal::from_words(words)?;
         }
         Ok(self)
     }
@@ -179,6 +193,18 @@ mod tests {
                 cash: 0,
             },
         )
+    }
+
+    #[test]
+    fn market_charge_borrows_through_a_128_bit_word_boundary() {
+        let base = ClaimTotal::from_words([0, 0, 1]).unwrap();
+        let totals = SnapshotTotals { cash: 91, positive: [base; 2], negative: [base; 2] };
+        let updated = totals.after_market_charge_wide(1, (1u128 << 64) + 1).unwrap();
+        let expected = ClaimTotal::from_words([0u64.wrapping_sub(SCALE as u64), u64::MAX - SCALE as u64, 0]).unwrap();
+        assert_eq!(updated.positive, [base, expected]);
+        assert_eq!(updated.negative, updated.positive);
+        assert_eq!(updated.cash, 91);
+        assert!(totals.after_market_charge_wide(1, u128::MAX).is_err());
     }
 
     #[test]

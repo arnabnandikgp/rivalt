@@ -30,6 +30,10 @@ pub(super) fn economic_claims(
     header: &PreparedSettlement,
     frozen: &FrozenMargin,
 ) -> Result<[i128; 2]> {
+    #[cfg(feature="populated-recovery-qualification")]
+    if super::joint_payment::binding::receipt(header)?.is_some() {
+        return Ok(super::joint_payment::admission::apply_deltas(frozen, frozen.recovery_payout.claim_delta)?.1.claims);
+    }
     #[cfg(feature="recovery-search-qualification")]
     { super::recovery::binding::BoundResult::read(header)?.claims(frozen) }
 

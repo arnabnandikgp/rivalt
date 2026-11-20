@@ -144,7 +144,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
         r'Rivalt/multi-lot-charge-proposal/v1\0', r'Rivalt/whole-single-market-search/v1\0'})
     # D139 uses distinct header markers for the fixed and paged payout receipts.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'RVPAGED1', 'RVBOUND1', 'winner-proof', 'search', 'pair-schedule', 'pair-order',
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'RVJOINT2', 'joint-payment', 'joint-payment-page', 'RVPAGED1', 'RVBOUND1', 'winner-proof', 'search', 'pair-schedule', 'pair-order',
         r'Rivalt/pair-fills/v1\0', r'Rivalt/pair-order-page/v1\0'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
@@ -161,6 +161,12 @@ def undo_liquidation_delta(actual, program):
     # All financial inputs are read-only during search. Only the final binding
     # can write the prepared settlement, under the original frozen dependencies.
     work = {
+        'open_joint_payment': ('payer payment prepared resolution rates btc_pairs eth_pairs btc_allocation eth_allocation system_program', 'payer payment', 'payer'),
+        'capture_joint_payment': ('payer payment delta_page prepared resolution frozen_page system_program', 'payer payment delta_page', 'payer'),
+        'advance_joint_payment': ('payment prepared resolution frozen_page delta_page', 'payment', ''),
+        'bind_joint_payment': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared rates payment event_authority program', 'prepared', ''),
+        'copy_joint_claims': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared page delta_page event_authority program', 'prepared page', ''),
+        'copy_joint_register': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared rates payment page event_authority program', 'prepared rates page', ''),
         'open_pair_schedule': ('payer certificate allocation prepared resolution system_program', 'payer certificate', 'payer'),
         'append_pair_order': ('payer certificate order_page prepared resolution system_program', 'payer certificate order_page', 'payer'),
         'check_pair_members': ('certificate prepared resolution frozen_page', 'certificate', ''),
@@ -179,6 +185,12 @@ def undo_liquidation_delta(actual, program):
     entry = {'vec':{'defined':{'name':'PairBookEntry'}}}
     openings = {'vec':{'defined':{'name':'PairMemberOpening'}}}
     for name, args in {
+            'open_joint_payment':[('nonce','u64'),('account_bytes','u16'),('width','u16'),('proposals',{'vec':{'defined':{'name':'PaymentProposal'}}}),('revisions',{'array':['u64',3]})],
+            'capture_joint_payment':[('index','u64'),('prior',{'array':[digest,2]}),('openings',{'vec':{'defined':{'name':'JointMemberOpening'}}})],
+            'advance_joint_payment':[('revision','u64'),('steps','u16')],
+            'bind_joint_payment':[('epoch','u64'),('revision','u64')],
+            'copy_joint_claims':[('epoch','u64'),('index','u64'),('revision','u64')],
+            'copy_joint_register':[('epoch','u64'),('register','u32'),('revision','u64')],
             'open_pair_schedule':[('nonce','u64'),('order_root',digest)],
             'append_pair_order':[('role','u8'),('index','u64'),('entries',entry),('next',digest)],
             'check_pair_members':[('prefix',digest),('openings',openings)],
@@ -203,9 +215,9 @@ def undo_liquidation_delta(actual, program):
                 ([meta for meta in item['accounts'] if meta.get('signer')], signers)):
             assert [meta['name'] for meta in actual_metas] == expected.split(), name
         actual['instructions'].remove(item)
-    for group, prefix, name in [('accounts','account','RecoverySearch'),('accounts','account','WinnerAllocationProof'),('accounts','account','PairScheduleProof'),('accounts','account','PairOrderPage'),('events','event','RecoverySelectionBound')]:
+    for group, prefix, name in [('accounts','account','RecoverySearch'),('accounts','account','WinnerAllocationProof'),('accounts','account','PairScheduleProof'),('accounts','account','PairOrderPage'),('accounts','account','JointPaymentProof'),('accounts','account','JointPaymentPage'),('events','event','RecoverySelectionBound')]:
         actual[group].remove(dict(name=name,discriminator=list(hashlib.sha256(f'{prefix}:{name}'.encode()).digest()[:8])))
-    for name in ('PairOrderPage','PairScheduleProof','PairBookEntry','PairBookRow','PairMemberOpening','WinnerAllocationProof','WinnerCutoff','WinnerMarginal','WinnerRange','WinnerSide','RecoverySearch','RecoverySelectionBound','RateWitness','SearchMember','SearchEdge','StoredRatio','Priorities'):
+    for name in ('JointPaymentPage','JointPaymentProof','PaymentProposal','JointMemberOpening','PairOrderPage','PairScheduleProof','PairBookEntry','PairBookRow','PairMemberOpening','WinnerAllocationProof','WinnerCutoff','WinnerMarginal','WinnerRange','WinnerSide','RecoverySearch','RecoverySelectionBound','RateWitness','SearchMember','SearchEdge','StoredRatio','Priorities'):
         entry, = [item for item in actual['types'] if item['name'] == name]
         assert entry['type']['kind'] == 'struct'
         actual['types'].remove(entry)

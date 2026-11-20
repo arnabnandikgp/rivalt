@@ -10,6 +10,8 @@ export * from "./capitalBinding.js";
 export * from "./custody.js";
 export * from "./frozenMarginPage.js";
 export * from "./fundingPublisher.js";
+export * from "./jointPaymentPage.js";
+export * from "./jointPaymentProof.js";
 export * from "./liquidityRegistry.js";
 export * from "./makerRegistration.js";
 export * from "./marginAccount.js";

@@ -12,6 +12,7 @@ const transitionTag = createHash('sha256').update('event:AccountTransition').dig
 const grossView = createHash('sha256').update('global:read_market_gross').digest().subarray(0,8);
 // Only proposal accounts, their work pages and rent payers may change here.
 const searchWork = new Map([
+  ['open_joint_payment', 13, 48], ['capture_joint_payment', 7, 84], ['advance_joint_payment', 5, 18],
   ['open_pair_schedule', 6, 48], ['append_pair_order', 6, 53],
   ['check_pair_members', 4, 44], ['match_pair_page', 5, 16],
   ['open_winner_proof', 5, 73], ['advance_winner_proof', 4, 16],

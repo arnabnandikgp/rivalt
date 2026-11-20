@@ -89,10 +89,17 @@ fn adopt(
         ClearingError::Resolution
     );
     #[cfg(feature = "recovery-search-qualification")]
-    require!(
-        super::super::recovery::binding::BoundResult::read(header)?.insurance_spent == plan.insurance_spent,
-        ClearingError::Reconciliation
-    );
+    {
+        #[cfg(feature="populated-recovery-qualification")]
+        let spent = super::super::joint_payment::binding::receipt(header)?.map(|receipt| receipt.spent);
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        let spent: Option<[u64; 2]> = None;
+        let certified = match spent {
+            Some(value) => value,
+            None => super::super::recovery::binding::BoundResult::read(header)?.insurance_spent,
+        };
+        require!(certified == plan.insurance_spent, ClearingError::Reconciliation);
+    }
     let graph = exact(GraphWork::from_checkpoint(
         checkpoint(plan, 352)?,
         header.count,
@@ -225,7 +232,13 @@ fn apply_margin(
     let increments = {
         // Validate the ordinary rounding witness as well as the protected allocation.
         require!(graph_increments.iter().all(|amount| *amount <= 1), ClearingError::Resolution);
-        super::super::recovery::binding::BoundResult::read(header)?.increments(frozen, flow)?
+        #[cfg(feature="populated-recovery-qualification")]
+        let protected_graph = super::super::joint_payment::binding::receipt(header)?.is_some();
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        let protected_graph = false;
+        if protected_graph { graph_increments } else {
+            super::super::recovery::binding::BoundResult::read(header)?.increments(frozen, flow)?
+        }
     };
     #[cfg(not(feature = "recovery-search-qualification"))]
     let increments = graph_increments;
