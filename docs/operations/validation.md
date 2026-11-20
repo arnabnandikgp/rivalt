@@ -3638,6 +3638,32 @@ deployment, signed transactions, RPC/WS and its own PostgreSQL 18.6 database.
   selected only the older fill event. The rerun explicitly checked both lane
   fills and the full route before comparing any financial result.
 
+- On clean harness `51123ea6`, the ETH funding index advanced from 4,999,999
+  to 5,555,555 scaled units in a BTC cross-account fill. BTC retained
+  6,111,110 through 30 skipped seconds, with one second of valid coverage.
+  A two-maker reversal from +1 to −1 lot charged the taker 24 atoms once.
+  The cross-account fill used 260,371 CU in 1,204 bytes. The reversal used
+  207,100 CU in 1,110 bytes. Both finalized with 10,000 test lamports in fees.
+  The run recorded 275 outcomes and 113 events in fresh SQL replay.
+- On the same harness, the trader opened and closed BTC against different
+  makers for a 996-atom gain, with 26 atoms in trading fees. Another fill
+  changed backing after all eight accounts had been scanned. Clearing rejected
+  payment with incomplete checkpoints, then paid the fully backed gain. The
+  wallet received the 970-atom net profit. Payment used 139,697 CU in 848
+  bytes and withdrawal used 141,359 CU in 1,074 bytes. There were 332
+  outcomes and 315 freshly replayed events.
+- On clean harness `3c476d16`, the ten-lot maker fill reduced the maintenance
+  deficit from 43,910 to 12,574 atoms after fees. The target remained at 40
+  lots while no quote or funded receiver could execute. Once funded, a
+  consenting receiver took five lots. That restored maintenance, left the
+  trader with 35 lots and prevented further liquidation. The receiver unwound
+  all five lots. The maker liquidation used 267,650 CU in 1,154 bytes and the
+  receiver transfer used 145,490 CU in 983 bytes. There were 294 finalized
+  outcomes and fresh SQL replay matched 136 events. The first run at
+  `51123ea6` exposed a missing ledger classification on the receiver deposit.
+  The corrected test verifies rollback without it, then funds the receiver with
+  the classification in the same transaction.
+
 The recovery proof admits exactly eight members and the supported rate witnesses.
 The nine-member route workload qualified contention and the freeze boundary.
 Its terminal settlement is outside this proof. A sponsor supplied the exact
@@ -3646,5 +3672,5 @@ recovering larger cohorts and establishing a sustained throughput limit remain
 open. P56 remains the selected local runtime.
 
 On harness `b026dcba` the funding, ordinary payout and receiver runs stopped
-during setup with filesystem `ENOSPC`. Their partial evidence does not qualify
-these paths on this binary. Retry each sequentially with sufficient free disk.
+during setup with filesystem `ENOSPC`. Their partial evidence was excluded. The successful cases above ran sequentially
+after removal of 24 approved, stopped test databases.

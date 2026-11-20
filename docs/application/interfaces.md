@@ -271,3 +271,11 @@ each member’s separate claim changes and signed cash movements as exact
 integers. The default worker reports `recovery-search-pending` until a sealed
 schedule binds to the frozen source. It can then resume the existing rate,
 application and reconciliation stages from RPC after a restart.
+
+On the combined local profile, financial instructions that require a market
+or ledger checkpoint must follow the matching clearing instructions in the
+same transaction. For example, a receiver deposit in trading mode that
+supplies both market ledgers includes both fee classifications before the
+deposit. A prior transaction in the same slot cannot satisfy that check.
+The [combined lifecycle](../operations/validation.md#combined-clearing-lifecycle)
+exercises the rejected and accepted forms.
