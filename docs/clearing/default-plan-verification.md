@@ -978,3 +978,12 @@ competitor for the later financial comparisons. Checked leaves plus the sizes
 of discarded intervals must exhaust the entire space. An exhausted work budget
 returns no selection. The on-chain controller still needs authenticated, resumable
 coverage before this rule can authorize cash. [Measured cases](../operations/validation.md#native-selection-of-linked-default-plans).
+
+
+### Restarting a comparison on clearing-owned inputs
+
+The [local diagnostic](../../tests/programs/frozen-plan/src/) reads the canonical prepared header, source resolution, frozen member page and original margin account. A proposal binds its per-member BTC and ETH charges in ordinal order. Anyone can resume from the comparison account. Each step checks the episode, source revision, original member and generation, recomputes eligible open profit from clearing’s entry/payment history and consumes the next committed pair of charges.
+
+One cross debtor holding all the debt and its entire side of both markets admits a short proof when cash shares and creditor claims are whole atoms, pools are empty, each creditor belongs to one market and the proposed charges cover the entire post-insurance shortfall. The complete traversal establishes the highest selected and lowest unselected marginal charge in each market. Their ordering certifies proportional sharing, including the lot-cost and frozen-member tie rules. With the full shortfall covered, remaining claims pay at par. The receipt commits each member’s terminal cash, charges and matched lots. Sealing also reconciles total cash, remaining insurance and fees to the frozen allocation.
+
+The proof program owns only its comparison account. Clearing stays frozen. A creditor with a debt in the other market needs a comparison of the original and adjusted recoveries and protected whole-atom payouts. [Signed measurements](../operations/validation.md#restartable-comparison-on-a-clearing-freeze).

@@ -1,5 +1,21 @@
 # Validation and measured limits
 
+## Restartable comparison on a clearing freeze
+
+At `4c9ccbc`, Surfpool deployed and returned the 192,480-byte diagnostic executable with SHA-256 `153e6a6abf2d3e03cfd88446e0e2c77fce11d3386e807b076037e2a6f3384af9`. Clearing used the pinned `30434d5` artifact. Five actual trades produced eight frozen Financial accounts, including a flat BTC creditor. The independent reference enumerated 2,548 schedules. Original debtor cash contributed 19,978 BTC-market and 9,989 ETH-market collateral atoms. Insurance contributed 13 and 1. Forced charges were 4 and 9 on the two BTC makers and 12 on the ETH maker.
+
+| Successful proof transaction | Transactions | Landed CU per transaction | Signed bytes |
+|---|---:|---:|---:|
+| Open comparison | 1 | 10,112 | 461 |
+| Verify one member | 8 | 6,104–20,871 | 460 |
+| Seal and reconcile | 1 | 5,208 | 338 |
+
+After four members a new client process resumed each submitted schedule from its PDA. The preferred result matched all eight reference cash balances, totaling 6,059,955 atoms. Its ten transactions consumed 121,169 CU and 50,000 lamports in transaction fees, excluding account rent and the work to freeze the venue. The comparison rejected a 5/8 BTC split with the same 13-atom recovery. Other rejections covered a wrong episode, different original margin, skipped or repeated ordinal, altered suffix, premature seal and second seal. All 27 probe outcomes were signed, fetched and checked over RPC/WS. The containing clearing harness checked 284 signed outcomes, observed 41 worker originals and replayed 96 clearing events from RPC into fresh PostgreSQL. The custody and member bytes stayed unchanged during comparison.
+
+To reproduce, select the pinned linked-flat build and set `RIVALT_FROZEN_PLAN_PROOF=1` and `RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-contested` for `bash ops/scalable-settlement-smoke.sh`, with an explicit `RIVALT_SETTLEMENT_ARTIFACT_DIR`. The probe uses the independently funded test payer. General cross-creditor verification and adoption into clearing remain open.
+
+At `735ea27`, the native comparison also accepted reversed charge/witness order and rejected duplicate witnesses for the same financial schedule. The 19-book independent comparison and large two-market bound passed with the same results.
+
 ## Native selection of linked default plans
 
 At `c41b5b7`, independent Python rational settlement and the Rust exhaustive
