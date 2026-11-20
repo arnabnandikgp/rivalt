@@ -101,7 +101,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   profit-attribution-checked-funding|profit-attribution-cross-fill-funding) node --import tsx tests/rpc-contract/cross-fill-funding-rpc.ts ;;
   profit-attribution-cross-maker-capacity|profit-attribution-bounded-market) node --import tsx tests/rpc-contract/cross-maker-capacity-rpc.ts ;;
   profit-attribution-market-lane-payout|profit-attribution-ledger-payout) node --import tsx tests/rpc-contract/market-lane-payout-rpc.ts ;;
-  profit-attribution-market-lane-funding) node --import tsx tests/rpc-contract/market-lane-funding-rpc.ts ;;
+  profit-attribution-market-lane-funding|profit-attribution-ledger-funding) node --import tsx tests/rpc-contract/market-lane-funding-rpc.ts ;;
   profit-attribution-ledger-lanes|profit-attribution-market-lanes|profit-attribution-route-locks|profit-attribution-fee-lanes) node --import tsx tests/rpc-contract/successor-route-locks-rpc.ts ;;
   profit-attribution-bounded-market-apply|profit-attribution-fee-lanes-apply|profit-attribution-multi-lot-search|profit-attribution-multi-lot-apply|profit-attribution-multi-lot-tie)
     cargo build --locked --offline -p default-plan-selection --features native-search --example multi_lot_audit

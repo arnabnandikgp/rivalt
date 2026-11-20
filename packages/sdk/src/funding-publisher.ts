@@ -89,7 +89,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   requireValue(clockBytes.length === 40, 'Invalid funding Clock layout.');
   const clock = new DataView(clockBytes.buffer, clockBytes.byteOffset, clockBytes.byteLength);
   const slot = clock.getBigUint64(0, true), now = clock.getBigInt64(32, true);
-  if((marginLayout==='market-lanes'||marginLayout==='ledger-lanes')){
+  if(marginLayout==='market-lanes'||marginLayout==='ledger-lanes'){
     const marketBytes=fromBase64(accounts.get(market)!.data[0]);
     const registrations=registrationPdas.map(([key,bump])=>{
       const row=accounts.get(key);

@@ -15,14 +15,15 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory=process.env.RIVALT_RUN_DIR!;
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'lane');
+const ledgerLanes=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-funding';
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,ledgerLanes?'ledger':'lane');
 const {h,rpc,ws,flush,checks}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
   const regions=(offset:bigint)=>symmetricPayoutShape.bids.map((region,i)=>i===0?{...region,offset}:region);
-  const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:'market-lanes',marketCheckpoints:true,
+  const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:ledgerLanes?'ledger-lanes':'market-lanes',marketCheckpoints:true,
     independentTraders:true,traderCount:2,shape:{...symmetricPayoutShape,bids:regions(1n),asks:regions(5n)},verifyRejections:false});
-  const {root,route}=executionTestHelpers(h,setup);
+  const {root,route,withCheckpoints}=executionTestHelpers(h,setup);
   async function openLocal(marketIndex:0|1,traderIndex:number,makerIndex:number) {
     const trader=setup.roots[traderIndex],actor=setup.traderOwners[traderIndex],maker=setup.instances[makerIndex];
     const physical=await h.read(setup.markets[marketIndex]),anchor=await setup.marketState(marketIndex);
@@ -31,7 +32,8 @@ try {
     const trade=await route({marketIndex,trader,actor,side:0,lots:[1n],makers:[maker],minimalMarkets:true,marketLane:true});
     await h.send(marketIndex===1?'ETH read-only fill with nonzero funding':'BTC read-only fill before gap',[trade],[actor]);
     assert.deepEqual(await h.read(setup.markets[marketIndex]),physical);
-    const stamp=sdk.decodeFundingTouch((await h.read(maker.registration))!.subarray(-32));
+    const offset=sdk.getMakerRegistrationDecoder().fixedSize+32;
+    const stamp=sdk.decodeFundingTouch((await h.read(maker.registration))!.subarray(offset,offset+32));
     assert(stamp&&stamp.observation===anchor.observationSequence&&stamp.timestamp>anchor.oracle.sampledAt&&stamp.timestamp<=anchor.oracle.heldUntil);
     const expected=anchor.oracle.fundingBase+2_000_000_000n*(stamp.timestamp-anchor.oracle.sampledAt)/3600n;
     const actual=(await root(trader)).positions[marketIndex];
@@ -49,8 +51,7 @@ try {
   assert.deepEqual((await root(trader)).positions[1],eth.actual);
   await setup.waitUntil(eth.stamp.timestamp+1n);
   await setup.fresh();
-  await h.send('atomic full route settles the sibling ETH position',[
-    await setup.checkpoint(0),await setup.checkpoint(1),await route(input)],[actor]);
+  await h.send('atomic full route settles the sibling ETH position',await withCheckpoints(await route(input)),[actor]);
   const sibling=await setup.marketState(1),settled=(await root(trader)).positions[1];
   const expectedEth=eth.anchor.oracle.fundingBase+2_000_000_000n*(sibling.fundingTime-eth.anchor.oracle.sampledAt)/3600n;
   assert(sibling.fundingTime>eth.stamp.timestamp&&sibling.fundingTime<=eth.anchor.oracle.heldUntil);
@@ -74,7 +75,7 @@ try {
   const beforeTrader=await root(secondTrader);
   assert.equal(beforeTrader.positions[0].lots,1n);
   const makerBefore=await Promise.all(makers.map(maker=>root(maker.capital)));
-  const feeBefore=await Promise.all(makers.map(async maker=>sdk.decodeMakerFeeLane((await h.read(maker.registration))!,'checked-funding').collected));
+  const feeBefore=await Promise.all(makers.map(async maker=>sdk.decodeMakerFeeLane((await h.read(maker.registration))!,ledgerLanes?'ledger-lanes':'checked-funding').collected));
   const marketBefore=await h.read(setup.markets[0]);
   await h.send('two-maker read-only route crosses zero',[await route({trader:secondTrader,actor:owner,marketIndex:0,
     side:1,lots:[1n,1n],makers,minimalMarkets:true,marketLane:true})],[owner]);
@@ -85,7 +86,7 @@ try {
   for(const [i,maker] of makers.entries()){
     const next=await root(maker.capital);
     assert.deepEqual([next.positions[0].lots,next.cash],[makerBefore[i].positions[0].lots+1n,makerBefore[i].cash]);
-    const lane=sdk.decodeMakerFeeLane((await h.read(maker.registration))!,'checked-funding');
+    const lane=sdk.decodeMakerFeeLane((await h.read(maker.registration))!,ledgerLanes?'ledger-lanes':'checked-funding');
     assert.equal(lane.collected-feeBefore[i],i===0?fee:0n);
   }
   const projected=await sdk.readAccountTradeSnapshot(rpc,setup.identity,secondTrader,0,'confirmed');

@@ -66,10 +66,11 @@ try {
   await fill('fill on a fully scanned BTC backing book',neighbor,0,makerOther);
   if(ledgerLanes){
     assert.deepEqual(await h.read(setup.ledgers[0]),beforeFill,'fill leaves the backing checkpoint byte-identical');
+    const certifiedTrader=await h.read(trader);
     const refreshed=await withCheckpoints(pay());
     const btcOnly=refreshed.filter(ix=>!ix.data||!Buffer.from(ix.data).equals(Buffer.from(sdk.CLASSIFY_MARKET_FEES_DISCRIMINATOR)));
     await h.send('reject payout with only market checkpoints',btcOnly,[],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
-    assert.deepEqual(await root(trader),closed);
+    assert.deepEqual(await h.read(trader),certifiedTrader);
   }
   const account=await root(neighbor),maker=await root(makerOther.capital);
   assert.deepEqual([account.positions[0].lots,maker.positions[0].lots],[1n,-1n]);

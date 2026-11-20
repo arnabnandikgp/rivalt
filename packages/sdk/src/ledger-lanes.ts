@@ -1,6 +1,7 @@
 import {getMakerRegistrationDecoder} from './generated/index.js';
 import {decodeBackingSummary} from './account-backing.js';
 import {decodeFeeLedger,decodeMakerFeeLane} from './market-fees.js';
+import {MAX_CASH_ATOMS} from './quantity-limits.js';
 import {requireValue} from './wallet-client.js';
 
 export type BackingChange = {bad:bigint;quantity:bigint;positive:bigint;negative:bigint;required:bigint[]};
@@ -51,7 +52,7 @@ export function ledgerFromExecutionLanes(escrow:ReturnType<typeof decodeFeeLedge
     changes.push({bad:delta(32),quantity:delta(48),positive:delta(64),negative:delta(80),required:[delta(96),delta(112)]});
   }
   const pendingFees=escrow.pendingFees+fees;
-  requireValue(collected===escrow.classifiedFees+pendingFees&&ledger.fees+fees<=maxU64&&ledger.version+fills<=maxU64&&ledger.liabilityVersion+liabilities<=maxU64,'Ledger lane totals exceed checkpoint bounds.');
+  requireValue(collected===escrow.classifiedFees+pendingFees&&ledger.fees+fees<=MAX_CASH_ATOMS&&ledger.version+fills<=maxU64&&ledger.liabilityVersion+liabilities<=maxU64,'Ledger lane totals exceed checkpoint bounds.');
   if(ledger.backing.epoch===0n)requireValue(changes.every(c=>[c.bad,c.quantity,c.positive,c.negative,...c.required].every(v=>v===0n)),'Uninitialized backing changes.');
   const backing=ledger.backing.epoch?{...ledger.backing,summary:applyBackingChanges(ledger.backing.summary,changes)}:ledger.backing;
   return {...escrow,pendingFees,state:{...ledger,backing,fees:ledger.fees+fees,version:ledger.version+fills,liabilityVersion:ledger.liabilityVersion+liabilities}};
