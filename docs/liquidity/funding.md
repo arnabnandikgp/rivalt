@@ -195,9 +195,10 @@ chain slot and signed Unix time as four little-endian 64-bit integers. An all-ze
 record is empty. Market, registration and ledger sizes are 503, 405 and 397 bytes.
 
 Each candidate funding report appends the target market's three canonical
-registrations in instance order as read-only accounts. Before accepting the report
-clearing derives the prior earned index from those registrations and its market
-checkpoint, and requires it to equal the serial index and timestamp. The SDK
+registrations in instance order as read-only accounts. Clearing authenticates all
+three on every report. When safety is active and a funding window exists,
+clearing derives the prior earned index from the registrations and market
+checkpoint and checks the serial index and timestamp. The SDK
 derives these three addresses even when quote discovery reports unavailable depth.
 Existing funded cash, index-derived risk and the six-second hold still govern
 every fill. The tested route writes the selected market and ledger.

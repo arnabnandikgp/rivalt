@@ -197,7 +197,9 @@ the canonical resolution header/pages against the event-derived fields. Wide
 registers and DFS scratch are solver continuation state, not spendable balances.
 
 The standalone diagnostic reconciler reads the complete revision vector and
-financial bodies twice across bounded chunks. Publication uses the captured common
+financial bodies twice across bounded chunks. A newer authenticated ledger or maker
+revision triggers tail catch-up before fee counters are compared. A fee mismatch
+at the same revision fails reconciliation. Publication uses the captured common
 checkpoint described above; neither combines incompatible entity versions. Storage precreation has a zero-payload
 scoped transition, so its creation remains part of authenticated history.
 The settlement worker combines final backing page and gain payment in one durable

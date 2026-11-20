@@ -125,24 +125,27 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       if(entity) {
         assert(current?.owner===program&&current.data[1]==='base64',`Scoped owner/encoding ${key}`);
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
+        const feeLane=sdk.hasAggregateFees(binding.artifactSet) && (entity.kind===7||entity.kind===15);
+        assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped discriminator ${key}`);
         if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
           sdk.decodeProfitAttribution(bytes,sponsored);
         } else if(capacity && entity.kind===6) {
           sdk.decodeCapacityAnchor(bytes,checkedFunding);
-        } else if(sdk.hasAggregateFees(binding.artifactSet) && (entity.kind===7||entity.kind===15)) {
-          assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
+        } else if(feeLane) {
+          assert.equal(bytes.length,descriptor[1]+(entity.kind===7?24:ledgerLanes?192:checkedFunding?64:capacity?32:16),'fee lane account size');
+        } else {
+          assert.equal(bytes.length,entity.kind===18?frozenPageDecoder(binding.artifactSet).fixedSize:descriptor[1],`Scoped layout ${key}`);
+        }
+        assert.equal(bytes.readUInt16LE(8),scopedSchema(entity.kind));
+        compareReconciliationRevision(bytes.readBigUInt64LE(10),BigInt(entity.revision));
+        if(feeLane) {
           const offset=descriptor[1];
-          assert.equal(bytes.length,offset+(entity.kind===7?24:ledgerLanes?192:checkedFunding?64:capacity?32:16),'fee lane account size');
           const lifetime=bytes.readBigUInt64LE(offset)+(bytes.readBigUInt64LE(offset+8)<<64n);
           const market=entity.kind===7?state.ledgers[key].market:state.liquidity!.makers[key].market;
           const fees=state.liquidity?.feeAccounting?.[market];
           assert.equal(String(lifetime),entity.kind===7?(fees?.classified??'0'):(fees?.lanes[key]??'0'),'finalized fee counter');
           if(entity.kind===7&&!ledgerLanes)assert.equal(String(bytes.readBigUInt64LE(offset+16)),fees?.pending??'0','unclassified fees');
-        } else {
-          assert(descriptor&&bytes.length===(entity.kind===18?frozenPageDecoder(binding.artifactSet).fixedSize:descriptor[1])&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
         }
-        assert.equal(bytes.readUInt16LE(8),scopedSchema(entity.kind));
-        compareReconciliationRevision(bytes.readBigUInt64LE(10),BigInt(entity.revision));
         if(pass)assert.equal(current.data[0],observed.get(key)?.data[0],`Account changed without revision ${key}`);
       }
       if(!pass||key===vault)observed.set(key,current);
