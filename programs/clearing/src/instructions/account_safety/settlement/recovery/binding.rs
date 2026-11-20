@@ -6,7 +6,7 @@ use crate::ClearingError;
 use financial_core::clearing::scalable::graph_pages::FlowRecord;
 
 const MARKER: &[u8; 8] = b"RVJOINT1";
-const RECEIPT_LEN: usize = 8 + 32 + 16 + 16 + 8 * 48;
+const RECEIPT_LEN: usize = 8 + 32 + 16 + 16 + 8 * 48 + 2 * 16;
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default)]
 pub struct MemberResult {
     id: u64,
@@ -21,6 +21,8 @@ pub struct BoundResult {
     pub charges: [u64; 2],
     pub insurance_spent: [u64; 2],
     members: [MemberResult; 8],
+    schedule: u128,
+    schedules_checked: u128,
 }
 impl BoundResult {
     pub fn read(header: &PreparedSettlement) -> Result<Self> {
@@ -171,6 +173,8 @@ pub fn bind(
         charges,
         insurance_spent: spent,
         members,
+        schedule: proof.proposed,
+        schedules_checked: proof.count,
     };
     let bytes = &mut header.state.membership;
     bytes.fill(0);
