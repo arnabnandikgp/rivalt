@@ -20,7 +20,8 @@ const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const probe=process.env.RIVALT_SETTLEMENT_PROBE!;
-const winnerScan=probe==='profit-attribution-winner-allocations';
+const pairSchedule=probe==='profit-attribution-pair-schedule';
+const winnerScan=pairSchedule||probe==='profit-attribution-winner-allocations';
 const foreignCaps=winnerScan||probe==='profit-attribution-foreign-caps';
 const originalBudgets=foreignCaps||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-original-budgets';
 const originalRates=originalBudgets||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-populated-rates';
@@ -99,8 +100,9 @@ try {
   }
   const protection=foreignCaps?JSON.parse(execFileSync('python3',['tests/financial/protection_scan_reference.py'],{input:json(request),encoding:'utf8'})):undefined;
   const winnerReference=winnerScan?JSON.parse(execFileSync('python3',['tests/financial/winner_scan_reference.py'],{input:json(request),encoding:'utf8'})):undefined;
+  const pairReference=pairSchedule?JSON.parse(execFileSync('python3',['tests/financial/pair_schedule_reference.py'],{input:json(request),encoding:'utf8'})):undefined;
   const originalRateResult=originalRates?await verifyPopulatedOriginalRates(h,setup,rows,members,BigInt(expected.common),
-    originalBudgets?expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)):undefined,protection,winnerReference):null;
+    originalBudgets?expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)):undefined,protection,winnerReference,pairReference):null;
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint('population-freeze',true);

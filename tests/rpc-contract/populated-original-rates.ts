@@ -7,12 +7,13 @@ import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {qualifySettlementRates} from './scalable-settlement-rates-rpc.js';
 import {denominatorPages} from './settlement-page-plan.js';
 
+import {verifyPopulatedPairs,type PairReference} from './populated-pair-schedule.js';
 import {verifyWinnerAllocations,type WinnerReference} from './populated-winner-allocations.js';
 import {verifyForeignProtection,type ProtectionReference} from './foreign-protection-scan.js';
 
 export async function verifyPopulatedOriginalRates(
   h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>,
-  rows: {cash:bigint;claims:bigint[]}[], members: Address[], expectedCommon: bigint, expectedBudgets?:bigint[][], protection?:ProtectionReference, winners?:WinnerReference[],
+  rows: {cash:bigint;claims:bigint[]}[], members: Address[], expectedCommon: bigint, expectedBudgets?:bigint[][], protection?:ProtectionReference, winners?:WinnerReference[],pairReference?:PairReference[],
 ) {
   const [prepared] = await sdk.deriveSettlementWorkspace(setup.venue, 'prepared');
   const header = async () => sdk.getPreparedSettlementDecoder().decode((await h.read(prepared))!);
@@ -68,6 +69,7 @@ export async function verifyPopulatedOriginalRates(
   assert.deepEqual(await readAll(protectedKeys),preAttempt);
   assert.deepEqual(await readAll(financial),before);
   let foreignChargeCaps:string[]|undefined;
+  let pairSchedules:Awaited<ReturnType<typeof verifyPopulatedPairs>>|undefined;
   let winnerProofs:Awaited<ReturnType<typeof verifyWinnerAllocations>>|undefined;
   if(expectedBudgets) {
     const keys=[3,4,5,19,20,21,22].map(index=>limbs[index]);
@@ -111,6 +113,7 @@ export async function verifyPopulatedOriginalRates(
     if(protection) {
       foreignChargeCaps=await verifyForeignProtection(h,setup,prepared,verified.rates,verified.state.attempt,pages,keys,revisions,protection);
       if(winners)winnerProofs=await verifyWinnerAllocations(h,setup,prepared,initial.epoch,pages,winners);
+      if(pairReference && winnerProofs)pairSchedules=await verifyPopulatedPairs(h,setup,prepared,pages,winnerProofs,pairReference);
       const frozen=await readAll(protectedKeys);
       await h.send('foreign cap verification cannot authorize payout',[sdk.getInitializeSettlementPlanInstruction({
         ...common,rates:verified.rates,plan})],[],sdk.CLEARING_ERROR__RESOLUTION);
@@ -118,7 +121,7 @@ export async function verifyPopulatedOriginalRates(
     }
     assert.deepEqual(await readAll([setup.resolution,...members]),before.slice(0,members.length+1));
   }
-  return {winnerProofs,foreignChargeCaps,budgetRows:expectedBudgets?.length??0,rows:accepted,denominatorContinuations:continuations,rateContinuations:verified.continuations,
+  return {pairSchedules,winnerProofs,foreignChargeCaps,budgetRows:expectedBudgets?.length??0,rows:accepted,denominatorContinuations:continuations,rateContinuations:verified.continuations,
     verifiedPrefixes:verified.observedPrefixes,rounds:verified.reference.evaluations.length,
     factorBits:BigInt(verified.reference.evaluations[0].proposal[0]).toString(2).length,
     originalRateBits:verified.reference.evaluations[0].proposal.slice(1).map(value=>BigInt(value).toString(2).length),
