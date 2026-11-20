@@ -6,8 +6,8 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
-if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-partitioned-population || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-populated-rates ]]; then
-  node --import tsx --input-type=module -e 'import {verifyPartitionedBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,process.env.RIVALT_SETTLEMENT_PROBE==="profit-attribution-populated-rates");'
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-partitioned-population || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-populated-rates || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-original-budgets ]]; then
+  node --import tsx --input-type=module -e 'import {verifyPartitionedBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,process.env.RIVALT_SETTLEMENT_PROBE==="profit-attribution-populated-rates",process.env.RIVALT_SETTLEMENT_PROBE==="profit-attribution-original-budgets");'
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-successor-* ]]; then
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"successor");'
   if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-successor-recovery ]]; then
@@ -127,7 +127,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   profit-attribution-successor-warm-payout|profit-attribution-successor-delayed-payout|profit-attribution-integrated-warm-payout|profit-attribution-integrated-delayed-payout) node --import tsx tests/rpc-contract/ordinary-timing-rpc.ts ;;
   profit-attribution-integrated-payout|profit-attribution-market-lane-payout|profit-attribution-ledger-payout) node --import tsx tests/rpc-contract/market-lane-payout-rpc.ts ;;
   profit-attribution-successor-funding|profit-attribution-integrated-funding|profit-attribution-market-lane-funding|profit-attribution-ledger-funding) node --import tsx tests/rpc-contract/market-lane-funding-rpc.ts ;;
-  profit-attribution-successor-population|profit-attribution-partitioned-population|profit-attribution-populated-rates) node --import tsx tests/rpc-contract/successor-population-rpc.ts ;;
+  profit-attribution-successor-population|profit-attribution-partitioned-population|profit-attribution-populated-rates|profit-attribution-original-budgets) node --import tsx tests/rpc-contract/successor-population-rpc.ts ;;
   profit-attribution-successor-workload|profit-attribution-integrated-lanes|profit-attribution-ledger-lanes|profit-attribution-market-lanes|profit-attribution-route-locks|profit-attribution-fee-lanes) node --import tsx tests/rpc-contract/successor-route-locks-rpc.ts ;;
   profit-attribution-bounded-market-apply|profit-attribution-fee-lanes-apply|profit-attribution-multi-lot-search|profit-attribution-multi-lot-apply|profit-attribution-multi-lot-tie)
     cargo build --locked --offline -p default-plan-selection --features native-search --example multi_lot_audit

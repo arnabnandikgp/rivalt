@@ -24,7 +24,8 @@ export const DOMAIN_EXTRACTED_ARTIFACT_SET='financial-domains-after-90d71835';
 export const LOCAL_SUCCESSOR_ARTIFACT_SET='local-successor-d9a2a55b';
 export const PARTITIONED_INPUTS_ARTIFACT_SET='partitioned-inputs-ba2057df';
 export const POPULATED_RATES_ARTIFACT_SET='populated-rates-365fa254';
-export const hasPartitionedInputs=(set?:string)=>set===PARTITIONED_INPUTS_ARTIFACT_SET||set===POPULATED_RATES_ARTIFACT_SET;
+export const ORIGINAL_BUDGETS_ARTIFACT_SET='populated-budgets-16f89bef';
+export const hasPartitionedInputs=(set?:string)=>set===PARTITIONED_INPUTS_ARTIFACT_SET||set===POPULATED_RATES_ARTIFACT_SET||set===ORIGINAL_BUDGETS_ARTIFACT_SET;
 const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set)
   ||set===DOMAIN_BASELINE_ARTIFACT_SET||set===DOMAIN_EXTRACTED_ARTIFACT_SET;
 export const hasLedgerLanes=(set?:string)=>set===READ_ONLY_LEDGER_ARTIFACT_SET||integratedLayout(set);

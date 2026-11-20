@@ -19,9 +19,10 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const originalRates=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-populated-rates';
+const originalBudgets=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-original-budgets';
+const originalRates=originalBudgets||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-populated-rates';
 const partitioned=originalRates||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-partitioned-population';
-const build=partitioned?verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,originalRates):verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'successor');
+const build=partitioned?verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,originalRates,originalBudgets):verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'successor');
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
@@ -88,12 +89,13 @@ try {
   writeFileSync(directory+'/population-input.json',json(request));
   const dimensions=JSON.parse(execFileSync('target/release/rivalt-recovery-selector',['--dimensions'],{input:json(request),encoding:'utf8'}));
   assert.equal(dimensions.rankBits,(BigInt(dimensions.schedules)-1n).toString(2).replace(/^0$/,'').length);
-  const pageInputs=partitioned?await verifyPartitionedInputs(h,setup,members,expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)),originalRates?20:4):null;
+  const pageInputs=partitioned?await verifyPartitionedInputs(h,setup,members,expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)),originalRates?20:4,originalBudgets):null;
   if(pageInputs) {
     assert.deepEqual(pageInputs.edgesByMarket,dimensions.edgesByMarket);
     assert.equal(pageInputs.schedules,dimensions.schedules);
   }
-  const originalRateResult=originalRates?await verifyPopulatedOriginalRates(h,setup,rows,members,BigInt(expected.common)):null;
+  const originalRateResult=originalRates?await verifyPopulatedOriginalRates(h,setup,rows,members,BigInt(expected.common),
+    originalBudgets?expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)):undefined):null;
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint('population-freeze',true);

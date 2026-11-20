@@ -9,7 +9,7 @@ import {denominatorPages} from './settlement-page-plan.js';
 
 export async function verifyPopulatedOriginalRates(
   h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>,
-  rows: {cash:bigint;claims:bigint[]}[], members: Address[], expectedCommon: bigint,
+  rows: {cash:bigint;claims:bigint[]}[], members: Address[], expectedCommon: bigint, expectedBudgets?:bigint[][],
 ) {
   const [prepared] = await sdk.deriveSettlementWorkspace(setup.venue, 'prepared');
   const header = async () => sdk.getPreparedSettlementDecoder().decode((await h.read(prepared))!);
@@ -64,7 +64,40 @@ export async function verifyPopulatedOriginalRates(
     ...common,rates:verified.rates,plan})],[],sdk.CLEARING_ERROR__RESOLUTION);
   assert.deepEqual(await readAll(protectedKeys),preAttempt);
   assert.deepEqual(await readAll(financial),before);
-  return {rows:accepted,denominatorContinuations:continuations,rateContinuations:verified.continuations,
+  if(expectedBudgets) {
+    const keys=[3,4,5,19,20,21,22].map(index=>limbs[index]);
+    const revisions=await Promise.all(keys.map(async key=>sdk.getSettlementLimbPageDecoder().decode((await h.read(key))!).revision));
+    const decoder=sdk.getOriginalBudgetPageDecoder();
+    for(const [index,page] of pages.entries()) {
+      const original=decoder.decode((await h.read(page))!);
+      assert.equal(original.originalBudgetAttempt,0n);
+      const ix=sdk.getRecordOriginalBudgetsInstruction({...common,pageIndex:BigInt(index),page,
+        rates:verified.rates,attempt:verified.state.attempt,revision:original.revision,pageRevisions:revisions});
+      const withRegisters=(addresses:Address[])=>({...ix,accounts:[...ix.accounts,...addresses.map(address=>({address,role:AccountRole.READONLY}))]});
+      if(index===0) {
+        const initialBytes=await h.read(page);
+        await h.send('reject substituted original rate register',[withRegisters([keys[1],keys[0],...keys.slice(2)])],[],sdk.CLEARING_ERROR__RESOLUTION);
+        assert.deepEqual(await h.read(page),initialBytes);
+      }
+      await h.send('record original debtor budgets',[withRegisters(keys)]);
+      const recorded=decoder.decode((await h.read(page))!);
+      assert.equal(recorded.originalBudgetAttempt,verified.state.attempt);
+      assert.equal(recorded.revision,original.revision+1n);
+      for(const [offset,row] of recorded.rows.entries()) {
+        const expected: bigint[] = expectedBudgets[index*8+offset]??[0n,0n];
+        assert.deepEqual(row,{...original.rows[offset],originalDebtorBudgets:expected});
+      }
+      if(index===0) {
+        const repeat=sdk.getRecordOriginalBudgetsInstruction({...common,pageIndex:0n,page,rates:verified.rates,
+          attempt:verified.state.attempt,revision:recorded.revision,pageRevisions:revisions});
+        const bytes=await h.read(page);
+        await h.send('reject repeated budget page',[{...repeat,accounts:withRegisters(keys).accounts}],[],sdk.CLEARING_ERROR__RESOLUTION);
+        assert.deepEqual(await h.read(page),bytes);
+      }
+    }
+    assert.deepEqual(await readAll([setup.resolution,...members]),before.slice(0,members.length+1));
+  }
+  return {budgetRows:expectedBudgets?.length??0,rows:accepted,denominatorContinuations:continuations,rateContinuations:verified.continuations,
     verifiedPrefixes:verified.observedPrefixes,rounds:verified.reference.evaluations.length,
     factorBits:BigInt(verified.reference.evaluations[0].proposal[0]).toString(2).length,
     originalRateBits:verified.reference.evaluations[0].proposal.slice(1).map(value=>BigInt(value).toString(2).length),

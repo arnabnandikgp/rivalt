@@ -51,11 +51,19 @@ function localSuccessorRow() {
 export function getLocalSuccessorPageDecoder() {
   return allocationPage(localSuccessorRow());
 }
-export function getPartitionedRecoveryPageDecoder() {
+function partitionedRow() {
   const rate=getTupleDecoder([getU64Decoder(),getU64Decoder()]);
   const row=transformDecoder(getTupleDecoder([localSuccessorRow(),getTupleDecoder([rate,rate])]),
     ([original,recoveryLotRates])=>({...original,recoveryLotRates}));
-  return allocationPage(row);
+  return row;
+}
+export function getPartitionedRecoveryPageDecoder() {
+  return allocationPage(partitionedRow());
+}
+export function getOriginalBudgetPageDecoder() {
+  const row=transformDecoder(getTupleDecoder([partitionedRow(),getTupleDecoder([getU64Decoder(),getU64Decoder()])]),
+    ([original,originalDebtorBudgets])=>({...original,originalDebtorBudgets}));
+  return getStructDecoder([...pageFields(row),['originalBudgetAttempt',getU64Decoder()],['bump',getU8Decoder()]]);
 }
 
 export function getMultiLotBookPageDecoder() {
@@ -73,12 +81,15 @@ export function inventoryBookReceipt(header:PreparedSettlement,multiLot=false) {
   return {epoch,total,count,digest:Array.from(bytes.subarray(32,64),value=>value.toString(16).padStart(2,'0')).join('')};
 }
 
-function allocationPage<T>(row:FixedSizeDecoder<T>) {
-  return getStructDecoder([
+function pageFields<T>(row:FixedSizeDecoder<T>) {
+  return [
     ['discriminator',fixDecoderSize(getBytesDecoder(),8)],['schemaVersion',getU16Decoder()],
     ['revision',getU64Decoder()],['venue',getAddressDecoder()],['epoch',getU64Decoder()],
-    ['pageIndex',getU64Decoder()],['rowCount',getU8Decoder()],['rows',getArrayDecoder(row,{size:8})],['bump',getU8Decoder()],
-  ]);
+    ['pageIndex',getU64Decoder()],['rowCount',getU8Decoder()],['rows',getArrayDecoder(row,{size:8})],
+  ] as const;
+}
+function allocationPage<T>(row:FixedSizeDecoder<T>) {
+  return getStructDecoder([...pageFields(row),['bump',getU8Decoder()]]);
 }
 
 export function btcAllocationReceipt(header:PreparedSettlement) {
