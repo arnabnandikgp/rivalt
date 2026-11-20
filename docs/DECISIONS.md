@@ -1515,3 +1515,11 @@ established selection costs and the family-specific certificates established
 wallet payouts separately. Neither was a general payout authority. Larger
 cohorts, further insurance rounds and unresolved financial trade-offs still
 require their own proof before release.
+
+The 20 November paged implementation extends D139 on a fresh opt-in build.
+The prepared header identifies the sealed search and records market totals.
+Each original frozen row stores its own payout. Clearing installs them in one
+transaction after checking both canonical pages, their complete membership
+and conservation by market. This keeps the header size independent of the
+member result table. Application and withdrawal retain their separate
+checks. [Paged receipt contract](clearing/default-plan-verification.md#paged-recovery-receipt-in-the-local-candidate).
