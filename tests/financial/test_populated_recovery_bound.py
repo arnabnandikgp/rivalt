@@ -4,7 +4,7 @@ from itertools import product
 import os
 import unittest
 
-from check_populated_recovery_bound import FrozenCase, SCALE, allocations, proportional_targets, tied_shares
+from check_populated_recovery_bound import FrozenCase, SCALE, allocations, bounded_shares, proportional_targets, tied_shares
 from test_scalable_settlement import independent_input
 
 
@@ -25,6 +25,18 @@ class RecoveryCeilings(unittest.TestCase):
                 self.assertEqual(cost(result),best)
                 expected = {option for option in options if sum(option)==total and cost(option)==best}
                 self.assertEqual({tuple(option) for option in allocations(*tied_shares(weights,total))},expected)
+
+    def test_linked_cap_against_every_integer_allocation(self):
+        weights = [2,4,3,1]
+        group = {0,2}
+        choices = list(product(*(range(w+1) for w in weights)))
+        cost = lambda shares: sum(Fraction(x*x,w) for x,w in zip(shares,weights))
+        for cap in range(6):
+            for total in range(sum(weights)+1):
+                possible = [x for x in choices if sum(x)==total and sum(x[i] for i in group)<=cap]
+                if possible:
+                    chosen = bounded_shares(weights,total,group,cap)
+                    self.assertEqual(cost(chosen),min(map(cost,possible)))
 
     def test_recovery_ceiling_requires_an_admitted_plan_reaching_the_net_loss_bound(self):
         # The debtor can pay four of ten atoms. Each winner has two opposite lots.

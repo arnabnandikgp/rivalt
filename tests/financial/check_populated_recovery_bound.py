@@ -83,6 +83,31 @@ def allocations(base, tied, remaining):
         yield shares
 
 
+def bounded_shares(weights, total, linked, cap):
+    """Solve and independently certify both market-total and linked-subset constraints."""
+    shares = proportional_targets(weights, total)
+    if sum(shares[i] for i in linked) > cap:
+        for members, amount in ((sorted(linked), cap),
+                                ([i for i in range(len(weights)) if i not in linked], total-cap)):
+            local = proportional_targets([weights[i] for i in members], amount)
+            for index, value in zip(members, local):
+                shares[index] = value
+    linked_total = sum(shares[i] for i in linked)
+    assert all(0 <= value <= weight for value,weight in zip(shares,weights))
+    assert sum(shares) == total and linked_total <= cap
+    # Every competing vector decomposes into same-subset exchanges and then
+    # cross-subset exchanges in the direction of its net transfer. Convex costs
+    # only increase along those exchanges. Check all permissible first steps.
+    for i,paid in enumerate(shares):
+        for j,received in enumerate(shares):
+            if not paid or received == weights[j] or i == j:
+                continue
+            if linked_total == cap and i not in linked and j in linked:
+                continue
+            assert Fraction(2*paid-1,weights[i]) <= Fraction(2*received+1,weights[j])
+    return shares
+
+
 class FrozenCase:
     def __init__(self, source):
         self.source = source
@@ -108,14 +133,14 @@ class FrozenCase:
             weights.append(min(max(0, claims[market]//SCALE), int(available*self.rates[winner][market])))
         return weights
 
-    def proposal(self, proportional):
+    def proposal(self, proportional, targets=None):
         charges = []
         for market in range(2):
             budget = [row[market] for row in self.budgets]
             inventory = [abs(lots[market]) for lots in self.lots]
             credits = self.eligible_weights(market)
             if proportional:
-                credits = proportional_targets(credits, self.ceilings[market])
+                credits = targets[market].copy() if targets is not None else proportional_targets(credits, self.ceilings[market])
             for debtor in sorted(range(len(budget)), key=lambda i: -budget[i]):
                 if not budget[debtor]:
                     continue
@@ -143,6 +168,39 @@ class FrozenCase:
             if proportional:
                 assert not any(credits), "Unconstrained sharing target was not routed"
         return charges
+
+    def linked_share_bounds(self):
+        # At both recovery ceilings the debtor charges are fixed. The available
+        # pool, original collections and entire insurance give an upper bound
+        # on outside cash. Incoming cross payments cannot exceed remaining debt.
+        original = self.original.benchmark
+        pools, insurance, _ = self.inputs
+        linked = [[link for link in original.links if link.destination_market == m] for m in range(2)]
+        positives = [sum(max(0, a.claims[m]) for a in self.accounts) for m in range(2)]
+        cash = [pools[m]+insurance[m]+sum(row[m] for row in original.collections) for m in range(2)]
+        rate_caps = []
+        for m in range(2):
+            face = positives[m]-self.ceilings[m]
+            received = sum(link.debt-self.budgets[link.account_index][m] for link in linked[m])
+            assert face >= 0 and received >= 0
+            rate_caps.append(min(1,Fraction(cash[m]+received,face)) if face else Fraction(1))
+        result = []
+        for market in range(2):
+            other = 1-market
+            links = linked[other]
+            group = {link.account_index for link in links}
+            required = max(0, positives[other]*original.rates[other]-cash[other])
+            # To maintain the foreign market's recovery, the remaining positive
+            # source claims times the source rate must cover its required inflow.
+            if required:
+                assert rate_caps[market] > 0, "Positive foreign receipts are infeasible"
+                limit = sum(link.claim for link in links)-required/rate_caps[market]
+                assert limit >= 0, "No feasible full-recovery plan under this bound"
+                cap = min(self.ceilings[market],int(limit))
+            else:
+                cap = self.ceilings[market]
+            result.append((group,cap))
+        return result
 
     def sharing_frontier(self, limit):
         # At both debtor ceilings every debtor must spend its whole verified
@@ -217,7 +275,12 @@ if __name__ == '__main__':
     baseline = case.assess(args.binary, [])
     saturated = case.assess(args.binary, case.proposal(False))
     shared = case.assess(args.binary, case.proposal(True))
+    bounds = case.linked_share_bounds()
+    targets = [bounded_shares(case.eligible_weights(m),case.ceilings[m],*bounds[m]) for m in range(2)]
+    bounded = case.assess(args.binary, case.proposal(True,targets))
+    assert bounded['bothCeilingsReached'], "Linked relaxation needs an additional feasibility constraint"
     assert saturated['bothCeilingsReached'], "This book needs a tighter bound or another feasible plan"
     print(json.dumps(dict(members=len(case.rows), ceilings=list(map(str,case.ceilings)), baseline=baseline,
                           attained=saturated, unconstrainedSharing=shared,
+                          optimalSharingAtMaximum=bounded, linkedChargeCaps=[str(cap) for _,cap in bounds],
                           allUnconstrainedTargets=case.sharing_frontier(args.sharing_budget)), indent=2))
