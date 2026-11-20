@@ -63,6 +63,7 @@ import {
   getVenueCodec,
   getVenueRegistryCodec,
   getVenueSafetyCodec,
+  getWinnerAllocationProofCodec,
   type CapitalBinding,
   type CapitalBindingArgs,
   type Custody,
@@ -117,6 +118,8 @@ import {
   type VenueRegistryArgs,
   type VenueSafety,
   type VenueSafetyArgs,
+  type WinnerAllocationProof,
+  type WinnerAllocationProofArgs,
 } from "../accounts/index.js";
 import {
   getAcceptDenominatorRowInstructionAsync,
@@ -128,6 +131,7 @@ import {
   getAdvanceBtcAllocationInstructionAsync,
   getAdvanceLinkedAllocationInstructionAsync,
   getAdvancePreparedMembershipInstructionAsync,
+  getAdvanceWinnerProofInstruction,
   getAllocateMarketFeesInstructionAsync,
   getApplySettlementMarginInstructionAsync,
   getApproveLiquidityInstructionAsync,
@@ -187,6 +191,7 @@ import {
   getManageProfitCapacityInstructionAsync,
   getNetAccountClaimsInstructionAsync,
   getOpenSearchInstructionAsync,
+  getOpenWinnerProofInstructionAsync,
   getPauseVenueInstructionAsync,
   getPayAccountGainInstructionAsync,
   getPrepareSettlementRateScratchInstructionAsync,
@@ -234,6 +239,7 @@ import {
   parseAdvanceBtcAllocationInstruction,
   parseAdvanceLinkedAllocationInstruction,
   parseAdvancePreparedMembershipInstruction,
+  parseAdvanceWinnerProofInstruction,
   parseAllocateMarketFeesInstruction,
   parseApplySettlementMarginInstruction,
   parseApproveLiquidityInstruction,
@@ -293,6 +299,7 @@ import {
   parseManageProfitCapacityInstruction,
   parseNetAccountClaimsInstruction,
   parseOpenSearchInstruction,
+  parseOpenWinnerProofInstruction,
   parsePauseVenueInstruction,
   parsePayAccountGainInstruction,
   parsePrepareSettlementRateScratchInstruction,
@@ -340,6 +347,7 @@ import {
   type AdvanceBtcAllocationAsyncInput,
   type AdvanceLinkedAllocationAsyncInput,
   type AdvancePreparedMembershipAsyncInput,
+  type AdvanceWinnerProofInput,
   type AllocateMarketFeesAsyncInput,
   type ApplySettlementMarginAsyncInput,
   type ApproveLiquidityAsyncInput,
@@ -399,6 +407,7 @@ import {
   type ManageProfitCapacityAsyncInput,
   type NetAccountClaimsAsyncInput,
   type OpenSearchAsyncInput,
+  type OpenWinnerProofAsyncInput,
   type ParsedAcceptDenominatorRowInstruction,
   type ParsedAcceptSettlementPlanRowInstruction,
   type ParsedAcceptSettlementRateRowInstruction,
@@ -408,6 +417,7 @@ import {
   type ParsedAdvanceBtcAllocationInstruction,
   type ParsedAdvanceLinkedAllocationInstruction,
   type ParsedAdvancePreparedMembershipInstruction,
+  type ParsedAdvanceWinnerProofInstruction,
   type ParsedAllocateMarketFeesInstruction,
   type ParsedApplySettlementMarginInstruction,
   type ParsedApproveLiquidityInstruction,
@@ -467,6 +477,7 @@ import {
   type ParsedManageProfitCapacityInstruction,
   type ParsedNetAccountClaimsInstruction,
   type ParsedOpenSearchInstruction,
+  type ParsedOpenWinnerProofInstruction,
   type ParsedPauseVenueInstruction,
   type ParsedPayAccountGainInstruction,
   type ParsedPrepareSettlementRateScratchInstruction,
@@ -560,6 +571,7 @@ import {
   findMarginAccountPda,
   findMarketLedgerPda,
   findPortfolioPda,
+  findProofPda,
   findReceiptPda,
   findResolutionPda,
   findSearchPda,
@@ -603,6 +615,7 @@ export enum ClearingAccount {
   Venue,
   VenueRegistry,
   VenueSafety,
+  WinnerAllocationProof,
 }
 
 export function identifyClearingAccount(
@@ -905,6 +918,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.VenueSafety;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([231, 228, 163, 159, 242, 21, 155, 47]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.WinnerAllocationProof;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
@@ -1498,6 +1522,7 @@ export enum ClearingInstruction {
   AdvanceBtcAllocation,
   AdvanceLinkedAllocation,
   AdvancePreparedMembership,
+  AdvanceWinnerProof,
   AllocateMarketFees,
   ApplySettlementMargin,
   ApproveLiquidity,
@@ -1557,6 +1582,7 @@ export enum ClearingInstruction {
   ManageProfitCapacity,
   NetAccountClaims,
   OpenSearch,
+  OpenWinnerProof,
   PauseVenue,
   PayAccountGain,
   PrepareSettlementRateScratch,
@@ -1699,6 +1725,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.AdvancePreparedMembership;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([215, 142, 209, 169, 150, 231, 157, 189]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdvanceWinnerProof;
   }
   if (
     containsBytes(
@@ -2353,6 +2390,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([199, 97, 222, 240, 224, 175, 223, 252]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.OpenWinnerProof;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([95, 78, 87, 119, 226, 152, 10, 227]),
       ),
       0,
@@ -2804,6 +2852,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.AdvancePreparedMembership;
     } & ParsedAdvancePreparedMembershipInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.AdvanceWinnerProof;
+    } & ParsedAdvanceWinnerProofInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.AllocateMarketFees;
     } & ParsedAllocateMarketFeesInstruction<TProgram>)
   | ({
@@ -2980,6 +3031,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.OpenSearch;
     } & ParsedOpenSearchInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.OpenWinnerProof;
+    } & ParsedOpenWinnerProofInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.PauseVenue;
     } & ParsedPauseVenueInstruction<TProgram>)
@@ -3161,6 +3215,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.AdvancePreparedMembership,
         ...parseAdvancePreparedMembershipInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.AdvanceWinnerProof: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdvanceWinnerProof,
+        ...parseAdvanceWinnerProofInstruction(instruction),
       };
     }
     case ClearingInstruction.AllocateMarketFees: {
@@ -3576,6 +3637,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseOpenSearchInstruction(instruction),
       };
     }
+    case ClearingInstruction.OpenWinnerProof: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.OpenWinnerProof,
+        ...parseOpenWinnerProofInstruction(instruction),
+      };
+    }
     case ClearingInstruction.PauseVenue: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -3914,6 +3982,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<VenueRegistryArgs, VenueRegistry>;
   venueSafety: ReturnType<typeof getVenueSafetyCodec> &
     SelfFetchFunctions<VenueSafetyArgs, VenueSafety>;
+  winnerAllocationProof: ReturnType<typeof getWinnerAllocationProofCodec> &
+    SelfFetchFunctions<WinnerAllocationProofArgs, WinnerAllocationProof>;
 };
 
 export type ClearingPluginInstructions = {
@@ -3961,6 +4031,11 @@ export type ClearingPluginInstructions = {
     input: AdvancePreparedMembershipAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getAdvancePreparedMembershipInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  advanceWinnerProof: (
+    input: AdvanceWinnerProofInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdvanceWinnerProofInstruction> &
     SelfPlanAndSendFunctions;
   allocateMarketFees: (
     input: AllocateMarketFeesAsyncInput,
@@ -4254,6 +4329,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getOpenSearchInstructionAsync> &
     SelfPlanAndSendFunctions;
+  openWinnerProof: (
+    input: MakeOptional<OpenWinnerProofAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getOpenWinnerProofInstructionAsync> &
+    SelfPlanAndSendFunctions;
   pauseVenue: (
     input: PauseVenueAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -4469,6 +4549,7 @@ export type ClearingPluginPdas = {
   liquidityRegistry: typeof findLiquidityRegistryPda;
   venue: typeof findVenuePda;
   search: typeof findSearchPda;
+  proof: typeof findProofPda;
   capitalBinding: typeof findCapitalBindingPda;
   marginAccount: typeof findMarginAccountPda;
 };
@@ -4567,6 +4648,10 @@ export function clearingProgram(
           venue: addSelfFetchFunctions(client, getVenueCodec()),
           venueRegistry: addSelfFetchFunctions(client, getVenueRegistryCodec()),
           venueSafety: addSelfFetchFunctions(client, getVenueSafetyCodec()),
+          winnerAllocationProof: addSelfFetchFunctions(
+            client,
+            getWinnerAllocationProofCodec(),
+          ),
         },
         instructions: {
           acceptDenominatorRow: (input, instructionConfig) =>
@@ -4637,6 +4722,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getAdvancePreparedMembershipInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          advanceWinnerProof: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdvanceWinnerProofInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -5137,6 +5230,17 @@ export function clearingProgram(
                 },
               ),
             ),
+          openWinnerProof: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getOpenWinnerProofInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
           pauseVenue: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -5555,6 +5659,11 @@ export function clearingProgram(
             }),
           search: (seeds, pdaConfig) =>
             findSearchPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          proof: (seeds, pdaConfig) =>
+            findProofPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

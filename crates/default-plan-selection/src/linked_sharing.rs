@@ -20,6 +20,29 @@ pub struct SharingBounds {
 }
 
 impl LinkedSharing {
+    /// The owner authenticates its earlier state before resuming a page scan.
+    pub fn from_checkpoint(
+        episode: [MarginalRange; 2],
+        lots: [MarginalRange; 2],
+        recovered: [u128; 2],
+        winner_lots: u128,
+    ) -> Self {
+        Self {
+            episode,
+            lots,
+            recovered,
+            winner_lot_sum: winner_lots,
+        }
+    }
+    pub fn ranges(&self) -> [[MarginalRange; 2]; 2] {
+        [self.episode, self.lots]
+    }
+    pub fn recovered(&self) -> [u128; 2] {
+        self.recovered
+    }
+    pub fn winner_lots(&self) -> u128 {
+        self.winner_lot_sum
+    }
     pub fn include(
         &mut self,
         linked: bool,

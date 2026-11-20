@@ -59,6 +59,8 @@ pub use instructions::*;
 pub use instructions::account_safety::settlement::recovery::{AdvanceSearch, CaptureSearch, OpenSearch, RateWitness};
 pub(crate) use instructions::account_safety::settlement::recovery::layout::{__client_accounts_opensearch,__client_accounts_capturesearch,__client_accounts_advancesearch};
 pub use instructions::account_safety::settlement::{RecordOriginalBudgets,__client_accounts_recordoriginalbudgets, ScanForeignProtection,__client_accounts_scanforeignprotection};
+pub use instructions::account_safety::settlement::winner_allocation::{OpenWinnerProof,AdvanceWinnerProof,WinnerCutoff};
+pub(crate) use instructions::account_safety::settlement::winner_allocation::{__client_accounts_openwinnerproof,__client_accounts_advancewinnerproof};
 pub use state::*;
 pub use state::accounts::SettlementPageAccess;
 
@@ -120,6 +122,25 @@ pub mod clearing {
         }
         #[cfg(not(feature="populated-recovery-qualification"))]
         { Err(ClearingError::Profile.into()) }
+    }
+    pub fn open_winner_proof(ctx: &mut Context<OpenWinnerProof>, nonce:u64, epoch:u64, market:u8, cutoffs:[WinnerCutoff;2]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _=nonce;
+            require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Resolution);
+            account_safety::settlement::winner_allocation::scan::open(&mut ctx.accounts,epoch,market,cutoffs)
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn advance_winner_proof(ctx: &mut Context<AdvanceWinnerProof>, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Resolution);
+            account_safety::settlement::winner_allocation::scan::advance(&mut ctx.accounts,revision)
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
     }
     pub fn open_search(
         ctx: &mut Context<OpenSearch>,

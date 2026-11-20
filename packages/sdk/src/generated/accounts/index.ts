@@ -33,3 +33,4 @@ export * from "./storageTombstone.js";
 export * from "./venue.js";
 export * from "./venueRegistry.js";
 export * from "./venueSafety.js";
+export * from "./winnerAllocationProof.js";

@@ -21,6 +21,7 @@ export * from "./liquidityRegistry.js";
 export * from "./marginAccount.js";
 export * from "./marketLedger.js";
 export * from "./portfolio.js";
+export * from "./proof.js";
 export * from "./receipt.js";
 export * from "./resolution.js";
 export * from "./search.js";

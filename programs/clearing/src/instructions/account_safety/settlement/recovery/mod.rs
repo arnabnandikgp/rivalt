@@ -16,7 +16,7 @@ mod priority;
 #[cfg(feature = "recovery-search-qualification")]
 pub mod search;
 #[cfg(feature = "recovery-search-qualification")]
-mod source;
+pub(super) mod source;
 pub use layout::*;
 
 #[cfg(feature = "recovery-search-qualification")]

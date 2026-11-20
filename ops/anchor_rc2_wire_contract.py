@@ -144,7 +144,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
         r'Rivalt/multi-lot-charge-proposal/v1\0', r'Rivalt/whole-single-market-search/v1\0'})
     # D139 uses distinct header markers for the fixed and paged payout receipts.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'RVPAGED1', 'RVBOUND1', 'search'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'RVPAGED1', 'RVBOUND1', 'winner-proof', 'search'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -160,6 +160,8 @@ def undo_liquidation_delta(actual, program):
     # All financial inputs are read-only during search. Only the final binding
     # can write the prepared settlement, under the original frozen dependencies.
     work = {
+        'open_winner_proof': ('payer proof prepared resolution system_program', 'payer proof', 'payer'),
+        'advance_winner_proof': ('proof prepared resolution page opponents', 'proof', ''),
         'open_search': ('payer search prepared resolution system_program', 'payer search', 'payer'),
         'capture_member': ('search prepared resolution page margin', 'search', ''),
         **{name: ('search prepared resolution', 'search', '') for name in
@@ -168,6 +170,12 @@ def undo_liquidation_delta(actual, program):
         'scan_foreign_protection': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared rates page event_authority program', 'prepared', ''),
         'bind_recovery_selection': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared search event_authority program', 'prepared', ''),
     }
+    opened = unique('open_winner_proof')
+    assert [(argument['name'],argument['type']) for argument in opened['args']] == [
+        ('nonce','u64'),('epoch','u64'),('market','u8'),('cutoffs',{'array':[{'defined':{'name':'WinnerCutoff'}},2]})]
+    advance = unique('advance_winner_proof')
+    assert advance['args'] == [dict(name='revision',type='u64')]
+    assert [meta['name'] for meta in advance['accounts'] if meta.get('optional')] == ['opponents']
     budgets = unique('record_original_budgets')
     assert [(arg['name'], arg['type']) for arg in budgets['args']] == [
         ('epoch', 'u64'), ('page_index', 'u64'), ('attempt', 'u64'), ('revision', 'u64'),
@@ -181,9 +189,9 @@ def undo_liquidation_delta(actual, program):
                 ([meta for meta in item['accounts'] if meta.get('signer')], signers)):
             assert [meta['name'] for meta in actual_metas] == expected.split(), name
         actual['instructions'].remove(item)
-    for group, prefix, name in [('accounts','account','RecoverySearch'),('events','event','RecoverySelectionBound')]:
+    for group, prefix, name in [('accounts','account','RecoverySearch'),('accounts','account','WinnerAllocationProof'),('events','event','RecoverySelectionBound')]:
         actual[group].remove(dict(name=name,discriminator=list(hashlib.sha256(f'{prefix}:{name}'.encode()).digest()[:8])))
-    for name in ('RecoverySearch','RecoverySelectionBound','RateWitness','SearchMember','SearchEdge','StoredRatio','Priorities'):
+    for name in ('WinnerAllocationProof','WinnerCutoff','WinnerMarginal','WinnerRange','WinnerSide','RecoverySearch','RecoverySelectionBound','RateWitness','SearchMember','SearchEdge','StoredRatio','Priorities'):
         entry, = [item for item in actual['types'] if item['name'] == name]
         assert entry['type']['kind'] == 'struct'
         actual['types'].remove(entry)

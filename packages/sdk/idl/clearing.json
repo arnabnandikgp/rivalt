@@ -3080,6 +3080,44 @@
       ]
     },
     {
+      "name": "advance_winner_proof",
+      "discriminator": [
+        215,
+        142,
+        209,
+        169,
+        150,
+        231,
+        157,
+        189
+      ],
+      "accounts": [
+        {
+          "name": "proof",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "page"
+        },
+        {
+          "name": "opponents",
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "revision",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "allocate_market_fees",
       "discriminator": [
         238,
@@ -15857,6 +15895,96 @@
       ]
     },
     {
+      "name": "open_winner_proof",
+      "discriminator": [
+        199,
+        97,
+        222,
+        240,
+        224,
+        175,
+        223,
+        252
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "proof",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  105,
+                  110,
+                  110,
+                  101,
+                  114,
+                  45,
+                  112,
+                  114,
+                  111,
+                  111,
+                  102
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        },
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "market",
+          "type": "u8"
+        },
+        {
+          "name": "cutoffs",
+          "type": {
+            "array": [
+              {
+                "defined": {
+                  "name": "WinnerCutoff"
+                }
+              },
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "pause_venue",
       "discriminator": [
         95,
@@ -25374,6 +25502,19 @@
         96,
         72
       ]
+    },
+    {
+      "name": "WinnerAllocationProof",
+      "discriminator": [
+        231,
+        228,
+        163,
+        159,
+        242,
+        21,
+        155,
+        47
+      ]
     }
   ],
   "events": [
@@ -33540,6 +33681,219 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WinnerAllocationProof",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "prepared",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "original_attempt",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "u8"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          },
+          {
+            "name": "cursor",
+            "type": "u64"
+          },
+          {
+            "name": "cutoffs",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "WinnerCutoff"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "sides",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "WinnerSide"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "episode",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "WinnerRange"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "lots",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "WinnerRange"
+                  }
+                },
+                2
+              ]
+            }
+          },
+          {
+            "name": "recovered",
+            "type": {
+              "array": [
+                "u128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "winner_lots",
+            "type": "u128"
+          },
+          {
+            "name": "debtor_lots",
+            "type": "u128"
+          },
+          {
+            "name": "minimum_lots",
+            "type": "u128"
+          },
+          {
+            "name": "winner_floor_proved",
+            "type": "bool"
+          },
+          {
+            "name": "scanning_opponents",
+            "type": "bool"
+          },
+          {
+            "name": "opponent_cursor",
+            "type": "u64"
+          },
+          {
+            "name": "opponent_lots",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WinnerCutoff",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "unit",
+            "type": "u64"
+          },
+          {
+            "name": "capacity",
+            "type": "u64"
+          },
+          {
+            "name": "member_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WinnerMarginal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cutoff",
+            "type": {
+              "defined": {
+                "name": "WinnerCutoff"
+              }
+            }
+          },
+          {
+            "name": "extra_lots",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WinnerRange",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "last_selected",
+            "type": {
+              "defined": {
+                "name": "WinnerMarginal"
+              }
+            }
+          },
+          {
+            "name": "first_remaining",
+            "type": {
+              "defined": {
+                "name": "WinnerMarginal"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "WinnerSide",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "smallest",
+            "type": "u64"
+          },
+          {
+            "name": "largest",
+            "type": "u64"
+          },
+          {
+            "name": "fastest",
+            "type": "u64"
           }
         ]
       }

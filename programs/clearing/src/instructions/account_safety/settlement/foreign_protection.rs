@@ -62,6 +62,23 @@ impl BoundScan {
     }
 }
 
+pub(super) fn sealed(header: &PreparedSettlement) -> Result<(u64, [u128; 2], [u128; 2])> {
+    let bytes = &header.state.membership;
+    require!(
+        original_rates(header.stage) && bytes.starts_with(MARKER),
+        ClearingError::Resolution
+    );
+    let scan: BoundScan = crate::wire::read(&bytes[8..8 + BoundScan::BYTES])?;
+    require!(
+        scan.epoch == header.epoch
+            && scan.attempt != 0
+            && scan.members == header.count
+            && scan.members != 0,
+        ClearingError::Resolution
+    );
+    Ok((scan.attempt, scan.budget, scan.linked_caps))
+}
+
 /// Original numerical registers are needed only when sealing the last page.
 pub fn plan(
     header: &PreparedSettlement,

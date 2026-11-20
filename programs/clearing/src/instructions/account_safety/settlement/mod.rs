@@ -15,6 +15,7 @@ use financial_core::clearing::{
 #[cfg(feature = "linked-pair-qualification")]
 pub mod linked_pair;
 pub mod recovery;
+pub mod winner_allocation;
 pub mod foreign_creditor;
 pub mod shared_inventory;
 pub mod inventory_book;
