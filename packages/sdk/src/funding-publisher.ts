@@ -1,5 +1,7 @@
+import {hasCapacityLayout,hasFundingLayout,type MarginLayout} from './profit-attribution.js';
+import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
 import { BTC_LOTS_PER_UNIT, ETH_LOTS_PER_UNIT, FUNDING_REFERENCE_NOTIONAL } from './price-policy.js';
-import { type Address, type FixedSizeDecoder, type ReadonlyUint8Array } from '@solana/kit';
+import { AccountRole,type Instruction,type Address, type FixedSizeDecoder, type ReadonlyUint8Array } from '@solana/kit';
 import * as clearing from './generated/index.js';
 import { ACCOUNT_CLOCK } from './account-snapshot.js';
 import { deriveAccountVenue, deriveAccountMarket, deriveVenueComponent } from './account-addresses.js';
@@ -32,7 +34,7 @@ export async function fundingSnapshotDigest(contextSlot: bigint, accounts: Liqui
  * A missing/invalid maker prevents complete coverage, even with zero capacity.
  * No caller-supplied quote, risk value or financial-admission predicate is used. */
 export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Address, marketIndex: 0 | 1,
-  commitment: 'confirmed' | 'finalized' = 'confirmed') {
+  commitment: 'confirmed' | 'finalized' = 'confirmed', marginLayout: MarginLayout = 'selected') {
   requireValue(marketIndex === 0 || marketIndex === 1, 'Unsupported funding market.');
   const [[market, marketBump], [safety, safetyBump], [custody]] = await Promise.all([
     deriveAccountMarket(venue, marketIndex), deriveVenueComponent(venue, 'safety'), deriveVenueComponent(venue, 'custody'),
@@ -40,13 +42,21 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   const [configuration, configurationBump] = await clearing.findFundingPublisherPda({ market });
   const sourceDiscovery = await rpc.call('getMultipleAccounts', [[market], { encoding: 'base64', commitment }]);
   requireValue(sourceDiscovery.value?.length === 1, 'Incomplete funding source discovery.');
-  const discoveredMarket = decode(sourceDiscovery.value[0], clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
+  const decodeMarket = (account: LiquidityAccountMap extends ReadonlyMap<Address, infer Value> ? Value : never) => {
+    if (!hasCapacityLayout(marginLayout)) return decode(account, clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
+    requireValue(account?.owner === clearing.CLEARING_PROGRAM_ADDRESS && !account.executable && account.data[1] === 'base64',
+      'Missing or foreign funding market.');
+    return decodeCapacityAnchor(fromBase64(account!.data[0]),hasFundingLayout(marginLayout)).market;
+  };
+  const discoveredMarket = decodeMarket(sourceDiscovery.value[0]);
   let discovery: Awaited<ReturnType<typeof discoverLiquidityAccounts>> | null = null;
   let coverageReason: string | null = null;
-  try { discovery = await discoverLiquidityAccounts(rpc, venue, market, commitment); }
+  try { discovery = await discoverLiquidityAccounts(rpc, venue, market, commitment, marginLayout); }
   catch { coverageReason = 'invalid-maker-discovery'; }
   const [registry] = await clearing.findLiquidityRegistryPda({ market });
-  const keys = [...new Set([venue, market, configuration, safety, ACCOUNT_CLOCK, registry,
+  const registrationPdas=hasFundingLayout(marginLayout)?await makerRegistrationPdas(market):[];
+  const checkpointAccounts=registrationPdas.map(([key])=>key);
+  const keys = [...new Set([...checkpointAccounts,venue, market, configuration, safety, ACCOUNT_CLOCK, registry,
     ...discoveredMarket.oracle.sources, ...discovery?.keys ?? [], ...discovery?.capitals ?? []])];
   requireValue(keys.length <= 48, 'Funding snapshot exceeds bounded dependency set.');
   const discoveredSlot = rpcInteger(sourceDiscovery.context.slot);
@@ -56,7 +66,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   requireValue(response.value?.length === keys.length && contextSlot >= minContextSlot, 'Incomplete or regressed funding snapshot.');
   const accounts: LiquidityAccountMap = new Map(keys.map((key, index) => [key, response.value[index]]));
   const venueState = decode(accounts.get(venue) ?? null, clearing.VENUE_DISCRIMINATOR, clearing.getVenueDecoder());
-  const marketState = decode(accounts.get(market) ?? null, clearing.MARKET_DISCRIMINATOR, clearing.getMarketDecoder());
+  let marketState = decodeMarket(accounts.get(market) ?? null);
   const safetyState = decode(accounts.get(safety) ?? null, clearing.VENUE_SAFETY_DISCRIMINATOR, clearing.getVenueSafetyDecoder());
   const configurationState = decode(accounts.get(configuration) ?? null, clearing.FUNDING_PUBLISHER_DISCRIMINATOR,
     clearing.getFundingPublisherDecoder());
@@ -79,6 +89,15 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   requireValue(clockBytes.length === 40, 'Invalid funding Clock layout.');
   const clock = new DataView(clockBytes.buffer, clockBytes.byteOffset, clockBytes.byteLength);
   const slot = clock.getBigUint64(0, true), now = clock.getBigInt64(32, true);
+  if(marginLayout==='market-lanes'||marginLayout==='ledger-lanes'){
+    const marketBytes=fromBase64(accounts.get(market)!.data[0]);
+    const registrations=registrationPdas.map(([key,bump])=>{
+      const row=accounts.get(key);
+      requireValue(row?.owner===clearing.CLEARING_PROGRAM_ADDRESS&&!row.executable&&row.data[1]==='base64','Missing funding checkpoint.');
+      return {bytes:fromBase64(row!.data[0]),bump};
+    });
+    marketState=marketFromExecutionLanes(market,marketBytes,registrations,slot,safetyState.mode===1,marginLayout==='ledger-lanes');
+  }
   // RPC context orders reads; the authenticated Clock supplies report time/slot.
   // Surfpool 1.6.1 returns Clock.slot=context.slot+1 in the same batch. Do not
   // replace Clock with RPC metadata. Clearing still rejects future observations.
@@ -98,7 +117,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
     report.outcome = 2;
     if (discovery) {
       try {
-        const { adapters } = await authenticateLiquidityMarket({ venue, market, marketIndex, domain: venueState.domain, slot, now, contextSlot }, accounts);
+        const { adapters } = await authenticateLiquidityMarket({ marginLayout, venue, market, marketIndex, domain: venueState.domain, slot, now, contextSlot }, accounts);
         const unavailable = adapters.find(maker => maker.unavailable !== null);
         if (unavailable) coverageReason = `${unavailable.registrationState.instance}:${unavailable.unavailable}`;
         else {
@@ -119,8 +138,14 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
       } catch { coverageReason = 'invalid-maker-snapshot'; }
     }
   }
-  return { report, configuration, configurationState, marketState, contextSlot, accounts, allocations, coverageReason,
+  return { report, checkpointAccounts, configuration, configurationState, marketState, contextSlot, accounts, allocations, coverageReason,
     instructionAccounts: { venue, market, custody, safety, configuration,
       primaryAsset: marketState.oracle.sources[0], primaryCollateral: marketState.oracle.sources[1],
       guardAsset: marketState.oracle.sources[2], guardCollateral: marketState.oracle.sources[3] } };
+}
+
+/** Funding checkpoints follow the fixed publication accounts in market instance order. */
+export function withFundingCheckpoints(instruction:Instruction,addresses:readonly Address[]):Instruction {
+  if(!addresses.length)return instruction;
+  return {...instruction,accounts:[...instruction.accounts??[],...addresses.map(address=>({address,role:AccountRole.READONLY}))]};
 }

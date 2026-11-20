@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {isMultiLotDeployment,isBookInventoryDeployment} from '@rivalt/sdk';
 import {createHash} from 'node:crypto';
 import type {AccountRuntime} from './account-runtime.js';
 import {readAccountRateProposal} from './account-frozen-proposal.js';
@@ -6,11 +7,35 @@ import type {readAccountResolution} from './account-worker-state.js';
 
 type Frozen=Awaited<ReturnType<typeof readAccountRateProposal>>;
 const cache=new WeakMap<AccountRuntime,{key:string;value:Frozen}>();
+
+/** A rejected rate is immutable within its attempt. Compare the actual uploaded
+ * words, since corrected proposals can have the same factor and lengths. */
+export async function matchesRejectedRate(
+  rates: {attempt:bigint; factor:readonly bigint[]; lengths:readonly bigint[]; uploaded:readonly bigint[]},
+  proposal: Pick<Frozen['proposal'],'factorWords'|'numeratorWords'>,
+  readPage:(market:number,index:bigint)=>Promise<{attempt:bigint;wordCount:number;payload:{words:readonly bigint[]}}>,
+) {
+  if (!rates.factor.every((word,index)=>word===proposal.factorWords[index]) ||
+      !rates.lengths.every((length,index)=>length===BigInt(proposal.numeratorWords[index].length))) return false;
+  assert(rates.uploaded.every((length,index)=>length===rates.lengths[index]),'Rejected rate has an incomplete upload');
+  for (const [market,words] of proposal.numeratorWords.entries()) {
+    for (let offset=0;offset<words.length;offset+=256) {
+      const page=await readPage(market,BigInt(offset/256));
+      const length=Math.min(256,words.length-offset);
+      assert(page.attempt===rates.attempt && page.wordCount>=length && page.payload.words.length>=length,
+        'Rejected rate page changed during comparison');
+      for (let index=0;index<length;index++) {
+        if (page.payload.words[index]!==words[offset+index]) return false;
+      }
+    }
+  }
+  return true;
+}
 export async function defaultProposal(runtime:AccountRuntime,state:Awaited<ReturnType<typeof readAccountResolution>>) {
   const key=[state.preparedState.venue,state.header.epoch,state.preparedState.revision,
     createHash('sha256').update(Buffer.from(state.ratesState.state.insurance)).digest('hex')].join(':');
   const prior=cache.get(runtime);if(prior?.key===key)return prior.value;
-  const value=await readAccountRateProposal(runtime.rpc,state.preparedState.venue,state.header.epoch);
+  const value=await readAccountRateProposal(runtime.rpc,state.preparedState.venue,state.header.epoch,6,runtime.deploymentSelection==='local-successor-candidate'?'local-successor':runtime.deploymentSelection==='paged-recovery-candidate'?'paged':isMultiLotDeployment(runtime.deploymentSelection)?'multi':isBookInventoryDeployment(runtime.deploymentSelection)?'book':runtime.deploymentSelection==='linked-allocation-candidate'?'linked':runtime.deploymentSelection==='btc-allocation-candidate');
   assert(value.prepared.revision===state.preparedState.revision
 ,'Frozen proposal changed');
   cache.set(runtime,{key,value});return value;

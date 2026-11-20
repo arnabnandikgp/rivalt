@@ -41,6 +41,11 @@ pub fn change(
     let pool = selected_ledger.settlement;
     let (candidate, pool) =
         claim_candidate(&accounts.margin, &snapshot, selected, amount, gain, pool)?;
+    #[cfg(feature = "profit-attribution-qualification")]
+    if gain {
+        let claim = snapshot.claims(crate::engine::account::model(&accounts.margin)?)?[selected];
+        crate::profit_attribution::payment(&mut accounts.margin, selected, snapshot.market(selected)?.reference_price, claim, amount)?;
+    }
     commit(
         &mut accounts.margin,
         &candidate,

@@ -174,3 +174,38 @@ pricing implementation twice. Clearing bounds a dishonest authorized publisher's
 effect but does not prove coverage or optimality. Financially unexecutable published
 depth can influence funding. Failure-based automatic maker exclusion remains
 deferred; quarantine invalidates complete coverage rather than creating a new set.
+
+## Market funding consumed by another market
+
+A BTC execution can materialize the ETH index for a cross account. Once the
+held observation expires, rebuilding ETH from only the fills that traded ETH can
+understate what the trader already paid. For a single observation, the candidate
+fold uses the latest valid chain slot among all actions that materialized the
+target market. Its timestamp, the original premium and the observation's base
+determine the exact index. The slot orders touches even when the premium is
+negative or wall-clock time decreases. Equal-slot touches must agree on time.
+A new observation or configuration makes earlier touches ineligible.
+[Signed funding-gap comparison](../operations/validation.md#cross-market-funding-after-a-publication-gap).
+
+The explicit `funding-prefix-candidate` stores a 32-byte checkpoint on the first
+executing maker's registration. A fill that also consumes funding on a sibling
+market stores the sibling checkpoint on that market. Other materializing actions
+use the market checkpoint. Each record stores config epoch, observation sequence,
+chain slot and signed Unix time as four little-endian 64-bit integers. An all-zero
+record is empty. Market, registration and ledger sizes are 503, 405 and 397 bytes.
+
+Each candidate funding report appends the target market's three canonical
+registrations in instance order as read-only accounts. Clearing authenticates all
+three on every report. When safety is active and a funding window exists,
+clearing derives the prior earned index from the registrations and market
+checkpoint and checks the serial index and timestamp. The SDK
+derives these three addresses even when quote discovery reports unavailable depth.
+Existing funded cash, index-derived risk and the six-second hold still govern
+every fill. The tested route writes the selected market and ledger.
+
+The subsequent `read-only-market-candidate` uses the same checkpoint layout.
+A single-market fill can leave the market PDA unchanged. An active publisher
+first folds the last earned funding and gross into the market using
+`checkpoint_market` in the same transaction. Publication independently verifies
+all three registrations before advancing the observation. This separates the
+cost of frequent trades from the bounded cost at publication.

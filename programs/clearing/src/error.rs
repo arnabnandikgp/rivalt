@@ -70,4 +70,31 @@ pub enum ClearingError {
     Resolution,
     #[msg("Funding publisher authority, report binding, sequence or lifetime rejected")]
     FundingReport,
+    #[msg("A current funding and gross checkpoint is required for each market")]
+    MarketCheckpoint,
+    // The successor's original 7100–7107 codes are part of its signed wire contract.
+    #[cfg(feature = "recovery-search-qualification")]
+    #[msg("Invalid frozen recovery source")]
+    Source = 1100,
+    #[cfg(feature = "recovery-search-qualification")]
+    #[msg("Recovery proof cursor or revision mismatch")]
+    Cursor,
+    #[cfg(feature = "recovery-search-qualification")]
+    #[msg("Recovery proof commitment mismatch")]
+    Commitment,
+    #[cfg(feature = "recovery-search-qualification")]
+    #[msg("Recovery proof exceeds this verifier's resource bounds")]
+    Unsupported,
+    #[cfg(feature = "recovery-search-qualification")]
+    #[msg("Invalid proposed charge or recovery rank")]
+    Charge,
+    #[cfg(feature = "recovery-search-qualification")]
+    #[msg("Recovery proof has incomplete coverage")]
+    Incomplete,
+    #[cfg(feature = "recovery-search-qualification")]
+    #[msg("A competing plan prevents this recovery from being selected")]
+    Priority,
+    #[cfg(feature = "recovery-search-qualification")]
+    #[msg("Recovery verification failed its financial checks")]
+    Accounting,
 }

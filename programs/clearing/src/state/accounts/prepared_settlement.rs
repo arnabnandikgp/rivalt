@@ -57,7 +57,33 @@ pub struct FrozenMargin {
     pub generations: [u64; 2],
     pub claims: [i128; 2],
     pub collected: u64,
+    #[cfg(feature = "paged-recovery-qualification")]
+    pub recovery_payout: FrozenRecoveryPayout,
+    #[cfg(feature = "btc-allocation-qualification")]
+    pub btc_charge: u64,
+    #[cfg(feature = "linked-allocation-qualification")]
+    pub linked_charges: [u64; 2],
+    #[cfg(feature = "book-inventory-qualification")]
+    pub book_capacity:u64,
+    #[cfg(feature = "multi-lot-book-qualification")]
+    pub lot_rate:[u64;2],
+    #[cfg(feature = "book-inventory-qualification")]
+    pub book_charge:u64,
+    /// Exact whole-atom charge per lot for BTC and ETH over the frozen quantity.
+    /// Each pair is a numerator and denominator. The original claim also caps the charge.
+    #[cfg(feature = "partitioned-recovery-inputs")]
+    pub recovery_lot_rates: [[u64; 2]; 2],
+    #[cfg(feature = "populated-recovery-qualification")]
+    pub original_debtor_budgets: [u64; 2],
 }
+#[cfg(feature = "paged-recovery-qualification")]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, IdlType)]
+pub struct FrozenRecoveryPayout {
+    pub claim_delta: [i64; 2],
+    pub movements: [i64; 2],
+    pub final_cash: u64,
+}
+
 #[account(borsh)]
 #[derive(InitSpace, Default)]
 pub struct FrozenMarginPage {
@@ -67,6 +93,12 @@ pub struct FrozenMarginPage {
     pub epoch: u64,
     pub page_index: u64,
     pub row_count: u8,
+    #[cfg(not(feature = "populated-recovery-qualification"))]
     pub rows: [FrozenMargin; 8],
+    // Keep the fixed-width Borsh array on the heap while Anchor loads the page.
+    #[cfg(feature = "populated-recovery-qualification")]
+    pub rows: Box<[FrozenMargin; 8]>,
+    #[cfg(feature = "populated-recovery-qualification")]
+    pub original_budget_attempt: u64,
     pub bump: u8,
 }

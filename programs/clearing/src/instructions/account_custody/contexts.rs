@@ -60,10 +60,10 @@ pub struct InitializeMarket {
     pub custody: Box<BorshAccount<Custody>>,
     #[account(seeds = [b"safety-v3", venue.address().as_ref()], bump = safety.bump, has_one = venue)]
     pub safety: Box<BorshAccount<VenueSafety>>,
-    #[account(init, payer = authority, space = 8 + Market::INIT_SPACE,
+    #[account(init, payer = authority, space = 8 + Market::INIT_SPACE + crate::market_capacity::MARKET_EXTRA,
         seeds = [b"market-v3", venue.address().as_ref(), &[index]], bump)]
     pub market: Box<BorshAccount<Market>>,
-    #[account(init, payer = authority, space = 8 + MarketLedger::INIT_SPACE,
+    #[account(init, payer = authority, space = 8 + MarketLedger::INIT_SPACE + crate::market_fees::LEDGER_EXTRA,
         seeds = [b"ledger-v3", market.address().as_ref()], bump)]
     pub ledger: Box<BorshAccount<MarketLedger>>,
     pub system_program: Program<System>,
@@ -104,7 +104,7 @@ pub struct RegisterMargin {
     #[account(mut, seeds = [b"portfolio-v3", venue.address().as_ref(), owner.address().as_ref(), &portfolio.index.to_le_bytes()],
         bump = portfolio.bump, has_one = venue, has_one = owner)]
     pub portfolio: Box<BorshAccount<Portfolio>>,
-    #[account(init, payer = owner, space = 8 + MarginAccount::INIT_SPACE,
+    #[account(init, payer = owner, space = crate::state::accounts::MARGIN_ALLOCATION,
         seeds = [b"margin-v3", portfolio.address().as_ref(), &subaccount_index.to_le_bytes()], bump)]
     pub margin: Box<BorshAccount<MarginAccount>>,
     #[account(mut,seeds=[b"member-page",venue.address().as_ref(),&members.page_index.to_le_bytes()],

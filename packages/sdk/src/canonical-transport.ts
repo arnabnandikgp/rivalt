@@ -1,11 +1,13 @@
 import type { Instruction } from '@solana/kit';
 import { ComputeBudgetProgram, Connection, Keypair, TransactionMessage, VersionedTransaction, type PublicKey } from '@solana/web3.js';
-import type {Blockhash} from '@solana/kit';
+import {blockhash,type Blockhash} from '@solana/kit';
 
 export const V0_PACKET_LIMIT = 1_232;
 export const V1_PACKET_LIMIT = 4_096;
+export class CanonicalPacketSizeError extends Error {}
 export type CanonicalTransactionBudget = {
   computeUnitLimit: number;
+  heapSize?:number;
   loadedAccountsDataSizeLimit: number;
 };
 
@@ -21,11 +23,14 @@ export function compileCanonicalTransaction(
   if (!Number.isInteger(budget.computeUnitLimit) || budget.computeUnitLimit < 1 || budget.computeUnitLimit > 1_400_000
     || !Number.isInteger(budget.loadedAccountsDataSizeLimit) || budget.loadedAccountsDataSizeLimit < 1
     || budget.loadedAccountsDataSizeLimit > 64 * 1024 * 1024) throw new Error('Invalid canonical transaction resource budget');
+  if(budget.heapSize!==undefined && (!Number.isSafeInteger(budget.heapSize) || budget.heapSize<32*1024 ||
+    budget.heapSize>256*1024 || budget.heapSize%1024!==0))throw new Error('Invalid transaction heap size');
   if (instructions.length === 0) throw new Error('Empty canonical transaction');
   if (instructions.some(ix => ix.programAddress === ComputeBudgetProgram.programId.toBase58())) {
     throw new Error('Pass resource limits through the budget, not compute-budget instructions');
   }
   const v0 = new VersionedTransaction(new TransactionMessage({ ...common, instructions: [
+    ...(budget.heapSize===undefined?[]:[ComputeBudgetProgram.requestHeapFrame({bytes:budget.heapSize})]),
     ComputeBudgetProgram.setComputeUnitLimit({ units: budget.computeUnitLimit }),
     ComputeBudgetProgram.setLoadedAccountsDataSizeLimit({ accountDataSizeLimit: budget.loadedAccountsDataSizeLimit }),
     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 0n }),
@@ -37,8 +42,19 @@ export function compileCanonicalTransaction(
   }).compileToV1Message({ ...budget, priorityFeeLamports: 0n }));
   const wireBytes = transaction.serialize().length;
   const limit = transaction.version === 0 ? V0_PACKET_LIMIT : V1_PACKET_LIMIT;
-  if (wireBytes > limit) throw new Error(`Canonical transaction is ${wireBytes} bytes; v${transaction.version} limit is ${limit}`);
+  if (wireBytes > limit) throw new CanonicalPacketSizeError(`Canonical transaction is ${wireBytes} bytes; v${transaction.version} limit is ${limit}`);
   return {transaction,v0Bytes,wireBytes};
+}
+
+/** The blockhash always occupies 32 bytes. Use the real payer for account deduplication. */
+export function fitsCanonicalPacket(payerKey:PublicKey,instructions:Instruction[],budget:CanonicalTransactionBudget) {
+  try {
+    compileCanonicalTransaction({payerKey,recentBlockhash:blockhash('11111111111111111111111111111111')},instructions,budget);
+    return true;
+  } catch(error) {
+    if(error instanceof CanonicalPacketSizeError)return false;
+    throw error;
+  }
 }
 
 export async function signCanonicalInstructions(

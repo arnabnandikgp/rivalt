@@ -4,7 +4,13 @@ The current qualified local program applies proportional recovery to unpaid
 claims in each affected market. The [successor decision](../DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery)
 selects capped ADL before that residual allocation. [D114](../DECISIONS.md#d114--verified-freeze-cutoff-for-loss-eligibility)
 fixes eligibility at the first verified freeze that commits for the episode.
-The successor eligibility and payout experiments run in the [research model](architecture-review.md#eligibility-at-the-freeze).
+The [research model](architecture-review.md#eligibility-at-the-freeze) covers
+multi-market eligibility. The [single BTC pair](default-plan-verification.md#single-btc-pair-in-financial-clearing)
+also has a separate local clearing implementation with a frozen selection
+receipt, whole-cohort reconciliation and the ordinary withdrawal gate.
+A separate [joint certificate](default-plan-verification.md#joint-certificate-for-a-single-cross-debtor)
+covers one cross debtor backed by two isolated winning accounts. It keeps
+the original cash allocation through both reductions and full-cohort payout.
 
 ## Scalable exact resolution candidate (P51B)
 
@@ -1030,3 +1036,27 @@ ordinals/IDs and explicit plan stages. The indexer checks frozen/applied records
 and reconciles partial application without counting frozen and live cash twice.
 The candidate-specific signed harness verifies token exits and fresh PostgreSQL
 replay; normal runtime promotion remains a separate gated change.
+
+## Clearing-owned joint recovery
+
+On the local `recovery-search-qualification` profile, a completed frozen page
+of eight members waits for a verified joint BTC/ETH schedule. Clearing checks
+each original position and profit history, then scores candidate schedules with
+the same whole-account financial engine used in the native comparison. A signed
+binding transaction records the winning rank, verified coverage, claim changes
+and exact signed market movements for every member. Claim changes are measured
+in collateral atoms and are scaled before the rate calculation.
+
+Binding leaves balances and the vault untouched. The denominator and rate passes
+retain the original frozen debtor allocation. Each application checks the sealed
+payment against its independently verified whole-atom floor and allowable
+fractional increment. Reconciliation covers both markets, insurance, retained
+fees and the original custody balance before wallet withdrawal. See the
+[selection contract](default-plan-verification.md#clearing-owned-payout-binding).
+
+The local combined profile `integrated-recovery-qualification` accepts
+parallel single-market fills. Before freezing, clearing requires a current
+gross-lot checkpoint and fee classification for **each** market. The freeze
+records the resulting fee, insurance, funding and exposure totals. Recovery
+then uses the clearing-owned selector and its original member histories.
+Specialized book verifiers cannot authorize payments on this profile.

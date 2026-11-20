@@ -110,6 +110,8 @@ fn transition_accounts(
         let mut view = market_view(market)?;
         crate::engine::oracle::reset_oracle(&mut view, clock.unix_timestamp, 0)?;
         commit_market(market, &view)?;
+        #[cfg(feature = "read-only-route-market")]
+        crate::market_capacity::reset(market, 0)?;
     }
     accounts.safety.mode = ACTIVE;
     increment(&mut accounts.safety.epoch)?;

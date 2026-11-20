@@ -27,6 +27,10 @@ impl AccountFinancialIdentity {
         ]
     }
     pub(crate) fn materialize(&mut self, clock: &Clock) -> Result<()> {
+        #[cfg(feature="checked-funding-prefix")]
+        for market in [self.btc.as_deref_mut(),self.eth.as_deref_mut()].into_iter().flatten(){
+            crate::market_funding::canonical(market, clock)?;
+        }
         trading::materialize_optional(
             [
                 self.btc.as_deref_mut().map(|market| &mut **market),

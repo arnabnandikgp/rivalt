@@ -81,6 +81,8 @@ export const CLEARING_ERROR__LIQUIDATION = 0x17f1; // 6129
 export const CLEARING_ERROR__RESOLUTION = 0x17f2; // 6130
 /** FundingReport: Funding publisher authority, report binding, sequence or lifetime rejected */
 export const CLEARING_ERROR__FUNDING_REPORT = 0x17f3; // 6131
+/** MarketCheckpoint: A current funding and gross checkpoint is required for each market */
+export const CLEARING_ERROR__MARKET_CHECKPOINT = 0x17f4; // 6132
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -100,6 +102,7 @@ export type ClearingError =
   | typeof CLEARING_ERROR__MAKER_QUOTE
   | typeof CLEARING_ERROR__MAKER_RESPONSE
   | typeof CLEARING_ERROR__MAKER_UPGRADE
+  | typeof CLEARING_ERROR__MARKET_CHECKPOINT
   | typeof CLEARING_ERROR__MINT
   | typeof CLEARING_ERROR__ORACLE_POLICY
   | typeof CLEARING_ERROR__ORACLE_SOURCE
@@ -137,6 +140,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__MAKER_QUOTE]: `Maker quote exceeds price, size or capacity bounds`,
     [CLEARING_ERROR__MAKER_RESPONSE]: `Maker response producer, encoding or terms mismatch`,
     [CLEARING_ERROR__MAKER_UPGRADE]: `Maker deployment differs from approved ProgramData hash`,
+    [CLEARING_ERROR__MARKET_CHECKPOINT]: `A current funding and gross checkpoint is required for each market`,
     [CLEARING_ERROR__MINT]: `Expected classic SPL six-decimal collateral without freeze authority`,
     [CLEARING_ERROR__ORACLE_POLICY]: `Oracle action mode, sample timing or source policy rejects action`,
     [CLEARING_ERROR__ORACLE_SOURCE]: `Oracle source identity, verification or schema mismatch`,

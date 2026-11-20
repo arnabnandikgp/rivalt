@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./paged-recovery": "./src/generatedPagedRecovery/index.ts",
+    "./multi-lot-book": "./src/multi-lot-book.node.ts",
+    "./frozen-order": "./src/frozen-order.node.ts"
   },
   "dependencies": {
     "@solana/kit": "8.5.0",

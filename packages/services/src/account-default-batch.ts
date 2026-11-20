@@ -50,12 +50,13 @@ function proposalReader(base:Reader,poststates:Map<string,any>,slot:number):Read
 /** Exposed separately to test resource and malformed-RPC boundaries without
  * pretending mocked poststates are financial implementation evidence. */
 export async function planDefaultBatch(input:{rpc:Reader;payer:Keypair;first:ReadyStep;minSlot:bigint;
-  limit:number;next(reader:Reader):Promise<DefaultStep>}):Promise<DefaultBatch> {
+  selection?:sdk.AccountDeployment;limit:number;next(reader:Reader):Promise<DefaultStep>}):Promise<DefaultBatch> {
   assert(Number.isInteger(input.limit)&&input.limit>=1&&input.limit<=DEFAULT_BATCH_MAX_STEPS,'Invalid default batch bound');
   const lifetime=await input.rpc.call('getLatestBlockhash',[{commitment:'confirmed',minContextSlot:Number(input.minSlot)}]);
   const steps:ReadyStep[]=[],ids=new Set<string>();
   let next=input.first,simulatedUnits=0,wireBytes=0,stop='step-bound';
   for(let index=0;index<input.limit;index++) {
+    if(next.id.startsWith('recovery:')){stop='recovery-proof-transaction';break;}
     if(ids.has(next.id)){stop='repeated-step';break;}
     const candidate=[...steps,next],instructions=candidate.map(step=>step.instruction);
     assert(instructions.every(instruction=>instruction.programAddress===sdk.CLEARING_PROGRAM_ADDRESS),'Foreign default instruction');
@@ -67,7 +68,7 @@ export async function planDefaultBatch(input:{rpc:Reader;payer:Keypair;first:Rea
     let compiled:ReturnType<typeof sdk.compileCanonicalTransaction>;
     try {
       compiled=sdk.compileCanonicalTransaction({payerKey:input.payer.publicKey,recentBlockhash:lifetime.value.blockhash},instructions,
-        {computeUnitLimit:1_000_000,loadedAccountsDataSizeLimit:MAX_RETURNED_BYTES});
+        {computeUnitLimit:1_000_000,loadedAccountsDataSizeLimit:MAX_RETURNED_BYTES,heapSize:sdk.inventoryBookHeap(input.selection,instructions)});
     }catch(error){if(!steps.length)throw error;stop='wire-bound';break;}
     const result=await input.rpc.call('simulateTransaction',[Buffer.from(compiled.transaction.serialize()).toString('base64'),{
       encoding:'base64',sigVerify:false,commitment:'confirmed',minContextSlot:Number(input.minSlot),
@@ -99,12 +100,15 @@ export async function accountDefaultBatch(runtime:AccountRuntime,payer:Keypair,s
   // Separate cache identity: speculative rate/order proposals never pollute the
   // runtime's cache of actual committed frozen inputs.
   const proposedRuntime=Object.create(runtime) as AccountRuntime;
-  return planDefaultBatch({rpc:runtime.rpc,payer,first,limit,minSlot:state.contextSlot,
+  return planDefaultBatch({rpc:runtime.rpc,payer,first,limit,selection:runtime.deploymentSelection,minSlot:state.contextSlot,
     next:async reader=>{
       Object.defineProperty(proposedRuntime,'rpc',{value:reader,configurable:true});
       const continuation=await readAccountResolution(reader,state.registryState.venue);
       assert(continuation.header.epoch===state.header.epoch,'Simulation changed frozen epoch');
       if(![2,14].includes(continuation.header.stage))return {status:'blocked',reason:'frozen-work-complete'};
+      if(continuation.header.stage===2 && continuation.preparedState.stage===4 &&
+        sdk.usesRecoverySearch(runtime.deploymentSelection))
+        return {status:'blocked',reason:'recovery-proof-transaction'};
       return accountDefaultStep(proposedRuntime,payer,continuation,await accountDefaultContext(reader,continuation));
     }});
 }

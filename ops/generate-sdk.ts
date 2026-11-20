@@ -22,7 +22,8 @@ function snapshot(path: string): Record<string, string> {
     }).sort(([a], [b]) => a.localeCompare(b)));
 }
 execFileSync('python3', ['ops/generate-price-policy.py', ...(process.argv.includes('--check') ? ['--check'] : [])], { stdio: 'inherit' });
-for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generatedMakerA'], ['maker_b', 'generatedMakerB']]) {
+for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generatedMakerA'], ['maker_b', 'generatedMakerB'], ['paged_recovery', 'generatedPagedRecovery']]) {
+  if (process.argv.includes('--paged-recovery') && program !== 'paged_recovery') continue;
   const path = `packages/sdk/src/${folder}`;
   const before = process.argv.includes('--check') ? snapshot(path) : undefined;
   const idl = JSON.parse(readFileSync(`packages/sdk/idl/${program}.json`, 'utf8'));
@@ -86,6 +87,15 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
           name = pda.name;
         }
       }
+      if (name === 'makerRegistration') {
+        const instance = pda.seeds?.[2];
+        if (isNode(instance,'constantPdaSeedNode')) {
+          assert(isNode(instance.value,'bytesValueNode') && instance.value.encoding==='base58');
+          const ordinals:Record<string,string>={'1':'first','2':'second','3':'third'};
+          assert(Object.hasOwn(ordinals,instance.value.data),'Unknown sealed maker instance');
+          name=ordinals[instance.value.data]+'MakerRegistration';
+        }
+      }
       if (name === 'marketLedger') {
         const marketSeed = pda.seeds?.[1];
         assert(isNode(marketSeed, 'variablePdaSeedNode'));
@@ -104,7 +114,7 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
   // Codama normally flattens structs used by only one instruction. Reusing V1
   // request types in V2 must not silently nest the existing public SDK inputs.
   const legacyRequests = program === 'clearing'
-    ? new Set(['executeRoute', 'executeOrder', 'previewMaker', 'executeLiquidityRoute', 'liquidateLiquidityRoute']) : new Set(['quote']);
+    ? new Set(['executeRoute', 'executeOrder', 'previewMaker', 'executeLiquidityRoute', 'executeMarketLane', 'executeLedgerLane', 'liquidateLiquidityRoute']) : new Set(['quote']);
   const definitions = new Map(codama.getRoot().program.definedTypes?.map(type => [type.name, type.type]));
   codama.update(bottomUpTransformerVisitor([{
     select: '[instructionNode]',

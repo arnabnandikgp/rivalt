@@ -83,6 +83,7 @@ pub struct RateWork {
     processed: u64,
     last_id: u64,
     row: Row,
+    collection_row: Row,
     slopes: [ClaimTotal; 2],
     used: [u64; REGISTERS],
     spent: [u64; 2],
@@ -106,6 +107,13 @@ pub struct VerifiedRateValues {
     pub(crate) rate_denominator: Magnitude,
     pub(crate) cash_denominator: Magnitude,
     pub(crate) factor: [u64; 5],
+}
+impl VerifiedRateValues {
+    /// Original payment numerators and their common denominator. Only their
+    /// normalized words belong to the value, including after scratch reuse.
+    pub fn payment_registers(&self) -> [Magnitude; 3] {
+        [self.rates[0], self.rates[1], self.rate_denominator]
+    }
 }
 pub(super) fn factor(words: &[u64]) -> Operation {
     let mut values = [0; 5];
@@ -196,6 +204,7 @@ impl RateWork {
             processed: 0,
             last_id: 0,
             row: Row::default(),
+            collection_row: Row::default(),
             slopes: [ClaimTotal::default(); 2],
             used,
             spent: [0; 2],
@@ -251,7 +260,7 @@ impl RateWork {
             ),
             ROW_BASE => Task::Number(
                 Operation::Divide {
-                    divisor: ReducedCollection::for_row(&self.row)?.denominator,
+                    divisor: ReducedCollection::for_row(&self.collection_row)?.denominator,
                 },
                 self.input.common,
                 Magnitude {
@@ -262,7 +271,7 @@ impl RateWork {
             ),
             OWN_COEFFICIENT => self.multiply(
                 9,
-                &ReducedCollection::for_row(&self.row)?.numerators[market],
+                &ReducedCollection::for_row(&self.collection_row)?.numerators[market],
                 10,
             ),
             OWN_COLLECTION => self.multiply(10, &self.input.factor, 11),
@@ -274,7 +283,7 @@ impl RateWork {
             LINK_CAPACITY => {
                 let residual = self.row.claims[market]
                     .unsigned_abs()
-                    .checked_sub(u128::from(self.row.collected()?) * SCALE as u128)
+                    .checked_sub(u128::from(self.collection_row.collected()?) * SCALE as u128)
                     .ok_or(Error::Invariant)?;
                 self.multiply(5, &scalar(residual), 13)
             }
@@ -391,9 +400,10 @@ impl RateWork {
                         self.stage = ROW;
                         self.market = 0;
                         self.row = Row::default();
+                        self.collection_row = Row::default();
                     } else if self.row.claims[self.market] >= 0 {
                         self.market += 1;
-                    } else if self.row.collected()? == 0 {
+                    } else if self.collection_row.collected()? == 0 {
                         self.used[11] = 0;
                         self.stage = SELECT_LINK;
                     } else {
@@ -444,14 +454,31 @@ impl RateWork {
         Ok(self.processed)
     }
     pub fn accept(&mut self, ordinal: u64, id: u64, row: Row) -> Result<()> {
+        self.accept_bound(ordinal, id, row, row)
+    }
+
+    /// Both rows must represent the same authenticated frozen member.
+    pub fn accept_reduction(
+        &mut self,
+        ordinal: u64,
+        id: u64,
+        original: Row,
+        effective: Row,
+    ) -> Result<()> {
+        super::collection::validate_reduction(&original, &effective)?;
+        self.accept_bound(ordinal, id, original, effective)
+    }
+
+    fn accept_bound(&mut self, ordinal: u64, id: u64, original: Row, row: Row) -> Result<()> {
         if ordinal != self.row_index()? || (ordinal != 0 && id <= self.last_id) {
             return Err(Error::Bounds);
         }
         row.validate()?;
         self.row = row;
+        self.collection_row = original;
         self.last_id = id;
         self.market = 0;
-        self.stage = if row.collected()? == 0 {
+        self.stage = if original.collected()? == 0 {
             SELECT_DEBT
         } else {
             ROW_BASE
@@ -617,13 +644,14 @@ impl RateWork {
             Some(Pending::Compare(cursor)) => bytes[544..584].copy_from_slice(&cursor.checkpoint()),
             Some(Pending::Atoms(cursor)) => bytes[544..928].copy_from_slice(&cursor.checkpoint()),
         }
+        bytes[0] =
+            super::collection::encode_basis(self.row, self.collection_row, &mut bytes[928..]);
         bytes
     }
     /// Byte structure does not prove historical execution. The owning program
     /// supplies the exact immutable frozen binding and reads only its own work.
     pub fn from_checkpoint(bytes: &[u8], input: RateInput) -> Result<Self> {
         if bytes.len() != CHECKPOINT_BYTES
-            || bytes[0] != 1
             || bytes[1] > DONE
             || bytes[2] > 1
             || bytes[3] > 3
@@ -635,7 +663,6 @@ impl RateWork {
             || bytes[20..24]
                 .iter()
                 .chain(&bytes[537..544])
-                .chain(&bytes[928..])
                 .any(|byte| *byte != 0)
         {
             return Err(Error::Bounds);
@@ -664,6 +691,7 @@ impl RateWork {
             }),
         };
         work.row.validate()?;
+        work.collection_row = super::collection::decode_basis(bytes[0], work.row, &bytes[928..])?;
         for market in 0..2 {
             work.slopes[market] = ClaimTotal::from_words(core::array::from_fn(|word| {
                 read(272 + 24 * market + 8 * word)
@@ -693,7 +721,8 @@ impl RateWork {
         }
         if ((ROW_BASE..=NEXT_DEBT).contains(&work.stage) && work.processed >= input.count)
             || (work.stage >= GREATESTNESS && work.processed != input.count)
-            || (!(ROW_BASE..=NEXT_DEBT).contains(&work.stage) && work.row != Row::default())
+            || (!(ROW_BASE..=NEXT_DEBT).contains(&work.stage)
+                && (work.row != Row::default() || work.collection_row != Row::default()))
         {
             return Err(Error::Bounds);
         }

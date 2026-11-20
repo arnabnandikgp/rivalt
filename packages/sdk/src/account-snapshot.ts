@@ -1,3 +1,7 @@
+import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
+import {ledgerFromExecutionLanes} from './ledger-lanes.js';
+import {decodeFeeLedger} from './market-fees.js';
+import {hasCapacityLayout,hasFundingLayout,hasFeeLayout,decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
 import {address,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
 import {getMintDecoder,getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
@@ -5,7 +9,7 @@ import {deriveAccountVenue,deriveAccountPortfolio,deriveVenueComponent,deriveAcc
 import {authenticateLiquidityMarket,discoverLiquidityAccounts} from './liquidity-adapter.js';
 import {fromBase64,hex,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
-export type AccountIdentity={venue:Address;mint:Address;domain:string};
+export type AccountIdentity={venue:Address;mint:Address;domain:string;marginLayout?:MarginLayout};
 export const ACCOUNT_CLOCK=address('SysvarC1ock11111111111111111111111111111111');
 
 /** Funded balances/exits read only selected roots and their complete market dependencies. */
@@ -33,7 +37,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const markets=marketPdas.map(([key])=>key),ledgerPdas=await Promise.all(markets.map(key=>deriveMarketLedger(key)));
   const ledgers=ledgerPdas.map(([key])=>key);
   const raw=(account:any,owner:string=protocol.CLEARING_PROGRAM_ADDRESS)=>{
-    requireValue(account?.owner===owner&&account.data?.[1]==='base64','Missing or foreign account dependency.');return fromBase64(account.data[0]);
+    requireValue(account?.owner===owner&&!account.executable&&account.data?.[1]==='base64','Missing or foreign account dependency.');return fromBase64(account.data[0]);
   };
   const decode=<Value>(account:any,discriminator:ReadonlyUint8Array,decoder:Decoder<Value>&{fixedSize?:number}):Value=>{
     const bytes=raw(account);requireValue(hex(bytes.slice(0,8))===hex(discriminator),'Wrong account discriminator.');
@@ -43,12 +47,15 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const makerKeys:Address[]=[];
   let makerDiscoverySlot=0n;
   const liquidityDiscovery=liquidityMarketIndex===undefined?undefined:
-    await discoverLiquidityAccounts(rpc,venue,markets[liquidityMarketIndex],commitment);
+    await discoverLiquidityAccounts(rpc,venue,markets[liquidityMarketIndex],commitment,identity.marginLayout);
   if(liquidityDiscovery) { makerDiscoverySlot=liquidityDiscovery.contextSlot;makerKeys.push(...liquidityDiscovery.keys); }
+  const ledgerLanes=identity.marginLayout==='ledger-lanes';
+  const checkpointPdas=identity.marginLayout==='market-lanes'||ledgerLanes?await Promise.all(markets.map(makerRegistrationPdas)):[];
+  for(const registrations of checkpointPdas)for(const [key] of registrations)makerKeys.push(key);
   const margins=[...new Set([...selectedMargins,...liquidityDiscovery?.capitals??[]])];
   const discovery=await rpc.call('getMultipleAccounts',[margins,{encoding:'base64',commitment,minContextSlot:Number(makerDiscoverySlot)}]);
   requireValue(discovery.value?.length===margins.length,'Incomplete account discovery.');
-  const discovered=discovery.value.map((account:any)=>decode(account,protocol.MARGIN_ACCOUNT_DISCRIMINATOR,protocol.getMarginAccountDecoder())) as protocol.MarginAccount[];
+  const discovered=discovery.value.map((account:any)=>decodeMarginForLayout(raw(account),identity.marginLayout)) as protocol.MarginAccount[];
   const portfolioKeys=[...new Set(discovered.map(root=>root.portfolio))];
   const keys=[venue,custody,safety,vault,identity.mint,ACCOUNT_CLOCK,...markets,...ledgers,...margins,...portfolioKeys,...new Set(makerKeys)];
   requireValue(new Set(keys).size===keys.length,'Aliased account dependencies.');
@@ -69,13 +76,26 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const safetyState=decode(accounts.get(safety),protocol.VENUE_SAFETY_DISCRIMINATOR,protocol.getVenueSafetyDecoder());
   requireValue(custodyState.schemaVersion===10&&custodyState.venue===venue&&custodyState.bump===custodyBump&&
     safetyState.schemaVersion===10&&safetyState.venue===venue&&safetyState.bump===safetyBump&&[0,1,2,3,4].includes(safetyState.mode),'Account custody/safety identity.');
+  const clock=raw(accounts.get(ACCOUNT_CLOCK),'Sysvar1111111111111111111111111111111111111');requireValue(clock.length===40,'Invalid Clock.');
+  const clockView=new DataView(clock.buffer,clock.byteOffset,clock.byteLength);
+  const slot=clockView.getBigUint64(0,true),now=clockView.getBigInt64(32,true);
+  // Surfpool can return a Clock ahead of its reported commitment context (R019).
+  // Preserve both observations: use actual Clock for expiry, and require RPC
+  // contexts to be monotone above. Never substitute an older context for Clock.
+  requireValue(now>=0n,'Invalid snapshot clock.');
   const marketStates=markets.map((key,index)=>{
-    const value=decode(accounts.get(key),protocol.MARKET_DISCRIMINATOR,protocol.getMarketDecoder());
+    const value=checkpointPdas[index]?marketFromExecutionLanes(key,raw(accounts.get(key)),
+      checkpointPdas[index].map(([address,bump])=>({bytes:raw(accounts.get(address)),bump})),slot,safetyState.mode===1,ledgerLanes):
+      hasCapacityLayout(identity.marginLayout)?decodeCapacityAnchor(raw(accounts.get(key)),hasFundingLayout(identity.marginLayout)).market:decode(accounts.get(key),protocol.MARKET_DISCRIMINATOR,protocol.getMarketDecoder());
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.index===index&&value.bump===marketPdas[index][1]&&
       value.lotsPerUnit===(index===0?1_000_000n:100_000n),'Market identity/units mismatch.');return value;
   });
+  const feeEscrow=hasFeeLayout(identity.marginLayout)?ledgers.map((key,index)=>{
+    const escrow=decodeFeeLedger(raw(accounts.get(key)));
+    return ledgerLanes?ledgerFromExecutionLanes(escrow,checkpointPdas[index].map(([address,bump])=>({bytes:raw(accounts.get(address)),bump}))):escrow;
+  }):undefined;
   const ledgerStates=ledgers.map((key,index)=>{
-    const value=decode(accounts.get(key),protocol.MARKET_LEDGER_DISCRIMINATOR,protocol.getMarketLedgerDecoder());
+    const value=feeEscrow?.[index].state??decode(accounts.get(key),protocol.MARKET_LEDGER_DISCRIMINATOR,protocol.getMarketLedgerDecoder());
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.market===markets[index]&&value.marketIndex===index&&value.bump===ledgerPdas[index][1]&&
       value.insuranceFeeRemainder<4,'Market ledger identity/carry mismatch.');return value;
   });
@@ -88,7 +108,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
     requireValue(value.schemaVersion===10&&value.venue===venue&&key===canonical&&value.bump===bump,'Portfolio identity mismatch.');portfolios[key]=value;
   }
   for(const [index,key] of margins.entries()) {
-    const value=decode(accounts.get(key),protocol.MARGIN_ACCOUNT_DISCRIMINATOR,protocol.getMarginAccountDecoder());
+    const value=decodeMarginForLayout(raw(accounts.get(key)),identity.marginLayout);
     const [canonical,bump]=await deriveMarginAccount(value.portfolio,value.subaccountIndex),portfolio=portfolios[value.portfolio];
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.lifecycle===2&&value.activationGeneration>0n&&value.portfolio===discovered[index].portfolio&&key===canonical&&value.bump===bump&&
       portfolio?.owner===value.owner&&portfolio.activeChildren>0&&[0,1,2].includes(value.role)&&
@@ -104,17 +124,10 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(mintBytes.length===82&&mint.isInitialized&&mint.decimals===6,'Unsupported collateral mint.');
   const tokenBytes=raw(accounts.get(vault),TOKEN_PROGRAM_ADDRESS),token=getTokenDecoder().decode(tokenBytes);
   requireValue(tokenBytes.length===165&&tokenBytes[108]===1&&token.owner===venue&&token.mint===identity.mint&&token.amount>=custodyState.allocatedVault,'Venue vault mismatch/deficit.');
-  const clock=raw(accounts.get(ACCOUNT_CLOCK),'Sysvar1111111111111111111111111111111111111');requireValue(clock.length===40,'Invalid Clock.');
-  const clockView=new DataView(clock.buffer,clock.byteOffset,clock.byteLength);
-  const slot=clockView.getBigUint64(0,true),now=clockView.getBigInt64(32,true);
-  // Surfpool can return a Clock ahead of its reported commitment context (R019).
-  // Preserve both observations: use actual Clock for expiry, and require RPC
-  // contexts to be monotone above. Never substitute an older context for Clock.
-  requireValue(now>=0n,'Invalid snapshot clock.');
-  const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,
+  const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,marginLayout:identity.marginLayout,
     market:markets[liquidityMarketIndex],marketIndex:liquidityMarketIndex,domain:venueState.domain,slot,now,contextSlot},accounts);
   return {commitment,venue,custody,safety,vault,markets,btc:markets[0],eth:markets[1],ledgers,btcLedger:ledgers[0],ethLedger:ledgers[1],
-    venueState,custodyState,safetyState,marketStates,ledgerStates,roots,portfolios,actualVault:token.amount,liquidity,
+    venueState,custodyState,safetyState,marketStates,ledgerStates,feeEscrow,roots,portfolios,actualVault:token.amount,liquidity,
     slot,now,contextSlot};
 }
 export type AccountSnapshot=Awaited<ReturnType<typeof readAccountSnapshot>>;

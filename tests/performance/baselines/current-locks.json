@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "929c053fe93fa61cf415b942d976717a1401c5a05f9fa21520ae2ea0ef4e26a8",
+    "clearing": "9735776d8968d3f61e6a25855db2d7ee4715d6bc406dc639825692a9ca747485",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -165,6 +165,73 @@
     },
     {
       "program": "clearing",
+      "name": "advance_btc_allocation",
+      "write": [
+        "prepared",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "margin",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "advance_joint_payment",
+      "write": [
+        "payment"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "frozen_page",
+        "delta_page"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "advance_linked_allocation",
+      "write": [
+        "prepared",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "margin",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "advance_prepared_membership",
       "write": [
         "prepared"
@@ -190,6 +257,23 @@
     },
     {
       "program": "clearing",
+      "name": "advance_winner_proof",
+      "write": [
+        "proof"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "page",
+        "opponents"
+      ],
+      "signers": [],
+      "optional": [
+        "opponents"
+      ]
+    },
+    {
+      "program": "clearing",
       "name": "allocate_market_fees",
       "write": [
         "ledger"
@@ -203,6 +287,24 @@
       ],
       "signers": [
         "fee_authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "append_pair_order",
+      "write": [
+        "payer",
+        "certificate",
+        "order_page"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
       ],
       "optional": []
     },
@@ -342,6 +444,57 @@
     },
     {
       "program": "clearing",
+      "name": "bind_joint_payment",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "rates",
+        "payment",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "bind_recovery_selection",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "search",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "cancel_recovery_provision",
       "write": [
         "storage"
@@ -356,6 +509,40 @@
       "signers": [
         "authority"
       ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "capture_joint_payment",
+      "write": [
+        "payer",
+        "payment",
+        "delta_page"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "frozen_page",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "capture_member",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "page",
+        "margin"
+      ],
+      "signers": [],
       "optional": []
     },
     {
@@ -393,6 +580,56 @@
         "registry",
         "btc",
         "eth",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "check_pair_members",
+      "write": [
+        "certificate"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "frozen_page"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "checkpoint_market",
+      "write": [
+        "market"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "first",
+        "second",
+        "third",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "classify_market_fees",
+      "write": [
+        "ledger"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "first",
+        "second",
+        "third",
         "event_authority",
         "program"
       ],
@@ -653,6 +890,85 @@
     },
     {
       "program": "clearing",
+      "name": "copy_joint_claims",
+      "write": [
+        "prepared",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "delta_page",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "copy_joint_register",
+      "write": [
+        "prepared",
+        "rates",
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "payment",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "cover_plan",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "cover_range",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "create_portfolio",
       "write": [
         "owner",
@@ -724,6 +1040,63 @@
     },
     {
       "program": "clearing",
+      "name": "derive_pairs",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "execute_ledger_lane",
+      "write": [
+        "other_market",
+        "other_ledger",
+        "trader",
+        "first_capital",
+        "first_registration",
+        "second_capital",
+        "second_registration"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "market",
+        "ledger",
+        "registry",
+        "first_program",
+        "first_program_data",
+        "first_config",
+        "first_price",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": [
+        "other_market",
+        "other_ledger",
+        "second_capital",
+        "second_registration",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price"
+      ]
+    },
+    {
+      "program": "clearing",
       "name": "execute_liquidity_order",
       "write": [
         "market",
@@ -784,6 +1157,50 @@
         "actor",
         "venue",
         "safety",
+        "registry",
+        "first_program",
+        "first_program_data",
+        "first_config",
+        "first_price",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": [
+        "other_market",
+        "other_ledger",
+        "second_capital",
+        "second_registration",
+        "second_program",
+        "second_program_data",
+        "second_config",
+        "second_price"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "execute_market_lane",
+      "write": [
+        "other_market",
+        "ledger",
+        "other_ledger",
+        "trader",
+        "first_capital",
+        "first_registration",
+        "second_capital",
+        "second_registration"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "market",
         "registry",
         "first_program",
         "first_program_data",
@@ -1362,6 +1779,43 @@
     },
     {
       "program": "clearing",
+      "name": "manage_profit_capacity",
+      "write": [
+        "payer",
+        "previous_contributor",
+        "margin"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor",
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "match_pair_page",
+      "write": [
+        "certificate",
+        "winners",
+        "debtors"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "net_account_claims",
       "write": [
         "btc",
@@ -1386,6 +1840,80 @@
         "btc",
         "eth"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "open_joint_payment",
+      "write": [
+        "payer",
+        "payment"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "rates",
+        "btc_pairs",
+        "eth_pairs",
+        "btc_allocation",
+        "eth_allocation",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "open_pair_schedule",
+      "write": [
+        "payer",
+        "certificate"
+      ],
+      "read": [
+        "allocation",
+        "prepared",
+        "resolution",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "open_search",
+      "write": [
+        "payer",
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "open_winner_proof",
+      "write": [
+        "payer",
+        "proof"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
     },
     {
       "program": "clearing",
@@ -1540,6 +2068,20 @@
     },
     {
       "program": "clearing",
+      "name": "read_market_gross",
+      "write": [],
+      "read": [
+        "venue",
+        "market",
+        "first",
+        "second",
+        "third"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "reconcile_settlement_margin",
       "write": [
         "plan"
@@ -1561,6 +2103,32 @@
         "page",
         "margin",
         "flow_page",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "record_original_budgets",
+      "write": [
+        "page"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "prepared",
+        "rates",
         "event_authority",
         "program"
       ],
@@ -1811,6 +2379,32 @@
     },
     {
       "program": "clearing",
+      "name": "scan_foreign_protection",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "rates",
+        "page",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "seal_liquidity",
       "write": [
         "registry"
@@ -1829,6 +2423,19 @@
       "signers": [
         "authority"
       ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "seal_search",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
       "optional": []
     },
     {
@@ -2007,6 +2614,107 @@
     },
     {
       "program": "clearing",
+      "name": "verify_foreign_creditors",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "first_page",
+        "second_page",
+        "third_page",
+        "fourth_page",
+        "cross_winner",
+        "eth_winner",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": [
+        "second_page",
+        "third_page",
+        "fourth_page"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "verify_frozen_pair",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "debtor_page",
+        "winner_page",
+        "debtor",
+        "winner",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": [
+        "winner_page"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "verify_incumbent",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "verify_inventory_book",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "verify_recovery_allocation",
       "write": [
         "storage"
@@ -2021,6 +2729,40 @@
       ],
       "signers": [],
       "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "verify_shared_inventory",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "first_page",
+        "second_page",
+        "third_page",
+        "fourth_page",
+        "first_winner",
+        "second_winner",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": [
+        "second_page",
+        "third_page",
+        "fourth_page"
+      ]
     },
     {
       "program": "clearing",

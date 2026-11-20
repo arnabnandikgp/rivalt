@@ -107,5 +107,43 @@ pub fn value(ctx: &mut Context<ValuePreparedMember>, _epoch: u64, revision: u64)
         *accounts.margin.address(),
         &entry,
         &accounts.margin,
-    )
+    )?;
+    #[cfg(feature = "partitioned-recovery-inputs")]
+    {
+        let index = usize::from(accounts.page.row_count) - 1;
+        let row = &mut accounts.page.rows[index];
+        for (market, rate) in row.recovery_lot_rates.iter_mut().enumerate() {
+            let quantity = row.lots[market].unsigned_abs();
+            if quantity != 0 && row.claims[market] > 0 {
+                let basis = crate::profit_attribution::frozen_history(&accounts.margin, market)?;
+                let compact = basis
+                    .frozen_capacity(row.lots[market], accounts.prepared.prices[market], row.claims[market], quantity)
+                    .and_then(|capacity| capacity.lot_rate(quantity))
+                    .map_err(|_| ClearingError::Resolution)?;
+                *rate = [compact.numerator, compact.denominator];
+            }
+        }
+    }
+    #[cfg(all(feature = "book-inventory-qualification", not(feature = "integrated-recovery-qualification")))]
+    {
+        let index=usize::from(accounts.page.row_count)-1;
+        let row=&mut accounts.page.rows[index];
+        #[cfg(not(feature="multi-lot-book-qualification"))]
+        if row.lots[0].unsigned_abs()==1 && row.claims[0]>0 {
+            row.book_capacity=crate::profit_attribution::frozen_history(&accounts.margin,0)?
+                .frozen_capacity(row.lots[0],accounts.prepared.prices[0],row.claims[0],1)
+                .map_err(|_|ClearingError::Resolution)?.eligible;
+        }
+        #[cfg(feature="multi-lot-book-qualification")]
+        if row.lots[0]!=0 && row.claims[0]>0 {
+            let quantity=row.lots[0].unsigned_abs();
+            let terms=crate::profit_attribution::frozen_history(&accounts.margin,0)?
+                .frozen_capacity(row.lots[0],accounts.prepared.prices[0],row.claims[0],quantity)
+                .map_err(|_|ClearingError::Resolution)?;
+            let rate=terms.lot_rate(quantity).map_err(|_|ClearingError::Resolution)?;
+            row.book_capacity=terms.eligible;
+            row.lot_rate=[rate.numerator,rate.denominator];
+        }
+    }
+    Ok(())
 }

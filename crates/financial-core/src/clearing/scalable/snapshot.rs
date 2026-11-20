@@ -3,6 +3,10 @@
 //! immutable freeze bindings. This arithmetic cannot authenticate an account.
 use crate::{clearing::row::Row, Error, Result, MAX_CASH, MAX_GROSS_LOTS, MAX_LOTS, SCALE};
 
+mod linked_pair;
+mod single_pair;
+pub use single_pair::{FrozenSide, PairClose};
+
 pub const CHECKPOINT_BYTES: usize = 288;
 
 /// Unsigned aggregate <2^151: u64 participants times a per-root claim <2^87.
@@ -54,6 +58,8 @@ pub struct SnapshotScan {
     processed: u64,
     last_id: u64,
     expected_cash: u64,
+    flat_btc_atoms: u64,
+    whole_btc_book: Option<bool>,
     cash: u64,
     gross: [u64; 2],
     lots: [i128; 2],
@@ -110,6 +116,8 @@ impl SnapshotScan {
             processed: 0,
             last_id: 0,
             expected_cash,
+            flat_btc_atoms: 0,
+            whole_btc_book: None,
             cash: 0,
             gross: [0; 2],
             lots: [0; 2],
@@ -141,6 +149,7 @@ impl SnapshotScan {
         row.validate()?;
         // Commit no scalar prefix on error, including a final conservation error.
         let mut candidate = self.clone();
+        candidate.whole_btc_book = None;
         candidate.cash = candidate
             .cash
             .checked_add(row.cash)
@@ -196,7 +205,13 @@ impl SnapshotScan {
     }
     pub fn checkpoint(&self) -> [u8; CHECKPOINT_BYTES] {
         let mut bytes = [0; CHECKPOINT_BYTES];
-        bytes[0] = 1;
+        bytes[0] = match self.whole_btc_book {
+            Some(true) => 3,
+            Some(false) => 4,
+            None if self.flat_btc_atoms == 0 => 1,
+            None => 2,
+        };
+        bytes[264..272].copy_from_slice(&self.flat_btc_atoms.to_le_bytes());
         let scalars = [
             self.binding.count,
             self.processed,
@@ -236,10 +251,10 @@ impl SnapshotScan {
     /// Only authenticated program-owned bytes can establish historical progress.
     pub fn from_checkpoint(bytes: &[u8], binding: SnapshotBinding) -> Result<Self> {
         if bytes.len() != CHECKPOINT_BYTES
-            || bytes[0] != 1
+            || !matches!(bytes[0], 1..=4)
             || bytes[1..8]
                 .iter()
-                .chain(&bytes[264..])
+                .chain(&bytes[272..])
                 .any(|byte| *byte != 0)
         {
             return Err(Error::Bounds);
@@ -253,6 +268,17 @@ impl SnapshotScan {
             || [read(120), read(128)] != binding.pools
             || [read(136), read(144)] != binding.insurance
             || [read(152), read(160)] != binding.fees
+        {
+            return Err(Error::Bounds);
+        }
+        scan.flat_btc_atoms = read(264);
+        scan.whole_btc_book = match bytes[0] {
+            3 => Some(true),
+            4 => Some(false),
+            _ => None,
+        };
+        if (scan.whole_btc_book.is_none() && (scan.flat_btc_atoms == 0) != (bytes[0] == 1))
+            || u128::from(scan.flat_btc_atoms) * SCALE as u128 > crate::clearing::row::MAX_CLAIM
         {
             return Err(Error::Bounds);
         }

@@ -34,3 +34,12 @@ export * from './price-policy.js';
 export * from './account-deployment.js';
 export * from './account-owner-discovery.js';
 export * from './account-wallet-envelope.js';
+export * from './profit-attribution.js';
+
+export * from './frozen-pair.js';
+export * from './recovery-receipt.js';
+export * from './btc-allocation.js';
+
+export * from './market-fees.js';
+export * from './ledger-lanes.js';
+export * from './market-capacity.js';

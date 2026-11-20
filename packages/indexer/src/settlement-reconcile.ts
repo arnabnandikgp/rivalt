@@ -1,10 +1,12 @@
 /** Explicit schema-9 scratch identities. A valid checkpoint is never substituted
  * for financial event history or a reconciled margin account. */
 import assert from 'node:assert/strict';
-import {address,getAddressEncoder,getProgramDerivedAddress} from '@solana/kit';
+import {address,getAddressDecoder,getAddressEncoder,getProgramDerivedAddress} from '@solana/kit';
+import * as paged from '@rivalt/sdk/paged-recovery';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
 import type {AccountState} from './account-projection.js';
+type FrozenRow=NonNullable<AccountState['resolution']>['rows'][string];
 export const settlementDescriptors=[
   [sdk.PREPARED_SETTLEMENT_DISCRIMINATOR,1460,sdk.getPreparedSettlementDecoder()],
   [sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,1156,sdk.getFrozenMarginPageDecoder()],
@@ -20,11 +22,23 @@ export function scopedSchema(kind:number) {
 }
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
+export function frozenPageDecoder(artifactSet?:string) {
+  if(artifactSet===sdk.ORIGINAL_BUDGETS_ARTIFACT_SET||artifactSet===sdk.FOREIGN_PROTECTION_ARTIFACT_SET||artifactSet===sdk.WINNER_ALLOCATION_ARTIFACT_SET||artifactSet===sdk.PAIR_SCHEDULE_ARTIFACT_SET||artifactSet===sdk.JOINT_PAYMENT_ARTIFACT_SET)return sdk.getOriginalBudgetPageDecoder();
+  if(sdk.hasPartitionedInputs(artifactSet))return sdk.getPartitionedRecoveryPageDecoder();
+  if(artifactSet===sdk.LOCAL_SUCCESSOR_ARTIFACT_SET)return sdk.getLocalSuccessorPageDecoder();
+  if(artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET)return paged.getFrozenMarginPageDecoder();
+  if(sdk.isMultiLotArtifact(artifactSet))return sdk.getMultiLotBookPageDecoder();
+  if(sdk.isBookInventoryArtifact(artifactSet))return sdk.getInventoryBookPageDecoder();
+  if(artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET)return sdk.getLinkedAllocationPageDecoder();
+  if(artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET)return sdk.getBtcAllocationPageDecoder();
+  return sdk.getFrozenMarginPageDecoder();
+}
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
-  binding:{venue:string;program:string}) {
+  binding:{venue:string;program:string;artifactSet?:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
-  assert.equal(bytes.length,descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
-  const value=descriptor[2].decode(bytes) as any;
+  const allocation=kind===18?frozenPageDecoder(binding.artifactSet):undefined;
+  assert.equal(bytes.length,allocation?.fixedSize??descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
+  const value=(allocation??descriptor[2]).decode(bytes) as any;
   assert.equal(value.schemaVersion,10);assert.equal(value.venue,binding.venue);
   let label:string,suffix:Uint8Array[];
   switch(kind) {
@@ -45,18 +59,139 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(!resolution||value.epoch!==undefined&&value.epoch!==BigInt(resolution.epoch))return;
   if(kind===17) {
     const header=JSON.parse(json(value));
+    if(binding.artifactSet===sdk.JOINT_PAYMENT_ARTIFACT_SET) {
+      const bytes=Buffer.from(value.state.membership);
+      if(bytes.subarray(0,8).toString()==='RVJOINT2') {
+        assert.equal(bytes.readBigUInt64LE(8),value.epoch);
+        const count=bytes.readBigUInt64LE(104);
+        assert.equal(count,BigInt(resolution.jointPayment?.memberIds.length??0));
+        if(resolution.jointPayment) {
+          const joint=resolution.jointPayment;
+          assert.equal(getAddressDecoder().decode(bytes.subarray(16,48)),joint.payment);
+          const u128=(offset:number)=>bytes.readBigUInt64LE(offset)+(bytes.readBigUInt64LE(offset+8)<<64n);
+          assert.deepEqual([u128(48),u128(64)].map(String),joint.chargeAtoms);
+          assert.deepEqual([80,88].map(offset=>String(bytes.readBigUInt64LE(offset))),joint.insuranceSpent);
+        }
+        if(value.stage===3)assert.equal(count,value.count);
+      } else assert(!resolution.jointPayment,'Missing frozen joint receipt');
+    }
+    const bound=sdk.boundRecoveryReceipt(value);
+    const pagedHeader=sdk.pagedRecoveryHeader(value);
+    if(sdk.hasPagedRecovery(binding.artifactSet) && (resolution.boundRecovery || pagedHeader)) {
+      assert(pagedHeader && resolution.boundRecovery,'Missing paged recovery header or event');
+      const {memberCount,...terms}=pagedHeader;
+      const {memberIds,claimDeltas,movements,finalCash,...projected}=resolution.boundRecovery;
+      assert.equal(memberCount,BigInt(memberIds.length));
+      assert.deepEqual(JSON.parse(json(terms)),projected,'Paged recovery terms');
+    } else if(bound || resolution.boundRecovery || pagedHeader) {
+      assert(sdk.hasJointRecovery(binding.artifactSet) && bound && resolution.boundRecovery,'Missing verified recovery receipt or event');
+      assert.deepEqual(JSON.parse(json(bound)),resolution.boundRecovery,'Exact frozen selection and all protected payouts');
+    }
+    const pair=sdk.frozenPairReceipt(value);
+    const receipt=sdk.btcAllocationReceipt(value), projected=resolution.allocation;
+    if(receipt?.committed||projected?.status===1) {
+      assert(receipt?.committed&&projected?.status===1,'Missing complete BTC allocation');
+      for(const key of ['attempt','debtorId','shortfall','cursor','capacity','recovered'] as const)
+        assert.equal(receipt[key].toString(),projected[key],key);
+    }
+    const linked=sdk.linkedAllocationReceipt(value),projection=resolution.linkedAllocation;
+    if(linked || projection?.status===1) {
+      assert(linked&&binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET,'Missing linked certificate');
+      if(linked.cursor>0n) {
+        assert(projection && projection.status===(linked.committed?1:0),'Missing linked scan');
+        for(const key of ['attempt','debtorId','cursor','shares','targets','recovered'] as const)
+          assert.deepEqual(JSON.parse(json(linked[key])),projection[key],key);
+      } else assert(!projection||projection.status===2&&BigInt(projection.attempt)<linked.attempt,'Invalid restarted linked scan');
+    } else if(projection)assert.equal(projection.status,2,'Lost linked scan');
+    const multi=sdk.inventoryBookReceipt(value,true);
+    const book=multi??sdk.inventoryBookReceipt(value);
+    if(book || resolution.inventoryBook) {
+      const projected=resolution.inventoryBook;
+      assert(sdk.isBookInventoryArtifact(binding.artifactSet) && book && projected,'Missing book certificate or event');
+      assert.equal(Boolean(multi),Boolean(projected.multiLot),'Book receipt kind');
+      assert.deepEqual([book.digest,String(book.total),Number(book.count)],[projected.digest,projected.total,projected.pairs.length]);
+    }
+    const shared=sdk.sharedInventoryReceipt(value,binding.artifactSet);
+    if(shared || resolution.sharedInventory) {
+      assert(sdk.isSharedInventoryArtifact(binding.artifactSet) && shared && resolution.sharedInventory,'Missing shared inventory receipt or event');
+      assert.deepEqual(JSON.parse(json(shared)),resolution.sharedInventory,'shared inventory terms');
+    }
+    const foreign=sdk.foreignCreditorReceipt(value);
+    if(foreign || resolution.foreignCreditors) {
+      assert((binding.artifactSet===sdk.FOREIGN_CREDITOR_ARTIFACT_SET || sdk.isSharedInventoryArtifact(binding.artifactSet)) && foreign && resolution.foreignCreditors,'Missing atomic foreign creditor receipt or event');
+      const {members,legs}=foreign;
+      assert.deepEqual(JSON.parse(json({members,charges:legs.map(leg=>leg.charge),eligible:legs.map(leg=>leg.eligible),
+        matchedLots:legs.map(leg=>leg.matched),basePrices:legs.map(leg=>leg.price),extraTickLots:legs.map(leg=>leg.extra)})),resolution.foreignCreditors);
+    }
+    const joint=sdk.frozenJointReceipt(value);
+    if(resolution.joint || joint?.complete) {
+      assert((binding.artifactSet===sdk.LINKED_PAIR_ARTIFACT_SET || binding.artifactSet===sdk.LINKED_FLAT_ARTIFACT_SET || binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET) && joint?.complete && resolution.joint,
+        'Missing verified joint receipt or event');
+      const {debtor,shares,legs}=joint;
+      assert.deepEqual(JSON.parse(json({debtorId:debtor,shares,winners:legs.map(leg=>leg.winner),
+        charges:legs.map(leg=>leg.charge),eligible:legs.map(leg=>leg.eligible),matchedLots:legs.map(leg=>leg.matched),
+        basePrices:legs.map(leg=>leg.price),extraTickLots:legs.map(leg=>leg.extra)})),resolution.joint,'joint terms');
+    }
+    if(resolution.pair||pair) {
+      assert(pair&&resolution.pair,'Missing verified pair receipt or event');
+      const {epoch,...terms}=JSON.parse(json(pair));assert.equal(epoch,resolution.epoch);assert.deepEqual(terms,resolution.pair);
+    }
     for(const [field,expected] of Object.entries({count:String(resolution.count),registryHash:resolution.registryHash,
       prices:resolution.prices,funding:resolution.funding,allocated:resolution.allocatedBefore,pools:resolution.poolsBefore,
       insurance:resolution.insuranceBefore,fees:resolution.feesBefore}))assert.deepEqual(header[field],expected,`Prepared ${field}`);
     const source=Object.entries(state.revisions).find(([,entry])=>entry.kind===10);assert(source);assert.equal(header.source,source[0]);
     if(plan)assert.equal(BigInt(header.sourceRevision)+1n,BigInt(plan.adoptionRevision));
   }
+  if(kind===18 && resolution.jointPayment) {
+    const joint=resolution.jointPayment;
+    for(let offset=0;offset<value.rowCount;offset++) {
+      const ordinal=Number(value.pageIndex)*8+offset,row=value.rows[offset];
+      if(ordinal>=joint.memberIds.length)continue;
+      assert.equal(String(row.id),joint.memberIds[ordinal]);
+      assert.deepEqual(row.recoveryPayout.claimDelta.map(String),joint.deltas[ordinal]);
+    }
+  }
+  if(kind===18 && sdk.hasPagedRecovery(binding.artifactSet) && resolution.boundRecovery) {
+    const bound=resolution.boundRecovery;
+    const count=Math.min(8,bound.memberIds.length-Number(value.pageIndex)*8);
+    assert.equal(value.rowCount,count,'Complete recovery page');
+    for(let offset=0;offset<count;offset++) {
+      const row=value.rows[offset], ordinal=Number(value.pageIndex)*8+offset;
+      assert.equal(String(row.id),bound.memberIds[ordinal]);
+      assert.deepEqual(JSON.parse(json(row.recoveryPayout)),{claimDelta:bound.claimDeltas[ordinal],movements:bound.movements[ordinal],
+        finalCash:bound.finalCash[ordinal]},'Frozen member payout');
+    }
+  }
+  if(kind===18 && resolution.inventoryBook) {
+    const {capacities,pairs}=resolution.inventoryBook;
+    for(const row of value.rows.slice(0,value.rowCount)) {
+      const id=String(row.id), terms=capacities.find(([winner])=>winner===id);
+      const charge=pairs.reduce((sum,[debtor,winner,amount])=>id===debtor||id===winner?sum+BigInt(amount):sum,0n);
+      assert.equal(row.bookCharge,charge,'Certified row charge');
+      if(resolution.inventoryBook.multiLot && terms) {
+        assert.deepEqual(row.lotRate.map(String),terms.slice(2),'Original frozen lot rate');
+        const face=BigInt(row.claims[0])/1_000_000_000n, lots=BigInt(row.lots[0]);
+        const limit=(lots<0n?-lots:lots)*row.lotRate[0]/row.lotRate[1];
+        assert.equal(row.bookCapacity,face<limit?face:limit,'Original winning capacity');
+      } else assert.equal(String(row.bookCapacity),terms?.[1]??'0','Frozen winning capacity');
+    }
+  }
+  if(kind===18&&!plan&&resolution.linkedAllocation) {
+    const scan=resolution.linkedAllocation;
+    for(let offset=0;offset<value.rowCount;offset++) {
+      const row=value.rows[offset],charge=scan.charges[String(row.id)];
+      if(charge)assert.deepEqual(row.linkedCharges.map(String),charge,'Scored frozen charges');
+    }
+  }
   if(kind===18&&plan) {
     for(let within=0;within<value.rowCount;within++) {
       const ordinal=value.pageIndex*8n+BigInt(within),row=value.rows[within];
-      const frozen:NonNullable<AccountState['resolution']>['rows'][string]|undefined=Object.values(resolution.rows).find(row=>row.member===state.members[Number(ordinal)]);assert(frozen,'Complete frozen row');
+      assert(ordinal<BigInt(frozenIds.length),'Complete frozen row');
+      const id=frozenIds[Number(ordinal)],frozen:FrozenRow=resolution.rows[id];
       const actual=JSON.parse(json(row));
-      for(const [field,expected] of Object.entries({id:state.roots[frozen.member].id,member:frozen.member,cash:frozen.cashBefore,
+      if(resolution.linkedAllocation?.status===1)assert.deepEqual(actual.linkedCharges,resolution.linkedAllocation.charges[id],'Frozen linked charges');
+      if(resolution.allocation?.status===1)assert.equal(actual.btcCharge,resolution.allocation.charges[id],'Frozen allocated BTC charge');
+      for(const [field,expected] of Object.entries({id,member:frozen.member,cash:frozen.cashBefore,
         lots:frozen.lots,generations:frozen.generations,claims:frozen.claimsScaled,collected:frozen.collected,
         activationGeneration:frozen.activationGeneration,originalRevision:frozen.originalRevision}))assert.deepEqual(actual[field],expected,`Frozen ${field}`);
     }
@@ -72,9 +207,10 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     for(let offset=0;offset+7<=value.wordCount;offset+=7) {
       const ordinal=value.pageIndex*36n+BigInt(offset/7);
       if(ordinal>=BigInt(plan.count))break;
-      const row:NonNullable<AccountState['resolution']>['rows'][string]|undefined=Object.values(resolution.rows).find(row=>row.member===state.members[Number(ordinal)]);assert(row);
+      assert(ordinal<BigInt(frozenIds.length),'Complete frozen flow');
+      const id=frozenIds[Number(ordinal)],row:FrozenRow=resolution.rows[id];
       const flags=Buffer.alloc(16);flags.writeBigUInt64LE(words[offset+5]);flags.writeBigUInt64LE(words[offset+6],8);
-      assert.equal(words[offset],ordinal);assert.equal(words[offset+1],BigInt(row.cashBefore));
+      assert.equal(words[offset],BigInt(id));assert.equal(words[offset+1],BigInt(row.cashBefore));
       assert.equal(flags[15],row.applied?1:0);
       if(row.applied)assert.deepEqual(words.slice(offset+2,offset+5).map(String),[...row.flows!,row.cashAfter!]);
     }

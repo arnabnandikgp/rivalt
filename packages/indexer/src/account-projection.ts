@@ -16,6 +16,15 @@ export type AccountResolution = {
   safetyEpoch:string; termsEpoch:string; configEpochs:string[]; sourceObservations:string[]; sourceDeadlines:string[];
   prices:string[]; funding:string[]; frozenAt:string; cashBefore:string; poolsBefore:string[];
   insuranceBefore:string[]; feesBefore:string[]; allocatedBefore:string; budgets:string[]; insuranceSpent:string[];
+  inventoryBook?:{multiLot?:boolean;digest:string;total:string;capacities:string[][];pairs:string[][]};
+  sharedInventory?:{members:string[];charges:string[];eligible:string[];prices:string[]};
+  jointPayment?:{payment:string;chargeAtoms:string[];insuranceSpent:string[];memberIds:string[];deltas:string[][]};
+  boundRecovery?:{search:string;schedule:string;schedulesChecked:string;chargeAtoms:string[];insuranceSpent:string[];memberIds:string[];claimDeltas:string[][];movements:string[][];finalCash:string[]};
+  foreignCreditors?:{members:string[];charges:string[];eligible:string[];matchedLots:string[];basePrices:string[];extraTickLots:string[]};
+  linkedAllocation?:{attempt:string;debtorId:string;shares:string[];targets:string[];cursor:string;recovered:string[];status:number;charges:Record<string,string[]>};
+  allocation?:{attempt:string;debtorId:string;shortfall:string;cursor:string;recovered:string;capacity:string;status:number;charges:Record<string,string>};
+  joint?:{debtorId:string;winners:string[];shares:string[];charges:string[];eligible:string[];matchedLots:string[];basePrices:string[];extraTickLots:string[]};
+  pair?:{debtorId:string;winnerId:string;charge:string;price:string;unpaidGainCap:string;matchedLots?:string;extraTickLots?:string};
   evaluation:number; clippedMask:number; rows:Record<string,Row>; remainingCash:string; appliedCash:string;
   remainingLots:string[]; remainingGross:string[]; remainingClaims:string[];
 };
@@ -54,7 +63,7 @@ const abs=(value:bigint)=>value<0n?-value:value;
 
 /** Only event fields are authoritative here. Canonical PDAs and complete decoded
  * financial accounts are checked separately against finalized RPC bytes. */
-export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:4=4) {
+export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:4=4,artifactSet?:string) {
   accountCheck(profile===4&&!!state.liquidity,'explicit projection profile');
   const change=structuredClone(event.data);
   accountCheck(change.venue===venue,'event venue');
@@ -213,8 +222,20 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       root(change.targetState,change.target);root(change.receiverState,change.receiver);
       partialMarkets(change.markets);partialLedgers(change.ledgers);
       equal(safety().epoch,change.safetyEpoch,'liquidation safety');break;
+    case 'MultiLotBookVerified':
+    case 'InventoryBookVerified':
+    case 'SharedInventoryVerified':
+    case 'JointClaimsCopied':
+    case 'PagedRecoverySelectionBound':
+    case 'RecoverySelectionBound':
+    case 'ForeignCreditorsVerified':
+    case 'FrozenJointReductionVerified':
+    case 'FrozenLinkedAllocationRow':
+    case 'FrozenBtcAllocationRow':
+    case 'FrozenBtcReductionVerified':
+    case 'FrozenPairVerified':
     case 'SettlementPlanProgress':
-    case 'SettlementMarginApplied':projectSettlement(state,event,root);break;
+    case 'SettlementMarginApplied':projectSettlement(state,event,root,artifactSet);break;
     case 'AccountResolutionFrozenV3': {
       delete state.pagedSettlement;
       const previous=state.resolution;
@@ -296,7 +317,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     }
     default:
       accountCheck(profile===4,'unsupported account projection event');
-      projectLiquidity(state,event,{root,market,ledger});
+      projectLiquidity(state,event,{root,market,ledger},artifactSet);
   }
   state.sequence=(BigInt(state.sequence)+1n).toString();
   reconcileAccountLedger(state);

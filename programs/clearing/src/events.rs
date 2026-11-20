@@ -268,6 +268,59 @@ pub struct LiquidityRouteExecuted {
     pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
 }
 
+// The two route events share the financial payload. The lane event carries
+// the earned funding so consumers can combine the fill with its physical checkpoint.
+macro_rules! fee_route_event {
+    ($name:ident, $pending:ident $(, $field:ident: $ty:ty)*) => {
+#[event]
+pub struct $name {
+    pub venue: Address,
+    pub slot: u64,
+    pub market: Address,
+    pub market_state: MarketSnapshot,
+    pub other_market_state: Option<MarketSnapshot>,
+    pub nonce: u64,
+    pub side: u8,
+    pub lots: u64,
+    pub gross_quote: u64,
+    pub fee: u64,
+    pub lane_collected: u128,
+    pub $pending: u64,
+    pub ledger: MarketLedgerSnapshot,
+    pub other_ledger: Option<MarketLedgerSnapshot>,
+    pub order_id: u64,
+    pub order_version: u64,
+    pub root_states: Vec<MarginAccountSnapshot>,
+    pub maker_states: Vec<crate::state::liquidity::MakerRegistrationPayload>,
+    pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
+        $(pub $field: $ty,)*
+        }
+    };
+}
+fee_route_event!(LiquidityRouteFeeRecorded, market_pending);
+fee_route_event!(MarketLaneFilled, market_pending, through: i64, index: i128);
+fee_route_event!(LedgerLaneFilled, lane_pending, through: i64, index: i128);
+
+#[event]
+pub struct MarketCheckpointed {
+    pub venue: Address,
+    pub market: Address,
+    pub slot: u64,
+    pub state: MarketSnapshot,
+}
+
+#[event]
+pub struct MarketFeesClassified {
+    pub venue: Address,
+    pub market: Address,
+    pub slot: u64,
+    pub classified: u128,
+    pub amount: u64,
+    pub insurance_credit: u64,
+    pub ledger: MarketLedgerSnapshot,
+}
+
+
 #[event]
 pub struct AccountQualification {
     pub venue: Address,
@@ -665,4 +718,185 @@ pub struct RecoveryStorageRefunded {
     pub completed_epoch: u64,
     pub refunded_lamports: u64,
     pub retained_lamports: u64,
+}
+
+#[event]
+pub struct FrozenPairVerified {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub debtor_id:u64,
+    pub winner_id:u64,
+    pub mark:u64,
+    pub price:u64,
+    pub charge:u64,
+    pub unpaid_gain_cap:u64,
+}
+
+/// Terminal BTC accounting. Each matched lot executes at base_price, except
+/// extra_tick_lots which concede one additional tick in the winner's direction.
+#[event]
+pub struct FrozenBtcReductionVerified {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub debtor_id: u64,
+    pub winner_id: u64,
+    pub mark: u64,
+    pub base_price: u64,
+    pub charge: u64,
+    pub unpaid_gain_cap: u64,
+    pub matched_lots: u64,
+    pub extra_tick_lots: u64,
+}
+
+#[event]
+pub struct FrozenBtcAllocationRow {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub attempt: u64,
+    pub ordinal: u64,
+    pub debtor_id: u64,
+    pub member_id: u64,
+    pub shortfall: u64,
+    pub eligible: u64,
+    pub charge: u64,
+    pub matched_lots: u64,
+    pub base_price: u64,
+    pub extra_tick_lots: u64,
+    pub status: u8,
+}
+
+/// Debtors in stable ID order followed by their respective winning counterparties.
+#[event]
+pub struct SharedInventoryVerified {
+    pub venue: Address,
+    pub epoch: u64,
+    pub slot: u64,
+    pub members: [u64; 4],
+    pub charges: [u64; 2],
+    pub eligible: [u64; 2],
+    pub prices: [u64; 2],
+}
+
+/// Complete frozen obligations and executable schedules for a BTC winner carrying ETH debt.
+#[event]
+pub struct ForeignCreditorsVerified {
+    pub venue: Address,
+    pub epoch: u64,
+    pub slot: u64,
+    /// BTC debtor, flat BTC creditor, cross winner, ETH winner.
+    pub members: [u64; 4],
+    pub charges: [u64; 2],
+    pub eligible: [u64; 2],
+    pub matched_lots: [u64; 2],
+    pub base_prices: [u64; 2],
+    pub extra_tick_lots: [u64; 2],
+}
+
+/// Both reductions are final together for this frozen episode.
+#[event]
+pub struct FrozenJointReductionVerified {
+    pub venue: Address,
+    pub epoch: u64,
+    pub slot: u64,
+    pub debtor_id: u64,
+    pub winners: [u64; 2],
+    pub shares: [u64; 2],
+    pub charges: [u64; 2],
+    pub eligible: [u64; 2],
+    pub matched_lots: [u64; 2],
+    pub base_prices: [u64; 2],
+    pub extra_tick_lots: [u64; 2],
+}
+
+/// Canonical member's two provisional charge schedules. Status 1 commits the entire cohort.
+#[event]
+pub struct FrozenLinkedAllocationRow {
+    pub venue: Address,
+    pub slot: u64,
+    pub epoch: u64,
+    pub attempt: u64,
+    pub ordinal: u64,
+    pub debtor_id: u64,
+    pub member_id: u64,
+    pub shares: [u64; 2],
+    pub targets: [u64; 2],
+    pub eligible: [u64; 2],
+    pub charges: [u64; 2],
+    pub matched_lots: [u64; 2],
+    pub base_prices: [u64; 2],
+    pub extra_tick_lots: [u64; 2],
+    pub status: u8,
+}
+
+/// Original single-lot capacities and verified disjoint fills, in frozen priority order.
+#[event]
+pub struct InventoryBookVerified {
+    pub venue: Address,
+    pub epoch:u64,
+    pub slot:u64,
+    pub total:u64,
+    pub capacities:Vec<[u64;2]>,
+    pub pairs:Vec<[u64;4]>,
+}
+
+/// Frozen per-lot rates, pairable capacities and exact multi-lot fill schedules.
+#[event]
+pub struct MultiLotBookVerified {
+    pub venue: Address,
+    pub epoch: u64,
+    pub slot: u64,
+    pub total: u64,
+    pub capacities: Vec<[u64;4]>,
+    pub pairs: Vec<[u64;6]>,
+}
+
+/// Complete frozen selection before any settlement cash or reserve can move.
+#[event]
+pub struct RecoverySelectionBound {
+    pub venue: Address,
+    pub epoch: u64,
+    pub search: Address,
+    pub schedule: u128,
+    pub schedules_checked: u128,
+    pub charge_atoms: [u64; 2],
+    pub insurance_spent: [u64; 2],
+    pub member_ids: [u64; 8],
+    pub claim_deltas: [[i64; 2]; 8],
+    pub movements: [[i64; 2]; 8],
+    pub final_cash: [u64; 8],
+    pub slot: u64,
+}
+
+#[cfg(feature = "paged-recovery-qualification")]
+#[event]
+pub struct PagedRecoverySelectionBound {
+    pub venue: Address,
+    pub epoch: u64,
+    pub search: Address,
+    pub schedule: u128,
+    pub schedules_checked: u128,
+    pub charge_atoms: [u64; 2],
+    pub insurance_spent: [u64; 2],
+    pub member_ids: Vec<u64>,
+    pub claim_deltas: Vec<[i64; 2]>,
+    pub movements: Vec<[i64; 2]>,
+    pub final_cash: Vec<u64>,
+    pub slot: u64,
+}
+
+/// One canonical prefix of certified claim reductions. Cash remains frozen.
+#[event]
+pub struct JointClaimsCopied {
+    pub venue: Address,
+    pub epoch: u64,
+    pub payment: Address,
+    pub first: u64,
+    pub charge_atoms: [u128; 2],
+    pub insurance_spent: [u64; 2],
+    pub member_ids: Vec<u64>,
+    pub deltas: Vec<[i64; 2]>,
+    pub slot: u64,
 }

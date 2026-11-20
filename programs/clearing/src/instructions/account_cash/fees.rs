@@ -51,6 +51,37 @@ pub struct WithdrawMarketFees {
     pub token_program: Program<Token>,
 }
 
+/// Read every canonical registration for the current bounded market and commit
+/// unclassified fees. No caller chooses the interest, market or destination.
+#[event_cpi]
+#[derive(Accounts)]
+pub struct ClassifyMarketFees {
+    pub identity: Nested<TreasuryIdentity>,
+    #[account(seeds=[b"maker-v4",identity.ledger.market.as_ref(),&[0]],bump=first.bump)]
+    pub first: Box<BorshAccount<crate::state::liquidity::MakerRegistration>>,
+    #[account(seeds=[b"maker-v4",identity.ledger.market.as_ref(),&[1]],bump=second.bump)]
+    pub second: Box<BorshAccount<crate::state::liquidity::MakerRegistration>>,
+    #[account(seeds=[b"maker-v4",identity.ledger.market.as_ref(),&[2]],bump=third.bump)]
+    pub third: Box<BorshAccount<crate::state::liquidity::MakerRegistration>>,
+}
+
+pub fn classify(ctx:&mut Context<ClassifyMarketFees>, events:&mut crate::event_cpi::Payloads) -> Result<()> {
+    #[cfg(not(feature="aggregate-fee-qualification"))]
+    { let _=(ctx,events); return Err(ClearingError::Profile.into()); }
+    #[cfg(feature="aggregate-fee-qualification")]
+    {
+        require!(ctx.remaining_accounts()?.is_empty(),ClearingError::Profile);
+        let a=&mut ctx.accounts;
+        require!(a.identity.venue.insurance_fee_share_bps==2500 && a.identity.safety.mode!=FROZEN, ClearingError::Profile);
+        let ledger=&mut a.identity.ledger;
+        #[cfg(feature="read-only-route-ledger")]
+        crate::ledger_lane::fold(ledger, [&a.first,&a.second,&a.third])?;
+        let (classified,amount,credit)=crate::market_fees::collect(ledger,[&mut a.first,&mut a.second,&mut a.third])?;
+        events.emit(&crate::events::MarketFeesClassified{venue:ledger.venue,market:ledger.market,slot:Clock::get()?.slot,classified,amount,insurance_credit:credit,
+            ledger:super::super::account_custody::ledger_snapshot(ledger)},a.event_authority.account().clone())
+    }
+}
+
 pub(crate) fn treasury_profile(
     venue: &Venue,
     safety: &VenueSafety,
@@ -87,6 +118,8 @@ pub fn allocate(
     );
     let accounts = &mut ctx.accounts;
     let identity = &mut *accounts.identity;
+    #[cfg(feature="aggregate-fee-qualification")]
+    crate::market_fees::clean(&mut identity.ledger)?;
     treasury_profile(
         &identity.venue,
         &identity.safety,
@@ -122,6 +155,8 @@ pub fn withdraw(
     );
     let accounts = &mut ctx.accounts;
     let identity = &mut *accounts.identity;
+    #[cfg(feature="aggregate-fee-qualification")]
+    crate::market_fees::clean(&mut identity.ledger)?;
     treasury_profile(
         &identity.venue,
         &identity.safety,

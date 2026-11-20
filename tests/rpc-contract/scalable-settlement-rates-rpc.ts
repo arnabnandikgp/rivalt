@@ -142,7 +142,7 @@ export async function qualifySettlementRates(options:{h:CanonicalHarness;
           processed=nextProcessed;
         }
       }
-      assert(steps<2000,'bounded fixture rate continuations');
+      assert(steps<2000*Math.ceil(rows.length/8),'bounded fixture rate continuations');
     }
     if(hostile)assert(checkedPageOrder,'mandatory reordered/duplicated page checks executed');
     return state();

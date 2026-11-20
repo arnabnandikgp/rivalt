@@ -1,6 +1,6 @@
 import {membershipDescriptors,reconcileMembershipStorage,requireMembershipCoverage} from './membership-reconcile.js';
 import assert from 'node:assert/strict';
-import {scopedSchema,settlementDescriptors,reconcileSettlementScratch} from './settlement-reconcile.js';
+import {frozenPageDecoder,scopedSchema,settlementDescriptors,reconcileSettlementScratch} from './settlement-reconcile.js';
 import {address,getAddressDecoder,getAddressEncoder,getProgramDerivedAddress,type ReadonlyUint8Array} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
@@ -15,7 +15,7 @@ export type CapturedAccount={slot:number;value:AccountValue};
 
 /** Find a genuinely common historical revision fence, rather than assuming a
  * later overwritten snapshot proves an earlier version's financial fields. */
-export async function captureAccountReconciliation(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'>,
+export async function captureAccountReconciliation(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'> & Partial<Pick<LiquidityBinding,'artifactSet'>>,
   read:AccountBatch,minimumSlot:number) {
   const venue=address(binding.venue),program=address(binding.program);
   const [custody]=await sdk.deriveVenueComponent(venue,'custody',program),[vault]=await sdk.deriveVenueComponent(venue,'vault',program);
@@ -46,7 +46,7 @@ export async function captureAccountReconciliation(state:AccountState,binding:Pi
 /** Every entity is pinned to its authenticated journal revision. A second pass
  * fences all chunks before combining their financial fields. A newer relevant
  * revision requests only tail catch-up, never an unrelated historical rescan. */
-export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'>,read:AccountBatch,
+export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<LiquidityBinding,'venue'|'domain'|'program'> & Partial<Pick<LiquidityBinding,'artifactSet'>>,read:AccountBatch,
   captured?:ReadonlyMap<string,CapturedAccount>) {
   reconcileAccountLedger(state);
   const venue=address(binding.venue),program=address(binding.program);
@@ -106,6 +106,14 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
   let minSlot:number|undefined,maxSlot=0;
+  const checkedFunding=sdk.hasFundingCheckpoints(binding.artifactSet);
+  const ledgerLanes=sdk.hasLedgerLanes(binding.artifactSet);
+  const capacity=sdk.hasMarketCapacity(binding.artifactSet);
+  const allocation=binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET;
+  const linkedAllocation=binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET;
+  const book=sdk.isBookInventoryArtifact(binding.artifactSet);
+  const sponsored=sdk.hasJointRecovery(binding.artifactSet)||book||sdk.isSharedInventoryArtifact(binding.artifactSet)||binding.artifactSet===sdk.FOREIGN_CREDITOR_ARTIFACT_SET||linkedAllocation||allocation||binding.artifactSet===sdk.LINKED_FLAT_ARTIFACT_SET||binding.artifactSet===sdk.LINKED_PAIR_ARTIFACT_SET||binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET||
+    binding.artifactSet===sdk.VERIFIED_PAIR_ARTIFACT_SET||binding.artifactSet===sdk.BTC_RESIDUAL_ARTIFACT_SET;
   for(let pass=0;pass<(captured?1:2);pass++)for(let offset=0;offset<keys.length;offset+=100) {
     const chunk=keys.slice(offset,offset+100),response=captured?undefined:await read(chunk);
     if(response){integer(response.context.slot);assert.equal(response.value.length,chunk.length);}
@@ -117,9 +125,27 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       if(entity) {
         assert(current?.owner===program&&current.data[1]==='base64',`Scoped owner/encoding ${key}`);
         const bytes=Buffer.from(current.data[0],'base64'),descriptor=descriptors[entity.kind];
-        assert(descriptor&&bytes.length===descriptor[1]&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
+        const feeLane=sdk.hasAggregateFees(binding.artifactSet) && (entity.kind===7||entity.kind===15);
+        assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped discriminator ${key}`);
+        if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
+          sdk.decodeProfitAttribution(bytes,sponsored);
+        } else if(capacity && entity.kind===6) {
+          sdk.decodeCapacityAnchor(bytes,checkedFunding);
+        } else if(feeLane) {
+          assert.equal(bytes.length,descriptor[1]+(entity.kind===7?24:ledgerLanes?192:checkedFunding?64:capacity?32:16),'fee lane account size');
+        } else {
+          assert.equal(bytes.length,entity.kind===18?frozenPageDecoder(binding.artifactSet).fixedSize:descriptor[1],`Scoped layout ${key}`);
+        }
         assert.equal(bytes.readUInt16LE(8),scopedSchema(entity.kind));
         compareReconciliationRevision(bytes.readBigUInt64LE(10),BigInt(entity.revision));
+        if(feeLane) {
+          const offset=descriptor[1];
+          const lifetime=bytes.readBigUInt64LE(offset)+(bytes.readBigUInt64LE(offset+8)<<64n);
+          const market=entity.kind===7?state.ledgers[key].market:state.liquidity!.makers[key].market;
+          const fees=state.liquidity?.feeAccounting?.[market];
+          assert.equal(String(lifetime),entity.kind===7?(fees?.classified??'0'):(fees?.lanes[key]??'0'),'finalized fee counter');
+          if(entity.kind===7&&!ledgerLanes)assert.equal(String(bytes.readBigUInt64LE(offset+16)),fees?.pending??'0','unclassified fees');
+        }
         if(pass)assert.equal(current.data[0],observed.get(key)?.data[0],`Account changed without revision ${key}`);
       }
       if(!pass||key===vault)observed.set(key,current);
@@ -129,6 +155,56 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     const account=observed.get(key);assert(account?.owner===owner&&account.data[1]==='base64',`Missing/foreign account ${key}`);
     const bytes=Buffer.from(account.data[0],'base64');if(discriminator)assert(bytes.subarray(0,8).equals(Buffer.from(discriminator)),`Discriminator ${key}`);return bytes;
   };
+  if(capacity){
+    for(const [market,projected] of Object.entries(state.markets)){
+      const makers=Object.entries(state.liquidity?.makers??{}).filter(([,maker])=>maker.market===market)
+        .sort(([,left],[,right])=>left.instance-right.instance);
+      // Unsealed or partially initialized markets do not yet expose the capacity view.
+      if(makers.length<3){
+        assert.equal(projected.grossLots,'0');
+        continue;
+      }
+      assert.equal(String(sdk.grossFromCapacity(address(market),raw(market),makers.map(([key])=>raw(key)),ledgerLanes?'ledger-lanes':checkedFunding)),
+        projected.grossLots,'bounded capacity versus finalized market gross');
+      if(ledgerLanes){
+        const [key,ledger]=Object.entries(state.ledgers).find(([,ledger])=>ledger.market===market)!;
+        const pdas=await sdk.makerRegistrationPdas(address(market));
+        const rows=makers.map(([key],i)=>{assert.equal(key,pdas[i][0]);return {bytes:raw(key),bump:pdas[i][1]};});
+        const logical=sdk.ledgerFromExecutionLanes(sdk.decodeFeeLedger(raw(key)),rows);
+        assert.deepEqual(accountFields(logical.state),ledger,'bounded ledger versus finalized financial effects');
+        assert.equal(String(logical.pendingFees),state.liquidity?.feeAccounting?.[market]?.pending??'0','bounded fee escrow');
+      }
+      if(checkedFunding){
+        const marketState=sdk.decodeCapacityAnchor(raw(market),true).market;
+        const observation=marketState.oracle;
+        const offset=sdk.getMakerRegistrationDecoder().fixedSize+32;
+        const stamps=[raw(market).subarray(-32),...makers.map(([key])=>raw(key).subarray(offset,offset+32))].map(sdk.decodeFundingTouch);
+        let latest:ReturnType<typeof sdk.decodeFundingTouch>=null;
+        const times=new Map<bigint,bigint>();
+        for(const stamp of stamps){
+          if(!stamp)continue;
+          assert(stamp.config<=marketState.configEpoch&&stamp.observation<=marketState.observationSequence,'future funding checkpoint');
+          if(stamp.config!==marketState.configEpoch||stamp.observation!==marketState.observationSequence)continue;
+          assert(stamp.slot>=marketState.validFrom&&stamp.slot<observation.heldSlot &&
+            stamp.timestamp>=observation.sampledAt&&stamp.timestamp-observation.sampledAt<=30n,'checkpoint outside funding window');
+          const previous=times.get(stamp.slot);
+          assert(previous===undefined||previous===stamp.timestamp,'inconsistent same-slot funding clock');
+          times.set(stamp.slot,stamp.timestamp);
+          if(!latest||latest.slot<stamp.slot)latest=stamp;
+        }
+        if(state.safety?.mode===1&&observation.heldEpoch===marketState.configEpoch&&observation.heldUntil>observation.sampledAt){
+          const end=latest && latest.timestamp<observation.heldUntil?latest.timestamp:latest?observation.heldUntil:observation.sampledAt;
+          assert.equal(BigInt(projected.fundingTime),end,'funding checkpoint time');
+          assert.equal(BigInt(projected.fundingIndexScaled),observation.fundingBase+observation.premiumScaled*(end-observation.sampledAt)/3600n,
+            'funding checkpoint versus finalized market index');
+        }
+      }
+    }
+  }
+  // Settlement ordinals are the sorted stable IDs at freeze. Later membership
+  // changes and retired roots cannot renumber a completed episode.
+  const frozenIds=state.pagedSettlement&&state.resolution
+    ?Object.keys(state.resolution.rows).map(BigInt).sort((left,right)=>left<right?-1:left>right?1:0).map(String):[];
   for(const [key,entity] of Object.entries(state.revisions)) {
     if(identities.has(key))continue;
     if(entity.kind===8) {
@@ -140,13 +216,15 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
       const [canonical,bump]=await component('resolution');
       assert.equal(key,canonical);assert.equal(value.venue,venue);assert.equal(value.bump,bump);
     } else if([19,20,24,25].includes(entity.kind))await reconcileMembershipStorage(key,entity.kind,raw(key),state,binding,raw);
-    else if(entity.kind>=17&&entity.kind<=23)await reconcileSettlementScratch(key,entity.kind,raw(key),state,binding);
+    else if(entity.kind>=17&&entity.kind<=23)await reconcileSettlementScratch(key,entity.kind,raw(key),state,binding,frozenIds);
     else throw new Error(`Missing projected entity kind ${entity.kind}`);
   }
   for(const [key,identity] of identities) {
     const actual=identity.decoder.decode(raw(key,identity.discriminator)) as {bump:number;vaultBump?:number};
     assert.equal(actual.bump,identity.bump,`Bump ${key}`);if(key===venue)assert.equal(actual.vaultBump,vaultBump);
-    assert.deepEqual(accountFields(actual),identity.expected,`Financial projection ${key}`);
+    const cached=state.liquidity?.marketCheckpoints?.[key]??state.liquidity?.ledgerCheckpoints?.[key];
+    const expected=cached?{...identity.expected as object,...cached}:identity.expected;
+    assert.deepEqual(accountFields(actual),expected,`Financial projection ${key}`);
   }
   if(state.resolution) {
     const expected=state.resolution;

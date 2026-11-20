@@ -1,4 +1,6 @@
+import {ledgerTradeReceipts} from './ledger-trades.js';
 import Fastify from 'fastify';
+import {hasLedgerLanes,READ_ONLY_MARKET_ARTIFACT_SET,hasAggregateFees,attributeFinalizedFee} from '@rivalt/sdk';
 import type {LiquidityIndexer} from './liquidity-indexer.js';
 import {publishedSnapshot} from './store.js';
 
@@ -55,10 +57,23 @@ export function accountApi(indexer:LiquidityIndexer) {
       try {
         await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
         const row=publishedSnapshot<any,any>((await client.query('SELECT * FROM runs WHERE run_id=$1',[indexer.config.runId])).rows[0]);
-        const result=await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
-          WHERE run_id=$1 AND sequence>$2 AND sequence<=$4 ${endpoint==='trades'?`AND kind='${version===4?'LiquidityRouteExecutedV4':'AccountRouteExecutedV3'}'`:''}
+        const aggregate=hasAggregateFees(row.binding.artifactSet);
+        const tradeKind=aggregate?'LiquidityRouteFeeRecorded':'LiquidityRouteExecutedV4';
+        const tradeFilter=row.binding.artifactSet===READ_ONLY_MARKET_ARTIFACT_SET?
+          "kind IN ('MarketLaneFilled','LiquidityRouteFeeRecorded')":`kind='${tradeKind}'`;
+        const reconstructed=endpoint==='trades'&&hasLedgerLanes(row.binding.artifactSet);
+        const result=reconstructed?await ledgerTradeReceipts(client,indexer.config.runId,request.query.after??'0',request.query.limit??50,
+          row.state.sequence,request.query.latest):await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
+          WHERE run_id=$1 AND sequence>$2 AND sequence<=$4 ${endpoint==='trades'?`AND ${tradeFilter}`:''}
           ORDER BY events.sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,[indexer.config.runId,request.query.after??'0',request.query.limit??50,row.state.sequence]);
         await client.query('COMMIT');const items=request.query.latest?result.rows.reverse():result.rows;
+        if(aggregate && endpoint==='trades')for(const item of items){
+          const fill=item.payload, fee=BigInt(fill.fee);
+          const previous=reconstructed?BigInt(item.prior):BigInt(fill.ledger.insuranceFeeRemainder)+BigInt(fill.marketPending)-fee;
+          if(reconstructed)delete item.prior;
+          const {insurance,retained,carry}=attributeFinalizedFee(previous,fee);
+          item.reconstructedFeeSplit={insurance:insurance.toString(),retained:retained.toString(),carry};
+        }
         return {...envelope(row),items,next:items.at(-1)?.sequence??null};
       }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
     });

@@ -16,12 +16,16 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; verifyRejections?: boolean } = {}) {
+  options: { marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
+  const traderCount=options.traderCount??2;
+  if(options.traderDeposits)assert(options.traderDeposits.length===traderCount && options.traderDeposits.every(amount=>amount>0n));
+  const deposit=(index:number)=>options.traderDeposits?.[index]??options.traderCash??1_000_000n;
+  assert(Number.isSafeInteger(traderCount)&&traderCount>0&&traderCount+6<=1024,'Requested Financial members must fit the qualification storage fixture');
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
     bidCount: 1, askCount: 1, bids: region(2n), asks: region(3n) };
-  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash);
+  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash,BigInt(Math.max(64,traderCount+6)));
   const { payer, common, markets, instances, venue } = fixture;
   const now = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigInt64LE(32);
   const slot = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigUInt64LE(0);
@@ -37,21 +41,31 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   const traderOwner = await fixtureKey('p32-trader'), traderToken = await fixtureKey('p32-trader-token');
   await h.send('fund local test participants', [primary, guard, traderOwner].map(signer => getTransferSolInstruction({
     source: payer, destination: signer.address, amount: 1_000_000_000n })));
-  await h.send('mint test trader collateral', [getCreateAccountInstruction({ payer, newAccount: traderToken,
-    lamports: await h.rent(165), space: 165n, programAddress: TOKEN_PROGRAM_ADDRESS }),
-    getInitializeAccount3Instruction({ account: traderToken.address, mint: fixture.mint.address, owner: traderOwner.address }),
-    getMintToInstruction({ mint: fixture.mint.address, token: traderToken.address, mintAuthority: payer, amount: (options.traderCash ?? 1_000_000n) * 2n })], [traderToken]);
-  const [portfolio] = await sdk.deriveAccountPortfolio(venue, traderOwner.address, 0);
-  await h.send('create test trader portfolio', [await sdk.getCreatePortfolioInstructionAsync({
-    ...common, owner: traderOwner, portfolio, index: 0 })], [traderOwner]);
-  const roots: Address[] = [];
-  for (const subaccountIndex of [0, 1]) {
-    const [margin] = await sdk.deriveMarginAccount(portfolio, subaccountIndex);
-    await registerFinancialTestMargin(h,common,payer,{owner:traderOwner,portfolio,margin,subaccountIndex,
-      mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:0,role:0});
-    await h.send('deposit actual test trader collateral', [await sdk.getDepositAccountInstructionAsync({ ...common,
-      owner: traderOwner, margin, quoteMint: fixture.mint.address, userToken: traderToken.address, amount: options.traderCash ?? 1_000_000n })], [traderOwner]);
-    roots.push(margin);
+  const roots:Address[]=[], traderOwners:(typeof traderOwner)[]=[];
+  const identityCapacity=options.independentTraders?1:4*9; // An independent owner starts at its own cross account.
+  for(let first=0;first<traderCount;first+=identityCapacity) {
+    const owner=first===0?traderOwner:await fixtureKey('p32-scale-trader-'+first);
+    const token=first===0?traderToken:await fixtureKey('p32-scale-token-'+first);
+    const count=Math.min(identityCapacity,traderCount-first);
+    if(first>0)await h.send('fund additional local trader rent',[getTransferSolInstruction({
+      source:payer,destination:owner.address,amount:1_000_000_000n})]);
+    await h.send('mint test trader collateral',[getCreateAccountInstruction({payer,newAccount:token,
+      lamports:await h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
+      getInitializeAccount3Instruction({account:token.address,mint:fixture.mint.address,owner:owner.address}),
+      getMintToInstruction({mint:fixture.mint.address,token:token.address,mintAuthority:payer,
+        amount:Array.from({length:count},(_,index)=>deposit(first+index)).reduce((sum,amount)=>sum+amount,0n)})],[token]);
+    for(let local=0;local<count;local++) {
+      const index=Math.floor(local/9),subaccountIndex=local%9;
+      const [portfolio]=await sdk.deriveAccountPortfolio(venue,owner.address,index);
+      if(subaccountIndex===0)await h.send('create test trader portfolio',[await sdk.getCreatePortfolioInstructionAsync({
+        ...common,owner,portfolio,index})],[owner]);
+      const [margin]=await sdk.deriveMarginAccount(portfolio,subaccountIndex);
+      await registerFinancialTestMargin(h,common,payer,{owner,portfolio,margin,subaccountIndex,
+        mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:0,role:0});
+      await h.send('deposit actual test trader collateral',[await sdk.getDepositAccountInstructionAsync({...common,
+        owner,margin,quoteMint:fixture.mint.address,userToken:token.address,amount:deposit(first+local)})],[owner]);
+      roots.push(margin);traderOwners.push(owner);
+    }
   }
   const feeds: { index: number; feed: Address; authority: typeof primary }[] = [];
   for (let index = 0; index < 6; index++) {
@@ -101,7 +115,10 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     }));
     await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
   }
-  async function sample(reportMarkets: readonly (0|1)[] = [0,1]) {
+  async function checkpoint(market:0|1) {
+    return sdk.getCheckpointMarketInstructionAsync({...common,venue,safety:fixture.safety,market:markets[market]});
+  }
+  async function sample(reportMarkets: readonly (0|1)[] = [0,1], verifyCheckpoints=false) {
     const previous = await Promise.all([0, 1].map(marketState));
     const publishers = await Promise.all(configurations.map(async configuration =>
       sdk.getFundingPublisherDecoder().decode((await h.read(configuration))!)));
@@ -116,14 +133,31 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     while (await slot() <= fenceSlot) { assert(Date.now() < deadline, 'Publisher fence Clock progress'); await delay(100); }
     await fresh();
     const reports: Instruction[] = [];
+    const checkpointRequired=options.marketCheckpoints &&
+      sdk.getVenueSafetyDecoder().decode((await h.read(fixture.safety))!).mode===1;
     for (const index of reportMarkets) {
-      const input = await sdk.readFundingReport(rpc, venue, index);
+      if(checkpointRequired)reports.push(await checkpoint(index));
+      const input = await sdk.readFundingReport(rpc, venue, index,'confirmed',options.marginLayout);
       assert.equal(input.report.outcome, 0, input.coverageReason ?? 'available complete publication');
       const reference = index === 0 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n;
       assert.equal(input.report.referencePrice, reference);
       assert.equal(input.report.quantity, (6_000_000n + reference - 1n) / reference);
-      reports.push(sdk.getPublishFundingReportInstruction({ ...common,
-        ...input.instructionAccounts, publisher: fixture.updater, report: input.report }));
+      const instruction=sdk.getPublishFundingReportInstruction({ ...common,
+        ...input.instructionAccounts, publisher: fixture.updater, report: input.report });
+      if(verifyCheckpoints && index===0) {
+        const checkpoints=input.checkpointAccounts;
+        assert.equal(checkpoints.length,3);
+        const before=await Promise.all([h.read(markets[index]),h.read(input.configuration)]);
+        await h.send('reject omitted funding checkpoint',[sdk.withFundingCheckpoints(instruction,checkpoints.slice(1))],
+          [fixture.updater],sdk.CLEARING_ERROR__PROFILE);
+        await h.send('reject duplicate funding checkpoint',[sdk.withFundingCheckpoints(instruction,[checkpoints[0],checkpoints[0],checkpoints[2]])],
+          [fixture.updater],sdk.CLEARING_ERROR__ALIAS);
+        const substituted=[instances[3].registration,...checkpoints.slice(1)];
+        await h.send('reject foreign funding checkpoint',[sdk.withFundingCheckpoints(instruction,substituted)],
+          [fixture.updater],sdk.CLEARING_ERROR__MAKER_BINDING);
+        assert.deepEqual(await Promise.all([h.read(markets[index]),h.read(input.configuration)]),before);
+      }
+      reports.push(sdk.withFundingCheckpoints(instruction,input.checkpointAccounts));
     }
     await h.send(reportMarkets.length===2?'P32 publisher available two-market reports':'publish selected-market funding report', reports, [fixture.updater]);
   }
@@ -133,8 +167,8 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   await h.send('activate storage-ready canonical candidate', [sdk.getActivateLiquidityInstruction(safetyCommon)]);
   if(options.verifyRejections!==false)await h.send('canonical activation cannot replay', [sdk.getActivateLiquidityInstruction(safetyCommon)], [], sdk.CLEARING_ERROR__PROFILE);
   await qualify();
-  const identity = { venue, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
+  const identity = { venue, marginLayout:options.marginLayout, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readAccountTradeSnapshot(rpc, identity, root, marketIndex);
-  return { ...fixture, primary, guard, traderOwner, traderToken, roots, feeds, configurations, resolution, storage,
-    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, qualify, identity, snapshot };
+  return { ...fixture, primary, guard, traderOwner, traderToken, roots, traderOwners, feeds, configurations, resolution, storage,
+    safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, checkpoint, qualify, identity, snapshot };
 }

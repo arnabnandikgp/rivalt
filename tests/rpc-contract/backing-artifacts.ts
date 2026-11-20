@@ -12,10 +12,10 @@ export const BACKING_ARTIFACTS:Record<string,{bytes:number;sha256:string}>={
 export function verifyBackingBuild(directory:string) {
   return verifyTestBuild(directory, BACKING_BUILD, BACKING_ARTIFACTS);
 }
-export function verifyTestBuild(directory: string, revision: string, artifacts: typeof BACKING_ARTIFACTS) {
+export function verifyTestBuild(directory: string, revision: string, artifacts: typeof BACKING_ARTIFACTS, profile = 'liquidity-execution-qualification') {
   const manifest=JSON.parse(readFileSync(`${directory}/build-manifest.json`,'utf8'));
   assert.equal(manifest.revision,revision);assert.equal(manifest.trackedDirty,false);
-  assert.equal(manifest.profile,'liquidity-execution-qualification');
+  assert.equal(manifest.profile,profile);
   assert.equal(manifest.accountSchema,10);assert.equal(manifest.profileVersion,6);
   assert.equal(manifest.framework,'anchor-2.0.0-rc.2');
   for(const [name,expected] of Object.entries(artifacts)) {

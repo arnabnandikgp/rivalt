@@ -13,6 +13,29 @@ default = []
 devnet-test-profile = ["oracle-fixture/devnet-test-profile"]
 # Explicit bounded local trading/safety candidate; default/devnet stay disabled.
 liquidity-execution-qualification = []
+# Fresh local margin layout only. The selected binary uses the prefix layout.
+shared-inventory-qualification = ["foreign-creditor-qualification"]
+partial-inventory-qualification = ["shared-inventory-qualification"]
+read-only-route-ledger = ["read-only-route-market"]
+read-only-route-market = ["checked-funding-prefix", "dep:solana-instruction"]
+checked-funding-prefix = ["bounded-market-read"]
+bounded-market-read = ["aggregate-fee-qualification", "financial-core/parallel-market-prototype"]
+aggregate-fee-qualification = ["multi-lot-book-qualification"]
+multi-lot-book-qualification = ["book-inventory-qualification", "default-plan-selection/compact-book"]
+book-inventory-qualification = ["partial-inventory-qualification"]
+populated-recovery-qualification = ["partitioned-recovery-inputs"]
+partitioned-recovery-inputs = ["local-successor-qualification"]
+local-successor-qualification = ["paged-recovery-qualification", "integrated-recovery-qualification"]
+paged-recovery-qualification = ["recovery-search-qualification"]
+integrated-recovery-qualification = ["recovery-search-qualification", "read-only-route-ledger"]
+recovery-search-qualification = ["foreign-creditor-qualification", "default-plan-selection/sbf-joint-probe", "financial-core/sbf-settlement-measurement", "dep:num-bigint", "dep:num-integer", "dep:num-traits"]
+foreign-creditor-qualification = ["linked-pair-qualification", "dep:default-plan-selection"]
+linked-allocation-qualification = ["linked-pair-qualification", "dep:default-plan-selection"]
+linked-pair-qualification = ["btc-residual-qualification"]
+btc-allocation-qualification = ["btc-residual-qualification", "dep:default-plan-selection"]
+btc-residual-qualification = ["single-pair-default-qualification"]
+single-pair-default-qualification = ["profit-attribution-qualification"]
+profit-attribution-qualification = ["liquidity-execution-qualification", "dep:clearing-accounting", "clearing-accounting/surviving-profit"]
 # Diagnostic artifact only; never used for headline CU or production pinning.
 cu-profiling = []
 cpi = ["no-entrypoint"]
@@ -27,6 +50,12 @@ custom-heap = []
 custom-panic = []
 
 [dependencies]
+num-bigint = { version = "=0.4.6", default-features = false, optional = true }
+num-integer = { version = "=0.1.46", default-features = false, optional = true }
+num-traits = { version = "=0.2.19", default-features = false, optional = true }
+solana-instruction = { version = "=4.0.0", features = ["syscalls"], optional = true }
+default-plan-selection = { path = "../../crates/default-plan-selection", optional = true }
+clearing-accounting = { path = "../../crates/clearing-accounting", optional = true }
 anchor-lang = { workspace = true }
 anchor-spl = { workspace = true }
 financial-core = { path = "../../crates/financial-core" }

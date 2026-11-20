@@ -86,6 +86,12 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     const reference = input.markets[marketIndex].referencePrice;
     const lowerBand = (quantity: bigint) => quote(quantity)*EXECUTION_DENOMINATOR >= quantity*reference*EXECUTION_LOWER_NUMERATOR;
     const upperBand = (quantity: bigint) => quote(quantity)*EXECUTION_DENOMINATOR <= quantity*reference*EXECUTION_UPPER_NUMERATOR;
+    if (input.makerLiquidation) {
+      const market = input.markets[marketIndex];
+      upper = lastTrue(1n,upper,quantity => side === 0
+        ? quote(quantity) <= quantity * market.upper : quote(quantity) >= quantity * market.lower);
+      if (upper < 1n) { excluded.push({instance:maker.config.instance,reason:'outside-liquidation-price'});return null; }
+    }
     const lower = firstTrue(1n,upper,side === 0 ? lowerBand : upperBand);
     upper = lastTrue(1n,upper,side === 0 ? upperBand : lowerBand);
     if (lower > upper) { excluded.push({instance:maker.config.instance,reason:'outside-execution-band'});return null; }

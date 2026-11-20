@@ -11,6 +11,17 @@ deletes none of them. Recovery example:
 git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 ```
 
+## Account-scale and clearing roadmap integration
+
+On 19 November 2026, all 29 PRs of stack #74 merged together through
+[PR #101](https://github.com/arnabnandikgp/rivalt/pull/101). Commit
+`8a1d49d5217009a17f129266df02a214e5c429f0` contains the accepted tip
+`869d542ba2b6d3a01ff2483d625ff6579dce0bb3` as an ancestor. Both revisions
+have tree `5f0680c84c7ff8845ef0a20b43406732a1704b8a`. The merged work
+includes the P56 local runtime, research into default allocation, the risk-engine
+extraction, ordinary payout, the maker-liquidation candidate and the aggregate
+review fixes. P56 remains the selected local financial runtime.
+
 ## Account-scale operations entrypoint
 
 P56 replaces the retained schema-8 all-account operations runner with the actual
@@ -23,7 +34,7 @@ The selected schema-10/profile-6 runtime is qualified on D108 SBF/helper `ed4660
 populated-cohort harness `ad19215` and normal launcher/browser `6b92665`. The latter
 passes all 13 wallet originals after fixing initialization-fence waiting and an
 account-switch snapshot mismatch. Validation records the separate failed attempts
-and exact resource limits. PR #85 remains open; this is not a merged milestone.
+and exact resource limits. PR #85 integrated in stack #74.
 
 ## Quantity expansion and constraint audit integration
 

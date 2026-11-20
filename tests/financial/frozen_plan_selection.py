@@ -4,6 +4,8 @@ from hashlib import sha256
 
 from account_contract_reference import InvalidTransition, require
 from joint_reduction_model import compare_joint
+from mirrored_reductions import exact_market_mirror
+from settlement_liquidation_model import terminal
 
 DOMAIN = b"Rivalt/frozen-member-order/v1\x00"
 
@@ -40,10 +42,10 @@ def select_joint(book, exposures, freeze):
     indices = sorted(range(len(book.accounts)), key=freeze.member_ids.__getitem__)
     require(indices == list(range(len(indices))), "frozen rows must be in stable member order")
     plans = compare_joint(book, exposures)
-    return _break_exact_ties(plans, freeze)
+    return _break_exact_ties(plans, freeze, book, exposures, terminal(book))
 
 
-def _break_exact_ties(plans, freeze):
+def _break_exact_ties(plans, freeze, book, exposures, baseline):
     """Takes D120 score-tied finalists. Keeper submission order is immaterial."""
     require(bool(plans), "missing ranked plans")
     # Equal D120 scores can occur under exchanged market recovery fractions.
@@ -62,9 +64,7 @@ def _break_exact_ties(plans, freeze):
 
     profiles = {profile(plan) for plan in plans}
     best = [first for first in profiles if not any(dominates(other, first) for other in profiles)]
-    if len(best) != 1:
-        raise IncomparableFinancialProfiles("financial objectives differ across tied recovery scores")
-    finalists = [plan for plan in plans if profile(plan) == best[0]]
+    finalists = [plan for plan in plans if profile(plan) in best]
     if len(finalists) == 1:
         return finalists[0]
 
@@ -79,4 +79,8 @@ def _break_exact_ties(plans, freeze):
         plan, assignment = item
         charges = tuple(market.winner_charges[index] for index in members for market in plan.markets)
         return charges, tuple(assignment.get(key, 0) for key in keys)
-    return max(zip(finalists, assignments), key=preference)[0]
+    winner = max(zip(finalists, assignments), key=preference)[0]
+    for other in finalists:
+        if profile(other) != profile(winner) and not exact_market_mirror(book, exposures, baseline, winner, other):
+            raise IncomparableFinancialProfiles("financial trade-off without exact frozen-market reflection")
+    return winner

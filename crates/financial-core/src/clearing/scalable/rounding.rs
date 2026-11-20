@@ -1,6 +1,7 @@
 //! Compact canonical residual circulation, with bounded resumable graph steps.
 //! Scalar storage is O(N); wide remainders are reconstructed for order checks.
 pub mod paged;
+mod protection;
 
 use super::{
     active::Active,
@@ -37,6 +38,7 @@ enum Stage {
 #[derive(Clone, Debug)]
 pub struct Circulation<'a, 'rows> {
     plan: &'a Verified<'rows>,
+    protected: Option<Vec<u8>>,
     count: usize,
     arcs: Vec<Arc>,
     adjacency: Vec<usize>,
@@ -108,6 +110,30 @@ impl<'a, 'rows> Circulation<'a, 'rows> {
         orders: [&[u64]; 2],
         arithmetic: &mut Arithmetic,
     ) -> Result<Self> {
+        Self::build(plan, orders, arithmetic, None)
+    }
+
+    fn bounds(&self, index: usize) -> super::settlement::Floors {
+        let mut bounds = self.plan.floors[index];
+        if let Some(mask) = &self.protected {
+            for market in 0..2 {
+                if mask[index] & (1 << market) != 0 {
+                    // Derivation only sets a bit for a fractional edge whose
+                    // mandatory receipt equals its upper whole-atom endpoint.
+                    bounds.whole[market] += 1;
+                    bounds.fractional[market] = false;
+                }
+            }
+        }
+        bounds
+    }
+
+    fn build(
+        plan: &'a Verified<'rows>,
+        orders: [&[u64]; 2],
+        arithmetic: &mut Arithmetic,
+        protected: Option<Vec<u8>>,
+    ) -> Result<Self> {
         verify_orders(plan, orders, arithmetic)?;
         let count = plan.rows.len();
         let node_count = count.checked_add(5).ok_or(Error::Overflow)?;
@@ -123,6 +149,7 @@ impl<'a, 'rows> Circulation<'a, 'rows> {
             .ok_or(Error::Overflow)?;
         let mut graph = Self {
             plan,
+            protected,
             count,
             arcs: zeroed(arc_count)?,
             adjacency: Vec::new(),
@@ -178,9 +205,9 @@ impl<'a, 'rows> Circulation<'a, 'rows> {
                     2 * edge,
                     start,
                     end,
-                    u64::from(plan.floors[index].fractional[kind]),
+                    u64::from(graph.bounds(index).fractional[kind]),
                 );
-                let whole = i128::from(plan.floors[index].whole[kind]);
+                let whole = i128::from(graph.bounds(index).whole[kind]);
                 graph.balances[start] = graph.balances[start]
                     .checked_sub(whole)
                     .ok_or(Error::Overflow)?;
@@ -346,6 +373,7 @@ impl<'a, 'rows> Circulation<'a, 'rows> {
             + self.nodes.len() * core::mem::size_of::<Node>()
             + (self.balances.len() + self.net.len()) * core::mem::size_of::<i128>()
             + self.active.words() * 8
+            + self.protected.as_ref().map_or(0, Vec::len)
     }
 
     /// One DFS transition, one path edge, or one audit item. Search does at most
@@ -446,8 +474,7 @@ impl<'a, 'rows> Circulation<'a, 'rows> {
                 } else {
                     let forward = self.arcs[2 * edge];
                     let increment = self.arcs[2 * edge + 1].capacity;
-                    let fractional =
-                        self.plan.floors[edge % self.count].fractional[edge / self.count];
+                    let fractional = self.bounds(edge % self.count).fractional[edge / self.count];
                     if increment + forward.capacity != u64::from(fractional) {
                         return Err(Error::Invariant);
                     }
@@ -492,10 +519,10 @@ impl<'a, 'rows> Circulation<'a, 'rows> {
         for (index, row) in plan.rows.iter().enumerate() {
             for kind in 0..3 {
                 let increment = self.arcs[2 * (kind * self.count + index) + 1].capacity;
-                if increment > u64::from(plan.floors[index].fractional[kind]) {
+                if increment > u64::from(self.bounds(index).fractional[kind]) {
                     return Err(Error::Invariant);
                 }
-                let amount = plan.floors[index].whole[kind]
+                let amount = self.bounds(index).whole[kind]
                     .checked_add(increment)
                     .ok_or(Error::Overflow)?;
                 if kind == 2 {
@@ -509,7 +536,7 @@ impl<'a, 'rows> Circulation<'a, 'rows> {
                 }
             }
             if cash[index] > MAX_CASH
-                || cash[index] < row.cash - row.collected()?
+                || cash[index] < row.cash - plan.collection_rows[index].collected()?
                 || i128::from(cash[index])
                     != i128::from(row.cash)
                         + i128::from(movements[index][0])

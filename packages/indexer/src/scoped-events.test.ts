@@ -134,3 +134,27 @@ it('matches the rebuilt generated SDK against the literal schema-9 envelope', ()
   expect(value.writes).toEqual([{account: root, kind: 5, before: 7n, after: 8n}]);
   expect(Buffer.from(getAccountTransitionEventEncoder().encode(value))).toEqual(bytes);
 });
+
+it('admits a wider certificate footer only for the authenticated book instruction and exact account roles',()=>{
+  const book=clearingIdl.instructions.find(ix=>ix.name==='verify_inventory_book')!.discriminator;
+  const reads=[0,1,2,3,24,10,6,6,7,7].map((kind,i)=>({account:key(3+i),kind,revision:1n}));
+  const writes=Array.from({length:23},(_,i)=>({account:key(20+i),kind:i===0?17:18,before:1n,after:2n}));
+  const value={schemaVersion:10,venue,domain:new Uint8Array(32).fill(9),slot:42n,instruction:Uint8Array.from(book),payloadCount:1,reads,writes};
+  const bytes=(event:typeof value)=>Buffer.from(getAccountTransitionEventEncoder().encode(event));
+  expect(decodeTransition(bytes(value)).writes).toHaveLength(23);
+  expect(()=>decodeTransition(bytes({...value,instruction:Uint8Array.from(instruction)}))).toThrow();
+  expect(()=>decodeTransition(bytes({...value,writes:writes.map((row,i)=>i===1?{...row,kind:5}:row)}))).toThrow();
+  expect(()=>decodeTransition(bytes({...value,reads:[...reads].reverse()}))).toThrow();
+});
+
+it('accepts search scratch alongside a financial instruction and preserves its event boundary', () => {
+  const transaction=tx();
+  const sealTag=Buffer.from(clearingIdl.instructions.find(ix=>ix.name==='seal_search')!.discriminator);
+  transaction.transaction.message.instructions.unshift({...call(),data:encoded(sealTag),accounts:[1,2,4]});
+  transaction.meta.innerInstructions[0].index=1;
+  expect(decode(transaction).map(ix=>ix.outer)).toEqual([1]);
+  transaction.transaction.message.instructions[0].accounts.push(5);
+  expect(decode(transaction).map(ix=>ix.outer)).toEqual([1]);
+  transaction.meta.innerInstructions.unshift({index:0,instructions:[event(financialPayload)]});
+  expect(()=>decode(transaction)).toThrow(/Invalid event authority or foreign invocation frame/);
+});

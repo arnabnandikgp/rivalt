@@ -377,7 +377,7 @@ pub fn initialize_plan_page(
     Ok(())
 }
 
-fn frozen_row(
+pub(super) fn frozen_row(
     header: &PreparedSettlement,
     page: &FrozenMarginPage,
     ordinal: u64,
@@ -441,17 +441,15 @@ fn accept_row(
     slot: u64,
     pages: &mut GraphPages<'_, impl LimbStorage>,
 ) -> Result<()> {
+    let claims = super::single_pair::economic_claims(header,&frozen)?;
     match plan.stage {
         PLAN_FLOW_AWAIT => {
-            let work = exact(FlowWork::new(
-                values,
-                ordinal,
-                frozen.id,
-                Row {
-                    cash: frozen.cash,
-                    claims: frozen.claims,
-                },
-            ))?;
+            let row = Row { cash: frozen.cash, claims };
+            #[cfg(feature="linked-pair-qualification")]
+            let work = exact(FlowWork::new_reduction(values, ordinal, frozen.id,
+                Row { cash: frozen.cash, claims: frozen.claims }, row))?;
+            #[cfg(not(feature="linked-pair-qualification"))]
+            let work = exact(FlowWork::new(values, ordinal, frozen.id, row))?;
             save(plan, &work.checkpoint());
             plan.stage = PLAN_FLOW_WORK;
         }
@@ -470,7 +468,7 @@ fn accept_row(
                     whole: result.whole,
                     order: result.order,
                     fractional: result.fractional,
-                    directions: frozen.claims.map(|claim| claim.signum() as i8),
+                    directions: claims.map(|claim| claim.signum() as i8),
                     seen_attempt: 0,
                     seen_mask: 0,
                     applied: false,
@@ -496,7 +494,7 @@ fn accept_row(
                 row.id == frozen.id
                     && row.cash == frozen.cash
                     && !row.applied
-                    && row.directions == frozen.claims.map(|claim| claim.signum() as i8),
+                    && row.directions == claims.map(|claim| claim.signum() as i8),
                 ClearingError::Resolution
             );
             if row.seen_attempt != plan.order_attempt {
@@ -512,7 +510,7 @@ fn accept_row(
             exact(work.accept(
                 ordinal,
                 frozen.id,
-                frozen.claims[usize::from(plan.order_market)],
+                claims[usize::from(plan.order_market)],
             ))?;
             row.seen_mask |= bit;
             exact(pages.write_flow(ordinal, row))?;
@@ -671,6 +669,8 @@ fn continue_plan_with_window(
 mod tests;
 
 mod application;
+#[cfg(feature="single-pair-default-qualification")]
+pub(super) use application::original_margin;
 
 mod lifecycle;
 pub use lifecycle::*;

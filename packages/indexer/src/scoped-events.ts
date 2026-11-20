@@ -2,12 +2,23 @@
  * log text and address-history pagination cannot establish invocation ancestry. */
 import {createHash} from 'node:crypto';
 import {address, getAddressDecoder, getBase58Encoder} from '@solana/kit';
+import {BIND_RECOVERY_SELECTION_DISCRIMINATOR,PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR} from '@rivalt/sdk/paged-recovery';
 import clearingIdl from '../../sdk/idl/clearing.json' with {type: 'json'};
 import {integer} from './rpc.js';
-import type {ScopedEnvelope, ScopedRead, ScopedWrite} from './scoped-history.js';
+import {inventoryInstruction, isValidTransitionScope, type ScopedEnvelope, type ScopedRead, type ScopedWrite} from './scoped-history.js';
 
 const eventTag = Buffer.from('e445a52e51cb9a1d', 'hex');
 const transitionTag = createHash('sha256').update('event:AccountTransition').digest().subarray(0, 8);
+const grossView = createHash('sha256').update('global:read_market_gross').digest().subarray(0,8);
+// Only proposal accounts, their work pages and rent payers may change here.
+const searchWork = new Map([
+  ['open_joint_payment', 13, 48], ['capture_joint_payment', 7, 84], ['advance_joint_payment', 5, 18],
+  ['open_pair_schedule', 6, 48], ['append_pair_order', 6, 53],
+  ['check_pair_members', 4, 44], ['match_pair_page', 5, 16],
+  ['open_winner_proof', 5, 73], ['advance_winner_proof', 4, 16],
+  ['open_search', 5, 80], ['capture_member', 5, 16], ['derive_pairs', 3, 8],
+  ['verify_incumbent', 3, 48], ['cover_plan', 3, 64], ['cover_range', 3, 40], ['seal_search', 3, 8],
+].map(([name, accounts, bytes]) => [createHash('sha256').update('global:'+name).digest('hex').slice(0,16), {accounts, bytes}]));
 const instructions = new Set(clearingIdl.instructions.map(instruction => Buffer.from(instruction.discriminator).toString('hex')));
 const payloadTags = new Set(clearingIdl.events.filter(event => event.name !== 'AccountTransition')
   .map(event => createHash('sha256').update(`event:${event.name}`).digest().subarray(0, 8).toString('hex')));
@@ -25,7 +36,7 @@ export type ScopedInvocation = ScopedEnvelope & {instruction: string; venue: str
 /** Independent strict Borsh envelope reader, checked against generated codecs
  * during successor integration. Every read is bounded before slicing. */
 export function decodeTransition(bytes: Buffer) {
-  if (bytes.length < 100 || bytes.length > 1668 || !bytes.subarray(0, 8).equals(transitionTag))
+  if (bytes.length < 100 || bytes.length > 8184 || !bytes.subarray(0, 8).equals(transitionTag))
     throw new Error('Invalid scoped envelope size/discriminator');
   let offset = 8;
   const take = (count: number) => {
@@ -38,6 +49,8 @@ export function decodeTransition(bytes: Buffer) {
   const key = () => addressDecoder.decode(take(32));
   if (u16() !== 10) throw new Error('Unsupported scoped envelope schema');
   const venue = key(), domain = take(32).toString('hex'), slot = u64(), instruction = take(8).toString('hex');
+  const wideBook=instruction===inventoryInstruction;
+  if(!wideBook && bytes.length>1668)throw new Error('Invalid scoped envelope size/discriminator');
   const payloadCount = u16();
   if (payloadCount > 4) throw new Error('Scoped payload count exceeds bound');
   const reads: ScopedRead[] = [], writes: ScopedWrite[] = [], entities = new Set<string>();
@@ -54,12 +67,14 @@ export function decodeTransition(bytes: Buffer) {
     reads.push({...identity, revision: revision.toString()});
   }
   const writeCount = u32();
-  if (writeCount < 1 || writeCount + readCount > 32) throw new Error('Scoped entity count');
+  if (writeCount < 1 || (!wideBook && writeCount + readCount > 32)) throw new Error('Scoped entity count');
+  if(writeCount>Math.floor((bytes.length-offset)/49))throw new Error('Truncated scoped envelope');
   for (let index = 0; index < writeCount; index++) {
     const identity = entity(), before = u64(), after = u64();
     if (after !== before + 1n) throw new Error('Nonconsecutive scoped mutation');
     writes.push({...identity, before: before.toString(), after: after.toString()});
   }
+  if(!isValidTransitionScope(instruction,reads,writes))throw new Error('Invalid inventory page scope');
   if (offset !== bytes.length) throw new Error('Trailing scoped envelope bytes');
   if (![...reads, ...writes].some(entity => entity.account === venue && entity.kind === 0))
     throw new Error('Scoped venue dependency missing');
@@ -140,6 +155,18 @@ export function scopedInvocations(signature: string, transaction: any, transacti
     let invocationIndex = 0;
     const start = (current: Instruction): Invocation | null => {
       if (current.program !== binding.program) return null;
+      if(current.bytes.equals(grossView)){
+        if(current.accounts.length!==5)throw new Error('Invalid read-only market view');
+        return null; // Five read-only accounts, eight bytes of return data, zero financial effects.
+      }
+      const scratch=searchWork.get(current.bytes.subarray(0,8).toString('hex'));
+      if(scratch) {
+        // Anchor may admit unused trailing metas or padding. The pinned scratch
+        // handlers never read either and cannot emit a financial event.
+        if(current.bytes.length<Number(scratch.bytes) || current.accounts.length<Number(scratch.accounts))
+          throw new Error('Invalid recovery search instruction');
+        return null;
+      }
       if (!instructions.has(current.bytes.subarray(0, 8).toString('hex'))) throw new Error('Unknown clearing entrypoint');
       const invocation = {outer, invocation: invocationIndex++, instruction: current, payloads: [], footer: null};
       invocations.push(invocation); return invocation;
@@ -162,7 +189,9 @@ export function scopedInvocations(signature: string, transaction: any, transacti
         if (invocation.footer) throw new Error('Duplicate or trailing event after scoped footer');
         if (payload.subarray(0, 8).equals(transitionTag)) invocation.footer = {inner, bytes: payload};
         else {
-          if (payload.length > 8184 || !payloadTags.has(payload.subarray(0, 8).toString('hex')))
+          const pagedBinding = payload.subarray(0,8).equals(Buffer.from(PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR))
+            && parent.instruction.bytes.subarray(0,8).equals(Buffer.from(BIND_RECOVERY_SELECTION_DISCRIMINATOR));
+          if (payload.length > 8184 || !(pagedBinding || payloadTags.has(payload.subarray(0, 8).toString('hex'))))
             throw new Error('Unknown or oversized critical scoped payload');
           if (invocation.payloads.length >= 4) throw new Error('Scoped payload count exceeds bound');
           invocation.payloads.push({inner, bytes: payload.toString('base64')});

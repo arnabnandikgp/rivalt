@@ -8,6 +8,240 @@ is not a public deployment. The completed P47 local
 qualification below compares Anchor RC2 against that immutable pre-migration baseline;
 [STATUS](../STATUS.md) records the verified P45–P47 stack integration.
 
+## Mixed traffic on the combined successor
+
+On harness `963b91d3` with SBF `d9a2a55b`, three independently funded
+traders submitted 360 one-lot orders to internal makers. Each pair reached
+a broadcast barrier after signing. The workload rotated through three market
+and maker combinations over 30 rounds. All 360 originals finalized. Every
+trader fill was 846 bytes and cost the originating trader 5,000 local lamports.
+
+| Pair of concurrent fills | Landed fills | Shared writable accounts | CU min / p95 / max |
+|---|---:|---|---:|
+| Same BTC maker | 120 | Maker capital and registration | 159,864 / 180,623 / 180,626 |
+| Distinct BTC makers | 120 | None | 159,109 / 173,765 / 173,765 |
+| BTC and ETH | 120 | None | 159,130 / 173,765 / 173,765 |
+
+The measured rounds took 421.279 seconds, or 0.855 landed fills per wall-clock
+second. This includes publication, signing, finality, WebSocket checks and
+reading back the signed messages before the next pair. It measures the offered
+local workload. Determining a saturation rate would require a load generator
+that offers work independently of confirmation.
+
+The three traders paid 900,000, 600,000 and 300,000 lamports. The fixture
+operator sponsored 180 combined source/maker updates (3,600,000 lamports)
+and 180 impact publications (1,800,000 lamports). Internal makers paid no
+separate transaction fee in this arrangement. Setup, rent and the subsequent
+exit/freeze checks are outside this measurement window. Payer amounts come
+from finalized receipts. Both total market fees and their exact 25% insurance
+allocation reconciled. Fresh PostgreSQL replay matched all 1,203 events.
+
+The RPC verifier finished before the shell wrapper encountered a trailing
+print error. The runner file had changed during execution. An independent
+audit of every measured transaction reproduced the table from retained originals.
+[Cost audit and reproduction](local-development.md#combined-local-successor-qualification).
+
+## Paired routes on the recovery candidate
+
+The combined recovery and ledger-lane program at `5d7a7c0f` ran the same
+18 two-transaction bursts at harness revision `e5a9de5a`. Each route used
+846 wire bytes and charged its trader 5,000 test lamports. All 36 paired fills
+finalized. A further single fill before the freeze was also replayed.
+
+| Pair workload | Finalized fills | Shared writes per pair | CU per fill | Median elapsed per pair |
+|---|---:|---|---:|---:|
+| Two BTC makers, separate capitals and traders | 12 | 0 | 159,109–173,765 | 153.7 ms |
+| Same BTC maker, separate traders | 12 | 2, maker capital and registration | 159,864–180,626 | 149.4 ms |
+| BTC and ETH, separate makers and traders | 12 | 0 | 159,130–173,765 | 153.3 ms |
+
+These are six short local bursts per workload. The receipts establish which
+writes still conflict. The elapsed times include client and RPC overhead and
+do not establish a sustained cluster throughput limit. Fresh PostgreSQL replay
+reproduced 231 events, including both the 3-atom and 4-atom insurance shares
+on individual 13-atom BTC fees in finalized order.
+
+On clearing `baef259`, harness `12f9902` offered 36 one-lot trader routes
+to local Surfpool. Each pair used independently funded cross accounts and
+distinct fee payers. Both traders signed and simulated before a common broadcast
+barrier. The harness rotated the three workloads over three rounds, opened and
+closed positions, and decoded every finalized transaction to identify conflicting
+account accesses. Each row contains six pairs and twelve fills.
+
+| Where the two trades execute | Accounts both write | CU per trade, observed range | Median time for both confirmations from broadcast |
+|---|---|---:|---:|
+| BTC, same maker | BTC market, BTC ledger, maker capital and registration | 158,042–178,807 | 152 ms |
+| BTC, distinct makers | BTC market and BTC ledger | 157,287–171,943 | 155 ms |
+| BTC and ETH, distinct makers | None | 157,287–171,943 | 154 ms |
+
+All 36 fills finalized. Each signed v0 transaction occupied 846 bytes and its
+trader paid 5,000 local lamports. Both trades in every pair landed in the same
+slot. The experiment measures lock overlap directly. Two traders per burst
+and local confirmation times give no sustainable TPS estimate. The oracle and
+funding publishers refreshed inputs before each burst.
+
+The BTC ledger collected 375 fee atoms, credited insurance 93 and carried 3
+quarters of an atom. ETH collected 39, credited 9 and carried 3 quarters.
+Two BTC fills each charged 13 atoms, yet credited 3 and 4 respectively because
+they inherited different carries. This makes the current per-fill insurance
+receipt depend on the order of trades through the market ledger. The market
+account also tracks gross lots and the funding interval. Removing the ledger
+write alone would leave distinct BTC makers contending on that account.
+
+### Aggregate insurance on the same workload
+
+Program `5b1e964`, harness `2e5907c`. All 36 paired v0 fills finalized with
+the same 846 bytes and 5,000 lamports per trader as above.
+
+| Pair | Shared writes | CU per fill | Difference at both range endpoints | Median confirmation of pair |
+|---|---:|---:|---:|---:|
+| BTC, same maker | 4 | 158,560–179,325 | +518 | 154 ms |
+| BTC, different makers | 2 | 157,805–172,461 | +518 | 155 ms |
+| BTC and ETH | 0 | 157,805–172,461 | +518 | 154 ms |
+
+Classifying one market used 17,173 CU and 471 signed bytes. Repeating it
+used 17,167 CU. Classifying both and freezing used 85,737 CU and 1,148 bytes.
+Each transaction paid 5,000 local lamports. In addition to escrow, the ledger
+maintains the financial backing proof. The market maintains gross lots and the
+funding interval. Removing per-fill insurance attribution alone did not reduce
+contention in these receipts. [Financial checks](validation.md#aggregate-market-insurance).
+
+### Gross lots, funding and payment backing on parallel fills
+
+Native revision `e1bb859` compared three responsibilities of the two shared
+accounts. The receipts came from 37 signed routes on the fee workload and two
+signed BTC routes on the default workload. The new code ran off chain.
+
+| Property | Comparison | Result |
+|---|---|---|
+| Market gross cap | Assign unused cap to three makers. Subtract the change in absolute lots of every touched root. For a short lane, move exactly the missing allowance from other lanes in the same proposed fill. | All 39 signed post-fill market totals and both frozen root sets matched. In 28,812 boundary cases, the complete fallback admitted exactly the cases admitted by the single cap. None of the 39 low-volume fills needed the fallback. |
+| Funding after expiry or a gap | Compare the current shared materializer with the last valid fill by slot for the same market, config epoch and observation. Test both premium signs and increasing/decreasing timestamps. | Discarding the fill history returned zero. The actual funding indices were ±555,555 or ±1,111,111 scaled units. Restoring the last valid prefix matched the new sample's funding base and its covered/skipped seconds in all eight transitions. |
+| Backed profit payment | Assign each root to a stable partition independent of which maker it trades with. Combine all canonical summaries under the same proof, financial epoch and region before checking payment. | At debtor cash of 8, 9 and 8 atoms against 5 BTC and 4 ETH of debt, both computations denied, admitted, then denied the BTC backing check. Their serialized summaries matched. Missing, repeated, wrong-market and outdated inputs were refused. |
+
+At widths 2, 3, 4, 8 and 16, the *hypothetical backing writes* overlapped
+in zero of the six distinct-BTC-maker pairs and all six same-maker pairs.
+The same few trader IDs recurred. This comparison cannot establish an optimal
+width, deployed lock reduction or sustained throughput. The two current shared
+writes remain visible on chain.
+
+A market account that publishes an exact post-fill gross must be writable on
+every fill that changes gross. A parallel implementation can preserve an exact
+per-fill cap and offer one consistent read across a bounded set of accounts.
+A consumer then needs those accounts to obtain the current total. A single PDA
+can expose the last checkpoint with an explicit slot. A fresh artifact, event
+contract and readiness checks for each financial consumer would be required.
+
+### Signed bounded gross read
+
+On clearing `3ace707`, the SDK and clearing returned the same totals throughout
+the stored-order workload. Only the fee payer appeared writable in each compiled
+read transaction. All five clearing accounts were read-only.
+
+| Transaction | BTC gross after | Finalized CU | Wire bytes |
+|---|---:|---:|---:|
+| Read empty market | 0 | 4,536 | 404 |
+| First stored fill against A and B | 4 | 218,578 | 971 |
+| Read first fill | 4 | 4,536 | 404 |
+| Second stored fill against B and C | 8 | 314,386 | 1,035 |
+| Read second fill | 8 | 4,535 | 404 |
+| Close the trader against C | 6 | 172,892 | 950 |
+| Read through an external program CPI | 6 | 15,820 | 453 |
+| Read after fee classification and freeze | 6 | 4,533 | 404 |
+
+Against the D137 signed order scenario, those three fills cost an additional
+834, 575 and 571 CU respectively. The route continues to write the selected
+market and ledger. These figures give a cost for serving an exact aggregate
+read and maintaining the capacity accounts. They establish no improvement
+in concurrent fills or sustainable throughput. [Settlement and liquidation checks](validation.md#signed-bounded-market-gross).
+
+### Funding checkpoint accounts on a cross fill
+
+The ETH-only v0 original was 942 bytes. A BTC trade that consumed the trader's
+open ETH funding was 1,006 bytes. Recompiling the same messages with additional
+writable accounts produced the following sizes. Only the original transactions
+were submitted.
+
+| Funding checkpoint placement | ETH-only bytes | BTC with ETH exposure bytes | Accounts needed for a target-market funding check |
+|---|---:|---:|---|
+| Two market slots in the first maker registration | 942 | 1,006 | Six registrations across the two markets |
+| Target market's registration with the first maker's instance number | 942 | 1,039 | Three target-market registrations |
+| Dedicated target-market accounts by maker instance | 975 | 1,072 | Three target-market funding accounts |
+
+The middle option keeps the recovery read local to the market and adds one
+writable account to this cross fill. It can create contention with an ETH fill
+using the same instance. Extra accounts imply no extra maker signature. The
+wire comparison measures neither CU nor contention on an altered deployment.
+Reproduce with `RIVALT_SETTLEMENT_PROBE=profit-attribution-cross-fill-funding`
+on the [bounded-market build](local-development.md#reproduce-the-bounded-market-read).
+Build the `funding_prefix_replay` example for `financial-core` with
+`--features parallel-market-prototype`, then run
+`node --import tsx tests/performance/replay-cross-fill-funding.ts <run-directory>`.
+
+### Signed funding checkpoint cost
+
+The same account identities and two-tick premium were used on both fresh local
+deployments. The checked publisher reads three additional registrations per
+market. The trader signs the same account lists on both builds.
+
+| Finalized transaction | Serial comparison CU / bytes | Checked funding CU / bytes |
+|---|---:|---:|
+| Open ETH against one maker | 172,504 / 942 v0 | 173,475 / 942 v0 |
+| Open BTC with sibling ETH exposure | 176,704 / 1,006 v0 | 178,577 / 1,006 v0 |
+| Publish BTC and ETH before the fills | 44,316 / 1,192 v0 | 54,438 / 1,348 v1 |
+| Publish both after the 31-second gap | — | 52,332 / 1,348 v1 |
+
+The paired publisher crosses the v0 packet boundary. These are observed local
+CU and wire sizes. The route still locks the selected market and ledger for
+writing. [Signed funding and rollback](validation.md#clearing-verified-funding-checkpoints).
+
+### Read-only selected market
+
+Program `10ab3b5`, harness `d45eae7`. Each paired trade was 846 signed bytes
+(v0) and paid a 5,000-lamport transaction fee. Each pair class has six
+simultaneous offers of two signed trades using independent payers. All 36
+landed. The account overlap comes from the finalized message bytes.
+
+| Pair | Previous shared writes | Observed shared writes | CU per trade |
+|---|---:|---:|---:|
+| BTC, same maker | 4 | 3 | 160,099–180,866 |
+| BTC, different makers | 2 | 1 | 159,344–174,002 |
+| BTC and ETH, different makers | 0 | 0 | 159,349–174,002 |
+
+| Financial action | CU | Signed bytes |
+|---|---:|---:|
+| Two-maker BTC reversal, payer and trader sign (`aa0a209`) | 207,428 | 1,110 v0 |
+| Checkpoint one market | 21,422 | 471 v0 |
+| Checkpoint BTC and withdraw with an open position | 72,244 | 857 v0 |
+| Checkpoint both markets and execute a BTC trade with ETH exposure | 222,331 | 1,204 v0 |
+| Publish two active markets with their checkpoints | 98,068 | 1,388 v1 |
+| Classify both markets, checkpoint both and freeze | 131,715 | 1,186 v0 |
+
+The previous two-market funding publisher used 54,438 CU and 1,348 v1 bytes
+on the nonzero-premium workload. This prototype pays for a separate checkpoint
+before each publication. The remaining ledger lock serializes all same-market
+fills. These paired receipts establish account access and per-transaction cost.
+They do not measure sustained throughput. [Financial checks](validation.md#read-only-market-on-a-signed-fill).
+
+### Read-only market and ledger
+
+On local clearing `8bc01bb`, two immediate fills from different traders and fee
+payers can consume different makers on BTC without a common writable address.
+The totals below come from finalized signed messages on Surfpool. Each pair was
+submitted together. Each of the three workloads had six pairs and twelve trades.
+
+| Workload | Common writable accounts per pair (#131 → this build) | CU per fill | Bytes / base fee per fill |
+|---|---|---:|---|
+| BTC, different makers | 1 → 0 | 159,100–173,756 | 846 / 5,000 lamports |
+| BTC, same maker | 3 → 2 (maker capital and registration) | 159,855–180,617 | 846 / 5,000 lamports |
+| BTC and ETH, different makers | 0 → 0 | 159,121–173,756 | 846 / 5,000 lamports |
+
+A shared trader or fee payer still serializes its own writes. The test measures
+account locks and costs on the local validator. Production capacity and
+priority-fee demand require a separate workload. Concurrent cold operations
+still lock the market or ledger. Checkpoint plus open-position withdrawal cost
+91,429 CU / 876 bytes, compared with 72,244 CU / 857 bytes on #131. Two-market
+insurance classification plus freeze cost 136,193 CU / 1,186 bytes. A two-maker
+position reversal consumed 207,091 CU / 1,110 bytes.
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,

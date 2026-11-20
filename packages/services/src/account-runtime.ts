@@ -21,13 +21,14 @@ export class AccountRuntime extends AccountExecution {
   async discovery() {
     const binding=await this.environment(),{state}=await this.store.published();
     if(!state.venue||state.members.length===0)throw new Error('Account discovery unavailable');
-    return {binding,state,identity:{venue:address(binding.venue),mint:address(state.venue.quoteMint),domain:binding.domain}};
+    const marginLayout=sdk.hasLedgerLanes(binding.artifactSet)?'ledger-lanes' as const:undefined;
+    return {binding,state,identity:{venue:address(binding.venue),mint:address(state.venue.quoteMint),domain:binding.domain,marginLayout}};
   }
   async snapshot(margins?:Address[],marketIndex?:0|1) {
     const discovery=await this.discovery(),selected=margins??[address(discovery.state.members[0])];
     const snapshot=marketIndex===undefined?await sdk.readAccountSnapshot(this.rpc,discovery.identity,selected,'confirmed'):
       await sdk.readAccountTradeSnapshot(this.rpc,discovery.identity,selected[0],marketIndex,'confirmed');
-    return {...snapshot,...await accountWorkerKeys(snapshot.venue)};
+    return {...snapshot,marginLayout:discovery.identity.marginLayout,...await accountWorkerKeys(snapshot.venue)};
   }
   async pendingBudget(budget:string) {
     return (await this.store.pool.query("SELECT 1 FROM service_intents WHERE run_id=$1 AND budget=$2 AND status IN ('pending','unresolved') LIMIT 1",[this.runId,budget])).rowCount!==0;

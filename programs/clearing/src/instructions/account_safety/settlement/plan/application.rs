@@ -11,7 +11,7 @@ fn empty_position(position: &crate::state::Position) -> bool {
         && position.funding_checkpoint_scaled == 0
         && position.generation == 0
 }
-pub(super) fn original_margin(
+pub(in crate::instructions::account_safety::settlement) fn original_margin(
     header: &PreparedSettlement,
     frozen: &FrozenMargin,
     root: &MarginAccount,

@@ -134,6 +134,84 @@ the trades and withdrawal, and the two reference makers use separate capital.
 The first collection is deliberately partial so the intermediate balances can be
 inspected. Observation times include sampling, finality and SQL publication.
 
+## BTC default recovery comparison
+
+Use the selected program artifacts, the pinned native settlement helper and the
+local PostgreSQL container runtime. Run this command from a clean tracked checkout.
+
+```sh
+RIVALT_LIQUIDITY_PROBE=btc-default-recovery bash ops/current-runtime-smoke.sh
+```
+
+Two internal makers trade one BTC lot against the same trader. The trader closes
+before a signed price change makes the first maker insolvent. The launcher records
+the verified freeze, finalized continuations, funded payouts and SPL withdrawal in
+`btc-default-recovery.json` under the printed local directory. A Python reference
+replays the two fills and calculates both payout rules from that same freeze.
+Only the selected proportional rule moves tokens in this demonstration.
+
+## Clearing-owned profit attribution
+
+Build from clean program source `33361d9` with the normal P56 artifacts already
+present. Use the same artifact directory from the signed harness checkout at
+`af1c515`. Each run starts a fresh loopback chain and PostgreSQL database.
+
+```sh
+RIVALT_ATTRIBUTION_DIR=.local/profit-attribution/candidate-33361d9 bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/candidate-33361d9
+RIVALT_SETTLEMENT_PROBE=profit-attribution bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-recovery bash ops/scalable-settlement-smoke.sh
+```
+
+The first probe compares every frozen account with independently replayed fills
+and payments. The second follows the debtor and both creditors through the
+selected proportional settlement and wallet exit. [Measured results](validation.md#clearing-owned-surviving-profit).
+
+## Sponsored profit capacity
+
+Build at `1763dc7` with the selected P56 maker binaries available. Switch back
+to the qualification revision `291e7a5` before launching each fresh local run.
+
+```sh
+RIVALT_ATTRIBUTION_DIR=.local/profit-attribution/sponsored-revision-2 bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/sponsored-revision-2
+RIVALT_SETTLEMENT_PROBE=profit-attribution-sponsor bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-sponsor-recovery bash ops/scalable-settlement-smoke.sh
+```
+
+## Verified BTC default payout
+
+Build from clean program revision `447efef` with the pinned P56 maker binaries.
+From the qualification checkout build the matching native page helper, then run
+both cases using a fresh loopback chain and PostgreSQL database for each.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=single-pair-default-qualification RIVALT_ATTRIBUTION_DIR=.local/profit-attribution/verified-pair-rates bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/verified-pair-rates
+bash ops/build-settlement-helper.sh verified-pair-candidate
+RIVALT_SETTLEMENT_PROBE=profit-attribution-verified-pair bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-verified-pair-limited bash ops/scalable-settlement-smoke.sh
+```
+
+The first case follows the flat trader through a withdrawal. The second gives
+the winning maker only 502 eligible atoms against a 1,500-atom shortfall and
+checks that the cohort stays frozen.
+
+## BTC residual recovery
+
+Build clearing at `8024a37` with the P56 maker artifacts available. From the
+qualification checkout `1e05885`, build the matching helper, then launch each
+scenario on a fresh local chain and PostgreSQL database.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=btc-residual-qualification RIVALT_ATTRIBUTION_DIR=.local/profit-attribution/btc-residual-r1 bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/btc-residual-r1
+bash ops/build-settlement-helper.sh btc-residual-candidate
+for scenario in partial none multi; do
+  RIVALT_SETTLEMENT_PROBE="profit-attribution-btc-residual-$scenario" bash ops/scalable-settlement-smoke.sh
+done
+```
+
 ## Maker liquidation demonstration
 
 Build the separately pinned candidate at source revision `ab3f6c6` with
@@ -186,11 +264,19 @@ and unrelated databases are never reset with the demo.
 
 ## Storage and older harnesses
 
-`.local/` holds local builds, test databases, logs, keys and raw evidence. Inspect
-usage and active ownership before cleanup. Compilers may regenerate build caches;
-never delete active PostgreSQL files, user research, key material or acceptance
-captures as an automatic cleanup. Reuse a stopped owned qualification cluster with
-`RIVALT_PG_REUSE_DIR` when the wrapper supports it; preserve fsync/WAL durability.
+`.local/` is Git-ignored. A qualification run stores its signed transactions,
+RPC receipts, WebSocket observations and diagnostic logs in its own run directory.
+The `postgres-data/` child contains PostgreSQL's physical database. These copies
+can dominate disk usage. Once a Rivalt test run has stopped, its disposable
+`postgres-data/` may be pruned for space without further approval. Verify that
+no running database or container uses the directory, including through
+`RIVALT_PG_REUSE_DIR`. Leave demo environments and runs selected for reuse in place.
+
+Keep the rest of the run directory when pruning a database. The signed wires and
+finalized receipts let reviewers inspect the original run after its local chain
+has stopped. A new run produces different signatures. Logs help diagnose failures.
+Shared test identities live in `.local/keys/`. Demo workspaces live under
+`.local/interactive-demo*` and `.local/demo/`. Neither is disposable database storage.
 
 `pnpm smoke` explicitly runs the broad current integration matrix on already built
 artifacts; it is not a default PR check. Earlier launchers/feature profiles are
@@ -266,3 +352,504 @@ through explicit `RIVALT_DEFAULT_POPULATION=1024`; it must be measured before an
 operator enables that workload. Omitting population in the low-level candidate
 probe retains the eight-root comparison. Only the exact qualified artifact set
 may run through normal launchers.
+
+### Reproduce the multi-winner BTC recovery
+
+Use the locally pinned clearing source `9e2cc00` for the
+`btc-allocation-qualification` SBF and the selected maker binaries. From the
+current harness checkout, build the matching helper and run each case with a
+fresh run directory, loopback validator and PostgreSQL database.
+
+```bash
+bash ops/build-settlement-helper.sh btc-allocation-candidate
+for scenario in unequal tie; do
+  RIVALT_SETTLEMENT_ARTIFACT_DIR="$allocation_build" \
+    RIVALT_SETTLEMENT_PROBE="profit-attribution-btc-allocation-$scenario" \
+    bash ops/scalable-settlement-smoke.sh || break
+done
+```
+
+Here `allocation_build` is the absolute path produced by
+`RIVALT_ATTRIBUTION_PROFILE=btc-allocation-qualification bash ops/build-profit-attribution.sh`
+at the pinned revision. Qualification deploys both fresh 1,220-byte frozen
+pages and the artifact-bound worker. Previously deployed recovery pages use
+their original layout.
+
+### Reproduce the linked default comparison
+
+Use the attribution build at `33361d9` and the BTC allocation build at
+`9e2cc00` described above. From the harness checkout, run each profile on
+its own fresh local validator and PostgreSQL database. The launcher selects
+a new evidence directory for each invocation.
+
+```bash
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-linked bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$allocation_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-btc-allocation-linked bash ops/scalable-settlement-smoke.sh
+```
+
+Each run writes `linked-default.json` with the frozen inputs, financial
+comparison, worker signatures, wallet and vault balances.
+
+### Reproduce clearing-verified joint recovery
+
+Build the `linked-pair-qualification` program from clean revision `0e027fc`
+with the selected maker and oracle binaries installed. Use the resulting
+artifact directory in the harness checkout.
+
+```bash
+# Program checkout
+RIVALT_ATTRIBUTION_PROFILE=linked-pair-qualification bash ops/build-profit-attribution.sh
+# Harness checkout
+bash ops/build-settlement-helper.sh linked-pair-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_build" RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+The fresh validator and PostgreSQL run reads and verifies both actual frozen
+maker positions. The worker records its original transaction for each step.
+
+### Reproduce the closed BTC trader's joint-default payout
+
+Run the same four signed trades twice, with fresh validators and databases.
+Use the ordinary attribution build from `33361d9`. Build the linked candidate
+from clean revision `30434d5` using `ops/build-profit-attribution.sh` with
+`RIVALT_ATTRIBUTION_PROFILE=linked-pair-qualification`. From the harness checkout:
+
+```bash
+bash ops/build-settlement-helper.sh linked-flat-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-flat \
+  bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_flat_build" RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-flat-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+Each run checks the flat trader's banked collateral separately from the claim
+payout, the maker wallet, the vault, the independently reconstructed frozen
+inputs and the events replayed into a fresh PostgreSQL database.
+
+To exercise competing BTC winners, run the same linked candidate and helper
+with `RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-contested`. This
+five-trade scenario compares the proposals to the frozen book and submits
+each incomplete pair to clearing on its own fresh chain.
+
+### Reproduce the linked allocation across competing makers
+
+At clean program revision `d0ae474`, build clearing with
+`RIVALT_ATTRIBUTION_PROFILE=linked-allocation-qualification` and
+`bash ops/build-profit-attribution.sh`. Keep its printed output directory. At the
+harness revision recorded in [validation](validation.md#linked-allocation-across-competing-makers),
+run the following with that directory in `linked_allocation_build`.
+
+```bash
+bash ops/build-settlement-helper.sh linked-allocation-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_allocation_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-allocation \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+The five fills produce two BTC winners, one ETH winner and a flat BTC creditor.
+The run first offers too little BTC alongside the correct ETH allocation, then
+restarts the worker during the corrected member scan. It compares all final
+margin accounts and four withdrawals to the independent fill-by-fill reference,
+and refetches the original transactions into a fresh PostgreSQL database.
+
+### Reproduce a winner with debt in the other market
+
+Run the same three signed trades on fresh validators and PostgreSQL databases.
+Use the ordinary attribution artifact from `33361d9` and the linked allocation
+artifact and helper from `d0ae474`. The first run measures ordinary payment
+and exit. The second submits both debtors to the current permissionless proof
+and checks the frozen roots after rejection.
+
+```bash
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-ordinary \
+  bash ops/scalable-settlement-smoke.sh
+bash ops/build-settlement-helper.sh linked-allocation-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$linked_allocation_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-gate \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+To test joint payment for the same book, build the local program at
+`d177cc5` with `RIVALT_ATTRIBUTION_PROFILE=foreign-creditor-qualification`
+and `bash ops/build-profit-attribution.sh`. From the harness revision in
+[validation](validation.md#atomic-payment-for-a-btc-winner-with-eth-debt), run
+
+```bash
+bash ops/build-settlement-helper.sh foreign-creditor-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$foreign_creditor_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+### Reproduce two debtors sharing one-lot winners
+
+Use the ordinary attribution binary built at `33361d9` and the harness at
+`cfc2279`. Save the printed run directory. The native comparison at `981d269`
+reads the reconstructed inputs and compares every selected debtor/winner pair.
+
+```bash
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-shared-inventory \
+  bash ops/scalable-settlement-smoke.sh
+cargo build --locked -p default-plan-selection --example single_lot_assignment
+python3 tests/financial/check_shared_inventory.py "$run_dir/linked-default.json"
+```
+
+To reproduce the successor on the same book, build the separate program at
+`59184c5` with `RIVALT_ATTRIBUTION_PROFILE=shared-inventory-qualification`.
+From the signed harness revision in [validation](validation.md#two-btc-debtors-sharing-winning-inventory), run
+
+```bash
+bash ops/build-settlement-helper.sh shared-inventory-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$shared_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-shared-inventory-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+For the scarce-inventory comparison, build the local clearing program at
+`2256c51` using `RIVALT_ATTRIBUTION_PROFILE=partial-inventory-qualification`.
+Its native helper uses the same pin. Run each probe in a fresh run directory.
+
+```bash
+bash ops/build-settlement-helper.sh partial-inventory-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$ordinary_attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-one-ordinary \
+  bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$partial_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-one-apply \
+  bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$partial_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-zero-apply \
+  bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$partial_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-scarce-inventory-floor-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+For the three-debtor comparison use the ordinary SBF at `33361d9`. The
+harness builds the population selector and separately replays the signed
+transactions and terminal settlement.
+
+```bash
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$ordinary_attribution_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-inventory-book-ordinary \
+  bash ops/scalable-settlement-smoke.sh
+cargo build --locked -p default-plan-selection --example single_lot_assignment
+python3 tests/financial/check_inventory_book.py
+```
+
+The corresponding successor uses the book candidate from clean clearing
+revision `d5cc624` and the same signed fills. Build the SBF from the pinned
+revision, then run the helper and harness from the current checkout.
+
+```bash
+bash ops/build-settlement-helper.sh book-inventory-candidate
+RIVALT_SETTLEMENT_ARTIFACT_DIR="$book_inventory_build" \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-inventory-book-apply \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+Use the same book candidate for the certification resource probe. Set
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-inventory-book-capacity` and
+`RIVALT_INVENTORY_PAIRS` to the number of long/short pairs. The optional
+`RIVALT_INVENTORY_STRIDE` selects every nth trader root. The intervening
+roots are funded, flat members. For example, 11 pairs at stride 8 produce
+22 active pages across 175 Financial accounts. The commands use separate
+fresh run directories and database instances as above.
+
+To reproduce the revised certificate, build clearing at `eb011a5` with the
+same `book-inventory-qualification` feature and run
+`bash ops/build-settlement-helper.sh book-capacity-candidate`. Select the new
+artifact directory with `RIVALT_SETTLEMENT_ARTIFACT_DIR`. The
+`profit-attribution-inventory-book-expanded` probe simulates 32, 64, 128 and
+256 KiB heap requests against the same frozen rows. It then submits the
+worker’s chosen transaction, checks its finalized bytes and replays PostgreSQL.
+Use 11 pairs with stride 8 for the 22-page book or 81 pairs with stride 1
+for the 162-position book. The separate
+`profit-attribution-inventory-book-expanded-apply` probe follows three
+maker credits through settlement, worker restart and SPL withdrawal.
+
+For the multi-lot comparison use the same book-capacity artifacts and
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-multi-lot-search`. The launcher
+builds the native verifier, executes two real two-lot trades, freezes the
+eight-member book and checks the existing signed release gate. To rerun the
+economic comparison on its saved inputs use
+`python3 tests/financial/check_multi_lot_search.py "$run_dir/multi-lot-frozen.json"`.
+Omit the file argument to check the independent synthetic books.
+
+For a clearing-verified multi-lot payout, build the candidate at the source
+revision in the deployment binding (currently `baef259`) using
+`RIVALT_ATTRIBUTION_PROFILE=multi-lot-book-qualification` with
+`bash ops/build-profit-attribution.sh`. From the qualification revision, run
+`bash ops/build-settlement-helper.sh multi-lot-book-candidate`. Point
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` at that program build, select
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-multi-lot-apply` and run
+`bash ops/scalable-settlement-smoke.sh`. Repeat with a fresh run directory
+and `profit-attribution-multi-lot-tie` to verify refusal when the marginal
+costs tie. Each run creates its own local PostgreSQL instance.
+
+To reproduce the paired-route measurement, select the same multi-lot clearing
+artifact directory, a fresh run directory and
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-route-locks`. Run
+`bash ops/scalable-settlement-smoke.sh`. The harness writes the signed lock
+sets and per-pair confirmation times to `successor-route-locks.json` in the
+run directory.
+
+### Aggregate insurance and default payout
+
+From clean program revision `5b1e964`, run
+`RIVALT_ATTRIBUTION_PROFILE=aggregate-fee-qualification bash ops/build-profit-attribution.sh`.
+Return to the qualification revision. Run
+`bash ops/build-settlement-helper.sh aggregate-fee-candidate`. Set
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` to the absolute printed program directory.
+Run `bash ops/scalable-settlement-smoke.sh` with
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-fee-lanes` for paired trades and
+with `RIVALT_SETTLEMENT_PROBE=profit-attribution-fee-lanes-apply` for a default
+that draws on earned insurance. Use a separate fresh run directory each time.
+
+### Reproduce the bounded market read
+
+Build from clean program revision `3ace707` with
+`RIVALT_ATTRIBUTION_PROFILE=bounded-market-read bash ops/build-profit-attribution.sh`.
+Return to the qualification revision, export `RIVALT_SETTLEMENT_ARTIFACT_DIR`
+as the absolute printed build directory and run
+`bash ops/build-settlement-helper.sh bounded-market-candidate`.
+Run `bash ops/scalable-settlement-smoke.sh` once per
+`RIVALT_SETTLEMENT_PROBE` value, using fresh run directories.
+
+| Probe | Check |
+|---|---|
+| `profit-attribution-bounded-market` | Complete and foreign-market reads, two stored fills, cross-maker close, external CPI and freeze |
+| `profit-attribution-bounded-market-apply` | Frozen population, funded default application, actual token withdrawals and fresh database replay |
+| `profit-attribution-bounded-market-receiver` | Distressed trader, eligible maker fill, funded receiver transfer and unwind |
+
+### Reproduce checked funding publication
+
+Build clean program `2da3e90` with
+`RIVALT_ATTRIBUTION_PROFILE=checked-funding-prefix bash ops/build-profit-attribution.sh`.
+Use harness `1637f8f` or the corresponding ready branch. Export the printed
+absolute build directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR` and run
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-checked-funding bash ops/scalable-settlement-smoke.sh`
+with a fresh run directory. For independent replay build the `funding_prefix_replay`
+example in `financial-core` with `--features parallel-market-prototype` and run
+`node --import tsx tests/performance/replay-cross-fill-funding.ts <run-directory>`.
+
+### Reproduce the read-only market route
+
+Build clean revision `10ab3b5` with
+`RIVALT_ATTRIBUTION_PROFILE=read-only-route-market bash ops/build-profit-attribution.sh`.
+Export the printed directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR`.
+At clean harness revision `d45eae7`, run
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-market-lanes bash ops/scalable-settlement-smoke.sh`
+for paired fills, withdrawal and freeze, and
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-market-lane-funding bash ops/scalable-settlement-smoke.sh`
+for the nonzero-premium cross-account and outage cases. Run the latter at
+`aa0a209` to include the two-maker reversal. Each invocation owns a
+fresh Surfpool instance and PostgreSQL database.
+
+### Reproduce clearing-owned joint recovery
+
+On clean program revision `efbaa024`, build the candidate with
+`RIVALT_ATTRIBUTION_PROFILE=recovery-search-qualification bash ops/build-profit-attribution.sh`.
+Export the printed directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR`. Return to
+the qualification revision recorded in [validation](validation.md#clearing-owned-joint-recovery).
+Build its pinned page helper with `bash ops/build-settlement-helper.sh recovery-search-candidate`.
+Run either case with the repository's pinned local Surfpool and PostgreSQL tools.
+
+```sh
+RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-cross \
+  bash ops/scalable-settlement-smoke.sh
+
+RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_FROZEN_PLAN_CASE=equal-winners \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-tie bash ops/scalable-settlement-smoke.sh
+```
+
+Each case uses a fresh local deployment. It reconstructs the book from signed
+fills, checks an inferior proposal, restarts the verifier, and follows clearing
+and the wallet through actual RPC. The pricing and custody fixtures use test
+collateral. The separate external review and funded-pilot gates still apply.
+
+### Reproduce the combined clearing lifecycle
+
+Build clean program revision `5d7a7c0f` with
+`RIVALT_ATTRIBUTION_PROFILE=integrated-recovery-qualification bash ops/build-profit-attribution.sh`.
+Export the resulting directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR`. At the
+harness revision in [validation](validation.md#combined-clearing-lifecycle),
+run `bash ops/build-settlement-helper.sh integrated-recovery-candidate` once.
+Each invocation below starts its own local chain and PostgreSQL database.
+
+```sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-lanes bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-funding bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-payout bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-receiver bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-automatic-liquidation bash ops/scalable-settlement-smoke.sh
+RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-integrated bash ops/scalable-settlement-smoke.sh
+```
+
+To measure ordinary payout on that same artifact, run each case separately.
+Each starts the settlement worker before the close, verifies its signed originals,
+withdraws the gain, and replays finalized history into a fresh SQL database.
+
+```sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-warm-payout bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-delayed-payout bash ops/scalable-settlement-smoke.sh
+```
+
+The second case interrupts collection after the worker persists its signed wire.
+Each run writes `ordinary-timing.json` under its ignored run directory.
+
+For the financial-domain comparison, build both revisions in
+[validation](validation.md#financial-domain-extraction) with the integrated
+feature above. Set `RIVALT_DOMAIN_COMPARISON=baseline` for the parent or
+`extracted` for the successor and point `RIVALT_SETTLEMENT_ARTIFACT_DIR` at the
+corresponding build. Run the integrated payout and receiver commands separately.
+The harness verifies the exact binary against the comparison pin before deployment.
+
+For the automatic recovery keeper, build its native selector on the same
+checkout. The acceptance command also builds it before running the worker.
+
+```sh
+cargo build --locked --offline --release -p default-plan-selection --features keeper --bin rivalt-recovery-selector
+RIVALT_RECOVERY_SCHEDULE_BUDGET=3000 RIVALT_FROZEN_PLAN_PROOF=1 \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-integrated bash ops/scalable-settlement-smoke.sh
+```
+
+The budget is the maximum number of schedules this local sponsor will compare
+for one frozen book, from 1 to 65,536. Omit it to leave submission to another
+payer. A larger budget increases native CPU and memory use. The ordinary P56
+runtime has its own recovery worker. The [successor worker contract](../application/interfaces.md#local-joint-recovery-selection)
+lists its blocked outcomes and restart behavior.
+
+### Reproduce recovery across two frozen pages
+
+Build the clearing SBF from clean revision `37672622` with
+`RIVALT_ATTRIBUTION_PROFILE=paged-recovery-qualification bash ops/build-profit-attribution.sh`.
+Export the printed directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR`. From the
+[harness revision](validation.md#recovery-selection-across-two-membership-pages),
+run `bash ops/build-settlement-helper.sh paged-recovery-candidate`. Each command
+starts its own Surfpool venue and PostgreSQL database.
+
+```sh
+export RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_RECOVERY_SCHEDULE_BUDGET=3000
+export RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-paged
+RIVALT_FROZEN_PLAN_CASE=paged-wallet bash ops/scalable-settlement-smoke.sh
+RIVALT_FROZEN_PLAN_CASE=paged-insurance bash ops/scalable-settlement-smoke.sh
+```
+
+Both cases include a flat BTC creditor on the second page. The insurance case
+changes the collateral deposit before the five fills, causing a second rate
+calculation. If a keeper preflight refuses a step, the harness saves its
+source accounts and both signed simulation wires in `blocked-paged-step.json`.
+Reproduce the CU and error against the same binary with
+`node --import tsx tests/rpc-contract/replay-paged-step.ts <capture> <clearing.so>`.
+
+### Combined local successor qualification
+
+Build clearing at `d9a2a55b` with `RIVALT_ATTRIBUTION_PROFILE=local-successor-qualification bash ops/build-profit-attribution.sh`.
+Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the resulting directory. From the
+qualification checkout, build the native helper with
+`bash ops/build-settlement-helper.sh local-successor-candidate`.
+The probes check the exact clearing and maker hashes before deployment.
+
+Run `bash ops/scalable-settlement-smoke.sh` once for each probe below, with a
+fresh `RIVALT_RUN_DIR` for each run. The harness starts local Surfpool and
+PostgreSQL. In the table, prefix each probe name with `profit-attribution-successor-`.
+
+| Probe | Additional environment | Observed boundary |
+|---|---|---|
+| `workload` | None | Thirty rounds of paired fills, market fee reconciliation, exit and freeze |
+| `funding` | None | Cross-market funding progress through a publication outage |
+| `warm-payout`, `delayed-payout` | None | Close to funded cash and wallet transfer, including restart |
+| `automatic-liquidation` | None | Maker admission, unfunded receiver refusal, funded takeover and restored health |
+| `recovery` | `RIVALT_FROZEN_PLAN_PROOF=1`, `RIVALT_RECOVERY_SCHEDULE_BUDGET=3000`, `RIVALT_FROZEN_PLAN_CASE=paged-wallet` or `paged-insurance` | Nine-member complete freeze, keeper restart, insurance, wallet exits and independent replay |
+
+After a workload run use `python3 tests/performance/successor-workload-cost.py "$RIVALT_RUN_DIR"`
+to reproduce fees by actual payer, CU and lock conflicts from finalized transaction
+bytes. Run `node --import tsx tests/performance/successor-proof-space.ts` to
+measure the search account's minimum bytes at the selected launcher's population.
+
+### Populated successor recovery inputs
+
+Build the opt-in clearing artifact at `ba2057df` with
+`RIVALT_ATTRIBUTION_PROFILE=partitioned-recovery-inputs bash ops/build-profit-attribution.sh`.
+Back in the qualification checkout, run the following with that directory
+as `RIVALT_SETTLEMENT_ARTIFACT_DIR` and a fresh `RIVALT_RUN_DIR`.
+
+```sh
+source ops/env.sh
+cargo build --locked --offline --release -p default-plan-selection --features keeper --bin rivalt-recovery-selector
+RIVALT_SETTLEMENT_PROBE=profit-attribution-partitioned-population bash ops/scalable-settlement-smoke.sh
+```
+
+The test creates 128 Financial members using signed transactions, then
+registers the exact BTC and ETH charge terms for each member during frozen
+valuation. To reproduce the size of the search from the retained freeze,
+run `target/release/rivalt-recovery-selector --dimensions < "$RIVALT_RUN_DIR/population-input.json"`.
+This measurement visits eligible debtor/winner pairs once. It grants no
+authority to settle the book.
+
+To reproduce the original-rate and debtor-budget checks, build clearing at
+`16f89bef` with `RIVALT_ATTRIBUTION_PROFILE=populated-recovery-qualification
+bash ops/build-profit-attribution.sh`. In the harness checkout at `acdb2e30`
+or a compatible revision, use the selector build above and run
+
+```sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-original-budgets \
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-16f89befe4682ab75a7480b9e1b2410ca3e87dc1 \
+RIVALT_RUN_DIR=.local/profit-attribution/original-budget-reproduction \
+bash ops/scalable-settlement-smoke.sh
+```
+
+Use a new run directory for each qualification. The harness deploys locally,
+captures the frozen RPC rows, compares the clearing calculation with an
+independent fractional reference and replays the financial journal into a
+fresh PostgreSQL database.
+
+For the foreign charge cap check, build the same opt-in feature at `7df9585e`.
+Use `RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-caps` and
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-7df9585e0c3b99d62b6ffea4c6189609b7dd22e0`
+in the command above. Harness `b43351f8` checks each prefix and the final
+caps before comparing the complete financial checkpoint on fresh SQL replay.
+
+For the holder allocation probe, build that feature at `486d5818` and select
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-winner-allocations` with
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-486d581892d344b3d21a682a7933b5dd3d3dd5db`.
+The independent reference enumerates proportional ties and reconstructs the
+digest of each holder's weight and charge. The signed harness compares each
+page prefix and submits an additional losing proposal.
+
+For the ordered debtor and winner pairing probe, use clearing `34359552`
+with the same populated recovery feature. Set
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-pair-schedule` and
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-34359552d5900778bf305bd25334320239838b0c`.
+The reference for a retained input can also run separately with
+`python3 tests/financial/pair_schedule_reference.py < "$RIVALT_RUN_DIR/population-input.json"`.
+It enumerates lot quantities and derives the expected remaining lots and
+digest for each nonzero pair.
+
+For joint settlement, build clearing at
+`3acd4a4db4f3cdf6b7a7968ef46fb7f4e88566e3` with
+`RIVALT_ATTRIBUTION_PROFILE=populated-recovery-qualification` and
+`bash ops/build-profit-attribution.sh`. Run the following from the harness
+checkout with a fresh run directory. It uses the local test mint and an owned
+PostgreSQL instance. The harness uses the keeper’s authenticated page window for
+conserving-plan work and the standalone terminal withdrawal after reconciliation.
+The independent payment reference also runs separately
+against a saved freeze with
+`python3 tests/financial/joint_payment_reference.py < "$RIVALT_RUN_DIR/population-input.json"`.
+Build the native driver at the harness revision with
+`cargo build --locked --offline -p financial-core --bin scalable-settlement-driver`.
+Add `--compare-native` to the Python command to compare both native
+circulations against all independent member payouts.
+
+```bash
+RIVALT_SETTLEMENT_PROBE=profit-attribution-joint-settlement \
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-3acd4a4db4f3cdf6b7a7968ef46fb7f4e88566e3 \
+RIVALT_RUN_DIR=.local/profit-attribution/joint-wallet-reproduction \
+bash ops/scalable-settlement-smoke.sh
+```

@@ -3,6 +3,7 @@
 //! P54B owns authenticated account pages and persisted continuation fences.
 pub mod active_work;
 pub mod application;
+pub mod recovery_payout;
 pub mod atom_division;
 pub mod cohort_denominator;
 pub mod collection;
@@ -26,11 +27,11 @@ pub mod wide;
 // Native complete-kernel orchestration. These vector-backed schedules supply
 // arithmetic/rounding evidence, not on-chain pages or activation. P54B/P54C bind
 // the bounded steps to authenticated storage before any runtime can use them.
-#[cfg(not(target_os = "solana"))]
+#[cfg(any(not(target_os = "solana"), feature = "sbf-settlement-measurement"))]
 pub mod active;
-#[cfg(not(target_os = "solana"))]
+#[cfg(any(not(target_os = "solana"), feature = "sbf-settlement-measurement"))]
 pub mod number;
-#[cfg(not(target_os = "solana"))]
+#[cfg(any(not(target_os = "solana"), feature = "sbf-settlement-measurement"))]
 pub mod rounding;
-#[cfg(not(target_os = "solana"))]
+#[cfg(any(not(target_os = "solana"), feature = "sbf-settlement-measurement"))]
 pub mod settlement;

@@ -5,7 +5,8 @@ import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
-import {SETTLEMENT_HELPER_REVISION} from '@rivalt/sdk';
+import {AccountRole,type AccountMeta,type Address} from '@solana/kit';
+import {accountDeployment,type AccountDeployment} from '@rivalt/sdk';
 import type {readAccountResolution} from './account-worker-state.js';
 
 export type SettlementPageRequest={register:number;index:bigint;writable:boolean};
@@ -13,10 +14,17 @@ export type SettlementPageOperation='denominator'|'rate'|'plan'|'plan-row'|'plan
 type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
 export class SettlementPages {
   private readonly binary:string;
-  constructor(directory=resolve(process.env.RIVALT_SETTLEMENT_HELPER_DIR??'.local/settlement-helper')) {
+  constructor(directory?:string,selection:AccountDeployment='selected') {
+    const feature=selection==='local-successor-candidate'?'local-successor-qualification':selection==='integrated-recovery-candidate'?'integrated-recovery-qualification':selection==='paged-recovery-candidate'?'paged-recovery-qualification':selection==='recovery-search-candidate'?'recovery-search-qualification':selection==='bounded-market-candidate'?'bounded-market-read':
+      selection==='aggregate-fee-candidate'?'aggregate-fee-qualification':selection==='multi-lot-book-candidate'?'multi-lot-book-qualification':(selection==='book-inventory-candidate'||selection==='book-capacity-candidate')?'book-inventory-qualification':selection==='partial-inventory-candidate'?'partial-inventory-qualification':selection==='shared-inventory-candidate'?'shared-inventory-qualification':selection==='foreign-creditor-candidate'?'foreign-creditor-qualification':selection==='linked-allocation-candidate'?'linked-allocation-qualification':(selection==='linked-pair-candidate'||selection==='linked-flat-candidate')?'linked-pair-qualification':selection==='btc-allocation-candidate'?'btc-allocation-qualification':selection==='btc-residual-candidate'?'btc-residual-qualification':
+      selection==='verified-pair-candidate'?'single-pair-default-qualification':undefined;
+    directory=resolve(directory??process.env.RIVALT_SETTLEMENT_HELPER_DIR??
+      (selection==='local-successor-candidate'?'.local/settlement-helper-local-successor':selection==='integrated-recovery-candidate'?'.local/settlement-helper-integrated-recovery':selection==='paged-recovery-candidate'?'.local/settlement-helper-paged-recovery':selection==='recovery-search-candidate'?'.local/settlement-helper-recovery-search':selection==='bounded-market-candidate'?'.local/settlement-helper-bounded-market':
+        selection==='aggregate-fee-candidate'?'.local/settlement-helper-aggregate-fees':selection==='multi-lot-book-candidate'?'.local/settlement-helper-multi-lot':selection==='book-capacity-candidate'?'.local/settlement-helper-book-capacity':selection==='book-inventory-candidate'?'.local/settlement-helper-book-inventory':selection==='partial-inventory-candidate'?'.local/settlement-helper-partial-inventory':selection==='shared-inventory-candidate'?'.local/settlement-helper-shared-inventory':selection==='foreign-creditor-candidate'?'.local/settlement-helper-foreign-creditor':selection==='linked-allocation-candidate'?'.local/settlement-helper-linked-allocation':selection==='linked-flat-candidate'?'.local/settlement-helper-linked-flat':selection==='linked-pair-candidate'?'.local/settlement-helper-linked-pair':selection==='btc-allocation-candidate'?'.local/settlement-helper-btc-allocation':selection==='btc-residual-candidate'?'.local/settlement-helper-btc-residual':feature?'.local/settlement-helper-verified-pair':'.local/settlement-helper'));
     const manifest=JSON.parse(readFileSync(resolve(directory,'manifest.json'),'utf8'));
     assert(manifest.version===2&&manifest.accountSchema===10&&manifest.programProfile===6
-      &&manifest.binary==='rivalt-settlement-pages'&&manifest.revision===SETTLEMENT_HELPER_REVISION&&manifest.trackedDirty===false
+      &&manifest.binary==='rivalt-settlement-pages'&&manifest.revision===accountDeployment(selection).helperRevision&&manifest.trackedDirty===false
+      &&manifest.feature===feature
       &&/^[0-9a-f]{64}$/.test(manifest.sha256),'Unsupported settlement helper manifest');
     this.binary=resolve(directory,manifest.binary);
     const bytes=readFileSync(this.binary);
@@ -47,4 +55,35 @@ export function decodeSettlementPages(output:string,maximum:3|8=3):SettlementPag
   for(let index=1;index<pages.length;index++)assert(pages[index-1].register<pages[index].register
     ||pages[index-1].register===pages[index].register&&pages[index-1].index<pages[index].index,'Duplicate or unordered descriptor pages');
   return pages;
+}
+
+type WindowPage={page:Address;value:{revision:bigint};encoded:string};
+type WindowDescriptor={register:number;pageIndex:bigint;writable:boolean;revision:bigint};
+
+/** Preview the same bounded page window for the keeper and signed qualification.
+ * A missing page can require a separate provisioning transaction before resuming. */
+export async function resolveSettlementWindow<Step>(
+  preview:(pages:string[])=>Promise<SettlementPageRequest[]>,
+  read:(request:SettlementPageRequest)=>Promise<WindowPage|{step:Step}>,
+):Promise<{metas:AccountMeta[];descriptors:WindowDescriptor[]}|{step:Step}> {
+  const loaded=new Map<string,WindowPage>();
+  const identity=(page:SettlementPageRequest)=>String(page.register)+':'+String(page.index);
+  for(let round=0;round<=8;round++) {
+    const requested=await preview([...loaded.values()].map(page=>page.encoded));
+    const missing=requested.filter(page=>!loaded.has(identity(page)));
+    if(!missing.length) {
+      const metas=requested.map(page=>({address:loaded.get(identity(page))!.page,
+        role:page.writable?AccountRole.WRITABLE:AccountRole.READONLY}));
+      const descriptors=requested.map(page=>({register:page.register,pageIndex:page.index,
+        writable:page.writable,revision:loaded.get(identity(page))!.value.revision}));
+      return {metas,descriptors};
+    }
+    for(const page of missing) {
+      const result=await read(page);
+      if('step' in result)return result;
+      loaded.set(identity(page),result);
+    }
+    assert(loaded.size<=8,'Oversized default scratch preview');
+  }
+  throw new Error('Default scratch preview failed to converge');
 }

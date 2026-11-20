@@ -18,6 +18,9 @@ mod commit;
 #[cfg(test)]
 mod tests;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum RoutePath { Serial, ReadOnlyMarket, ReadOnlyLedger }
+
 pub fn execute(
     ctx: &mut Context<ExecuteLiquidityRoute>,
     events: &mut crate::event_cpi::Payloads,
@@ -26,18 +29,43 @@ pub fn execute(
 ) -> Result<()> {
     let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    execute_intent(&mut ctx.accounts.view(), events, args, forced, RoutePath::Serial)
+}
+
+pub fn execute_lane(
+    ctx: &mut Context<ExecuteMarketLane>,
+    events: &mut crate::event_cpi::Payloads,
+    args: LiquidityRouteIntent,
+) -> Result<()> {
+    require!(cfg!(feature = "read-only-route-market"), ClearingError::Profile);
+    require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Profile);
+    execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyMarket)
+}
+
+pub fn execute_ledger_lane(ctx: &mut Context<ExecuteLedgerLane>, events: &mut crate::event_cpi::Payloads, args: LiquidityRouteIntent) -> Result<()> {
+    require!(cfg!(feature = "read-only-route-ledger") && ctx.remaining_accounts()?.is_empty(), ClearingError::Profile);
+    execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyLedger)
+}
+
+fn execute_intent(
+    accounts: &mut RouteAccounts<'_>,
+    events: &mut crate::event_cpi::Payloads,
+    args: LiquidityRouteIntent,
+    forced: bool,
+    path: RoutePath,
+) -> Result<()> {
     args.guard.check(
-        &ctx.accounts.identity.venue,
-        &ctx.accounts.identity.safety,
-        &ctx.accounts.identity.trader,
+        &accounts.identity.venue,
+        &accounts.identity.safety,
+        &accounts.identity.trader,
     )?;
     let clock = Clock::get()?;
     if forced {
         require!(args.reduce_only && args.generation.is_some(), ClearingError::Liquidation);
     } else {
         crate::engine::account::trade_authority(
-            &*root_view(&ctx.accounts.identity.trader)?,
-            ctx.accounts.identity.actor.address().to_owned(),
+            &*root_view(&accounts.identity.trader)?,
+            accounts.identity.actor.address().to_owned(),
             clock.slot,
         )?;
     }
@@ -45,7 +73,7 @@ pub fn execute(
         domain: args.domain,
         terms_epoch: args.terms_epoch,
         config_epoch: args.config_epoch,
-        observation_sequence: ctx.accounts.identity.market.observation_sequence,
+        observation_sequence: accounts.identity.market.observation_sequence,
         nonce: args.guard.nonce,
         start_slot: args.start_slot,
         expiry_slot: args.expiry_slot,
@@ -57,7 +85,7 @@ pub fn execute(
         generation: args.generation,
         legs: shared_legs(&args.legs),
     };
-    execute_core(&mut ctx.accounts, events, intent, None, forced, &args.legs, &clock)
+    execute_core(accounts, events, intent, None, forced, path, &args.legs, &clock)
 }
 
 pub fn execute_order(
@@ -92,11 +120,12 @@ pub fn execute_order(
         &clock,
     )?;
     execute_core(
-        &mut ctx.accounts,
+        &mut ctx.accounts.view(),
         events,
         intent,
         Some(index),
         false,
+        RoutePath::Serial,
         &args.legs,
         &clock,
     )
@@ -104,17 +133,29 @@ pub fn execute_order(
 
 #[inline(never)]
 fn execute_core(
-    accounts: &mut ExecuteLiquidityRoute,
+    accounts: &mut RouteAccounts<'_>,
     events: &mut crate::event_cpi::Payloads,
     intent: RouteIntent,
     order_index: Option<usize>,
     forced: bool,
+    path: RoutePath,
     signed_legs: &[LiquidityRouteLeg],
     clock: &Clock,
 ) -> Result<()> {
     let identity = &accounts.identity;
     execution_profile(&identity.venue, &identity.safety, &identity.market)?;
     require!(identity.safety.mode == ACTIVE, ClearingError::Profile);
+    if path != RoutePath::Serial {
+        require!(cfg!(feature = "read-only-route-market") && identity.other_market.is_none() && identity.other_ledger.is_none(),
+            ClearingError::Profile);
+        let held = &identity.market.oracle;
+        // In this interval the original observation determines the exact index
+        // directly. Outside it use the checkpointed ordinary route.
+        require!(held.held_epoch == identity.market.config_epoch && held.held_until > held.sampled_at &&
+            clock.slot >= identity.market.valid_from && clock.slot < held.held_slot &&
+            clock.unix_timestamp >= held.sampled_at && clock.unix_timestamp <= held.held_until,
+            ClearingError::MarketCheckpoint);
+    }
     let selected = usize::from(identity.market.index);
     require!(
         selected < 2
@@ -148,7 +189,7 @@ fn execute_core(
             .all(|present| *present == has_second),
         ClearingError::RouteIntent
     );
-    let markets = if selected == 0 {
+    let mut markets = if selected == 0 {
         [
             Some(market_view(&identity.market)?),
             identity
@@ -167,6 +208,16 @@ fn execute_core(
             Some(market_view(&identity.market)?),
         ]
     };
+    if path != RoutePath::Serial {
+        // The ordinary financial engine also checks the total of its touched
+        // roots. The lane independently enforces the complete market cap.
+        let mut touched = identity.trader.positions[selected].lots.unsigned_abs()
+            .checked_add(accounts.first_capital.positions[selected].lots.unsigned_abs()).ok_or(ClearingError::Arithmetic)?;
+        if let Some(second) = accounts.second_capital.as_ref() {
+            touched = touched.checked_add(second.positions[selected].lots.unsigned_abs()).ok_or(ClearingError::Arithmetic)?;
+        }
+        markets[selected].as_mut().ok_or(ClearingError::Profile)?.gross_lots = touched;
+    }
     let environment =
         optional_environment(markets.each_ref().map(Option::as_ref), selected, clock)?;
     environment.validate(&identity.trader)?;
@@ -247,13 +298,14 @@ fn execute_core(
         clock,
         &next,
         &actual_quotes,
+        path,
     )
 }
 
 /// Construct large root values in their own frame and place them directly in the
 /// candidate vector. Avoid temporary boxed copies on the non-reclaiming SBF heap.
 #[inline(never)]
-fn maker_roots(accounts: &ExecuteLiquidityRoute, has_second: bool) -> Result<Vec<MarginAccount>> {
+fn maker_roots(accounts: &RouteAccounts<'_>, has_second: bool) -> Result<Vec<MarginAccount>> {
     let mut roots = Vec::with_capacity(if has_second { 2 } else { 1 });
     roots.push(trading::root_view_value(&accounts.first_capital)?);
     if has_second {
@@ -270,7 +322,7 @@ fn maker_roots(accounts: &ExecuteLiquidityRoute, has_second: bool) -> Result<Vec
 #[inline(never)]
 fn quote_current(
     view: &pricing::View,
-    accounts: &ExecuteLiquidityRoute,
+    accounts: &RouteAccounts<'_>,
     leg: &LiquidityRouteLeg,
     side: u8,
     clock: &Clock,

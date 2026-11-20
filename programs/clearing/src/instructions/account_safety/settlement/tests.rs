@@ -294,7 +294,14 @@ fn actual_margin_model_values_both_markets_preserving_fractional_claims_and_cash
     }
     header.state.membership = cursor.checkpoint();
     finish_value(&mut header).unwrap();
-    assert_eq!(header.stage, DENOMINATOR);
+    let expected_stage = if cfg!(feature = "populated-recovery-qualification") {
+        ORIGINAL_DENOMINATOR
+    } else if cfg!(feature = "single-pair-default-qualification") {
+        single_pair::AWAIT_PAIR
+    } else {
+        DENOMINATOR
+    };
+    assert_eq!(header.stage, expected_stage);
     assert_eq!(page.row_count, 3);
     let totals = SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(&header))
         .unwrap()
@@ -403,8 +410,46 @@ fn prepared_and_frozen_row_layout_offsets_are_literal() {
     .unwrap();
     bytes.clear();
     crate::wire::write_discriminated(&page, &mut bytes).unwrap();
-    assert_eq!(bytes.len(), 1156);
-    assert_eq!(8 + FrozenMarginPage::INIT_SPACE, 1156);
+    let btc_bytes = usize::from(cfg!(feature = "btc-allocation-qualification")) * 8;
+    let payout_bytes = usize::from(cfg!(feature = "paged-recovery-qualification")) * 40;
+    let linked_bytes = usize::from(cfg!(feature = "linked-allocation-qualification")) * 16;
+    let book_bytes = usize::from(cfg!(feature = "book-inventory-qualification")) * 16
+        + usize::from(cfg!(feature = "multi-lot-book-qualification")) * 16;
+    let rates_bytes = usize::from(cfg!(feature = "partitioned-recovery-inputs")) * 32;
+    let budgets_bytes = usize::from(cfg!(feature = "populated-recovery-qualification")) * 16;
+    let extra_row_bytes = payout_bytes + btc_bytes + linked_bytes + book_bytes + rates_bytes + budgets_bytes;
+    let stamp_bytes = usize::from(cfg!(feature = "populated-recovery-qualification")) * 8;
+    let size = 1156 + 8 * extra_row_bytes + stamp_bytes;
+    assert_eq!(bytes.len(), size);
+    assert_eq!(8 + FrozenMarginPage::INIT_SPACE, size);
+    #[cfg(feature = "btc-allocation-qualification")]
+    {
+        page.rows[0].btc_charge = 201;
+        bytes.clear();
+        crate::wire::write_discriminated(&page, &mut bytes).unwrap();
+        let offset = 203 + payout_bytes;
+        assert_eq!(&bytes[offset..offset + 8], &201u64.to_le_bytes());
+    }
+    #[cfg(feature = "linked-allocation-qualification")]
+    {
+        page.rows[0].linked_charges = [73, 101];
+        bytes.clear();
+        crate::wire::write_discriminated(&page, &mut bytes).unwrap();
+        let offset = 203 + payout_bytes + btc_bytes;
+        assert_eq!(&bytes[offset..offset + 8], &73u64.to_le_bytes());
+        assert_eq!(&bytes[offset + 8..offset + 16], &101u64.to_le_bytes());
+    }
+    #[cfg(feature = "populated-recovery-qualification")]
+    {
+        page.rows[0].original_debtor_budgets = [17, 29];
+        page.original_budget_attempt = 31;
+        bytes.clear();
+        crate::wire::write_discriminated(&page, &mut bytes).unwrap();
+        let offset = 203 + extra_row_bytes - budgets_bytes;
+        assert_eq!(&bytes[offset..offset + 8], &17u64.to_le_bytes());
+        assert_eq!(&bytes[offset + 8..offset + 16], &29u64.to_le_bytes());
+        assert_eq!(&bytes[size - 9..size - 1], &31u64.to_le_bytes());
+    }
     assert_eq!(bytes[66], 1);
     assert_eq!(&bytes[75..107], fixture.member_keys[0].as_ref());
     assert_eq!(&bytes[163..179], &(-8_750_000_000i128).to_le_bytes());

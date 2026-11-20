@@ -9,7 +9,7 @@ import {fixed} from '../../apps/trader/src/amount.js';
 import {AccountRuntime,type AccountWorkerOutcome} from '../../packages/services/src/account-runtime.js';
 import {json} from '../../packages/indexer/src/events.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
-import {goldenShape} from './canonical-maker-cases.js';
+import {symmetricPayoutShape} from './canonical-maker-cases.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {backingStep} from './membership-scan-helper.js';
@@ -23,8 +23,6 @@ const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 const SCALE=1_000_000_000n;
-const region=[{endLots:4096n,offset:2n,slope:0n},...Array.from({length:7},()=>({endLots:0n,offset:0n,slope:0n}))];
-const shape={...goldenShape,skewTick:0n,longCap:4096n,shortCap:4096n,bidCount:1,askCount:1,bids:region,asks:region};
 let indexer:LiquidityIndexer|undefined, replay:LiquidityIndexer|undefined;
 let api:ReturnType<typeof accountApi>|undefined, runtime:AccountRuntime|undefined;
 async function checkpoint(service:LiquidityIndexer) {
@@ -36,7 +34,7 @@ async function checkpoint(service:LiquidityIndexer) {
   throw new Error('Ordinary payout indexer did not publish a reconciled snapshot');
 }
 try {
-  const setup=await liquidityExecutionSetup(h,rpc,{shape,verifyRejections:false});
+  const setup=await liquidityExecutionSetup(h,rpc,{shape:symmetricPayoutShape,verifyRejections:false});
   const [trader]=setup.roots, owner=setup.traderOwner, first=setup.instances[0], second=setup.instances[2];
   assert.notEqual(first.pricingProgram,second.pricingProgram);
   assert.notEqual(first.capital,second.capital);

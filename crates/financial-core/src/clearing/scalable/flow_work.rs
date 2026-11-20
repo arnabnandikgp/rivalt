@@ -62,6 +62,7 @@ pub struct FlowWork {
     ordinal: u64,
     member_id: u64,
     row: Row,
+    collection_row: Row,
     stage: u8,
     market: usize,
     used: [u64; 16],
@@ -91,6 +92,27 @@ impl FlowWork {
         member_id: u64,
         row: Row,
     ) -> Result<Self> {
+        Self::new_bound(binding, ordinal, member_id, row, row)
+    }
+
+    pub fn new_reduction(
+        binding: VerifiedRateValues,
+        ordinal: u64,
+        member_id: u64,
+        original: Row,
+        effective: Row,
+    ) -> Result<Self> {
+        super::collection::validate_reduction(&original, &effective)?;
+        Self::new_bound(binding, ordinal, member_id, original, effective)
+    }
+
+    fn new_bound(
+        binding: VerifiedRateValues,
+        ordinal: u64,
+        member_id: u64,
+        original: Row,
+        row: Row,
+    ) -> Result<Self> {
         if ordinal >= binding.count {
             return Err(Error::Bounds);
         }
@@ -101,7 +123,8 @@ impl FlowWork {
             ordinal,
             member_id,
             row,
-            stage: if row.collected()? == 0 {
+            collection_row: original,
+            stage: if original.collected()? == 0 {
                 SELECT_MARKET
             } else {
                 BASE
@@ -153,7 +176,7 @@ impl FlowWork {
         let task = match self.stage {
             BASE => Task::Number(
                 Operation::Divide {
-                    divisor: ReducedCollection::for_row(&self.row)?.denominator,
+                    divisor: ReducedCollection::for_row(&self.collection_row)?.denominator,
                 },
                 self.binding.common,
                 Self::zero(),
@@ -166,7 +189,7 @@ impl FlowWork {
             ),
             OWN_COEFFICIENT => self.multiply(
                 self.value(28),
-                &ReducedCollection::for_row(&self.row)?.numerators[market],
+                &ReducedCollection::for_row(&self.collection_row)?.numerators[market],
                 29,
             ),
             OWN_SCALED => self.multiply(self.value(29), &self.binding.factor, 30),
@@ -180,7 +203,7 @@ impl FlowWork {
                 &scalar(
                     self.row.claims[market]
                         .unsigned_abs()
-                        .checked_sub(u128::from(self.row.collected()?) * SCALE as u128)
+                        .checked_sub(u128::from(self.collection_row.collected()?) * SCALE as u128)
                         .ok_or(Error::Invariant)?,
                 ),
                 32,
@@ -213,7 +236,7 @@ impl FlowWork {
                 &[self
                     .row
                     .cash
-                    .checked_sub(self.row.collected()?)
+                    .checked_sub(self.collection_row.collected()?)
                     .ok_or(Error::Invariant)?],
                 35,
             ),
@@ -306,7 +329,7 @@ impl FlowWork {
                         self.market += 1;
                     } else if self.row.claims[self.market] > 0 {
                         self.stage = POSITIVE;
-                    } else if self.row.collected()? == 0 {
+                    } else if self.collection_row.collected()? == 0 {
                         self.used[(30 - FIRST_REGISTER) as usize] = 0;
                         self.stage = SELECT_LINK;
                     } else {
@@ -440,7 +463,8 @@ impl FlowWork {
     }
     pub fn checkpoint(&self) -> [u8; CHECKPOINT_BYTES] {
         let mut bytes = [0; CHECKPOINT_BYTES];
-        bytes[0] = 1;
+        bytes[0] =
+            super::collection::encode_basis(self.row, self.collection_row, &mut bytes[736..]);
         bytes[1] = self.stage;
         bytes[2] = self.market as u8;
         bytes[3] = match self.pending {
@@ -501,7 +525,6 @@ impl FlowWork {
     /// and checkpoint must be authenticated by the frozen-cohort controller.
     pub fn from_checkpoint(bytes: &[u8], binding: VerifiedRateValues) -> Result<Self> {
         if bytes.len() != CHECKPOINT_BYTES
-            || bytes[0] != 1
             || bytes[1] > DONE
             || bytes[2] > 2
             || bytes[3] > 3
@@ -511,7 +534,6 @@ impl FlowWork {
                 .chain(&bytes[20..24])
                 .chain(&bytes[324..328])
                 .chain(&bytes[339..352])
-                .chain(&bytes[736..])
                 .any(|byte| *byte != 0)
         {
             return Err(Error::Bounds);
@@ -527,7 +549,8 @@ impl FlowWork {
                 )
             }),
         };
-        let mut work = Self::new(binding, read(104), read(112), row)?;
+        let original = super::collection::decode_basis(bytes[0], row, &bytes[736..])?;
+        let mut work = Self::new_bound(binding, read(104), read(112), original, row)?;
         if bytes[8..104] != work.checkpoint()[8..104] {
             return Err(Error::Bounds);
         }
@@ -594,7 +617,7 @@ impl FlowWork {
                     RECOVERED | CAPACITY | COMPARE_LINK | COMBINE_LINK
                 ) && work.row.claims[1 - work.market] <= 0)
                 || (work.stage == COPY_OWN && work.row.claims[1 - work.market] > 0)
-                || (work.stage == BASE && work.row.collected()? == 0)
+                || (work.stage == BASE && work.collection_row.collected()? == 0)
             {
                 return Err(Error::Bounds);
             }

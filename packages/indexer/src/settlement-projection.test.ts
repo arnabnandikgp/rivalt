@@ -3,6 +3,7 @@ import * as sdk from '@rivalt/sdk';
 import {accountFields,projectAccounts,reconcileAccountLedger,type AccountState} from './account-projection.js';
 import {emptyLiquidity} from './liquidity-projection.js';
 import type {AccountEvent} from './account-events.js';
+import {reconcileSettlementScratch} from './settlement-reconcile.js';
 const zero='11111111111111111111111111111111',scale=1_000_000_000n;
 function fixture() {
   const state=emptyLiquidity(),blank=<T>(decoder:{fixedSize:number;decode(bytes:Uint8Array):T})=>accountFields(decoder.decode(new Uint8Array(decoder.fixedSize)));
@@ -32,8 +33,8 @@ const progress=(overrides:any={})=>({venue:'venue',slot:'1',epoch:'3',plan:'plan
   remainingCash:'1',appliedCash:'0',marketMovements:['0','0'],gross:['0','0'],pools:['0','0'],insurance:['3','0'],insuranceSpent:['0','0'],
   fees:['2','0'],ledgerVersions:['1','1'],liabilityVersions:['1','1'],insuranceFeeRemainders:'0000',allocated:'6',actualVault:'6',
   resolutionStage:14,mode:2,paused:true,safetyEpoch:'7',...overrides});
-function emit(state:AccountState,type:AccountEvent['type'],data:any) {
-  projectAccounts(state,{type,data,signature:'signature',outer:0,inner:0,ordinal:0,slot:1,blockTime:1,bytes:''},'venue','00'.repeat(32));
+function emit(state:AccountState,type:AccountEvent['type'],data:any,artifactSet?:string) {
+  projectAccounts(state,{type,data,signature:'signature',outer:0,inner:0,ordinal:0,slot:1,blockTime:1,bytes:''},'venue','00'.repeat(32),4,artifactSet);
 }
 function apply(state:AccountState,id:number) {
   const previous=state.roots[`root${id}`],root=structuredClone(previous);
@@ -42,7 +43,98 @@ function apply(state:AccountState,id:number) {
   return {venue:'venue',slot:'1',epoch:'3',ordinal:String(id),id:String(id),member:`root${id}`,cashBefore:previous.cash,
     claims:[((id===0?-2n:1n)*scale).toString(),'0'],lots:['0','0'],flows:[id===2?'0':'1','0'],state:root};
 }
+function linkedBook() {
+  const state=fixture(), source=state.resolution!;
+  source.prices=['50000','20000'];source.insuranceBefore=['9','1'];source.remainingGross=['2','2'];source.count='4';
+  source.cashBefore='19976';source.remainingCash='19976';source.allocatedBefore='19988';
+  state.custody!.allocatedVault=source.allocatedBefore;
+  state.ledgers.bl.insurance='9';state.ledgers.el.insurance='1';
+  state.markets.btc.grossLots='2';state.markets.eth.grossLots='2';
+  state.registeredCount='4';state.nextMemberId='4';
+  state.roots.root0.cash=source.cashBefore;
+  state.roots.flat=structuredClone(state.roots.root1);state.roots.flat.id='3';
+  state.members.push('flat');state.identities['3']='flat';
+  const terms=[
+    ['root0',1,-10002,1,-10002], ['root1',-1,5006,0,0],
+    ['root2',0,0,-1,10002], ['flat',0,4996,0,0],
+  ] as const;
+  for(const [key,btcLots,btcClaim,ethLots,ethClaim] of terms) {
+    for(const [market,[lots,claim]] of [[btcLots,btcClaim],[ethLots,ethClaim]].entries()) {
+      const position=state.roots[key].positions[market];
+      position.lots=String(lots);
+      position.virtualScaled=String((BigInt(claim)-BigInt(lots)*BigInt(source.prices[market]))*scale);
+    }
+  }
+  return state;
+}
 describe('paged default independent one-atom ownership',()=>{
+  it('authenticates the whole flat BTC claim only on the corresponding linked deployment',()=>{
+    const state=linkedBook(),source=state.resolution!;
+    const event={venue:'venue',epoch:'3',debtorId:'0',winners:['1','2'],shares:['9988','9988'],charges:['5','13'],
+      eligible:['5006','10002'],matchedLots:['1','1'],basePrices:['50005','20013'],extraTickLots:['0','0']};
+    const applyJoint=(snapshot:AccountState,artifactSet:string)=>emit(snapshot,'FrozenJointReductionVerified',event,artifactSet);
+    expect(()=>applyJoint(structuredClone(state),sdk.LINKED_PAIR_ARTIFACT_SET)).toThrow('sole creditor');
+    const foreign=structuredClone(state);foreign.roots.flat.positions[1].virtualScaled='1';
+    expect(()=>applyJoint(foreign,sdk.LINKED_FLAT_ARTIFACT_SET)).toThrow('flat BTC creditor identity and face');
+    applyJoint(state,sdk.LINKED_FLAT_ARTIFACT_SET);
+    expect(source.joint?.charges).toEqual(['5','13']);
+  });
+  it('requires both totals and canonical identities before accepting a restarted linked attempt',()=>{
+    const state=linkedBook();
+    const applyRow=(attempt:number,ordinal:number,btc:number,eth:number,status:number,snapshot=state)=>{
+      const term=(amount:number,market:number)=>amount===0?'0':String([50000,20000][market]+amount);
+      emit(snapshot,'FrozenLinkedAllocationRow',{venue:'venue',epoch:'3',ordinal:String(ordinal),attempt:String(attempt),
+        memberId:String(ordinal),debtorId:'0',shares:['9988','9988'],targets:['5','13'],
+        eligible:[ordinal===1?'5006':'0',ordinal===2?'10002':'0'],charges:[String(btc),String(eth)],
+        matchedLots:[btc?'1':'0',eth?'1':'0'],basePrices:[term(btc,0),term(eth,1)],extraTickLots:['0','0'],status},
+        sdk.LINKED_ALLOCATION_ARTIFACT_SET);
+    };
+    applyRow(11,0,0,0,0);
+    expect(()=>applyRow(11,2,0,13,0,structuredClone(state))).toThrow('linked scan binding');
+    applyRow(11,1,0,0,0);applyRow(11,2,0,13,0);
+    expect(()=>applyRow(11,3,0,0,1,structuredClone(state))).toThrow('linked proof outcome');
+    applyRow(11,3,0,0,2);
+    expect(()=>applyRow(11,0,0,0,0,structuredClone(state))).toThrow('new linked attempt');
+    applyRow(19,0,0,0,0);applyRow(19,1,5,0,0);applyRow(19,2,0,13,0);
+    expect(()=>applyRow(19,3,1,0,1,structuredClone(state))).toThrow('eligible linked terms');
+    applyRow(19,3,0,0,1);
+    expect(state.resolution?.linkedAllocation?.recovered).toEqual(['5','13']);
+  });
+  it('reads the flow owner from frozen membership after registration gaps',async()=>{
+    const state=fixture();emit(state,'SettlementPlanProgress',progress());
+    const resolution=state.resolution!,id='9007199254740993';
+    resolution.rows={[id]:resolution.rows['0']};
+    state.pagedSettlement!.count='1';
+    const venue=sdk.CLEARING_PROGRAM_ADDRESS;
+    const [key,bump]=await sdk.deriveSettlementLimbPage(venue,64,0n);
+    const encode=(owner:bigint)=>{
+      const words=Array<bigint>(256).fill(0n);words[0]=owner;words[1]=1n;
+      return Buffer.from(sdk.getSettlementLimbPageEncoder().encode({schemaVersion:10,revision:1,epoch:3,
+        venue,attempt:1,register:64,pageIndex:0,wordCount:7,bump,payload:{words}}));
+    };
+    await reconcileSettlementScratch(key,21,encode(BigInt(id)),state,{venue,program:venue},[id]);
+    await expect(reconcileSettlementScratch(key,21,encode(0n),state,{venue,program:venue},[id])).rejects.toThrow();
+  });
+  it('keeps unapplied root claims separate from the verified payout basis between paired members',()=>{
+    const state=fixture(),source=state.resolution!;
+    state.ledgers.bl.insurance='0';source.insuranceBefore=['0','0'];source.budgets=['0','0'];
+    state.custody!.allocatedVault='3';source.allocatedBefore='3';
+    const debtor=state.roots.root0.positions[0],winner=state.roots.root1.positions[0];
+    debtor.lots='-1';debtor.virtualScaled=String(8n*scale);
+    winner.lots='1';winner.virtualScaled=String(-9n*scale);
+    source.remainingGross=['2','0'];state.markets.btc.grossLots='2';
+    emit(state,'FrozenPairVerified',{epoch:'3',mark:'10',price:'9',charge:'1',unpaidGainCap:'1',
+      venue:'venue',debtorId:'0',winnerId:'1'});
+    emit(state,'SettlementPlanProgress',progress({gross:['2','0'],insurance:['0','0'],allocated:'3',actualVault:'3'}));
+    const paid=apply(state,0);paid.claims[0]=String(-scale);paid.lots[0]='-1';paid.state.positions[0].lots='0';
+    emit(state,'SettlementMarginApplied',paid);
+    expect(source.remainingClaims[0]).toBe(String(2n*scale));
+    expect(source.rows['0'].claimsScaled[0]).toBe(String(-2n*scale));
+    const charged=apply(state,1);charged.claims[0]='0';charged.lots[0]='1';
+    charged.flows[0]='0';charged.state.cash='0';charged.state.positions[0].lots='0';
+    emit(state,'SettlementMarginApplied',charged);
+    expect(source.remainingClaims[0]).toBe(String(scale));
+  });
   it('replays partial cash/claims, protected buckets, complete reconciliation and terminal accounting',()=>{
     const state=fixture();emit(state,'SettlementPlanProgress',progress());
     for(let id=0;id<3;id++) {
@@ -71,4 +163,23 @@ describe('paged default independent one-atom ownership',()=>{
     const next=structuredClone(source),original=apply(next,0);emit(next,'SettlementMarginApplied',original);
     expect(()=>emit(next,'SettlementMarginApplied',original)).toThrow('next Apply');
   });
+});
+
+it('binds complete joint charge pages to the frozen member order and market insurance',()=>{
+  const profile=sdk.JOINT_PAYMENT_ARTIFACT_SET;
+  const copied={venue:'venue',epoch:'3',slot:'1',payment:'payment',first:'0',memberIds:['0','1','2'],
+    chargeAtoms:['1','0'],insuranceSpent:['1','0'],deltas:[['1','0'],['-1','0'],['0','0']]};
+  const accept=(state:AccountState,change= copied)=>emit(state,'JointClaimsCopied',change,profile);
+  for(const change of [
+    {...copied,first:'1'}, {...copied,memberIds:['1','0','2']},
+    {...copied,deltas:[['-1','0'],['1','0'],['0','0']]},
+    {...copied,chargeAtoms:['2','0']}, {...copied,insuranceSpent:['4','0']},
+  ])expect(()=>accept(fixture(),change)).toThrow();
+  const state=fixture();
+  accept(state);
+  expect(state.resolution?.jointPayment?.deltas).toEqual(copied.deltas);
+  expect(()=>accept(structuredClone(state))).toThrow();
+  expect(()=>emit(structuredClone(state),'SettlementPlanProgress',progress(),profile)).toThrow(/insurance/);
+  emit(state,'SettlementPlanProgress',progress({insuranceSpent:['1','0']}),profile);
+  expect(state.pagedSettlement?.insuranceSpent).toEqual(['1','0']);
 });

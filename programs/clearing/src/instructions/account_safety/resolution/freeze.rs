@@ -110,6 +110,8 @@ pub fn freeze(
     require!(remaining_accounts.is_empty(), ClearingError::Resolution);
     let accounts = &mut ctx.accounts;
     let identity = &mut *accounts.identity;
+    #[cfg(feature="aggregate-fee-qualification")]
+    { crate::market_fees::clean(&mut identity.btc_ledger)?; crate::market_fees::clean(&mut identity.eth_ledger)?; }
     profile(&identity)?;
     let header = &mut accounts.resolution;
     require!(
@@ -125,6 +127,11 @@ pub fn freeze(
     let registry_hash = registry_hash(&accounts.registry)?;
     let clock = Clock::get()?;
     let bounds = sources(identity, &accounts.sources, clock.unix_timestamp)?;
+    #[cfg(feature="checked-funding-prefix")]
+    {
+        crate::market_funding::canonical(&mut identity.btc,&clock)?;
+        crate::market_funding::canonical(&mut identity.eth,&clock)?;
+    }
     account_trading::materialize([&mut identity.btc, &mut identity.eth], &clock)?;
     let funding = [
         identity.btc.funding_index_scaled,

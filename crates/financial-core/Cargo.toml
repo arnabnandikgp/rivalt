@@ -14,3 +14,17 @@ path = "src/lib.rs"
 [lints.rust]
 # Solana platform-tools adds this target OS to its patched Rust compiler.
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+
+
+[features]
+parallel-market-prototype = []
+# Explicitly meter the vector-backed reference on a local diagnostic SBF only.
+sbf-settlement-measurement = []
+
+[[example]]
+name = "gross_capacity_replay"
+required-features = ["parallel-market-prototype"]
+
+[[example]]
+name = "funding_prefix_replay"
+required-features = ["parallel-market-prototype"]

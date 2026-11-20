@@ -1122,6 +1122,12 @@ The [source map](clearing/risk-and-resolution.md#risk-equations-in-code) traces
 withdrawal and liquidation. The [matched comparison](operations/validation.md#whole-account-risk-engine-extraction)
 records the cost of moving the existing rules.
 
+On 20 November, paired whole-account fills moved to `financial_core::route`,
+forced reductions and receiver fees to `financial_core::liquidation`, and
+ordinary claim booking to `financial_core::settlement`. Compatibility exports
+preserve the existing Rust call paths. Both the native helper and clearing now
+use the program’s whole-account debt test before collection. [Financial source map](clearing/README.md#trace-a-financial-transition).
+
 ## D116 — Maximize recovery, then share the charge proportionally
 
 18 November 2026. For the D112 successor, the user selected the rule for several
@@ -1158,6 +1164,11 @@ separate the two protections. The [individual payout comparison](clearing/archit
 demonstrates why the successor must check each actual foreign claim payment as
 well. D118 selects the rounding rule. Linked simultaneous reductions remain an
 implementation gate.
+
+The [signed foreign-winner comparison](operations/validation.md#btc-winner-with-an-eth-debt)
+also distinguishes two proposals with equal rounded cash. When a BTC winner
+owes ETH, a BTC-only charge cannot lower the ETH creditor's recovery. A
+separately verified direct ETH charge changes that creditor's protected floor.
 
 ## D118 — Protected rounding for foreign creditor payouts
 
@@ -1269,3 +1280,275 @@ and separately consenting receiver. The keeper pays its transaction costs in
 this prototype. Absence of a quote or receiver leaves the existing freeze
 predicate in force. The candidate runs on its separately hashed local deployment.
 Activation, automated route selection and keeper compensation remain open.
+
+## D125 — Refundable attribution capacity
+
+19 November 2026. Implement D123 in the bounded local candidate with one current
+rent contributor per margin extension. The owner consents to growth and the payer
+signs a maximum total debit, including any principal paid directly to a previous
+contributor. The validated previous contributor may be absent. Exact reimbursement
+passes the existing refund right to the new payer. Credit only the observed rent
+top-up. Pre-existing SOL donations stay with the margin root. A flat owner or
+contributor can release the extension to the recorded contributor without
+requiring any other party to return. Open positions, outstanding reservations
+and the frozen episode retain capacity. Principal is denominated in lamports.
+
+Use a fresh isolated deployment for the [qualification](operations/validation.md#sponsored-profit-capacity).
+The 256-byte test ceiling applies to this binary. Larger widths require measured
+compute and recovery on large exact histories.
+
+## D126 — Bind a verified forced close to the frozen settlement
+
+19 November 2026. In the local successor, clearing verifies the pair after
+complete valuation and retains its terms in the prepared header until the next
+episode. Both original roots and frozen rows remain available to authenticate
+custody and explain the change to creditors. The existing paged solver reads
+the adjusted obligations. Its aggregate rates, individual payments, adoption
+and root application share one episode and one charge. Workers may restart or
+change proposer without choosing the terms again.
+
+The first [financial proof](clearing/default-plan-verification.md#single-btc-pair-in-financial-clearing)
+admits one opposing BTC lot, one debtor, whole claims, no ETH obligations and
+full recovery of any verified shortfall. D112–D122 govern the economics. This
+restricted candidate has its own artifact selection and native page helper.
+
+The succeeding BTC-only proof retains both original roots and records a compact
+two-price lot schedule. With only one debtor and one opposite position, the
+maximum recoverable whole charge and fewest matched lots follow directly from
+the recorded per-lot gain. Remaining loss follows D112. Its
+[separate signed qualification](operations/validation.md#btc-residual-recovery)
+includes zero gain, insufficient gain and a three-lot charge.
+
+The multi-winner BTC candidate verifies a single cutoff against every original
+member. Winner charges reside alongside original frozen rows until the next
+episode. A rejected cutoff cannot release a payment, and a worker needs no prior
+proposer's signature to continue. The [cutoff proof](clearing/default-plan-verification.md#one-btc-debtor-and-several-winning-accounts)
+applies D116 and D121 to one market with enough opposing lots.
+
+## D127 — Frozen member order for an exact BTC/ETH market reflection
+
+19 November 2026. The user approved D121 member priority for the remaining
+trade-off when the two markets and the competing plans are exact reflections.
+First apply the existing D116–D120 financial admissibility and recovery
+comparisons. Both plans must recover the same amount and spend the same
+insurance in each labelled market. A single reversible mapping of the complete
+membership must exchange the two markets’ original economic inputs,
+settlements, charges, paired fills and individual exact and rounded receipts.
+The original baseline must also reflect under that mapping. Unequal trade-offs
+stay uncertified.
+
+The mapping proves symmetry. The original stable member IDs determine priority.
+Compare winner charges, then individual pair charges, using D121’s venue and
+episode order. Keep the original market order within each member. Retries of
+the same episode select the same result. D122 still requires proof of the
+winning plan and full settlement before any cash can be released.
+[Verification and example](clearing/default-plan-verification.md#when-the-two-markets-trade-places).
+
+## D128 — Joint release for a fully recoverable frozen book
+
+19 November 2026. A separate local clearing candidate may admit a joint plan
+when one cross debtor and one winner per market exhaust the frozen claims and
+positions. Both markets must have a whole original cash allocation, a positive
+shortfall after insurance and enough eligible opposing gain to cover it all.
+Each winning account must have zero claims and inventory in the other market.
+Under these conditions there is one maximum-recovery charge per market and all
+remaining claims receive face value. The first verified leg records progress.
+The second completes the joint certificate and releases settlement work.
+Wallet exit still requires full-cohort application and reconciliation.
+
+This implements D117 and D119 for a family whose eligibility can be proved
+from complete snapshot totals and two original maker positions. D127 governs
+exact mirror ties in larger books. [Certificate and limits](clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
+
+## D129 — Certify the closed BTC creditor from the frozen cohort
+
+19 November 2026. In the local linked recovery candidate, D128 also applies
+when one additional trader has closed every position and holds a whole BTC
+claim with zero ETH claim. One cross debtor still owns all debt and its entire
+side of each market. Each opposing maker holds its entire side. The BTC maker
+and flat trader must account for the complete positive BTC total. The ETH maker
+must own all ETH credit. Clearing must cover both shortfalls in full under the
+original cash split before settlement can pay the effective claims at face.
+
+The complete member scan records the largest observed whole BTC claim on a flat
+account with no ETH claim. The equality with the total proves that this one
+account holds the entire remainder. This avoids adding the trader as a writable
+account on either certificate transaction. D116 still selects the only eligible
+open winner in each market. [Verification contract](clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
+
+## D130 — Verify competing winners against one cutoff per market
+
+19 November 2026. For a local candidate with one cross debtor, market-local
+creditors, exact whole-atom cash shares and full recovery in both markets, use
+one resumable member scan for the two D116 cutoffs. All financial release waits
+for both exact totals. This extends the sole-open-winner proof in D128/D129 to
+competing makers under the same D117 cash attribution and D119 joint commitment.
+A permissionless caller can resume a submitted attempt. An incorrect total
+discards its authority and permits a new proposal. Candidate qualification
+covers the signed book recorded in validation. [Verification contract](clearing/default-plan-verification.md#linked-allocation-across-competing-winners).
+
+## D131 — Verify the two linked charges in one frozen-book instruction
+
+19 November 2026. For the bounded local family where a BTC winner owes the
+sole ETH creditor, verify the complete financial shape from the finished
+valuation and four original members. Admit only the joint maximum whose
+executable schedules, exact entitlements, rounded receipts and insurance
+usage all satisfy D116–D120. The complete frozen scan remains resumable.
+Once the scan finishes, a single transaction can certify both markets.
+No keeper-selected allocation or additional settlement account is necessary.
+[Proof and supported scope](clearing/default-plan-verification.md#atomic-certificate-for-one-cross-market-creditor-chain).
+
+## D132 — Bind both debtor budgets and both opposing lots in one certificate
+
+19 November 2026. In the bounded, fully covered two-debtor BTC case, clearing
+authenticates the entire market exposure and both winners' original lots.
+A single prepared-settlement receipt commits both assignments before payment.
+Each debtor keeps its own original post-insurance budget and each winning lot
+can satisfy one debtor. The same receipt determines every downstream rate and
+member claim. D116 and D121 govern selection and ties.
+[Verification and release scope](clearing/default-plan-verification.md#shared-single-lot-inventory).
+
+## D133 — Compare disjoint one-lot assignments when neither can cover every loss
+
+20 November 2026. For the bounded two-debtor BTC build, compare both possible
+pairings under D116 and D121. A positive charge must fund a whole-lot execution.
+A zero charge leaves that lot unused and carries a zero fill price. Flat BTC
+creditors share the remaining backing under ordinary terminal rounding. The
+new local receipt marker distinguishes these terms from D132’s full-coverage
+certificate. [Proof and eligibility](clearing/default-plan-verification.md#when-one-of-the-two-winning-lots-has-little-eligible-gain).
+
+## D134 — Authenticate the active single-lot matching from frozen rows
+
+20 November 2026. A separate local clearing candidate captures eligible BTC
+gain during valuation, then verifies the complete active one-lot book in one
+transaction. The worker supplies financial ordinals and canonical pages.
+Clearing computes the D116/D121 assignment and commits the charge to both
+members before rate verification can begin. Flat positive BTC creditors retain
+their claims. The checkpoint binds both winning capacities and the exact fill
+schedule to the frozen episode for journal replay.
+[State and limits](clearing/default-plan-verification.md#binding-the-single-lot-assignment-to-clearing).
+
+## D135 — Size inventory verification to the frozen pages it authenticates
+
+20 November 2026. The separate local book-capacity candidate sizes its
+revision scope from the supplied pages and their encoded event size. The
+journal validates the instruction and exact account roles before accepting a
+larger scope. The keeper budgets a 128 KiB heap specifically for this
+certificate, in both transaction formats and during batch simulation. Signed
+cases exposed two separate limits in the original verifier. A sparse book
+exhausted revision slots and a dense book exhausted the default SVM heap.
+This decision concerns verification resources. D116 and D121 still determine
+the financial assignment. [Measured cases](operations/validation.md#active-positions-and-frozen-page-placement).
+
+## D136 — Bind multi-lot recovery to the complete original BTC book
+
+20 November 2026. The local multi-lot candidate records the whole-claim check
+for every frozen BTC member and a two-word rate derived from each original
+winning position. Clearing may release the compact result when all recovery,
+sharing, lot and member-order bounds meet. The prepared receipt fixes all fills
+before any member can receive funded cash. The worker cannot substitute its
+own off-chain search result when the short proof is inconclusive.
+[State and arithmetic](clearing/default-plan-verification.md#how-the-multi-lot-clearing-certificate-binds-the-inputs).
+
+## D137 — Verify the market insurance share before spending it
+
+20 November 2026. The approved local prototype lets each fill certify its full
+taker fee. The market earns exactly one insurance atom for each four cumulative
+fee atoms. Before fees can be allocated or withdrawn, or insurance can enter a
+default snapshot or retirement, clearing checks complete market collections.
+Anyone can request that check. A trade's individual insurance attribution can be
+reconstructed from finalized transaction and invocation order. The cash allocation,
+insurance ownership and 2 bps taker fee stay the same under any valid fill order.
+
+The fresh prototype uses one cumulative counter in each of the market's three
+sealed maker registrations. A two-maker fill increments only the first counter.
+The market ledger holds unclassified fees in escrow so the existing vault
+reconciliation continues to work. This first measurement retains both shared
+BTC writes. The selected deployment still certifies insurance on each fill.
+[Accounting](clearing/accounting.md#aggregate-market-fee-prototype).
+
+## D138 — Read current market totals from bounded clearing accounts
+
+20 November 2026. The user approved a fresh local prototype in which an on-chain
+consumer reads a bounded set of clearing-owned accounts for current market
+totals. A fill must still prove the exact common gross cap from reserved
+headroom. Its receipt may identify local changes. A checkpoint exposed from a
+single market account must be labelled as such. Funding must preserve the last
+valid materialized prefix through an outage. Profit payments still require the
+complete backing proof at consumption. Only verified financial effects can be
+published by the SDK and indexer. Deployment promotion requires separate
+end-to-end evidence. [Comparison](operations/performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills).
+
+The qualified prototype keeps a serial comparison and fallback during this
+transition. Its public view derives gross from the capacity accounts. The cap
+remains enforced on every fill. [Signed view, receiver and recovery checks](operations/validation.md#signed-bounded-market-gross).
+
+The local checked-funding implementation places a selected-market fill's
+checkpoint on the already writable first maker registration. When the fill
+also materializes the other market it checkpoints that market directly.
+Each publisher can reconstruct its own market with three read-only maker
+accounts and the market anchor. A cross fill still writes the sibling market.
+[Signed cost and funding evidence](operations/validation.md#clearing-verified-funding-checkpoints).
+
+The read-only route applies D138 to a single-market immediate trade during a
+held observation. A consumer can atomically fold current values into the market
+and use them in the next instruction. Clearing enforces adjacency, the target
+market and the invocation level. The ordinary route continues to handle
+cross-market dependencies and capacity redistribution on the prototype.
+[Account contract](clearing/accounts.md#read-only-market-on-a-local-fill).
+
+Under D137/D138, the local ledger prototype attributes verified contribution
+changes to the first registration of the executing route. A member may use a
+different maker on its next fill. A complete bounded read sums the signed
+changes across the three registrations before applying them to the original
+ledger. Clearing checks that same set before classification, payment or freeze.
+[Account contract](clearing/accounts.md#read-only-ledger-on-a-local-fill).
+
+## D139 — Bind joint recovery inside clearing before applying cash
+
+20 November 2026. The fresh local eight-member qualification makes clearing
+verify both markets and the complete frozen membership itself. Any payer may
+supply a proposed schedule and computation witnesses. Clearing checks every
+unexcluded alternative before it can seal that proposal. The binding operation
+rechecks the frozen revision against the venue, vault, markets and ledgers.
+It records the verified per-member claim changes, market payments and final
+cash together. A keeper cannot substitute the ordinary rounding result when it
+differs from a protected payout. The application still has to reconcile both
+markets and custody before a wallet can withdraw.
+
+This implements D117–D122 for the admitted one-page case. The prior diagnostic
+established selection costs and the family-specific certificates established
+wallet payouts separately. Neither was a general payout authority. Larger
+cohorts, further insurance rounds and unresolved financial trade-offs still
+require their own proof before release.
+
+The 20 November paged implementation extends D139 on a fresh opt-in build.
+The prepared header identifies the sealed search and records market totals.
+Each original frozen row stores its own payout. Clearing installs them in one
+transaction after checking both canonical pages, their complete membership
+and conservation by market. This keeps the header size independent of the
+member result table. Application and withdrawal retain their separate
+checks. [Paged receipt contract](clearing/default-plan-verification.md#paged-recovery-receipt-in-the-local-candidate).
+
+## D140 — retain P56 as the normal local runtime
+
+20 November 2026. The combined successor is an explicit qualification build.
+P56 has a verified exit with 128 populated Financial accounts. The successor
+stores frozen payouts across pages, but it still keeps captured members, budgets,
+weights and the selected cash vector in one 10,240-byte search account.
+At 128 members the generated encoder requires at least 16,781 bytes before
+including any position history, eligible pair, rate or rounding order.
+A larger compute budget cannot make the serialized state fit.
+
+Keep P56 in the normal local launcher. Promotion requires a recovery design
+that can represent that population and a signed complete-cohort exit with
+independent reconciliation. The candidate remains available for bounded
+experiments. [Reproduction and probes](operations/local-development.md#combined-local-successor-qualification).
+
+On 21 November the opt-in partitioned build authenticated both markets' charge
+terms for 128 members across 16 pages. The signed book's exact rate numerators
+needed 152 bits and the current enumeration needed a 33,322-bit rank. The
+population gate therefore also needs a comparison certificate that can prove
+the agreed winner without enumerating the full mixed-radix range. Moving inputs
+to pages alone cannot authorize this cohort's payout. D122 continues to govern
+release. [Measured freeze](operations/validation.md#populated-successor-recovery-inputs)

@@ -606,3 +606,186 @@ pub struct CompleteSettlementPlan {
         constraint=plan.venue == *source.venue.address() && plan.epoch == epoch @ ClearingError::Resolution)]
     pub plan: Box<BorshAccount<SettlementPlan>>,
 }
+
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct VerifyFrozenPair {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&debtor_page.page_index.to_le_bytes()],bump=debtor_page.bump)]
+    pub debtor_page: Box<BorshAccount<FrozenMarginPage>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&winner_page.page_index.to_le_bytes()],bump=winner_page.bump)]
+    pub winner_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"margin-v3",debtor.portfolio.as_ref(),&debtor.subaccount_index.to_le_bytes()],bump=debtor.bump,
+        constraint=debtor.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub debtor: Box<BorshAccount<MarginAccount>>,
+    #[account(seeds=[b"margin-v3",winner.portfolio.as_ref(),&winner.subaccount_index.to_le_bytes()],bump=winner.bump,
+        constraint=winner.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub winner: Box<BorshAccount<MarginAccount>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct AdvanceBtcAllocation {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(mut,seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page.page_index.to_le_bytes()],bump=page.bump)]
+    pub page: Box<BorshAccount<FrozenMarginPage>>,
+    #[account(seeds=[b"margin-v3",margin.portfolio.as_ref(),&margin.subaccount_index.to_le_bytes()],bump=margin.bump,
+        constraint=margin.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub margin: Box<BorshAccount<MarginAccount>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct VerifyForeignCreditors {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&first_page.page_index.to_le_bytes()],bump=first_page.bump)]
+    pub first_page: Box<BorshAccount<FrozenMarginPage>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&second_page.page_index.to_le_bytes()],bump=second_page.bump)]
+    pub second_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&third_page.page_index.to_le_bytes()],bump=third_page.bump)]
+    pub third_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&fourth_page.page_index.to_le_bytes()],bump=fourth_page.bump)]
+    pub fourth_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"margin-v3",cross_winner.portfolio.as_ref(),&cross_winner.subaccount_index.to_le_bytes()],bump=cross_winner.bump,
+        constraint=cross_winner.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub cross_winner: Box<BorshAccount<MarginAccount>>,
+    #[account(seeds=[b"margin-v3",eth_winner.portfolio.as_ref(),&eth_winner.subaccount_index.to_le_bytes()],bump=eth_winner.bump,
+        constraint=eth_winner.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub eth_winner: Box<BorshAccount<MarginAccount>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct VerifySharedInventory {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&first_page.page_index.to_le_bytes()],bump=first_page.bump)]
+    pub first_page: Box<BorshAccount<FrozenMarginPage>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&second_page.page_index.to_le_bytes()],bump=second_page.bump)]
+    pub second_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&third_page.page_index.to_le_bytes()],bump=third_page.bump)]
+    pub third_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&fourth_page.page_index.to_le_bytes()],bump=fourth_page.bump)]
+    pub fourth_page: Option<Box<BorshAccount<FrozenMarginPage>>>,
+    #[account(seeds=[b"margin-v3",first_winner.portfolio.as_ref(),&first_winner.subaccount_index.to_le_bytes()],bump=first_winner.bump,
+        constraint=first_winner.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub first_winner: Box<BorshAccount<MarginAccount>>,
+    #[account(seeds=[b"margin-v3",second_winner.portfolio.as_ref(),&second_winner.subaccount_index.to_le_bytes()],bump=second_winner.bump,
+        constraint=second_winner.venue == *source.venue.address() @ ClearingError::Resolution)]
+    pub second_winner: Box<BorshAccount<MarginAccount>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct VerifyInventoryBook {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+}
+
+use super::recovery::RecoverySearch;
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct BindRecoverySelection{
+    pub source:Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.epoch==epoch @ ClearingError::Resolution)]
+    pub prepared:Box<BorshAccount<PreparedSettlement>>,
+    pub search:Box<BorshAccount<RecoverySearch>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64, page_index:u64)]
+pub struct RecordOriginalBudgets {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
+        constraint=rates.venue == prepared.venue && rates.epoch == epoch @ ClearingError::Resolution)]
+    pub rates: Box<BorshAccount<SettlementRates>>,
+    #[account(mut,seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page_index.to_le_bytes()],bump=page.bump,
+        constraint=page.venue == prepared.venue && page.epoch == epoch && page.page_index == page_index @ ClearingError::Resolution)]
+    pub page: Box<BorshAccount<FrozenMarginPage>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64, page_index:u64)]
+pub struct ScanForeignProtection {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
+        constraint=rates.venue == prepared.venue && rates.epoch == epoch @ ClearingError::Resolution)]
+    pub rates: Box<BorshAccount<SettlementRates>>,
+    #[account(seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page_index.to_le_bytes()],bump=page.bump,
+        constraint=page.venue == prepared.venue && page.epoch == epoch && page.page_index == page_index @ ClearingError::Resolution)]
+    pub page: Box<BorshAccount<FrozenMarginPage>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct BindJointPayment {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
+        constraint=rates.venue == prepared.venue && rates.epoch == epoch @ ClearingError::Resolution)]
+    pub rates: Box<BorshAccount<SettlementRates>>,
+    pub payment: Box<BorshAccount<super::joint_payment::JointPaymentProof>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64,index:u64)]
+pub struct CopyJointClaims {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(mut,seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&index.to_le_bytes()],bump=page.bump,
+        constraint=page.venue == prepared.venue && page.epoch == epoch && page.page_index == index @ ClearingError::Resolution)]
+    pub page: Box<BorshAccount<FrozenMarginPage>>,
+    pub delta_page: Box<BorshAccount<super::joint_payment::JointPaymentPage>>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64,register:u32)]
+pub struct CopyJointRegister {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(mut,seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
+        constraint=rates.venue == prepared.venue && rates.epoch == epoch @ ClearingError::Resolution)]
+    pub rates: Box<BorshAccount<SettlementRates>>,
+    pub payment: Box<BorshAccount<super::joint_payment::JointPaymentProof>>,
+    #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&register.to_le_bytes(),&0u64.to_le_bytes()],bump=page.bump,
+        constraint=page.venue == prepared.venue && page.epoch == epoch && page.page_index == 0 && page.register == register @ ClearingError::Resolution)]
+    pub page: Box<BorshAccount<SettlementLimbPage>>,
+}

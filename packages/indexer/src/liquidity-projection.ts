@@ -1,3 +1,5 @@
+import {isDeepStrictEqual} from 'node:util';
+import {ledgerAfterFill} from './ledger-lane-projection.js';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
 import type {AccountEvent} from './account-events.js';
@@ -5,6 +7,9 @@ import {accountCheck as check, accountFields, emptyAccounts, present, type Accou
 
 type Fields<T> = ReturnType<typeof accountFields<T>>;
 export type LiquidityState = {
+  ledgerCheckpoints?:Record<string,Fields<sdk.MarketLedger>>;
+  marketCheckpoints?:Record<string,{grossLots:string;fundingTime:string;fundingIndexScaled:string}>;
+  feeAccounting?:Record<string,{lanes:Record<string,string>;classified:string;pending:string;lanePending?:Record<string,string>}>;
   registries:Record<string,Fields<sdk.LiquidityRegistry>>;
   makers:Record<string,Fields<sdk.MakerRegistration>>;
   publishers:Record<string,Fields<sdk.FundingPublisher>>;
@@ -17,12 +22,18 @@ const fields = (value:any,names:string[]) => names.map(name=>value[name]);
 
 /** Full critical-event reconstruction. Fast maker price accounts are provisional
  * external inputs, never silently substituted for finalized clearing state. */
-export function projectLiquidity(state:AccountState,event:AccountEvent,financial:FinancialProjection) {
+export function projectLiquidity(state:AccountState,event:AccountEvent,financial:FinancialProjection,artifactSet?:string) {
   const liquidity=present(state.liquidity,'liquidity profile'),venue=present(state.venue,'venue');
   check(venue.profileVersion===6,'liquidity profile');
   const change=event.data;
   const marketIndex=venue.markets.indexOf(change.market??change.state?.market);
   check(marketIndex>=0&&marketIndex<venue.marketCount,'liquidity market');
+  const feesForMarket=()=>{
+    check(sdk.hasAggregateFees(artifactSet),'fee lane deployment');
+    liquidity.feeAccounting??={};
+    return liquidity.feeAccounting[change.market]??={lanes:{},classified:'0',pending:'0'};
+  };
+  const previousLedger=()=>present(Object.values(state.ledgers).find(ledger=>ledger.market===change.market),'fee ledger');
   const maker=(value:any,key?:string) => {
     check(value.schemaVersion===10&&value.venue===change.venue&&value.market===venue.markets[marketIndex]
       &&Number.isInteger(value.instance)&&value.instance>=0&&value.instance<3,'canonical maker identity');
@@ -35,6 +46,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       fields(value,['venue','market','capital','owner','pricingProgram','programData','config','price','instance']),'immutable canonical maker');
     liquidity.makers[canonical]=accountFields<sdk.MakerRegistration>(value);
   };
+  const ledgerLanes=sdk.hasLedgerLanes(artifactSet);
   switch(event.type) {
     case 'LiquidityRegistryChangedV4': {
       const value=change.state;
@@ -77,13 +89,67 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       liquidity.reports[change.market]={publisher:change.publisher,slot:String(event.slot),report:accountFields<sdk.FundingReport>(report)};
       financial.market(change.state,change.market);break;
     }
+    case 'MarketCheckpointed': {
+      check(sdk.hasMarketLanes(artifactSet),'market checkpoint deployment');
+      const logical=present(state.markets[change.market],'current market');
+      same(fields(logical,['grossLots','fundingTime','fundingIndexScaled']),fields(change.state,['grossLots','fundingTime','fundingIndexScaled']),
+        'checkpoint versus committed economic effects');
+      if(liquidity.marketCheckpoints)delete liquidity.marketCheckpoints[change.market];
+      financial.market(change.state,change.market);
+      break;
+    }
+    case 'MarketFeesClassified': {
+      const fees=feesForMarket(), prior=previousLedger();
+      const total=Object.values(fees.lanes).reduce((sum,lane)=>sum+BigInt(lane),0n);
+      const amount=total-BigInt(fees.classified), numerator=BigInt(prior.insuranceFeeRemainder)+amount;
+      same([String(total),String(amount),String(numerator/4n)],[change.classified,change.amount,change.insuranceCredit],'complete market fee checkpoint');
+      same([fees.pending,change.ledger.insurance,change.ledger.fees,change.ledger.insuranceFeeRemainder],
+        [String(amount),String(BigInt(prior.insurance)+numerator/4n),String(BigInt(prior.fees)-numerator/4n),Number(numerator%4n)],'funded insurance reclassification');
+      if(ledgerLanes){
+        check(isDeepStrictEqual(prior.backing,change.ledger.backing),'complete ledger backing checkpoint');
+        same([prior.liabilityVersion,String(BigInt(prior.version)+BigInt(amount>0n))],[change.ledger.liabilityVersion,change.ledger.version],'complete ledger versions');
+        if(liquidity.ledgerCheckpoints)delete liquidity.ledgerCheckpoints[change.ledger.ledger];
+        fees.lanePending={};
+      }
+      Object.assign(fees,{classified:total.toString(),pending:'0'});
+      financial.ledger(change.ledger);
+      break;
+    }
+    case 'LedgerLaneFilled':
+    case 'MarketLaneFilled':
+    case 'LiquidityRouteFeeRecorded':
     case 'LiquidityRouteExecutedV4': {
       check([1,2].includes(change.legs.length)&&change.makerStates.length===change.legs.length&&change.rootStates.length===change.legs.length+1
         &&new Set(change.rootStates.map((value:any)=>value.id)).size===change.rootStates.length
         &&new Set(change.legs.map((leg:any)=>leg.registration)).size===change.legs.length,'canonical route shape');
-      same(BigInt(change.fee),BigInt(change.insuranceCredit)+BigInt(change.retainedFee),'canonical fee partition');
-      check(BigInt(change.insuranceCredit)===(BigInt(change.fee)+BigInt(change.carryBefore))/4n
-        &&BigInt(change.carryAfter)===(BigInt(change.fee)+BigInt(change.carryBefore))%4n,'canonical insurance fee carry');
+      let ledgerAfter=change.ledger;
+      if(event.type!=='LiquidityRouteExecutedV4') {
+        const accounting=feesForMarket(), prior=previousLedger(), lane=change.legs[0].registration;
+        const amount=BigInt(change.fee), collected=BigInt(accounting.lanes[lane]??'0')+amount;
+        const pending=BigInt(accounting.pending)+amount;
+        if(event.type==='LedgerLaneFilled'){
+          check(ledgerLanes&&change.otherLedger.__option==='None','ledger lane deployment and scope');
+          const key=change.ledger.ledger;
+          const {ledger:_,...fields}=change.ledger;
+          const physical={schemaVersion:10,revision:prior.revision,venue:change.venue,...fields};
+          check(isDeepStrictEqual(physical,liquidity.ledgerCheckpoints?.[key]??prior),'read-only ledger snapshot');
+          liquidity.ledgerCheckpoints??={};liquidity.ledgerCheckpoints[key]=physical;
+          accounting.lanePending??={};
+          const lanePending=BigInt(accounting.lanePending[lane]??0)+amount;
+          same([change.lanePending,change.laneCollected],[String(lanePending),String(collected)],'maker fee receipt');
+          accounting.lanePending[lane]=String(lanePending);
+          const {schemaVersion,revision,venue,...updated}=ledgerAfterFill(state,prior,change.rootStates,change.fee);
+          ledgerAfter={ledger:key,...updated};
+        }else same([change.laneCollected,change.marketPending,change.ledger.fees,change.ledger.insurance,change.ledger.insuranceFeeRemainder],
+          [String(collected),String(pending),String(BigInt(prior.fees)+amount),prior.insurance,prior.insuranceFeeRemainder],'funded fee escrow');
+        accounting.lanes[lane]=String(collected);
+        accounting.pending=String(pending);
+      } else {
+        check(!sdk.hasAggregateFees(artifactSet),'unexpected serial fee receipt');
+        same(BigInt(change.fee),BigInt(change.insuranceCredit)+BigInt(change.retainedFee),'canonical fee partition');
+        check(BigInt(change.insuranceCredit)===(BigInt(change.fee)+BigInt(change.carryBefore))/4n
+          &&BigInt(change.carryAfter)===(BigInt(change.fee)+BigInt(change.carryBefore))%4n,'canonical insurance fee carry');
+      }
       let lots=0n,gross=0n;
       for(const [index,leg] of change.legs.entries()) {
         const previous=present(liquidity.makers[leg.registration],'route maker'),next=change.makerStates[index];
@@ -96,13 +162,34 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
         maker(next,leg.registration);lots+=BigInt(leg.lots);gross+=BigInt(leg.gross);
       }
       same(lots,BigInt(change.lots),'route lots sum');same(gross,BigInt(change.grossQuote),'route notional sum');
+      let marketAfter=change.marketState;
+      if(event.type==='MarketLaneFilled'||event.type==='LedgerLaneFilled'){
+        check(sdk.hasMarketLanes(artifactSet)&&change.otherMarketState.__option==='None','local market lane scope');
+        const logical=present(state.markets[change.market],'current market'),cached=change.marketState;
+        const physical={grossLots:cached.grossLots,fundingTime:cached.fundingTime,fundingIndexScaled:cached.fundingIndexScaled};
+        const prior=liquidity.marketCheckpoints?.[change.market]??logical;
+        const names=['grossLots','fundingTime','fundingIndexScaled'];
+        same(fields(prior,names),fields(physical,names),'read-only market checkpoint');
+        const abs=(quantity:bigint)=>quantity<0n?-quantity:quantity;
+        let grossLots=BigInt(logical.grossLots);
+        for(const row of change.rootStates){
+          const old=present(state.roots[state.identities[row.id]],'previous trading account');
+          grossLots+=abs(BigInt(row.positions[marketIndex].lots))-abs(BigInt(old.positions[marketIndex].lots));
+        }
+        const oracle=logical.oracle,through=BigInt(change.through);
+        check(through>=BigInt(oracle.sampledAt)&&through<=BigInt(oracle.heldUntil),'lane funding time');
+        same(BigInt(change.index),BigInt(oracle.fundingBase)+BigInt(oracle.premiumScaled)*(through-BigInt(oracle.sampledAt))/3600n,'lane funding index');
+        liquidity.marketCheckpoints??={};
+        liquidity.marketCheckpoints[change.market]=physical;
+        marketAfter={...cached,grossLots:String(grossLots),fundingTime:change.through,fundingIndexScaled:change.index};
+      }
       change.rootStates.forEach((value:any)=>financial.root(value));
-      financial.market(change.marketState,change.market);
+      financial.market(marketAfter,change.market);
       if(change.otherMarketState.__option==='Some') {
         check(change.otherMarketState.value.index!==change.marketState.index,'distinct route market snapshots');
         financial.market(change.otherMarketState.value);
       } else check(change.otherMarketState.__option==='None','optional route market snapshot');
-      financial.ledger(change.ledger);
+      financial.ledger(ledgerAfter);
       if(change.otherLedger.__option==='Some') {
         check(change.otherLedger.value.marketIndex!==change.ledger.marketIndex,'distinct route ledgers');
         financial.ledger(change.otherLedger.value);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {address,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
+import {automaticLiquidation} from './maker-liquidation-worker.js';
 import {quantityCandidates} from './quantity-candidates.js';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
@@ -14,24 +15,30 @@ import {accountDefaultBatch,defaultBatchComputeBudget} from './account-default-b
 export const CANONICAL_DEFAULT_AUTOMATION_READY=true;
 
 export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receiver?:Address):Promise<AccountWorkerOutcome> {
+  if(runtime.deploymentSelection==='read-only-market-candidate'||runtime.deploymentSelection==='read-only-ledger-candidate')return {status:'blocked',reason:'market-lane-qualification-only'};
+  if(runtime.deploymentSelection==='funding-prefix-candidate')return {status:'blocked',reason:'funding-qualification-only'};
   const budget=await runtime.budget('risk',key);
   if(await runtime.pendingBudget(budget))return {status:'blocked',reason:'original-risk-intent-pending'};
-  const submit=async(id:string,instruction:Instruction|Instruction[],resolution=false,authority:AccountAuthority|null=null)=>{
+  const submit=async(id:string,instruction:Instruction|Instruction[],resolution=false,authority:AccountAuthority|null=null,computeUnitLimit?:1_350_000)=>{
     try {
       // Frozen continuation has no invented expiry proof. Unknown originals hold
       // the budget; history/reconciliation must resolve them before any new wire.
-      await runtime.enqueue(`risk:${id}`,[resolution?(Array.isArray(instruction)?defaultBatchComputeBudget():sdk.resolutionComputeBudget()):sdk.liquidationComputeBudget(),...(Array.isArray(instruction)?instruction:[instruction])],key,budget,authority,true);
+      const compute=Array.isArray(instruction) ? defaultBatchComputeBudget()
+        : resolution ? sdk.resolutionComputeBudget(computeUnitLimit) : sdk.liquidationComputeBudget();
+      await runtime.enqueue(`risk:${id}`,[compute,...(Array.isArray(instruction)?instruction:[instruction])],key,budget,authority,true);
       return true;
     } catch(error) {if(error instanceof Error&&error.message==='Risk action presently unavailable')return false;throw error;}
   };
   // An already frozen source supplies complete membership authority. Continuing
   // it needs immutable deployment binding, not fresh live candidate discovery.
-  if(runtime.deploymentSelection==='account-scale-candidate'||runtime.deploymentSelection==='selected') {
+  const selection=runtime.deploymentSelection;
+  const frozenOnly=['profit-attribution-candidate','sponsored-profit-candidate','verified-pair-candidate','btc-residual-candidate','btc-allocation-candidate','linked-pair-candidate','linked-flat-candidate','linked-allocation-candidate','paged-recovery-candidate','recovery-search-candidate','foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate','book-inventory-candidate','book-capacity-candidate'].includes(selection)||sdk.isMultiLotDeployment(selection);
+  if(selection==='account-scale-candidate'||selection==='selected'||frozenOnly) {
     const binding=await runtime.environment(),frozen=await readAccountResolution(runtime.rpc,address(binding.venue));
     if([2,14].includes(frozen.header.stage)) {
       const step=await accountDefaultStep(runtime,key,frozen,await accountDefaultContext(runtime.rpc,frozen));
       if(step.status==='blocked')return step;
-      if((runtime.defaultContinuationSteps??1)>1) {
+      if((runtime.defaultContinuationSteps??1)>1 && !step.id.startsWith('recovery:')) {
         const batch=await accountDefaultBatch(runtime,key,frozen,step,runtime.defaultContinuationSteps);
         if(batch.steps.length) {
           return await submit(`${step.id}:batch:${batch.steps.length}`,batch.steps.map(value=>value.instruction),true)?
@@ -39,10 +46,12 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
         }
         // No original was queued. The scalar path performs its own guarded preflight.
       }
-      return await submit(step.id,step.instruction,true)?{status:'queued',reason:step.reason}:
+      return await submit(step.id,step.instruction,true,null,step.computeUnitLimit)?{status:'queued',reason:step.reason}:
         {status:'blocked',reason:'default-step-presently-unavailable'};
     }
   }
+  if(selection==='local-successor-candidate'||selection==='integrated-recovery-candidate')return automaticLiquidation(runtime,key,budget,receiver);
+  if(frozenOnly)return {status:'blocked',reason:'candidate-frozen-continuation-only'};
   const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
   const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;
   const common={...snapshot,...continuation,...accountRiskSources(snapshot)};

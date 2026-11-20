@@ -1,3 +1,4 @@
+import * as paged from '@rivalt/sdk/paged-recovery';
 import * as sdk from '@rivalt/sdk';
 import {eventPayloads, json, PROGRAM, type JournalEvent} from './events.js';
 import {scopedInvocations, decodeTransition, type ScopedInvocation} from './scoped-events.js';
@@ -7,6 +8,18 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['JointClaimsCopied',sdk.JOINT_CLAIMS_COPIED_EVENT_DISCRIMINATOR,sdk.getJointClaimsCopiedEventDecoder()],
+  ['PagedRecoverySelectionBound',paged.PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,paged.getPagedRecoverySelectionBoundEventDecoder()],
+  ['RecoverySelectionBound',sdk.RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,sdk.getRecoverySelectionBoundEventDecoder()],
+  ['MultiLotBookVerified',sdk.MULTI_LOT_BOOK_VERIFIED_EVENT_DISCRIMINATOR,sdk.getMultiLotBookVerifiedEventDecoder()],
+  ['InventoryBookVerified',sdk.INVENTORY_BOOK_VERIFIED_EVENT_DISCRIMINATOR,sdk.getInventoryBookVerifiedEventDecoder()],
+  ['SharedInventoryVerified',sdk.SHARED_INVENTORY_VERIFIED_EVENT_DISCRIMINATOR,sdk.getSharedInventoryVerifiedEventDecoder()],
+  ['ForeignCreditorsVerified',sdk.FOREIGN_CREDITORS_VERIFIED_EVENT_DISCRIMINATOR,sdk.getForeignCreditorsVerifiedEventDecoder()],
+  ['FrozenJointReductionVerified',sdk.FROZEN_JOINT_REDUCTION_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenJointReductionVerifiedEventDecoder()],
+  ['FrozenLinkedAllocationRow',sdk.FROZEN_LINKED_ALLOCATION_ROW_EVENT_DISCRIMINATOR,sdk.getFrozenLinkedAllocationRowEventDecoder()],
+  ['FrozenBtcAllocationRow',sdk.FROZEN_BTC_ALLOCATION_ROW_EVENT_DISCRIMINATOR,sdk.getFrozenBtcAllocationRowEventDecoder()],
+  ['FrozenBtcReductionVerified',sdk.FROZEN_BTC_REDUCTION_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenBtcReductionVerifiedEventDecoder()],
+  ['FrozenPairVerified',sdk.FROZEN_PAIR_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenPairVerifiedEventDecoder()],
   ['MarginMembershipChanged', sdk.MARGIN_MEMBERSHIP_CHANGED_EVENT_DISCRIMINATOR, sdk.getMarginMembershipChangedEventDecoder()],
   ['RecoveryStorageRefunded', sdk.RECOVERY_STORAGE_REFUNDED_EVENT_DISCRIMINATOR, sdk.getRecoveryStorageRefundedEventDecoder()],
   ['SettlementPlanProgress', sdk.SETTLEMENT_PLAN_PROGRESS_EVENT_DISCRIMINATOR, sdk.getSettlementPlanProgressEventDecoder()],
@@ -15,6 +28,11 @@ const decoders = [
   ['LiquidityMakerChangedV4', sdk.LIQUIDITY_MAKER_CHANGED_EVENT_DISCRIMINATOR, sdk.getLiquidityMakerChangedEventDecoder()],
   ['FundingPublisherChangedV4', sdk.FUNDING_PUBLISHER_CHANGED_EVENT_DISCRIMINATOR, sdk.getFundingPublisherChangedEventDecoder()],
   ['FundingReportAcceptedV4', sdk.FUNDING_REPORT_ACCEPTED_EVENT_DISCRIMINATOR, sdk.getFundingReportAcceptedEventDecoder()],
+  ['LiquidityRouteFeeRecorded', sdk.LIQUIDITY_ROUTE_FEE_RECORDED_EVENT_DISCRIMINATOR, sdk.getLiquidityRouteFeeRecordedEventDecoder()],
+  ['MarketCheckpointed',sdk.MARKET_CHECKPOINTED_EVENT_DISCRIMINATOR,sdk.getMarketCheckpointedEventDecoder()],
+  ['LedgerLaneFilled',sdk.LEDGER_LANE_FILLED_EVENT_DISCRIMINATOR,sdk.getLedgerLaneFilledEventDecoder()],
+  ['MarketLaneFilled',sdk.MARKET_LANE_FILLED_EVENT_DISCRIMINATOR,sdk.getMarketLaneFilledEventDecoder()],
+  ['MarketFeesClassified', sdk.MARKET_FEES_CLASSIFIED_EVENT_DISCRIMINATOR, sdk.getMarketFeesClassifiedEventDecoder()],
   ['LiquidityRouteExecutedV4', sdk.LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR, sdk.getLiquidityRouteExecutedEventDecoder()],
   ['AccountAuthorityChangedV3', sdk.ACCOUNT_AUTHORITY_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountAuthorityChangedEventDecoder()],
   ['AccountBackingChangedV3', sdk.ACCOUNT_BACKING_CHANGED_EVENT_DISCRIMINATOR, sdk.getAccountBackingChangedEventDecoder()],

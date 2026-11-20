@@ -402,3 +402,45 @@ retain exact negative/fractional claims and any required reservations. Recovered
 Custody/Resolved/Retired cash exits need flat/no-claim/no-live-order state, not
 virgin nonces/generations or invented fresh prices. Frozen partial resolution
 permits no ordinary cash mutation.
+
+## Aggregate market fee prototype
+
+The local D137 candidate collects the full charged fee into market escrow. The
+first maker registration on a route records that fee in a lifetime u128 counter.
+Those counters certify collection. They confer no right to withdraw the funds.
+The ledger prefix field `fees` includes escrow. Only `fees − pending` is earned
+treasury cash. The ledger extension stores a u128 classified lifetime total and
+a u64 pending balance. Existing market insurance, voluntary deposits and prior
+spending stay separately accounted.
+
+`ClassifyMarketFees` reads the three canonical registrations in instance order.
+Let T be their sum and P the last classified lifetime total. Clearing requires
+T − P to equal pending. Of this difference it credits insurance
+`floor((pending + carry) / 4)`, retains the rest, saves the remainder modulo four
+and clears pending. Repeating a completed checkpoint credits zero. Treasury,
+default freeze and retirement require clean ledgers. A caller can classify both
+markets and freeze atomically. Subsequent default settlement spends the verified
+snapshot while trading is frozen. The lifetime counters never reset on a payout.
+This account layout is bound to a separate local artifact and fresh venue.
+
+## Reserved gross capacity
+
+On the D138 local candidate, gross is the sum of the absolute position lots of
+all margin accounts in one market. The exact read subtracts unused capacity of
+the three makers from the common 200,000,000-lot cap. A new generation divides
+the free capacity equally, assigning the indivisible remainder in increasing
+maker-instance order. A registration from an earlier generation inherits its
+share of this starting distribution. A newer-than-market generation is invalid.
+
+Each fill consumes the increase in absolute lots across the trader and every
+distinct maker. A reduction returns its decrease to the first maker's lane.
+For a two-maker route the first lane accounts for the entire delta once. The
+trader can exit against a different maker and leave gross open among the makers.
+
+The candidate also maintains the serial gross in the market prefix for existing
+financial consumers and as an independent comparison. If the first maker lacks
+the required capacity, the serialized route checks the whole market cap and
+starts a new generation at the resulting gross. A consenting receiver transfer
+and each default member application also rebase at their exact resulting gross.
+A fill still writes the market and ledger. Only the capacity view is read-only.
+[Account layout](accounts.md#bounded-market-gross-on-the-local-candidate).

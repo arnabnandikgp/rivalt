@@ -78,3 +78,6 @@ export function deriveFrozenMarginPage(venue:Address,page:bigint,programAddress:
 export function deriveSettlementLimbPage(venue:Address,register:number,page:bigint,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
   return derive('resolution-limbs',[encoder.encode(venue),namespaceIndexBytes(register),memberIndexBytes(page)],programAddress);
 }
+export function derivePairOrderPage(certificate:Address,role:0|1,page:bigint,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
+  return derive('pair-order',[encoder.encode(certificate),Uint8Array.of(role),memberIndexBytes(page)],programAddress);
+}

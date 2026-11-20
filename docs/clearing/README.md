@@ -39,6 +39,15 @@ risk engine and other financial domains. The [risk source map](risk-and-resoluti
   [financial core](../../crates/financial-core/src/) and
   [independent expectations](../../tests/financial/).
 
+### Trace a financial transition
+
+| Action | Financial rule | Where clearing enforces it |
+|---|---|---|
+| Open or close a position | [Route accounting](../../crates/financial-core/src/route.rs) accrues every participant, applies matched inventory and quote deltas, and charges the cumulative taker fee. | [Route engine](../../programs/clearing/src/engine/routes.rs) checks order reservations and whole-account admission before committing the candidate. |
+| Force a reduction | [Liquidation](../../crates/financial-core/src/liquidation.rs) owns the adverse maker price, post-fee progress and paired funded receiver transfer. [Risk engine](../../crates/risk-engine/src/lib.rs) supplies equity and maintenance requirements. | [Maker route](../../programs/clearing/src/instructions/maker_liquidity/routes/liquidation.rs) checks a forced fill. [Receiver adapter](../../programs/clearing/src/engine/risk.rs) checks sources, consent through its caller, receiver margin and strict progress. |
+| Turn a claim into cash | [Settlement](../../crates/financial-core/src/settlement.rs) books whole atoms against the originating pool. Collection checks cash against all negative market claims. | [Claim handler](../../programs/clearing/src/instructions/account_cash/claims.rs) authenticates the backing certificate. [Cash adapter](../../programs/clearing/src/instructions/account_cash/engine.rs) refreshes the account, checks post-payment margin and advances its guards. |
+| Allocate a frozen shortfall | [Default settlement](../../crates/financial-core/src/clearing/) computes market-attributed recoveries. | [Resolution controller](../../programs/clearing/src/instructions/account_safety/settlement/) authenticates the frozen members, verifies the plan and applies balances. |
+
 The account-scale RC2 local profile uses schema-10 clearing accounts under immutable
 profile 6, paged Financial membership and maintained ordinary-payment backing.
 Its launcher provisions recovery capacity for 128 Financial roots; registration

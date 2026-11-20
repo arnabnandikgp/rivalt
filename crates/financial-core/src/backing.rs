@@ -295,6 +295,14 @@ impl Summary {
     }
 }
 
+#[cfg(feature = "parallel-market-prototype")]
+#[path = "backing_partitions.rs"]
+pub mod partitions;
+
+#[cfg(feature = "parallel-market-prototype")]
+#[path = "backing_changes.rs"]
+pub mod changes;
+
 fn scalar(value: u128) -> Result<ClaimTotal> {
     ClaimTotal::from_words([value as u64, (value >> 64) as u64, 0])
 }

@@ -167,32 +167,19 @@ pub(crate) fn claim_candidate(
     let model = crate::engine::account::model(&next)?;
     require!(model.allows(market), ClearingError::Profile);
     let claims = snapshot.claims(model)?;
-    let scaled = checked(math::scaled(amount))?;
-    let pool = if gain {
-        require!(
-            claims[market] >= scaled && pool >= amount,
-            ClearingError::Amount
-        );
-        next.cash = checked(math::cash_add(next.cash, amount))?;
-        next.positions[market].virtual_scaled =
-            subtract(next.positions[market].virtual_scaled, scaled)?;
+    let booked = math::settlement::book_claim(&model, claims, market, amount, gain, pool)
+        .map_err(|error| ProgramError::from(match error {
+            math::Error::Entitlement => ClearingError::Amount,
+            math::Error::Cohort => ClearingError::ExitCohort,
+            _ => ClearingError::Arithmetic,
+        }))?;
+    next.cash = booked.cash;
+    next.positions[market].virtual_scaled = booked.virtual_scaled;
+    if gain {
         checked(crate::engine::account::model(&next)?.admissible(snapshot.risks))?;
-        checked(math::cash_sub(pool, amount))?
-    } else {
-        let debt = claims
-            .into_iter()
-            .try_fold(0i128, |total, claim| add(total, subtract(0, claim.min(0))?))?;
-        require!(
-            checked(math::scaled(model.cash))? >= debt,
-            ClearingError::ExitCohort
-        );
-        require!(claims[market] <= -scaled, ClearingError::Amount);
-        next.cash = checked(math::cash_sub(next.cash, amount))?;
-        next.positions[market].virtual_scaled = add(next.positions[market].virtual_scaled, scaled)?;
-        checked(math::cash_add(pool, amount))?
-    };
+    }
     advance(&mut next)?;
-    Ok((next, pool))
+    Ok((next, booked.pool))
 }
 
 pub(crate) fn net_candidate(

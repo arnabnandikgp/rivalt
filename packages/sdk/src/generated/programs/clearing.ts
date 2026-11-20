@@ -40,6 +40,8 @@ import {
   getCustodyCodec,
   getFrozenMarginPageCodec,
   getFundingPublisherCodec,
+  getJointPaymentPageCodec,
+  getJointPaymentProofCodec,
   getLiquidityRegistryCodec,
   getMakerRegistrationCodec,
   getMarginAccountCodec,
@@ -48,8 +50,11 @@ import {
   getMarketLedgerCodec,
   getMemberIndexNodeCodec,
   getMemberPageCodec,
+  getPairOrderPageCodec,
+  getPairScheduleProofCodec,
   getPortfolioCodec,
   getPreparedSettlementCodec,
+  getRecoverySearchCodec,
   getRecoveryStorageCodec,
   getResolutionCodec,
   getRetirementCertificateCodec,
@@ -62,6 +67,7 @@ import {
   getVenueCodec,
   getVenueRegistryCodec,
   getVenueSafetyCodec,
+  getWinnerAllocationProofCodec,
   type CapitalBinding,
   type CapitalBindingArgs,
   type Custody,
@@ -70,6 +76,10 @@ import {
   type FrozenMarginPageArgs,
   type FundingPublisher,
   type FundingPublisherArgs,
+  type JointPaymentPage,
+  type JointPaymentPageArgs,
+  type JointPaymentProof,
+  type JointPaymentProofArgs,
   type LiquidityRegistry,
   type LiquidityRegistryArgs,
   type MakerRegistration,
@@ -86,10 +96,16 @@ import {
   type MemberIndexNodeArgs,
   type MemberPage,
   type MemberPageArgs,
+  type PairOrderPage,
+  type PairOrderPageArgs,
+  type PairScheduleProof,
+  type PairScheduleProofArgs,
   type Portfolio,
   type PortfolioArgs,
   type PreparedSettlement,
   type PreparedSettlementArgs,
+  type RecoverySearch,
+  type RecoverySearchArgs,
   type RecoveryStorage,
   type RecoveryStorageArgs,
   type Resolution,
@@ -114,6 +130,8 @@ import {
   type VenueRegistryArgs,
   type VenueSafety,
   type VenueSafetyArgs,
+  type WinnerAllocationProof,
+  type WinnerAllocationProofArgs,
 } from "../accounts/index.js";
 import {
   getAcceptDenominatorRowInstructionAsync,
@@ -122,16 +140,28 @@ import {
   getActivateLiquidityInstructionAsync,
   getActivateMarginInstructionAsync,
   getAdoptSettlementPlanInstructionAsync,
+  getAdvanceBtcAllocationInstructionAsync,
+  getAdvanceJointPaymentInstruction,
+  getAdvanceLinkedAllocationInstructionAsync,
   getAdvancePreparedMembershipInstructionAsync,
+  getAdvanceWinnerProofInstruction,
   getAllocateMarketFeesInstructionAsync,
+  getAppendPairOrderInstruction,
   getApplySettlementMarginInstructionAsync,
   getApproveLiquidityInstructionAsync,
   getBeginRecoveryProvisionInstructionAsync,
   getBeginSettlementPlanOrderInstructionAsync,
   getBeginSettlementRateProposalInstructionAsync,
+  getBindJointPaymentInstructionAsync,
+  getBindRecoverySelectionInstructionAsync,
   getCancelRecoveryProvisionInstructionAsync,
+  getCaptureJointPaymentInstructionAsync,
+  getCaptureMemberInstruction,
   getCheckAccountRetirementInstructionAsync,
   getCheckMarketBackingInstructionAsync,
+  getCheckPairMembersInstruction,
+  getCheckpointMarketInstructionAsync,
+  getClassifyMarketFeesInstructionAsync,
   getClassifyMarketSurplusInstructionAsync,
   getCollectAccountLossInstructionAsync,
   getCompleteSettlementApplicationInstructionAsync,
@@ -142,11 +172,18 @@ import {
   getContinueSettlementPlanWindowInstructionAsync,
   getContinueSettlementRatesInstructionAsync,
   getControlLiquidityInstructionAsync,
+  getCopyJointClaimsInstructionAsync,
+  getCopyJointRegisterInstructionAsync,
+  getCoverPlanInstruction,
+  getCoverRangeInstruction,
   getCreatePortfolioInstructionAsync,
   getDeactivateMarginInstructionAsync,
   getDepositAccountInstructionAsync,
+  getDerivePairsInstruction,
+  getExecuteLedgerLaneInstructionAsync,
   getExecuteLiquidityOrderInstructionAsync,
   getExecuteLiquidityRouteInstructionAsync,
+  getExecuteMarketLaneInstructionAsync,
   getFreezeAccountsInstructionAsync,
   getFundMemberIndexInstructionAsync,
   getFundMemberPageInstructionAsync,
@@ -170,14 +207,22 @@ import {
   getLiquidateAccountInstructionAsync,
   getLiquidateLiquidityRouteInstructionAsync,
   getManageAccountOrderInstructionAsync,
+  getManageProfitCapacityInstructionAsync,
+  getMatchPairPageInstruction,
   getNetAccountClaimsInstructionAsync,
+  getOpenJointPaymentInstructionAsync,
+  getOpenPairScheduleInstructionAsync,
+  getOpenSearchInstructionAsync,
+  getOpenWinnerProofInstructionAsync,
   getPauseVenueInstructionAsync,
   getPayAccountGainInstructionAsync,
   getPrepareSettlementRateScratchInstructionAsync,
   getPublishFundingReportInstructionAsync,
   getQuarantineLiquidityInstructionAsync,
   getReactivateAccountsInstructionAsync,
+  getReadMarketGrossInstructionAsync,
   getReconcileSettlementMarginInstructionAsync,
+  getRecordOriginalBudgetsInstructionAsync,
   getRecoverAccountsInstructionAsync,
   getRefundRecoveryAllocationInstructionAsync,
   getRegisterLiquidityInstructionAsync,
@@ -187,7 +232,9 @@ import {
   getResetSettlementRateProposalInstructionAsync,
   getRetireAccountsInstructionAsync,
   getRetireMarginInstructionAsync,
+  getScanForeignProtectionInstructionAsync,
   getSealLiquidityInstructionAsync,
+  getSealSearchInstruction,
   getSeedMarketInsuranceInstructionAsync,
   getSetAccountDelegateInstructionAsync,
   getTransferAccountCustodyInstructionAsync,
@@ -195,7 +242,12 @@ import {
   getUploadSettlementRateInstructionAsync,
   getValueAccountResolutionInstructionAsync,
   getValuePreparedMemberInstructionAsync,
+  getVerifyForeignCreditorsInstructionAsync,
+  getVerifyFrozenPairInstructionAsync,
+  getVerifyIncumbentInstruction,
+  getVerifyInventoryBookInstructionAsync,
   getVerifyRecoveryAllocationInstructionAsync,
+  getVerifySharedInventoryInstructionAsync,
   getWithdrawAccountCustodyInstructionAsync,
   getWithdrawFundedAccountInstructionAsync,
   getWithdrawMarketFeesInstructionAsync,
@@ -206,16 +258,28 @@ import {
   parseActivateLiquidityInstruction,
   parseActivateMarginInstruction,
   parseAdoptSettlementPlanInstruction,
+  parseAdvanceBtcAllocationInstruction,
+  parseAdvanceJointPaymentInstruction,
+  parseAdvanceLinkedAllocationInstruction,
   parseAdvancePreparedMembershipInstruction,
+  parseAdvanceWinnerProofInstruction,
   parseAllocateMarketFeesInstruction,
+  parseAppendPairOrderInstruction,
   parseApplySettlementMarginInstruction,
   parseApproveLiquidityInstruction,
   parseBeginRecoveryProvisionInstruction,
   parseBeginSettlementPlanOrderInstruction,
   parseBeginSettlementRateProposalInstruction,
+  parseBindJointPaymentInstruction,
+  parseBindRecoverySelectionInstruction,
   parseCancelRecoveryProvisionInstruction,
+  parseCaptureJointPaymentInstruction,
+  parseCaptureMemberInstruction,
   parseCheckAccountRetirementInstruction,
   parseCheckMarketBackingInstruction,
+  parseCheckPairMembersInstruction,
+  parseCheckpointMarketInstruction,
+  parseClassifyMarketFeesInstruction,
   parseClassifyMarketSurplusInstruction,
   parseCollectAccountLossInstruction,
   parseCompleteSettlementApplicationInstruction,
@@ -226,11 +290,18 @@ import {
   parseContinueSettlementPlanWindowInstruction,
   parseContinueSettlementRatesInstruction,
   parseControlLiquidityInstruction,
+  parseCopyJointClaimsInstruction,
+  parseCopyJointRegisterInstruction,
+  parseCoverPlanInstruction,
+  parseCoverRangeInstruction,
   parseCreatePortfolioInstruction,
   parseDeactivateMarginInstruction,
   parseDepositAccountInstruction,
+  parseDerivePairsInstruction,
+  parseExecuteLedgerLaneInstruction,
   parseExecuteLiquidityOrderInstruction,
   parseExecuteLiquidityRouteInstruction,
+  parseExecuteMarketLaneInstruction,
   parseFreezeAccountsInstruction,
   parseFundMemberIndexInstruction,
   parseFundMemberPageInstruction,
@@ -254,14 +325,22 @@ import {
   parseLiquidateAccountInstruction,
   parseLiquidateLiquidityRouteInstruction,
   parseManageAccountOrderInstruction,
+  parseManageProfitCapacityInstruction,
+  parseMatchPairPageInstruction,
   parseNetAccountClaimsInstruction,
+  parseOpenJointPaymentInstruction,
+  parseOpenPairScheduleInstruction,
+  parseOpenSearchInstruction,
+  parseOpenWinnerProofInstruction,
   parsePauseVenueInstruction,
   parsePayAccountGainInstruction,
   parsePrepareSettlementRateScratchInstruction,
   parsePublishFundingReportInstruction,
   parseQuarantineLiquidityInstruction,
   parseReactivateAccountsInstruction,
+  parseReadMarketGrossInstruction,
   parseReconcileSettlementMarginInstruction,
+  parseRecordOriginalBudgetsInstruction,
   parseRecoverAccountsInstruction,
   parseRefundRecoveryAllocationInstruction,
   parseRegisterLiquidityInstruction,
@@ -271,7 +350,9 @@ import {
   parseResetSettlementRateProposalInstruction,
   parseRetireAccountsInstruction,
   parseRetireMarginInstruction,
+  parseScanForeignProtectionInstruction,
   parseSealLiquidityInstruction,
+  parseSealSearchInstruction,
   parseSeedMarketInsuranceInstruction,
   parseSetAccountDelegateInstruction,
   parseTransferAccountCustodyInstruction,
@@ -279,7 +360,12 @@ import {
   parseUploadSettlementRateInstruction,
   parseValueAccountResolutionInstruction,
   parseValuePreparedMemberInstruction,
+  parseVerifyForeignCreditorsInstruction,
+  parseVerifyFrozenPairInstruction,
+  parseVerifyIncumbentInstruction,
+  parseVerifyInventoryBookInstruction,
   parseVerifyRecoveryAllocationInstruction,
+  parseVerifySharedInventoryInstruction,
   parseWithdrawAccountCustodyInstruction,
   parseWithdrawFundedAccountInstruction,
   parseWithdrawMarketFeesInstruction,
@@ -290,16 +376,28 @@ import {
   type ActivateLiquidityAsyncInput,
   type ActivateMarginAsyncInput,
   type AdoptSettlementPlanAsyncInput,
+  type AdvanceBtcAllocationAsyncInput,
+  type AdvanceJointPaymentInput,
+  type AdvanceLinkedAllocationAsyncInput,
   type AdvancePreparedMembershipAsyncInput,
+  type AdvanceWinnerProofInput,
   type AllocateMarketFeesAsyncInput,
+  type AppendPairOrderInput,
   type ApplySettlementMarginAsyncInput,
   type ApproveLiquidityAsyncInput,
   type BeginRecoveryProvisionAsyncInput,
   type BeginSettlementPlanOrderAsyncInput,
   type BeginSettlementRateProposalAsyncInput,
+  type BindJointPaymentAsyncInput,
+  type BindRecoverySelectionAsyncInput,
   type CancelRecoveryProvisionAsyncInput,
+  type CaptureJointPaymentAsyncInput,
+  type CaptureMemberInput,
   type CheckAccountRetirementAsyncInput,
   type CheckMarketBackingAsyncInput,
+  type CheckPairMembersInput,
+  type CheckpointMarketAsyncInput,
+  type ClassifyMarketFeesAsyncInput,
   type ClassifyMarketSurplusAsyncInput,
   type CollectAccountLossAsyncInput,
   type CompleteSettlementApplicationAsyncInput,
@@ -310,11 +408,18 @@ import {
   type ContinueSettlementPlanWindowAsyncInput,
   type ContinueSettlementRatesAsyncInput,
   type ControlLiquidityAsyncInput,
+  type CopyJointClaimsAsyncInput,
+  type CopyJointRegisterAsyncInput,
+  type CoverPlanInput,
+  type CoverRangeInput,
   type CreatePortfolioAsyncInput,
   type DeactivateMarginAsyncInput,
   type DepositAccountAsyncInput,
+  type DerivePairsInput,
+  type ExecuteLedgerLaneAsyncInput,
   type ExecuteLiquidityOrderAsyncInput,
   type ExecuteLiquidityRouteAsyncInput,
+  type ExecuteMarketLaneAsyncInput,
   type FreezeAccountsAsyncInput,
   type FundMemberIndexAsyncInput,
   type FundMemberPageAsyncInput,
@@ -338,23 +443,41 @@ import {
   type LiquidateAccountAsyncInput,
   type LiquidateLiquidityRouteAsyncInput,
   type ManageAccountOrderAsyncInput,
+  type ManageProfitCapacityAsyncInput,
+  type MatchPairPageInput,
   type NetAccountClaimsAsyncInput,
+  type OpenJointPaymentAsyncInput,
+  type OpenPairScheduleAsyncInput,
+  type OpenSearchAsyncInput,
+  type OpenWinnerProofAsyncInput,
   type ParsedAcceptDenominatorRowInstruction,
   type ParsedAcceptSettlementPlanRowInstruction,
   type ParsedAcceptSettlementRateRowInstruction,
   type ParsedActivateLiquidityInstruction,
   type ParsedActivateMarginInstruction,
   type ParsedAdoptSettlementPlanInstruction,
+  type ParsedAdvanceBtcAllocationInstruction,
+  type ParsedAdvanceJointPaymentInstruction,
+  type ParsedAdvanceLinkedAllocationInstruction,
   type ParsedAdvancePreparedMembershipInstruction,
+  type ParsedAdvanceWinnerProofInstruction,
   type ParsedAllocateMarketFeesInstruction,
+  type ParsedAppendPairOrderInstruction,
   type ParsedApplySettlementMarginInstruction,
   type ParsedApproveLiquidityInstruction,
   type ParsedBeginRecoveryProvisionInstruction,
   type ParsedBeginSettlementPlanOrderInstruction,
   type ParsedBeginSettlementRateProposalInstruction,
+  type ParsedBindJointPaymentInstruction,
+  type ParsedBindRecoverySelectionInstruction,
   type ParsedCancelRecoveryProvisionInstruction,
+  type ParsedCaptureJointPaymentInstruction,
+  type ParsedCaptureMemberInstruction,
   type ParsedCheckAccountRetirementInstruction,
   type ParsedCheckMarketBackingInstruction,
+  type ParsedCheckPairMembersInstruction,
+  type ParsedCheckpointMarketInstruction,
+  type ParsedClassifyMarketFeesInstruction,
   type ParsedClassifyMarketSurplusInstruction,
   type ParsedCollectAccountLossInstruction,
   type ParsedCompleteSettlementApplicationInstruction,
@@ -365,11 +488,18 @@ import {
   type ParsedContinueSettlementPlanWindowInstruction,
   type ParsedContinueSettlementRatesInstruction,
   type ParsedControlLiquidityInstruction,
+  type ParsedCopyJointClaimsInstruction,
+  type ParsedCopyJointRegisterInstruction,
+  type ParsedCoverPlanInstruction,
+  type ParsedCoverRangeInstruction,
   type ParsedCreatePortfolioInstruction,
   type ParsedDeactivateMarginInstruction,
   type ParsedDepositAccountInstruction,
+  type ParsedDerivePairsInstruction,
+  type ParsedExecuteLedgerLaneInstruction,
   type ParsedExecuteLiquidityOrderInstruction,
   type ParsedExecuteLiquidityRouteInstruction,
+  type ParsedExecuteMarketLaneInstruction,
   type ParsedFreezeAccountsInstruction,
   type ParsedFundMemberIndexInstruction,
   type ParsedFundMemberPageInstruction,
@@ -393,14 +523,22 @@ import {
   type ParsedLiquidateAccountInstruction,
   type ParsedLiquidateLiquidityRouteInstruction,
   type ParsedManageAccountOrderInstruction,
+  type ParsedManageProfitCapacityInstruction,
+  type ParsedMatchPairPageInstruction,
   type ParsedNetAccountClaimsInstruction,
+  type ParsedOpenJointPaymentInstruction,
+  type ParsedOpenPairScheduleInstruction,
+  type ParsedOpenSearchInstruction,
+  type ParsedOpenWinnerProofInstruction,
   type ParsedPauseVenueInstruction,
   type ParsedPayAccountGainInstruction,
   type ParsedPrepareSettlementRateScratchInstruction,
   type ParsedPublishFundingReportInstruction,
   type ParsedQuarantineLiquidityInstruction,
   type ParsedReactivateAccountsInstruction,
+  type ParsedReadMarketGrossInstruction,
   type ParsedReconcileSettlementMarginInstruction,
+  type ParsedRecordOriginalBudgetsInstruction,
   type ParsedRecoverAccountsInstruction,
   type ParsedRefundRecoveryAllocationInstruction,
   type ParsedRegisterLiquidityInstruction,
@@ -410,7 +548,9 @@ import {
   type ParsedResetSettlementRateProposalInstruction,
   type ParsedRetireAccountsInstruction,
   type ParsedRetireMarginInstruction,
+  type ParsedScanForeignProtectionInstruction,
   type ParsedSealLiquidityInstruction,
+  type ParsedSealSearchInstruction,
   type ParsedSeedMarketInsuranceInstruction,
   type ParsedSetAccountDelegateInstruction,
   type ParsedTransferAccountCustodyInstruction,
@@ -418,7 +558,12 @@ import {
   type ParsedUploadSettlementRateInstruction,
   type ParsedValueAccountResolutionInstruction,
   type ParsedValuePreparedMemberInstruction,
+  type ParsedVerifyForeignCreditorsInstruction,
+  type ParsedVerifyFrozenPairInstruction,
+  type ParsedVerifyIncumbentInstruction,
+  type ParsedVerifyInventoryBookInstruction,
   type ParsedVerifyRecoveryAllocationInstruction,
+  type ParsedVerifySharedInventoryInstruction,
   type ParsedWithdrawAccountCustodyInstruction,
   type ParsedWithdrawFundedAccountInstruction,
   type ParsedWithdrawMarketFeesInstruction,
@@ -429,7 +574,9 @@ import {
   type PublishFundingReportAsyncInput,
   type QuarantineLiquidityAsyncInput,
   type ReactivateAccountsAsyncInput,
+  type ReadMarketGrossAsyncInput,
   type ReconcileSettlementMarginAsyncInput,
+  type RecordOriginalBudgetsAsyncInput,
   type RecoverAccountsAsyncInput,
   type RefundRecoveryAllocationAsyncInput,
   type RegisterLiquidityAsyncInput,
@@ -439,7 +586,9 @@ import {
   type ResetSettlementRateProposalAsyncInput,
   type RetireAccountsAsyncInput,
   type RetireMarginAsyncInput,
+  type ScanForeignProtectionAsyncInput,
   type SealLiquidityAsyncInput,
+  type SealSearchInput,
   type SeedMarketInsuranceAsyncInput,
   type SetAccountDelegateAsyncInput,
   type TransferAccountCustodyAsyncInput,
@@ -447,7 +596,12 @@ import {
   type UploadSettlementRateAsyncInput,
   type ValueAccountResolutionAsyncInput,
   type ValuePreparedMemberAsyncInput,
+  type VerifyForeignCreditorsAsyncInput,
+  type VerifyFrozenPairAsyncInput,
+  type VerifyIncumbentInput,
+  type VerifyInventoryBookAsyncInput,
   type VerifyRecoveryAllocationAsyncInput,
+  type VerifySharedInventoryAsyncInput,
   type WithdrawAccountCustodyAsyncInput,
   type WithdrawFundedAccountAsyncInput,
   type WithdrawMarketFeesAsyncInput,
@@ -459,18 +613,26 @@ import {
   findCapitalBindingPda,
   findCertificatePda,
   findCustodyPda,
+  findDeltaPagePda,
   findEthLedgerPda,
   findEthPda,
   findEventAuthorityPda,
+  findFirstMakerRegistrationPda,
   findFundingPublisherPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
   findMarginAccountPda,
   findMarketLedgerPda,
+  findOpenPairScheduleCertificatePda,
+  findPaymentPda,
   findPortfolioPda,
+  findProofPda,
   findReceiptPda,
   findResolutionPda,
+  findSearchPda,
+  findSecondMakerRegistrationPda,
   findStoragePda,
+  findThirdMakerRegistrationPda,
   findVenuePda,
   findVenueRegistryPda,
   findVenueSafetyPda,
@@ -485,6 +647,8 @@ export enum ClearingAccount {
   Custody,
   FrozenMarginPage,
   FundingPublisher,
+  JointPaymentPage,
+  JointPaymentProof,
   LiquidityRegistry,
   MakerRegistration,
   MarginAccount,
@@ -493,8 +657,11 @@ export enum ClearingAccount {
   MarketLedger,
   MemberIndexNode,
   MemberPage,
+  PairOrderPage,
+  PairScheduleProof,
   Portfolio,
   PreparedSettlement,
+  RecoverySearch,
   RecoveryStorage,
   Resolution,
   RetirementCertificate,
@@ -507,6 +674,7 @@ export enum ClearingAccount {
   Venue,
   VenueRegistry,
   VenueSafety,
+  WinnerAllocationProof,
 }
 
 export function identifyClearingAccount(
@@ -556,6 +724,28 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.FundingPublisher;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([191, 60, 195, 229, 56, 217, 228, 61]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.JointPaymentPage;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([133, 174, 189, 222, 241, 218, 129, 212]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.JointPaymentProof;
   }
   if (
     containsBytes(
@@ -649,6 +839,28 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([152, 201, 113, 129, 144, 20, 98, 76]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.PairOrderPage;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([22, 253, 97, 66, 152, 173, 244, 0]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.PairScheduleProof;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([94, 158, 71, 245, 122, 102, 110, 225]),
       ),
       0,
@@ -666,6 +878,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.PreparedSettlement;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([174, 46, 28, 22, 251, 97, 128, 40]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.RecoverySearch;
   }
   if (
     containsBytes(
@@ -799,6 +1022,17 @@ export function identifyClearingAccount(
   ) {
     return ClearingAccount.VenueSafety;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([231, 228, 163, 159, 242, 21, 155, 47]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.WinnerAllocationProof;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
     { accountData: data, programName: "clearing" },
@@ -828,16 +1062,32 @@ export enum ClearingEvent {
   AccountSafetyRecovery,
   AccountTransition,
   AccountsRetired,
+  ForeignCreditorsVerified,
+  FrozenBtcAllocationRow,
+  FrozenBtcReductionVerified,
+  FrozenJointReductionVerified,
+  FrozenLinkedAllocationRow,
+  FrozenPairVerified,
   FundingPublisherChanged,
   FundingReportAccepted,
+  InventoryBookVerified,
+  JointClaimsCopied,
+  LedgerLaneFilled,
   LiquidityMakerChanged,
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
+  LiquidityRouteFeeRecorded,
   MarginMembershipChanged,
+  MarketCheckpointed,
+  MarketFeesClassified,
+  MarketLaneFilled,
+  MultiLotBookVerified,
+  RecoverySelectionBound,
   RecoveryStorageRefunded,
   RetiredReserveWithdrawn,
   SettlementMarginApplied,
   SettlementPlanProgress,
+  SharedInventoryVerified,
 }
 
 export function identifyClearingEvent(
@@ -1090,6 +1340,72 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([88, 41, 81, 231, 183, 115, 237, 120]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.ForeignCreditorsVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([58, 99, 74, 154, 115, 241, 180, 241]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.FrozenBtcAllocationRow;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([52, 208, 115, 207, 151, 136, 172, 57]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.FrozenBtcReductionVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([160, 100, 107, 1, 59, 130, 248, 52]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.FrozenJointReductionVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([95, 209, 104, 77, 144, 55, 147, 10]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.FrozenLinkedAllocationRow;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([1, 178, 227, 95, 165, 67, 16, 148]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.FrozenPairVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([132, 225, 243, 18, 105, 81, 138, 44]),
       ),
       0,
@@ -1107,6 +1423,39 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.FundingReportAccepted;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([95, 101, 202, 50, 193, 199, 200, 34]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.InventoryBookVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([243, 142, 113, 237, 209, 164, 23, 123]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.JointClaimsCopied;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([235, 42, 138, 209, 232, 110, 15, 137]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.LedgerLaneFilled;
   }
   if (
     containsBytes(
@@ -1145,12 +1494,78 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([124, 19, 28, 74, 171, 207, 28, 187]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.LiquidityRouteFeeRecorded;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([11, 17, 246, 185, 107, 17, 174, 47]),
       ),
       0,
     )
   ) {
     return ClearingEvent.MarginMembershipChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([206, 244, 148, 80, 222, 32, 157, 44]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarketCheckpointed;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([216, 80, 14, 69, 228, 102, 106, 197]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarketFeesClassified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([155, 169, 141, 229, 95, 233, 193, 157]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarketLaneFilled;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([169, 89, 5, 88, 68, 151, 202, 85]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MultiLotBookVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([22, 180, 45, 38, 255, 49, 15, 156]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.RecoverySelectionBound;
   }
   if (
     containsBytes(
@@ -1196,6 +1611,17 @@ export function identifyClearingEvent(
   ) {
     return ClearingEvent.SettlementPlanProgress;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([79, 37, 111, 67, 65, 175, 253, 148]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.SharedInventoryVerified;
+  }
   throw new Error(
     "The provided event could not be identified as a clearing event.",
   );
@@ -1208,16 +1634,28 @@ export enum ClearingInstruction {
   ActivateLiquidity,
   ActivateMargin,
   AdoptSettlementPlan,
+  AdvanceBtcAllocation,
+  AdvanceJointPayment,
+  AdvanceLinkedAllocation,
   AdvancePreparedMembership,
+  AdvanceWinnerProof,
   AllocateMarketFees,
+  AppendPairOrder,
   ApplySettlementMargin,
   ApproveLiquidity,
   BeginRecoveryProvision,
   BeginSettlementPlanOrder,
   BeginSettlementRateProposal,
+  BindJointPayment,
+  BindRecoverySelection,
   CancelRecoveryProvision,
+  CaptureJointPayment,
+  CaptureMember,
   CheckAccountRetirement,
   CheckMarketBacking,
+  CheckPairMembers,
+  CheckpointMarket,
+  ClassifyMarketFees,
   ClassifyMarketSurplus,
   CollectAccountLoss,
   CompleteSettlementApplication,
@@ -1228,11 +1666,18 @@ export enum ClearingInstruction {
   ContinueSettlementPlanWindow,
   ContinueSettlementRates,
   ControlLiquidity,
+  CopyJointClaims,
+  CopyJointRegister,
+  CoverPlan,
+  CoverRange,
   CreatePortfolio,
   DeactivateMargin,
   DepositAccount,
+  DerivePairs,
+  ExecuteLedgerLane,
   ExecuteLiquidityOrder,
   ExecuteLiquidityRoute,
+  ExecuteMarketLane,
   FreezeAccounts,
   FundMemberIndex,
   FundMemberPage,
@@ -1256,14 +1701,22 @@ export enum ClearingInstruction {
   LiquidateAccount,
   LiquidateLiquidityRoute,
   ManageAccountOrder,
+  ManageProfitCapacity,
+  MatchPairPage,
   NetAccountClaims,
+  OpenJointPayment,
+  OpenPairSchedule,
+  OpenSearch,
+  OpenWinnerProof,
   PauseVenue,
   PayAccountGain,
   PrepareSettlementRateScratch,
   PublishFundingReport,
   QuarantineLiquidity,
   ReactivateAccounts,
+  ReadMarketGross,
   ReconcileSettlementMargin,
+  RecordOriginalBudgets,
   RecoverAccounts,
   RefundRecoveryAllocation,
   RegisterLiquidity,
@@ -1273,7 +1726,9 @@ export enum ClearingInstruction {
   ResetSettlementRateProposal,
   RetireAccounts,
   RetireMargin,
+  ScanForeignProtection,
   SealLiquidity,
+  SealSearch,
   SeedMarketInsurance,
   SetAccountDelegate,
   TransferAccountCustody,
@@ -1281,7 +1736,12 @@ export enum ClearingInstruction {
   UploadSettlementRate,
   ValueAccountResolution,
   ValuePreparedMember,
+  VerifyForeignCreditors,
+  VerifyFrozenPair,
+  VerifyIncumbent,
+  VerifyInventoryBook,
   VerifyRecoveryAllocation,
+  VerifySharedInventory,
   WithdrawAccountCustody,
   WithdrawFundedAccount,
   WithdrawMarketFees,
@@ -1362,6 +1822,39 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([142, 42, 150, 24, 31, 163, 139, 71]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdvanceBtcAllocation;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([89, 84, 130, 250, 83, 30, 75, 33]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdvanceJointPayment;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([122, 174, 162, 136, 46, 73, 226, 57]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdvanceLinkedAllocation;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([195, 174, 1, 137, 171, 6, 115, 191]),
       ),
       0,
@@ -1373,12 +1866,34 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([215, 142, 209, 169, 150, 231, 157, 189]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdvanceWinnerProof;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([238, 132, 46, 190, 60, 46, 250, 248]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.AllocateMarketFees;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([60, 157, 101, 231, 31, 4, 46, 114]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AppendPairOrder;
   }
   if (
     containsBytes(
@@ -1439,12 +1954,56 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([83, 218, 252, 191, 61, 16, 243, 218]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.BindJointPayment;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([232, 106, 150, 46, 25, 38, 74, 226]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.BindRecoverySelection;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([16, 233, 73, 117, 122, 173, 100, 221]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.CancelRecoveryProvision;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([59, 30, 85, 28, 4, 33, 243, 89]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CaptureJointPayment;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([5, 170, 103, 107, 77, 131, 128, 143]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CaptureMember;
   }
   if (
     containsBytes(
@@ -1467,6 +2026,39 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.CheckMarketBacking;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([249, 200, 134, 170, 37, 118, 75, 216]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CheckPairMembers;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([234, 231, 222, 47, 209, 237, 138, 64]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CheckpointMarket;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([119, 160, 87, 122, 107, 187, 203, 113]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ClassifyMarketFees;
   }
   if (
     containsBytes(
@@ -1582,6 +2174,50 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([211, 81, 170, 171, 165, 168, 79, 166]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CopyJointClaims;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([194, 89, 232, 254, 80, 134, 147, 141]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CopyJointRegister;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([242, 138, 5, 220, 17, 55, 200, 55]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CoverPlan;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([252, 11, 168, 255, 134, 211, 118, 42]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.CoverRange;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([54, 26, 137, 113, 59, 182, 53, 225]),
       ),
       0,
@@ -1615,6 +2251,28 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([14, 127, 240, 66, 47, 0, 249, 198]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.DerivePairs;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([1, 178, 168, 44, 243, 136, 161, 76]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteLedgerLane;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([128, 46, 100, 204, 183, 230, 53, 135]),
       ),
       0,
@@ -1632,6 +2290,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ExecuteLiquidityRoute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([154, 97, 38, 114, 234, 143, 70, 85]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteMarketLane;
   }
   if (
     containsBytes(
@@ -1890,12 +2559,78 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([127, 131, 245, 73, 221, 170, 34, 48]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ManageProfitCapacity;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([81, 157, 33, 185, 253, 163, 80, 40]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.MatchPairPage;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([234, 97, 182, 215, 70, 97, 13, 87]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.NetAccountClaims;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([240, 15, 176, 109, 180, 53, 106, 68]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.OpenJointPayment;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([254, 100, 26, 133, 165, 61, 149, 55]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.OpenPairSchedule;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([171, 205, 228, 112, 98, 209, 63, 53]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.OpenSearch;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([199, 97, 222, 240, 224, 175, 223, 252]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.OpenWinnerProof;
   }
   if (
     containsBytes(
@@ -1967,12 +2702,34 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([118, 219, 1, 252, 97, 87, 10, 116]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ReadMarketGross;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([99, 140, 60, 92, 22, 220, 254, 2]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.ReconcileSettlementMargin;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([96, 8, 159, 6, 155, 131, 72, 23]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RecordOriginalBudgets;
   }
   if (
     containsBytes(
@@ -2077,12 +2834,34 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([73, 181, 70, 177, 190, 240, 37, 225]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ScanForeignProtection;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([31, 143, 152, 241, 90, 106, 88, 11]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.SealLiquidity;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([196, 45, 6, 67, 91, 46, 14, 207]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SealSearch;
   }
   if (
     containsBytes(
@@ -2165,12 +2944,67 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([13, 110, 192, 171, 37, 177, 185, 193]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifyForeignCreditors;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([246, 61, 80, 20, 225, 73, 63, 215]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifyFrozenPair;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([204, 129, 101, 246, 52, 66, 71, 75]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifyIncumbent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([144, 97, 136, 219, 210, 27, 178, 218]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifyInventoryBook;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([204, 213, 63, 59, 88, 246, 243, 60]),
       ),
       0,
     )
   ) {
     return ClearingInstruction.VerifyRecoveryAllocation;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([178, 83, 143, 6, 220, 82, 240, 191]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifySharedInventory;
   }
   if (
     containsBytes(
@@ -2244,11 +3078,26 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.AdoptSettlementPlan;
     } & ParsedAdoptSettlementPlanInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.AdvanceBtcAllocation;
+    } & ParsedAdvanceBtcAllocationInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.AdvanceJointPayment;
+    } & ParsedAdvanceJointPaymentInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.AdvanceLinkedAllocation;
+    } & ParsedAdvanceLinkedAllocationInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.AdvancePreparedMembership;
     } & ParsedAdvancePreparedMembershipInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.AdvanceWinnerProof;
+    } & ParsedAdvanceWinnerProofInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.AllocateMarketFees;
     } & ParsedAllocateMarketFeesInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.AppendPairOrder;
+    } & ParsedAppendPairOrderInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ApplySettlementMargin;
     } & ParsedApplySettlementMarginInstruction<TProgram>)
@@ -2265,14 +3114,35 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.BeginSettlementRateProposal;
     } & ParsedBeginSettlementRateProposalInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.BindJointPayment;
+    } & ParsedBindJointPaymentInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.BindRecoverySelection;
+    } & ParsedBindRecoverySelectionInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.CancelRecoveryProvision;
     } & ParsedCancelRecoveryProvisionInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CaptureJointPayment;
+    } & ParsedCaptureJointPaymentInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CaptureMember;
+    } & ParsedCaptureMemberInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.CheckAccountRetirement;
     } & ParsedCheckAccountRetirementInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.CheckMarketBacking;
     } & ParsedCheckMarketBackingInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CheckPairMembers;
+    } & ParsedCheckPairMembersInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CheckpointMarket;
+    } & ParsedCheckpointMarketInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ClassifyMarketFees;
+    } & ParsedClassifyMarketFeesInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ClassifyMarketSurplus;
     } & ParsedClassifyMarketSurplusInstruction<TProgram>)
@@ -2304,6 +3174,18 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ControlLiquidity;
     } & ParsedControlLiquidityInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.CopyJointClaims;
+    } & ParsedCopyJointClaimsInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CopyJointRegister;
+    } & ParsedCopyJointRegisterInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CoverPlan;
+    } & ParsedCoverPlanInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.CoverRange;
+    } & ParsedCoverRangeInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.CreatePortfolio;
     } & ParsedCreatePortfolioInstruction<TProgram>)
   | ({
@@ -2313,11 +3195,20 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.DepositAccount;
     } & ParsedDepositAccountInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.DerivePairs;
+    } & ParsedDerivePairsInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteLedgerLane;
+    } & ParsedExecuteLedgerLaneInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ExecuteLiquidityOrder;
     } & ParsedExecuteLiquidityOrderInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ExecuteLiquidityRoute;
     } & ParsedExecuteLiquidityRouteInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ExecuteMarketLane;
+    } & ParsedExecuteMarketLaneInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.FreezeAccounts;
     } & ParsedFreezeAccountsInstruction<TProgram>)
@@ -2388,8 +3279,26 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ManageAccountOrder;
     } & ParsedManageAccountOrderInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ManageProfitCapacity;
+    } & ParsedManageProfitCapacityInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.MatchPairPage;
+    } & ParsedMatchPairPageInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.NetAccountClaims;
     } & ParsedNetAccountClaimsInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.OpenJointPayment;
+    } & ParsedOpenJointPaymentInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.OpenPairSchedule;
+    } & ParsedOpenPairScheduleInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.OpenSearch;
+    } & ParsedOpenSearchInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.OpenWinnerProof;
+    } & ParsedOpenWinnerProofInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.PauseVenue;
     } & ParsedPauseVenueInstruction<TProgram>)
@@ -2409,8 +3318,14 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ReactivateAccounts;
     } & ParsedReactivateAccountsInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ReadMarketGross;
+    } & ParsedReadMarketGrossInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ReconcileSettlementMargin;
     } & ParsedReconcileSettlementMarginInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RecordOriginalBudgets;
+    } & ParsedRecordOriginalBudgetsInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.RecoverAccounts;
     } & ParsedRecoverAccountsInstruction<TProgram>)
@@ -2439,8 +3354,14 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.RetireMargin;
     } & ParsedRetireMarginInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ScanForeignProtection;
+    } & ParsedScanForeignProtectionInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.SealLiquidity;
     } & ParsedSealLiquidityInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SealSearch;
+    } & ParsedSealSearchInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SeedMarketInsurance;
     } & ParsedSeedMarketInsuranceInstruction<TProgram>)
@@ -2463,8 +3384,23 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ValuePreparedMember;
     } & ParsedValuePreparedMemberInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.VerifyForeignCreditors;
+    } & ParsedVerifyForeignCreditorsInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.VerifyFrozenPair;
+    } & ParsedVerifyFrozenPairInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.VerifyIncumbent;
+    } & ParsedVerifyIncumbentInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.VerifyInventoryBook;
+    } & ParsedVerifyInventoryBookInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.VerifyRecoveryAllocation;
     } & ParsedVerifyRecoveryAllocationInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.VerifySharedInventory;
+    } & ParsedVerifySharedInventoryInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.WithdrawAccountCustody;
     } & ParsedWithdrawAccountCustodyInstruction<TProgram>)
@@ -2525,6 +3461,27 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseAdoptSettlementPlanInstruction(instruction),
       };
     }
+    case ClearingInstruction.AdvanceBtcAllocation: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdvanceBtcAllocation,
+        ...parseAdvanceBtcAllocationInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.AdvanceJointPayment: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdvanceJointPayment,
+        ...parseAdvanceJointPaymentInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.AdvanceLinkedAllocation: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdvanceLinkedAllocation,
+        ...parseAdvanceLinkedAllocationInstruction(instruction),
+      };
+    }
     case ClearingInstruction.AdvancePreparedMembership: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2532,11 +3489,25 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseAdvancePreparedMembershipInstruction(instruction),
       };
     }
+    case ClearingInstruction.AdvanceWinnerProof: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdvanceWinnerProof,
+        ...parseAdvanceWinnerProofInstruction(instruction),
+      };
+    }
     case ClearingInstruction.AllocateMarketFees: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.AllocateMarketFees,
         ...parseAllocateMarketFeesInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.AppendPairOrder: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AppendPairOrder,
+        ...parseAppendPairOrderInstruction(instruction),
       };
     }
     case ClearingInstruction.ApplySettlementMargin: {
@@ -2574,11 +3545,39 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseBeginSettlementRateProposalInstruction(instruction),
       };
     }
+    case ClearingInstruction.BindJointPayment: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.BindJointPayment,
+        ...parseBindJointPaymentInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.BindRecoverySelection: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.BindRecoverySelection,
+        ...parseBindRecoverySelectionInstruction(instruction),
+      };
+    }
     case ClearingInstruction.CancelRecoveryProvision: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.CancelRecoveryProvision,
         ...parseCancelRecoveryProvisionInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CaptureJointPayment: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CaptureJointPayment,
+        ...parseCaptureJointPaymentInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CaptureMember: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CaptureMember,
+        ...parseCaptureMemberInstruction(instruction),
       };
     }
     case ClearingInstruction.CheckAccountRetirement: {
@@ -2593,6 +3592,27 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.CheckMarketBacking,
         ...parseCheckMarketBackingInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CheckPairMembers: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CheckPairMembers,
+        ...parseCheckPairMembersInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CheckpointMarket: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CheckpointMarket,
+        ...parseCheckpointMarketInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ClassifyMarketFees: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ClassifyMarketFees,
+        ...parseClassifyMarketFeesInstruction(instruction),
       };
     }
     case ClearingInstruction.ClassifyMarketSurplus: {
@@ -2665,6 +3685,34 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseControlLiquidityInstruction(instruction),
       };
     }
+    case ClearingInstruction.CopyJointClaims: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CopyJointClaims,
+        ...parseCopyJointClaimsInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CopyJointRegister: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CopyJointRegister,
+        ...parseCopyJointRegisterInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CoverPlan: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CoverPlan,
+        ...parseCoverPlanInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.CoverRange: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.CoverRange,
+        ...parseCoverRangeInstruction(instruction),
+      };
+    }
     case ClearingInstruction.CreatePortfolio: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2686,6 +3734,20 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseDepositAccountInstruction(instruction),
       };
     }
+    case ClearingInstruction.DerivePairs: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.DerivePairs,
+        ...parseDerivePairsInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteLedgerLane: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteLedgerLane,
+        ...parseExecuteLedgerLaneInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ExecuteLiquidityOrder: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -2698,6 +3760,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ExecuteLiquidityRoute,
         ...parseExecuteLiquidityRouteInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteMarketLane: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteMarketLane,
+        ...parseExecuteMarketLaneInstruction(instruction),
       };
     }
     case ClearingInstruction.FreezeAccounts: {
@@ -2861,11 +3930,53 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseManageAccountOrderInstruction(instruction),
       };
     }
+    case ClearingInstruction.ManageProfitCapacity: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ManageProfitCapacity,
+        ...parseManageProfitCapacityInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.MatchPairPage: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.MatchPairPage,
+        ...parseMatchPairPageInstruction(instruction),
+      };
+    }
     case ClearingInstruction.NetAccountClaims: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.NetAccountClaims,
         ...parseNetAccountClaimsInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.OpenJointPayment: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.OpenJointPayment,
+        ...parseOpenJointPaymentInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.OpenPairSchedule: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.OpenPairSchedule,
+        ...parseOpenPairScheduleInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.OpenSearch: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.OpenSearch,
+        ...parseOpenSearchInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.OpenWinnerProof: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.OpenWinnerProof,
+        ...parseOpenWinnerProofInstruction(instruction),
       };
     }
     case ClearingInstruction.PauseVenue: {
@@ -2910,11 +4021,25 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseReactivateAccountsInstruction(instruction),
       };
     }
+    case ClearingInstruction.ReadMarketGross: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ReadMarketGross,
+        ...parseReadMarketGrossInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ReconcileSettlementMargin: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.ReconcileSettlementMargin,
         ...parseReconcileSettlementMarginInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RecordOriginalBudgets: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RecordOriginalBudgets,
+        ...parseRecordOriginalBudgetsInstruction(instruction),
       };
     }
     case ClearingInstruction.RecoverAccounts: {
@@ -2980,11 +4105,25 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseRetireMarginInstruction(instruction),
       };
     }
+    case ClearingInstruction.ScanForeignProtection: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ScanForeignProtection,
+        ...parseScanForeignProtectionInstruction(instruction),
+      };
+    }
     case ClearingInstruction.SealLiquidity: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.SealLiquidity,
         ...parseSealLiquidityInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.SealSearch: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SealSearch,
+        ...parseSealSearchInstruction(instruction),
       };
     }
     case ClearingInstruction.SeedMarketInsurance: {
@@ -3036,11 +4175,46 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseValuePreparedMemberInstruction(instruction),
       };
     }
+    case ClearingInstruction.VerifyForeignCreditors: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifyForeignCreditors,
+        ...parseVerifyForeignCreditorsInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.VerifyFrozenPair: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifyFrozenPair,
+        ...parseVerifyFrozenPairInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.VerifyIncumbent: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifyIncumbent,
+        ...parseVerifyIncumbentInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.VerifyInventoryBook: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifyInventoryBook,
+        ...parseVerifyInventoryBookInstruction(instruction),
+      };
+    }
     case ClearingInstruction.VerifyRecoveryAllocation: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: ClearingInstruction.VerifyRecoveryAllocation,
         ...parseVerifyRecoveryAllocationInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.VerifySharedInventory: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifySharedInventory,
+        ...parseVerifySharedInventoryInstruction(instruction),
       };
     }
     case ClearingInstruction.WithdrawAccountCustody: {
@@ -3097,6 +4271,10 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<FrozenMarginPageArgs, FrozenMarginPage>;
   fundingPublisher: ReturnType<typeof getFundingPublisherCodec> &
     SelfFetchFunctions<FundingPublisherArgs, FundingPublisher>;
+  jointPaymentPage: ReturnType<typeof getJointPaymentPageCodec> &
+    SelfFetchFunctions<JointPaymentPageArgs, JointPaymentPage>;
+  jointPaymentProof: ReturnType<typeof getJointPaymentProofCodec> &
+    SelfFetchFunctions<JointPaymentProofArgs, JointPaymentProof>;
   liquidityRegistry: ReturnType<typeof getLiquidityRegistryCodec> &
     SelfFetchFunctions<LiquidityRegistryArgs, LiquidityRegistry>;
   makerRegistration: ReturnType<typeof getMakerRegistrationCodec> &
@@ -3113,10 +4291,16 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<MemberIndexNodeArgs, MemberIndexNode>;
   memberPage: ReturnType<typeof getMemberPageCodec> &
     SelfFetchFunctions<MemberPageArgs, MemberPage>;
+  pairOrderPage: ReturnType<typeof getPairOrderPageCodec> &
+    SelfFetchFunctions<PairOrderPageArgs, PairOrderPage>;
+  pairScheduleProof: ReturnType<typeof getPairScheduleProofCodec> &
+    SelfFetchFunctions<PairScheduleProofArgs, PairScheduleProof>;
   portfolio: ReturnType<typeof getPortfolioCodec> &
     SelfFetchFunctions<PortfolioArgs, Portfolio>;
   preparedSettlement: ReturnType<typeof getPreparedSettlementCodec> &
     SelfFetchFunctions<PreparedSettlementArgs, PreparedSettlement>;
+  recoverySearch: ReturnType<typeof getRecoverySearchCodec> &
+    SelfFetchFunctions<RecoverySearchArgs, RecoverySearch>;
   recoveryStorage: ReturnType<typeof getRecoveryStorageCodec> &
     SelfFetchFunctions<RecoveryStorageArgs, RecoveryStorage>;
   resolution: ReturnType<typeof getResolutionCodec> &
@@ -3141,6 +4325,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<VenueRegistryArgs, VenueRegistry>;
   venueSafety: ReturnType<typeof getVenueSafetyCodec> &
     SelfFetchFunctions<VenueSafetyArgs, VenueSafety>;
+  winnerAllocationProof: ReturnType<typeof getWinnerAllocationProofCodec> &
+    SelfFetchFunctions<WinnerAllocationProofArgs, WinnerAllocationProof>;
 };
 
 export type ClearingPluginInstructions = {
@@ -3174,15 +4360,40 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getAdoptSettlementPlanInstructionAsync> &
     SelfPlanAndSendFunctions;
+  advanceBtcAllocation: (
+    input: AdvanceBtcAllocationAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdvanceBtcAllocationInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  advanceJointPayment: (
+    input: AdvanceJointPaymentInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdvanceJointPaymentInstruction> &
+    SelfPlanAndSendFunctions;
+  advanceLinkedAllocation: (
+    input: AdvanceLinkedAllocationAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdvanceLinkedAllocationInstructionAsync> &
+    SelfPlanAndSendFunctions;
   advancePreparedMembership: (
     input: AdvancePreparedMembershipAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getAdvancePreparedMembershipInstructionAsync> &
     SelfPlanAndSendFunctions;
+  advanceWinnerProof: (
+    input: AdvanceWinnerProofInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdvanceWinnerProofInstruction> &
+    SelfPlanAndSendFunctions;
   allocateMarketFees: (
     input: AllocateMarketFeesAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getAllocateMarketFeesInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  appendPairOrder: (
+    input: MakeOptional<AppendPairOrderInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAppendPairOrderInstruction> &
     SelfPlanAndSendFunctions;
   applySettlementMargin: (
     input: ApplySettlementMarginAsyncInput,
@@ -3209,10 +4420,30 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getBeginSettlementRateProposalInstructionAsync> &
     SelfPlanAndSendFunctions;
+  bindJointPayment: (
+    input: BindJointPaymentAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getBindJointPaymentInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  bindRecoverySelection: (
+    input: BindRecoverySelectionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getBindRecoverySelectionInstructionAsync> &
+    SelfPlanAndSendFunctions;
   cancelRecoveryProvision: (
     input: CancelRecoveryProvisionAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCancelRecoveryProvisionInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  captureJointPayment: (
+    input: MakeOptional<CaptureJointPaymentAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCaptureJointPaymentInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  captureMember: (
+    input: CaptureMemberInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCaptureMemberInstruction> &
     SelfPlanAndSendFunctions;
   checkAccountRetirement: (
     input: CheckAccountRetirementAsyncInput,
@@ -3223,6 +4454,21 @@ export type ClearingPluginInstructions = {
     input: CheckMarketBackingAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCheckMarketBackingInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  checkPairMembers: (
+    input: CheckPairMembersInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCheckPairMembersInstruction> &
+    SelfPlanAndSendFunctions;
+  checkpointMarket: (
+    input: CheckpointMarketAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCheckpointMarketInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  classifyMarketFees: (
+    input: ClassifyMarketFeesAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getClassifyMarketFeesInstructionAsync> &
     SelfPlanAndSendFunctions;
   classifyMarketSurplus: (
     input: ClassifyMarketSurplusAsyncInput,
@@ -3274,6 +4520,24 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getControlLiquidityInstructionAsync> &
     SelfPlanAndSendFunctions;
+  copyJointClaims: (
+    input: CopyJointClaimsAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCopyJointClaimsInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  copyJointRegister: (
+    input: CopyJointRegisterAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCopyJointRegisterInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  coverPlan: (
+    input: CoverPlanInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCoverPlanInstruction> & SelfPlanAndSendFunctions;
+  coverRange: (
+    input: CoverRangeInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getCoverRangeInstruction> & SelfPlanAndSendFunctions;
   createPortfolio: (
     input: CreatePortfolioAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3289,6 +4553,15 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getDepositAccountInstructionAsync> &
     SelfPlanAndSendFunctions;
+  derivePairs: (
+    input: DerivePairsInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getDerivePairsInstruction> & SelfPlanAndSendFunctions;
+  executeLedgerLane: (
+    input: ExecuteLedgerLaneAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteLedgerLaneInstructionAsync> &
+    SelfPlanAndSendFunctions;
   executeLiquidityOrder: (
     input: ExecuteLiquidityOrderAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3298,6 +4571,11 @@ export type ClearingPluginInstructions = {
     input: ExecuteLiquidityRouteAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getExecuteLiquidityRouteInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeMarketLane: (
+    input: ExecuteMarketLaneAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteMarketLaneInstructionAsync> &
     SelfPlanAndSendFunctions;
   freezeAccounts: (
     input: FreezeAccountsAsyncInput,
@@ -3414,10 +4692,40 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getManageAccountOrderInstructionAsync> &
     SelfPlanAndSendFunctions;
+  manageProfitCapacity: (
+    input: MakeOptional<ManageProfitCapacityAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getManageProfitCapacityInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  matchPairPage: (
+    input: MatchPairPageInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getMatchPairPageInstruction> &
+    SelfPlanAndSendFunctions;
   netAccountClaims: (
     input: NetAccountClaimsAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getNetAccountClaimsInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  openJointPayment: (
+    input: MakeOptional<OpenJointPaymentAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getOpenJointPaymentInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  openPairSchedule: (
+    input: MakeOptional<OpenPairScheduleAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getOpenPairScheduleInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  openSearch: (
+    input: MakeOptional<OpenSearchAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getOpenSearchInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  openWinnerProof: (
+    input: MakeOptional<OpenWinnerProofAsyncInput, "payer">,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getOpenWinnerProofInstructionAsync> &
     SelfPlanAndSendFunctions;
   pauseVenue: (
     input: PauseVenueAsyncInput,
@@ -3449,10 +4757,20 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getReactivateAccountsInstructionAsync> &
     SelfPlanAndSendFunctions;
+  readMarketGross: (
+    input: ReadMarketGrossAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getReadMarketGrossInstructionAsync> &
+    SelfPlanAndSendFunctions;
   reconcileSettlementMargin: (
     input: ReconcileSettlementMarginAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getReconcileSettlementMarginInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  recordOriginalBudgets: (
+    input: RecordOriginalBudgetsAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRecordOriginalBudgetsInstructionAsync> &
     SelfPlanAndSendFunctions;
   recoverAccounts: (
     input: RecoverAccountsAsyncInput,
@@ -3499,11 +4817,20 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRetireMarginInstructionAsync> &
     SelfPlanAndSendFunctions;
+  scanForeignProtection: (
+    input: ScanForeignProtectionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getScanForeignProtectionInstructionAsync> &
+    SelfPlanAndSendFunctions;
   sealLiquidity: (
     input: SealLiquidityAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSealLiquidityInstructionAsync> &
     SelfPlanAndSendFunctions;
+  sealSearch: (
+    input: SealSearchInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSealSearchInstruction> & SelfPlanAndSendFunctions;
   seedMarketInsurance: (
     input: SeedMarketInsuranceAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -3539,10 +4866,35 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getValuePreparedMemberInstructionAsync> &
     SelfPlanAndSendFunctions;
+  verifyForeignCreditors: (
+    input: VerifyForeignCreditorsAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifyForeignCreditorsInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  verifyFrozenPair: (
+    input: VerifyFrozenPairAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifyFrozenPairInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  verifyIncumbent: (
+    input: VerifyIncumbentInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifyIncumbentInstruction> &
+    SelfPlanAndSendFunctions;
+  verifyInventoryBook: (
+    input: VerifyInventoryBookAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifyInventoryBookInstructionAsync> &
+    SelfPlanAndSendFunctions;
   verifyRecoveryAllocation: (
     input: VerifyRecoveryAllocationAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getVerifyRecoveryAllocationInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  verifySharedInventory: (
+    input: VerifySharedInventoryAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifySharedInventoryInstructionAsync> &
     SelfPlanAndSendFunctions;
   withdrawAccountCustody: (
     input: WithdrawAccountCustodyAsyncInput,
@@ -3579,6 +4931,10 @@ export type ClearingPluginPdas = {
   venueVault: typeof findVenueVaultPda;
   eventAuthority: typeof findEventAuthorityPda;
   liquidityController: typeof findLiquidityControllerPda;
+  deltaPage: typeof findDeltaPagePda;
+  firstMakerRegistration: typeof findFirstMakerRegistrationPda;
+  secondMakerRegistration: typeof findSecondMakerRegistrationPda;
+  thirdMakerRegistration: typeof findThirdMakerRegistrationPda;
   fundingPublisher: typeof findFundingPublisherPda;
   portfolio: typeof findPortfolioPda;
   marketLedger: typeof findMarketLedgerPda;
@@ -3586,6 +4942,10 @@ export type ClearingPluginPdas = {
   certificate: typeof findCertificatePda;
   liquidityRegistry: typeof findLiquidityRegistryPda;
   venue: typeof findVenuePda;
+  payment: typeof findPaymentPda;
+  openPairScheduleCertificate: typeof findOpenPairScheduleCertificatePda;
+  search: typeof findSearchPda;
+  proof: typeof findProofPda;
   capitalBinding: typeof findCapitalBindingPda;
   marginAccount: typeof findMarginAccountPda;
 };
@@ -3619,6 +4979,14 @@ export function clearingProgram(
             client,
             getFundingPublisherCodec(),
           ),
+          jointPaymentPage: addSelfFetchFunctions(
+            client,
+            getJointPaymentPageCodec(),
+          ),
+          jointPaymentProof: addSelfFetchFunctions(
+            client,
+            getJointPaymentProofCodec(),
+          ),
           liquidityRegistry: addSelfFetchFunctions(
             client,
             getLiquidityRegistryCodec(),
@@ -3639,10 +5007,19 @@ export function clearingProgram(
             getMemberIndexNodeCodec(),
           ),
           memberPage: addSelfFetchFunctions(client, getMemberPageCodec()),
+          pairOrderPage: addSelfFetchFunctions(client, getPairOrderPageCodec()),
+          pairScheduleProof: addSelfFetchFunctions(
+            client,
+            getPairScheduleProofCodec(),
+          ),
           portfolio: addSelfFetchFunctions(client, getPortfolioCodec()),
           preparedSettlement: addSelfFetchFunctions(
             client,
             getPreparedSettlementCodec(),
+          ),
+          recoverySearch: addSelfFetchFunctions(
+            client,
+            getRecoverySearchCodec(),
           ),
           recoveryStorage: addSelfFetchFunctions(
             client,
@@ -3680,6 +5057,10 @@ export function clearingProgram(
           venue: addSelfFetchFunctions(client, getVenueCodec()),
           venueRegistry: addSelfFetchFunctions(client, getVenueRegistryCodec()),
           venueSafety: addSelfFetchFunctions(client, getVenueSafetyCodec()),
+          winnerAllocationProof: addSelfFetchFunctions(
+            client,
+            getWinnerAllocationProofCodec(),
+          ),
         },
         instructions: {
           acceptDenominatorRow: (input, instructionConfig) =>
@@ -3730,10 +5111,42 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          advanceBtcAllocation: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdvanceBtcAllocationInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          advanceJointPayment: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdvanceJointPaymentInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          advanceLinkedAllocation: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdvanceLinkedAllocationInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           advancePreparedMembership: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getAdvancePreparedMembershipInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          advanceWinnerProof: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdvanceWinnerProofInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -3745,6 +5158,17 @@ export function clearingProgram(
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
+            ),
+          appendPairOrder: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAppendPairOrderInstruction(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
             ),
           applySettlementMargin: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
@@ -3786,10 +5210,45 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          bindJointPayment: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getBindJointPaymentInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          bindRecoverySelection: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getBindRecoverySelectionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           cancelRecoveryProvision: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getCancelRecoveryProvisionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          captureJointPayment: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCaptureJointPaymentInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
+          captureMember: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCaptureMemberInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -3806,6 +5265,30 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getCheckMarketBackingInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          checkPairMembers: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCheckPairMembersInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          checkpointMarket: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCheckpointMarketInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          classifyMarketFees: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getClassifyMarketFeesInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -3890,6 +5373,38 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          copyJointClaims: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCopyJointClaimsInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          copyJointRegister: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCopyJointRegisterInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          coverPlan: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCoverPlanInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          coverRange: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCoverRangeInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           createPortfolio: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3914,6 +5429,22 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          derivePairs: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getDerivePairsInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeLedgerLane: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteLedgerLaneInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           executeLiquidityOrder: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -3926,6 +5457,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getExecuteLiquidityRouteInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeMarketLane: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteMarketLaneInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -4132,6 +5671,25 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          manageProfitCapacity: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getManageProfitCapacityInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
+          matchPairPage: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMatchPairPageInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           netAccountClaims: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -4139,6 +5697,50 @@ export function clearingProgram(
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
+            ),
+          openJointPayment: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getOpenJointPaymentInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
+          openPairSchedule: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getOpenPairScheduleInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
+          openSearch: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getOpenSearchInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
+            ),
+          openWinnerProof: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getOpenWinnerProofInstructionAsync(
+                { ...input, payer: input.payer ?? client.payer },
+                {
+                  programAddress:
+                    instructionConfig?.programAddress ?? config.programAddress,
+                },
+              ),
             ),
           pauseVenue: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
@@ -4188,10 +5790,26 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          readMarketGross: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getReadMarketGrossInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           reconcileSettlementMargin: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getReconcileSettlementMarginInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          recordOriginalBudgets: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRecordOriginalBudgetsInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -4268,10 +5886,26 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          scanForeignProtection: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getScanForeignProtectionInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           sealLiquidity: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getSealLiquidityInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          sealSearch: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSealSearchInstruction(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -4332,10 +5966,50 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          verifyForeignCreditors: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyForeignCreditorsInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verifyFrozenPair: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyFrozenPairInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verifyIncumbent: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyIncumbentInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verifyInventoryBook: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyInventoryBookInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           verifyRecoveryAllocation: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
               getVerifyRecoveryAllocationInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verifySharedInventory: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifySharedInventoryInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -4434,6 +6108,26 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
+          deltaPage: (seeds, pdaConfig) =>
+            findDeltaPagePda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          firstMakerRegistration: (seeds, pdaConfig) =>
+            findFirstMakerRegistrationPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          secondMakerRegistration: (seeds, pdaConfig) =>
+            findSecondMakerRegistrationPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          thirdMakerRegistration: (seeds, pdaConfig) =>
+            findThirdMakerRegistrationPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           fundingPublisher: (seeds, pdaConfig) =>
             findFundingPublisherPda(seeds, {
               programAddress:
@@ -4466,6 +6160,26 @@ export function clearingProgram(
             }),
           venue: (seeds, pdaConfig) =>
             findVenuePda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          payment: (seeds, pdaConfig) =>
+            findPaymentPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          openPairScheduleCertificate: (seeds, pdaConfig) =>
+            findOpenPairScheduleCertificatePda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          search: (seeds, pdaConfig) =>
+            findSearchPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          proof: (seeds, pdaConfig) =>
+            findProofPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

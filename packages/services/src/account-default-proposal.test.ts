@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest';
-import {proposeMarketOrder} from './account-default-proposal.js';
+import {matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
 import {createHash} from 'node:crypto';
 import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -7,6 +7,24 @@ import {join} from 'node:path';
 import {decodeSettlementPages,SettlementPages} from './settlement-pages.js';
 import {accountDeployment} from './account-deployment.js';
 import {accountDeploymentSelection} from './account-profile.js';
+it('suppresses only a byte-identical rejected rate across pages and markets',async()=>{
+  const factorWords=[1n,0n,0n,0n,0n], numeratorWords=[Array<bigint>(258).fill(2n),[3n]];
+  const rates={attempt:7n,factor:factorWords,lengths:[258n,1n],uploaded:[258n,1n]};
+  const page=async(market:number,index:bigint)=>{
+    const words=numeratorWords[market].slice(Number(index)*256,(Number(index)+1)*256);
+    return {attempt:7n,wordCount:words.length,payload:{words}};
+  };
+  const same={factorWords,numeratorWords};
+  expect(await matchesRejectedRate(rates,same,page)).toBe(true);
+  for(const [market,offset] of [[0,0],[0,257],[1,0]]) {
+    const changed=numeratorWords.map(words=>[...words]);changed[market][offset]++;
+    expect(await matchesRejectedRate(rates,{factorWords,numeratorWords:changed},page)).toBe(false);
+  }
+  expect(await matchesRejectedRate(rates,{...same,factorWords:[2n,0n,0n,0n,0n]},page)).toBe(false);
+  expect(await matchesRejectedRate(rates,{...same,numeratorWords:[[],[]]},page)).toBe(false);
+  await expect(matchesRejectedRate({...rates,attempt:8n},same,page)).rejects.toThrow(/changed/);
+  await expect(matchesRejectedRate({...rates,uploaded:[257n,1n]},same,page)).rejects.toThrow(/incomplete/);
+});
 it('orders literal fractions, stable u64 ties and a complete nonpositive tail',()=>{
   // At 1/3 recovery: payouts 2/3, 5/3, 1/3 and 0. Stable IDs settle equal 2/3 remainders.
   const rows=[{id:9007199254740994n,claims:[2_000_000_000n,0n]},
@@ -56,5 +74,19 @@ it('rejects a self-consistent helper manifest from another checkout or a dirty b
     }
     writeFileSync(join(directory,'manifest.json'),JSON.stringify(manifest));
     expect(()=>new SettlementPages(directory)).not.toThrow();
+    expect(()=>new SettlementPages(directory,'verified-pair-candidate')).toThrow();
+    const pair={...manifest,revision:accountDeployment('verified-pair-candidate').helperRevision};
+    writeFileSync(join(directory,'manifest.json'),JSON.stringify(pair));
+    expect(()=>new SettlementPages(directory,'verified-pair-candidate')).toThrow();
+    writeFileSync(join(directory,'manifest.json'),JSON.stringify({...pair,feature:'single-pair-default-qualification'}));
+    expect(()=>new SettlementPages(directory,'verified-pair-candidate')).not.toThrow();
+    expect(()=>new SettlementPages(directory)).toThrow();
   } finally {rmSync(directory,{recursive:true});}
+});
+
+it('selects the combined local artifact only for the qualified keeper roles and executor',()=>{
+  for(const role of ['risk','settlement','executor'])
+    expect(accountDeploymentSelection('integrated-recovery-candidate',role)).toBe('integrated-recovery-candidate');
+  for(const role of [undefined,'maker','funding','orders'])
+    expect(()=>accountDeploymentSelection('integrated-recovery-candidate',role)).toThrow();
 });

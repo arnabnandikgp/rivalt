@@ -1,5 +1,1066 @@
 # Validation and measured limits
 
+## Recovery verification when a BTC winner owes ETH
+
+On a signed eight-member freeze at `ec12a834`, two fresh client processes proposed and checked a joint forced reduction before clearing advanced settlement. The diagnostic verified BTC and ETH debtor budgets, derived 340 possible schedules, and covered all 340 without writing a financial account. Three actual trades supplied the position history. The independent rational reference selected BTC 9 and ETH 33. Those charges removed 9 and 307,515/10,001 atoms of loss. The cash vector agreed for all eight members.
+
+| Step on the winning proof | Successful transactions | Landed CU per transaction | Signed bytes each |
+|---|---:|---:|---:|
+| Create checkpoint | 1 | 6,312 | 452 |
+| Authenticate original margins and histories | 8 | 8,313–18,771 | 420 |
+| Derive pairs and budgets | 1 | 324,106 | 346 |
+| Verify the proposed recovery and protected payouts | 1 | 889,433 | 386 |
+| Exclude 334 schedules in ten intervals | 10 | 6,591–6,602 | 378 |
+| Check five alternatives individually | 5 | 889,902–909,996 | 402 |
+| Cover the already verified proposal and seal | 2 | 4,592–4,660 | 346–402 |
+
+The 28 successful transactions used 5,896,739 CU and 140,000 test lamports in fees, excluding checkpoint rent. The inferior 9/32 plan passed settlement in isolation. The verifier rejected it when it reached a better 8/33 alternative. Invalid rate witnesses, replayed or overbroad ranges and early completion also failed. Both attempts together produced 53 successes and seven signed rejections with unchanged checkpoints. The deployed diagnostic was 467,536 bytes, SHA-256 `798a6463ac5b26e64f79eeba89e24c0c0d079ecf37c510c10ea89a79c2e1fa73`.
+
+The four kernel transactions for original rates, adjusted rates, original cash and protected adjusted cash used 197,699, 213,745, 343,062 and 712,227 CU respectively, 443 bytes each. The signed harness verifies returned bytes against the independent reference. The pinned `d177cc5` clearing executable still authorized both maker withdrawals of 5,004 and 34,968 atoms through its existing restricted certificate. The run recorded 274 clearing-harness outcomes, 55 worker originals and 114 events reproduced in fresh PostgreSQL. The diagnostic covered a single page and a unique highest total. It has no custody or payout authority.
+
+Reproduce with `RIVALT_FROZEN_PLAN_PROOF=1`, `RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-apply` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` pointing to the pinned foreign-creditor clearing artifacts, then run `bash ops/scalable-settlement-smoke.sh`. [Proof and economic rules](../clearing/default-plan-verification.md#verifying-all-schedules-on-a-cross-creditor-freeze).
+
+The final cleanup at `448c5659` rebuilt the diagnostic to 467,864 bytes, SHA-256 `3aa23ac912916edadd582636d5463fef3721c6ee37e05cdec66694bb9b5732ee`. On a fresh deployment the same winning proof used 5,896,799 CU across 28 successful transactions. Both candidate outcomes, two wallet exits, 55 worker originals and the 114-event PostgreSQL replay reproduced.
+
+## Financial priorities on a signed frozen book
+
+At `15eb161d`, five real trades produced two eligible BTC makers with different amounts of unpaid open profit. The verifier covered 2,548 possible schedules, including 14 that recovered the same 25 atoms. The independently selected charges were BTC 4/9 and ETH 12. A BTC 5/8 split paid the same total and failed the proportional-sharing comparison. The general verifier sealed the selected schedule after 67 successful transactions totalling 14,487,219 CU and 335,000 test lamports in fees, excluding rent. The largest winning transaction used 976,374 CU. Both attempts together produced 96 successes and seven signed rejections. The local clearing gate refused to release the disputed funds. Fresh PostgreSQL replay matched all 96 clearing events. On a second book at `bf525754`, two makers had identical BTC gains. The winning schedule sealed. The TypeScript reader then shadowed the schedule count and exited before checking the terminal data or submitting the losing challenge.
+
+The corrected reader at `78b24496` completed that second case on a fresh validator. A third BTC maker took the flat trader’s round trip. That maker owed 4,996 atoms and could pay them from cash, leaving the two open winners with exactly 10,002 eligible atoms each. Of the 14 highest-recovery schedules, 7/6 and 6/7 matched on proportionality and forced lots. Frozen-episode order charged member 0 seven BTC atoms and member 2 six. This gave them 9,995 and 9,996 atoms of funded gain in the proof. Reversing the charges passed the financial checks but failed the episode ordering. The reader independently checked all eight cash balances, all 16 signed market movements, zero remaining insurance and retained fees of 39 BTC-market and six ETH-market atoms. The flat creditor gained 4,996 atoms. Clearing remained frozen throughout.
+
+| Signed comparison | Winning transactions | Winning total CU | Largest transaction CU | Both proposals, successful / rejected | Fresh clearing events |
+|---|---:|---:|---:|---:|---:|
+| Proportional allocation | 67 | 14,487,219 | 976,374 | 96 / 7 | 96 |
+| Exact financial tie | 67 | 14,741,700 | 993,923 | 108 / 7 | 96 |
+
+The funded local payer paid 335,000 test lamports in fees for each winning proof, excluding rent. Both clearing runs had 284 signed harness outcomes and 41 finalized worker originals. The equal-gain diagnostic executable was 564,608 bytes with SHA-256 `b9ea61c68c0d702edb35c2eae2e47345d7dc8f0aafe12a34daab4ecefa95332a`. Both runs used the signed competing-winner reproduction command below. Set `RIVALT_FROZEN_PLAN_CASE=equal-winners` for the equal-gain variant. On the narrower, previously measured one-debtor book, the direct proportional certificate used 121,169 CU across ten transactions. The general comparison pays for independently verifying each remaining alternative. [Direct certificate measurements](#restartable-comparison-on-a-clearing-freeze).
+
+
+
+## Restartable comparison on a clearing freeze
+
+At `4c9ccbc`, Surfpool deployed and returned the 192,480-byte diagnostic executable with SHA-256 `153e6a6abf2d3e03cfd88446e0e2c77fce11d3386e807b076037e2a6f3384af9`. Clearing used the pinned `30434d5` artifact. Five actual trades produced eight frozen Financial accounts, including a flat BTC creditor. The independent reference enumerated 2,548 schedules. Original debtor cash contributed 19,978 BTC-market and 9,989 ETH-market collateral atoms. Insurance contributed 13 and 1. Forced charges were 4 and 9 on the two BTC makers and 12 on the ETH maker.
+
+| Successful proof transaction | Transactions | Landed CU per transaction | Signed bytes |
+|---|---:|---:|---:|
+| Open comparison | 1 | 10,112 | 461 |
+| Verify one member | 8 | 6,104–20,871 | 460 |
+| Seal and reconcile | 1 | 5,208 | 338 |
+
+After four members a new client process resumed each submitted schedule from its PDA. The preferred result matched all eight reference cash balances, totaling 6,059,955 atoms. Its ten transactions consumed 121,169 CU and 50,000 lamports in transaction fees, excluding account rent and the work to freeze the venue. The comparison rejected a 5/8 BTC split with the same 13-atom recovery. Other rejections covered a wrong episode, different original margin, skipped or repeated ordinal, altered suffix, premature seal and second seal. All 27 probe outcomes were signed, fetched and checked over RPC/WS. The containing clearing harness checked 284 signed outcomes, observed 41 worker originals and replayed 96 clearing events from RPC into fresh PostgreSQL. The custody and member bytes stayed unchanged during comparison.
+
+To reproduce, select the pinned linked-flat build and set `RIVALT_FROZEN_PLAN_PROOF=1` and `RIVALT_SETTLEMENT_PROBE=profit-attribution-linked-contested` for `bash ops/scalable-settlement-smoke.sh`, with an explicit `RIVALT_SETTLEMENT_ARTIFACT_DIR`. The probe uses the independently funded test payer. General cross-creditor verification and adoption into clearing remain open.
+
+At `735ea27`, the native comparison also accepted reversed charge/witness order and rejected duplicate witnesses for the same financial schedule. The 19-book independent comparison and large two-market bound passed with the same results.
+
+## Native selection of linked default plans
+
+At `c41b5b7`, independent Python rational settlement and the Rust exhaustive
+and range verifiers agreed on the financial outcome of 19 cases. These cover
+joint-only admissibility, fractional paid gain, changed market insurance,
+competing debtors, competing winners, two frozen-episode priorities and an
+incomparable book. Missing witnesses, invalid rates, invalid reflections and
+an incomplete comparison produced no unauthorized selection.
+
+The same test read original frozen accounts and histories retained from three
+signed local episodes. The native winner's individual cash vector matched the
+recorded comparison in each. All counts below are from new native comparisons
+against those captured rows. Each comparison started the range search with the
+reference winner as an untrusted hint. Clearing's financial kernel checked it.
+
+| Retained freeze | Charge combinations | Admitted in full search | Tied on recovery | Ranges visited | Individual schedules reached |
+|---|---:|---:|---:|---:|---:|
+| Competing BTC winners and an ETH winner, `005230c` | 2,548 | 1,365 | 14 | 143 | 14 |
+| One lot available, `f462fc6` | 572 | 47 | 1 | 35 | 1 |
+| Shared inventory, `cfc2279` | 324 | 35 | 2 | 67 | 2 |
+
+A synthetic two-market case had 25,000,000,010,000,000,001 possible charge
+vectors. The verifier visited 129 ranges and reached one candidate. Both
+markets recovered five billion atoms and the flat creditor received two funded
+atoms. This fixture has one winner per market. Competing positions can require
+many individual settlement checks.
+
+Reproduce the synthetic comparisons with `cargo build --locked -p default-plan-selection --features native-joint --example joint_reduction_audit`
+and `python3 tests/financial/check_joint_search.py`. The latter accepts retained
+`linked-default.json` files as optional arguments. The measurements cover local
+native code. New on-chain transaction costs, persisted restart and release of a
+general linked plan still require signed qualification.
+
+## Profit payment and parallel ledger reads
+
+The local `read-only-route-ledger` SBF came from clean `8bc01bb`, 3,023,024
+bytes, SHA-256 `6e0b3aa9e33eb79db214bb0cfb478d01a9e27bf27473624b34fece70e49d178e`.
+The stack-frame check, additive IDL/SDK comparison, 104-instruction lock
+inventory and two focused native backing cases passed. Each RPC check used
+the two pinned maker programs, real signatures and WS confirmations, a fresh
+PostgreSQL journal and independently refetched finalized account and token data.
+
+- `2697472` paired 36 fills, followed by a 50-lot open, a funded withdrawal
+  and complete freeze. All 359 signed outcomes and the 231-event database
+  replay completed. BTC and ETH fees for the pairs were 375 and 39 atoms.
+  The 50-lot open increased BTC fees by 601. The frozen insurance balances were
+  244 and 9 atoms. The last shell print failed when the launcher file changed
+  during execution. The financial verifier had already written its final result.
+  The retained database reproduced all 37 per-fill splits through the paginated
+  trades query with five rows per page.
+- `733490d` closed a BTC lot against a second maker for a 996-atom gain after
+  two 13-atom fees. Another maker's fill after the eight-account backing scan
+  changed the logical backing while leaving the physical ledger byte-identical.
+  Its positive, negative and signed lot totals matched the individual roots.
+  Clearing rejected both incomplete coverage and an omitted ledger checkpoint.
+  The closed gain moved to funded cash and the trader withdrew the expected 970
+  atoms from the SPL vault. All 332 signed outcomes and 315 replayed events passed.
+  Collection, proof and payout also ran on the preceding SBF `10ab3b5` at
+  harness `503e251`, with 331 signed outcomes and 270 replayed events.
+- `733490d` verified the ordinary cross-market fallback advances the sibling ETH
+  index from 4,999,999 to 5,555,555. BTC retained 6,111,110 across a 31-second
+  gap, accruing one second and skipping thirty. The two-maker reversal changed
+  the trader from +1 to −1 BTC lots and charged 24 atoms once. All 275 signed
+  outcomes and 113 replayed events passed.
+
+The dedicated probes are `profit-attribution-ledger-lanes`,
+`profit-attribution-ledger-payout` and `profit-attribution-ledger-funding` in
+`ops/scalable-settlement-smoke.sh`. A first payout test compared its rejected
+payment with a root from before membership certification. The corrected
+comparison uses the immediate predecessor bytes. [Costs and lock sets](performance.md#read-only-market-and-ledger).
+
+## Read-only market on a signed fill
+
+The generated lock inventory contains both new instructions. Its 101 prior
+entries retain their original access sets. The check now covers 103 entrypoints
+across clearing and the two makers.
+
+SBF `10ab3b5`, 2,961,736 bytes, SHA-256
+`2e2aa670fc7e2aa318a4fb9bb7ee9db02f8f0f0ef517e0bab14f99fe8b21acac`.
+Harness `d45eae7` finalized 36 paired one-maker trades. With distinct payers and
+makers, two BTC trades shared only the ledger. A separate 50-lot BTC fill left
+the market bytes unchanged. Its stored gross was zero while its authenticated
+three-registration gross was 100. PostgreSQL reconciled both at that boundary.
+An initial indexer run at `ea10d90` refused the financial projection because it
+compared a derived total to a physical account revision. The corrected check
+compares the full stored account and independently validates its derived fields.
+
+A standalone checkpoint, a checkpoint for ETH and an intervening BTC fill each
+failed to authorize a subsequent BTC withdrawal. The interposed fill reverted.
+A single signed BTC checkpoint and withdrawal then paid one collateral atom
+while the position stayed open. Freeze rejected unclassified fees. Atomic fee
+classification and freeze then captured the exact funded insurance. Fresh
+PostgreSQL replay reproduced 228 events from 359 signed outcomes.
+
+The nonzero-funding run at `d45eae7` finalized 266 outcomes and reproduced 94
+events. ETH opened at a funding index of 4,999,999 scaled units. An attempted
+BTC-only instruction rejected the ETH exposure. The ordinary BTC route with both
+checkpoints brought ETH to 5,555,555 and charged the exact difference to its
+position. After a separate BTC fill the market PDA stayed byte-identical. The
+next publication recovered 6,111,110 from its maker registration after a
+31-second interval, with one second covered and 30 skipped. Follow-up harness
+`aa0a209` repeated the gap and reversed a trader from +1 to −1 BTC lots
+against two different makers. Each maker received one lot. The trader paid
+24 fee atoms, recorded once on the first registration. The entire stored market
+was unchanged, and the SDK trade snapshot matched gross lots across all eight
+participant accounts. This run reproduced 111 events from 275 signed outcomes.
+The funded wallet
+and freeze checks apply to this fresh local artifact. General default payouts,
+receiver exits and sustained throughput require their own qualification.
+[Costs](performance.md#read-only-selected-market) and
+[commands](local-development.md#reproduce-the-read-only-market-route).
+
+## Clearing-verified funding checkpoints
+
+Clean harness `1637f8f`, SBF `2da3e90`, 2,920,496 bytes, SHA-256
+`ef02d96b5d689c04e3b68854560073248507c956229bc0892d5423fa3170bec8`.
+The ETH fill wrote its maker checkpoint. A BTC fill on the same cross account
+wrote its BTC maker checkpoint and advanced the canonical ETH checkpoint. After
+31 seconds the next two-market publication recovered BTC from its maker and ETH
+from its market. ETH retained 5,555,555 scaled units, two covered seconds and
+29 skipped. The independent Rust replay of finalized originals agreed.
+
+Three signed BTC reports, each with an omitted, repeated or ETH registration,
+failed with `Profile`, `Alias` and `MakerBinding` respectively. The market and
+publisher configuration matched byte-for-byte before and after all three. Fresh
+PostgreSQL replay reproduced 71 events from 259 signed harness outcomes. Every
+recorded original was fetched at finalized RPC and checked against its wire and WS
+notification. An initial build panicked in simulation on the first ETH fill because
+a capacity write extended into the adjacent funding field. The tested build binds
+that write to bytes 24–31 of the registration extension.
+
+The candidate still keeps a serial comparison for each publication. Other account
+classes, emergency controls, payment and default have not been qualified on this
+binary. [Costs](performance.md#signed-funding-checkpoint-cost) and
+[reproduction](local-development.md#reproduce-checked-funding-publication).
+
+## Cross-market funding after a publication gap
+
+On clearing `3ace707`, signed harness `3abe03e` opened one ETH lot and then
+one BTC lot on the same cross account. No ETH maker registration appeared in
+the BTC transaction. ETH's two-tick premium raised its funding index from
+4,444,444 to 5,555,555 scaled units on that BTC fill. The trader's ETH virtual
+balance fell by exactly 1,111,111 scaled units. After a 31-second publication
+gap the next ETH report retained 5,555,555, credited two covered seconds and
+recorded 29 skipped. The BTC original used 176,704 CU and 1,006 v0 bytes.
+256 signed harness outcomes and 70 events replayed in fresh PostgreSQL.
+
+Rust revision `da46c8f` recovered both indices from the finalized route receipts
+and the subsequent market account. Two focused native tests also exercised
+negative funding, decreasing timestamps, equal-slot conflicts, old generations
+and expired observations. This is a financial dependency for removing the
+market write. The deployed fills in this comparison still use the serial funding
+index. [Funding contract](../liquidity/funding.md#market-funding-consumed-by-another-market).
+
+## Signed bounded market gross
+
+SBF `3ace707`, 2,900,728 bytes, SHA-256
+`62c35c3bd7c5decac5d9f6cc6feaa7aad94b554e8aba535c3afbec0225832b8d`.
+All three runs used fresh Surfpool deployments, signed transactions, RPC/WS and
+PostgreSQL. The normal launcher still uses P56.
+
+| Clean harness | Scenario | Observed outcome |
+|---|---|---|
+| `856c205` | A/B fill, B/C fill, close against C and freeze | Four direct clearing returns were 0, 4, 8 and 6. The external CPI returned 6 immediately after close. All five matched single-context RPC reads. A foreign ETH registration failed with `InvalidSeeds`. 267 harness outcomes, 76 fresh SQL events. |
+| `d9b36d4` | Distressed trader, maker fill, consenting receiver and unwind | BTC gross was 100 after opening, after partial liquidation and after the receiver took five lots. The transfer advanced the capacity generation. The receiver unwound against an opposing maker and gross fell to 90. Twelve signed rejection cases preserved state. 293 harness outcomes, 92 fresh SQL events. |
+| `fffc5d9` | Complete eight-member BTC default | Gross was 8 at freeze. Individual application receipts sampled gross of 4, 4, 2 and 0, matching the sum of the absolute lots on all eight roots. Clearing spent 12 insurance atoms. Two actual wallet transfers paid 20,000 and 20,004. 272 harness outcomes, 67 finalized worker transactions and 113 fresh SQL events. |
+
+The initial integration found a publisher that accepted only the shorter market
+layout and a fill that dereferenced an Anchor account after releasing its borrow.
+The measured build validates the selected layout on both publisher reads and
+mutates the registration tail with one scoped borrow. The correction also
+derives the consumed capacity from the touched positions. The signed fills fit
+within their first maker's capacity. The full-size near-cap fallback has native
+boundary coverage only. [Per-transaction cost](performance.md#signed-bounded-gross-read)
+and [reproduction](local-development.md#reproduce-the-bounded-market-read).
+
+## Native market-capacity comparison
+
+Clean source `e1bb859`. Four gross-capacity tests, the backing-partition test
+and the clearing funding-prefix test passed. The Rust driver, fed by decoded
+finalized receipts, matched 37 paired-workload/exit-boundary fills and two
+default-workload fills with their signed market states and frozen roots.
+An additional signed scenario at `c7b94a2` used the D137 SBF: two stored
+two-maker subfills cost 25 and 24 atoms. Closing all four lots against the
+third maker cost 48. Market gross progressed from 0 to 4, 8 and 6 as the
+trader returned to zero lots. The three registrations recorded 25/24/48;
+insurance, treasury and carry were 24/73/1. There were 261 harness outcomes,
+76 fresh SQL events and three more matches to the native gross comparison. [Results and public read constraint](performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills).
+
+To reproduce, use `cargo test --locked -p financial-core --features parallel-market-prototype --lib gross_capacity`,
+repeat with the `backing::partitions` filter, and run
+`cargo test --locked -p clearing --lib maker_local_funding_prefix_preserves_expiry_and_recovery`.
+Build the `gross_capacity_replay` example with the same financial-core feature.
+Run `node --import tsx tests/performance/replay-gross-capacity.ts <snapshot>` after
+loading `ops/env.sh`. Use the paired run's `sql-route-bursts-and-exit-snapshot.json`
+and the default run's `sql-multi-lot-native-comparison-snapshot.json`. Run
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-cross-maker-capacity` with the same
+D137 SBF and smoke script for the stored-order case, then replay
+`sql-cross-maker-capacity-snapshot.json`.
+
+## Aggregate market insurance
+
+Fresh local clearing `5b1e964` (2,880,864 bytes, SHA-256
+`1c8aa1d744a1a88281691ed67e87152b4c266f40401813a962a9855c6c88681c`).
+The aggregate profile uses its own account layouts and fee event discriminators.
+
+- Paired-route harness `2e5907c` finalized all 36 paired fills. The initial
+  BTC/ETH totals of 375/39 yielded 93/9 insurance and carry 3/3. A second BTC
+  checkpoint credited zero. Two 13-atom BTC receipts reconstructed 3 and 4
+  atoms of insurance. A one-atom SPL withdrawal left the funded vault at
+  8,999,999. A further 50-lot fill brought BTC fees to 976. Clearing refused
+  unclassified treasury allocation and a bare default freeze. Atomic BTC and ETH
+  classification with freeze recorded insurance of 244/9 and retained fees of
+  732/30. The harness checked 346 outcomes and fresh SQL replayed 157 events.
+- Default payout harness `60c173a` collected two 25-atom BTC fees and refused
+  duplicate and foreign-market registrations with `InvalidSeeds`. Both ledgers
+  matched their pre-attempt bytes. The verified default spent 12 BTC insurance
+  atoms and zero ETH. The worker restarted after certification and finalized 54
+  originals. Two real SPL exits paid 20,000 and 20,004. The vault moved from
+  6,040,042 to 6,000,038 atoms. All eight financial roots matched the independent
+  payout. The harness checked 272 outcomes and fresh SQL reproduced 113 events.
+- Three focused native tests include 10,368 fee distributions and checkpoint
+  partitions. The API/projection suites passed 19 tests and the RC2 wire contract
+  passed 18 regression tests. Source generation and TypeScript checks passed.
+
+The [matched lock and compute measurements](performance.md#aggregate-insurance-on-the-same-workload)
+retain the two BTC shared writes. Only the two-market, three-registrations-per-market
+fresh prototype was exercised. [Reproduction](local-development.md#aggregate-insurance-and-default-payout).
+
+## Native linked-market reduction admission
+
+At `a64f834`, the opt-in Rust verifier admitted 88 and refused 54 of 142
+native checks across five books and malformed-input controls. The independent
+rational model supplied expectations for the paired quantities and prices,
+remaining positions, debtor budgets, exact recovered value, insurance,
+whole-atom receipts and wallet entitlements. Cases include a funded pool,
+fractional claims, a previously paid winning position and two markets that
+recover more when the reductions apply together.
+
+Four retained eight-member signed freezes reproduced their recorded successor
+cash balances. At the freeze with a BTC winner owing ETH creditors, charges
+of 9 BTC-market atoms and 33 ETH-market atoms recovered exactly 9 and
+307,515/10,001 atoms of loss respectively. The simultaneous two-winner
+case charged 4 and 9 in BTC and 12 in ETH. These are native replays of existing
+inputs. This run supplies no new signed release or throughput result.
+
+Reproduce with `cargo build --locked -p default-plan-selection --features native-joint --example joint_reduction_audit`
+and `python3 tests/financial/check_joint_reductions.py`. Pass a retained
+`linked-default.json` to also verify its signed inputs and predicted payout.
+
+## Paired routes on the recovery candidate
+
+Harness `12f9902` on clearing `baef259` observed 36 of 36 signed routes finalize
+and reconciled 148 journal events from a fresh PostgreSQL database across nine
+financial members. All positions ended flat. A one-atom SPL withdrawal brought
+both allocated and actual vault balances to 8,999,999. The full run recorded 336
+harness outcomes. [Shared writes, costs and limitations](performance.md#paired-routes-on-the-recovery-candidate).
+
+## Clearing-verified multi-lot recovery
+
+The separate local clearing build `baef259` is 2,855,600 bytes. Two signed runs
+at harness `f7e76c9` used fresh Surfpool and PostgreSQL instances. On the
+eight-member book below, the three-fill certificate consumed **46,606 CU**
+in a **762-byte v0 transaction**. Both an omitted lot holder and a repeated
+ordinal were refused. The certificate preserved the original cash and vault.
+After the keeper restarted, 12 BTC insurance atoms and the verified 9-atom
+charge settled the book.
+
+| Signed outcome | Clearing and wallet | Fresh PostgreSQL replay |
+|---|---|---|
+| Different winning capacities, 784 candidate plans | 54 worker transactions finalized. Maker roots 0 and 1 withdrew 20,000 and 20,004 atoms into the operator’s SPL account. Both roots retained 1,000,000 each. Actual and allocated vaults both ended at 6,000,038. | 111 events, 224 reconciled accounts, 8 financial members, 270 harness outcomes |
+| Equal marginal costs, 144 candidate plans | Worker withheld the incomplete proof. Direct submission failed. Both headers, the frozen page, every root and the vault retained their original bytes. Exact native search selected a five-atom allocation. | 81 events, 308 harness outcomes |
+
+The signed refusal demonstrates the boundary of this short proof. The earlier
+single-lot and native comparisons remain separately reproducible. The test
+for two flat half-atom claims checks the complete valuation in Rust. Six
+checkpoint tests passed. The lot-rate tests cover each permitted lot count in
+small rational cases and 1,024-bit historical inputs at the maximum lot count.
+The financial source is [specified here](../clearing/default-plan-verification.md#how-the-multi-lot-clearing-certificate-binds-the-inputs).
+
+## Exact multi-lot BTC comparison
+
+Harness `4faefa7` executed two signed two-lot BTC buys against different
+isolated makers on clearing SBF `eb011a5`. The buys cost 120,004 and 120,010
+atoms plus 25 atoms in taker fees each. At a frozen mark of 50,000 both
+debtors had 19,996 cash. Their uncovered debts of 8 and 14 shared 12 insurance
+atoms. Their whole forced-reduction budgets were 3 and 6.
+
+Independent complete-book selection and the native verifier agreed across
+784 candidate allocations. The search traversed 47 bounded ranges. The first
+debtor charged three atoms to maker 0. The second charged one to maker 0 and
+five to maker 1. Three matched lots suffice. The two computed maker cash
+balances are 1,020,000 and 1,020,004. The worker withheld the unsupported
+one-lot action. A direct signed attempt failed and preserved all eight roots,
+the vault, frozen page and prepared header. Fresh PostgreSQL replay reproduced
+81 events across 308 harness outcomes. No multi-lot payout was released.
+
+On revision `397fd01` the compact proof certified that same frozen input.
+Checking all 784 proposals found no other bound-certified allocation. Across
+24 independent synthetic books with both position directions, partial payment
+and insurance, exact selection agreed on all 24 and the compact proof
+certified 14. It selected no different result across 4,754 tested allocations.
+A separate four-member native case certified a 140,000-atom allocation over
+a raw space of 24,011,372,029,400,280,001 combinations using the bounds alone.
+The last number counts mathematical combinations. No on-chain compute measurement was taken for this proof.
+[Verification rules](../clearing/default-plan-verification.md#several-multi-lot-debtors-and-winners-in-one-market).
+
+## Active positions and frozen page placement
+
+These runs use the same clearing SBF `d5cc624`. Local funded traders alternated
+one-lot buys and sells through a single internal maker, which ended flat with
+four claim atoms per pair. All six maker accounts and the trader roots entered
+the complete freeze. The verifier charges eight atoms per pair in the measured
+16- and 29-pair books. Each eligible account had the original signed fill and
+frozen claim expected by the journal.
+
+| Harness | Active / Financial | Active pages | Finalized certificate | CU | Wire bytes | Fresh SQL events |
+|---|---:|---:|---|---:|---:|---:|
+| `b2ada92` | 32 / 38 | 5 | 16 pairs, 128 atoms | 88,286 | 1,111 (v0) | 259 |
+| `28345d1` | 58 / 64 | 8 | 29 pairs, 232 atoms | 141,122 | 1,376 (v1) | 418 |
+| `97a8d5b` | 22 / 175 | 22 | Worker withheld submission. Direct signed call returned Profile (6108). | 20,106 | 1,550 (v1) | 654 |
+| `97a8d5b` | 162 / 168 | 21 | Default 32 KiB SVM heap exhausted. | 147,848 | 2,637 (v1) | Unverified |
+
+The original dense run stopped after the finalized failure because its harness
+did not recognize the SVM heap error. Its receipt establishes the failure and
+cost. Post-failure reconciliation was not observed on that run.
+
+The first three runs checked 519, 709 and 1,157 RPC/WS outcomes respectively. Their
+finalized certificate attempts each paid 5,000 local lamports at zero priority
+fee. The 22-page rejection preserved the prepared header, all active frozen
+pages, cash accounts and vault. These measurements end after certification or
+refusal. The three-wallet qualification below covers subsequent settlement.
+[Wire and revision scope](../clearing/default-plan-verification.md#how-many-frozen-pages-fit-in-one-inventory-certificate).
+
+On SBF `eb011a5`, harness `cd2d893` signed four simulations against each
+frozen book before the durable worker submitted its own 128 KiB transaction.
+Both workers paid 5,000 local lamports at zero priority fee. Their finalized
+wire bytes and CU matched the selected simulation. Custody and the original
+financial roots matched their pre-certificate bytes. Fresh SQL reconstructed
+all 11 and 81 assignments respectively, each charging eight atoms.
+
+| Active / Financial | Pages | 32 KiB CU | 64 KiB CU | 128 KiB CU landed | 256 KiB CU | v1 bytes landed | RPC harness outcomes | Fresh SQL events |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 22 / 175 | 22 | 92,422 | 92,446 | 92,494 | 92,590 | 1,554 | 1,156 | 655 |
+| 162 / 168 | 21 | 147,890, heap exhausted | 346,126, heap exhausted | 364,122 | 364,218 | 2,641 | 1,544 | 1,053 |
+
+Both measurement processes persisted and printed their reconciled results.
+Their outer Bash processes exited with a parse error after the script changed
+on disk during execution. The final script passed `bash -n` and ran end to
+end at `2c629e5` on the same SBF. That separate nine-member run included three
+signed refusals, worker restart, 59 finalized worker transactions and three SPL
+withdrawals of 20,001 atoms each. The vault ended at 6,000,030. Fresh SQL
+replayed 127 events across 284 harness outcomes. The two larger books were
+measured only through certification.
+
+Scalar preparation between freeze and certification used 75 transactions /
+2,547,094 CU for 38 Financial members, 104 / 3,718,375 for 64, 233 /
+8,247,044 for 175 and 225 / 8,533,739 for 168. At the observed 5,000 local
+lamports per transaction, those preparations cost 375,000, 520,000, 1,165,000
+and 1,125,000 lamports. The harness issued one preparation instruction per
+transaction. Batched production costs and larger-book exits need separate
+measurements.
+
+## Clearing-verified single-lot book
+
+On pinned clearing `d5cc624` and harness `3e8df69`, six of nine funded members
+held one BTC lot. Three debtor budgets of 1, 2 and 2 met three distinct opposing
+lots. The verifier used **40,457 CU and 803 signed bytes** with two writable
+frozen pages. Three signed incomplete or duplicated inputs failed. The original
+financial accounts and balances matched their pre-verification bytes after
+both rejection and certification.
+
+| Maker | Debtor | Price | Charge | Wallet withdrawal |
+|---:|---:|---:|---:|---:|
+| 0 | 6 | 40,001 | 1 | 20,001 |
+| 1 | 8 | 40,002 | 2 | 20,001 |
+| 2 | 7 | 40,002 | 2 | 20,001 |
+
+The worker restarted before verification and after the certificate. Nine
+insurance atoms were spent. All three SPL withdrawals landed and the vault
+ended at 6,000,030. Surfpool RPC/WS covered 284 harness outcomes and 59 signed
+worker transactions. Fresh PostgreSQL replay reproduced all 127 events and the
+certificate digest. This measurement covers one BTC book, three internal maker
+accounts and two active pages on the qualified local binary.
+[Certificate contract](../clearing/default-plan-verification.md#binding-the-single-lot-assignment-to-clearing).
+
+## Population-wide matching on a three-debtor freeze
+
+Ordinary clearing SBF `33361d9` and clean harness `34882ca` funded nine roots.
+Three BTC traders bought at 60,002, 60,003 and 60,004 from three separate maker
+accounts. Each trader retained 19,998 after its 13-atom fee. At the 40,000
+freeze their uncovered losses were 4, 5 and 6. Insurance supplied 9. The
+resulting whole budgets were 1, 2 and 2.
+
+| Maker ID | Actual ordinary SPL withdrawal | Independently selected successor credit | Selected debtor |
+|---|---:|---:|---:|
+| 0 | 20,000 | 20,001 | 6 |
+| 1 | 20,001 | 20,001 | 8 |
+| 2 | 20,002 | 20,001 | 7 |
+
+Both books conserve 60,003 atoms of maker recovery. The ordinary run finalized
+15 worker transactions and three withdrawals, audited 281 harness outcomes,
+and reproduced 126 events in fresh PostgreSQL. The final vault held 6,000,030.
+The reference checked all 5,832 proposals. The two-atom buyers consume different
+lots at 40,002. The other pair executes at 40,001.
+
+Native proposer and verifier `870ea08` matched exact independent enumeration
+on 432 small books with 95,610 admissible assignments. Two targeted Rust tests
+also rejected incomplete, reused, infeasible and lower-priority assignments.
+A release build on this host verified 1,024 pairs among 2,048 economic members
+in one warm command invocation (68 ms including process startup and output).
+That case visited 2,097,152 member rows in its priority checks. This is a
+native scaling measurement. The nine-account run used ordinary on-chain
+payouts. The subsequent signed candidate is measured above. [Selection contract](../clearing/default-plan-verification.md#matching-a-population-of-single-lot-debtors-and-winners).
+
+## Scarce winning inventory and flat BTC claims
+
+Clean harness `f462fc6` used four signed BTC fills and nine funded internal
+accounts. Both debtors bought at 60,002 or 60,006. A third trader then sold and
+bought back one lot at 40,001, leaving the original maker flat with 20,001
+unpaid atoms and another maker with one atom of gain at the frozen 40,000 mark.
+The 44 fee atoms supplied 11 to BTC insurance. The original whole loss budgets
+were 10 and 12. Independent enumeration checked 572 assignments. It selected
+one atom on member 1 at 40,001 and 12 on member 2 at 40,012.
+
+| Account or measurement | Ordinary SBF `33361d9` | Partial-inventory SBF `2256c51` |
+|---|---:|---:|
+| Flat maker’s SPL withdrawal | 19,990 | 19,996 |
+| Small winning maker’s SPL withdrawal | 1 | 0 |
+| Other winning maker’s SPL withdrawal | 19,994 | 19,989 |
+| Total withdrawn to the internal operator’s wallet | 39,985 | 39,985 |
+| Vault balance after withdrawals | 6,020,015 | 6,020,015 |
+| Harness outcomes / finalized worker originals / fresh PostgreSQL events | 290 / 16 / 135 | 292 / 57 / 135 |
+
+A zero withdrawal in this table means the account had no funded recovery above
+its original deposit. The harness checked the root and skipped submitting an
+empty transfer. Candidate verification cost 55,697 CU / 835 bytes. The signed run
+rejected a repeated winner, the wrong pairing, and a charge above the debtor’s
+budget before it allowed settlement. A new worker resumed from the on-chain
+certificate. The fresh indexer reconciled all nine financial roots and the vault.
+
+Two boundaries exercise different reasons for leaving a lot unused on the same
+clearing artifact (2,638,216 bytes, SHA-256
+`da2796230e4591aa53855b4fc0c6543ad424c017bd09cd2ec8c8f96535627e8e`).
+
+| Boundary | Selected debtor charges | Signed wallet withdrawals | Verifier transaction | Outcomes / worker originals / fresh events |
+|---|---|---|---|---|
+| Mark equals one winner’s entry, nine members, `f462fc6` | 0 and 13 | Flat maker 19,996 and other winner 19,988 | 52,887 CU / 835 bytes | 292 / 57 / 135 |
+| One debtor’s share rounds to zero, eight members, `f95fbc7` | 0 and 1 | Makers 20,002 and 20,004 | 55,733 CU / 835 bytes | 271 / 54 / 111 |
+
+For the rounded budget, cash of 20,000 per debtor left losses of 2 and 6 before
+six insurance atoms. The remaining two atoms split into exact shares of 1/2
+and 3/2. Only the second admits a whole-atom close. Both winning positions had
+ample gain. The independent reference verified all four proposals on this book
+and all 154 in the zero-gain book. The standalone Rust comparison matched
+2,516 feasible allocations across 296 independent small books and a u64
+boundary. This profile covers two one-lot debtors and two opposite positions
+in BTC, with any remaining creditors flat and ETH exposure and claims zero.
+[Verification contract](../clearing/default-plan-verification.md#when-one-of-the-two-winning-lots-has-little-eligible-gain).
+
+## Two BTC debtors sharing winning inventory
+
+On ordinary clearing SBF `33361d9`, clean harness `cfc2279` bought two BTC
+lots in separate trader accounts from two makers at 60,002 and 60,006. Both
+traders deposited 20,010 and paid a fee of 13 collateral atoms per trade. At the frozen mark of 40,000 each trader had 19,997 funded atoms.
+The uncovered debts before insurance were 5 and 9. BTC insurance supplied
+six. Their exact residuals were 20/7 and 36/7; the maximum whole charges
+were two and five. One atom of aggregate loss remained after both budgets.
+
+| BTC maker | Original claim | Actual ordinary withdrawal | Verified successor withdrawal |
+|---|---:|---:|---:|
+| Member 0 | 20,002 | 19,998 | 20,000 |
+| Member 2 | 20,006 | 20,002 | 20,000 |
+
+The ordinary run finalized two SPL withdrawals of 40,000 atoms in total
+(32,673 CU and 806 bytes each), leaving 6,000,020 in custody and the two
+trader roots at zero. The operator's eight-member book reconciled after restart.
+There were 268 harness outcomes, 14 finalized worker originals and 110 events
+reproduced in a fresh PostgreSQL database.
+
+The independent comparison enumerated all 324 proposed charge assignments.
+Both ways of using one winning lot twice were infeasible. Rust protected
+settlement agreed with the original and successor cash and claim movements.
+Native selector `981d269` assigned debtor 6 to maker 0 at 40,002 and debtor 7
+to maker 2 at 40,005. It also matched independent exhaustive permutations on
+120 books of one to six debtors (94 full recoveries and 26 insufficient-capacity
+results). Four malformed inputs and the maximum-u64 ordering boundary were
+checked separately. Clean harness `672cff0` subsequently ran on local clearing
+SBF `59184c5` (2,683,376 bytes, SHA-256
+`caf78f79e2e0bf1b6fc30f3ce5aef2cc0f453af2ef13e422a774055a4a833eef`).
+The signed verifier used 56,805 CU and 835 bytes. A repeated winning account,
+the inferior pairing, and a charge of three against a budget of two were each
+rejected. All watched financial accounts and the prepared certificate retained
+their original bytes across those refusals. The accepted certificate changed
+the prepared settlement. The worker restarted and applied it to all eight
+members. Both maker accounts each withdrew 20,000 to their operator’s SPL
+wallet (32,676 CU and 806 bytes per transaction). Custody retained 6,000,020.
+The run recorded 271 harness outcomes, 54 finalized worker transactions and
+111 events reproduced from scratch in PostgreSQL. The artifact covers the
+fully recoverable single-lot assignment on this two-debtor market.
+[Verification contract](../clearing/default-plan-verification.md#shared-single-lot-inventory).
+
+## Atomic payment for a BTC winner with ETH debt
+
+Clean program `d177cc5` (2,603,744 bytes, SHA-256
+`3d7b0b64d71aad7943b265ac66011fd8231f8d195846a2c49d0fcbe0825ee76b`)
+and clean harness `7f2b7e5` reproduced the three fills and eight-member freeze
+from the [ordinary comparison](#btc-winner-with-an-eth-debt). Both markets
+had zero pool cash. BTC and ETH insurance supplied six and three atoms.
+
+| Signed transaction | Result | CU | Wire bytes |
+|---|---|---:|---:|
+| Charge BTC 9, ETH 0 | Rejected, 6130 | 26,361 | 835 |
+| Charge BTC 8, ETH 33 | Rejected, 6130 | 26,361 | 835 |
+| Substitute the cross account for the flat creditor | Rejected, 6130 | 22,473 | 835 |
+| Charge BTC 9, ETH 33 | One lot per winner at 40,009 and 12,533 | 54,281 | 835 |
+| Flat BTC maker withdraws | 5,004 funded atoms | 32,676 | 806 |
+| ETH maker withdraws | 34,968 funded atoms | 32,676 | 806 |
+
+The prepared header, financial accounts, ledgers, vault and wallet bytes matched
+across the refusals. The completed certificate also left the financial balances
+intact until application. After a worker restart, settlement paid 39,972 atoms
+to the maker operator's wallet and left 6,000,028 in the vault. Each maker root
+retained its original 1,000,000 cash. Both trader roots ended with zero cash.
+All eight balances matched the independent reconstruction, which enumerated 340
+charge assignments. The run recorded 274 harness outcomes and 55 finalized
+worker originals via RPC/WS. Fresh PostgreSQL replay reproduced 114 events.
+
+The signed case used one frozen page. A keeper unit test covers four different
+pages in a 32-row input. Multiple debtors competing for one position, cycles and
+fractional original claims still need qualification. [Reproduction](local-development.md#reproduce-a-winner-with-debt-in-the-other-market).
+
+## BTC winner with an ETH debt
+
+At clean harness `bb67d1f`, three genuine routes produced the same eight
+frozen margin accounts and both market ledgers on two separate validators.
+The isolated trader bought BTC at 60,002. The cross trader sold one BTC lot
+at 54,998 to the same maker, leaving that maker flat, then bought two ETH lots
+at 30,002 from a different maker. At marks of 40,000 and 12,500 the cross
+trader's BTC claim was 14,998 and its ETH debt was 35,004. The two runs had
+separate clocks and oracle observation windows.
+
+| Creditor gain in atoms | Ordinary, signed | BTC-only, model | Joint, model |
+|---|---:|---:|---:|
+| Flat BTC maker | 5,002 | 5,004 | 5,004 |
+| ETH maker | 34,970 | 34,968 | 34,968 |
+| Direct charges on BTC / ETH | 0 / 0 | 9 / 0 | 9 / 33 |
+
+The Rust verifier rejected the BTC-only proposal with `Entitlement`. The
+ETH maker's exact entitlement would fall by 22,518/10,001 atoms without a
+direct ETH charge. The independent search checked 340 assignments and
+selected 9/33. Native protected settlement verified that plan's exact
+financial conditions, per-member cash and movements, and 6/3 insurance use.
+The two proposal columns have identical final balances and different
+eligibility under the approved rules. A focused Rust-driver regression checks
+both outcomes. [Proof obligations](../clearing/default-plan-verification.md#a-winner-whose-btc-claim-backs-an-eth-obligation).
+
+Ordinary SBF `33361d9` finalized the two SPL withdrawals, paying 39,972
+atoms into the maker operator's wallet. The vault went from 6,040,000 to
+6,000,028 with zero unallocated surplus across 224 reconciled accounts. The
+run recorded 271 harness outcomes, 15 worker originals and 113 events
+reproduced in fresh PostgreSQL.
+
+Candidate SBF `d0ae474` refused both proposed sole debtors and premature
+payment with program error 6130. The two refusals used 21,384 and 21,562 CU
+at 824 bytes. The frozen vault still held 6,040,000 and both wallets held
+zero. All eight roots, both ledgers, financial source, scratch and token
+balances matched across the rejected transactions. The candidate run recorded
+272 harness outcomes, 41 worker originals and 84 events reproduced in fresh
+PostgreSQL. Neither successor proposal was released by this candidate.
+[Reproduction](local-development.md#reproduce-a-winner-with-debt-in-the-other-market).
+
+## Linked allocation across competing makers
+
+At clean harness `005230c`, all five trades produced the same eight original
+cash balances, positions, claims and per-lot payment histories as the contested
+run at `89ef133`. Both markets' prices, funding, pools, insurance and fees
+matched. The independent reference enumerated 2,548 assignments. Clearing
+certified 4 and 9 atoms on the BTC makers and 12 on the ETH maker. Each
+reduction involved one lot, at 50,004, 50,009 and 20,012 respectively.
+The original debtor supplied 19,978 BTC-market atoms and 9,989 ETH-market
+atoms. Insurance supplied 13 and 1. Retained market fees were 39 and 6.
+
+| Recipient | Ordinary model credit | Actual funded withdrawal |
+|---|---:|---:|
+| Flat BTC trader | 4,993 | 4,996 |
+| First BTC maker | 5,003 | 5,002 |
+| Second BTC maker | 9,995 | 9,993 |
+| ETH maker | 9,990 | 9,990 |
+| Total collateral atoms | 29,981 | 29,981 |
+
+After the four signed SPL withdrawals the vault held 6,030,019 of its initial
+6,060,000 atoms. The trader retained 29,974 funded atoms and its wallet held
+4,996. The three maker accounts retained their original deposits and their
+common operator wallet held 24,985. The ordinary column is an independently
+computed comparison on this book. The preceding sole-winner binary kept it frozen.
+
+The wrong cutoff finished at 0/12 after eight members, and both markets stayed
+frozen. On the corrected attempt the worker reopened at ordinal three. A
+duplicate row, a skipped row, a premature denominator operation and a one-atom
+withdrawal were refused. The eight margin roots, both ledgers, resolution, vault
+and wallets retained their original bytes through certification. The final run recorded 290 harness
+outcomes and 71 separately signed worker originals. Finalized RPC/WS originals
+matched the submitted bytes. Fresh PostgreSQL reproduced 143 events and the
+projected state, including both allocation attempts and all four withdrawals.
+
+| Finalized operation | CU | Wire bytes |
+|---|---:|---:|
+| Open corrected allocation | 31,163 | 824 |
+| Score one member, range across both attempts | 31,716–43,488 | 760 |
+| Highest transaction, 24 rate steps | 898,690 | 2,923 |
+| Each owner withdrawal | 32,676 | 806 |
+
+Local clearing at `d0ae474` was 2,609,136 bytes, SHA-256
+`4e41342a10405a75e1539a8a249c97cbf6c955f4434f484996f9c2f0bf06bcd4`.
+The layout test verified the 1,284-byte frozen page. Eight focused worker
+and projection tests cover cutoff ordering and refused, resumed and completed
+scans. This run measured eight members with one cross debtor and disjoint
+creditors. [Reproduction](local-development.md#reproduce-the-linked-allocation-across-competing-makers).
+
+## Closed BTC claim in a two-market default
+
+A cross debtor bought BTC and ETH. A second trader sold one BTC lot at
+64,998 and bought it back at 60,002. The two 13-atom fees came from the
+trader's deposit. At the freeze its positions were flat, its funded cash
+was 19,970, and its unpaid BTC claim was 4,996. The eight financial members
+on both validators had identical frozen lots, cash, accrued claims and
+surviving entry and payment history. The market ledgers also matched.
+
+| Withdrawal in collateral atoms | Ordinary clearing | Linked clearing |
+|---|---:|---:|
+| Flat trader's BTC claim to its wallet | 4,994 | 4,996 |
+| BTC maker's funded recovery | 5,003 | 5,001 |
+| ETH maker's funded recovery | 9,989 | 9,989 |
+| Total paid from the vault | 19,986 | 19,986 |
+
+A fill-by-fill reference checked all eight roots, enumerated 84 charge
+assignments and selected 5 BTC and 13 ETH atoms. The native protected solver
+matched the cash, signed movements and insurance on both the ordinary and
+adjusted books. The debtor supplied 9,988 per market and insurance paid 9
+and 1. Both vaults fell from 6,039,992 to 6,020,006. The trader still had its
+original 19,970 funded atoms after withdrawing the claim payout.
+
+Ordinary harness `c8b5bc7` used SBF `33361d9`. It recorded 281 harness
+transactions, 15 separately signed worker originals and 123 events replayed
+in fresh PostgreSQL. The successor used SBF `30434d5` (2,586,864 bytes,
+SHA-256 `e55f48477a39977d10e33a85e87bab5d5ee00161307469ae1c88dae500d2cac9`).
+The BTC and ETH certificates consumed 42,732 and 46,479 CU at 801 bytes each.
+The trader withdrawal consumed 32,673 CU on ordinary clearing and 32,676 CU
+on the successor, both 806 bytes. All originals matched finalized RPC and WS.
+The independent indexer reconstructed the flat creditor from the complete
+financial membership. Twelve scoped projection tests passed. The legacy
+snapshot encoding matched 256 valuations and 3,637 encoded prefixes.
+
+An initial successor run landed every withdrawal and then found the indexer's
+older sole-creditor check. With the artifact-bound projection at `3d8d239`,
+fresh SQL reproduced all 124 events, including the joint certificate. The
+launcher then exited with a shell parse error after its source was edited
+during that invocation. At clean harness revision `89ef133`, the complete launcher exited successfully:
+285 harness outcomes, 56 finalized worker originals and 124 matching fresh
+SQL events. Frozen economics and all three withdrawals reproduced the preceding
+run. The run refused substitution of the flat creditor, the wrong ETH winner,
+premature settlement and a one-atom withdrawal during verification. The
+highest worker transaction used 899,467 CU and 2,923 wire bytes for 24 rate
+steps. [Reproduction](local-development.md#reproduce-the-closed-btc-traders-joint-default-payout).
+
+At `89ef133`, a separate book gave a second BTC maker one opposing lot.
+The reference searched 2,548 assignments and selected BTC charges of 4 and 9
+and an ETH charge of 12, keeping the debtor's cash split at 19,978 and 9,989.
+The worker reported unsupported competing creditors. Submitting **each** BTC
+winner on its own and attempting to bypass certification all failed with 6130.
+The eight roots and freeze checkpoint stayed byte-identical. Wallets stayed
+empty and the vault kept all 6,060,000 atoms. The run recorded 284 harness
+outcomes, 41 worker originals and 96 events reproduced in fresh SQL.
+The 4/9/12 schedule from that run supplied the target for the subsequent
+[competing-maker qualification](#linked-allocation-across-competing-makers).
+
+## Clearing-verified linked default and wallet exit
+
+Harness `a956981` deployed the local linked clearing build `0e027fc`
+(2,585,320 bytes, SHA-256 `7f627bc93748c7b4e6c36aa65a461900690387c77ab0e6169e4745dd0bad9086`).
+The eight real frozen accounts reproduced the [ordinary comparison](#signed-two-market-default-comparison).
+Clearing verified one lot per winner at 50,003 and 20,005, charging 3 and 5.
+The debtor’s cash contributed 9,996 to each market. Insurance paid 3 and 1.
+The two makers withdrew 9,999 and 9,997 to their operator's SPL wallet,
+which rose from zero to 19,996. The vault fell from 6,040,024 to 6,020,028.
+
+| Finalized transaction | CU | Wire bytes |
+|---|---:|---:|
+| Verify BTC and persist progress | 42,486 | 801 |
+| Verify ETH and commit both legs | 46,473 | 801 |
+| Withdraw each maker's funded recovery | 32,676 each | 806 each |
+| Highest worker batch in this run, 24 rate-work steps | 899,467 | 2,923 |
+
+The run recorded 265 harness outcomes and 56 separately signed worker
+originals. Each original matched finalized RPC bytes and its WS receipt. A
+replacement worker continued the partial certificate from PostgreSQL. Three
+signed refusals covered a BTC account passed as the ETH winner, starting
+settlement after BTC alone, and withdrawing one funded atom during the freeze.
+All eight roots and both token accounts reconciled. A fresh database reproduced
+105 events with byte-identical payloads and state, including the joint event.
+
+Independent rational calculations matched the paged rate and payment schedules
+for 33 reduced cohorts, including fractional original cash ownership. The
+scalar legacy regression passed 1,185 rate evaluations and 74 invalid proposals.
+The ordinary local clearing profile also compiled without an SBF stack warning.
+The regenerated IDL lock inventory covers 95 instructions, including 87 in
+clearing and 14 clearing custody writers. The new event changed the clearing
+IDL hash; every instruction's read and write accounts matched the previous inventory.
+The [certificate](../clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor)
+requires one creditor in each market and a whole original split. The separate
+D127 mirror diagnostic remains the evidence for ranking several creditors.
+
+Earlier local attempts stopped at an unrecognized candidate layout during
+indexer reconciliation, continued with the scalar batch setting after restart,
+or expected a pause error when the earlier frozen-mode gate returned 6108.
+The completed run includes the corrected artifact binding, worker startup
+settings and exact error. [Reproduction](local-development.md#reproduce-clearing-verified-joint-recovery).
+
+## Signed two-market default comparison
+
+At `7c299ca`, two fresh eight-account local deployments opened one BTC lot and
+one ETH lot against distinct isolated makers. The same cross debtor paid 13
+and 7 atoms in taker fees. At the freeze its 19,992 cash backed debts of
+10,002 per market. An independent replay of the finalized fills reproduced
+the clearing roots, entries, paid gains and both market ledgers. Debtor cash
+covered 9,996 per market. Insurance supplied 3 BTC-market atoms and 1 ETH-market
+atom. The complete successor model searched 24 assignments and selected charges
+of 3 and 5, at prices 50,003 and 20,005. The native protected settlement kernel
+matched both the model's ordinary and adjusted payouts.
+
+| Signed clearing profile | Observed outcome | Harness outcomes / worker originals / replayed SQL events |
+|---|---|---:|
+| Ordinary attribution, SBF `33361d9` | The two makers withdrew 9,999 and 9,997 atoms from their distinct capital accounts to their operator's SPL wallet. Each transaction consumed 32,673 CU. | 262 / 14 / 104 |
+| BTC allocation, SBF `9e2cc00` | Omitting ETH and skipping directly to denominator verification each failed with clearing error 6130. The original page, roots, resolution, vault and wallet were preserved. | 262 / 41 / 75 |
+
+Each worker reopened its finalized original from PostgreSQL after a restart.
+Every worker original matched its finalized RPC wire and WS receipt. Fresh SQL
+replay reproduced the indexed financial events and state. The ordinary path
+and the model pay the same cash in this book because each market has only one
+creditor. Those two profiles evaluated the 3/5 schedule off-chain. The
+[separate clearing candidate](#clearing-verified-linked-default-and-wallet-exit)
+subsequently executed it.
+[Reproduction](local-development.md#reproduce-the-linked-default-comparison).
+
+## Native linked-market recovery
+
+At `56e276b`, the compiled settlement kernel preserved the approved 60 BTC / 30
+ETH cash split when BTC debt fell from 80 to 60. Recomputing the split moved
+six atoms to ETH. The new native path matched an independent fractional solver on
+152 original/effective cohorts for cash, per-market movements, insurance, funded
+fee retention and each member’s exact cash allocation. Six malformed inputs
+were rejected. The ordinary kernel still matched 774 settlements and rejected
+307 invalid proposals. The two-market comparison enumerated 256 charge vectors
+and found 70 feasible. Rust reproduced the 6/6 baseline and the two finalist
+payouts of 7/8 and 8/7. These checks exercise native financial code. The
+[comparison](../clearing/default-plan-verification.md#when-the-two-markets-trade-places)
+records the D127 decision and its acceptance.
+
+At `1db483c`, the native protected settlement verified 100 paired proposals
+from the two ten-plan markets in that book. All 70 admissible payouts matched
+the independent rational model account by account, including per-market cash
+movements and insurance. The other 30 failed. This count starts after each
+individual market's inventory and shortfall checks. The 256 above includes
+assignments that fail those earlier checks.
+
+Separate fractional cases preserved the original ETH receipts of 1 and 6
+where ordinary rounding would assign 2 and 5. A full BTC reduction that would
+cut an ETH payout from 24 to 15 was rejected, as was the variation that would
+take nine more atoms from ETH insurance. Forged baseline rates and receipt
+order were rejected. The ordinary rounding regression matched the independent
+graph on 774 paged executions. The new checks replay the native paged graph,
+including restoration of its checkpoints. Signed linked-market recovery and its
+on-chain resource costs remain open.
+
+At `8af1a7a`, four mirror cases, six restart/search cases, eight certificate
+cases, four protected-settlement cases, the Rust assignment-order unit test and
+TypeScript compilation passed. At the all-zero venue, the complete 256-vector
+reference sweep certified only ordinal 54 for episode 1 and only 99 for episode
+2. The three asymmetric books stayed uncertified. Each finalized native cash
+vector matches the independently derived whole-atom distribution.
+
+A new local Surfpool diagnostic at the same pin used a different venue and
+produced ordinal 99 (BTC/ETH 8/7) in episode 1 and 54 (7/8) in episode 2 with
+reversed proposal order. With asymmetric retained fees in episode 3 it accepted
+neither plan. All **34 signed outcomes** were observed over WS, fetched at
+finalized RPC and accounted for in PostgreSQL. Eleven deliberately rejected
+instructions preserved state. Signature WS echoed each rejection. The separate logs subscription omitted the error field on those eleven receipts. The two successful comparisons used **8,400 and
+8,424 CU**, each in 281 wire bytes. The fixture commits 2,372 input bytes
+per episode. Its authority ends at recording the winning candidate. These CU
+counts exclude solving for feasible plans and moving collateral. From a clean
+checkout with the local toolchain, rerun with
+`RIVALT_PROOF_SCOPE=mirror bash ops/default-proof-smoke.sh`.
+After the executable moved to `tests/programs`, a fresh build and local
+deployment at `9614313` repeated all 34 outcomes and both CU measurements.
+
+## Multi-winner BTC recovery
+
+Two independent eight-account Surfpool/RPC/WS/PostgreSQL runs at `c747189`
+used clearing SBF `9e2cc00` (2,581,008 bytes, SHA-256
+`cfca283a6c024d0839c4f9167bcef78ab15ca2d7346b814db4bda496503f02b9`).
+One maker supplied all opposing debtor lots. A second maker and a separate
+trader account held profitable longs. A third trader account had closed. The
+independent checker replayed the three finalized fills and enumerated all
+feasible divisions of the loss using rational arithmetic.
+
+| Frozen BTC book | Charge to winning maker / open trader | Flat trader’s SPL withdrawal | Harness outcomes / worker originals / fresh SQL events |
+|---|---:|---:|---:|
+| Gains 9,002 and 9,998, shortfall 3,495 | 1,656 / 1,839 | 996 | 291 / 56 / 132 |
+| Gains 9,002 and 9,002, shortfall 1 | 1 / 0 by episode priority | 996 | 299 / 56 / 140 |
+
+Both runs proved rejection of a solvent substitute and a skipped row. Scanning
+a zero cutoff across all eight roots returned the program to its frozen proposal
+gate with the wallet and vault intact. The valid attempt resumed after worker
+restart at row two. All eight cash balances, the funded withdrawal, 501 atoms
+of BTC insurance, zero ETH insurance, 30 atoms of retained BTC fees and the
+sponsor's rent refund reconciled. A fresh SQL replay reproduced the finalized
+payloads. Beginning the scan cost 29,217 CU. The first two unbatched rows used
+31,070 and 31,058 CU. The peak transaction used 890,597 CU including other
+batched settlement instructions. These are local measurements on eight accounts.
+
+The native verifier checked 16,470 candidate vectors against independently
+enumerated optima. The default and candidate Anchor IDLs differ only by the
+additional u64 in each frozen row. The [proof and scope](../clearing/default-plan-verification.md#one-btc-debtor-and-several-winning-accounts)
+and [reproduction steps](local-development.md#reproduce-the-multi-winner-btc-recovery)
+describe the fresh-deployment requirement.
+
+## BTC residual recovery
+
+At `1e05885` three independent eight-account runs used signed Surfpool RPC/WS,
+fresh PostgreSQL and SBF `8024a37`. The clearing binary is 2,550,560 bytes,
+SHA-256 `cd2e95d27c5e6ec9b1a55138220ec29f2475c9a7c9b3d14373c35a5361e1982e`.
+The frozen mark was 70,000 in every case. Each trader withdrew the funded
+amount shown to its SPL wallet. Each vault decreased by that same amount.
+
+| Available open BTC gain | Forced close at the freeze | Remaining BTC loss | Flat trader withdrew | Winning maker gain credited | BTC insurance / retained fees |
+|---|---|---:|---:|---:|---:|
+| 502 against 1,500 short | 1 lot at 69,498, charged 502 | 998 | 8,498 | 0 | 498 / 21 |
+| 0 against 1,500 short | 0 lots, no charge | 1,500 | 8,498 | 0 | 498 / 21 |
+| 3,006 against 2,483 short | 1 lot at 69,173 and 2 at 69,172, charged 2,483 | 0 | 26,988 | 523 | 511 / 60 |
+
+All eight cash balances in each run matched an independent fill replay and
+terminal calculation. Each run checked 279 harness outcomes and 13 separately
+finalized worker transactions, recovered a stored original after worker restart,
+resumed custody, returned the sponsor’s principal and replayed the same 116
+financial payloads in fresh SQL. ETH insurance spent was zero. Peak worker
+transaction CU was 891,712, 891,712 and 891,714 respectively. These maxima
+cover batched recovery work. An earlier test harness hard-coded the one-lot
+fee and rejected the actual 14- and 37-atom fees before qualification.
+
+The two-asset linked book and several competing eligible winners require other
+proofs. This candidate has one debtor and one opposing BTC account. The
+[rounding comparison](../clearing/default-plan-verification.md#a-sole-btc-debtor-with-residual-losses)
+explains a one-atom difference that can arise for flat creditors in the defaulting
+market. [Reproduction commands](local-development.md#btc-residual-recovery).
+
+## Verified BTC default payout
+
+At `24bc87f84e3861296fe1559786486dab6a77a877`, eight accounts on fresh
+Surfpool exercised the approved successor on the same obligations as #102.
+The insolvent maker owed 9,998 atoms, paid 8,000 from its own cash and used
+498 from BTC insurance. Clearing verified one paired lot at 68,500 against a
+70,000 frozen mark. The remaining BTC creditors received all adjusted claims.
+
+| Funded result in collateral atoms | Selected P56 (#102) | Verified BTC candidate |
+|---|---:|---:|
+| Flat trader gain withdrawn to SPL wallet | 847 | 996 |
+| Winning maker gain credited | 7,651 | 7,502 |
+| BTC insurance spent | 498 | 498 |
+| ETH insurance spent | 0 | 0 |
+| BTC trading fees retained | 20 | 20 |
+
+All eight cash balances matched independent Python replay. The wallet rose
+from 0 to 996 and the vault fell from 2,048,492 to 2,047,496. The winning
+maker’s storage sponsor recovered its principal after custody resumed. The
+harness recorded 281 signed outcomes and separately checked 67 finalized
+worker transactions over RPC and WS. The operator stepped through valuation
+individually to exercise the freeze boundary. Fresh PostgreSQL replay reproduced
+all 116 payloads and the final state. The proof instruction consumed 44,559 CU.
+Its eight-instruction recovery batch consumed 223,476 CU, used 1,190 wire bytes
+and cost 5,000 local lamports.
+
+At `0ac7019` on the same SBF, the winning maker had only 502 eligible atoms
+against the same 1,500 shortfall. Clearing rejected the pair, a substituted
+creditor and an attempt to bypass verification. After 271 signed harness
+outcomes and 41 worker transactions the original positions, vault and wallet
+remained at freeze. Fresh SQL replay reconstructed 82 payloads.
+
+Development runs exposed mismatched pre-charge rate totals, an older operator
+page helper and an indexer running sum that used adjusted payouts for as-yet
+unapplied original roots. The accepted run uses a revised rate checkpoint,
+a matching helper and separate original-claim and payout checks at each row.
+The 2,549,160-byte clearing SBF was built at `447efef`, SHA-256
+`ad877806d413e8708d8c33189dc4d2084392fb41995763f016506c7ae04b8f6a`.
+This family covers one BTC lot and full recovery with whole claims. Partial
+shortfalls, other winners and joint BTC/ETH plans remain open.
+[Reproduction commands](local-development.md#verified-btc-default-payout).
+
+## Sponsored profit capacity
+
+Program `1763dc750dbb27c852fafd5fbda4fad486fd69cb` built a 2,516,448-byte SBF
+with SHA-256 `e1fa7b655b3e619aac575f1a8e559791cfc09e5c28492a5e334678b105b7f547`.
+At `291e7a52bbccc92621faf24511b77c1217a2ac7a` the
+[signed rent lifecycle](../../tests/rpc-contract/profit-capacity-rpc.ts) checked
+274 outcomes and rebuilt 76 financial payloads in a fresh PostgreSQL database.
+The refund and growth instructions also advance the margin’s scoped revision.
+SOL principal and token balances were checked independently over RPC.
+
+The first sponsor paid 1,178,543 lamports to enlarge the trader’s two slots
+from 128 to 224 bytes. A 17-lamport donation already on the root earned
+no refund credit. A 129-lot buy still failed until the maker funded its own
+capacity. The trader then bought and closed 129 lots. During the open position,
+a new sponsor reimbursed the first in full and paid 325,120 additional lamports
+to grow to 256 bytes per market. After exit the trader independently returned
+1,503,663 lamports to that sponsor. The 17-lamport donation remained on the
+margin. The self-funded maker recovered its own 1,503,680 lamports.
+
+| Finalized transaction | CU | Wire bytes |
+|---|---:|---:|
+| Sponsor initial trader growth | 14,051 | 618 |
+| Buy 129 lots | 178,984 | 1,006 |
+| Reject release with open exposure | 4,613 | 522 |
+| Replace contributor and grow the live root | 17,188 | 650 |
+| Close 129 lots | 163,182 | 1,014 |
+| Refund absent final contributor | 10,705 | 554 |
+
+Owner substitution, an insufficient signed ceiling, stale replay, missing maker
+capacity and a redirected refund all rejected. In the separate signed BTC
+recovery, the winning maker’s credit survived 13 restartable worker steps,
+complete distribution, an 847-atom withdrawal and return to custody. The sponsor
+recovered its full principal. The run checked 279 outcomes and replayed 115
+financial payloads. Neither run measures arbitrary-denominator worst-case CU,
+larger widths or the successor payout rule. [Commands](local-development.md#sponsored-profit-capacity).
+
+## Clearing-owned surviving profit
+
+The [signed test](../../tests/rpc-contract/profit-attribution-rpc.ts) at
+`af1c5158301274cfdb3299b0b364955f8af1ce6f` deployed candidate clearing built
+from `33361d969978543716697373826a3f3675e1edc4`. Its 2,497,736-byte binary
+has SHA-256 `f4b313c3899e1aab074baf92a015c2e37f3c7a450e6610105e0669d539a98ca3`.
+Both makers used the selected P56 binaries. The loopback run checked 344 signed
+outcomes including setup and expected rejections. A new PostgreSQL projection
+replayed all 157 events. A separate [Python fraction replay](../../tests/financial/check_profit_attribution.py)
+reconstructed all 16 frozen market slots across eight accounts from finalized
+fills and the backed payment.
+
+The trader bought four BTC lots at 60,002 and closed two at 60,998. The
+2,492-atom payment settled 1,992 of fixed gain and assigned 250 to each of the
+two open lots. A keeper closed one more lot. Its survivor retained the same
+entry and paid amount through the freeze without a trader signature or rent
+transfer. A second trader bought three lots across unequal maker prices at a
+total of 150,008 atoms, then flipped through a four-lot sale. Clearing retained
+the exact aggregate entry for the trader and each individual price for the makers.
+
+| Finalized transaction | CU | Wire bytes |
+|---|---:|---:|
+| Reject 129 lots on initial capacity; five financial accounts preserved byte-for-byte | 149,931 | 1,006 |
+| Open four lots | 177,940 | 1,006 |
+| Close two against another maker | 171,540 | 1,014 |
+| Pay certified gain | 70,798 | 580 |
+| Keeper closes one lot | 202,881 | 918 |
+| Two-maker fractional entry | 245,469 | 1,174 |
+| Two-maker flip | 244,667 | 1,174 |
+| Named-debtor freeze | 51,746 | 918 |
+
+At `b5555bccacaac432f84066c972704b501577575b` the same binary ran the separate
+single-debtor BTC recovery below. All 277 signed outcomes, 13 worker continuations,
+115 replayed events and the 847-atom token exit passed. Each distributed margin
+had empty attribution. These are small local workloads with a 1,275-byte margin
+root and 128 bytes reserved per market. General lot capacity, paid-for growth and
+successor payouts still require their own qualification.
+
+## Single-debtor BTC recovery
+
+At `7781e6b0cbf0b8df7801cd3d09fff1005977c5ea`, the [signed harness](../../tests/rpc-contract/btc-default-recovery-rpc.ts)
+ran the selected P56 binaries (`ed46603`) on fresh Surfpool 1.7.0 with eight
+financial accounts, internally operated makers, signed test prices and one test
+collateral mint. A cross trader bought one BTC lot from maker A at 60,002 and
+sold it to maker B at 60,998. The trader paid two 13-atom fees. At the verified
+70,000 freeze, A's short owed 9,998 atoms and A held 8,000 funded atoms.
+BTC insurance supplied its whole 498-atom balance (492 donor atoms plus six fee
+atoms). The remaining **1,500 atoms** are the difference between the claims and
+the 8,498 available to creditors.
+
+| Creditor | Unpaid BTC gain at freeze | Funded by selected clearing | Funded in successor model | Difference |
+|---|---:|---:|---:|---:|
+| Flat trader | 996 | 847 | 996 | +149 |
+| Maker B, still long one lot | 9,002 | 7,651 | 7,502 | −149 |
+| Total | 9,998 | 8,498 | 8,498 | 0 |
+
+The [independent comparison](../../tests/financial/btc_default_comparison.py)
+replayed both finalized fills from a flat origin, checked every frozen position
+and claim, and compared all eight terminal cash balances with the signed
+proportional result. The successor model assigns all 1,500 atoms to B by closing
+its one eligible lot at 68,500. This leaves zero loss for subsequent proportional
+allocation. ETH insurance spent zero. Clearing retained 20 atoms of fees.
+
+The selected worker finalized 13 continuations, including a worker restart
+after the first receipt. Each stored original matched finalized RPC bytes
+and a successful WebSocket notification. All positions were flat at distribution.
+The trader withdrew 847 funded atoms into its SPL account and the vault fell by
+847. Four subsequent source observations and an authority transaction returned
+clearing to custody. The run recorded 277 signed harness outcomes including setup.
+A fresh PostgreSQL 18.6 replay matched the projection, all 115 event records,
+their signatures and their bytes. This run covers a single BTC debtor, zero
+funding, and one eligible opposite position. The general successor remains a
+separate implementation and qualification gate. [Reproduction](local-development.md#btc-default-recovery-comparison)
+
 ## Maker liquidation and funded receiver
 
 The candidate SBF was built at `4e07c1f`. Its [signed scenario](../../tests/rpc-contract/maker-liquidation-rpc.ts)
@@ -2500,3 +3561,662 @@ client output removes the capture buffer; original builder metas replace compile
 transaction privilege unions in the negative probe and all worker parity checks.
 Offline comparison classified exactly two promoted read-only metas; no program
 layout or economic rule changed. A complete corrected run is required.
+
+## Clearing-owned joint recovery
+
+Local SBF `efbaa024` is 3,055,624 bytes, SHA-256
+`902291ec1c562037e18bb04f7311276bd8d9c3b82ff8857dffd86484c2e43fdd`.
+The page helper is built from the same revision. The default IDL adds eight
+instructions, a search account and a binding event. Every prior instruction,
+account, event and type was structurally identical in the generated IDL.
+The D90 ABI check, TypeScript type-check, seven Rust verifier tests, the SDK
+receipt test and nine scoped-event tests passed.
+
+At `f46b6032` the cross-creditor book covered all 340 schedules. The selected
+BTC 9 / ETH 33 plan took 28 successful search transactions totaling 5,998,545 CU.
+The largest used 922,695 CU. The winner cost 140,000 test lamports in fees and
+the sponsor deposited 42,636,440 rent lamports in the search account. Binding
+used 30,734 CU in 726 signed bytes. Incomplete, defeated, stale and duplicate
+bindings were rejected. All eight balances and 16 signed movements matched the
+independent model. The two maker capital accounts paid 5,004 and 34,968 atoms to their owner’s wallet;
+each withdrawal used 32,726 CU in 806 bytes. The run recorded 276 main harness
+outcomes and 54 worker originals. A fresh database reproduced all 114 events
+and the reconciled cash, fees and reserves. Retained finalized bytes for all
+eight new instructions and both binding payloads matched the isolated legacy
+and RC2 Anchor clients.
+
+The first attempt at `3f669775` stopped after selection when a synchronous
+test subprocess starved the parent's finality poll. The repeated `f46b6032`
+financial harness completed and emitted its checked result. Its outer shell
+reported a trailing parse error after the final reconciliation while the
+script file was edited during the run. The pinned supervisor passes
+`bash -n`. Raw receipts are retained in the existing ignored
+`.local/profit-attribution/owned-cross-f46b603` directory.
+
+At `d2a16818`, two BTC makers each held 10,002 eligible atoms. Clearing
+verified 2,548 schedules, selected BTC charges of 7/6 by frozen member order,
+and charged 12 on ETH. The winner took 67 successful search transactions,
+14,743,233 CU total, 994,013 CU peak and 335,000 test lamports in fees.
+Binding took 31,184 CU in 726 bytes. A one-atom withdrawal after binding and
+before application failed. All eight funded balances and 16 market movements
+matched the independent result. The flat trader withdrew 4,996 atoms; maker
+credits of 9,995, 9,996 and 9,990 reached their owner's token account. Both
+reserves ended at zero, alongside retained fees of 39 and 6. The supervisor
+completed 291 main harness outcomes, 55 worker originals, both isolated Anchor
+comparisons and an identical 128-event fresh SQL replay. Signed receipts are
+under `.local/profit-attribution/owned-tie-d2a1681`. The local proposer supplied
+the schedules and witnesses; a fully autonomous operating service and larger
+book resource qualification are still open.
+
+## Combined clearing lifecycle
+
+The local `integrated-recovery-qualification` SBF at `5d7a7c0f` is
+3,187,040 bytes, SHA-256
+`94a82ceab69599b2abb952b0ea2f2867b27a27f5d54eb3ef59e88ee19f7ace9f`.
+Each workload used the same clearing and maker binaries on a fresh Surfpool
+deployment, signed transactions, RPC/WS and its own PostgreSQL 18.6 database.
+
+- At `e5a9de5a`, all 36 paired routes and the additional pre-freeze fill
+  finalized. Independent makers on BTC shared zero writable keys. Only the
+  shared-maker pair wrote the same capital and registration. The test exercised
+  a funded exit, rejected an intervening fill that invalidated the checkpoint,
+  froze with exact insurance, and reproduced 231 events from scratch.
+  [Resource and timing measurements](performance.md#paired-routes-on-the-recovery-candidate).
+- At `49a90358`, two BTC lane fills and the full ETH cross-account fill
+  collected 24 and 13 fee atoms. The freeze rejected incomplete classification,
+  then recorded 6 and 3 insurance atoms with 18 and 10 retained. Clearing
+  compared 340 schedules, accepted charges of 9 and 33 and rejected the
+  competing 9/32 schedule. The 28 transactions for the winning proof used
+  5,999,369 CU in total and 140,000 test lamports in fees. Binding used
+  31,083 CU in 726 bytes. Early withdrawal failed. The makers withdrew
+  5,004 and 34,968 atoms, each in 806 bytes and 32,955 CU. All eight
+  member balances and sixteen market cash movements matched the independently
+  reconstructed book. There were 278 main outcomes, 55 worker originals and
+  142 freshly replayed events. Both independent Anchor clients reconstructed
+  eight recovery instructions and both emitted binding-event payloads.
+  The first harness at `e5a9de5a` stopped at freeze because its comparison
+  selected only the older fill event. The rerun explicitly checked both lane
+  fills and the full route before comparing any financial result.
+
+- On clean harness `51123ea6`, the ETH funding index advanced from 4,999,999
+  to 5,555,555 scaled units in a BTC cross-account fill. BTC retained
+  6,111,110 through 30 skipped seconds, with one second of valid coverage.
+  A two-maker reversal from +1 to −1 lot charged the taker 24 atoms once.
+  The cross-account fill used 260,371 CU in 1,204 bytes. The reversal used
+  207,100 CU in 1,110 bytes. Both finalized with 10,000 test lamports in fees.
+  The run recorded 275 outcomes and 113 events in fresh SQL replay.
+- On the same harness, the trader opened and closed BTC against different
+  makers for a 996-atom gain, with 26 atoms in trading fees. Another fill
+  changed backing after all eight accounts had been scanned. Clearing rejected
+  payment with incomplete checkpoints, then paid the fully backed gain. The
+  wallet received the 970-atom net profit. Payment used 139,697 CU in 848
+  bytes and withdrawal used 141,359 CU in 1,074 bytes. There were 332
+  outcomes and 315 freshly replayed events.
+- On clean harness `3c476d16`, the ten-lot maker fill reduced the maintenance
+  deficit from 43,910 to 12,574 atoms after fees. The target remained at 40
+  lots while no quote or funded receiver could execute. Once funded, a
+  consenting receiver took five lots. That restored maintenance, left the
+  trader with 35 lots and prevented further liquidation. The receiver unwound
+  all five lots. The maker liquidation used 267,650 CU in 1,154 bytes and the
+  receiver transfer used 145,490 CU in 983 bytes. There were 294 finalized
+  outcomes and fresh SQL replay matched 136 events. The first run at
+  `51123ea6` exposed a missing ledger classification on the receiver deposit.
+  The corrected test verifies rollback without it, then funds the receiver with
+  the classification in the same transaction.
+
+On keeper revision `c96e43a8` with the same `5d7a7c0f` program, the service
+read the frozen accounts over RPC and generated the original and candidate rate
+and rounding witnesses. The earlier independent calculations matched byte for
+byte. The restarted signed workflow covered 340 schedules, rejected the
+inferior proposal and early withdrawal, and paid 5,004 and 34,968 atoms to the
+two wallets. Fresh PostgreSQL replay matched 142 events after 278 main harness
+outcomes and 55 worker originals. The two search processes recorded 27 and 33
+outcomes. Two targeted unit tests passed and 26 witness calculations matched
+the retained independent results from the cross-creditor and tied-gain books.
+Only the cross-creditor book was redeployed for this change. The harness still
+supplied the schedule numbers, exclusion intervals and submission loop.
+
+### Automatic recovery keeper
+
+On `453e8c5c`, the risk worker read the eight frozen margin histories and
+compared all 340 BTC/ETH schedules. It chose rank 339, with charges of 9 and
+33 atoms. A separate process instance resumed from the first landed exclusion
+interval. Clearing bound the result, refused withdrawal before application, and
+paid the two wallets 5,004 and 34,968 atoms. Fresh PostgreSQL replay matched
+142 events. There were 273 main harness outcomes and 78 worker originals. A
+one-schedule budget blocked the same episode before the sponsor rented an
+account. The run used the combined `5d7a7c0f` clearing SBF on Surfpool.
+
+| Frozen book | Signed proof transactions, including binding | Total CU | Peak CU / bytes | Sponsor fees | Rent deposited |
+|---|---:|---:|---:|---:|---:|
+| Cross-creditor, 340 schedules | 23 | 5,979,755 | 922,695 / 726 | 115,000 lamports | 42,636,440 lamports |
+| Tied BTC gains, 2,548 schedules | 67 | 14,765,834 | 994,013 / 726 | 335,000 lamports | 42,636,440 lamports |
+
+On worker `94f14ee5` the tied-gain book selected rank 1,364 of 2,548 from
+the authenticated freeze. The selection agreed with the independent reference
+on charges of 13 BTC and 12 ETH collateral atoms. The flat trader withdrew
+4,996 atoms. The three maker withdrawals were 9,995, 9,996 and 9,990 atoms.
+The run recorded 286 main harness outcomes, 122 worker originals and 128
+events in a fresh PostgreSQL replay. It used the owned-recovery local SBF from
+`efbaa02`. Both runs stopped and reopened the worker after a landed interval.
+
+The RPC receipts distinguish the fee from the extra debit to create the
+payer’s proof account. Reopening the worker reused the original account.
+Both isolated Anchor clients reproduced all eight recovery instructions and
+two emitted events. The amounts are local test collateral and lamports.
+
+### Recovery selection across two membership pages
+
+On `51214434` a signed verifier captured the nine Financial roots from both
+canonical frozen pages, including the final flat BTC creditor. It sealed rank
+1,364 after covering all 2,548 schedules. The sponsor process exited at cursor
+169 and a new process reread the landed proof. The 67 finalized proof
+transactions consumed 15,937,670 CU in total, with a peak of 1,055,640 CU
+and a maximum signed packet of 466 bytes. The payer spent 335,000 local
+lamports in fees and posted 52,669,440 in account rent. The final cash,
+movements, remaining insurance and retained fees matched the independent
+calculation. The original clearing freeze stayed in place. The 284 harness
+outcomes, 43 clearing-worker transactions and fresh 99-event PostgreSQL
+replay are separate from the 67 verifier transactions.
+
+Harness `7543e863` reached freeze on the paged clearing binary `37672622`. Snapshot reconciliation then rejected the new account layout before any proof or payout. The account and settlement snapshot readers now share the same deployment-specific frozen-page decoder.
+
+On `00a2858c`, the paged clearing binary rejected omitted or reversed frozen
+pages. Neither rejection changed the prepared header or either page. Binding
+all nine results consumed 41,209 CU. The premature withdrawal failed as
+expected. PostgreSQL ingestion then rejected the newly introduced binding
+event at the transport boundary. From the retained finalized original, the
+corrected decoder and projector matched the nine-member vector, including
+34,970 atoms of final cash for the last creditor. Isolated Anchor 1 and RC2
+clients reproduced all eight instructions, the binding event and the footer.
+This run ended before an authorized wallet payout.
+
+On `69e64a52` the two-pass insurance case reached the incumbent comparison.
+The signed wire exhausted its 1.2M CU preflight. The same instruction and
+frozen accounts simulated successfully at 1,221,755 CU under the 1.4M
+validator ceiling. LiteSVM replay of both original wires and captured account
+bytes reproduced both measurements exactly. Multi-pass individual comparisons
+now request 1.35M CU. The run measured a simulation and moved no payout.
+
+Harness `ae1c59ea` on clearing SBF `37672622` settled nine members with two
+insurance calculations before and after the forced reduction. Clearing checked
+all three possible schedules, selected rank 2 and charged two ETH-market
+atoms. The original BTC/ETH debtor cash allocation stayed fixed. The markets
+spent six and one insurance atoms and retained seven and zero respectively.
+The flat BTC creditor withdrew 4,996 atoms. Three maker withdrawals totalled
+30,003, matching the 34,999-atom reduction in the vault. A restarted worker
+completed application and reconciliation. The fresh PostgreSQL database
+reproduced all 134 events and matched the live accounts. The harness recorded
+291 outcomes and 79 finalized worker transactions.
+
+The 16 recovery-proof transactions used 1,965,510 CU in total and 80,000 local
+lamports in fees. The sponsor also posted 52,669,440 in rent. The full
+comparison used 1,221,755 CU in a 424-byte packet. Binding used 40,218 CU
+and 792 bytes. The peak comparison used 90.5% of the requested 1.35M CU.
+These are local measurements on this two-pass book.
+
+On `edf85cab` the separate nine-member case completed on the same SBF.
+The keeper resumed the proof, covered all 2,548 schedules and bound rank
+1,364. Recovery charges were 13 BTC-market and 12 ETH-market atoms.
+Insurance supplied 13 and one respectively. The second-page creditor held
+34,970 atoms of final cash and withdrew 4,996. Three makers withdrew
+29,981 in aggregate. The vault decreased by 34,977. Fresh PostgreSQL
+replay reproduced 134 events and reconciled the live accounts. The harness
+recorded 291 outcomes and 125 finalized worker transactions. Both isolated
+Anchor clients matched eight recovery instructions and two events.
+
+The 68 proof transactions, including binding, consumed 15,988,672 CU in total
+and 1,055,773 at peak. Binding consumed 41,209 CU. The largest packet was
+792 bytes. The sponsor spent 340,000 test lamports in proof fees and posted
+52,669,440 in rent.
+
+On `9b9894dc` a fresh local `efbaa02` clearing deployment froze nine Financial
+accounts after five signed fills. Member 8 was flat with a 4,996-atom BTC
+claim. The worker read both original pages, fenced each margin-history
+batch against the prepared revision, and selected rank 1,364 of 2,548.
+The independent calculation started from the signed fills and matched the
+charges of 13 BTC and 12 ETH collateral atoms. The existing clearing profile
+held the freeze. Neither wallet nor the vault moved during selection. The
+run recorded 284 harness outcomes and 43 finalized worker transactions. A
+fresh PostgreSQL replay matched 99 events.
+
+A separate nine-member fractional vector required three insurance calculations.
+The independent rational solver produced rate triples `[1,1,1]`, `[3,3,2]`
+and `[23,20,15]`. It paid the final flat creditor one atom from each market
+and spent zero insurance atoms. The worker reproduced all triples and both
+nine-member remainder orders. The native finance verifier accepted all three
+passes and rejected an omitted pass and an eight-member payout order. This
+fractional vector ran off chain. The signed freeze used whole-atom claims.
+
+On `41269935` a read-only Solana verifier authenticated the prepared header,
+resolution, both membership pages and all nine original margin accounts. It
+verified the proposed forced trades and calculated protected payouts. The
+returned digest matched every member's cash and both market movements plus
+the remaining insurance balances. Repeating page zero in place of page one
+was rejected. The accepted transaction used **1,089,543 CU**, **901 bytes**
+and **5,000 test lamports**. Fresh PostgreSQL replay again matched 99 events.
+This measurement covers one proposed schedule. Enforcing optimality across
+the 2,548 schedules and applying wallet balances require further instructions.
+The clearing-side conservation scan at `97063aa3` separately rejects omitted
+members, unbalanced reductions, a wrong insurance market and fee reallocation
+in a targeted native test.
+
+The earlier combined-build proof admitted exactly eight members. Its nine-member route workload qualified contention and freeze. The separate paged clearing binary qualified the two nine-member payouts above. A sponsor supplied the exact
+proposal and witnesses in the original recovery run at `49a90358`. The automatic keeper covers the admitted profile. Recovering larger cohorts and establishing a sustained throughput limit remain open. P56 remains the selected local runtime.
+
+On harness `b026dcba` the funding, ordinary payout and receiver runs stopped
+during setup with filesystem `ENOSPC`. Their partial evidence was excluded. The successful cases above ran sequentially
+after removal of 24 approved, stopped test databases.
+
+### Ordinary settlement worker checkpoint parity
+
+On `73799a2b` the service builder reproduced instruction data and ordered
+account addresses for 39 backing scans, one maker loss collection and one
+trader payment from finalized combined-build run `51123ea6`. Three focused
+settlement-worker tests passed, including separate contiguous checkpoint sets
+for an atomic final scan and payment, and TypeScript checking passed. This
+check reused signed originals. It establishes no new payout latency.
+
+### Ordinary close-to-wallet timing
+
+Harness `ddd4f36b` ran two independent eight-member Surfpool venues on combined
+SBF `5d7a7c0f`. In both, a trader bought one BTC lot at 60,002 and sold it to a
+different maker at 60,998. The close recorded a 996-atom claim. Two fees of 13
+left 970 atoms of net profit. Both backing certificates were complete before the
+close. The table uses the harness observation of close confirmation as time zero.
+
+| Confirmed observation | Pool funded before close | Collection delayed across restart |
+|---|---:|---:|
+| Pool had at least 996 atoms | Already present | +2.322 s |
+| Keeper reopened the same pending original | Continuously running | +2.277 s |
+| Claim paid into margin cash | +5.246 s | +7.611 s |
+| Net gain received in SPL wallet | +5.383 s | +7.790 s |
+| Events reproduced by fresh PostgreSQL replay | 334 | 329 |
+
+In the delayed case the pool held zero at close. The harness checked that the
+signed collection had never landed, stopped the worker, waited 1.5 s and
+reopened its PostgreSQL journal. The worker recovered the same signature and
+wire. In both cases it collected the outstanding maker loss and paid two gains
+in member order. The second payment cleared the trader's claim. The wallet and
+vault moved by exactly +970 and −970 atoms and the trader's funded cash returned
+to its opening balance.
+
+Each of the three worker originals cost the keeper 5,000 local test lamports.
+The close and withdrawal each cost the harness fee payer 10,000. The close used
+177,788 CU, the trader payment 91,116 CU and withdrawal 141,207 or 141,192 CU
+respectively. The measurements use one sample per case, local synthetic price
+updates, a 250 ms service loop and an immediately signed withdrawal. Setup and
+the preceding backing scan are outside the timing interval. Each original was
+independently fetched at finality and worker signatures were verified over WS.
+
+An optional atomic close-and-pay is worth prototyping for already-backed claims.
+Here the pool already held the full gain yet the trader waited another 5.246 s
+for the worker. Before exposing that path, demonstrate that the actual post-fill
+certificate, payout cap and pool cover the payment, preserve other creditors'
+entitlements, and measure the signed packet and CU. A stale certificate or
+insufficient funds must still allow an ordinary close with asynchronous payment.
+Changing the payment priority under scarce backing needs a separate economic
+decision. [Reproduction](local-development.md#reproduce-the-combined-clearing-lifecycle).
+
+
+### Automatic maker and receiver liquidation
+
+Harness `84ef28f3` on combined clearing SBF `5d7a7c0f` ran the service against
+nine Financial members. A trader held 50 BTC lots and an ETH risk-increasing
+order. At a 52,000 reference, the independently valued maintenance deficit
+was 43,910 collateral atoms. The worker received no target, maker or fill size.
+
+| Signed outcome | Remaining trader lots | Trader cash | Maintenance deficit | Worker CU / wire |
+|---|---:|---:|---:|---|
+| Sell ten to the admitted maker at 51,998 and cancel the ETH order | 40 | 563,286 | 12,574 | 247,096 / 1,103 bytes |
+| Tight depth exhausted, receiver funded with one atom | 40 | 563,286 | 12,574 | No original |
+| After another 99,999 atoms arrive, consenting receiver takes five at 52,000 | 35 | 563,156 | 0 | 100,497 / 689 bytes |
+| Reprobe restored health | 35 | 563,156 | 0 | No original |
+
+The target paid a 104-atom taker fee on the maker sale and a 130-atom
+penalty directly to the receiver on the transfer. The worker fee payer was
+also the receiver owner. Its SOL balance fell by exactly 5,000 test lamports
+for each finalized original and by zero during the blocked and healthy probes.
+The receiver unwound its five lots at the remaining wide bid. Each signed
+worker transaction matched its PostgreSQL original when independently fetched
+over RPC and confirmed over WS. Fresh replay matched 149 events and reconciled
+accounts. The independent calculation included actual funding on each interval
+at the inventory held.
+
+The initial run did not queue the maker. A subsequent run exposed the old
+manual fixture's zero-premium assumption after consumed depth changed the
+funding sample. Another caught an indexer race with deposit finality. The
+successful run preserves the oracle bounds and waits for fixture finality
+before publishing reconciled receiver capacity. The worker uses bounded size
+probes and one configured receiver. It reports a missed probe round separately
+from an executed liquidation. [Reproduction](local-development.md#reproduce-the-combined-clearing-lifecycle).
+
+
+### Financial domain extraction
+
+Harness `ecd515e4` ran identical signed payout and liquidation workloads on
+the parent binary `84ef28f3` and the extracted binary `90d71835`. Both used
+the integrated qualification features and the pinned RC2 SBF compiler.
+The loss, payment and receiver-transfer rules are exercised through the
+program entry points in the [financial source map](../clearing/README.md#trace-a-financial-transition).
+
+| Finalized transaction | Before CU | After CU | Change |
+|---|---:|---:|---:|
+| Open 50 BTC lots | 263,816 | 263,816 | 0 |
+| Close with a different maker | 167,361 | 167,361 | 0 |
+| Fill against an already-scanned book | 182,866 | 182,866 | 0 |
+| Collect maker loss | 123,033 | 123,112 | +79 |
+| Pay backed closed profit | 139,697 | 139,749 | +52 |
+| Withdraw net gain | 141,359 | 141,359 | 0 |
+| Force a ten-lot maker sale | 267,650 | 267,653 | +3 |
+| Transfer five lots to a funded receiver | 145,490 | 145,490 | 0 |
+| Receiver unwind | 247,283 | 247,283 | 0 |
+
+The SBF grew from 3,193,416 to 3,193,704 bytes. On **each** binary the
+payout run produced 332 signed outcomes, 996 gross gain, 26 trading fees,
+970 atoms to the wallet, and 315 events in fresh PostgreSQL replay. The
+liquidation run produced 294 signed outcomes, the same 43,910 → 12,574 → 0
+maintenance deficits, and 136 freshly replayed events. The fixture signs,
+submits, refetches and decodes the original transactions over RPC/WS.
+
+Eight financial-core margin cases, eight on-chain route tests and ten on-chain
+cash tests passed. The immutable D90 wire contract check passed. The public
+native whole-account settlement helper now shares the live program's gross-debt
+coverage rule. A cross account with 119 cash against debts of 80 and 40 refuses
+a one-atom collection from either market. With 120 cash, collecting one leaves
+119 cash, 79 and 40 debt, and one pool atom. The previous helper checked the
+selected claim alone. This corrects the native helper and preserves the signed
+program's economic behavior.
+
+### Combined successor qualification
+
+All cases below used fresh local venues with the same clearing SBF, built from
+`d9a2a55b` (3,199,280 bytes, SHA-256 `5be8497c6ae059d1864fb17e92be268cb3cd7a11adfb3542556d659fbb8806e6`).
+The on-chain program checked the financial transitions. The checks used signed
+originals, finalized RPC receipts, WebSocket observations and fresh PostgreSQL
+replay. Each row identifies its own workload and harness revision.
+
+| Case | Harness | Observed outcome | Fresh events |
+|---|---|---|---:|
+| Available payout pool | `963b91d3` | Gross gain 996, two fees of 13, funded cash at +4.974 s and 970 in the wallet at +5.109 s from close confirmation. | 334 |
+| Delayed collection and restart | `cc84a0b8` | Keeper reopened at +2.263 s and recovered its original signed wire. Pool funded at +2.307 s, cash at +7.360 s and wallet at +7.502 s. | 329 |
+| Liquidation | `7b71f15b` | The keeper sold 10 lots to a maker, held with one atom of receiver capital, then transferred five lots on consent after funding. Trader retained 35 lots at zero maintenance deficit. Maker fill used 247,099 CU / 1,103 bytes. Receiver transfer used 100,495 CU / 689 bytes. Operator paid 5,000 lamports each. | 155 |
+| Funding interruption | `7b71f15b` | One covered second, 30 skipped. The stored BTC funding index was 7,222,220 scaled units both before and after the gap. The two-maker trade crossed zero. | 113 |
+| Mixed route workload | `963b91d3` | 360 of 360 signed fills finalized, followed by wallet withdrawal, fee classification and a complete freeze. [Resources and cost by payer](performance.md#mixed-traffic-on-the-combined-successor). | 1,203 |
+| Nine-member joint recovery | `963b91d3`, `6d8a500f` | Clearing covered 2,548 schedules, resumed after a keeper restart, bound the complete result, paid the flat trader 4,996 and the makers 29,981, and reduced the vault by 34,977. Its 126 keeper originals cost 630,000 lamports. Dual-client conformance matched all eight proof instruction shapes. A full repeat after the first wrapper failed on its trailing print exited successfully with the same payouts and costs. | 176 in each run |
+| Second insurance pass | `a3046433` | Three schedules on nine frozen members. One flat trader withdrew 4,996 atoms and makers withdrew 30,003. The vault decreased by 34,999. The keeper paid 395,000 lamports over 79 originals. | 176 |
+
+The first liquidation attempt reached a degraded BTC observation after replay and
+clearing rejected its preflight. The fixture now confirms a signed Normal
+observation before it offers work to the keeper. An initial delayed-payout run
+stopped when a reconciled database view was unavailable. The timed fixture
+now counts such polls and retries under the same 10-second publication rule as
+the service. The successful repeat had zero unavailable polls. Each ordinary
+payout used three keeper originals at 5,000 lamports each. The fixture sponsor
+also paid 10,000 for the two-signature close and 10,000 for the withdrawal.
+
+P56 remains the normal local runtime. Its 128-member acceptance exceeds the
+capacity of the successor search PDA. Even with empty histories, no edges and no
+rate or order entries, its generated encoding needs 16,781 bytes at the end of
+pair derivation. The account holds 10,240. Per-member budgets, weights and payout
+vectors all contribute to the bound. [Local runtime decision](../DECISIONS.md#d140--retain-p56-as-the-normal-local-runtime) · [Reproduce the qualification](local-development.md#combined-local-successor-qualification).
+
+## Populated successor recovery inputs
+
+21 November 2026. Clearing `ba2057df`, harness `14bc7ee8`, 1,165 signed
+Surfpool transactions, including the expected rejection. The test repriced
+both markets, froze 128 Financial members and valued every member in order.
+Sixteen accounts used cross margin, 120 held positions, and 136 market slots
+were open. All counterparties and oracle sources were local test participants.
+[Reproduction](local-development.md#populated-successor-recovery-inputs)
+
+| Check | Observed result |
+|---|---|
+| Admission | Forward registration order on the preceding successor stopped at maker inventory rising from 227 to 262 lots. The 256-byte sponsored slot refused the fill in simulation with error 6105. Reversing execution order kept the same requested trader quantities and maker assignments within the sponsor limit. The passing run executed 129 fills and transferred one lot into a funded liquidation receiver. |
+| Frozen pages | 16 pages of 1,988 bytes. All 128 member valuations cost 38,877–48,199 CU apiece and 640,000 lamports in total. A signed attempt to write the first member of page two into page one was rejected. Both pages and the membership cursor were byte-identical after rejection. |
+| Financial inputs | Independent per-lot arithmetic agreed at all 5,158 nonzero quantity checks. The separate Python fraction model reproduced both rate numerators and the rounding orders. The shared factor needed 108 bits and each numerator needed 152. |
+| Search | The native iterator using raw histories and the independent calculation using on-chain page rates and Python debtor budgets found 888 eligible BTC pairs and 1,023 ETH pairs. Multiplying their charge radices gives a 10,031-digit count. Representing the greatest rank takes 33,322 bits. Many of these assignments violate financial constraints. No schedule was selected or applied. |
+| Custody and history | Fresh PostgreSQL replay reproduced 1,286 events. RPC reconciliation covered 405 accounts and 128 Financial members. The vault and allocated collateral both held 332,907,140 atoms at frozen stage 2, with zero surplus. |
+
+This verifies the partitioned financial inputs through valuation. The freeze had
+no flat member with a positive market claim. The earlier nine-member wallet
+tests cover that case separately. The 128-member terminal payout and withdrawal
+are open. D140 keeps P56 selected.
+
+## Native populated recovery bound
+
+At `ff251284` the native financial engine verified a feasible 55-pair plan on
+the signed 128-member freeze from the preceding run. The independent Fraction
+settlement and native receipts agreed on both loss reductions and both debtor
+ceilings. Of 11,707,736 recoverable atoms, 7,983,928 belonged to BTC and
+3,723,808 to ETH. A second admitted plan charged the same gross amount and
+recovered approximately 308.529 fewer BTC atoms. Independent evaluation of
+all 280 unconstrained proportional target combinations found that every one
+missed the primary objective. Two initial regression tests also compared complete
+small integer allocations and two native cases in which the bound either was
+or was not attained. [Proof and comparison](../clearing/default-plan-verification.md#certifying-maximum-recovery-on-the-populated-freeze)
+
+Reproduce with the ignored `population-input.json` produced by the signed
+qualification. The test input digest was
+`9b3fec73053e869dbc9e0bb48ee9654638b6001be02eceeb5096ffb0f6dc81c3`.
+
+```sh
+cargo build --release --locked --offline -p default-plan-selection --features native-joint --example joint_reduction_audit
+python3 tests/financial/test_populated_recovery_bound.py
+python3 tests/financial/check_populated_recovery_bound.py "$RIVALT_RUN_DIR/population-input.json"
+```
+
+At `19feeef0` the independently checked linked-market constraint capped
+aggregate charges to eight ETH winners at 780,159. A 123-pair proposal attained
+the exact maximum in both markets and both proportional-sharing minima with
+434 BTC and 407 ETH lots. All three targeted regressions passed, including
+complete constrained allocations on a small book. The signed input and SBF
+are the same as the preceding freeze.
+
+At `502a0f68` the reference considered all eight BTC and five ETH optimal
+winner allocations under the linked bounds. A 237-pair native receipt reached
+the 423 BTC and 403 ETH whole-lot lower bounds with the greatest winner totals
+in frozen-episode order. Independent rounding matched every member's cash
+and both market movements and matched both insurance debits. The financial
+regressions and the full signed-input replay both passed. The priority of
+individual pair charges was still open at that revision.
+
+The bound and the comparison ran natively. This run submitted no transactions.
+The population still requires an on-chain selection proof and terminal wallet exit.
+
+
+At `c9df514a` the 135-pair proposal (71 BTC, 64 ETH) reached every D121
+pair bound on this same input. It attained both recovery ceilings and exactly
+423 BTC and 403 ETH lots. All 128 members' cash, both movements per member
+and both insurance debits matched independent protected settlement. The earlier
+237-pair proposal passed admission and failed the final ordering check. The
+Rust bound matched exhaustive integer checks in 65,340 local endpoint cases.
+Four Python regressions passed, including two equally feasible pairings on
+eight frozen episodes. Both pairings won on different episodes. The native
+result gives no release authority. The next on-chain step is verification of
+the wide settlement rates on all original frozen rows.
+
+## Populated original rates and debtor budgets
+
+At harness `a50261d1` and clearing `365fa254`, the signed 128-member freeze
+reproduced the original payment rates on chain. The independent rational
+reference matched all 128 prefixes, the 108-bit factor and both 152-bit rate
+numerators. The denominator used four arithmetic continuations. The rate
+check used 534, at 38,132–62,040 CU per continuation. The single insurance
+pass reached an integral result. The harness used separate transactions
+for these steps. Its 846 additional signed outcomes after valuation include
+rejections. This measures the submitted sequence, without a batching estimate.
+
+At harness `acdb2e30` and clearing `16f89bef`, clearing repeated the rate
+check and recorded each member's original two-market debtor budget.
+All 256 values matched the independent reference. The 16 successful pages
+used 1,054 bytes per transaction and 179,617–194,877 CU each
+(2,928,120 CU combined). Substituting a rate register and repeating a page
+both failed with the page bytes intact. Trying to start payout from the
+original rates failed at 17,201 CU. These runs qualify the frozen inputs
+to selection. Dense schedule verification, payout and wallet withdrawal
+remain open. [Reproduction](local-development.md#populated-successor-recovery-inputs)
+
+The budget run finalized 2,029 signed outcomes, including deliberate
+rejections. Fresh PostgreSQL replay matched all 1,286 domain events and the
+financial checkpoint. All 405 accounts reconciled, including 128 members.
+The SPL vault and allocated collateral each held 332,907,140 atoms with zero
+surplus. Both freezes had identical financial input bytes to the native
+selection case. The opt-in page occupies 2,124 bytes and preserves its fixed
+eight-row encoding. Clearing SBF was 3,237,720 bytes with SHA-256
+`22e98303eb1f8123d80b8468f96b7d21ad889d29fa696068d636751e7b32f485`.
+
+## Protected charges across markets on the populated freeze
+
+Clearing `7df9585e`, harness `b43351f8`, finalized 2,050 signed outcomes on
+a fresh 128-member freeze. Two ETH claims differed from the previous freeze
+by opposite 0.004444416-atom funding accruals. The native and independent
+checks were rerun on these exact RPC rows. Both the recorded prefixes on all 16 pages and the
+sealed caps matched the independent fractional calculation. Of 7,983,928 BTC
+budget atoms, at most 5,239,476 can be charged to holders whose gains also
+fund ETH creditors. The ETH figures were 780,159 of 3,723,808. These are
+upper bounds conditional on attaining both recovery ceilings.
+
+| Signed action | Outcomes | Transaction bytes | Landed CU |
+|---|---:|---:|---:|
+| Advance the first 15 pages | 15 | 823 | 42,428–56,443 |
+| Verify the final page and seal the caps | 1 | 1,054 | 189,975 |
+| Reject unrecorded budgets, wrong first page, repeated prefix, repeated seal or premature payout | 5 | 776–1,054 | 17,201–31,262 |
+
+Only the final page needed the seven market registers. The 16 successes cost
+80,000 test lamports at the observed fee. The signed failures preserved the
+checked account bytes. Fresh PostgreSQL replay matched 1,286 financial events
+and a 405-account reconciliation with 332,907,140 atoms both allocated and
+held in the SPL vault. No withdrawal occurred. An earlier invocation stopped
+at the clean-checkout guard before opening the financial workload.
+
+The native sharing checker at `b7b1af6a` reproduced both protected caps
+and the minimum 423 BTC and 403 ETH matched lots. The winning holders alone
+require at least 423 and 389 lots respectively. ETH debtors require the
+remaining difference. Its marginal comparisons cover both the optimal
+deviation and frozen winner order. The same 135 admitted pairs attained the
+final pair bounds. Six independent financial tests, the exhaustive three-holder
+sharing comparison and a market total above one member's u64 range passed.
+On-chain acceptance of the winning charges, effective settlement and wallet
+exit remains open. [Proof](../clearing/default-plan-verification.md#bounding-charges-to-positions-that-also-pay-a-foreign-creditor)
+
+## Winner charges on the populated freeze
+
+On clearing `486d5818` and harness `f85840f3`, two permissionless proposals
+verified the charges for all 128 frozen members in each market. After every
+eight members the on-chain commitment matched an independent reconstruction.
+At full recovery the BTC winners required at least 423 matched lots and its
+debtors 418. The corresponding ETH floors were 389 and 403. A separate native
+run against these exact RPC inputs found a feasible ordered schedule of 71 BTC
+and 64 ETH pairs attaining both market minima.
+
+| Signed action | Successful calls per market | Transaction bytes | Landed CU |
+|---|---:|---:|---:|
+| Open the proposed thresholds | 1 | 437 | 6,540–8,195 |
+| Read frozen opposite positions | 16 | 380 | 5,698–6,428 |
+| Verify eight member charges | 16 | 380 | 11,650–31,034 |
+
+Each passing proposal cost 165,000 local test lamports in fees and occupied
+a separate 572-byte account holding 3,556,000 rent lamports. A worse threshold
+failed its final comparison after scanning the full book. Substituting a frozen
+page, replaying work and asking for payout at this stage also failed. The run
+finalized 2,154 signed outcomes, reproduced 1,286 financial events in fresh
+PostgreSQL and reconciled 405 accounts, including all 128 members. The SPL
+vault and allocated collateral each held 332,907,140 atoms.
+
+The populated book used the direct inventory path. Native tests covered
+mixed opposite-side position sizes and sub-atom rates across 1,344 combinations.
+On-chain pair execution, adjusted cash settlement and wallet exit for this freeze
+remain open. [Verification contract](../clearing/default-plan-verification.md)
+
+## Ordered recovery pairings on the populated freeze
+
+Clearing `34359552` and signed harness `b8967e3c` verified the entire ordered
+schedule from a fresh 128-member freeze. BTC matched 7,983,928 collateral
+atoms across 71 pairs and 423 lots. ETH matched 3,723,808 atoms across 64
+pairs and 403 lots. Every observed prefix digest and every participating
+position's remaining quantity matched independent integer-lot enumeration.
+The native verifier also admitted this exact RPC book and both recovery ceilings.
+
+| Signed action | Successful calls, both markets | Landed CU | Wire bytes |
+|---|---:|---:|---:|
+| Open market proposals | 2 | 6,067 | 445 |
+| Commit ordered member pages | 17 | 7,910–14,176 | 498–835 |
+| Authenticate members against the frozen allocation | 32 | 8,086–10,883 | 641–740 |
+| Verify and consume the next debtor page | 77 | 6,871–10,283 | 412 |
+
+The 128 successful calls cost 640,000 local test lamports in fees. Each
+proposal occupied 426 bytes plus 563 bytes per order page. Twelve signed
+negative checks rejected changed preimages, substituted holders, swapped
+roles and replay. After both market certificates had completed, clearing
+also rejected a premature payout.
+
+Across 2,294 signed outcomes, fresh PostgreSQL replay matched all 1,286
+financial events. The SPL vault and the allocation each held 332,907,140
+atoms. All 405 accounts and 128 members reconciled. The next acceptance is
+joint BTC/ETH settlement of these adjusted claims and the actual token exits.
+[Pair verification](../clearing/default-plan-verification.md#verifying-debtor-and-winner-pairings)
+
+### Populated joint settlement qualification
+
+The local clearing build at `3acd4a4d` is 3,546,704 bytes, SHA-256
+`95c6ddc43384bb1bf143983d0c87e5b2fe6e25b47b25cc87cb4fb182188c180d`.
+The SBF stack check passed after moving the rate checkpoint out of the inline
+proposal decoder. Two native payment-bound tests and one wide market-total test
+passed. On the retained #151 freeze the independent rational reference found
+37 BTC and 33 ETH positive claims meeting the per-creditor protection bound.
+The native ordinary and protected circulations each reproduced all 128 cash
+balances and 256 market movements. Both allocated 332,877,029 cash atoms
+and charged 6,786 BTC-market and 3,251 ETH-market insurance atoms.
+
+The first signed run of harness `abad2f88` retained 251 RPC transactions and
+matching WebSocket records. The host ran out of disk space while writing the
+next signed wire during venue setup. This run reached neither joint settlement
+nor a wallet withdrawal. The [reproduction](local-development.md#combined-local-successor-qualification)
+uses a fresh local run directory.
+
+After pruning stopped test databases, harness `067149aa` finished the
+128-member on-chain reconciliation on the same binary. The diagnostic path
+used 9,701 conserving-plan continuations. A trading checkpoint prepended by
+the harness to the terminal withdrawal failed in simulation with error 6108.
+The wallet transfer was never submitted and this run did not reach SQL replay.
+Resolved accounts have a dedicated, guarded withdrawal for liability-free cash.
+
+Harness `eaeedf27` repeated the signed freeze with 128 accounts and 120
+exposed members. Clearing verified the 37 BTC and 33 ETH protected claims,
+applied every account’s final cash and reconciled all 128 accounts before
+permitting an exit. Two independent checks of each payout were available.
+The Python rational model supplied the expected numbers for the signed run.
+The current native driver matched all 128 balances and 256 market movements
+using both ordinary and protected rounding. Total funded cash was 332,877,029
+atoms. The BTC and ETH markets used 6,786 and 3,251 insurance atoms respectively.
+
+| Signed action | Successful calls | Landed CU per call | Maximum wire bytes |
+|---|---:|---:|---:|
+| Authenticate one page of protected creditors | 16 | 53,942–64,014 | 779 |
+| Verify adjusted payout-rate arithmetic | 51 | 30,979–101,776 | 422 |
+| Bind both market payments | 1 | 25,827 | 759 |
+| Copy certified claims and numerical registers | 38 | 27,588–38,581 | 796 |
+| Advance the conserving payout calculation with keeper page windows | 471 | 47,722–548,892 | 1,206 |
+| Apply one margin account’s final balance | 128 | 92,783–113,836 | 989 |
+| Withdraw one trader’s entire funded payout | 1 | 33,203 | 814 |
+
+The keeper's page windows cost 2,355,000 local test lamports across 471
+continuations. The diagnostic run’s 9,701 narrower continuations cost
+48,505,000. They are separate signed freezes with identical whole-atom
+payouts, market movements, charge deltas and insurance spending. The
+rate numerators differed. These counts cover the conserving calculation only.
+
+The active-market checkpoint was refused again after resolution. The guarded
+withdrawal alone moved 986,527 atoms from vault to wallet and left the margin
+account with zero cash. The post-withdrawal vault and allocated balance each
+held 331,920,613 atoms, with zero surplus.
+
+Surfpool finalized 3,984 signed outcomes with matching RPC and WebSocket
+observations. A fresh PostgreSQL database reproduced the 1,690 ordered event
+payloads byte for byte and reconciled 405 accounts, including all 128 members,
+to finalized RPC. No pending or unresolved journal jobs remained.
+This was an operator-driven qualification against the local synthetic sources.
+The normal local launcher still uses P56. The populated proof family and the
+smaller exhaustive proof family have yet to complete their wallet and restart
+acceptance together on one candidate.

@@ -20,10 +20,17 @@ export function projectedEntities(state:AccountState) {
   return values;
 }
 
+// Revision ownership follows physical account bytes. The three aggregate
+// fields in the public market view can advance on a maker-registration write.
+function storedFields(state:AccountState,key:string,logical:{revision:string}){
+  const cached=state.liquidity?.marketCheckpoints?.[key]??state.liquidity?.ledgerCheckpoints?.[key];
+  return cached?{...logical,...cached}:logical;
+}
+
 /** Apply a complete causal batch to a clone. Neither missing history nor a
  * later failing instruction can leak a partially projected financial effect. */
 export function projectScopedBatch(initial:AccountState,invocations:readonly AccountInvocation[],
-  binding:{venue:string;domain:string}) {
+  binding:{venue:string;domain:string;artifactSet?:string}) {
   const ordered=orderScopedTransactions(invocations,initial.revisions),state=structuredClone(initial);
   const byIdentity=new Map(invocations.map(value=>[`${value.signature}/${value.outer}/${value.invocation}`,value]));
   const applied:AccountInvocation[]=[];
@@ -31,14 +38,14 @@ export function projectScopedBatch(initial:AccountState,invocations:readonly Acc
     const invocation=byIdentity.get(`${envelope.signature}/${envelope.outer}/${envelope.invocation}`)!;
     // JSONB may reorder object keys between journal commits. Compare complete
     // immutable values, preserving array order and all financial fields.
-    const before=new Map([...projectedEntities(state)].map(([key,value])=>[key,structuredClone(value)]));
+    const before=new Map([...projectedEntities(state)].map(([key,value])=>[key,structuredClone(storedFields(state,key,value))]));
     for(const write of invocation.writes)state.revisions[write.account]={kind:write.kind,revision:write.before};
-    for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4);
+    for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4,binding.artifactSet);
     const represented=projectedEntities(state),writes=new Map(invocation.writes.map(write=>[write.account,write]));
     for(const [key,value] of represented) {
       const expected=state.revisions[key];
       accountCheck(expected&&value.revision===expected.revision,`snapshot predecessor ${key}`);
-      accountCheck(isDeepStrictEqual(before.get(key),value)||writes.has(key),`payload changed readonly entity ${key}`);
+      accountCheck(isDeepStrictEqual(before.get(key),storedFields(state,key,value))||writes.has(key),`payload changed readonly entity ${key}`);
     }
     for(const write of invocation.writes) {
       state.revisions[write.account]={kind:write.kind,revision:write.after};

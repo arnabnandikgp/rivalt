@@ -12,10 +12,26 @@ use financial_core::clearing::{
     },
 };
 
+#[cfg(feature = "linked-pair-qualification")]
+pub mod linked_pair;
+pub mod recovery;
+pub mod winner_allocation;
+pub mod ordered_pairs;
+pub mod joint_payment;
+pub mod foreign_creditor;
+pub mod shared_inventory;
+pub mod inventory_book;
+pub mod single_pair;
+pub mod btc_allocation;
+pub mod linked_allocation;
 mod contexts;
 mod denominator;
 pub use denominator::*;
 mod handlers;
+#[cfg(feature = "populated-recovery-qualification")]
+pub mod original_budgets;
+#[cfg(feature = "populated-recovery-qualification")]
+pub mod foreign_protection;
 mod rates;
 pub use rates::*;
 mod plan;
@@ -30,6 +46,27 @@ pub const PREPARE_INDEX: u8 = 0;
 pub const VALUE: u8 = 1;
 pub const DENOMINATOR: u8 = 2;
 pub const PROPOSAL: u8 = 3;
+// Original-rate work in the dense recovery profile precedes plan selection.
+// Only the effective settlement can advance to payout planning.
+pub const ORIGINAL_DENOMINATOR: u8 = 20;
+pub const ORIGINAL_RATES: u8 = 21;
+
+fn denominator_stage(stage: u8) -> bool {
+    stage == DENOMINATOR || (cfg!(feature = "populated-recovery-qualification") && stage == ORIGINAL_DENOMINATOR)
+}
+fn original_rates(stage: u8) -> bool {
+    cfg!(feature = "populated-recovery-qualification") && stage == ORIGINAL_RATES
+}
+fn rate_stage(stage: u8) -> bool {
+    stage == PROPOSAL || original_rates(stage)
+}
+fn after_denominator(stage: u8) -> Result<u8> {
+    match stage {
+        DENOMINATOR => Ok(PROPOSAL),
+        ORIGINAL_DENOMINATOR if cfg!(feature = "populated-recovery-qualification") => Ok(ORIGINAL_RATES),
+        _ => Err(ClearingError::Resolution.into()),
+    }
+}
 
 pub(crate) fn snapshot_binding(header: &PreparedSettlement) -> SnapshotBinding {
     SnapshotBinding {
@@ -105,9 +142,15 @@ pub(crate) fn value_member(
     let mut valuation =
         SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(header))
             .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
-    valuation
-        .accept(ordinal, id, &row, lots)
-        .map_err(|_| ProgramError::from(ClearingError::Reconciliation))?;
+    #[cfg(all(feature="single-pair-default-qualification",not(feature="btc-residual-qualification")))]
+    let acceptance=valuation.accept_single_pair_row(ordinal,id,&row,lots);
+    #[cfg(feature="multi-lot-book-qualification")]
+    let acceptance=valuation.accept_inventory_row(ordinal,id,&row,lots);
+    #[cfg(all(feature="linked-pair-qualification",not(feature="multi-lot-book-qualification")))]
+    let acceptance=valuation.accept_linked_row(ordinal,id,&row,lots);
+    #[cfg(all(not(feature="linked-pair-qualification"),any(not(feature="single-pair-default-qualification"),feature="btc-residual-qualification")))]
+    let acceptance=valuation.accept(ordinal,id,&row,lots);
+    acceptance.map_err(|_|ProgramError::from(ClearingError::Reconciliation))?;
     membership
         .member(id)
         .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
@@ -121,6 +164,22 @@ pub(crate) fn value_member(
         generations: root.positions.map(|position| position.generation),
         claims,
         collected,
+        #[cfg(feature = "paged-recovery-qualification")]
+        recovery_payout: Default::default(),
+        #[cfg(feature = "btc-allocation-qualification")]
+        btc_charge: 0,
+        #[cfg(feature = "linked-allocation-qualification")]
+        linked_charges: [0; 2],
+        #[cfg(feature = "book-inventory-qualification")]
+        book_capacity:0,
+        #[cfg(feature = "multi-lot-book-qualification")]
+        lot_rate:[0,1],
+        #[cfg(feature = "book-inventory-qualification")]
+        book_charge:0,
+        #[cfg(feature = "partitioned-recovery-inputs")]
+        recovery_lot_rates: [[0, 1]; 2],
+        #[cfg(feature = "populated-recovery-qualification")]
+        original_debtor_budgets: [0; 2],
     };
     page.row_count += 1;
     header.state.valuation = valuation.checkpoint();
@@ -144,7 +203,11 @@ pub(crate) fn finish_value(header: &mut PreparedSettlement) -> Result<()> {
     header.state.denominator = DenominatorPass::new(header.count, capacity)
         .map_err(|_| ProgramError::from(ClearingError::Arithmetic))?
         .checkpoint();
-    header.stage = DENOMINATOR;
+    header.stage = if cfg!(feature="populated-recovery-qualification") {
+        ORIGINAL_DENOMINATOR
+    } else if cfg!(feature="single-pair-default-qualification") {
+        single_pair::AWAIT_PAIR
+    } else { DENOMINATOR };
     Ok(())
 }
 

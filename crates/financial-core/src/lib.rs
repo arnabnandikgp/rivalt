@@ -3,6 +3,9 @@
 //! No runtime, oracle, token, or authority assumptions are supplied by this crate.
 pub mod clearing;
 pub mod backing;
+pub mod fee_lanes;
+#[cfg(feature = "parallel-market-prototype")]
+pub mod gross_capacity;
 pub mod liquidation;
 pub mod liquidity;
 pub mod margin;
@@ -10,6 +13,7 @@ pub mod oracle;
 pub use clearing_accounting::price_policy;
 pub use risk_engine::orders;
 pub mod route;
+pub mod settlement;
 
 pub const LOTS_PER_BTC: i64 = 1_000_000;
 pub const MAX_GROSS_LOTS: u64 = 200_000_000;

@@ -18,6 +18,29 @@ pub(crate) fn unchanged(before: &MarginAccount, after: &MarginAccount) -> Result
     Ok(())
 }
 
+pub(crate) fn validate_pair(before: &MarginAccount, after: &MarginAccount) -> Result<()> {
+    require!(before.venue == after.venue && before.id == after.id
+        && before.lifecycle == MEMBER_FINANCIAL && after.lifecycle == MEMBER_FINANCIAL
+        && before.activation_generation == after.activation_generation
+        && before.backing_epochs == after.backing_epochs, ClearingError::Profile);
+    Ok(())
+}
+
+pub(crate) fn relevant(before: &MarginAccount, after: &MarginAccount, index: usize) -> bool {
+    [before.positions[index], after.positions[index]].iter()
+        .any(|position| position.lots != 0 || position.virtual_scaled != 0)
+}
+
+pub(crate) fn changes(ledger: &MarketLedger, before: &MarginAccount, after: &MarginAccount, safety: &VenueSafety)
+    -> Result<Option<(financial_core::backing::Contribution, financial_core::backing::Contribution)>> {
+    let index = usize::from(ledger.market_index);
+    if ledger.backing.epoch == 0 || ledger.backing.safety_epoch != safety.epoch || safety.mode != ACTIVE
+        || before.backing_epochs[index] != ledger.backing.epoch { return Ok(None); }
+    let region = ledger.backing.region.model();
+    Ok(Some((checked(region.contribution(&trading::model(before)?, index))?,
+        checked(region.contribution(&trading::model(after)?, index))?)))
+}
+
 #[inline(never)]
 pub(crate) fn update(
     ledgers: [Option<&mut MarketLedger>; 2],
@@ -25,25 +48,16 @@ pub(crate) fn update(
     after: &MarginAccount,
     safety: &VenueSafety,
 ) -> Result<()> {
-    require!(before.venue == after.venue && before.id == after.id
-        && before.lifecycle == MEMBER_FINANCIAL && after.lifecycle == MEMBER_FINANCIAL
-        && before.activation_generation == after.activation_generation
-        && before.backing_epochs == after.backing_epochs, ClearingError::Profile);
+    validate_pair(before, after)?;
     for (index, ledger) in ledgers.into_iter().enumerate() {
-        let relevant = [before.positions[index], after.positions[index]].iter()
-            .any(|position| position.lots != 0 || position.virtual_scaled != 0);
         // With q=z=0, selected bad/q/z/dependency contribution is identically
         // zero under any cash/sibling change. Its coverage marker stays intact.
-        if !relevant { continue; }
+        if !relevant(before, after, index) { continue; }
         let ledger = ledger.ok_or(ClearingError::OrderState)?;
         require!(ledger.schema_version == SCHEMA_VERSION && ledger.venue == before.venue
             && ledger.market_index as usize == index, ClearingError::Profile);
         increment(&mut ledger.liability_version)?;
-        if ledger.backing.epoch != 0 && ledger.backing.safety_epoch == safety.epoch
-            && safety.mode == ACTIVE && before.backing_epochs[index] == ledger.backing.epoch {
-            let region = ledger.backing.region.model();
-            let old = checked(region.contribution(&trading::model(before)?, index))?;
-            let new = checked(region.contribution(&trading::model(after)?, index))?;
+        if let Some((old, new)) = changes(ledger,before,after,safety)? {
             let totals = checked(ledger.backing.totals()?.replace(old, new))?;
             ledger.backing.summary = totals.checkpoint();
         }

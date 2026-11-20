@@ -1,5 +1,32 @@
 # Finalized state and durable execution
 
+On the local linked-pair profile, a worker may restart between the BTC and
+ETH verification instructions. It reads the original debtor and both market
+allocations from the prepared settlement before continuing. The finalized
+indexer projects the joint event only after both legs verify. Reconciliation
+compares each winner, quantity, price and charge with the clearing-owned
+receipt. For the flat-creditor candidate the event projection reconstructs the
+BTC remainder from every financial member at the freeze. It checks the closed
+trader's accrued claim, zero positions and zero ETH claim. The original linked
+deployment still requires the open BTC winner to own all BTC credit.
+[Joint certificate](../clearing/default-plan-verification.md#joint-certificate-for-a-single-cross-debtor).
+
+For the shared-inventory candidate, the worker reads the complete frozen cohort
+and each winning root's surviving-profit history before proposing a pairing.
+The finalized indexer reconstructs each debtor's budget and checks both winning
+assignments, charges and prices. At reconciliation it matches those terms to the
+96-byte prepared-settlement receipt. A restarted worker obtains that receipt
+from clearing before it derives effective claims or resumes payment.
+[Shared single-lot inventory](../clearing/default-plan-verification.md#shared-single-lot-inventory).
+
+The finalized journal accepts an inventory certificate with more than 32
+revisioned accounts only for the clearing program’s authenticated
+`verify_inventory_book` instruction. It checks ten ordered read roles, the
+prepared-settlement write, each frozen-page write, the event size, and account
+privileges. The same restrictions apply when replaying into an empty database.
+The 32-account rule still applies to other scoped transitions.
+[Scope and page placement](../clearing/default-plan-verification.md#how-many-frozen-pages-fit-in-one-inventory-certificate).
+
 ## Canonical membership migration (P55A2)
 
 P55A2 established schema 9/profile 5; D102 now uses schema 10/profile 6. Transport
@@ -170,7 +197,9 @@ the canonical resolution header/pages against the event-derived fields. Wide
 registers and DFS scratch are solver continuation state, not spendable balances.
 
 The standalone diagnostic reconciler reads the complete revision vector and
-financial bodies twice across bounded chunks. Publication uses the captured common
+financial bodies twice across bounded chunks. A newer authenticated ledger or maker
+revision triggers tail catch-up before fee counters are compared. A fee mismatch
+at the same revision fails reconciliation. Publication uses the captured common
 checkpoint described above; neither combines incompatible entity versions. Storage precreation has a zero-payload
 scoped transition, so its creation remains part of authenticated history.
 The settlement worker combines final backing page and gain payment in one durable
@@ -682,3 +711,77 @@ verified input registers remain read-only, and missing I/O stops before the next
 step. No preview result or simulation is uploaded as a trusted financial effect.
 The existing three-descriptor instructions retain their wire contract. Windowed
 source/build/runtime acceptance is separate from prior scalar/batched evidence.
+
+## Linked allocation during a default
+
+On the local linked-allocation candidate, each score event identifies the
+frozen episode, proposal attempt, member ordinal and both market charges. The
+indexer checks the member against frozen ordering, the original debtor cash
+split, the per-market shortfalls, and each fill price and lot remainder. A
+rejected proposal remains in the journal. The next attempt starts at member
+zero. Only a complete successful attempt changes the claim basis used by
+settlement. RPC reconciliation compares the projected attempt and charges with
+the prepared header and frozen rows. Worker restarts resume from the on-chain
+ordinal. [Candidate contract](../clearing/default-plan-verification.md#linked-allocation-across-competing-winners).
+
+On the foreign-creditor candidate, the finalized `ForeignCreditorsVerified`
+event identifies four members and two execution schedules. Replay reconstructs
+the original claims and inventory of the complete cohort, the limits on both
+charges and the ETH creditor's original and adjusted entitlement. Reconciliation
+matches every term to the prepared header. During application the journal
+checks each effective claim against its own market debtor and winning account.
+[Certificate contract](../clearing/default-plan-verification.md#atomic-certificate-for-one-cross-market-creditor-chain).
+
+### Single-lot book verification
+
+The pinned book candidate journals the winning capacities and each selected
+debtor, winner, charge and execution price. Projection reconstructs the frozen
+faces and budgets, checks complete exposure and selects the pairs again. The
+receipt digest binds these ordered terms to the venue and epoch. Reconciliation
+checks the digest against the prepared account and each charge and capacity
+against its frozen page. Financial effects appear on subsequent member
+application and signed withdrawals. [Measured replay](../operations/validation.md#clearing-verified-single-lot-book).
+
+The multi-lot candidate stores the frozen rate alongside every winning capacity.
+The journal reconstructs the original budgets and verifies the ordered fills,
+including their quantities and price remainders. RPC reconciliation matches
+the per-member charge, rate, receipt kind and digest to clearing-owned pages.
+A fresh database can reproduce the certificate after the worker process exits.
+[Verification contract](../clearing/default-plan-verification.md#how-the-multi-lot-clearing-certificate-binds-the-inputs).
+
+## Journal for a clearing-owned recovery selection
+
+`RecoverySelectionBound` records the selected search, its rank and complete
+coverage, all eight member IDs, claim changes, signed market payments, final
+cash and both insurance amounts. The finalized indexer checks membership and
+per-account cash against its frozen state, both market totals against pools and
+insurance, and aggregate cash plus fees and remaining insurance against custody.
+A later application must match the corresponding selected account and amounts.
+Fresh reconciliation compares the event projection with the `RVJOINT1` receipt.
+Search progress before binding changes only proposer scratch and rent. The
+financial journal begins at the clearing-owned binding transition.
+
+For the combined local deployment the same journal follows `LedgerLaneFilled`
+for single-market routes and `LiquidityRouteFeeRecorded` for the full cross-account
+route. It reconstructs fee carry from the finalized order of both kinds of fill.
+At freeze it compares the classified market totals with clearing before accepting
+the recovery receipt. The [local lifecycle checks](../operations/validation.md#combined-clearing-lifecycle)
+use a fresh PostgreSQL replay for each workload.
+
+The paged candidate uses a distinct search discriminator and emits
+`PagedRecoverySelectionBound` once. The indexer requires the exact pinned
+deployment, compares the full ordered member list with its Financial
+registry, and reconciles every final cash balance and both market movements.
+It checks the `RVPAGED1` header for the epoch and selected rank, then compares
+each result with its frozen page. The retained search transactions allow both
+isolated Anchor clients to reproduce the instruction bytes and dynamic account
+roles. See [validation](../operations/validation.md#recovery-selection-across-two-membership-pages)
+for the cases exercised on Surfpool.
+
+For the current paged search representation the keeper returns
+`recovery-proof-storage-insufficient` when the generated account cannot fit
+even one rate round, empty histories, zero edges and the mandatory member
+arrays. That lower bound is 17,061 bytes at 128 members against a 10,240-byte
+account. Smaller cohorts still depend on their actual histories, edges and
+rate widths. The keeper reports `recovery-unsupported-rate-witness` for an
+unencodable original rate. Neither condition enqueues a financial transaction.

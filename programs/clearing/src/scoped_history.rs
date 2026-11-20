@@ -29,12 +29,16 @@ pub(crate) trait Revisioned {
     const KIND: u8;
     fn schema(&self) -> u16;
     fn revision(&self) -> u64;
+    #[cfg(feature = "read-only-route-market")]
+    fn venue_mode(&self) -> Option<u8> { None }
     fn set_revision(&mut self, revision: u64);
 }
 macro_rules! revisioned {
-    ($($kind:literal => $account:ty),+ $(,)?) => {$(
+    ($($kind:literal => $account:ty $(; $mode:ident)?),+ $(,)?) => {$(
         impl Revisioned for $account {
             const KIND: u8 = $kind;
+            $(#[cfg(feature = "read-only-route-market")]
+            fn venue_mode(&self) -> Option<u8> { Some(self.$mode) })?
             fn schema(&self) -> u16 { self.schema_version }
             fn revision(&self) -> u64 { self.revision }
             fn set_revision(&mut self, revision: u64) { self.revision = revision; }
@@ -42,7 +46,7 @@ macro_rules! revisioned {
     )+};
 }
 revisioned! {
-    0 => Venue, 1 => Custody, 2 => VenueSafety, 3 => VenueRegistry,
+    0 => Venue, 1 => Custody, 2 => VenueSafety; mode, 3 => VenueRegistry,
     4 => Portfolio, 5 => MarginAccount, 6 => Market, 7 => MarketLedger,
     8 => CapitalBinding, 9 => SettlementCertificate, 10 => Resolution,
     // Kinds 11/12 are retired; never reuse their persisted identities.
@@ -77,15 +81,29 @@ struct Entry {
 }
 
 pub(crate) struct Scope {
+    #[cfg(feature = "read-only-route-market")]
+    venue_mode: Option<u8>,
     entries: Vec<Entry>,
+    limit: usize,
     cursor: Option<usize>,
 }
 impl Scope {
     fn new() -> Self {
-        Self {
-            entries: Vec::with_capacity(MAX_ENTITIES),
-            cursor: None,
-        }
+        Self::with_limit(MAX_ENTITIES)
+    }
+
+    fn with_limit(limit: usize) -> Self {
+        Self { entries: Vec::with_capacity(limit), limit, cursor: None,
+            #[cfg(feature = "read-only-route-market")] venue_mode: None }
+    }
+
+    #[cfg(feature = "book-inventory-qualification")]
+    fn inventory_pages(pages: usize) -> Result<Self> {
+        // Fixed event tags and footer fields occupy 108 bytes. This instruction
+        // reads ten revisioned accounts and writes the prepared header and pages.
+        const FIXED: usize = 108 + 10 * 41 + 49;
+        require!(pages <= (event_cpi::MAX_EVENT_BYTES - FIXED) / 49, ClearingError::Profile);
+        Ok(Self::with_limit(11 + pages))
     }
 
     /// Shared validation for typed and manually serialized remaining accounts.
@@ -118,7 +136,7 @@ impl Scope {
                     .ok_or_else(|| ProgramError::from(ClearingError::Arithmetic))
             }
         } else {
-            require!(self.entries.len() < MAX_ENTITIES, ClearingError::Profile);
+            require!(self.entries.len() < self.limit, ClearingError::Profile);
             require!(
                 !self.entries.iter().any(|entry| entry.account == account),
                 ClearingError::Alias
@@ -151,6 +169,10 @@ impl Scope {
         account: &mut SerializedAccount<T, S>,
         access: Access,
     ) -> Result<()> {
+        #[cfg(feature = "read-only-route-market")]
+        if self.cursor.is_none() {
+            if let Some(mode) = account.venue_mode() { self.venue_mode = Some(mode); }
+        }
         let revision = self.visit(
             account.address().to_owned(),
             T::KIND,
@@ -182,7 +204,7 @@ impl Scope {
         );
         let bytes = account.try_borrow()?;
         require!(
-            bytes.len() == 8 + T::INIT_SPACE && bytes[..8] == *T::DISCRIMINATOR,
+            (if T::KIND == MarginAccount::KIND { crate::state::accounts::valid_margin_size(bytes.len()) } else if T::KIND == MakerRegistration::KIND { bytes.len() == 8 + T::INIT_SPACE + crate::market_fees::LANE_EXTRA } else { bytes.len() == 8 + T::INIT_SPACE }) && bytes[..8] == *T::DISCRIMINATOR,
             ClearingError::Profile
         );
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
@@ -255,10 +277,10 @@ impl Scope {
                 MarginTombstone::DISCRIMINATOR,
             )
         } else {
-            (8 + MarginAccount::INIT_SPACE, MarginAccount::DISCRIMINATOR)
+            (crate::state::accounts::MARGIN_ALLOCATION, MarginAccount::DISCRIMINATOR)
         };
         require!(
-            bytes.len() == length && bytes[..8] == *discriminator,
+            (if after { bytes.len() == length } else { crate::state::accounts::valid_margin_size(bytes.len()) }) && bytes[..8] == *discriminator,
             ClearingError::Profile
         );
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
@@ -361,7 +383,7 @@ impl Scope {
             require_keys_eq!(*account.owner(), crate::ID, ClearingError::Profile);
             let data = account.try_borrow()?;
             require!(
-                data.len() == 8 + MarginAccount::INIT_SPACE
+                crate::state::accounts::valid_margin_size(data.len())
                     && data[..8] == *MarginAccount::DISCRIMINATOR,
                 ClearingError::Profile
             );
@@ -463,7 +485,7 @@ unsafe impl<'a> SchemaWrite<anchor_lang::BorshConfig> for ScopedRows<'a> {
             .iter()
             .filter(|entry| (entry.access != Access::Read) == value.writes)
             .count();
-        if count > MAX_ENTITIES {
+        if count > event_cpi::MAX_EVENT_BYTES / if value.writes { 49 } else { 41 } {
             return Err(anchor_lang::wincode::WriteError::Custom(
                 "too many scoped rows",
             ));
@@ -554,6 +576,20 @@ pub(crate) fn run<'context, T: ScopedContext>(
     )
 }
 
+/// The checked publisher authenticates a fixed set of read-only registrations.
+#[inline(never)]
+pub(crate) fn run_funding<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    #[cfg(feature = "checked-funding-prefix")]
+    let access = Remaining::FundingRegistrations;
+    #[cfg(not(feature = "checked-funding-prefix"))]
+    let access = Remaining::Roots(false);
+    run_with_remaining(context, instruction, access, handler)
+}
+
 /// The plan is derived from authenticated work before the handler and retained
 /// unchanged for both scope visits. A caller cannot choose its access privileges.
 pub(crate) fn run_pages<'context, T: ScopedContext>(
@@ -563,6 +599,14 @@ pub(crate) fn run_pages<'context, T: ScopedContext>(
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
     run_with_remaining(context, instruction, Remaining::Limbs(plan), handler)
+}
+
+pub(crate) fn run_frozen_pages<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::FrozenPlanPages, handler)
 }
 
 pub(crate) fn run_membership<'context, T: ScopedContext>(
@@ -590,6 +634,9 @@ pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
 
 #[derive(Clone, Copy)]
 enum Remaining {
+    #[cfg(feature = "checked-funding-prefix")]
+    FundingRegistrations,
+    FrozenPlanPages,
     MembershipPath,
     MembershipScan(bool),
     Roots(bool),
@@ -616,6 +663,16 @@ impl Remaining {
                 }
                 Ok(())
             }
+            Self::FrozenPlanPages => {
+                for account in accounts {scope.raw::<FrozenMarginPage>(account,Access::Write)?;}
+                Ok(())
+            }
+            #[cfg(feature = "checked-funding-prefix")]
+            Self::FundingRegistrations => {
+                require!(accounts.len()==3,ClearingError::Profile);
+                for account in accounts {scope.raw::<MakerRegistration>(account,Access::Read)?;}
+                Ok(())
+            }
             Self::MembershipPath => {
                 require!(accounts.len() == 15, ClearingError::Resolution);
                 for account in accounts {
@@ -637,11 +694,37 @@ fn run_with_remaining<'context, T: ScopedContext>(
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
     profile_cu!("scope-enter");
+    let mut remaining = context.remaining_accounts()?;
+    #[cfg(feature = "book-inventory-qualification")]
+    let mut scope = if matches!(access, Remaining::FrozenPlanPages) {
+        Scope::inventory_pages(remaining.len())?
+    } else {
+        Scope::new()
+    };
+    #[cfg(not(feature = "book-inventory-qualification"))]
     let mut scope = Scope::new();
     context.accounts.visit(&mut scope)?;
-    let mut remaining = context.remaining_accounts()?;
     access.visit(&mut scope, &mut remaining)?;
     let mut payloads = event_cpi::Payloads::default();
+    #[cfg(feature = "read-only-route-ledger")]
+    if scope.entries.iter().any(|entry| matches!(entry.kind, 6 | 7) && entry.access != Access::Create) {
+        let mode=scope.venue_mode.ok_or(ClearingError::Profile)?;
+        if mode == crate::state::accounts::ACTIVE && instruction != [1,178,168,44,243,136,161,76] {
+        crate::market_checkpoint::require_financial_checkpoints(instruction, scope.entries.iter()
+            .filter(|entry| entry.access != Access::Create).map(|entry| (entry.kind,entry.account)))?;
+        }
+    }
+    #[cfg(all(feature = "read-only-route-market", not(feature = "read-only-route-ledger")))]
+    if instruction != [234, 231, 222, 47, 209, 237, 138, 64] && instruction != [154, 97, 38, 114, 234, 143, 70, 85] {
+        let markets = scope.entries.iter().filter(|entry| entry.kind == Market::KIND && entry.access != Access::Create)
+            .map(|entry| entry.account);
+        if markets.clone().next().is_some() {
+            let mode = scope.venue_mode.ok_or(ClearingError::Profile)?;
+            if mode == crate::state::accounts::ACTIVE {
+                crate::market_checkpoint::require_recent(markets)?;
+            }
+        }
+    }
     profile_cu!("handler-enter");
     handler(context, &mut payloads)?;
     profile_cu!("handler-exit");

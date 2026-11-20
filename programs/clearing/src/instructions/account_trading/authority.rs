@@ -109,6 +109,10 @@ pub fn manage(
     let next = candidates::manage_candidate(&root, &environment, operation, delegate_epoch)?;
     super::super::account_cash::maintained::unchanged(&accounts.margin, &next)?;
     commit_root(&mut accounts.margin, &next)?;
+    #[cfg(feature="checked-funding-prefix")]
+    for market in [accounts.btc.as_deref_mut(),accounts.eth.as_deref_mut()].into_iter().flatten(){
+        crate::market_funding::canonical(market, &clock)?;
+    }
     materialize_optional(
         [
             accounts.btc.as_deref_mut().map(|market| &mut **market),

@@ -125,6 +125,12 @@ context!(ActivateAccounts, qualification.venue, qualification.event_authority;
 
 
 
+context!(CheckpointMarket, venue, event_authority;
+[venue: Read, safety: Read, market: Write, first: Read, second: Read, third: Read]; []);
+
+context!(ClassifyMarketFees, identity.venue, event_authority;
+[identity.venue: Read, identity.safety: Read, identity.ledger: Write, first: Read, second: Read, third: Read]; []);
+
 context!(AllocateMarketFees, identity.venue, event_authority;
 [
     identity.venue: Read,
@@ -224,6 +230,42 @@ context!(ExecuteLiquidityRoute, identity.venue, event_authority;
     identity.safety: Read,
     identity.market: Write,
     identity.ledger: Write,
+    identity.trader: Write,
+    registry: Read,
+    first_capital: Write,
+    first_registration: Write,
+];
+[
+    identity.other_market: Write,
+    identity.other_ledger: Write,
+    second_capital: Write,
+    second_registration: Write,
+]);
+
+context!(ExecuteMarketLane, identity.venue, event_authority;
+[
+    identity.venue: Read,
+    identity.safety: Read,
+    identity.market: Read,
+    identity.ledger: Write,
+    identity.trader: Write,
+    registry: Read,
+    first_capital: Write,
+    first_registration: Write,
+];
+[
+    identity.other_market: Write,
+    identity.other_ledger: Write,
+    second_capital: Write,
+    second_registration: Write,
+]);
+
+context!(ExecuteLedgerLane, identity.venue, event_authority;
+[
+    identity.venue: Read,
+    identity.safety: Read,
+    identity.market: Read,
+    identity.ledger: Read,
     identity.trader: Write,
     registry: Read,
     first_capital: Write,
@@ -1042,3 +1084,79 @@ impl ScopedContext for RefundRecoveryAllocation {
     fn venue(&self) -> (Address, [u8;32]) { (*self.venue.address(),self.venue.domain) }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
+
+context!(ManageProfitCapacity, venue, event_authority;
+[venue: Read, safety: Read, margin: Write]; []);
+
+context!(VerifyInventoryBook, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+prepared: Write]; []);
+
+context!(VerifySharedInventory, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+prepared: Write, first_page: Read, first_winner: Read, second_winner: Read]; [second_page: Read, third_page: Read, fourth_page: Read]);
+
+context!(VerifyForeignCreditors, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+prepared: Write, first_page: Read, cross_winner: Read, eth_winner: Read]; [second_page: Read, third_page: Read, fourth_page: Read]);
+
+context!(VerifyFrozenPair, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+prepared: Write, debtor_page: Read, debtor: Read, winner: Read]; [winner_page: Read]);
+
+context!(AdvanceBtcAllocation, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+prepared: Write, page: Write, margin: Read]; []);
+
+#[cfg(feature="recovery-search-qualification")]
+use crate::BindRecoverySelection;
+#[cfg(feature="recovery-search-qualification")]
+context!(BindRecoverySelection, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+prepared: Write]; []);
+
+#[cfg(feature="populated-recovery-qualification")]
+use crate::RecordOriginalBudgets;
+#[cfg(feature="populated-recovery-qualification")]
+context!(RecordOriginalBudgets, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+ source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+ prepared: Read, rates: Read, page: Write]; []);
+
+#[cfg(feature="populated-recovery-qualification")]
+use crate::ScanForeignProtection;
+#[cfg(feature="populated-recovery-qualification")]
+context!(ScanForeignProtection, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+ source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+ prepared: Write, rates: Read, page: Read]; []);
+
+#[cfg(feature="populated-recovery-qualification")]
+use crate::BindJointPayment;
+#[cfg(feature="populated-recovery-qualification")]
+context!(BindJointPayment, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+ source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+ prepared: Write, rates: Read]; []);
+
+#[cfg(feature="populated-recovery-qualification")]
+use crate::CopyJointClaims;
+#[cfg(feature="populated-recovery-qualification")]
+context!(CopyJointClaims, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+ source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+ prepared: Write, page: Write]; []);
+
+#[cfg(feature="populated-recovery-qualification")]
+use crate::CopyJointRegister;
+#[cfg(feature="populated-recovery-qualification")]
+context!(CopyJointRegister, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+ source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+ prepared: Write, rates: Write, page: Write]; []);

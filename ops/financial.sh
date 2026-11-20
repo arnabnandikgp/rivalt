@@ -12,7 +12,7 @@ python3 tests/financial/test_account_contract.py
 python3 tests/financial/test_clearing_network.py
 python3 tests/financial/test_bounded_clearing.py
 python3 tests/financial/test_market_settlement.py
-cargo test --locked -p financial-core
+cargo test --locked -p financial-core --features parallel-market-prototype
 cargo build --locked -p financial-core --bin reference-driver
 python3 tests/financial/reference.py | tee .local/p02-financial.json
 cargo build --locked -p financial-core --bin clearing-wide-driver --bin clearing-row-driver --bin clearing-atoms-driver
@@ -24,6 +24,7 @@ python3 tests/financial/test_scalable_wide.py
 python3 tests/financial/test_normalized_pages.py
 python3 tests/financial/test_paged_atom_division.py
 python3 tests/financial/test_paged_rates.py
+python3 tests/financial/test_paged_frozen_collections.py
 python3 tests/financial/test_paged_flows.py
 python3 tests/financial/test_paged_order.py
 python3 tests/financial/test_paged_rounding.py
@@ -32,17 +33,32 @@ python3 tests/financial/test_scalable_snapshot.py
 python3 tests/financial/test_scalable_settlement.py
 python3 tests/financial/test_settlement_liquidation_model.py
 python3 tests/financial/test_adl_eligibility.py
+cargo test --locked -p clearing-accounting --features surviving-profit attribution
 python3 tests/financial/test_payment_attribution.py
 python3 tests/financial/test_freeze_cutoff.py
 python3 tests/financial/test_cross_market_adl.py
 python3 tests/financial/test_creditor_payout_floors.py
 python3 tests/financial/test_joint_reductions.py
+python3 tests/financial/test_joint_market_ties.py
+python3 tests/financial/test_frozen_cash_allocation.py
+python3 tests/financial/test_native_protected_receipts.py
 python3 tests/financial/test_default_plan_certificate.py
 python3 tests/financial/test_bounded_default_search.py
-cargo build --locked -p default-plan-selection --example measure
+cargo test --locked -p default-plan-selection --lib --test proportional
+cargo build --locked -p default-plan-selection --example measure --example single_lot_assignment
+python3 tests/financial/check_shared_inventory.py
 python3 tests/financial/test_metered_default_proof.py
 python3 tests/financial/test_frozen_attribution_input.py
 python3 tests/financial/test_scalable_clearing.py
 python3 tests/financial/test_incremental_backing.py
 cargo build --locked -p financial-core --bin backing-driver
 python3 tests/financial/test_maintained_backing.py
+
+cargo test --locked -p default-plan-selection --features native-search --test multi_lot
+cargo build --locked -p default-plan-selection --features native-search --example multi_lot_audit
+python3 tests/financial/check_multi_lot_search.py
+cargo build --locked -p default-plan-selection --features native-joint --example joint_reduction_audit
+RIVALT_JOINT_AUDIT=target/debug/examples/joint_reduction_audit python3 tests/financial/test_populated_recovery_bound.py
+python3 tests/financial/check_joint_reductions.py
+python3 tests/financial/check_joint_search.py
+cargo test --locked -p default-plan-selection --features keeper --bin rivalt-recovery-selector

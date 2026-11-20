@@ -8,7 +8,7 @@ import {ReconciliationAhead} from './reconciliation-progress.js';
 
 /** Transport/snapshot fixture, not signed financial evidence. Enough independent
  * empty portfolios force multiple RPC chunks; all expected funded balances are 0. */
-async function fixture() {
+async function fixture(withFeeLedger=false) {
   const domain=Buffer.alloc(32,91),program=sdk.CLEARING_PROGRAM_ADDRESS;
   const [venue,venueBump]=await sdk.deriveAccountVenue(domain),[custody,custodyBump]=await sdk.deriveVenueComponent(venue,'custody'),
     [safety,safetyBump]=await sdk.deriveVenueComponent(venue,'safety'),[vault,vaultBump]=await sdk.deriveVenueComponent(venue,'vault');
@@ -22,6 +22,18 @@ async function fixture() {
   state.venue=accountFields(venueState);state.custody=accountFields(custodyState);state.safety=accountFields(safetyState);
   for(const [key,kind] of [[venue,0],[custody,1],[safety,2]] as const)state.revisions[key]={kind,revision:'1'};
   put(venue,sdk.getVenueEncoder().encode(venueState));put(custody,sdk.getCustodyEncoder().encode(custodyState));put(safety,sdk.getVenueSafetyEncoder().encode(safetyState));
+  if(withFeeLedger) {
+    const [market,marketBump]=await sdk.deriveAccountMarket(venue,0),[ledger,ledgerBump]=await sdk.deriveMarketLedger(market);
+    const marketState={...empty(sdk.getMarketDecoder()),schemaVersion:10,revision:1n,venue,index:0,bump:marketBump};
+    const ledgerState={...empty(sdk.getMarketLedgerDecoder()),schemaVersion:10,revision:1n,venue,market,marketIndex:0,bump:ledgerBump};
+    venueState.markets[0]=market;venueState.marketCount=1;
+    state.venue=accountFields(venueState);put(venue,sdk.getVenueEncoder().encode(venueState));
+    state.markets[market]=accountFields(marketState);put(market,sdk.getMarketEncoder().encode(marketState));
+    state.ledgers[ledger]=accountFields(ledgerState);
+    state.revisions[market]={kind:6,revision:'1'};state.revisions[ledger]={kind:7,revision:'1'};
+    const suffix=Buffer.alloc(24);suffix.writeBigUInt64LE(13n);
+    put(ledger,Buffer.concat([Buffer.from(sdk.getMarketLedgerEncoder().encode(ledgerState)),suffix]));
+  }
   const portfolios:Address[]=[];
   for(let index=0;index<105;index++) {
     const owner=getAddressDecoder().decode(Buffer.alloc(32,index+1)),[key,bump]=await sdk.deriveAccountPortfolio(venue,owner,0);
@@ -48,6 +60,14 @@ it('detects an earlier chunk advancing while a later chunk is fetched',async()=>
     const result=await test.read(keys);if(test.calls()===2)test.mutate(test.portfolios[0],2n);return result;
   })).rejects.toBeInstanceOf(ReconciliationAhead);
   expect(test.calls()).toBe(3);expect(test.state.revisions[test.portfolios[0]].revision).toBe('1');
+});
+it('only compares finalized fee counters at the projected ledger revision',async()=>{
+  const test=await fixture(true),[ledger]=Object.keys(test.state.ledgers);
+  const binding={...test.binding,artifactSet:sdk.AGGREGATE_FEE_ARTIFACT_SET};
+  test.mutate(ledger,2n);
+  await expect(reconcileAccountSnapshot(test.state,binding,test.read)).rejects.toBeInstanceOf(ReconciliationAhead);
+  test.mutate(ledger,1n);
+  await expect(reconcileAccountSnapshot(test.state,binding,test.read)).rejects.toThrow(/finalized fee counter/);
 });
 it('rejects unversioned data mutation and older finalized accounts without treating them as catch-up',async()=>{
   const test=await fixture();

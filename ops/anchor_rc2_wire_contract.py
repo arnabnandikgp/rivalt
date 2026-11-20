@@ -137,7 +137,15 @@ def check_domains():
     expected['rust_byte_literals'] = sorted((set(expected['rust_byte_literals']) - DOMAINS_REMOVED) | {'RVBACK01'})
     # D121 episode ordering is used only by the research selector at this revision.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
-                                            | {r'Rivalt/frozen-member-order/v1\0'})
+                                            | {r'Rivalt/frozen-member-order/v1\0', r'Rivalt/winner-targets/v1\0'})
+    # Format marker for the separately qualified margin extension.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01', 'RVJALLOC', 'RVCHAIN1', 'RVLOTS01', 'RVLOTS02', 'RVBOOK01', 'Rivalt/inventory-book/v1', 'RVMULT01', 'Rivalt/multi-lot-book/v1'})
+    # Private native continuation domains bind the frozen source and proposed charge vector.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
+        r'Rivalt/multi-lot-charge-proposal/v1\0', r'Rivalt/whole-single-market-search/v1\0'})
+    # D139 uses distinct header markers for the fixed and paged payout receipts.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'RVJOINT2', 'joint-payment', 'joint-payment-page', 'RVPAGED1', 'RVBOUND1', 'winner-proof', 'search', 'pair-schedule', 'pair-order',
+        r'Rivalt/pair-fills/v1\0', r'Rivalt/pair-order-page/v1\0'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -150,6 +158,262 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    # All financial inputs are read-only during search. Only the final binding
+    # can write the prepared settlement, under the original frozen dependencies.
+    work = {
+        'open_joint_payment': ('payer payment prepared resolution rates btc_pairs eth_pairs btc_allocation eth_allocation system_program', 'payer payment', 'payer'),
+        'capture_joint_payment': ('payer payment delta_page prepared resolution frozen_page system_program', 'payer payment delta_page', 'payer'),
+        'advance_joint_payment': ('payment prepared resolution frozen_page delta_page', 'payment', ''),
+        'bind_joint_payment': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared rates payment event_authority program', 'prepared', ''),
+        'copy_joint_claims': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared page delta_page event_authority program', 'prepared page', ''),
+        'copy_joint_register': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared rates payment page event_authority program', 'prepared rates page', ''),
+        'open_pair_schedule': ('payer certificate allocation prepared resolution system_program', 'payer certificate', 'payer'),
+        'append_pair_order': ('payer certificate order_page prepared resolution system_program', 'payer certificate order_page', 'payer'),
+        'check_pair_members': ('certificate prepared resolution frozen_page', 'certificate', ''),
+        'match_pair_page': ('certificate prepared resolution winners debtors', 'certificate winners debtors', ''),
+        'open_winner_proof': ('payer proof prepared resolution system_program', 'payer proof', 'payer'),
+        'advance_winner_proof': ('proof prepared resolution page opponents', 'proof', ''),
+        'open_search': ('payer search prepared resolution system_program', 'payer search', 'payer'),
+        'capture_member': ('search prepared resolution page margin', 'search', ''),
+        **{name: ('search prepared resolution', 'search', '') for name in
+           ('derive_pairs', 'verify_incumbent', 'cover_range', 'cover_plan', 'seal_search')},
+        'record_original_budgets': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared rates page event_authority program', 'page', ''),
+        'scan_foreign_protection': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared rates page event_authority program', 'prepared', ''),
+        'bind_recovery_selection': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared search event_authority program', 'prepared', ''),
+    }
+    digest = {'array':['u8',32]}
+    entry = {'vec':{'defined':{'name':'PairBookEntry'}}}
+    openings = {'vec':{'defined':{'name':'PairMemberOpening'}}}
+    for name, args in {
+            'open_joint_payment':[('nonce','u64'),('account_bytes','u16'),('width','u16'),('proposals',{'vec':{'defined':{'name':'PaymentProposal'}}}),('revisions',{'array':['u64',3]})],
+            'capture_joint_payment':[('index','u64'),('prior',{'array':[digest,2]}),('openings',{'vec':{'defined':{'name':'JointMemberOpening'}}})],
+            'advance_joint_payment':[('revision','u64'),('steps','u16')],
+            'bind_joint_payment':[('epoch','u64'),('revision','u64')],
+            'copy_joint_claims':[('epoch','u64'),('index','u64'),('revision','u64')],
+            'copy_joint_register':[('epoch','u64'),('register','u32'),('revision','u64')],
+            'open_pair_schedule':[('nonce','u64'),('order_root',digest)],
+            'append_pair_order':[('role','u8'),('index','u64'),('entries',entry),('next',digest)],
+            'check_pair_members':[('prefix',digest),('openings',openings)],
+            'match_pair_page':[('revision','u64')]}.items():
+        assert [(arg['name'],arg['type']) for arg in unique(name)['args']] == args, name
+    opened = unique('open_winner_proof')
+    assert [(argument['name'],argument['type']) for argument in opened['args']] == [
+        ('nonce','u64'),('epoch','u64'),('market','u8'),('cutoffs',{'array':[{'defined':{'name':'WinnerCutoff'}},2]})]
+    advance = unique('advance_winner_proof')
+    assert advance['args'] == [dict(name='revision',type='u64')]
+    assert [meta['name'] for meta in advance['accounts'] if meta.get('optional')] == ['opponents']
+    budgets = unique('record_original_budgets')
+    assert [(arg['name'], arg['type']) for arg in budgets['args']] == [
+        ('epoch', 'u64'), ('page_index', 'u64'), ('attempt', 'u64'), ('revision', 'u64'),
+        ('page_revisions', {'array': ['u64', 7]})]
+    assert unique('scan_foreign_protection')['args'] == budgets['args']
+    for name, (names, writes, signers) in work.items():
+        item = unique(name)
+        assert item['discriminator'] == list(hashlib.sha256(f'global:{name}'.encode()).digest()[:8])
+        for actual_metas, expected in ((item['accounts'], names),
+                ([meta for meta in item['accounts'] if meta.get('writable')], writes),
+                ([meta for meta in item['accounts'] if meta.get('signer')], signers)):
+            assert [meta['name'] for meta in actual_metas] == expected.split(), name
+        actual['instructions'].remove(item)
+    for group, prefix, name in [('accounts','account','RecoverySearch'),('accounts','account','WinnerAllocationProof'),('accounts','account','PairScheduleProof'),('accounts','account','PairOrderPage'),('accounts','account','JointPaymentProof'),('accounts','account','JointPaymentPage'),('events','event','JointClaimsCopied'),('events','event','RecoverySelectionBound')]:
+        actual[group].remove(dict(name=name,discriminator=list(hashlib.sha256(f'{prefix}:{name}'.encode()).digest()[:8])))
+    for name in ('JointClaimsCopied','JointPaymentPage','JointPaymentProof','PaymentProposal','JointMemberOpening','PairOrderPage','PairScheduleProof','PairBookEntry','PairBookRow','PairMemberOpening','WinnerAllocationProof','WinnerCutoff','WinnerMarginal','WinnerRange','WinnerSide','RecoverySearch','RecoverySelectionBound','RateWitness','SearchMember','SearchEdge','StoredRatio','Priorities'):
+        entry, = [item for item in actual['types'] if item['name'] == name]
+        assert entry['type']['kind'] == 'struct'
+        actual['types'].remove(entry)
+    checkpoint = unique('checkpoint_market')
+    assert checkpoint['discriminator'] == list(hashlib.sha256(b'global:checkpoint_market').digest()[:8])
+    assert not checkpoint['args'] and 'returns' not in checkpoint
+    assert [item['name'] for item in checkpoint['accounts']] == 'venue safety market first second third event_authority program'.split()
+    assert [item['name'] for item in checkpoint['accounts'] if item.get('writable')] == ['market']
+    assert not any(item.get('signer') or item.get('optional') for item in checkpoint['accounts'])
+    assert checkpoint['accounts'][3:6] == unique('read_market_gross')['accounts'][2:5]
+    actual['instructions'].remove(checkpoint)
+    lane = unique('execute_market_lane')
+    assert lane['discriminator'] == list(hashlib.sha256(b'global:execute_market_lane').digest()[:8])
+    ordinary = unique('execute_liquidity_route')
+    assert lane['args'] == ordinary['args']
+    expected_metas = deepcopy(ordinary['accounts'])
+    selected = next(meta for meta in expected_metas if meta['name'] == 'market')
+    assert selected.pop('writable')
+    assert lane['accounts'] == expected_metas
+    actual['instructions'].remove(lane)
+    ledger_lane = unique('execute_ledger_lane')
+    assert ledger_lane['discriminator'] == list(hashlib.sha256(b'global:execute_ledger_lane').digest()[:8])
+    assert ledger_lane['args'] == ordinary['args']
+    assert next(meta for meta in expected_metas if meta['name'] == 'ledger').pop('writable')
+    assert ledger_lane['accounts'] == expected_metas
+    actual['instructions'].remove(ledger_lane)
+    actual['errors'].remove(dict(code=6132, name='MarketCheckpoint',
+        msg='A current funding and gross checkpoint is required for each market'))
+    view = unique('read_market_gross')
+    assert view['discriminator'] == list(hashlib.sha256(b'global:read_market_gross').digest()[:8])
+    assert view.get('returns') == 'u64' and not view['args']
+    assert [item['name'] for item in view['accounts']] == 'venue market first second third'.split()
+    assert not any(item.get('signer') or item.get('writable') or item.get('optional') for item in view['accounts'])
+    for index, lane in enumerate(view['accounts'][2:]):
+        assert lane['pda']['seeds'] == [dict(kind='const',value=list(b'maker-v4')),dict(kind='account',path='market'),dict(kind='const',value=[index])]
+    actual['instructions'].remove(view)
+    fees = unique('classify_market_fees')
+    assert fees['discriminator'] == list(hashlib.sha256(b'global:classify_market_fees').digest()[:8])
+    assert not fees['args']
+    assert [item['name'] for item in fees['accounts']] == 'venue safety ledger first second third event_authority program'.split()
+    assert [item['name'] for item in fees['accounts'] if item.get('writable')] == ['ledger']
+    assert not any(item.get('signer') or item.get('optional') for item in fees['accounts'])
+    assert fees['accounts'][:3] == unique('allocate_market_fees')['accounts'][:3]
+    assert fees['accounts'][-2:] == unique('allocate_market_fees')['accounts'][-2:]
+    actual['instructions'].remove(fees)
+    route_fields = next(item['type']['fields'] for item in actual['types'] if item['name']=='LiquidityRouteExecuted')
+    remove_split = {'insurance_credit','retained_fee','carry_before','carry_after'}
+    revised = [field for field in route_fields if field['name'] not in remove_split]
+    insert = next(i for i,field in enumerate(revised) if field['name']=='ledger')
+    def fields(items):
+        return [dict(name=name,type=kind) for name,kind in items]
+    revised[insert:insert] = fields([('lane_collected','u128'),('market_pending','u64')])
+    for name, expected in (
+        ('LiquidityRouteFeeRecorded', revised),
+        ('LedgerLaneFilled', [dict(field, name='lane_pending') if field['name']=='market_pending' else field for field in revised] + fields([('through','i64'),('index','i128')])),
+        ('MarketLaneFilled', revised + fields([('through','i64'),('index','i128')])),
+        ('MarketCheckpointed', fields([('venue','pubkey'),('market','pubkey'),('slot','u64'),('state',{'defined':{'name':'MarketSnapshot'}})])),
+        ('MarketFeesClassified', fields([('venue','pubkey'),('market','pubkey'),('slot','u64'),('classified','u128'),
+                                       ('amount','u64'),('insurance_credit','u64'),('ledger',{'defined':{'name':'MarketLedgerSnapshot'}})]))
+    ):
+        actual['events'].remove(dict(name=name,discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+        event_type = next(item for item in actual['types'] if item['name']==name)
+        assert clean(event_type) == dict(name=name,type=dict(kind='struct',fields=expected))
+        actual['types'].remove(event_type)
+    book = unique('verify_inventory_book')
+    assert book['discriminator'] == list(hashlib.sha256(b'global:verify_inventory_book').digest()[:8])
+    assert book['args'] == [dict(name=key,type='u64') for key in ('epoch','revision')] + [dict(name='ordinals',type={'vec':'u64'})]
+    assert [item['name'] for item in book['accounts']] == (
+        'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared event_authority program').split()
+    assert [item['name'] for item in book['accounts'] if item.get('writable')] == ['prepared']
+    assert not any(item.get('signer') or item.get('optional') for item in book['accounts'])
+    actual['instructions'].remove(book)
+    for name,capacity_width,pair_width in [('InventoryBookVerified',2,4),('MultiLotBookVerified',4,6)]:
+        actual['events'].remove(dict(name=name,discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+        fields = [dict(name='venue',type='pubkey'),*[dict(name=key,type='u64') for key in ('epoch','slot','total')],
+                  *[dict(name=key,type={'vec':{'array':['u64',width]}}) for key,width in [('capacities',capacity_width),('pairs',pair_width)]]]
+        book_type = next(item for item in actual['types'] if item['name'] == name)
+        assert clean(book_type) == dict(name=name,type=dict(kind='struct',fields=fields))
+        actual['types'].remove(book_type)
+    shared = unique('verify_shared_inventory')
+    assert shared['discriminator'] == list(hashlib.sha256(b'global:verify_shared_inventory').digest()[:8])
+    assert shared['args'] == [dict(name=key, type='u64') for key in ('epoch', 'revision')] + [
+        dict(name=key, type={'array':['u64',width]}) for key,width in [('ordinals',4),('charges',2)]]
+    assert [item['name'] for item in shared['accounts']] == (
+        'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared first_page '
+        'second_page third_page fourth_page first_winner second_winner event_authority program').split()
+    assert [item['name'] for item in shared['accounts'] if item.get('writable')] == ['prepared']
+    assert not any(item.get('signer') for item in shared['accounts'])
+    assert [item['name'] for item in shared['accounts'] if item.get('optional')] == ['second_page','third_page','fourth_page']
+    actual['instructions'].remove(shared)
+    name = 'SharedInventoryVerified'
+    actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+    fields = [dict(name='venue', type='pubkey'), *[dict(name=key, type='u64') for key in ('epoch', 'slot')],
+              dict(name='members', type={'array':['u64',4]}), *[dict(name=key, type={'array':['u64',2]})
+              for key in ('charges','eligible','prices')]]
+    shared_type = next(item for item in actual['types'] if item['name'] == name)
+    assert clean(shared_type) == dict(name=name, type=dict(kind='struct', fields=fields))
+    actual['types'].remove(shared_type)
+    foreign = unique('verify_foreign_creditors')
+    assert foreign['discriminator'] == list(hashlib.sha256(b'global:verify_foreign_creditors').digest()[:8])
+    assert foreign['args'] == [dict(name=key, type='u64') for key in ('epoch', 'revision')] + [
+        dict(name=key, type={'array':['u64',width]}) for key,width in [('ordinals',4),('charges',2)]]
+    assert [item['name'] for item in foreign['accounts']] == (
+        'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared first_page '
+        'second_page third_page fourth_page cross_winner eth_winner event_authority program').split()
+    assert [item['name'] for item in foreign['accounts'] if item.get('writable')] == ['prepared']
+    assert not any(item.get('signer') for item in foreign['accounts'])
+    assert [item['name'] for item in foreign['accounts'] if item.get('optional')] == ['second_page','third_page','fourth_page']
+    actual['instructions'].remove(foreign)
+    name = 'ForeignCreditorsVerified'
+    actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+    fields = [dict(name='venue', type='pubkey'), *[dict(name=key, type='u64') for key in ('epoch', 'slot')],
+              dict(name='members', type={'array':['u64',4]}), *[dict(name=key, type={'array':['u64',2]})
+              for key in ('charges','eligible','matched_lots','base_prices','extra_tick_lots')]]
+    foreign_type = next(item for item in actual['types'] if item['name'] == name)
+    assert clean(foreign_type) == dict(name=name, type=dict(kind='struct', fields=fields))
+    actual['types'].remove(foreign_type)
+    allocation = unique('advance_btc_allocation')
+    linked = unique('advance_linked_allocation')
+    assert linked['discriminator'] == list(hashlib.sha256(b'global:advance_linked_allocation').digest()[:8])
+    assert linked['accounts'] == allocation['accounts']
+    assert linked['args'] == allocation['args'][:3] + [
+        dict(name='cutoffs', type={'option': {'array': [{'array': ['u64', 4]}, 2]}})]
+    actual['instructions'].remove(linked)
+    name = 'FrozenLinkedAllocationRow'
+    actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+    fields = [dict(name='venue', type='pubkey'),
+              *[dict(name=key, type='u64') for key in ('slot', 'epoch', 'attempt', 'ordinal', 'debtor_id', 'member_id')],
+              *[dict(name=key, type={'array': ['u64', 2]}) for key in
+                ('shares', 'targets', 'eligible', 'charges', 'matched_lots', 'base_prices', 'extra_tick_lots')],
+              dict(name='status', type='u8')]
+    linked_row = next(item for item in actual['types'] if item['name'] == name)
+    assert clean(linked_row) == dict(name=name, type=dict(kind='struct', fields=fields))
+    actual['types'].remove(linked_row)
+    assert allocation['discriminator'] == list(hashlib.sha256(b'global:advance_btc_allocation').digest()[:8])
+    assert allocation['args'] == [dict(name=name, type='u64') for name in ('epoch','revision','ordinal')] + [
+        dict(name='cutoff', type={'option': {'array': ['u64', 4]}})]
+    assert [item['name'] for item in allocation['accounts']] == (
+        'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared page margin event_authority program').split()
+    assert [item['name'] for item in allocation['accounts'] if item.get('writable')] == ['prepared','page']
+    assert not any(item.get('signer') or item.get('optional') for item in allocation['accounts'])
+    actual['instructions'].remove(allocation)
+    name = 'FrozenJointReductionVerified'
+    actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+    fields = [dict(name='venue', type='pubkey'), *[dict(name=key, type='u64') for key in ('epoch', 'slot', 'debtor_id')],
+              *[dict(name=key, type={'array': ['u64', 2]}) for key in
+                ('winners', 'shares', 'charges', 'eligible', 'matched_lots', 'base_prices', 'extra_tick_lots')]]
+    joint = next(item for item in actual['types'] if item['name'] == name)
+    assert clean(joint) == dict(name=name, type=dict(kind='struct', fields=fields))
+    actual['types'].remove(joint)
+    name='FrozenBtcAllocationRow'
+    event=dict(name=name,discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8]))
+    actual['events'].remove(event)
+    fields=[dict(name=field,type='u64') for field in (
+        'slot epoch attempt ordinal debtor_id member_id shortfall eligible charge matched_lots base_price extra_tick_lots').split()]
+    actual['types'].remove(dict(name=name,type=dict(kind='struct',fields=[dict(name='venue',type='pubkey'),*fields,dict(name='status',type='u8')])))
+    pair=unique('verify_frozen_pair')
+    assert pair['discriminator']==list(hashlib.sha256(b'global:verify_frozen_pair').digest()[:8])
+    assert pair['args']==[{'name':name,'type':'u64'} for name in ('epoch','revision','debtor_ordinal','winner_ordinal')]
+    assert [field['name'] for field in pair['accounts']]==(
+        'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared debtor_page '
+        'winner_page debtor winner event_authority program').split()
+    assert [field['name'] for field in pair['accounts'] if field.get('writable')]==['prepared']
+    assert not any(field.get('signer') for field in pair['accounts'])
+    assert [field['name'] for field in pair['accounts'] if field.get('optional')]==['winner_page']
+    actual['instructions'].remove(pair)
+    event_name='FrozenPairVerified'
+    event={'name':event_name,'discriminator':list(hashlib.sha256(f'event:{event_name}'.encode()).digest()[:8])}
+    assert actual['events'].count(event)==1
+    actual['events'].remove(event)
+    fields=[{'name':name,'type':'pubkey' if name=='venue' else 'u64'} for name in
+            ('venue','slot','epoch','debtor_id','winner_id','mark','price','charge','unpaid_gain_cap')]
+    event_type={'name':event_name,'type':{'kind':'struct','fields':fields}}
+    assert actual['types'].count(event_type)==1
+    actual['types'].remove(event_type)
+    residual_name='FrozenBtcReductionVerified'
+    residual_event={'name':residual_name,'discriminator':list(hashlib.sha256(f'event:{residual_name}'.encode()).digest()[:8])}
+    residual_fields=[{'name':name,'type':'pubkey' if name=='venue' else 'u64'} for name in
+                    ('venue','slot','epoch','debtor_id','winner_id','mark','base_price','charge','unpaid_gain_cap','matched_lots','extra_tick_lots')]
+    residual_type={'name':residual_name,'type':{'kind':'struct','fields':residual_fields}}
+    residual_types=[item for item in actual['types'] if item['name']==residual_name]
+    assert actual['events'].count(residual_event)==1 and len(residual_types)==1
+    assert {key:value for key,value in residual_types[0].items() if key!='docs'}==residual_type
+    actual['events'].remove(residual_event)
+    actual['types'].remove(residual_types[0])
+    capacity = unique('manage_profit_capacity')
+    assert capacity['discriminator'] == list(hashlib.sha256(b'global:manage_profit_capacity').digest()[:8])
+    assert capacity['args'] == [{'name': name, 'type': kind} for name, kind in
+                                [('slot_bytes','u16'), ('revision','u64'), ('max_payment','u64')]]
+    assert [(field['name'], field.get('writable',False), field.get('signer',False))
+            for field in capacity['accounts']] == [
+                ('actor',False,True), ('payer',True,True), ('previous_contributor',True,False),
+                ('venue',False,False), ('safety',False,False), ('margin',True,False),
+                ('system_program',False,False), ('event_authority',False,False), ('program',False,False)]
+    assert capacity['accounts'][6]['address'] == '11111111111111111111111111111111'
+    actual['instructions'].remove(capacity)
     direct = unique('execute_liquidity_route')
     forced = unique('liquidate_liquidity_route')
     tag = list(hashlib.sha256(b'global:liquidate_liquidity_route').digest()[:8])

@@ -23,12 +23,25 @@ macro_rules! profile_cu {
 ))]
 compile_error!("CU tracing requires the explicit bounded local qualification profile");
 
+#[cfg(all(feature="aggregate-fee-qualification", feature="devnet-test-profile"))]
+compile_error!("aggregate fee qualification uses a fresh local deployment");
+
 pub mod constants;
 pub mod engine;
 pub mod error;
 mod event_cpi;
+mod market_fees;
+#[cfg(feature = "read-only-route-ledger")]
+mod ledger_lane;
+mod market_capacity;
+mod market_checkpoint;
+mod market_funding;
 pub mod events;
 pub mod instructions;
+#[cfg(feature = "profit-attribution-qualification")]
+mod profit_attribution;
+#[cfg(all(feature = "state-only", feature = "single-pair-default-qualification"))]
+pub use profit_attribution::frozen_history;
 mod program_accounts;
 mod manual_account;
 #[cfg(any(test, feature = "devnet-test-profile"))]
@@ -43,8 +56,34 @@ pub mod state;
 pub use error::ClearingError;
 pub use events::*;
 pub use instructions::*;
+pub use instructions::account_safety::settlement::recovery::{AdvanceSearch, CaptureSearch, OpenSearch, RateWitness};
+pub(crate) use instructions::account_safety::settlement::recovery::layout::{__client_accounts_opensearch,__client_accounts_capturesearch,__client_accounts_advancesearch};
+pub use instructions::account_safety::settlement::{RecordOriginalBudgets,__client_accounts_recordoriginalbudgets, ScanForeignProtection,__client_accounts_scanforeignprotection};
+pub use instructions::account_safety::settlement::winner_allocation::{OpenWinnerProof,AdvanceWinnerProof,WinnerCutoff};
+pub(crate) use instructions::account_safety::settlement::winner_allocation::{__client_accounts_openwinnerproof,__client_accounts_advancewinnerproof};
+pub use instructions::account_safety::settlement::ordered_pairs::{
+    OpenPairSchedule, AppendPairOrder, CheckPairMembers, MatchPairPage, PairBookEntry, PairMemberOpening,
+};
+pub(crate) use instructions::account_safety::settlement::ordered_pairs::{
+    __client_accounts_openpairschedule, __client_accounts_appendpairorder,
+    __client_accounts_checkpairmembers, __client_accounts_matchpairpage,
+};
+pub use instructions::account_safety::settlement::joint_payment::{
+    OpenJointPayment, CaptureJointPayment, AdvanceJointPayment, PaymentProposal, JointMemberOpening,
+};
+pub(crate) use instructions::account_safety::settlement::joint_payment::{
+    __client_accounts_openjointpayment,__client_accounts_capturejointpayment,__client_accounts_advancejointpayment,
+};
+pub use instructions::account_safety::settlement::{BindJointPayment, __client_accounts_bindjointpayment, CopyJointClaims, __client_accounts_copyjointclaims, CopyJointRegister, __client_accounts_copyjointregister};
 pub use state::*;
 pub use state::accounts::SettlementPageAccess;
+
+pub use instructions::account_safety::settlement::{BindRecoverySelection,__client_accounts_bindrecoveryselection};
+#[cfg(all(feature="recovery-search-qualification", any(
+    feature="linked-allocation-qualification", feature="btc-allocation-qualification",
+    all(feature="shared-inventory-qualification", not(feature="integrated-recovery-qualification"))
+)))]
+compile_error!("The clearing-owned recovery qualification has a separate terminal adoption contract");
 
 #[cfg(not(feature = "devnet-test-profile"))]
 declare_id!("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
@@ -58,12 +97,228 @@ declare_id!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
 ))]
 compile_error!("local and devnet financial profiles are mutually exclusive");
 
+// Keep instruction layouts available to Anchor IDL generation in every build.
+macro_rules! local_recovery {
+    ($body:block) => {{
+        #[cfg(feature = "recovery-search-qualification")]
+        $body
+        #[cfg(not(feature = "recovery-search-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }};
+}
+
 /// Financial paths require the explicit qualified local profile.
 // Consumers import state only; RC2 no-entrypoint alone still exports a dispatch symbol.
 #[cfg(not(feature = "state-only"))]
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn record_original_budgets(ctx: &mut Context<RecordOriginalBudgets>, epoch:u64, page_index:u64,
+        attempt:u64, revision:u64, page_revisions:[u64;7]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            use account_safety::settlement::original_budgets::{OriginalRegisters,record};
+            let _ = (epoch,page_index); // Bound by the account context.
+            let registers=OriginalRegisters::verified(&ctx.accounts.prepared,&ctx.accounts.rates)?;
+            scoped_history::run_pages(ctx,[96, 8, 159, 6, 155, 131, 72, 23],registers.pages,|ctx,_|record(ctx,&registers,attempt,revision,page_revisions))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }
+    pub fn scan_foreign_protection(ctx: &mut Context<ScanForeignProtection>, epoch:u64, page_index:u64,
+        attempt:u64, revision:u64, page_revisions:[u64;7]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            use account_safety::settlement::foreign_protection;
+            let _ = epoch; // Bound by the account context.
+            let (pages,registers)=foreign_protection::plan(&ctx.accounts.prepared,&ctx.accounts.rates,page_index)?;
+            scoped_history::run_pages(ctx,[73, 181, 70, 177, 190, 240, 37, 225],pages,|ctx,_|foreign_protection::scan(ctx,registers.as_deref(),attempt,revision,page_revisions))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }
+    pub fn open_winner_proof(ctx: &mut Context<OpenWinnerProof>, nonce:u64, epoch:u64, market:u8, cutoffs:[WinnerCutoff;2]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _=nonce;
+            require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Resolution);
+            account_safety::settlement::winner_allocation::scan::open(&mut ctx.accounts,epoch,market,cutoffs)
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn advance_winner_proof(ctx: &mut Context<AdvanceWinnerProof>, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Resolution);
+            account_safety::settlement::winner_allocation::scan::advance(&mut ctx.accounts,revision)
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn open_pair_schedule(ctx: &mut Context<OpenPairSchedule>, nonce:u64, order_root:[u8;32]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _=nonce;
+            account_safety::settlement::ordered_pairs::open(ctx,order_root)
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn append_pair_order(ctx: &mut Context<AppendPairOrder>, role:u8, index:u64, entries:Vec<PairBookEntry>, next:[u8;32]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::ordered_pairs::append(ctx,role,index,entries,next)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn check_pair_members(ctx: &mut Context<CheckPairMembers>, prefix:[u8;32], openings:Vec<PairMemberOpening>) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::ordered_pairs::check_members(ctx,prefix,openings)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn match_pair_page(ctx: &mut Context<MatchPairPage>, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::ordered_pairs::match_page(ctx,revision)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn open_joint_payment(ctx:&mut Context<OpenJointPayment>,nonce:u64,account_bytes:u16,width:u16,
+        proposals:Vec<PaymentProposal>,revisions:[u64;3])->Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {let _=nonce;account_safety::settlement::joint_payment::open(ctx,account_bytes,width,proposals,revisions)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn capture_joint_payment(ctx:&mut Context<CaptureJointPayment>,index:u64,prior:[[u8;32];2],
+        openings:Vec<JointMemberOpening>)->Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::joint_payment::capture(ctx,index,prior,openings)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn advance_joint_payment(ctx:&mut Context<AdvanceJointPayment>,revision:u64,steps:u16)->Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::joint_payment::advance(ctx,revision,steps)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn bind_joint_payment(ctx:&mut Context<BindJointPayment>, epoch:u64, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _ = epoch;
+            scoped_history::run(ctx, [83, 218, 252, 191, 61, 16, 243, 218], false, |ctx, _|
+                account_safety::settlement::joint_payment::binding::bind(ctx, revision))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }
+    pub fn copy_joint_claims(ctx:&mut Context<CopyJointClaims>, epoch:u64, index:u64, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _ = epoch;
+            scoped_history::run(ctx, [211, 81, 170, 171, 165, 168, 79, 166], false, |ctx, events|
+                account_safety::settlement::joint_payment::binding::copy_claims(ctx, events, index, revision))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }
+    pub fn copy_joint_register(ctx:&mut Context<CopyJointRegister>, epoch:u64, register:u32, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _ = epoch;
+            scoped_history::run(ctx, [194, 89, 232, 254, 80, 134, 147, 141], false, |ctx, _|
+                account_safety::settlement::joint_payment::binding::copy_register(ctx, register, revision))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }
+    pub fn open_search(
+        ctx: &mut Context<OpenSearch>,
+        nonce: u64,
+        epoch: u64,
+        rank: u128,
+        original: RateWitness,
+    ) -> Result<()> {
+        local_recovery!({
+            let _ = nonce; // The OpenSearch context binds this seed.
+            account_safety::settlement::recovery::search::open(&mut ctx.accounts, epoch, rank, original)
+        })
+    }
+    pub fn capture_member(ctx: &mut Context<CaptureSearch>, ordinal: u64) -> Result<()> {
+        local_recovery!({
+            account_safety::settlement::recovery::search::capture(&mut ctx.accounts, ordinal)
+        })
+    }
+    pub fn derive_pairs(ctx: &mut Context<AdvanceSearch>) -> Result<()> {
+        local_recovery!({
+            account_safety::settlement::recovery::search::dimensions(&mut ctx.accounts)
+        })
+    }
+    pub fn verify_incumbent(ctx: &mut Context<AdvanceSearch>, after: RateWitness) -> Result<()> {
+        local_recovery!({
+            account_safety::settlement::recovery::search::propose(&mut ctx.accounts, after)
+        })
+    }
+    pub fn cover_plan(
+        ctx: &mut Context<AdvanceSearch>,
+        rank: u128,
+        after: RateWitness,
+    ) -> Result<()> {
+        local_recovery!({
+            account_safety::settlement::recovery::search::leaf(&mut ctx.accounts, rank, after)
+        })
+    }
+    pub fn cover_range(ctx: &mut Context<AdvanceSearch>, first: u128, last: u128) -> Result<()> {
+        local_recovery!({
+            account_safety::settlement::recovery::search::skip(&mut ctx.accounts, first, last)
+        })
+    }
+    pub fn seal_search(ctx: &mut Context<AdvanceSearch>) -> Result<()> {
+        local_recovery!({
+            account_safety::settlement::recovery::search::close(&mut ctx.accounts)
+        })
+    }
+    pub fn bind_recovery_selection(ctx:&mut Context<BindRecoverySelection>, epoch:u64,revision:u64) -> Result<()> {
+        local_recovery!({
+            let bind = |ctx: &mut Context<BindRecoverySelection>, events: &mut event_cpi::Payloads|
+                account_safety::settlement::recovery::binding::bind(ctx,events,epoch,revision);
+            #[cfg(feature = "paged-recovery-qualification")]
+            { scoped_history::run_frozen_pages(ctx,[232,106,150,46,25,38,74,226],bind) }
+            #[cfg(not(feature = "paged-recovery-qualification"))]
+            { scoped_history::run(ctx,[232,106,150,46,25,38,74,226],false,bind) }
+        })
+    }
+    pub fn verify_inventory_book(ctx: &mut Context<VerifyInventoryBook>, epoch:u64,revision:u64,ordinals:Vec<u64>) -> Result<()> {
+        scoped_history::run_frozen_pages(ctx,[144,97,136,219,210,27,178,218],|ctx,events|
+            account_safety::settlement::inventory_book::verify(ctx,events,epoch,revision,ordinals))
+    }
+    pub fn verify_shared_inventory(ctx: &mut Context<VerifySharedInventory>, epoch: u64, revision: u64,
+        ordinals: [u64; 4], charges: [u64; 2]) -> Result<()> {
+        scoped_history::run(ctx, [178, 83, 143, 6, 220, 82, 240, 191], false, |ctx, events|
+            account_safety::settlement::shared_inventory::verify(ctx, events, epoch, revision, ordinals, charges))
+    }
+    pub fn verify_foreign_creditors(ctx: &mut Context<VerifyForeignCreditors>, epoch: u64, revision: u64,
+        ordinals: [u64; 4], charges: [u64; 2]) -> Result<()> {
+        scoped_history::run(ctx, [13, 110, 192, 171, 37, 177, 185, 193], false, |ctx, events|
+            account_safety::settlement::foreign_creditor::verify(ctx, events, epoch, revision, ordinals, charges))
+    }
+    pub fn advance_linked_allocation(ctx: &mut Context<AdvanceBtcAllocation>, epoch: u64, revision: u64,
+        ordinal: u64, cutoffs: Option<[[u64; 4]; 2]>) -> Result<()> {
+        scoped_history::run(ctx, [122, 174, 162, 136, 46, 73, 226, 57], false, |ctx, events|
+            account_safety::settlement::linked_allocation::advance(ctx, events, epoch, revision, ordinal, cutoffs))
+    }
+    pub fn advance_btc_allocation(ctx: &mut Context<AdvanceBtcAllocation>, epoch: u64, revision: u64,
+        ordinal: u64, cutoff: Option<[u64; 4]>) -> Result<()> {
+        scoped_history::run(ctx, [142, 42, 150, 24, 31, 163, 139, 71], false, |ctx, events|
+            account_safety::settlement::btc_allocation::advance(ctx, events, epoch, revision, ordinal, cutoff))
+    }
+    pub fn verify_frozen_pair(ctx:&mut Context<VerifyFrozenPair>, epoch:u64, revision:u64, debtor_ordinal:u64, winner_ordinal:u64) -> Result<()> {
+        scoped_history::run(ctx, [246, 61, 80, 20, 225, 73, 63, 215], false, |ctx, events| account_safety::settlement::single_pair::verify(ctx,events,epoch,revision,debtor_ordinal,winner_ordinal))
+    }
+    pub fn manage_profit_capacity(ctx: &mut Context<ManageProfitCapacity>, slot_bytes: u16, revision: u64, max_payment: u64) -> Result<()> {
+        scoped_history::run(ctx, [127, 131, 245, 73, 221, 170, 34, 48], false, |ctx, _events| profit_capacity::manage(ctx, slot_bytes, revision, max_payment))
+    }
     pub fn activate_margin(ctx: &mut Context<ChangeMarginMembership>, revision: u64, membership_epoch: u64,
         safety_epoch: u64, index_revisions: [u64; 15]) -> Result<()> {
         scoped_history::run_membership(ctx, [206, 170, 249, 231, 115, 159, 95, 29], |ctx, events| account_membership::handlers::change(
@@ -515,6 +770,27 @@ pub mod clearing {
         )
     }
 
+    /// Read exact gross lots at this invocation from the canonical capacity accounts.
+    pub fn read_market_gross(ctx: &mut Context<ReadMarketGross>) -> Result<u64> {
+        market_capacity::read_gross(ctx)
+    }
+
+    pub fn execute_market_lane(ctx: &mut Context<ExecuteMarketLane>, args: LiquidityRouteIntent) -> Result<()> {
+        scoped_history::run(ctx, [154, 97, 38, 114, 234, 143, 70, 85], false, |ctx, events| maker_liquidity::routes::execute_lane(ctx, events, args))
+    }
+
+    pub fn execute_ledger_lane(ctx: &mut Context<ExecuteLedgerLane>, args: LiquidityRouteIntent) -> Result<()> {
+        scoped_history::run(ctx, [1, 178, 168, 44, 243, 136, 161, 76], false, |ctx, events| maker_liquidity::routes::execute_ledger_lane(ctx, events, args))
+    }
+
+    pub fn checkpoint_market(ctx: &mut Context<CheckpointMarket>) -> Result<()> {
+        scoped_history::run(ctx, [234, 231, 222, 47, 209, 237, 138, 64], false, market_checkpoint::checkpoint)
+    }
+
+    pub fn classify_market_fees(ctx: &mut Context<ClassifyMarketFees>) -> Result<()> {
+        scoped_history::run(ctx, [119, 160, 87, 122, 107, 187, 203, 113], false,
+            |ctx, events| account_cash::fees::classify(ctx, events))
+    }
     pub fn allocate_market_fees(
         ctx: &mut Context<AllocateMarketFees>,
         market_index: u8,
@@ -870,10 +1146,9 @@ pub mod clearing {
         ctx: &mut Context<PublishFundingReport>,
         report: state::liquidity::FundingReport,
     ) -> Result<()> {
-        scoped_history::run(
+        scoped_history::run_funding(
             ctx,
             [32, 39, 131, 11, 127, 118, 35, 241],
-            false,
             |ctx, events| maker_liquidity::publisher::publish(ctx, events, report),
         )
     }

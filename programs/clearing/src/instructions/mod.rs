@@ -32,12 +32,23 @@ pub(crate) use account_cash::certificate::__cpi_accounts_initializemarketbacking
 pub use account_cash::certificate::CheckMarketBacking;
 pub use account_cash::certificate::InitializeMarketBacking;
 pub(crate) use account_cash::fees::__client_accounts_allocatemarketfees;
+pub(crate) use account_cash::fees::__client_accounts_classifymarketfees;
+#[cfg(feature = "cpi")]
+pub(crate) use account_cash::fees::__cpi_accounts_classifymarketfees;
 pub(crate) use account_cash::fees::__client_accounts_withdrawmarketfees;
 #[cfg(feature = "cpi")]
 pub(crate) use account_cash::fees::__cpi_accounts_allocatemarketfees;
 #[cfg(feature = "cpi")]
 pub(crate) use account_cash::fees::__cpi_accounts_withdrawmarketfees;
-pub use account_cash::fees::{AllocateMarketFees, WithdrawMarketFees};
+pub(crate) use crate::market_capacity::__client_accounts_readmarketgross;
+#[cfg(feature = "cpi")]
+pub(crate) use crate::market_capacity::__cpi_accounts_readmarketgross;
+pub use crate::market_capacity::ReadMarketGross;
+pub(crate) use crate::market_checkpoint::__client_accounts_checkpointmarket;
+#[cfg(feature = "cpi")]
+pub(crate) use crate::market_checkpoint::__cpi_accounts_checkpointmarket;
+pub use crate::market_checkpoint::CheckpointMarket;
+pub use account_cash::fees::{AllocateMarketFees, ClassifyMarketFees, WithdrawMarketFees};
 pub use account_cash::AccountFinancialIdentity;
 pub use account_cash::ChangeAccountClaim;
 pub use account_cash::NetAccountClaims;
@@ -181,7 +192,10 @@ pub use maker_liquidity::publisher::PublishFundingReport;
 pub(crate) use maker_liquidity::routes::__client_accounts_executeliquidityroute;
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::routes::__cpi_accounts_executeliquidityroute;
-pub use maker_liquidity::routes::ExecuteLiquidityRoute;
+pub use maker_liquidity::routes::{ExecuteLiquidityRoute, ExecuteMarketLane, ExecuteLedgerLane};
+pub(crate) use maker_liquidity::routes::{__client_accounts_executemarketlane,__client_accounts_executeledgerlane};
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::routes::{__cpi_accounts_executemarketlane,__cpi_accounts_executeledgerlane};
 pub use maker_liquidity::routes::{LiquidityOrderExecution, LiquidityRouteIntent};
 pub use maker_liquidity::ControlLiquidity;
 pub use maker_liquidity::InitializeLiquidity;
@@ -369,3 +383,19 @@ pub use account_membership::RefundRecoveryAllocation;
 pub(crate) use account_membership::__client_accounts_refundrecoveryallocation;
 #[cfg(feature="cpi")]
 pub(crate) use account_membership::__cpi_accounts_refundrecoveryallocation;
+
+pub mod profit_capacity;
+pub use profit_capacity::ManageProfitCapacity;
+pub(crate) use profit_capacity::__client_accounts_manageprofitcapacity;
+#[cfg(feature="cpi")]
+pub(crate) use profit_capacity::__cpi_accounts_manageprofitcapacity;
+
+pub use account_safety::settlement::{VerifyForeignCreditors, VerifyFrozenPair, VerifySharedInventory, VerifyInventoryBook};
+pub(crate) use account_safety::settlement::{__client_accounts_verifyforeigncreditors,__client_accounts_verifyfrozenpair,__client_accounts_verifysharedinventory,__client_accounts_verifyinventorybook};
+#[cfg(feature="cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_verifyfrozenpair;
+
+pub use account_safety::settlement::AdvanceBtcAllocation;
+pub(crate) use account_safety::settlement::__client_accounts_advancebtcallocation;
+#[cfg(feature="cpi")]
+pub(crate) use account_safety::settlement::__cpi_accounts_advancebtcallocation;

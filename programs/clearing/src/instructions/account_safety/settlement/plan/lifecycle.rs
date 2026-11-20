@@ -88,6 +88,18 @@ fn adopt(
             && source.revision == header.source_revision,
         ClearingError::Resolution
     );
+    #[cfg(feature = "recovery-search-qualification")]
+    {
+        #[cfg(feature="populated-recovery-qualification")]
+        let spent = super::super::joint_payment::binding::receipt(header)?.map(|receipt| receipt.spent);
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        let spent: Option<[u64; 2]> = None;
+        let certified = match spent {
+            Some(value) => value,
+            None => super::super::recovery::binding::BoundResult::read(header)?.insurance_spent,
+        };
+        require!(certified == plan.insurance_spent, ClearingError::Reconciliation);
+    }
     let graph = exact(GraphWork::from_checkpoint(
         checkpoint(plan, 352)?,
         header.count,
@@ -209,19 +221,33 @@ fn apply_margin(
     frozen: &FrozenMargin,
     root: &MarginAccount,
     flow: &mut FlowRecord,
-    increments: [u64; 3],
+    graph_increments: [u64; 3],
 ) -> Result<Box<MarginAccount>> {
     require!(
         flow.id == frozen.id && flow.seen_attempt == plan.order_attempt && !flow.applied,
         ClearingError::Resolution
     );
     let mut scan = application_scan(header, plan)?;
+    #[cfg(feature = "recovery-search-qualification")]
+    let increments = {
+        // Validate the ordinary rounding witness as well as the protected allocation.
+        require!(graph_increments.iter().all(|amount| *amount <= 1), ClearingError::Resolution);
+        #[cfg(feature="populated-recovery-qualification")]
+        let protected_graph = super::super::joint_payment::binding::receipt(header)?.is_some();
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        let protected_graph = false;
+        if protected_graph { graph_increments } else {
+            super::super::recovery::binding::BoundResult::read(header)?.increments(frozen, flow)?
+        }
+    };
+    #[cfg(not(feature = "recovery-search-qualification"))]
+    let increments = graph_increments;
     let amounts = exact(scan.accept(
         plan.cursor,
         frozen.id,
         Row {
             cash: frozen.cash,
-            claims: frozen.claims,
+            claims: super::super::single_pair::economic_claims(header,frozen)?,
         },
         frozen.lots,
         *flow,
@@ -308,11 +334,18 @@ pub fn apply_plan_margin(
         ordinal,
     )?;
     accounts.flow_page.payload.words[offset..offset + 7].copy_from_slice(&exact(flow.words())?);
+    #[cfg(feature = "profit-attribution-qualification")]
+    crate::profit_attribution::clear_resolved(&mut accounts.margin)?;
     **accounts.margin = *next;
     let gross = remaining_gross(
         &accounts.prepared,
         &application_scan(&accounts.prepared, &accounts.plan)?,
     )?;
+    #[cfg(feature = "bounded-market-read")]
+    {
+        crate::market_capacity::reset(&mut accounts.source.btc, gross[0])?;
+        crate::market_capacity::reset(&mut accounts.source.eth, gross[1])?;
+    }
     accounts.source.btc.gross_lots = gross[0];
     accounts.source.eth.gross_lots = gross[1];
     accounts.plan.last_progress_slot = Clock::get()?.slot;
@@ -398,7 +431,7 @@ fn reconcile_margin(
             && flow.id == frozen.id
             && flow.seen_attempt == plan.order_attempt
             && flow.cash == frozen.cash
-            && flow.directions == frozen.claims.map(|claim| claim.signum() as i8),
+            && flow.directions == super::super::single_pair::economic_claims(header,frozen)?.map(|claim| claim.signum() as i8),
         ClearingError::Resolution
     );
     reconciled_margin(header, frozen, root, flow.whole[2])?;
@@ -632,7 +665,7 @@ fn emit_margin(
             id: frozen.id,
             member: frozen.member,
             cash_before: frozen.cash,
-            claims: frozen.claims,
+            claims: super::super::single_pair::economic_claims(header,frozen)?,
             lots: frozen.lots,
             flows: [flow.whole[0], flow.whole[1]],
             state: root,

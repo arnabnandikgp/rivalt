@@ -778,3 +778,82 @@ qualified D102 binaries retain their 64-Financial gate. Native models, empty
 registration beyond 64, and the eight-root batch run do not qualify expansion.
 The G1 128/1,024 cohorts are measured acceptance cases, not new fixed protocol caps;
 operators must provision and qualify the capacity they intend to enable.
+
+## Contributor-funded profit capacity in the local candidate
+
+The normal margin root is 1,011 bytes. The separately built attribution program
+initially appends an eight-byte marker and two 128-byte market slots. In the
+sponsored build the margin owner and SOL payer can increase both slot widths.
+The signed request binds the margin revision and a maximum lamport debit. An
+expanded root adds a 32-byte contributor and eight-byte refundable principal
+after both slots. Current qualification covers widths through 256 bytes per
+market, including size changes while exposure is open.
+
+On a change of payer, the new payer directly reimburses the prior contributor.
+Only actual system-program top-ups and that reimbursed principal become the
+new payer’s credit. The account owner or contributor may release the extension
+when both markets are flat and the account has no reserve or active order.
+Release pays the recorded contributor even if another party signs. Retirement
+requires this release first. Frozen recovery retains the receipt until ordinary
+access resumes. See [D125](../DECISIONS.md#d125--refundable-attribution-capacity)
+and the [measured lifecycle](../operations/validation.md#sponsored-profit-capacity).
+
+## Bounded market gross on the local candidate
+
+The explicit D138 deployment creates fresh accounts. It appends two little-endian
+u64 fields to the 455-byte market account: capacity generation and gross lots at
+the start of that generation. Each of the three 341-byte maker registrations has
+a 16-byte cumulative fee counter followed by two u64 fields for its capacity
+generation and unused gross lots. The resulting sizes are 471 and 373 bytes.
+
+`ReadMarketGross` takes the venue, the market and the canonical registrations for
+instances 0, 1 and 2, all read-only. It returns a little-endian u64. Missing
+registrations prevent the read until market setup is complete. The program
+authenticates the venue, market binding, account owners, instances and maker
+addresses, then computes the total from the capacity fields. See the
+[capacity accounting rule](accounting.md#reserved-gross-capacity).
+
+### Read-only market on a local fill
+
+In the `read-only-market-candidate` build, the market PDA stores the last
+checkpoint of gross lots, earned funding time and earned funding index. A
+single-market fill spends reserved headroom on its first maker registration and
+records the active observation and Clock there. The market and registration
+retain the checked-funding layout. Their account sizes are 503 and 405 bytes.
+
+`checkpoint_market` authenticates the market and its three registrations in
+instance order and writes the three derived fields. It is permissionless in
+Active mode. While Active, an ordinary financial instruction with a market
+dependency requires a checkpoint for each supplied market immediately before it,
+at the same instruction nesting level in the transaction. The checkpoint covers
+earned funding only. A trader can sign checkpoints and the financial action
+together. Freeze consumes both checkpoints before capturing financial state.
+The [routing contract](../liquidity/routing.md#routes-with-a-read-only-market)
+describes when a fill can use the read-only path.
+
+### Read-only ledger on a local fill
+
+The explicitly selected `read-only-ledger-candidate` retains the 503-byte market
+and the 397-byte ledger. Each of the three maker registrations is 533 bytes.
+The additional 128 bytes record the ledger revision, number of fills, liability
+increments and fee atoms (four u64 values), followed by six signed i128 changes
+to the backing summary. These are the bad-account count, signed lots, positive
+and negative fixed claims, and two dependency counts. Membership stays with its
+margin account. Clearing computes each replacement from the actual old and new
+roots and attributes it to the first executing maker. A position can open and
+close on different makers. Signed changes from **all three** must be added before
+applying the result to the serial checkpoint, including its 192-bit claim totals.
+
+`execute_ledger_lane` retains the single-market route's financial admission.
+Its receipt records the maker's lifetime fees and its own pending fee amount.
+`classify_market_fees` folds the current generation of all three registrations
+and checks the full fee balance before crediting insurance. The ledger revision
+then advances, so a repeat cannot count the same fill twice. In Active mode,
+the funding and ledger checkpoints for every supplied dependency must immediately
+precede a serial consumer in the same invocation frame. This includes payment,
+withdrawal and freeze. Each market's checkpoints are permissionless.
+
+The SDK reads the market, ledger and canonical registrations in one RPC context.
+The indexer independently reconstructs backing changes from finalized root
+replacements, compares the physical account and complete logical totals, and
+attributes per-fill insurance in finalized block and transaction order.

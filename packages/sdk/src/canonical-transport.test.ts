@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { blockhash, address, getCompiledTransactionMessageDecoder, getTransactionDecoder } from '@solana/kit';
 import { Keypair, VersionedTransaction } from '@solana/web3.js';
-import { signCanonicalInstructions } from './canonical-transport.js';
+import { fitsCanonicalPacket,signCanonicalInstructions } from './canonical-transport.js';
 
 const connection = { getLatestBlockhash: async () => ({ blockhash: blockhash('11111111111111111111111111111111'), lastValidBlockHeight: 100n }) };
 const budget = { computeUnitLimit: 400_000, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 };
@@ -47,6 +47,13 @@ describe('canonical transaction version and resource selection', () => {
   it('rejects packets larger than v1 before signing or sending', async () => {
     const payer = await Keypair.fromSeed(new Uint8Array(32).fill(30));
     await expect(signCanonicalInstructions(connection, payer, [instruction(4096)], budget)).rejects.toThrow('limit is 4096');
+  });
+  it('classifies an oversized ordinal list before the worker signs or simulates',async()=>{
+    const payer=await Keypair.fromSeed(new Uint8Array(32).fill(30));
+    const heapBudget={...budget,heapSize:128*1024};
+    expect(fitsCanonicalPacket(payer.publicKey,[instruction(8*162)],heapBudget)).toBe(true);
+    expect(fitsCanonicalPacket(payer.publicKey,[instruction(8*1_240)],heapBudget)).toBe(false);
+    expect(()=>fitsCanonicalPacket(payer.publicKey,[instruction(8)],{...heapBudget,heapSize:1})).toThrow('heap size');
   });
   it('rejects implicit, excessive and conflicting budgets', async () => {
     const payer = await Keypair.fromSeed(new Uint8Array(32).fill(30));

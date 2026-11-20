@@ -4,5 +4,36 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+keeper = ["native-joint", "dep:serde", "dep:serde_json"]
+compact-book = ["dep:clearing-accounting"]
+native-search = ["compact-book", "dep:num-bigint", "dep:num-integer", "dep:num-traits"]
+native-joint = ["native-search", "dep:financial-core"]
+sbf-joint-probe = ["compact-book", "dep:num-bigint", "dep:num-integer", "dep:num-traits", "financial-core/sbf-settlement-measurement"]
+
 [dependencies]
+serde = { version = "=1.0.229", features = ["derive"], optional = true }
+serde_json = { version = "=1.0.154", optional = true }
+financial-core = { path = "../financial-core", optional = true }
+clearing-accounting = { path = "../clearing-accounting", features = ["surviving-profit"], optional = true }
+num-bigint = { version = "=0.4.6", default-features = false, optional = true }
+num-integer = { version = "=0.1.46", default-features = false, optional = true }
+num-traits = { version = "=0.2.19", default-features = false, optional = true }
 solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
+
+[dev-dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+
+[[example]]
+name = "multi_lot_audit"
+required-features = ["native-search"]
+
+[[example]]
+name = "joint_reduction_audit"
+required-features = ["native-joint"]
+
+[[bin]]
+name = "rivalt-recovery-selector"
+path = "src/bin/recovery_selector.rs"
+required-features = ["keeper"]

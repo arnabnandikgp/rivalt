@@ -27,9 +27,7 @@ impl Health {
         // A keeper can trim in bulk while the target remains below maintenance.
         // The final single lot prevents a caller from liquidating past recovery.
         require!(
-            after.deficit < self.deficit
-                && after.equity >= self.equity
-                && (after.deficit > 0 || lots == 1),
+            financial_core::liquidation::maker_progress(self.equity, self.deficit, after.equity, after.deficit, lots),
             ClearingError::Liquidation
         );
         Ok(())
@@ -55,13 +53,9 @@ pub(super) fn prepare(
 }
 
 pub(super) fn check_price(quote: &canonical::MakerQuoteResponse, market: &Market) -> Result<()> {
-    let gross = u128::from(quote.gross);
-    let lots = u128::from(quote.request.lots);
-    let within_bound = match quote.request.side {
-        0 => gross <= lots * u128::from(market.upper),
-        1 => gross >= lots * u128::from(market.lower),
-        _ => false,
-    };
+    let within_bound = financial_core::liquidation::maker_price(
+        quote.request.side, quote.request.lots, quote.gross, market.lower, market.upper,
+    );
     require!(within_bound, ClearingError::RouteLimit);
     Ok(())
 }

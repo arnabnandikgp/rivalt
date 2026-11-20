@@ -25,6 +25,20 @@ def fractional_debtors():
 
 
 class CreditorPayoutFloors(unittest.TestCase):
+    def test_single_market_residual_rounding_can_move_an_atom_between_flat_creditors(self):
+        original = MarketBook((Account(3, (-6, 0)), Account(0, (2, 0)),
+                               Account(0, (1, 0)), Account(0, (3, 0))), frozen=True)
+        before = MarketSnapshot(original, (-1, 1, 0, 0), 100, (101, 99, None, None))
+        after, fills = paired_reduction(before, 0, 1, 1, 1)
+        self.assertEqual(fills, ((1, 99),))
+        for book, expected in [(original, (0, 1, 1, 1)), (after.book, (0, 1, 0, 2))]:
+            self.assertEqual(terminal(book).cash, expected)
+            self.assertEqual(decode(run([frozen_book_command(book)])[0])['cash'], expected)
+        self.assertEqual(terminal(after.book).benchmark.cash_entitlements[2], Fraction(3, 5))
+        # Applying an extra same-market floor would change who receives the atom.
+        alternative = clear_atom_cohort(after.book.accounts, creditor_floors={(2, 0): 1, (3, 0): 1})
+        self.assertEqual(alternative.cash, (0, 0, 1, 2))
+
     def test_larger_market_payout_can_reduce_one_creditors_cash(self):
         state = linked_creditors()
         full, _ = paired_reduction(state, 0, 1, 2, 2)

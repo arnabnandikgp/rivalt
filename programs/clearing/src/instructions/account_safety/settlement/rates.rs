@@ -20,7 +20,7 @@ pub const RATE_CHUNK_WORDS: usize = 32;
 fn arithmetic<T>(value: financial_core::Result<T>) -> Result<T> {
     value.map_err(|_| ClearingError::Resolution.into())
 }
-fn rounds(header: &PreparedSettlement, rates: &SettlementRates) -> Result<InsuranceRounds> {
+pub(super) fn rounds(header: &PreparedSettlement, rates: &SettlementRates) -> Result<InsuranceRounds> {
     arithmetic(InsuranceRounds::from_checkpoint(
         &rates.state.insurance,
         header.insurance,
@@ -29,7 +29,7 @@ fn rounds(header: &PreparedSettlement, rates: &SettlementRates) -> Result<Insura
 #[inline(never)]
 pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Result<RateInput> {
     require!(
-        header.stage == PROPOSAL
+        rate_stage(header.stage)
             && rates.schema_version == SETTLEMENT_SCHEMA
             && rates.venue == header.venue
             && rates.epoch == header.epoch,
@@ -44,6 +44,43 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
         SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(header))
             .and_then(|scan| scan.result()),
     )?;
+    #[cfg(feature="single-pair-default-qualification")]
+    let totals = if original_rates(header.stage) { totals } else {
+        #[cfg(all(feature="linked-pair-qualification", not(feature="recovery-search-qualification")))]
+        let linked = super::linked_pair::Joint::read(header)?;
+        #[cfg(all(feature="linked-pair-qualification", not(feature="recovery-search-qualification")))]
+        let charges = super::linked_allocation::charges(header)?.or_else(|| linked.map(|joint| joint.legs.map(|leg| leg.charge)));
+        #[cfg(all(feature="foreign-creditor-qualification", not(feature="recovery-search-qualification")))]
+        let charges = super::foreign_creditor::Receipt::read(header)?.map(|receipt| receipt.legs.map(|leg| leg.charge)).or(charges);
+        #[cfg(feature="recovery-search-qualification")]
+        let charges = {
+            #[cfg(feature="populated-recovery-qualification")]
+            let receipt = super::joint_payment::binding::receipt(header)?.map(|value| value.charges);
+            #[cfg(not(feature="populated-recovery-qualification"))]
+            let receipt: Option<[u128; 2]> = None;
+            Some(match receipt {
+                Some(charges) => charges,
+                None => super::recovery::binding::BoundResult::read(header)?.charges.map(u128::from),
+            })
+        };
+        #[cfg(feature="shared-inventory-qualification")]
+        let charges = match super::shared_inventory::Receipt::read(header)? {
+            Some(receipt) => Some([receipt.total_charge()?.into(), 0]),
+            None => charges,
+        };
+        #[cfg(feature="book-inventory-qualification")]
+        let charges = super::inventory_book::Receipt::read(header)?.map(|book|[book.total.into(),0]).or(charges);
+        #[cfg(feature="linked-pair-qualification")]
+        if let Some(charges) = charges {
+            require!(header.stage == PROPOSAL, ClearingError::Resolution);
+            arithmetic(totals.after_market_charge_wide(0, u128::from(charges[0]))
+                .and_then(|btc| btc.after_market_charge_wide(1, u128::from(charges[1]))))?
+        } else {
+            arithmetic(totals.after_single_btc_charge(super::single_pair::verified_charge(header)?))?
+        }
+        #[cfg(not(feature="linked-pair-qualification"))]
+        { arithmetic(totals.after_single_btc_charge(super::single_pair::verified_charge(header)?))? }
+    };
     Ok(RateInput {
         count: header.count,
         common: Magnitude { register, used },
@@ -74,7 +111,7 @@ pub(super) fn verified_rates(
     [u64; 2],
 )> {
     require!(
-        rates.stage == VERIFIED_RATE && rates.attempt > 0,
+        header.stage == PROPOSAL && rates.stage == VERIFIED_RATE && rates.attempt > 0,
         ClearingError::Resolution
     );
     let insurance = rounds(header, rates)?;
@@ -120,7 +157,7 @@ pub fn initialize_rates(ctx: &mut Context<InitializeSettlementRates>, _epoch: u6
     let accounts = &mut ctx.accounts;
     accounts.source.frozen().matches(&accounts.prepared)?;
     require!(
-        accounts.prepared.stage == PROPOSAL,
+        rate_stage(accounts.prepared.stage),
         ClearingError::Resolution
     );
     super::workspace::reset_rates(&mut accounts.rates, &accounts.source.storage, accounts.prepared.epoch)?;
@@ -330,17 +367,17 @@ pub fn accept_rate_row(
         ClearingError::Resolution
     );
     let frozen = &accounts.page.rows[(ordinal % 8) as usize];
-    if work
-        .accept(
-            ordinal,
-            frozen.id,
-            Row {
-                cash: frozen.cash,
-                claims: frozen.claims,
-            },
-        )
-        .is_err()
-    {
+    let claims = if original_rates(accounts.prepared.stage) {
+        frozen.claims
+    } else {
+        super::single_pair::economic_claims(&accounts.prepared, frozen)?
+    };
+    let effective = Row { cash: frozen.cash, claims };
+    #[cfg(feature="linked-pair-qualification")]
+    let accepted = work.accept_reduction(ordinal, frozen.id, Row { cash: frozen.cash, claims: frozen.claims }, effective);
+    #[cfg(not(feature="linked-pair-qualification"))]
+    let accepted = work.accept(ordinal, frozen.id, effective);
+    if accepted.is_err() {
         accounts.rates.stage = REJECTED_RATE;
         return Ok(());
     }
