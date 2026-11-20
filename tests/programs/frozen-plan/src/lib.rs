@@ -6,6 +6,8 @@ use solana_sha256_hasher::hashv;
 #[path = "../../../../programs/clearing/src/instructions/account_safety/settlement/recovery/inputs.rs"]
 mod inputs;
 mod kernel;
+mod paged;
+use paged::PagedWitness;
 #[path = "../../../../programs/clearing/src/instructions/account_safety/settlement/recovery/priority.rs"]
 mod priority;
 #[path = "../../../../programs/clearing/src/instructions/account_safety/settlement/recovery/search.rs"]
@@ -110,6 +112,12 @@ pub mod frozen_plan_probe {
     }
     pub fn seal_search(ctx: &mut Context<AdvanceSearch>) -> Result<()> {
         search::close(&mut ctx.accounts)
+    }
+    pub fn audit_paged_recovery(
+        ctx: &mut Context<AuditSettlement>, epoch: u64, revision: u64,
+        before: PagedWitness, after: PagedWitness, charges: Vec<[u64; 4]>,
+    ) -> Result<[u8; 32]> {
+        paged::measure(ctx, epoch, revision, before, after, charges)
     }
     pub fn audit_settlement(
         ctx: &mut Context<AuditSettlement>,

@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 source ops/env.sh
 case "${RIVALT_SETTLEMENT_PROBE:-}" in
   profit-attribution-linked-contested|profit-attribution-foreign-winner-apply) ;;
+  profit-attribution-owned-tie) test "${RIVALT_FROZEN_PLAN_CASE:-}" = paged-meter ;;
   *) exit 1 ;;
 esac
 test "$RIVALT_RPC_URL" = "http://127.0.0.1:$RIVALT_RPC_PORT"

@@ -16,6 +16,7 @@ import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {financialRoots} from './membership-scan-helper.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
+import {measurePagedRecovery} from './paged-recovery-cost.js';
 import {openSharedInventory} from './shared-inventory-trades.js';
 import {openForeignWinnerBook} from './foreign-winner-trades.js';
 import {verifyProfitBuild} from './profit-attribution-build.js';
@@ -43,7 +44,8 @@ const sharedInventory=populationBook||partialInventory||sharedApply||probe==='pr
 const foreignGate=probe==='profit-attribution-foreign-winner-gate';
 const foreignApply=probe==='profit-attribution-foreign-winner-apply';
 const foreignBook=ownedCross||foreignApply||foreignGate||probe==='profit-attribution-foreign-winner-ordinary';
-const pagedRead=process.env.RIVALT_FROZEN_PLAN_CASE==='paged-read';
+const pagedMeter=process.env.RIVALT_FROZEN_PLAN_CASE==='paged-meter';
+const pagedRead=pagedMeter||process.env.RIVALT_FROZEN_PLAN_CASE==='paged-read';
 const equalWinners=pagedRead||process.env.RIVALT_FROZEN_PLAN_CASE==='equal-winners';
 if(pagedRead)assert(ownedTie && automatic);
 if(equalWinners)assert((ownedTie||probe==='profit-attribution-linked-contested') && process.env.RIVALT_FROZEN_PLAN_PROOF==='1');
@@ -159,6 +161,7 @@ try {
   let proofRestarted=false;
   if(automatic && !pagedRead)mkdirSync(directory+'/keeper-proof');
   let pagedSelection: {rank:bigint;count:bigint;pages:string[]}|undefined;
+  let pagedCost: Awaited<ReturnType<typeof measurePagedRecovery>> | undefined;
   let badAttempt:bigint|undefined,rejectionChecked=false;
   const financialSnapshot=()=>Promise.all([setup.resolution,setup.vault,setup.token.address,setup.traderToken.address,
     ...setup.ledgers,...members].map(key=>h.read(key)));
@@ -180,6 +183,7 @@ try {
       assert.equal(book.rows[8].member,otherTrader);
       assert.deepEqual(book.rows[8].lots,[0n,0n]);
       assert.deepEqual(book.rows[8].claims,[4_996_000_000_000n,0n]);
+      if(pagedMeter)pagedCost=await measurePagedRecovery(setup.venue,current.resolution,frozen.epoch,prepared.revision,book,outcome,comparison);
       assert.deepEqual(await financialSnapshot(),prior);
       pagedSelection={rank:outcome.rank,count:outcome.count,pages:book.pages};
       refused=true;
@@ -635,10 +639,10 @@ try {
     assert.deepEqual([failed.status,failed.cursor,failed.recovered],[2,'8',['0','12']]);
     assert.equal(replay.state.resolution?.linkedAllocation?.status,1);
   }
-  const result={revision,rejectionChecked,pagedSelection,profile:pagedRead?'nine-member frozen selection before binding':owned?'clearing-owned joint search through wallet exit':bookApply?'verified three-debtor inventory':populationBook?'ordinary three-debtor inventory':zeroDebtorBudget?'verified zero debtor budget':partialInventory?(partialApply?'verified scarce winning inventory':'ordinary scarce winning inventory'):sharedApply?'verified shared winner inventory':sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
+  const result={revision,rejectionChecked,pagedSelection,pagedCost,profile:pagedRead?'nine-member frozen selection before binding':owned?'clearing-owned joint search through wallet exit':bookApply?'verified three-debtor inventory':populationBook?'ordinary three-debtor inventory':zeroDebtorBudget?'verified zero debtor budget':partialInventory?(partialApply?'verified scarce winning inventory':'ordinary scarce winning inventory'):sharedApply?'verified shared winner inventory':sharedInventory?'ordinary shared winner inventory':foreignApply?'protected foreign creditor wallet exit':foreignGate?'linked winner with foreign obligation refused':foreignBook?'ordinary foreign winner settlement':allocationProfile?'verified linked winner allocation':contested?'contested BTC winner gate':linked?'verified linked clearing':gated?'BTC-only candidate':'ordinary settlement',freeze:freezes[0].signature,
     inputs:input,traderWalletAfter:await traderWallet(),comparison,refused,partialChecked,jointChecked,walletAfter:await wallet(),vaultAfter:await vault(),before,originals,workerCosts,events:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/linked-default.json',json(result));
-  console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges,pagedSelection}));
+  console.log(json({profile:result.profile,events:replay.events,harnessChecks:checks.length,originals:originals.length,charges:comparison.charges,pagedSelection,pagedCost}));
 } finally {
   await worker?.close(); await journal?.close();
   try {await flush();} finally {ws.close();}
