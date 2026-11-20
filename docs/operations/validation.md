@@ -4035,3 +4035,33 @@ Four Python regressions passed, including two equally feasible pairings on
 eight frozen episodes. Both pairings won on different episodes. The native
 result gives no release authority. The next on-chain step is verification of
 the wide settlement rates on all original frozen rows.
+
+## Populated original rates and debtor budgets
+
+At harness `a50261d1` and clearing `365fa254`, the signed 128-member freeze
+reproduced the original payment rates on chain. The independent rational
+reference matched all 128 prefixes, the 108-bit factor and both 152-bit rate
+numerators. The denominator used four arithmetic continuations. The rate
+check used 534, at 38,132–62,040 CU per continuation. The single insurance
+pass reached an integral result. The harness used separate transactions
+for these steps. Its 846 additional signed outcomes after valuation include
+rejections. This measures the submitted sequence, without a batching estimate.
+
+At harness `acdb2e30` and clearing `16f89bef`, clearing repeated the rate
+check and recorded each member's original two-market debtor budget.
+All 256 values matched the independent reference. The 16 successful pages
+used 1,054 bytes per transaction and 179,617–194,877 CU each
+(2,928,120 CU combined). Substituting a rate register and repeating a page
+both failed with the page bytes intact. Trying to start payout from the
+original rates failed at 17,201 CU. These runs qualify the frozen inputs
+to selection. Dense schedule verification, payout and wallet withdrawal
+remain open. [Reproduction](local-development.md#populated-successor-recovery-inputs)
+
+The budget run finalized 2,029 signed outcomes, including deliberate
+rejections. Fresh PostgreSQL replay matched all 1,286 domain events and the
+financial checkpoint. All 405 accounts reconciled, including 128 members.
+The SPL vault and allocated collateral each held 332,907,140 atoms with zero
+surplus. Both freezes had identical financial input bytes to the native
+selection case. The opt-in page occupies 2,124 bytes and preserves its fixed
+eight-row encoding. Clearing SBF was 3,237,720 bytes with SHA-256
+`22e98303eb1f8123d80b8468f96b7d21ad889d29fa696068d636751e7b32f485`.

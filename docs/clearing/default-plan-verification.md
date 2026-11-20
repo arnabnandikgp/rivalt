@@ -1200,3 +1200,27 @@ financial admission but missed this final comparison. This completes native
 selection on that freeze. On-chain binding and wallet release remain open.
 [Prefix bound](../../crates/default-plan-selection/src/pair_prefix.rs) ·
 [Native checker](../../crates/default-plan-selection/src/joint/pair_order.rs)
+
+### Binding the original rates and each debtor's budget
+
+The populated qualification build enters stage 20 when frozen valuation
+finishes. Clearing scans every frozen member to build the denominator. In
+stage 21 it verifies the proposed original payment rates, all cross-market
+flows and the insurance calculation using the paged settlement arithmetic.
+Only a verified *adjusted* settlement at stage 3 can start a payout plan.
+An original-rate verification can therefore precede selection safely.
+
+For each debtor and market, clearing fixes the original funded cash collection
+and subtracts it from the debt. If the account holds a positive claim in the
+other market, subtract its original verified payment, capped by the remaining
+debt. Multiply what remains by the originating market's original loss divided
+by its residual debt. Take the whole-atom floor once, at the end. A market
+without residual debt or losses gives a zero budget. This produces the most
+this debtor can contribute through forced reduction in each market.
+
+The permissionless `record_original_budgets` instruction reads seven canonical
+registers from the same frozen episode and verified rate attempt. It stamps
+one frozen page with the attempt and its eight rows of BTC/ETH budgets. The
+page revision prevents concurrent overwrites. Registers exceeding one page
+each require another verifier. The recorded budgets are prerequisites for
+checking the proposed reductions. The account roots and vault remain frozen.

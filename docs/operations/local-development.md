@@ -784,3 +784,20 @@ valuation. To reproduce the size of the search from the retained freeze,
 run `target/release/rivalt-recovery-selector --dimensions < "$RIVALT_RUN_DIR/population-input.json"`.
 This measurement visits eligible debtor/winner pairs once. It grants no
 authority to settle the book.
+
+To reproduce the original-rate and debtor-budget checks, build clearing at
+`16f89bef` with `RIVALT_ATTRIBUTION_PROFILE=populated-recovery-qualification
+bash ops/build-profit-attribution.sh`. In the harness checkout at `acdb2e30`
+or a compatible revision, use the selector build above and run
+
+```sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-original-budgets \
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-16f89befe4682ab75a7480b9e1b2410ca3e87dc1 \
+RIVALT_RUN_DIR=.local/profit-attribution/original-budget-reproduction \
+bash ops/scalable-settlement-smoke.sh
+```
+
+Use a new run directory for each qualification. The harness deploys locally,
+captures the frozen RPC rows, compares the clearing calculation with an
+independent fractional reference and replays the financial journal into a
+fresh PostgreSQL database.
