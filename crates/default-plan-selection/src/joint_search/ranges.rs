@@ -91,7 +91,7 @@ impl FrozenBook<'_> {
                 .collect(),
         };
         let combinations = size(&initial.bounds);
-        let weights = super::priorities::weights(self, &edges)?;
+        let weights = crate::joint_priority::weights(self, &edges)?;
         let mut queue = super::alloc::vec![initial];
         let mut cost = RangeCost::default();
         let mut finalists = Vec::new();

@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 use clearing::state::accounts::{FrozenMarginPage, MarginAccount, PreparedSettlement, Resolution};
 use solana_sha256_hasher::hashv;
 mod kernel;
+mod priority;
 mod search;
 mod source;
 use kernel::*;

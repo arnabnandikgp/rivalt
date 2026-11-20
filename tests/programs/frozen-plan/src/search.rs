@@ -1,6 +1,7 @@
 //! A diagnostic covering every schedule against an authenticated, one-page book.
-//! A tie on total recovery requires the later financial priorities and stays uncertified.
+//! Ties use the frozen-book financial priorities. Incomparable plans stay unsealed.
 use super::*;
+use crate::priority::{episode_order, Priorities};
 use default_plan_selection::joint::{Charge, FrozenBook, Member, Receipt, Witness};
 use financial_core::clearing::row::Row;
 use num_bigint::{BigInt, BigUint};
@@ -42,6 +43,9 @@ pub struct RecoverySearch {
     // Two markets times eight possible debtors times seven other members.
     #[max_len(112)]
     pub edges: Vec<SearchEdge>,
+    pub budgets: [[u64; 2]; MEMBERS],
+    pub weights: [[u64; 2]; MEMBERS],
+    pub priority: Priorities,
 }
 #[derive(Accounts)]
 #[instruction(nonce:u64)]
@@ -160,13 +164,14 @@ impl RateWitness {
 pub fn dimensions(accounts: &mut AdvanceSearch) -> Result<()> {
     let search = &mut accounts.search;
     stage(&accounts.source, search, 1)?;
-    let (edges, count) = with_book(search, &accounts.source.prepared, |book| {
+    let (edges, count, budgets, weights) = with_book(search, &accounts.source.prepared, |book| {
         let budgets = search
             .original
             .with(|w| book.edge_budgets(w))
             .map_err(|_| ProofError::Accounting)?;
         let mut count = 1u128;
         let mut edges = Vec::new();
+        let mut full_edges = Vec::new();
         book.visit_edges(&budgets, |edge| {
             count = count
                 .checked_mul(u128::from(edge.maximum) + 1)
@@ -177,14 +182,24 @@ pub fn dimensions(accounts: &mut AdvanceSearch) -> Result<()> {
                 winner: book.members[edge.winner].id,
                 maximum: edge.maximum,
             });
+            full_edges.push(edge);
             Ok(true)
         })
         .map_err(|_| ProofError::Unsupported)?;
-        Ok((edges, count))
+        let weights = default_plan_selection::joint_priority::weights(&book, &full_edges)
+            .map_err(|_| ProofError::Accounting)?;
+        Ok((
+            edges,
+            count,
+            budgets.try_into().map_err(|_| ProofError::Accounting)?,
+            weights.try_into().map_err(|_| ProofError::Accounting)?,
+        ))
     })?;
     require!(search.proposed < count, ProofError::Charge);
     search.edges = edges;
     search.count = count;
+    search.budgets = budgets;
+    search.weights = weights;
     search.stage = 2;
     Ok(())
 }
@@ -240,6 +255,8 @@ pub fn propose(accounts: &mut AdvanceSearch, after: RateWitness) -> Result<()> {
     let (num, den) = total(&receipt);
     search.score_num = num.to_i128().ok_or(ProofError::Unsupported)?;
     search.score_den = den.to_u128().ok_or(ProofError::Unsupported)?;
+    search.priority =
+        Priorities::verified(search, &receipt, &charges(&search.edges, search.proposed))?;
     search.cash = receipt
         .rounded
         .cash
@@ -258,11 +275,31 @@ pub fn leaf(accounts: &mut AdvanceSearch, rank: u128, after: RateWitness) -> Res
     if rank != search.proposed {
         if let Some(contender) = evaluate(search, &accounts.source.prepared, rank, &after)? {
             let (num, den) = total(&contender);
-            require!(
-                num * BigInt::from(search.score_den)
-                    < BigInt::from(search.score_num) * BigInt::from(den),
-                ProofError::Priority
-            );
+            let order = (num * BigInt::from(search.score_den))
+                .cmp(&(BigInt::from(search.score_num) * BigInt::from(den)));
+            if order.is_eq() {
+                let challenger = charges(&search.edges, rank);
+                let priority = Priorities::verified(search, &contender, &challenger)?;
+                match search.priority.financial_order(&priority) {
+                    Some(core::cmp::Ordering::Greater) => (),
+                    Some(core::cmp::Ordering::Equal) => {
+                        let incumbent = charges(&search.edges, search.proposed);
+                        require!(
+                            episode_order(
+                                search,
+                                &accounts.source.prepared.venue,
+                                &incumbent,
+                                &challenger
+                            )?
+                            .is_gt(),
+                            ProofError::Priority
+                        );
+                    }
+                    _ => return Err(ProofError::Priority.into()),
+                }
+            } else {
+                require!(order.is_lt(), ProofError::Priority);
+            }
         }
     }
     search.cursor += 1;
@@ -270,22 +307,58 @@ pub fn leaf(accounts: &mut AdvanceSearch, rank: u128, after: RateWitness) -> Res
 }
 /// Sum of the largest digit in the interval for each pair. These maxima need
 /// not occur together, so this can overestimate but never omit a recovery.
+#[cfg(test)]
 fn charge_upper_bound(edges: &[SearchEdge], first: u128, last: u128) -> Result<u128> {
-    let mut stride = 1u128;
     let mut upper = 0u128;
+    visit_digits(edges, first, last, |_, _, maximum| {
+        upper = upper.checked_add(maximum).ok_or(ProofError::Accounting)?;
+        Ok(())
+    })?;
+    Ok(upper)
+}
+fn visit_digits(
+    edges: &[SearchEdge],
+    first: u128,
+    last: u128,
+    mut visit: impl FnMut(&SearchEdge, u128, u128) -> Result<()>,
+) -> Result<()> {
+    let mut stride = 1u128;
     for edge in edges.iter().rev() {
         let cycle = stride
             .checked_mul(u128::from(edge.maximum) + 1)
             .ok_or(ProofError::Accounting)?;
-        let maximum = if first / cycle == last / cycle {
-            (last % cycle) / stride
+        let (minimum, maximum) = if first / cycle == last / cycle {
+            ((first % cycle) / stride, (last % cycle) / stride)
         } else {
-            u128::from(edge.maximum)
+            (0, u128::from(edge.maximum))
         };
-        upper = upper.checked_add(maximum).ok_or(ProofError::Accounting)?;
+        visit(edge, minimum, maximum)?;
         stride = cycle;
     }
-    Ok(upper)
+    Ok(())
+}
+fn bounded_recovery(search: &RecoverySearch, first: u128, last: u128) -> Result<Option<u128>> {
+    let mut minimum = [[0u128; 2]; MEMBERS];
+    let mut maximum = minimum;
+    visit_digits(&search.edges, first, last, |edge, low, high| {
+        let debtor = search
+            .rows
+            .binary_search_by_key(&edge.debtor, |row| row.id)
+            .map_err(|_| ProofError::Source)?;
+        minimum[debtor][edge.market as usize] += low;
+        maximum[debtor][edge.market as usize] += high;
+        Ok(())
+    })?;
+    let mut upper = 0u128;
+    for (debtor, budgets) in search.budgets.iter().enumerate() {
+        for (market, &budget) in budgets.iter().enumerate() {
+            if minimum[debtor][market] > u128::from(budget) {
+                return Ok(None);
+            }
+            upper += maximum[debtor][market].min(u128::from(budget));
+        }
+    }
+    Ok(Some(upper))
 }
 pub fn skip(accounts: &mut AdvanceSearch, first: u128, last: u128) -> Result<()> {
     let search = &mut accounts.search;
@@ -294,11 +367,12 @@ pub fn skip(accounts: &mut AdvanceSearch, first: u128, last: u128) -> Result<()>
         first == search.cursor && first <= last && last < search.count,
         ProofError::Cursor
     );
-    let upper = charge_upper_bound(&search.edges, first, last)?;
+    let bound = bounded_recovery(search, first, last)?;
     // D120 caps the loss actually removed in each market by the atoms charged.
     // Strict inequality preserves all financial ties for subsequent verification.
     require!(
-        BigInt::from(upper) * BigInt::from(search.score_den) < BigInt::from(search.score_num),
+        bound.is_none_or(|upper| BigInt::from(upper) * BigInt::from(search.score_den)
+            < BigInt::from(search.score_num)),
         ProofError::Priority
     );
     search.cursor = last + 1;

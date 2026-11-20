@@ -9,6 +9,8 @@ pub mod inventory_book;
 pub mod inventory_choice;
 #[cfg(any(feature = "sbf-joint-probe", all(feature = "native-joint", not(target_arch = "bpf"))))]
 pub mod joint;
+#[cfg(any(feature = "sbf-joint-probe", all(feature = "native-joint", not(target_arch = "bpf"))))]
+pub mod joint_priority;
 #[cfg(all(feature = "native-joint", not(target_arch = "bpf")))]
 pub mod joint_search;
 pub mod mirror;

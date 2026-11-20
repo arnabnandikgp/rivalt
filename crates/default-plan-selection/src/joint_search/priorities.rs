@@ -2,6 +2,7 @@
 //! can compensate for a worse proportional split, extra lots, or foreign loss.
 use super::alloc::{collections::BTreeMap, vec, vec::Vec};
 use super::{Edge, Ratio};
+use crate::joint_priority::{sharing, weights, Profile};
 use crate::{
     joint::{Charge, FrozenBook, Receipt},
     member_priority, mirror,
@@ -9,7 +10,6 @@ use crate::{
 use clearing_accounting::attribution::Attribution;
 use core::cmp::Ordering;
 use financial_core::{Error, Result, SCALE};
-use num_bigint::BigInt;
 
 pub struct FrozenPriority<'a> {
     pub venue: &'a [u8; 32],
@@ -17,23 +17,6 @@ pub struct FrozenPriority<'a> {
     /// A keeper may propose alternative involutions. Each used map must match
     /// every frozen member, both adjusted outcomes and every paired fill.
     pub reflections: &'a [Vec<usize>],
-}
-#[derive(PartialEq, Eq)]
-struct Profile {
-    deviation: [Ratio; 2],
-    cost: [(u128, u128); 2],
-}
-impl Profile {
-    fn dominates(&self, other: &Self) -> bool {
-        if self.deviation != other.deviation {
-            return (0..2).all(|market| {
-                !self.deviation[market]
-                    .compare(&other.deviation[market])
-                    .is_gt()
-            });
-        }
-        self.cost != other.cost && (0..2).all(|market| self.cost[market] <= other.cost[market])
-    }
 }
 struct Finalist<'a> {
     charges: &'a [Charge],
@@ -47,22 +30,12 @@ struct Finalist<'a> {
 }
 impl Finalist<'_> {
     fn priority(&self, other: &Self) -> Ordering {
-        self.member_order.cmp(&other.member_order).then_with(|| {
-            // Compare the sparse pair charge vectors at the earliest differing key.
-            self.pair_order
-                .keys()
-                .chain(other.pair_order.keys())
-                .filter_map(|key| {
-                    let order = self
-                        .pair_order
-                        .get(key)
-                        .unwrap_or(&0)
-                        .cmp(other.pair_order.get(key).unwrap_or(&0));
-                    (!order.is_eq()).then_some((key, order))
-                })
-                .min_by_key(|&(key, _)| key)
-                .map_or(Ordering::Equal, |(_, order)| order)
-        })
+        crate::joint_priority::compare_order(
+            &self.member_order,
+            &self.pair_order,
+            &other.member_order,
+            &other.pair_order,
+        )
     }
 }
 fn index(book: &FrozenBook<'_>, id: u64) -> Result<usize> {
@@ -108,22 +81,7 @@ fn finalist<'a>(
         pair_order.insert((ranks[winner], market, ranks[debtor]), charge.atoms);
     }
     pairs.sort_by_key(|plan| (plan.winner, plan.market, plan.debtor));
-    let deviation = core::array::from_fn(|market| {
-        let mut sum = Ratio(0.into(), 1u8.into());
-        let mut weight = 0u128;
-        for (member, cap) in weights.iter().enumerate().filter(|(_, w)| w[market] > 0) {
-            let charged = BigInt::from(totals[member][market]);
-            weight += u128::from(cap[market]);
-            sum = sum
-                .sum(&Ratio(&charged * &charged, cap[market].into()))
-                .reduced();
-        }
-        if weight == 0 {
-            return sum;
-        }
-        let total = BigInt::from(cost[market].0);
-        sum.sum(&Ratio(-(&total * &total), weight.into())).reduced()
-    });
+    let profile = sharing(&totals, weights, cost)?;
     let mut member_order = totals.clone();
     for (ordinal, &rank) in ranks.iter().enumerate() {
         member_order[rank] = totals[ordinal];
@@ -131,7 +89,7 @@ fn finalist<'a>(
     Ok(Finalist {
         charges,
         receipt,
-        profile: Profile { deviation, cost },
+        profile,
         totals,
         claims,
         pairs,
@@ -229,26 +187,6 @@ fn reflected(
             [&first.pairs, &second.pairs],
         ) == Some(Ordering::Greater)
     }))
-}
-
-pub(super) fn weights(book: &FrozenBook<'_>, edges: &[Edge]) -> Result<Vec<[u64; 2]>> {
-    let mut pairable = vec![[0u64; 2]; book.members.len()];
-    for edge in edges {
-        let lots = &mut pairable[edge.winner][edge.market];
-        *lots = lots
-            .saturating_add(book.members[edge.debtor].lots[edge.market].unsigned_abs())
-            .min(book.members[edge.winner].lots[edge.market].unsigned_abs());
-    }
-    book.members
-        .iter()
-        .zip(pairable)
-        .map(|(member, lots)| {
-            Ok([
-                book.capacity(member, 0, lots[0])?.eligible,
-                book.capacity(member, 1, lots[1])?.eligible,
-            ])
-        })
-        .collect()
 }
 
 pub(super) fn select(

@@ -345,6 +345,10 @@ try {
           registryHash:Array.from(frozen.registryHash),debtor,rows,comparison}));
         for(const phase of ['start','resume'])execFileSync(process.execPath,
           ['--import','tsx','tests/rpc-contract/frozen-plan-rpc.ts',phase],{stdio:'inherit'});
+        writeFileSync(directory+'/search-input.json',json({venue:setup.venue,prepared:current.prepared,
+          resolution:setup.resolution,epoch:frozen.epoch,revision:current.preparedState.revision,members,comparison}));
+        for(const phase of ['start','resume'])execFileSync(process.execPath,
+          ['--import','tsx','tests/rpc-contract/linked-search-rpc.ts',phase],{stdio:'inherit'});
         assert.deepEqual(await financialSnapshot(),stable);
       }
       const blocked=await worker.riskWork(setup.payer);

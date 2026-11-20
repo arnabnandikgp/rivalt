@@ -1,5 +1,7 @@
 """Compare a real two-market freeze with the protected successor and ordinary settlement."""
 from fractions import Fraction
+from itertools import product
+import os
 import json
 import sys
 
@@ -98,10 +100,65 @@ def comparison(data):
     assert funded_gains(plan.payout) == successor
     def balances(payout):
         return {row['key']: str(amount) for row, amount in zip(rows, payout.cash, strict=True)}
-    return dict(cash=balances(plan.payout), ordinaryCash=balances(search.baseline), charges=charges,
+    result = dict(cash=balances(plan.payout), ordinaryCash=balances(search.baseline), charges=charges,
                 matched=[pair.fills[0][1] for market in plan.markets for pair in market.pairs],
                 winnerCharges={rows[w]['key']: amount for allocation in allocations for w,amount in allocation.items()},
                 collections=shares, assignments=search.size)
+    if contested and os.environ.get('RIVALT_FROZEN_PLAN_PROOF') == '1':
+        result.update(tied_comparison(book, exposures, search, identity, plan, winners[0], second))
+    return result
+
+
+def tied_comparison(book, exposures, search, identity, selected, first_winner, second_winner):
+    from check_joint_reductions import witness
+    from frozen_plan_selection import _break_exact_ties
+    from joint_reduction_model import evaluate, market_plans
+    radices = search.radices
+    assert radices == (14, 14, 13)
+    options = [market_plans(book, market, exposure, search.baseline) for market, exposure in enumerate(exposures)]
+    survivors = {}
+    for btc, eth in product(*options):
+        if (btc.charged, eth.charged) != selected.charges:
+            continue
+        plan = evaluate(book, search.baseline, (btc, eth))
+        assert plan is not None and tuple(plan.recovered) == (13, 12)
+        # Program ordinals enumerate the last eligible pair fastest.
+        rank = 0
+        for market, (_, _, edges, _) in enumerate(search.inputs):
+            for _, position in edges:
+                rank = rank * (14 if market == 0 else 13) + plan.markets[market].winner_charges[position.member]
+        survivors[rank] = plan
+    assert len(survivors) == 14
+    best = next(rank for rank,plan in survivors.items() if plan.markets == selected.markets)
+    inferior = next(rank for rank,plan in survivors.items() if
+                    (plan.markets[0].winner_charges[first_winner],plan.markets[0].winner_charges[second_winner]) == (5,8))
+    coverage = {}
+    for rank,plan in survivors.items():
+        better = _break_exact_ties([plan,survivors[inferior]], identity, book, exposures, search.baseline)
+        coverage[str(rank)] = dict(witness=witness(plan.book, search.baseline.benchmark.collections),
+                                   recovery=str(sum(plan.recovered)), beatsInferior=plan != survivors[inferior] and better == plan)
+    digits = list(product(*(range(radix) for radix in radices)))
+    def bounded(first,last):
+        left, right, eth = zip(*digits[first:last+1], strict=True)
+        return min(left)+min(right)>13 or min(13,max(left)+max(right))+max(eth)<25
+    # Brute coordinate extrema over explicit assignments, independent of the
+    # program's mixed-radix endpoint and aggregate budget arithmetic.
+    ranges = {}
+    cursor = radices[-1]
+    while cursor < len(digits):
+        if cursor in survivors:
+            cursor += 1
+            continue
+        assert bounded(cursor,cursor)
+        end = cursor
+        while end+1 < len(digits) and bounded(cursor,end+1):
+            end += 1
+        ranges[str(cursor)] = end
+        cursor = end+1
+    return dict(coverage=coverage, radices=radices, witnesses=[witness(book)],
+                tieTest=dict(best=best,inferior=inferior,ranges=ranges))
+
+
 
 
 

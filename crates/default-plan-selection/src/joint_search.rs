@@ -4,74 +4,15 @@
 use crate::joint::{Charge, Edge, FrozenBook, Witness};
 mod priorities;
 mod ranges;
+use crate::joint_priority::{Ratio, RecoveryScore};
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use financial_core::{Error, Result, SCALE};
-use num_bigint::{BigInt, BigUint};
-use num_integer::Integer;
-use num_traits::{One, Zero};
+use num_bigint::BigUint;
+use num_traits::One;
 pub use priorities::FrozenPriority;
 pub use ranges::{RangeCost, RangeCoverage};
 extern crate alloc;
-
-#[derive(Clone, Debug)]
-struct Ratio(BigInt, BigUint);
-impl Ratio {
-    fn compare(&self, other: &Self) -> Ordering {
-        (&self.0 * BigInt::from(other.1.clone())).cmp(&(&other.0 * BigInt::from(self.1.clone())))
-    }
-    fn sum(&self, other: &Self) -> Self {
-        Self(
-            &self.0 * BigInt::from(other.1.clone()) + &other.0 * BigInt::from(self.1.clone()),
-            &self.1 * &other.1,
-        )
-    }
-}
-impl PartialEq for Ratio {
-    fn eq(&self, other: &Self) -> bool {
-        self.compare(other).is_eq()
-    }
-}
-impl Eq for Ratio {}
-impl Ratio {
-    fn reduced(self) -> Self {
-        let divisor = self.0.magnitude().gcd(&self.1);
-        Self(self.0 / BigInt::from(divisor.clone()), self.1 / divisor)
-    }
-}
-
-struct RecoveryScore {
-    total: Ratio,
-    fractions: Vec<Ratio>,
-}
-impl RecoveryScore {
-    fn new(recovered: [(BigInt, BigUint); 2], losses: &[BigUint; 2]) -> Self {
-        let values = recovered.map(|(n, d)| Ratio(n, d));
-        // Both original loss numerators use the same settlement denominator. It
-        // cancels when sorting and comparing the market recovery fractions.
-        let mut fractions: Vec<_> = values
-            .iter()
-            .zip(losses)
-            .filter(|(_, loss)| !loss.is_zero())
-            .map(|(value, loss)| Ratio(value.0.clone(), &value.1 * loss))
-            .collect();
-        fractions.sort_by(Ratio::compare);
-        Self {
-            total: values[0].sum(&values[1]),
-            fractions,
-        }
-    }
-    fn compare(&self, other: &Self) -> Ordering {
-        self.total.compare(&other.total).then_with(|| {
-            self.fractions
-                .iter()
-                .zip(&other.fractions)
-                .map(|(left, right)| left.compare(right))
-                .find(|value| !value.is_eq())
-                .unwrap_or(Ordering::Equal)
-        })
-    }
-}
 
 /// Report every schedule tied on D120 recovery. Selection additionally applies
 /// the proportional, closure and identity rules. An absent selection requires

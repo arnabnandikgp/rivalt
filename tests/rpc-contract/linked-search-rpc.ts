@@ -13,7 +13,8 @@ assert(phase==='start'||phase==='resume');
 const dest=dir+'/search-'+phase;mkdirSync(dest);
 const input=JSON.parse(readFileSync(dir+'/search-input.json','utf8')) as {
   venue:Address;prepared:Address;resolution:Address;epoch:string;revision:string;members:Address[];
-  comparison:{coverage:Record<string,{witness:Witness;recovery:string|null}>;radices:number[];
+  comparison:{coverage:Record<string,{witness:Witness;recovery:string|null;beatsInferior?:boolean}>;radices:number[];
+    tieTest?:{best:number;inferior:number;ranges:Record<string,number>};
     witnesses:Witness[];cash:Record<string,string>;assignments:number;charges:number[]}
 };
 const program=address('92GA4Cm7NZq8GEwY5r7zLwdLeYLuQYa79Ut9f3gAQ8U7');
@@ -30,12 +31,15 @@ const {h,ws,checks}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,pr
   {instructionConformance:()=>false,heapSize:()=>256*1024,computeUnitLimit:()=>1_400_000});
 const payer=await payerKey(),source=[readonly(input.prepared),readonly(input.resolution)];
 const page=readonly((await deriveFrozenMarginPage(input.venue,0n))[0]);
-const [radixBtc,radixEth]=input.comparison.radices;
-const count=radixBtc*radixEth;assert.equal(count,input.comparison.assignments);
+const {radices,tieTest}=input.comparison;
+const lastRadix=radices.at(-1)!;
+const count=radices.reduce((product,radix)=>product*radix,1);
+assert.equal(count,input.comparison.assignments);
 const [btc,eth]=input.comparison.charges;
-const best=btc*radixEth+eth;
+const best=tieTest?.best??btc*lastRadix+eth;
+const inferior=tieTest?.inferior??best-1;
 try{
-  for(const proposed of [best,best-1]){
+  for(const proposed of [best,inferior]){
     const [search]=await getProgramDerivedAddress({programAddress:program,seeds:[
       Buffer.from('search'),getAddressEncoder().encode(payer.address),u64(proposed)]});
     const writable={address:search,role:AccountRole.WRITABLE};
@@ -68,17 +72,17 @@ try{
         await refuse('premature financial verdict',action('seal_search'),6005);
         await refuse('range containing a possible winner',action('cover_range',u128(0),u128(count-1)),6006);
       }
-      await h.send(name('cover initial zero-BTC prefix'),[action('cover_range',u128(0),u128(radixEth-1))]);
+      await h.send(name('cover initial zero-BTC prefix'),[action('cover_range',u128(0),u128(lastRadix-1))]);
     }else{
-      let cursor=Number(read128(await raw(),88));assert.equal(cursor,radixEth);
-      if(proposed===best)await refuse('replayed first range',action('cover_range',u128(0),u128(radixEth-1)),6001);
+      let cursor=Number(read128(await raw(),88));assert.equal(cursor,lastRadix);
+      if(proposed===best)await refuse('replayed first range',action('cover_range',u128(0),u128(lastRadix-1)),6001);
       let badRateChecked=false,defeated=false;
       while(cursor<count){
-        const btcDigit=Math.floor(cursor/radixEth);
+        const btcDigit=Math.floor(cursor/lastRadix);
         // Keep each interval inside its own BTC digit. Clearing calculates its
         // bound independently from both endpoints and the frozen radices.
-        let end=cursor-1;
-        while(end+1<(btcDigit+1)*radixEth && BigInt(btcDigit+(end+1)%radixEth)*BigInt(den)<BigInt(num))end++;
+        let end=tieTest?.ranges[cursor]??cursor-1;
+        while(!tieTest && end+1<(btcDigit+1)*lastRadix && BigInt(btcDigit+(end+1)%lastRadix)*BigInt(den)<BigInt(num))end++;
         if(end>=cursor){
           await h.send(name('prove range '+cursor+' through '+end),[action('cover_range',u128(cursor),u128(end))]);
           cursor=end+1;continue;
@@ -90,7 +94,9 @@ try{
           badRateChecked=true;
         }
         const [otherNum,otherDen='1']=(candidate.recovery??'0').split('/');
-        if(cursor!==proposed && candidate.recovery!==null && BigInt(otherNum)*BigInt(den)>=BigInt(num)*BigInt(otherDen)){
+        const better=tieTest?proposed===inferior && candidate.beatsInferior:
+          candidate.recovery!==null && BigInt(otherNum)*BigInt(den)>=BigInt(num)*BigInt(otherDen);
+        if(cursor!==proposed && better){
           assert.notEqual(proposed,best);
           await refuse('better challenger defeats the proposed payout',leaf(candidate.witness),6006);
           defeated=true;break;
@@ -99,7 +105,7 @@ try{
       }
       if(proposed===best){
         assert(badRateChecked);
-        await h.send(name('seal uniquely best recovery'),[action('seal_search')]);
+        await h.send(name('seal verified financial winner'),[action('seal_search')]);
         const state=await raw();assert.equal(state[104],4);
         assert.equal(read128(state,88),BigInt(count));
         assert.deepEqual(input.members.map((_,i)=>String(state.readBigUInt64LE(137+i*8))),input.members.map(id=>input.comparison.cash[id]));
