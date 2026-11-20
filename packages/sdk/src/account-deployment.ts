@@ -23,7 +23,9 @@ export const DOMAIN_BASELINE_ARTIFACT_SET='financial-domains-before-84ef28f3';
 export const DOMAIN_EXTRACTED_ARTIFACT_SET='financial-domains-after-90d71835';
 export const LOCAL_SUCCESSOR_ARTIFACT_SET='local-successor-d9a2a55b';
 export const PARTITIONED_INPUTS_ARTIFACT_SET='partitioned-inputs-ba2057df';
-const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||set===PARTITIONED_INPUTS_ARTIFACT_SET
+export const POPULATED_RATES_ARTIFACT_SET='populated-rates-365fa254';
+export const hasPartitionedInputs=(set?:string)=>set===PARTITIONED_INPUTS_ARTIFACT_SET||set===POPULATED_RATES_ARTIFACT_SET;
+const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set)
   ||set===DOMAIN_BASELINE_ARTIFACT_SET||set===DOMAIN_EXTRACTED_ARTIFACT_SET;
 export const hasLedgerLanes=(set?:string)=>set===READ_ONLY_LEDGER_ARTIFACT_SET||integratedLayout(set);
 export const hasMarketLanes=(set?:string)=>set===READ_ONLY_MARKET_ARTIFACT_SET||hasLedgerLanes(set);
@@ -38,7 +40,7 @@ export const PARTIAL_INVENTORY_ARTIFACT_SET='partial-inventory-2256c51';
 export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY_ARTIFACT_SET || value===PARTIAL_INVENTORY_ARTIFACT_SET;
 export const PAGED_RECOVERY_ARTIFACT_SET='paged-recovery-37672622';
 export const RECOVERY_SEARCH_ARTIFACT_SET='recovery-search-efbaa02';
-export const hasPagedRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||set===PARTITIONED_INPUTS_ARTIFACT_SET;
+export const hasPagedRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set);
 export type RecoveryDeployment='local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
 export const usesRecoverySearch=(selection?:AccountDeployment):selection is RecoveryDeployment=>
   selection==='local-successor-candidate'||selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate';

@@ -23,7 +23,7 @@ export function scopedSchema(kind:number) {
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 export function frozenPageDecoder(artifactSet?:string) {
-  if(artifactSet===sdk.PARTITIONED_INPUTS_ARTIFACT_SET)return sdk.getPartitionedRecoveryPageDecoder();
+  if(sdk.hasPartitionedInputs(artifactSet))return sdk.getPartitionedRecoveryPageDecoder();
   if(artifactSet===sdk.LOCAL_SUCCESSOR_ARTIFACT_SET)return sdk.getLocalSuccessorPageDecoder();
   if(artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET)return paged.getFrozenMarginPageDecoder();
   if(sdk.isMultiLotArtifact(artifactSet))return sdk.getMultiLotBookPageDecoder();

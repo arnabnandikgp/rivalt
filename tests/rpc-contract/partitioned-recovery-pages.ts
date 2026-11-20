@@ -9,7 +9,7 @@ import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 const scale=1_000_000_000n;
 const minimum=(left:bigint,right:bigint)=>left<right?left:right;
 type Setup=Awaited<ReturnType<typeof liquidityExecutionSetup>>;
-export async function verifyPartitionedInputs(h:CanonicalHarness,setup:Setup,members:Address[],budgets:bigint[][]) {
+export async function verifyPartitionedInputs(h:CanonicalHarness,setup:Setup,members:Address[],budgets:bigint[][],completionStage:4|20=4) {
   const before=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   const epoch=before.epoch;
   const [prepared]=await sdk.deriveSettlementWorkspace(setup.venue,'prepared');
@@ -41,7 +41,7 @@ export async function verifyPartitionedInputs(h:CanonicalHarness,setup:Setup,mem
       await h.send('advance complete frozen membership',[sdk.getAdvancePreparedMembershipInstruction({...common,revision:current.revision,index:metas[0].address})]);
     }
   }
-  assert.equal(next,members.length);assert.equal((await header()).stage,4);
+  assert.equal(next,members.length);assert.equal((await header()).stage,completionStage);
   const decoder=sdk.getPartitionedRecoveryPageDecoder();
   const rows=[];
   let comparisons=0;

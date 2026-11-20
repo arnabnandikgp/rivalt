@@ -1,4 +1,4 @@
-import {PARTITIONED_INPUTS_ARTIFACT_SET,accountDeployment,DOMAIN_BASELINE_ARTIFACT_SET,DOMAIN_EXTRACTED_ARTIFACT_SET,type AccountDeployment} from '@rivalt/sdk';
+import {POPULATED_RATES_ARTIFACT_SET,PARTITIONED_INPUTS_ARTIFACT_SET,accountDeployment,DOMAIN_BASELINE_ARTIFACT_SET,DOMAIN_EXTRACTED_ARTIFACT_SET,type AccountDeployment} from '@rivalt/sdk';
 import {BACKING_ARTIFACTS,verifyTestBuild} from './backing-artifacts.js';
 
 type Linked = boolean|'successor'|'paged'|'integrated'|'owned'|'flat'|'allocation'|'foreign'|'shared'|'partial'|'book'|'capacity'|'multi'|'fees'|'market'|'funding'|'lane'|'ledger';
@@ -54,7 +54,13 @@ export function verifyProfitBuild(directory:string,sponsored=false,paired=false,
 }
 
 /** Read-only qualification identity. No application deployment selector accepts this build. */
-export function verifyPartitionedBuild(directory:string) {
+export function verifyPartitionedBuild(directory:string,originalRates=false) {
+  if(originalRates) {
+    const revision='365fa2540914573ca06c4ff2268ca746fc9e78c4';
+    const artifacts={...BACKING_ARTIFACTS,clearing:{bytes:3206096,sha256:'37bdb5a56697b0d81f116ad8b75c6bfa501009c0e661fdc3c10c1d01ae88589f'}};
+    verifyTestBuild(directory,revision,artifacts,'populated-recovery-qualification');
+    return {artifactSet:POPULATED_RATES_ARTIFACT_SET,revision,artifacts};
+  }
   const revision='ba2057df85ce6d014673db5353ee351a310239d9';
   const artifacts={...BACKING_ARTIFACTS,clearing:{bytes:3205568,sha256:'925ece7c206a743a5fea2887598317a7484877ac649b7ba4650be34da07cbfdd'}};
   verifyTestBuild(directory,revision,artifacts,'partitioned-recovery-inputs');

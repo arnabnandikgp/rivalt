@@ -10,6 +10,7 @@ import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {financialRoots} from './membership-scan-helper.js';
+import {verifyPopulatedOriginalRates} from './populated-original-rates.js';
 import {verifyPartitionedInputs} from './partitioned-recovery-pages.js';
 import {verifyProfitBuild,verifyPartitionedBuild} from './profit-attribution-build.js';
 import {populateDefaultCohort} from './scaled-default-setup.js';
@@ -18,8 +19,9 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const partitioned=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-partitioned-population';
-const build=partitioned?verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!):verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'successor');
+const originalRates=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-populated-rates';
+const partitioned=originalRates||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-partitioned-population';
+const build=partitioned?verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,originalRates):verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'successor');
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
@@ -86,16 +88,17 @@ try {
   writeFileSync(directory+'/population-input.json',json(request));
   const dimensions=JSON.parse(execFileSync('target/release/rivalt-recovery-selector',['--dimensions'],{input:json(request),encoding:'utf8'}));
   assert.equal(dimensions.rankBits,(BigInt(dimensions.schedules)-1n).toString(2).replace(/^0$/,'').length);
-  const pageInputs=partitioned?await verifyPartitionedInputs(h,setup,members,expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt))):null;
+  const pageInputs=partitioned?await verifyPartitionedInputs(h,setup,members,expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)),originalRates?20:4):null;
   if(pageInputs) {
     assert.deepEqual(pageInputs.edgesByMarket,dimensions.edgesByMarket);
     assert.equal(pageInputs.schedules,dimensions.schedules);
   }
+  const originalRateResult=originalRates?await verifyPopulatedOriginalRates(h,setup,rows,members,BigInt(expected.common)):null;
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint('population-freeze',true);
   const replay=await journal.finish();
-  const report={revision,build,pageInputs,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
+  const report={revision,build,pageInputs,originalRateResult,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
     crossAccounts:cohort.additional.filter(member=>member.mode===0).length+1,trades:cohort.trades+2,
     maxRateBits:Math.max(...rounds.flat().map(value=>value.toString(2).length)),dimensions,
     freezeSignature:checks.find(check=>check.label==='freeze populated successor')!.signature,transactions:checks.length,replayedEvents:replay.events};
