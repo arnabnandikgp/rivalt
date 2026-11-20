@@ -247,3 +247,19 @@ fn two_market_maximum_derived_claims_fit_apportionment_bound() {
     );
     assert_eq!(mul_div_rem(1, 1, (1u128 << 96) / 3 + 1), Err(Error::Bounds));
 }
+
+#[test]
+fn ordinary_collection_requires_cash_for_every_negative_market_claim() {
+    let mut account = root(0, 0, 119);
+    account.mode = Mode::Cross;
+    account.positions[0].virtual_scaled = -80 * SCALE;
+    account.positions[1].virtual_scaled = -40 * SCALE;
+    let pools = Pools::default();
+    for selected in [0, 1] {
+        assert_eq!(account.settle_claim(pools, selected, 1, [100; 2], risks(100), false), Err(Error::Cohort));
+    }
+    account.cash = 120;
+    let (paid, pools) = account.settle_claim(pools, 0, 1, [100; 2], risks(100), false).unwrap();
+    assert_eq!((paid.cash, paid.positions[0].virtual_scaled, paid.positions[1].virtual_scaled, pools.settlement),
+        (119, -79 * SCALE, -40 * SCALE, 1));
+}

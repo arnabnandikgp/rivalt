@@ -1,5 +1,6 @@
 //! Candidate-only FOK accounting. Authority, observations and CPI are clearing's job.
 use super::*;
+use crate::margin::{Margin, Mode, MARKETS};
 
 pub fn apply(
     trader: Participant,
@@ -173,4 +174,49 @@ mod tests {
             Err(Error::Health)
         );
     }
+}
+
+/// Shared paired fill and cumulative fee arithmetic. The caller must recompute
+/// all order reservations and admit every returned root before committing it.
+pub fn whole_account_candidate(
+    trader: Margin,
+    makers: &[Margin],
+    market: usize,
+    legs: &[(u64, u64)],
+    side: u8,
+    funding: [i128; MARKETS],
+    prefix: u64,
+) -> Result<(Margin, Vec<Margin>, u64)> {
+    trader.validate()?;
+    if !trader.allows(market) || makers.is_empty() || makers.len() > 2 {
+        return Err(Error::Bounds);
+    }
+    let trader = trader.accrued(funding)?;
+    let mut accrued_makers = Vec::with_capacity(makers.len());
+    for maker in makers {
+        maker.validate()?;
+        if maker.mode != Mode::Isolated(market) {
+            return Err(Error::Invariant);
+        }
+        accrued_makers.push(maker.accrued(funding)?);
+    }
+    let selected_makers: Vec<_> = accrued_makers
+        .iter()
+        .map(|maker| maker.selected(market))
+        .collect::<Result<_>>()?;
+    let (selected_trader, selected_makers, fee) = route::candidate(
+        trader.selected(market)?,
+        &selected_makers,
+        legs,
+        side,
+        funding[market],
+        prefix,
+    )?;
+    let trader = trader.with_selected(market, selected_trader)?;
+    let makers = accrued_makers
+        .into_iter()
+        .zip(selected_makers)
+        .map(|(maker, selected)| maker.with_selected(market, selected))
+        .collect::<Result<_>>()?;
+    Ok((trader, makers, fee))
 }

@@ -13,6 +13,7 @@ pub mod oracle;
 pub use clearing_accounting::price_policy;
 pub use risk_engine::orders;
 pub mod route;
+pub mod settlement;
 
 pub const LOTS_PER_BTC: i64 = 1_000_000;
 pub const MAX_GROSS_LOTS: u64 = 200_000_000;

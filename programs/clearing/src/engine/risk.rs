@@ -76,7 +76,7 @@ pub(crate) fn candidate_optional(
     }
     environment.admit_sources(receiver, clock, false)?;
     let before = checked(target_model.deficit(risks))?;
-    let (next_target, next_receiver, fee) = checked(math::margin::liquidation_candidate(
+    let (next_target, next_receiver, fee) = checked(math::liquidation::whole_account_candidate(
         target_model,
         receiver_model,
         market_index,
