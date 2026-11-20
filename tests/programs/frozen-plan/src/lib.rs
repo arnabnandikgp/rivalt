@@ -4,8 +4,10 @@ use anchor_lang::prelude::*;
 use clearing::state::accounts::{FrozenMarginPage, MarginAccount, PreparedSettlement, Resolution};
 use solana_sha256_hasher::hashv;
 mod kernel;
+mod search;
 mod source;
 use kernel::*;
+use search::*;
 mod verify;
 declare_id!("92GA4Cm7NZq8GEwY5r7zLwdLeYLuQYa79Ut9f3gAQ8U7");
 
@@ -73,6 +75,37 @@ pub struct Seal {
 #[program]
 pub mod frozen_plan_probe {
     use super::*;
+    pub fn open_search(
+        ctx: &mut Context<OpenSearch>,
+        _nonce: u64,
+        epoch: u64,
+        rank: u128,
+        original: RateWitness,
+    ) -> Result<()> {
+        search::open(&mut ctx.accounts, epoch, rank, original)
+    }
+    pub fn capture_member(ctx: &mut Context<CaptureSearch>, ordinal: u64) -> Result<()> {
+        search::capture(&mut ctx.accounts, ordinal)
+    }
+    pub fn derive_pairs(ctx: &mut Context<AdvanceSearch>) -> Result<()> {
+        search::dimensions(&mut ctx.accounts)
+    }
+    pub fn verify_incumbent(ctx: &mut Context<AdvanceSearch>, after: RateWitness) -> Result<()> {
+        search::propose(&mut ctx.accounts, after)
+    }
+    pub fn cover_plan(
+        ctx: &mut Context<AdvanceSearch>,
+        rank: u128,
+        after: RateWitness,
+    ) -> Result<()> {
+        search::leaf(&mut ctx.accounts, rank, after)
+    }
+    pub fn cover_range(ctx: &mut Context<AdvanceSearch>, first: u128, last: u128) -> Result<()> {
+        search::skip(&mut ctx.accounts, first, last)
+    }
+    pub fn seal_search(ctx: &mut Context<AdvanceSearch>) -> Result<()> {
+        search::close(&mut ctx.accounts)
+    }
     pub fn audit_settlement(
         ctx: &mut Context<AuditSettlement>,
         epoch: u64,

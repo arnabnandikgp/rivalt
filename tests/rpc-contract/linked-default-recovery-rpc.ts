@@ -220,6 +220,13 @@ try {
         firstPage:pageKeys[0],secondPage:pageKeys[1],thirdPage:pageKeys[2],fourthPage:pageKeys[3],
         crossWinner:otherTrader,ethWinner:makers[1].capital};
       beforeScoring=await financialSnapshot();
+      if(process.env.RIVALT_FROZEN_PLAN_PROOF==='1') {
+        writeFileSync(directory+'/search-input.json',json({venue:setup.venue,prepared:current.prepared,
+          resolution:setup.resolution,epoch:frozen.epoch,revision:prepared.revision,members,comparison}));
+        for(const phase of ['start','resume'])execFileSync(process.execPath,
+          ['--import','tsx','tests/rpc-contract/linked-search-rpc.ts',phase],{stdio:'inherit'});
+        assert.deepEqual(await financialSnapshot(),beforeScoring);
+      }
       const scratch=await h.read(common.prepared);
       for(const [description,override] of [
         ['BTC alone',{charges:[9n,0n]}],['under-recovered joint plan',{charges:[8n,33n]}],

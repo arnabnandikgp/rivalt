@@ -8,6 +8,7 @@ publish = false
 compact-book = ["dep:clearing-accounting"]
 native-search = ["compact-book", "dep:num-bigint", "dep:num-integer", "dep:num-traits"]
 native-joint = ["native-search", "dep:financial-core"]
+sbf-joint-probe = ["compact-book", "dep:num-bigint", "dep:num-integer", "dep:num-traits", "financial-core/sbf-settlement-measurement"]
 
 [dependencies]
 financial-core = { path = "../financial-core", optional = true }

@@ -1,6 +1,8 @@
 """Reconstruct a BTC winner's ETH liability from finalized fills before comparing default plans."""
 from dataclasses import replace
 from fractions import Fraction
+from itertools import product
+import os
 import json
 import sys
 
@@ -8,8 +10,9 @@ from account_contract_reference import Account
 from bounded_default_search import FrozenSearch
 from clearing_network_reference import clear_atom_cohort
 from frozen_plan_selection import FrozenIdentity, select_joint
-from joint_reduction_model import Exposure
+from joint_reduction_model import Exposure, market_plans, evaluate
 from market_settlement_reference import MarketBook
+from check_joint_reductions import witness
 from test_native_protected_receipts import protected_command
 from test_scalable_settlement import SCALE, decode, run
 
@@ -89,10 +92,24 @@ def compare(data):
     assert joint.markets[0].pairs[0].winner == cross and joint.markets[1].pairs[0].winner == eth_maker
     def balances(plan):
         return {row['key']: str(amount) for row, amount in zip(rows, plan.cash, strict=True)}
-    from check_joint_reductions import witness
     effective = replace(book, accounts=tuple(Account(account.cash, tuple(market.claims[i] for market in joint.markets))
                                               for i, account in enumerate(book.accounts)))
-    return dict(witnesses=[witness(book), witness(effective, search.baseline.benchmark.collections)],ordinaryCash=balances(search.baseline), cash=balances(joint.payout), btcOnlyCash=balances(unprotected),
+    coverage = {}
+    if os.environ.get('RIVALT_FROZEN_PLAN_PROOF') == '1':
+        options = [market_plans(book, market, exposure, search.baseline) for market, exposure in enumerate(exposures)]
+        for legs in product(*options):
+            btc_charge, eth_charge = (leg.charged for leg in legs)
+            # Both tested incumbents recover more than 38 in total. Any
+            # singleton with a smaller charge ceiling can be safely skipped.
+            if btc_charge + eth_charge < 39:
+                continue
+            rank = btc_charge * search.radices[1] + eth_charge
+            adjusted = replace(book, accounts=tuple(Account(a.cash,tuple(leg.claims[i] for leg in legs))
+                                                     for i,a in enumerate(book.accounts)))
+            result = evaluate(book, search.baseline, legs)
+            recovery = None if result is None else str(sum(result.recovered))
+            coverage[str(rank)] = dict(witness=witness(adjusted,search.baseline.benchmark.collections),recovery=recovery)
+    return dict(coverage=coverage,radices=list(search.radices),witnesses=[witness(book), witness(effective, search.baseline.benchmark.collections)],ordinaryCash=balances(search.baseline), cash=balances(joint.payout), btcOnlyCash=balances(unprotected),
                 charges=joint.charges, assignments=search.size, btcOnlyRejected=native[1],
                 recovered=[str(value) for value in joint.recovered], insurance=joint.payout.insurance_spent)
 

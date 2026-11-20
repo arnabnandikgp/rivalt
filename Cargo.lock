@@ -508,6 +508,9 @@ dependencies = [
  "clearing",
  "default-plan-selection",
  "financial-core",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
  "solana-sha256-hasher",
 ]
 

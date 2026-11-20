@@ -7,7 +7,7 @@ pub mod compact_book;
 pub mod foreign_creditor;
 pub mod inventory_book;
 pub mod inventory_choice;
-#[cfg(all(feature = "native-joint", not(target_arch = "bpf")))]
+#[cfg(any(feature = "sbf-joint-probe", all(feature = "native-joint", not(target_arch = "bpf"))))]
 pub mod joint;
 #[cfg(all(feature = "native-joint", not(target_arch = "bpf")))]
 pub mod joint_search;

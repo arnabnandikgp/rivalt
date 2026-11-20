@@ -1,7 +1,7 @@
 //! Exhaustive native comparison on a caller-budgeted frozen book. The candidate
 //! space is derived from financial rows, budgets, lot directions and paid history.
 //! A caller supplies rate/rounding witnesses, never the list of competitors.
-use crate::joint::{Charge, FrozenBook, Witness};
+use crate::joint::{Charge, Edge, FrozenBook, Witness};
 mod priorities;
 mod ranges;
 use alloc::vec::Vec;
@@ -73,14 +73,6 @@ impl RecoveryScore {
     }
 }
 
-struct Edge {
-    capacity: clearing_accounting::attribution::FrozenCapacity,
-    market: usize,
-    debtor: usize,
-    winner: usize,
-    maximum: u64,
-}
-
 /// Report every schedule tied on D120 recovery. Selection additionally applies
 /// the proportional, closure and identity rules. An absent selection requires
 /// a valid market reflection or represents a still-incomparable trade-off.
@@ -113,7 +105,7 @@ impl FrozenBook<'_> {
                 at_least: combinations,
             });
         }
-        let complete = self.visit_edges(&baseline, |edge| {
+        let complete = self.visit_edges(&baseline.budgets, |edge| {
             combinations *= BigUint::from(edge.maximum) + 1u8;
             if combinations > BigUint::from(limit) {
                 return Ok(false);
@@ -205,44 +197,6 @@ impl FrozenBook<'_> {
                 self.verify_proposal(original, target, charges)
             })?
         })
-    }
-
-    fn visit_edges(
-        &self,
-        baseline: &crate::joint::Receipt,
-        mut visit: impl FnMut(Edge) -> Result<bool>,
-    ) -> Result<bool> {
-        for market in 0..2 {
-            for (debtor, member) in self.members.iter().enumerate() {
-                let budget = baseline.budgets[debtor][market];
-                if budget == 0 || member.lots[market] == 0 {
-                    continue;
-                }
-                for (winner, opposite) in self.members.iter().enumerate() {
-                    if opposite.lots[market].signum() != -member.lots[market].signum() {
-                        continue;
-                    }
-                    let lots = opposite.lots[market]
-                        .unsigned_abs()
-                        .min(member.lots[market].unsigned_abs());
-                    let capacity = self.capacity(opposite, market, lots)?;
-                    let maximum = capacity.eligible.min(budget);
-                    if maximum == 0 {
-                        continue;
-                    }
-                    if !visit(Edge {
-                        capacity,
-                        market,
-                        debtor,
-                        winner,
-                        maximum,
-                    })? {
-                        return Ok(false);
-                    }
-                }
-            }
-        }
-        Ok(true)
     }
 
     fn candidate(

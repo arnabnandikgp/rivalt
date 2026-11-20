@@ -117,7 +117,71 @@ fn debtor_budgets(
         .collect()
 }
 
+pub struct Edge {
+    pub capacity: clearing_accounting::attribution::FrozenCapacity,
+    pub market: usize,
+    pub debtor: usize,
+    pub winner: usize,
+    pub maximum: u64,
+}
+
 impl FrozenBook<'_> {
+    /// The original greatest settlement rates determine each debtor's usable loss.
+    pub fn edge_budgets(&self, original: Witness<'_>) -> Result<Vec<[u64; 2]>> {
+        let rows: Vec<_> = self.members.iter().map(|member| member.row).collect();
+        let count = u64::try_from(rows.len()).map_err(|_| Error::Bounds)?;
+        let mut arithmetic = Arithmetic::new(required_limbs(count)?, 128)?;
+        let plan = verify(
+            &rows,
+            self.pools,
+            self.insurance,
+            self.fees,
+            original.rates,
+            &mut arithmetic,
+        )?;
+        debtor_budgets(&plan, rows.len(), &mut arithmetic)
+    }
+    pub fn visit_edges(
+        &self,
+        budgets: &[[u64; 2]],
+        mut visit: impl FnMut(Edge) -> Result<bool>,
+    ) -> Result<bool> {
+        if budgets.len() != self.members.len() {
+            return Err(Error::Cohort);
+        }
+        for market in 0..2 {
+            for (debtor, member) in self.members.iter().enumerate() {
+                let budget = budgets[debtor][market];
+                if budget == 0 || member.lots[market] == 0 {
+                    continue;
+                }
+                for (winner, opposite) in self.members.iter().enumerate() {
+                    if opposite.lots[market].signum() != -member.lots[market].signum() {
+                        continue;
+                    }
+                    let lots = opposite.lots[market]
+                        .unsigned_abs()
+                        .min(member.lots[market].unsigned_abs());
+                    let capacity = self.capacity(opposite, market, lots)?;
+                    let maximum = capacity.eligible.min(budget);
+                    if maximum == 0 {
+                        continue;
+                    }
+                    if !visit(Edge {
+                        capacity,
+                        market,
+                        debtor,
+                        winner,
+                        maximum,
+                    })? {
+                        return Ok(false);
+                    }
+                }
+            }
+        }
+        Ok(true)
+    }
+
     pub(super) fn capacity(
         &self,
         member: &Member<'_>,

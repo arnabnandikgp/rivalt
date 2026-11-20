@@ -18,7 +18,7 @@ pub struct AuditSettlement {
     pub page: Box<BorshAccount<FrozenMarginPage>>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, IdlType)]
+#[derive(AnchorSerialize, AnchorDeserialize, IdlType, InitSpace, Default, Clone, Copy)]
 pub struct RateWitness {
     // The measured book has one insurance round in each state. The core
     // still verifies clipping and rejects an insufficient proposal sequence.
@@ -27,14 +27,14 @@ pub struct RateWitness {
 }
 
 impl RateWitness {
-    fn proposal(&self) -> [Proposal; 1] {
+    pub(super) fn proposal(&self) -> [Proposal; 1] {
         let [factor, btc, eth] = self.rates.map(|n| Number::from(u128::from(n)));
         [Proposal {
             factor,
             rates: [btc, eth],
         }]
     }
-    fn orders(&self) -> [[u64; 8]; 2] {
+    pub(super) fn orders(&self) -> [[u64; 8]; 2] {
         self.orders.map(|order| order.map(u64::from))
     }
 }

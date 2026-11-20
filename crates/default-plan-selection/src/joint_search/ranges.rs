@@ -77,7 +77,7 @@ impl FrozenBook<'_> {
         let floor = proposal.as_ref().unwrap_or(&baseline);
         let mut best = RecoveryScore::new(floor.recovered.clone(), &baseline.original_losses);
         let mut edges = Vec::new();
-        self.visit_edges(&baseline, |edge| {
+        self.visit_edges(&baseline.budgets, |edge| {
             edges.push(edge);
             Ok(true)
         })?;
