@@ -14,6 +14,7 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 [History](HISTORY.md) records the integration.
 
 The six successor delivery PRs (#140–#145) and the seven populated recovery follow-ups (#146–#152) are ready for review in stack #104.
+The consolidated review checked ten outstanding threads. At `f3cb87f0`, eight focused indexer tests and TypeScript typechecking passed. Replaying the retained #152 finalized account reads reconciled 405 accounts and the 331,920,613-atom vault. The next integration step is to merge the verified stack.
 The [tracker](clearing/roadmap.md#pr-tracker) lists the parent and acceptance
 for each. P56 remains the normal local runtime under [D140](DECISIONS.md#d140--retain-p56-as-the-normal-local-runtime).
 
