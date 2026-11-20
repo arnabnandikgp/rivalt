@@ -3664,10 +3664,22 @@ deployment, signed transactions, RPC/WS and its own PostgreSQL 18.6 database.
   The corrected test verifies rollback without it, then funds the receiver with
   the classification in the same transaction.
 
+On keeper revision `c96e43a8` with the same `5d7a7c0f` program, the service
+read the frozen accounts over RPC and generated the original and candidate rate
+and rounding witnesses. The earlier independent calculations matched byte for
+byte. The restarted signed workflow covered 340 schedules, rejected the
+inferior proposal and early withdrawal, and paid 5,004 and 34,968 atoms to the
+two wallets. Fresh PostgreSQL replay matched 142 events after 278 main harness
+outcomes and 55 worker originals. The two search processes recorded 27 and 33
+outcomes. Two targeted unit tests passed and 26 witness calculations matched
+the retained independent results from the cross-creditor and tied-gain books.
+Only the cross-creditor book was redeployed for this change. The harness still
+supplied the schedule numbers, exclusion intervals and submission loop.
+
 The recovery proof admits exactly eight members and the supported rate witnesses.
 The nine-member route workload qualified contention and the freeze boundary.
 Its terminal settlement is outside this proof. A sponsor supplied the exact
-proposal and witnesses in the recovery test. Operating an autonomous proposer,
+proposal and witnesses in the original recovery run at `49a90358`. Operating an autonomous proposer,
 recovering larger cohorts and establishing a sustained throughput limit remain
 open. P56 remains the selected local runtime.
 

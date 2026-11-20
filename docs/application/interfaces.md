@@ -272,6 +272,15 @@ integers. The default worker reports `recovery-search-pending` until a sealed
 schedule binds to the frozen source. It can then resume the existing rate,
 application and reconciliation stages from RPC after a restart.
 
+The [keeper calculation](../../packages/services/src/recovery-witness.ts)
+reads the prepared settlement, resolution and eight-member frozen page together
+over RPC. Given the ordered debtor/winner pairs calculated by clearing and a
+proposed schedule number, it derives both market rates and both rounding orders.
+Every candidate retains the debtor cash allocation at freeze. The calculator
+rejects a changed episode or revision, a different population, a rate wider
+than the wire format, or a settlement needing another insurance pass.
+Choosing the winning schedule and sponsoring the proof are separate steps.
+
 On the combined local profile, financial instructions that require a market
 or ledger checkpoint must follow the matching clearing instructions in the
 same transaction. For example, a receiver deposit in trading mode that

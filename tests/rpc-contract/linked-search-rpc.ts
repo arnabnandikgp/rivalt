@@ -1,5 +1,5 @@
-// Reconstruct all work from the checkpoint after a client restart. No clearing
-// account is writable. The independent actor/charge model supplies witnesses only.
+// Restart from the on-chain checkpoint. The model supplies the test schedules.
+// For clearing-owned searches the keeper builds each witness from frozen RPC data.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
