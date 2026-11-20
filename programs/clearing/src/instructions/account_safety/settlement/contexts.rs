@@ -712,3 +712,19 @@ pub struct BindRecoverySelection{
     pub prepared:Box<BorshAccount<PreparedSettlement>>,
     pub search:Box<BorshAccount<RecoverySearch>>,
 }
+
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64, page_index:u64)]
+pub struct RecordOriginalBudgets {
+    pub source: Nested<PreparedSourceIdentity>,
+    #[account(seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
+    pub prepared: Box<BorshAccount<PreparedSettlement>>,
+    #[account(seeds=[b"settlement-rates",source.venue.address().as_ref()],bump=rates.bump,
+        constraint=rates.venue == prepared.venue && rates.epoch == epoch @ ClearingError::Resolution)]
+    pub rates: Box<BorshAccount<SettlementRates>>,
+    #[account(mut,seeds=[b"frozen-margin-page",source.venue.address().as_ref(),&page_index.to_le_bytes()],bump=page.bump,
+        constraint=page.venue == prepared.venue && page.epoch == epoch && page.page_index == page_index @ ClearingError::Resolution)]
+    pub page: Box<BorshAccount<FrozenMarginPage>>,
+}

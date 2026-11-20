@@ -164,8 +164,13 @@ def undo_liquidation_delta(actual, program):
         'capture_member': ('search prepared resolution page margin', 'search', ''),
         **{name: ('search prepared resolution', 'search', '') for name in
            ('derive_pairs', 'verify_incumbent', 'cover_range', 'cover_plan', 'seal_search')},
+        'record_original_budgets': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared rates page event_authority program', 'page', ''),
         'bind_recovery_selection': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared search event_authority program', 'prepared', ''),
     }
+    budgets = unique('record_original_budgets')
+    assert [(arg['name'], arg['type']) for arg in budgets['args']] == [
+        ('epoch', 'u64'), ('page_index', 'u64'), ('attempt', 'u64'), ('revision', 'u64'),
+        ('page_revisions', {'array': ['u64', 7]})]
     for name, (names, writes, signers) in work.items():
         item = unique(name)
         assert item['discriminator'] == list(hashlib.sha256(f'global:{name}'.encode()).digest()[:8])

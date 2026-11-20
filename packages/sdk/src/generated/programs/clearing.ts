@@ -195,6 +195,7 @@ import {
   getReactivateAccountsInstructionAsync,
   getReadMarketGrossInstructionAsync,
   getReconcileSettlementMarginInstructionAsync,
+  getRecordOriginalBudgetsInstructionAsync,
   getRecoverAccountsInstructionAsync,
   getRefundRecoveryAllocationInstructionAsync,
   getRegisterLiquidityInstructionAsync,
@@ -299,6 +300,7 @@ import {
   parseReactivateAccountsInstruction,
   parseReadMarketGrossInstruction,
   parseReconcileSettlementMarginInstruction,
+  parseRecordOriginalBudgetsInstruction,
   parseRecoverAccountsInstruction,
   parseRefundRecoveryAllocationInstruction,
   parseRegisterLiquidityInstruction,
@@ -471,6 +473,7 @@ import {
   type ParsedReactivateAccountsInstruction,
   type ParsedReadMarketGrossInstruction,
   type ParsedReconcileSettlementMarginInstruction,
+  type ParsedRecordOriginalBudgetsInstruction,
   type ParsedRecoverAccountsInstruction,
   type ParsedRefundRecoveryAllocationInstruction,
   type ParsedRegisterLiquidityInstruction,
@@ -507,6 +510,7 @@ import {
   type ReactivateAccountsAsyncInput,
   type ReadMarketGrossAsyncInput,
   type ReconcileSettlementMarginAsyncInput,
+  type RecordOriginalBudgetsAsyncInput,
   type RecoverAccountsAsyncInput,
   type RefundRecoveryAllocationAsyncInput,
   type RegisterLiquidityAsyncInput,
@@ -1557,6 +1561,7 @@ export enum ClearingInstruction {
   ReactivateAccounts,
   ReadMarketGross,
   ReconcileSettlementMargin,
+  RecordOriginalBudgets,
   RecoverAccounts,
   RefundRecoveryAllocation,
   RegisterLiquidity,
@@ -2431,6 +2436,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([96, 8, 159, 6, 155, 131, 72, 23]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RecordOriginalBudgets;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([20, 29, 183, 179, 123, 39, 45, 195]),
       ),
       0,
@@ -2972,6 +2988,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.ReconcileSettlementMargin;
     } & ParsedReconcileSettlementMarginInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RecordOriginalBudgets;
+    } & ParsedRecordOriginalBudgetsInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.RecoverAccounts;
     } & ParsedRecoverAccountsInstruction<TProgram>)
@@ -3592,6 +3611,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ReconcileSettlementMargin,
         ...parseReconcileSettlementMarginInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.RecordOriginalBudgets: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RecordOriginalBudgets,
+        ...parseRecordOriginalBudgetsInstruction(instruction),
       };
     }
     case ClearingInstruction.RecoverAccounts: {
@@ -4241,6 +4267,11 @@ export type ClearingPluginInstructions = {
     input: ReconcileSettlementMarginAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getReconcileSettlementMarginInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  recordOriginalBudgets: (
+    input: RecordOriginalBudgetsAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRecordOriginalBudgetsInstructionAsync> &
     SelfPlanAndSendFunctions;
   recoverAccounts: (
     input: RecoverAccountsAsyncInput,
@@ -5135,6 +5166,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getReconcileSettlementMarginInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          recordOriginalBudgets: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRecordOriginalBudgetsInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

@@ -1,6 +1,7 @@
 //! Native admission of a complete proposed BTC/ETH reduction. A successful
 //! receipt establishes feasibility on the supplied cohort, not optimality.
 extern crate alloc;
+pub mod original_terms;
 mod pair_order;
 use alloc::{collections::BTreeSet, vec::Vec};
 use clearing_accounting::attribution::{Attribution, FrozenCapacity, PairedLots};
@@ -163,6 +164,24 @@ impl FrozenBook<'_> {
             &mut arithmetic,
         )?;
         debtor_budgets(&plan, rows.len(), &mut arithmetic)
+    }
+    /// Reconstruct each budget from payment rates and market loss fractions.
+    /// The original settled book authenticates those terms once for all rows.
+    #[cfg(not(target_arch = "bpf"))]
+    pub fn original_page_budgets(&self, original: Witness<'_>) -> Result<Vec<[u64; 2]>> {
+        let rows: Vec<_> = self.members.iter().map(|member| member.row).collect();
+        let count = u64::try_from(rows.len()).map_err(|_| Error::Bounds)?;
+        let mut arithmetic = Arithmetic::new(required_limbs(count)?, 128)?;
+        let plan = verify(
+            &rows,
+            self.pools,
+            self.insurance,
+            self.fees,
+            original.rates,
+            &mut arithmetic,
+        )?;
+        let terms = original_terms::OriginalTerms::from_verified(&plan)?;
+        rows.iter().map(|row| terms.debtor_budgets(row)).collect()
     }
     pub fn visit_edges(
         &self,

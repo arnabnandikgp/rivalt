@@ -25,6 +25,8 @@ mod contexts;
 mod denominator;
 pub use denominator::*;
 mod handlers;
+#[cfg(feature = "populated-recovery-qualification")]
+pub mod original_budgets;
 mod rates;
 pub use rates::*;
 mod plan;
@@ -171,6 +173,8 @@ pub(crate) fn value_member(
         book_charge:0,
         #[cfg(feature = "partitioned-recovery-inputs")]
         recovery_lot_rates: [[0, 1]; 2],
+        #[cfg(feature = "populated-recovery-qualification")]
+        original_debtor_budgets: [0; 2],
     };
     page.row_count += 1;
     header.state.valuation = valuation.checkpoint();

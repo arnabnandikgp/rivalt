@@ -108,6 +108,13 @@ pub struct VerifiedRateValues {
     pub(crate) cash_denominator: Magnitude,
     pub(crate) factor: [u64; 5],
 }
+impl VerifiedRateValues {
+    /// Original payment numerators and their common denominator. Only their
+    /// normalized words belong to the value, including after scratch reuse.
+    pub fn payment_registers(&self) -> [Magnitude; 3] {
+        [self.rates[0], self.rates[1], self.rate_denominator]
+    }
+}
 pub(super) fn factor(words: &[u64]) -> Operation {
     let mut values = [0; 5];
     values[..words.len()].copy_from_slice(words);

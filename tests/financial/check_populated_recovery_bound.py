@@ -295,12 +295,14 @@ class FrozenCase:
                                      orders=[[str(i) for i in order] for order in original['orders']]),
                        effective=dict(rates=[list(map(str, r)) for r in rates], orders=[list(map(str, o)) for o in orders]),
                        measure_recovery_bound=True)
+        request['check_original_page_budgets'] = True
         if check_pair_order:
             request['pair_order'] = dict(venue_hex=bytes(self.source['venue']).hex(), epoch=self.source['epoch'])
         for key in ('marks', 'pools', 'insurance', 'fees'):
             request[key] = self.source[key]
         receipt = json.loads(subprocess.check_output([binary], input=json.dumps(request), text=True))
         assert 'error' not in receipt, receipt
+        assert [list(map(int,row)) for row in receipt['originalPageBudgets']] == self.budgets
         assert list(map(int,receipt['cash'])) == list(outcome.cash)
         assert [list(map(int,row)) for row in receipt['movements']] == [list(row) for row in outcome.claim_cash_movements]
         assert list(map(int,receipt['insuranceSpent'])) == list(outcome.insurance_spent)

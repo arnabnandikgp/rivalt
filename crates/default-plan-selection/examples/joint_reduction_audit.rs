@@ -26,6 +26,8 @@ struct Input {
     search: Option<Search>,
     pair_order: Option<Episode>,
     #[serde(default)]
+    check_original_page_budgets: bool,
+    #[serde(default)]
     measure_recovery_bound: bool,
 }
 #[derive(Deserialize)]
@@ -254,6 +256,18 @@ fn run(input: Input) -> Result<Value, String> {
         "insuranceSpent":receipt.spent.map(|x|x.to_string()),
         "recovered":receipt.recovered.each_ref().map(|(numerator,denominator)|[numerator.to_string(),denominator.to_string()]),
     });
+    if input.check_original_page_budgets {
+        let budgets = book
+            .original_page_budgets(original.witness())
+            .map_err(|err| format!("{err:?}"))?;
+        if budgets != receipt.budgets {
+            return Err("Original per-row budget differs from full settlement".into());
+        }
+        result["originalPageBudgets"] = json!(budgets
+            .iter()
+            .map(|row| row.map(|x| x.to_string()))
+            .collect::<Vec<_>>());
+    }
     if let Some(certified) = pair_order {
         result["pairOrderAtFixedTotals"] = json!(certified);
     }

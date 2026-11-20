@@ -20,7 +20,7 @@ pub const RATE_CHUNK_WORDS: usize = 32;
 fn arithmetic<T>(value: financial_core::Result<T>) -> Result<T> {
     value.map_err(|_| ClearingError::Resolution.into())
 }
-fn rounds(header: &PreparedSettlement, rates: &SettlementRates) -> Result<InsuranceRounds> {
+pub(super) fn rounds(header: &PreparedSettlement, rates: &SettlementRates) -> Result<InsuranceRounds> {
     arithmetic(InsuranceRounds::from_checkpoint(
         &rates.state.insurance,
         header.insurance,

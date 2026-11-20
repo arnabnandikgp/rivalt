@@ -1120,3 +1120,11 @@ context!(BindRecoverySelection, source.venue, event_authority;
 [source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
 source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
 prepared: Write]; []);
+
+#[cfg(feature="populated-recovery-qualification")]
+use crate::RecordOriginalBudgets;
+#[cfg(feature="populated-recovery-qualification")]
+context!(RecordOriginalBudgets, source.venue, event_authority;
+[source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
+ source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
+ prepared: Read, rates: Read, page: Write]; []);

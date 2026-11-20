@@ -73,6 +73,8 @@ pub struct FrozenMargin {
     /// Each pair is a numerator and denominator. The original claim also caps the charge.
     #[cfg(feature = "partitioned-recovery-inputs")]
     pub recovery_lot_rates: [[u64; 2]; 2],
+    #[cfg(feature = "populated-recovery-qualification")]
+    pub original_debtor_budgets: [u64; 2],
 }
 #[cfg(feature = "paged-recovery-qualification")]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, IdlType)]
@@ -92,5 +94,7 @@ pub struct FrozenMarginPage {
     pub page_index: u64,
     pub row_count: u8,
     pub rows: [FrozenMargin; 8],
+    #[cfg(feature = "populated-recovery-qualification")]
+    pub original_budget_attempt: u64,
     pub bump: u8,
 }

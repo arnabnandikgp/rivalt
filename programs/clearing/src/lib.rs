@@ -58,6 +58,7 @@ pub use events::*;
 pub use instructions::*;
 pub use instructions::account_safety::settlement::recovery::{AdvanceSearch, CaptureSearch, OpenSearch, RateWitness};
 pub(crate) use instructions::account_safety::settlement::recovery::layout::{__client_accounts_opensearch,__client_accounts_capturesearch,__client_accounts_advancesearch};
+pub use instructions::account_safety::settlement::{RecordOriginalBudgets,__client_accounts_recordoriginalbudgets};
 pub use state::*;
 pub use state::accounts::SettlementPageAccess;
 
@@ -96,6 +97,18 @@ macro_rules! local_recovery {
 #[program]
 pub mod clearing {
     use super::*;
+    pub fn record_original_budgets(ctx: &mut Context<RecordOriginalBudgets>, epoch:u64, page_index:u64,
+        attempt:u64, revision:u64, page_revisions:[u64;7]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            use account_safety::settlement::original_budgets::{OriginalRegisters,record};
+            let _ = (epoch,page_index); // Bound by the account context.
+            let registers=OriginalRegisters::verified(&ctx.accounts.prepared,&ctx.accounts.rates)?;
+            scoped_history::run_pages(ctx,[96, 8, 159, 6, 155, 131, 72, 23],registers.pages,|ctx,_|record(ctx,&registers,attempt,revision,page_revisions))
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }
     pub fn open_search(
         ctx: &mut Context<OpenSearch>,
         nonce: u64,
