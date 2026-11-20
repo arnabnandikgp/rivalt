@@ -1105,6 +1105,58 @@ effective claims regardless of how lots are paired. The independent reference
 examined all 8 BTC and 35 ETH equally best unconstrained proportional targets.
 None of their 280 combinations recovered the maximum. The closest missed
 by approximately 307.529 atoms. Scoring used exact fractions throughout.
-The proportional optimum among *maximum-recovery* plans, the fewest lots,
-and the final episode-ordered tie still require proof. The 55-pair proposal
-therefore cannot authorize a payout.
+The 55-pair proposal proves the maximum amount. It does not certify how to
+divide that charge among winners.
+
+### Proportional sharing at maximum recovery
+
+Full recovery fixes each debtor's charges. It also fixes the total positive
+face amount left in each market. The foreign market must still receive at
+least its original aggregate creditor payment to attain its recovery ceiling.
+Subtract its frozen pool, original cash collections and available insurance
+from that payment. Any positive difference must come from cross-market claims.
+
+For each source market, bound the payment rate above by the funds that could
+arrive if every remaining cross debt were fully paid, divided by the remaining
+positive face amount, capped at one. A cross claimant can supply at most its
+remaining positive claim times that rate. The required foreign receipts
+therefore put an upper limit on total charges to the linked winners. Using all
+available insurance and ignoring individual payment caps at this step gives
+a necessary constraint. A proposed allocation must still pass actual settlement.
+
+On the signed book, the eight ETH winners whose proceeds can pay BTC creditors
+could collectively bear at most 780,159 atoms. The unconstrained allocation
+tested above charged them 780,468. The reference optimized the integer
+shares with that cap. It checked each allowable one-atom exchange using the
+exact marginal costs of the weighted squared deviation. Any other feasible
+vector decomposes into exchanges within the two groups plus exchanges in the
+direction of its net group transfer. Convexity makes the absence of an improving
+exchange sufficient for optimality in this relaxed problem.
+
+The Rust engine admitted a 123-pair plan attaining both market recovery
+ceilings and both minimum deviations simultaneously. That proves the D116
+sharing score for this freeze. The first witness used 434 BTC and 407 ETH lots.
+
+### Minimum lots and winner order
+
+Every winner must close at least its total charge divided by its per-lot
+capacity, rounded up. Summing over winners gives one lot bound. The complete
+set of minimum-deviation winner vectors has eight BTC possibilities and five
+ETH possibilities on this freeze. Taking the lowest winner bound across those
+possibilities keeps the bound valid for every candidate. A second bound sums
+over debtors, dividing each required budget by the best available opposing
+per-lot capacity and rounding up. Every admissible pairing must satisfy both.
+
+These bounds require at least 423 BTC and 403 ETH lots. The reference chooses
+the lexicographically greatest optimal winner totals in frozen-episode order.
+To construct a pairing it assigns integer lot counts and allocates the unused
+tick capacity on those lots first, then fills the remaining whole lots. The
+native verifier admitted a 237-pair plan with exactly those winner totals and
+lot counts in both markets. Independent protected rounding reproduced all 128
+cash balances, market movements and insurance debits.
+
+This establishes the financial priorities and the winner-total part of D121
+on this particular book. The last comparison in D121 orders the charges on
+individual debtor/winner pairs after those totals tie. The constructed pairing
+has no certificate for that final comparison. Publication of the inputs and
+native results does not release the frozen wallets.

@@ -3992,7 +3992,7 @@ ceilings. Of 11,707,736 recoverable atoms, 7,983,928 belonged to BTC and
 3,723,808 to ETH. A second admitted plan charged the same gross amount and
 recovered approximately 308.529 fewer BTC atoms. Independent evaluation of
 all 280 unconstrained proportional target combinations found that every one
-missed the primary objective. Two regression tests also compared complete
+missed the primary objective. Two initial regression tests also compared complete
 small integer allocations and two native cases in which the bound either was
 or was not attained. [Proof and comparison](../clearing/default-plan-verification.md#certifying-maximum-recovery-on-the-populated-freeze)
 
@@ -4005,6 +4005,21 @@ cargo build --release --locked --offline -p default-plan-selection --features na
 python3 tests/financial/test_populated_recovery_bound.py
 python3 tests/financial/check_populated_recovery_bound.py "$RIVALT_RUN_DIR/population-input.json"
 ```
+
+At `19feeef0` the independently checked linked-market constraint capped
+aggregate charges to eight ETH winners at 780,159. A 123-pair proposal attained
+the exact maximum in both markets and both proportional-sharing minima with
+434 BTC and 407 ETH lots. All three targeted regressions passed, including
+complete constrained allocations on a small book. The signed input and SBF
+are the same as the preceding freeze.
+
+At `502a0f68` the reference considered all eight BTC and five ETH optimal
+winner allocations under the linked bounds. A 237-pair native receipt reached
+the 423 BTC and 403 ETH whole-lot lower bounds with the greatest winner totals
+in frozen-episode order. Independent rounding matched every member's cash
+and both market movements and matched both insurance debits. The financial
+regressions and the full signed-input replay both passed. The priority of
+individual pair charges remains uncertified.
 
 The bound and the comparison ran natively. This run submitted no transactions.
 The population still requires an on-chain selection proof and terminal wallet exit.
