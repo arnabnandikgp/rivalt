@@ -1071,3 +1071,40 @@ still packs its working state into a single search account, encodes proposed
 rates as 64-bit integers and uses a 128-bit mixed-radix cursor. A member's
 frozen charge terms do not determine the winning schedule, its protected
 rounding or its final cash. The release requirement in D122 still applies.
+
+## Certifying maximum recovery on the populated freeze
+
+Let B(i,m) be member i's verified whole-atom debtor budget in market m.
+Every feasible plan charges that member at most B(i,m). The D120 score
+credits at most the direct charges and at most the actual reduction in
+creditor impairment. This gives a market-wide upper bound
+`U(m) = sum_i B(i,m)`. If the exact financial receipt for a plan reaches
+both bounds, it maximizes total recovery. Every plan tied on total must then
+recover exactly U(m) in each market, so it also ties on market balance.
+The certificate is sufficient. A missed bound says nothing about whether
+an alternative can reach it.
+
+This proof starts with original frozen cash allocation, insurance and member
+budgets. Feasibility includes actual lot consumption, insurance tests and
+protected whole-atom settlement. A charge vector that merely sums to the
+two budgets supplies no certificate. The native diagnostic reports both
+ceilings after `FrozenBook::verify_proposal` succeeds. It confers no
+authority over settlement accounts.
+[Verifier](../../crates/default-plan-selection/src/joint.rs)
+
+| Proposal on the same frozen book | BTC / ETH gross charges | BTC / ETH verified recovery | Matched BTC / ETH lots |
+|---|---|---|---|
+| Zero charges | 0 / 0 | 0 / 0 | 0 / 0 |
+| 55 debtor/winner pairs | 7,983,928 / 3,723,808 | 7,983,928 / 3,723,808 | 418 / 403 |
+| 123 pairs with individually optimal proportional totals before enforcing maximum recovery | 7,983,928 / 3,723,808 | approximately 7,983,619.471 / 3,723,808 | 434 / 407 |
+
+The fractional difference comes from the settlement of linked claims.
+At maximum total, each debtor's charges in each market are fixed because
+every budget must be saturated. For specified winner totals this fixes all
+effective claims regardless of how lots are paired. The independent reference
+examined all 8 BTC and 35 ETH equally best unconstrained proportional targets.
+None of their 280 combinations recovered the maximum. The closest missed
+by approximately 307.529 atoms. Scoring used exact fractions throughout.
+The proportional optimum among *maximum-recovery* plans, the fewest lots,
+and the final episode-ordered tie still require proof. The 55-pair proposal
+therefore cannot authorize a payout.

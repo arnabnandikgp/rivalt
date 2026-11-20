@@ -3982,3 +3982,29 @@ This verifies the partitioned financial inputs through valuation. The freeze had
 no flat member with a positive market claim. The earlier nine-member wallet
 tests cover that case separately. The 128-member terminal payout and withdrawal
 are open. D140 keeps P56 selected.
+
+## Native populated recovery bound
+
+At `ff251284` the native financial engine verified a feasible 55-pair plan on
+the signed 128-member freeze from the preceding run. The independent Fraction
+settlement and native receipts agreed on both loss reductions and both debtor
+ceilings. Of 11,707,736 recoverable atoms, 7,983,928 belonged to BTC and
+3,723,808 to ETH. A second admitted plan charged the same gross amount and
+recovered approximately 308.529 fewer BTC atoms. Independent evaluation of
+all 280 unconstrained proportional target combinations found that every one
+missed the primary objective. Two regression tests also compared complete
+small integer allocations and two native cases in which the bound either was
+or was not attained. [Proof and comparison](../clearing/default-plan-verification.md#certifying-maximum-recovery-on-the-populated-freeze)
+
+Reproduce with the ignored `population-input.json` produced by the signed
+qualification. The test input digest was
+`9b3fec73053e869dbc9e0bb48ee9654638b6001be02eceeb5096ffb0f6dc81c3`.
+
+```sh
+cargo build --release --locked --offline -p default-plan-selection --features native-joint --example joint_reduction_audit
+python3 tests/financial/test_populated_recovery_bound.py
+python3 tests/financial/check_populated_recovery_bound.py "$RIVALT_RUN_DIR/population-input.json"
+```
+
+The bound and the comparison ran natively. This run submitted no transactions.
+The population still requires an on-chain selection proof and terminal wallet exit.

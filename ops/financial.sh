@@ -58,6 +58,7 @@ cargo test --locked -p default-plan-selection --features native-search --test mu
 cargo build --locked -p default-plan-selection --features native-search --example multi_lot_audit
 python3 tests/financial/check_multi_lot_search.py
 cargo build --locked -p default-plan-selection --features native-joint --example joint_reduction_audit
+RIVALT_JOINT_AUDIT=target/debug/examples/joint_reduction_audit python3 tests/financial/test_populated_recovery_bound.py
 python3 tests/financial/check_joint_reductions.py
 python3 tests/financial/check_joint_search.py
 cargo test --locked -p default-plan-selection --features keeper --bin rivalt-recovery-selector
