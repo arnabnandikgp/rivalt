@@ -20,7 +20,8 @@ const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const probe=process.env.RIVALT_SETTLEMENT_PROBE!;
-const foreignCaps=probe==='profit-attribution-foreign-caps';
+const winnerScan=probe==='profit-attribution-winner-allocations';
+const foreignCaps=winnerScan||probe==='profit-attribution-foreign-caps';
 const originalBudgets=foreignCaps||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-original-budgets';
 const originalRates=originalBudgets||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-populated-rates';
 const partitioned=originalRates||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-partitioned-population';
@@ -97,8 +98,9 @@ try {
     assert.equal(pageInputs.schedules,dimensions.schedules);
   }
   const protection=foreignCaps?JSON.parse(execFileSync('python3',['tests/financial/protection_scan_reference.py'],{input:json(request),encoding:'utf8'})):undefined;
+  const winnerReference=winnerScan?JSON.parse(execFileSync('python3',['tests/financial/winner_scan_reference.py'],{input:json(request),encoding:'utf8'})):undefined;
   const originalRateResult=originalRates?await verifyPopulatedOriginalRates(h,setup,rows,members,BigInt(expected.common),
-    originalBudgets?expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)):undefined,protection):null;
+    originalBudgets?expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)):undefined,protection,winnerReference):null;
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint('population-freeze',true);

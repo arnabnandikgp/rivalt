@@ -12,6 +12,7 @@ const transitionTag = createHash('sha256').update('event:AccountTransition').dig
 const grossView = createHash('sha256').update('global:read_market_gross').digest().subarray(0,8);
 // Only the independent search account and its rent payer may change here.
 const searchWork = new Map([
+  ['open_winner_proof', 5, 73], ['advance_winner_proof', 4, 16],
   ['open_search', 5, 80], ['capture_member', 5, 16], ['derive_pairs', 3, 8],
   ['verify_incumbent', 3, 48], ['cover_plan', 3, 64], ['cover_range', 3, 40], ['seal_search', 3, 8],
 ].map(([name, accounts, bytes]) => [createHash('sha256').update('global:'+name).digest('hex').slice(0,16), {accounts, bytes}]));
