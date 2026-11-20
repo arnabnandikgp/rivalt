@@ -1,4 +1,4 @@
-import {accountDeployment,DOMAIN_BASELINE_ARTIFACT_SET,DOMAIN_EXTRACTED_ARTIFACT_SET,type AccountDeployment} from '@rivalt/sdk';
+import {PARTITIONED_INPUTS_ARTIFACT_SET,accountDeployment,DOMAIN_BASELINE_ARTIFACT_SET,DOMAIN_EXTRACTED_ARTIFACT_SET,type AccountDeployment} from '@rivalt/sdk';
 import {BACKING_ARTIFACTS,verifyTestBuild} from './backing-artifacts.js';
 
 type Linked = boolean|'successor'|'paged'|'integrated'|'owned'|'flat'|'allocation'|'foreign'|'shared'|'partial'|'book'|'capacity'|'multi'|'fees'|'market'|'funding'|'lane'|'ledger';
@@ -51,4 +51,12 @@ export function verifyProfitBuild(directory:string,sponsored=false,paired=false,
   const artifacts={...BACKING_ARTIFACTS,clearing:{bytes:pinned.bytes,sha256:pinned.sha256}};
   verifyTestBuild(directory,revision,artifacts,feature);
   return {artifactSet:deployment.artifactSet,artifacts,revision};
+}
+
+/** Read-only qualification identity. No application deployment selector accepts this build. */
+export function verifyPartitionedBuild(directory:string) {
+  const revision='ba2057df85ce6d014673db5353ee351a310239d9';
+  const artifacts={...BACKING_ARTIFACTS,clearing:{bytes:3205568,sha256:'925ece7c206a743a5fea2887598317a7484877ac649b7ba4650be34da07cbfdd'}};
+  verifyTestBuild(directory,revision,artifacts,'partitioned-recovery-inputs');
+  return {artifactSet:PARTITIONED_INPUTS_ARTIFACT_SET,revision,artifacts};
 }

@@ -46,6 +46,7 @@ for index, account in enumerate(accounts):
                 if link.account_index == index and link.destination_market == market))
     flows.append((*payments, benchmark.cash_entitlements[index]))
 json.dump({'common': str(common), 'evaluations': results,
+           'debtorWriteoffs': [[str(int(value)) for value in row] for row in benchmark.debtor_writeoffs],
            'plan': {'orders': [[str(value) for value in order] for order in orders],
                     'cash': list(map(str, atoms.cash)),
                     'movements': [list(map(str, row)) for row in atoms.claim_cash_movements],

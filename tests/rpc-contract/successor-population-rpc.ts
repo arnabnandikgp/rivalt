@@ -10,21 +10,23 @@ import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {financialRoots} from './membership-scan-helper.js';
-import {verifyProfitBuild} from './profit-attribution-build.js';
+import {verifyPartitionedInputs} from './partitioned-recovery-pages.js';
+import {verifyProfitBuild,verifyPartitionedBuild} from './profit-attribution-build.js';
 import {populateDefaultCohort} from './scaled-default-setup.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'successor');
+const partitioned=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-partitioned-population';
+const build=partitioned?verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!):verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'successor');
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,computeUnitLimit:()=>1_000_000});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
   const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:'ledger-lanes',marketCheckpoints:true,verifyRejections:false,
     makerCash:50_000_000n,traderDeposits:[400_000n,1_000_000n]});
-  const {root,route,classify,withCheckpoints}=executionTestHelpers(h,setup);
+  const {root,route,guard,classify,withCheckpoints}=executionTestHelpers(h,setup);
   for(const maker of setup.instances) {
     const bytes=(await h.read(maker.capital))!;
     const expandedSize=bytes.length+40+2*(256-128);
@@ -41,6 +43,13 @@ try {
     const fill=await route({trader,actor,marketIndex,side:0,makers:[setup.instances[marketIndex*3]],lots:[marketIndex===0?40n:20n]});
     await h.send('open cross default trigger',await withCheckpoints(fill),[actor]);
   }
+  const target=cohort.additional.find(member=>member.ordinal>=64&&member.market===0&&member.mode===1&&Math.floor(member.ordinal/2)%2===0)!.margin;
+  setup.sourcePrices.btc=53_500_000_000n;
+  await setup.qualify();
+  const transfer=sdk.getLiquidateAccountInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
+    target,receiver:setup.roots[1],receiverOwner:actor,targetGuard:await guard(target),receiverGuard:await guard(setup.roots[1]),
+    marketIndex:0,price:53_500n,lots:1n});
+  await h.send('liquidate one populated lot into funded receiver',await withCheckpoints(transfer),[actor]);
   setup.sourcePrices.btc=40_000_000_000n;
   setup.sourcePrices.eth=2_000_000_000n;
   await setup.freshSources();
@@ -64,7 +73,8 @@ try {
   }));
   assert.deepEqual(await source(),initial);
   assert.equal(rows.length,128);
-  assert.equal(rows.filter(row=>row.lots.some(value=>value!==0n)).length>=100,true);
+  const active=rows.filter(row=>row.lots.some(value=>value!==0n)).length;
+  assert.equal(active,120);
   const book={rows,pools:initial.poolsBefore,insurance:initial.insuranceBefore};
   const {rounds,orders}=recoverySettlementCalculation(book,[],0n);
   const expected=JSON.parse(execFileSync('python3',['tests/financial/settlement_rpc_reference.py'],{input:json(book),encoding:'utf8'}));
@@ -76,13 +86,19 @@ try {
   writeFileSync(directory+'/population-input.json',json(request));
   const dimensions=JSON.parse(execFileSync('target/release/rivalt-recovery-selector',['--dimensions'],{input:json(request),encoding:'utf8'}));
   assert.equal(dimensions.rankBits,(BigInt(dimensions.schedules)-1n).toString(2).replace(/^0$/,'').length);
+  const pageInputs=partitioned?await verifyPartitionedInputs(h,setup,members,expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt))):null;
+  if(pageInputs) {
+    assert.deepEqual(pageInputs.edgesByMarket,dimensions.edgesByMarket);
+    assert.equal(pageInputs.schedules,dimensions.schedules);
+  }
+  await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint('population-freeze',true);
   const replay=await journal.finish();
-  const report={revision,build,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
+  const report={revision,build,pageInputs,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
     crossAccounts:cohort.additional.filter(member=>member.mode===0).length+1,trades:cohort.trades+2,
     maxRateBits:Math.max(...rounds.flat().map(value=>value.toString(2).length)),dimensions,
     freezeSignature:checks.find(check=>check.label==='freeze populated successor')!.signature,transactions:checks.length,replayedEvents:replay.events};
   writeFileSync(directory+'/population-result.json',json(report));
-  console.log('Populated successor freeze',json({...report,dimensions:{...dimensions,schedules:undefined}}));
+  console.log('Populated successor freeze',json({...report,pageInputs:pageInputs?{...pageInputs,schedules:undefined}:null,dimensions:{...dimensions,schedules:undefined}}));
 } finally {await journal?.close();try{await flush();}finally{ws.close();}}

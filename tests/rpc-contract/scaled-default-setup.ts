@@ -45,8 +45,12 @@ export async function populateDefaultCohort(h:CanonicalHarness,setup:Setup,popul
   // differing cash/quantities exercise fractional collection and atom ownership.
   await setup.qualify();
   let trades=0;
-  for(const item of additional) {
-    if(item.ordinal%4===0)await setup.sample();
+  // The sponsored successor admits these same orders in reverse registration
+  // order. The forward sequence temporarily takes a maker from 227 to 262
+  // lots, beyond the recovery capacity of its 256-byte attribution slot.
+  const byExecution=ledgerLanes?[...additional].reverse():additional;
+  for(const item of byExecution) {
+    if(item===byExecution[0]||item.ordinal%4===0)await setup.sample();
     if(item.receiver)continue;
     const markets=item.mode===0?[0,1] as const:[item.market as 0|1];
     for(const marketIndex of markets) {

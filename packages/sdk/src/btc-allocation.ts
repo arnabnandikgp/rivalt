@@ -43,10 +43,19 @@ export function getInventoryBookPageDecoder() {
 }
 
 /** Paged payout fields precede the inventory-book extension on the combined build. */
-export function getLocalSuccessorPageDecoder() {
-  return allocationPage(transformDecoder(getTupleDecoder([getPagedFrozenMarginDecoder(),getU64Decoder(),
+function localSuccessorRow() {
+  return transformDecoder(getTupleDecoder([getPagedFrozenMarginDecoder(),getU64Decoder(),
     getTupleDecoder([getU64Decoder(),getU64Decoder()]),getU64Decoder()]),
-    ([original,bookCapacity,lotRate,bookCharge])=>({...original,bookCapacity,lotRate,bookCharge})));
+    ([original,bookCapacity,lotRate,bookCharge])=>({...original,bookCapacity,lotRate,bookCharge}));
+}
+export function getLocalSuccessorPageDecoder() {
+  return allocationPage(localSuccessorRow());
+}
+export function getPartitionedRecoveryPageDecoder() {
+  const rate=getTupleDecoder([getU64Decoder(),getU64Decoder()]);
+  const row=transformDecoder(getTupleDecoder([localSuccessorRow(),getTupleDecoder([rate,rate])]),
+    ([original,recoveryLotRates])=>({...original,recoveryLotRates}));
+  return allocationPage(row);
 }
 
 export function getMultiLotBookPageDecoder() {
