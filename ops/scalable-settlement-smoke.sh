@@ -115,6 +115,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
   profit-attribution-checked-funding|profit-attribution-cross-fill-funding) node --import tsx tests/rpc-contract/cross-fill-funding-rpc.ts ;;
   profit-attribution-cross-maker-capacity|profit-attribution-bounded-market) node --import tsx tests/rpc-contract/cross-maker-capacity-rpc.ts ;;
+  profit-attribution-integrated-warm-payout|profit-attribution-integrated-delayed-payout) node --import tsx tests/rpc-contract/ordinary-timing-rpc.ts ;;
   profit-attribution-integrated-payout|profit-attribution-market-lane-payout|profit-attribution-ledger-payout) node --import tsx tests/rpc-contract/market-lane-payout-rpc.ts ;;
   profit-attribution-integrated-funding|profit-attribution-market-lane-funding|profit-attribution-ledger-funding) node --import tsx tests/rpc-contract/market-lane-funding-rpc.ts ;;
   profit-attribution-integrated-lanes|profit-attribution-ledger-lanes|profit-attribution-market-lanes|profit-attribution-route-locks|profit-attribution-fee-lanes) node --import tsx tests/rpc-contract/successor-route-locks-rpc.ts ;;
