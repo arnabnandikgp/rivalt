@@ -645,6 +645,19 @@
   ],
   "accounts": [
     {
+      "name": "FrozenMarginPage",
+      "discriminator": [
+        203,
+        138,
+        229,
+        31,
+        244,
+        62,
+        115,
+        135
+      ]
+    },
+    {
       "name": "PagedRecoverySearch",
       "discriminator": [
         23,
@@ -658,7 +671,168 @@
       ]
     }
   ],
+  "events": [
+    {
+      "name": "PagedRecoverySelectionBound",
+      "discriminator": [
+        234,
+        106,
+        51,
+        242,
+        244,
+        163,
+        226,
+        129
+      ]
+    }
+  ],
   "types": [
+    {
+      "name": "FrozenMargin",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "member",
+            "type": "pubkey"
+          },
+          {
+            "name": "activation_generation",
+            "type": "u64"
+          },
+          {
+            "name": "original_revision",
+            "type": "u64"
+          },
+          {
+            "name": "cash",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": {
+              "array": [
+                "i64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "generations",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "claims",
+            "type": {
+              "array": [
+                "i128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "collected",
+            "type": "u64"
+          },
+          {
+            "name": "recovery_payout",
+            "type": {
+              "defined": {
+                "name": "FrozenRecoveryPayout"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "FrozenMarginPage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          },
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "page_index",
+            "type": "u64"
+          },
+          {
+            "name": "row_count",
+            "type": "u8"
+          },
+          {
+            "name": "rows",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "FrozenMargin"
+                  }
+                },
+                8
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FrozenRecoveryPayout",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "claim_delta",
+            "type": {
+              "array": [
+                "i64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "movements",
+            "type": {
+              "array": [
+                "i64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "final_cash",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "PagedRecoverySearch",
       "type": {
@@ -792,6 +966,90 @@
                 "name": "Priorities"
               }
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PagedRecoverySelectionBound",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "search",
+            "type": "pubkey"
+          },
+          {
+            "name": "schedule",
+            "type": "u128"
+          },
+          {
+            "name": "schedules_checked",
+            "type": "u128"
+          },
+          {
+            "name": "charge_atoms",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "insurance_spent",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "member_ids",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "claim_deltas",
+            "type": {
+              "vec": {
+                "array": [
+                  "i64",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "movements",
+            "type": {
+              "vec": {
+                "array": [
+                  "i64",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "final_cash",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "slot",
+            "type": "u64"
           }
         ]
       }

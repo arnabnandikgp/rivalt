@@ -144,8 +144,12 @@ pub mod clearing {
     }
     pub fn bind_recovery_selection(ctx:&mut Context<BindRecoverySelection>, epoch:u64,revision:u64) -> Result<()> {
         local_recovery!({
-            scoped_history::run(ctx, [232, 106, 150, 46, 25, 38, 74, 226], false, |ctx,events|
-                account_safety::settlement::recovery::binding::bind(ctx,events,epoch,revision))
+            let bind = |ctx: &mut Context<BindRecoverySelection>, events: &mut event_cpi::Payloads|
+                account_safety::settlement::recovery::binding::bind(ctx,events,epoch,revision);
+            #[cfg(feature = "paged-recovery-qualification")]
+            { scoped_history::run_frozen_pages(ctx,[232,106,150,46,25,38,74,226],bind) }
+            #[cfg(not(feature = "paged-recovery-qualification"))]
+            { scoped_history::run(ctx,[232,106,150,46,25,38,74,226],false,bind) }
         })
     }
     pub fn verify_inventory_book(ctx: &mut Context<VerifyInventoryBook>, epoch:u64,revision:u64,ordinals:Vec<u64>) -> Result<()> {

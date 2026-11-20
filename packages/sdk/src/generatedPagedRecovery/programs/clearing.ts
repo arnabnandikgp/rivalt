@@ -36,7 +36,10 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/kit/program-client-core";
 import {
+  getFrozenMarginPageCodec,
   getPagedRecoverySearchCodec,
+  type FrozenMarginPage,
+  type FrozenMarginPageArgs,
   type PagedRecoverySearch,
   type PagedRecoverySearchArgs,
 } from "../accounts/index.js";
@@ -93,6 +96,7 @@ export const CLEARING_PROGRAM_ADDRESS =
   "Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo" as Address<"Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo">;
 
 export enum ClearingAccount {
+  FrozenMarginPage,
   PagedRecoverySearch,
 }
 
@@ -100,6 +104,17 @@ export function identifyClearingAccount(
   account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingAccount {
   const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([203, 138, 229, 31, 244, 62, 115, 135]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.FrozenMarginPage;
+  }
   if (
     containsBytes(
       data,
@@ -114,6 +129,30 @@ export function identifyClearingAccount(
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
     { accountData: data, programName: "clearing" },
+  );
+}
+
+export enum ClearingEvent {
+  PagedRecoverySelectionBound,
+}
+
+export function identifyClearingEvent(
+  event: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
+): ClearingEvent {
+  const data = "data" in event ? event.data : event;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([234, 106, 51, 242, 244, 163, 226, 129]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.PagedRecoverySelectionBound;
+  }
+  throw new Error(
+    "The provided event could not be identified as a clearing event.",
   );
 }
 
@@ -333,6 +372,8 @@ export type ClearingPlugin = {
 };
 
 export type ClearingPluginAccounts = {
+  frozenMarginPage: ReturnType<typeof getFrozenMarginPageCodec> &
+    SelfFetchFunctions<FrozenMarginPageArgs, FrozenMarginPage>;
   pagedRecoverySearch: ReturnType<typeof getPagedRecoverySearchCodec> &
     SelfFetchFunctions<PagedRecoverySearchArgs, PagedRecoverySearch>;
 };
@@ -407,6 +448,10 @@ export function clearingProgram(
     return extendClient(client, {
       clearing: <ClearingPlugin>{
         accounts: {
+          frozenMarginPage: addSelfFetchFunctions(
+            client,
+            getFrozenMarginPageCodec(),
+          ),
           pagedRecoverySearch: addSelfFetchFunctions(
             client,
             getPagedRecoverySearchCodec(),

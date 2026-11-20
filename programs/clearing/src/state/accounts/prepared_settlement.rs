@@ -57,6 +57,8 @@ pub struct FrozenMargin {
     pub generations: [u64; 2],
     pub claims: [i128; 2],
     pub collected: u64,
+    #[cfg(feature = "paged-recovery-qualification")]
+    pub recovery_payout: FrozenRecoveryPayout,
     #[cfg(feature = "btc-allocation-qualification")]
     pub btc_charge: u64,
     #[cfg(feature = "linked-allocation-qualification")]
@@ -68,6 +70,14 @@ pub struct FrozenMargin {
     #[cfg(feature = "book-inventory-qualification")]
     pub book_charge:u64,
 }
+#[cfg(feature = "paged-recovery-qualification")]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, IdlType)]
+pub struct FrozenRecoveryPayout {
+    pub claim_delta: [i64; 2],
+    pub movements: [i64; 2],
+    pub final_cash: u64,
+}
+
 #[account(borsh)]
 #[derive(InitSpace, Default)]
 pub struct FrozenMarginPage {

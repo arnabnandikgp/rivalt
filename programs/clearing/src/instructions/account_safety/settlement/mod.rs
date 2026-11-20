@@ -136,6 +136,8 @@ pub(crate) fn value_member(
         generations: root.positions.map(|position| position.generation),
         claims,
         collected,
+        #[cfg(feature = "paged-recovery-qualification")]
+        recovery_payout: Default::default(),
         #[cfg(feature = "btc-allocation-qualification")]
         btc_charge: 0,
         #[cfg(feature = "linked-allocation-qualification")]

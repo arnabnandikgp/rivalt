@@ -7,8 +7,14 @@ use financial_core::clearing::scalable::{
     graph_pages::FlowRecord, recovery_payout::RecoveryPayoutScan,
 };
 
+#[cfg(not(feature = "paged-recovery-qualification"))]
 const MARKER: &[u8; 8] = b"RVJOINT1";
+#[cfg(not(feature = "paged-recovery-qualification"))]
 const RECEIPT_LEN: usize = 8 + 32 + 16 + 16 + 8 * 48 + 2 * 16;
+#[cfg(feature = "paged-recovery-qualification")]
+const MARKER: &[u8; 8] = b"RVPAGED1";
+#[cfg(feature = "paged-recovery-qualification")]
+const RECEIPT_LEN: usize = 8 + 32 + 2 * 16 + 8 + 2 * 16;
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default)]
 pub struct MemberResult {
     id: u64,
@@ -22,7 +28,10 @@ pub struct BoundResult {
     search: Address,
     pub charges: [u64; 2],
     pub insurance_spent: [u64; 2],
+    #[cfg(not(feature = "paged-recovery-qualification"))]
     members: [MemberResult; 8],
+    #[cfg(feature = "paged-recovery-qualification")]
+    member_count: u64,
     schedule: u128,
     schedules_checked: u128,
 }
@@ -35,20 +44,34 @@ impl BoundResult {
         );
         let result: Self =
             crate::wire::read(&bytes[8..8 + RECEIPT_LEN]).map_err(|_| ClearingError::Resolution)?;
+        #[cfg(feature = "paged-recovery-qualification")]
+        let expected = result.member_count;
+        #[cfg(not(feature = "paged-recovery-qualification"))]
+        let expected = 8;
         require!(
-            result.epoch == header.epoch && header.count == 8,
+            result.epoch == header.epoch && expected > 0 && header.count == expected,
             ClearingError::Resolution
         );
         Ok(result)
     }
-    fn member(&self, id: u64) -> Result<&MemberResult> {
+    #[cfg(feature = "paged-recovery-qualification")]
+    fn member(&self, row: &FrozenMargin) -> Result<MemberResult> {
+        Ok(MemberResult {
+            id: row.id,
+            claim_delta: row.recovery_payout.claim_delta,
+            movements: row.recovery_payout.movements,
+            cash: row.recovery_payout.final_cash,
+        })
+    }
+    #[cfg(not(feature = "paged-recovery-qualification"))]
+    fn member(&self, row: &FrozenMargin) -> Result<MemberResult> {
         self.members
-            .binary_search_by_key(&id, |row| row.id)
-            .map(|index| &self.members[index])
+            .binary_search_by_key(&row.id, |row| row.id)
+            .map(|index| self.members[index])
             .map_err(|_| ClearingError::Resolution.into())
     }
     pub fn claims(&self, row: &FrozenMargin) -> Result<[i128; 2]> {
-        let member = self.member(row.id)?;
+        let member = self.member(row)?;
         let mut claims = row.claims;
         for (claim, delta) in claims.iter_mut().zip(member.claim_delta) {
             *claim = claim
@@ -60,7 +83,7 @@ impl BoundResult {
     /// The verified protected circulation may differ from the ordinary graph by
     /// individual rounding atoms. Both must use the verified greatest-rate floors.
     pub fn increments(&self, row: &FrozenMargin, flow: &FlowRecord) -> Result<[u64; 3]> {
-        let member = self.member(row.id)?;
+        let member = self.member(row)?;
         let claims = self.claims(row)?;
         for (movement, claim) in member.movements.iter().zip(claims) {
             require!(
@@ -83,13 +106,15 @@ impl BoundResult {
         Ok(increments)
     }
 }
-#[cfg(not(feature = "paged-recovery-qualification"))]
 pub fn bind(
     ctx: &mut Context<BindRecoverySelection>,
     events: &mut crate::event_cpi::Payloads,
     epoch: u64,
     revision: u64,
 ) -> Result<()> {
+    #[cfg(feature = "paged-recovery-qualification")]
+    let mut pages = ctx.remaining_accounts()?;
+    #[cfg(not(feature = "paged-recovery-qualification"))]
     require!(
         ctx.remaining_accounts()?.is_empty(),
         ClearingError::Resolution
@@ -98,22 +123,26 @@ pub fn bind(
     let header = &mut accounts.prepared;
     let proof = &accounts.search;
     accounts.source.frozen().matches(header)?;
+    #[cfg(not(feature = "paged-recovery-qualification"))]
+    require!(header.count == 8, ClearingError::Resolution);
     require!(
         header.stage == single_pair::AWAIT_PAIR
             && header.revision == revision
             && header.epoch == epoch
-            && header.count == 8
+            && header.count > 0
             && proof.prepared == *header.address()
             && proof.epoch == epoch
             && proof.revision == revision
             && proof.stage == 4
             && proof.count != 0
             && proof.cursor == proof.count
-            && proof.rows.len() == 8
+            && proof.rows.len() as u64 == header.count
+            && proof.cash.len() == proof.rows.len()
+            && proof.movements.len() == proof.rows.len()
             && proof.retained_fees == header.fees,
         ClearingError::Resolution
     );
-    let mut net = [[0i128; 2]; 8];
+    let mut net = vec![[0i128; 2]; proof.rows.len()];
     let mut charges = [0u64; 2];
     for leg in search::charges(&proof.edges, proof.proposed) {
         let index = |member| {
@@ -128,7 +157,10 @@ pub fn bind(
             .checked_add(leg.atoms)
             .ok_or(ClearingError::Arithmetic)?;
     }
+    #[cfg(not(feature = "paged-recovery-qualification"))]
     let mut members = [MemberResult::default(); 8];
+    #[cfg(feature = "paged-recovery-qualification")]
+    let mut members = vec![MemberResult::default(); proof.rows.len()];
     let mut payouts = RecoveryPayoutScan::default();
     for (index, member) in members.iter_mut().enumerate() {
         let row = &proof.rows[index];
@@ -167,16 +199,40 @@ pub fn bind(
         search: *proof.address(),
         charges,
         insurance_spent: spent,
+        #[cfg(not(feature = "paged-recovery-qualification"))]
         members,
+        #[cfg(feature = "paged-recovery-qualification")]
+        member_count: header.count,
         schedule: proof.proposed,
         schedules_checked: proof.count,
     };
+    #[cfg(feature = "paged-recovery-qualification")]
+    paged::store(header, &proof.rows, &members, &mut pages)?;
     let bytes = &mut header.state.membership;
     bytes.fill(0);
     bytes[..8].copy_from_slice(MARKER);
     crate::wire::write(&result, &mut bytes[8..8 + RECEIPT_LEN])
         .map_err(|_| ClearingError::Resolution)?;
     header.stage = DENOMINATOR;
+    #[cfg(feature = "paged-recovery-qualification")]
+    return events.emit(
+        &crate::events::PagedRecoverySelectionBound {
+            venue: header.venue,
+            epoch,
+            search: *proof.address(),
+            schedule: proof.proposed,
+            schedules_checked: proof.count,
+            member_ids: members.iter().map(|row| row.id).collect(),
+            claim_deltas: members.iter().map(|row| row.claim_delta).collect(),
+            movements: proof.movements.clone(),
+            final_cash: proof.cash.clone(),
+            charge_atoms: charges,
+            insurance_spent: spent,
+            slot: Clock::get()?.slot,
+        },
+        accounts.event_authority.account().clone(),
+    );
+    #[cfg(not(feature = "paged-recovery-qualification"))]
     events.emit(
         &crate::events::RecoverySelectionBound {
             venue: header.venue,
@@ -197,12 +253,4 @@ pub fn bind(
 }
 
 #[cfg(feature = "paged-recovery-qualification")]
-pub fn bind(
-    _: &mut Context<BindRecoverySelection>,
-    _: &mut crate::event_cpi::Payloads,
-    _: u64,
-    _: u64,
-) -> Result<()> {
-    // An expanded proof cannot release a member through the original eight-row receipt.
-    Err(ClearingError::Profile.into())
-}
+mod paged;

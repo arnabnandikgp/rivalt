@@ -7,8 +7,9 @@ source = json.loads(Path(sys.argv[1]).read_text())
 names = {"open_search", "capture_member", "derive_pairs", "verify_incumbent",
          "cover_plan", "cover_range", "seal_search", "bind_recovery_selection"}
 instructions = [item for item in source["instructions"] if item["name"] in names]
-accounts = [item for item in source["accounts"] if item["name"] == "PagedRecoverySearch"]
-assert len(instructions) == len(names) and len(accounts) == 1
+accounts = [item for item in source["accounts"] if item["name"] in {"PagedRecoverySearch", "FrozenMarginPage"}]
+events = [item for item in source["events"] if item["name"] == "PagedRecoverySelectionBound"]
+assert len(instructions) == len(names) and len(accounts) == 2 and len(events) == 1
 
 def references(value):
     if isinstance(value, dict):
@@ -21,7 +22,7 @@ def references(value):
             yield from references(child)
 
 definitions = {item["name"]: item for item in source["types"]}
-required = {accounts[0]["name"], *references(instructions)}
+required = {item["name"] for item in accounts + events} | set(references(instructions))
 pending = list(required)
 while pending:
     new = set(references(definitions[pending.pop()])) - required
@@ -29,7 +30,7 @@ while pending:
     pending.extend(new)
 subset = {
     "address": source["address"], "metadata": source["metadata"],
-    "instructions": instructions, "accounts": accounts,
+    "instructions": instructions, "accounts": accounts, "events": events,
     "types": [item for item in source["types"] if item["name"] in required],
     "errors": [item for item in source["errors"] if 7100 <= item["code"] <= 7107],
 }

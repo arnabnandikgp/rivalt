@@ -869,3 +869,20 @@ pub struct RecoverySelectionBound {
     pub final_cash: [u64; 8],
     pub slot: u64,
 }
+
+#[cfg(feature = "paged-recovery-qualification")]
+#[event]
+pub struct PagedRecoverySelectionBound {
+    pub venue: Address,
+    pub epoch: u64,
+    pub search: Address,
+    pub schedule: u128,
+    pub schedules_checked: u128,
+    pub charge_atoms: [u64; 2],
+    pub insurance_spent: [u64; 2],
+    pub member_ids: Vec<u64>,
+    pub claim_deltas: Vec<[i64; 2]>,
+    pub movements: Vec<[i64; 2]>,
+    pub final_cash: Vec<u64>,
+    pub slot: u64,
+}

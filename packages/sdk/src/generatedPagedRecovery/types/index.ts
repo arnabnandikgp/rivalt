@@ -6,6 +6,8 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./frozenMargin.js";
+export * from "./frozenRecoveryPayout.js";
 export * from "./priorities.js";
 export * from "./rateWitness.js";
 export * from "./searchEdge.js";
