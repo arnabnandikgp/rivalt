@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "f4390c9d7b612427f0fdbd9eb1ffdf62006ab26bbc32f02924e0a5ef31ce5cdf",
+    "clearing": "2f93e13d011474086a8ca70986f875b264c2894a28eb2fc8fd48ab60cb3ae9f0",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },

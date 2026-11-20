@@ -1,5 +1,8 @@
 //! Constant-size, proposal-specific proof of a market's ordered winner totals.
-use super::{recovery::{RecoverySource,__client_accounts_recoverysource,__cpi_accounts_recoverysource}, *};
+use super::{
+    recovery::{__client_accounts_recoverysource, __cpi_accounts_recoverysource, RecoverySource},
+    *,
+};
 
 #[derive(
     AnchorSerialize, AnchorDeserialize, InitSpace, IdlType, Clone, Copy, Default, PartialEq, Eq,
@@ -44,6 +47,7 @@ pub struct WinnerAllocationProof {
     pub sides: [WinnerSide; 2],
     pub episode: [WinnerRange; 2],
     pub lots: [WinnerRange; 2],
+    pub target_digest: [u8; 32],
     pub recovered: [u128; 2],
     pub winner_lots: u128,
     pub debtor_lots: u128,

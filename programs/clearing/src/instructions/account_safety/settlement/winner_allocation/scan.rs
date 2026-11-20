@@ -116,6 +116,13 @@ pub fn open(
     proof.original_attempt = attempt;
     proof.market = market;
     proof.cutoffs = cutoffs;
+    proof.target_digest = solana_sha256_hasher::hashv(&[
+        b"Rivalt/winner-targets/v1\0",
+        header.venue.as_ref(),
+        &epoch.to_le_bytes(),
+        &[market],
+    ])
+    .to_bytes();
     proof.revision = 1;
     Ok(())
 }
@@ -280,7 +287,7 @@ fn score_page(
         let linked = row.claims[market] > 0
             && row.claims[1 - market] < 0
             && row.claims[1 - market].unsigned_abs() > u128::from(row.collected) * SCALE as u128;
-        if weight > 0 {
+        let charge = if weight > 0 {
             let holder = priority(&header.venue, header.epoch, row.id);
             let cutoff =
                 proof.cutoffs[usize::from(linked)].marginal(&header.venue, header.epoch, 0)?;
@@ -295,7 +302,17 @@ fn score_page(
                     rate.matched(atoms).ok()
                 })
                 .ok_or(ClearingError::Resolution)?;
-        }
+            charge
+        } else {
+            0
+        };
+        proof.target_digest = solana_sha256_hasher::hashv(&[
+            &proof.target_digest,
+            &row.id.to_le_bytes(),
+            &weight.to_le_bytes(),
+            &charge.to_le_bytes(),
+        ])
+        .to_bytes();
         proof.debtor_lots += u128::from(
             inventory
                 .debtor_floor(lots, row.original_debtor_budgets[market])

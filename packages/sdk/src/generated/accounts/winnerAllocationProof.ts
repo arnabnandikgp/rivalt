@@ -85,6 +85,7 @@ export type WinnerAllocationProof = {
   sides: Array<WinnerSide>;
   episode: Array<WinnerRange>;
   lots: Array<WinnerRange>;
+  targetDigest: ReadonlyUint8Array;
   recovered: Array<bigint>;
   winnerLots: bigint;
   debtorLots: bigint;
@@ -107,6 +108,7 @@ export type WinnerAllocationProofArgs = {
   sides: Array<WinnerSideArgs>;
   episode: Array<WinnerRangeArgs>;
   lots: Array<WinnerRangeArgs>;
+  targetDigest: ReadonlyUint8Array;
   recovered: Array<number | bigint>;
   winnerLots: number | bigint;
   debtorLots: number | bigint;
@@ -133,6 +135,7 @@ export function getWinnerAllocationProofEncoder(): FixedSizeEncoder<WinnerAlloca
       ["sides", getArrayEncoder(getWinnerSideEncoder(), { size: 2 })],
       ["episode", getArrayEncoder(getWinnerRangeEncoder(), { size: 2 })],
       ["lots", getArrayEncoder(getWinnerRangeEncoder(), { size: 2 })],
+      ["targetDigest", fixEncoderSize(getBytesEncoder(), 32)],
       ["recovered", getArrayEncoder(getU128Encoder(), { size: 2 })],
       ["winnerLots", getU128Encoder()],
       ["debtorLots", getU128Encoder()],
@@ -164,6 +167,7 @@ export function getWinnerAllocationProofDecoder(): FixedSizeDecoder<WinnerAlloca
     ["sides", getArrayDecoder(getWinnerSideDecoder(), { size: 2 })],
     ["episode", getArrayDecoder(getWinnerRangeDecoder(), { size: 2 })],
     ["lots", getArrayDecoder(getWinnerRangeDecoder(), { size: 2 })],
+    ["targetDigest", fixDecoderSize(getBytesDecoder(), 32)],
     ["recovered", getArrayDecoder(getU128Decoder(), { size: 2 })],
     ["winnerLots", getU128Decoder()],
     ["debtorLots", getU128Decoder()],
@@ -272,5 +276,5 @@ export async function fetchAllMaybeWinnerAllocationProof(
 }
 
 export function getWinnerAllocationProofSize(): number {
-  return 540;
+  return 572;
 }

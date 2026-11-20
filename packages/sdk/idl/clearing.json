@@ -33771,6 +33771,15 @@
             }
           },
           {
+            "name": "target_digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
             "name": "recovered",
             "type": {
               "array": [
