@@ -7,9 +7,11 @@ import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {qualifySettlementRates} from './scalable-settlement-rates-rpc.js';
 import {denominatorPages} from './settlement-page-plan.js';
 
+import {verifyForeignProtection,type ProtectionReference} from './foreign-protection-scan.js';
+
 export async function verifyPopulatedOriginalRates(
   h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>,
-  rows: {cash:bigint;claims:bigint[]}[], members: Address[], expectedCommon: bigint, expectedBudgets?:bigint[][],
+  rows: {cash:bigint;claims:bigint[]}[], members: Address[], expectedCommon: bigint, expectedBudgets?:bigint[][], protection?:ProtectionReference,
 ) {
   const [prepared] = await sdk.deriveSettlementWorkspace(setup.venue, 'prepared');
   const header = async () => sdk.getPreparedSettlementDecoder().decode((await h.read(prepared))!);
@@ -64,10 +66,19 @@ export async function verifyPopulatedOriginalRates(
     ...common,rates:verified.rates,plan})],[],sdk.CLEARING_ERROR__RESOLUTION);
   assert.deepEqual(await readAll(protectedKeys),preAttempt);
   assert.deepEqual(await readAll(financial),before);
+  let foreignChargeCaps:string[]|undefined;
   if(expectedBudgets) {
     const keys=[3,4,5,19,20,21,22].map(index=>limbs[index]);
     const revisions=await Promise.all(keys.map(async key=>sdk.getSettlementLimbPageDecoder().decode((await h.read(key))!).revision));
     const decoder=sdk.getOriginalBudgetPageDecoder();
+    if(protection) {
+      const pending=await h.read(prepared);
+      const state=sdk.getPreparedSettlementDecoder().decode(pending!);
+      await h.send('reject foreign cap scan before page budgets',[sdk.getScanForeignProtectionInstruction({
+        ...common,rates:verified.rates,page:pages[0],pageIndex:0n,attempt:verified.state.attempt,
+        revision:state.revision,pageRevisions:Array<bigint>(7).fill(0n)})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      assert.deepEqual(await h.read(prepared),pending);
+    }
     for(const [index,page] of pages.entries()) {
       const original=decoder.decode((await h.read(page))!);
       assert.equal(original.originalBudgetAttempt,0n);
@@ -95,9 +106,16 @@ export async function verifyPopulatedOriginalRates(
         assert.deepEqual(await h.read(page),bytes);
       }
     }
+    if(protection) {
+      foreignChargeCaps=await verifyForeignProtection(h,setup,prepared,verified.rates,verified.state.attempt,pages,keys,revisions,protection);
+      const frozen=await readAll(protectedKeys);
+      await h.send('foreign cap verification cannot authorize payout',[sdk.getInitializeSettlementPlanInstruction({
+        ...common,rates:verified.rates,plan})],[],sdk.CLEARING_ERROR__RESOLUTION);
+      assert.deepEqual(await readAll(protectedKeys),frozen);
+    }
     assert.deepEqual(await readAll([setup.resolution,...members]),before.slice(0,members.length+1));
   }
-  return {budgetRows:expectedBudgets?.length??0,rows:accepted,denominatorContinuations:continuations,rateContinuations:verified.continuations,
+  return {foreignChargeCaps,budgetRows:expectedBudgets?.length??0,rows:accepted,denominatorContinuations:continuations,rateContinuations:verified.continuations,
     verifiedPrefixes:verified.observedPrefixes,rounds:verified.reference.evaluations.length,
     factorBits:BigInt(verified.reference.evaluations[0].proposal[0]).toString(2).length,
     originalRateBits:verified.reference.evaluations[0].proposal.slice(1).map(value=>BigInt(value).toString(2).length),

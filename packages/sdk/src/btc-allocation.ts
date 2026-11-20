@@ -119,3 +119,26 @@ export function linkedAllocationReceipt(header:PreparedSettlement) {
     &&[10,14].every(start=>word(start)>0n&&word(start)<=word(start+1)),'Invalid linked allocation receipt.');
   return {epoch,attempt,debtorId,shares,targets,cursor,recovered,committed};
 }
+
+/** The linked charge caps become available only after every frozen page has been consumed. */
+export function foreignProtectionProgress(header:PreparedSettlement) {
+  const bytes=Uint8Array.from(header.state.membership);
+  if(new TextDecoder().decode(bytes.subarray(0,8))!=='RVBOUND1')return null;
+  const view=new DataView(bytes.buffer);
+  const word=(offset:number)=>view.getBigUint64(offset,true);
+  const pair=(offset:number,words:number)=>{
+    const magnitude=(start:number)=>{
+      let value=0n;
+      for(let index=words-1;index>=0;index--)value=(value<<64n)+word(start+8*index);
+      return value;
+    };
+    return [magnitude(offset),magnitude(offset+8*words)] as const;
+  };
+  const epoch=word(8),attempt=word(16),members=word(24);
+  const ownCashUpper=pair(32,3),linkedFace=pair(80,3),incomingDebt=pair(128,3);
+  const budget=pair(176,2),caps=pair(208,2),complete=members===header.count;
+  requireValue(header.stage===21 && epoch===header.epoch && attempt>0n && members>0n && members<=header.count
+    && (complete || members%8n===0n) && bytes.subarray(240).every(value=>value===0)
+    && caps.every((cap,index)=>cap<=budget[index] && (complete||cap===0n)), 'Invalid foreign protection scan.');
+  return {epoch,attempt,members,ownCashUpper,linkedFace,incomingDebt,budget,linkedCaps:complete?caps:null};
+}
