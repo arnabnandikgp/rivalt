@@ -16,8 +16,9 @@ const directory=process.env.RIVALT_RUN_DIR!;
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const integrated=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-funding';
-const ledgerLanes=integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-funding';
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,integrated?'integrated':ledgerLanes?'ledger':'lane');
+const successor=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-successor-funding';
+const ledgerLanes=successor||integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-funding';
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,successor?'successor':integrated?'integrated':ledgerLanes?'ledger':'lane');
 const {h,rpc,ws,flush,checks}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
