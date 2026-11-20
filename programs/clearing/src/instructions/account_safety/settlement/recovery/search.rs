@@ -1,79 +1,12 @@
 //! Restartable verification of every schedule against an authenticated, one-page book.
 //! Ties use the frozen-book financial priorities. Incomparable plans stay unsealed.
-use super::priority::{episode_order, Priorities};
+use super::priority::episode_order;
 use super::*;
 use default_plan_selection::joint::{Charge, FrozenBook, Member, Receipt, Witness};
 use financial_core::clearing::row::Row;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::ToPrimitive;
-
-const MEMBERS: usize = 8;
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, IdlType)]
-pub struct SearchMember {
-    pub id: u64,
-    pub cash: u64,
-    pub claims: [i128; 2],
-    pub lots: [i64; 2],
-    pub histories: [[u8; 256]; 2],
-}
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, IdlType, Clone, Copy)]
-pub struct SearchEdge {
-    pub market: u8,
-    pub debtor: u64,
-    pub winner: u64,
-    pub maximum: u64,
-}
-#[account(borsh)]
-#[derive(InitSpace)]
-pub struct RecoverySearch {
-    pub prepared: Address,
-    pub epoch: u64,
-    pub revision: u64,
-    pub proposed: u128,
-    pub count: u128,
-    pub cursor: u128,
-    pub stage: u8,
-    pub score_num: i128,
-    pub score_den: u128,
-    pub cash: [u64; 8],
-    pub movements: [[i64; 2]; MEMBERS],
-    pub remaining_insurance: [u64; 2],
-    pub retained_fees: [u64; 2],
-    pub original: RateWitness,
-    #[max_len(8)]
-    pub rows: Vec<SearchMember>,
-    // Two markets times eight possible debtors times seven other members.
-    #[max_len(112)]
-    pub edges: Vec<SearchEdge>,
-    pub budgets: [[u64; 2]; MEMBERS],
-    pub weights: [[u64; 2]; MEMBERS],
-    pub priority: Priorities,
-}
-#[derive(Accounts)]
-#[instruction(nonce:u64)]
-pub struct OpenSearch {
-    #[account(mut)]
-    pub payer: Signer,
-    #[account(init,payer=payer,space=8+RecoverySearch::INIT_SPACE,seeds=[b"search",payer.address().as_ref(),&nonce.to_le_bytes()],bump)]
-    pub search: Box<BorshAccount<RecoverySearch>>,
-    pub source: Nested<RecoverySource>,
-    pub system_program: Program<System>,
-}
-#[derive(Accounts)]
-pub struct CaptureSearch {
-    #[account(mut)]
-    pub search: Box<BorshAccount<RecoverySearch>>,
-    pub source: Nested<RecoverySource>,
-    pub page: Box<BorshAccount<FrozenMarginPage>>,
-    pub margin: Box<BorshAccount<MarginAccount>>,
-}
-#[derive(Accounts)]
-pub struct AdvanceSearch {
-    #[account(mut)]
-    pub search: Box<BorshAccount<RecoverySearch>>,
-    pub source: Nested<RecoverySource>,
-}
 
 pub fn open(
     accounts: &mut OpenSearch,

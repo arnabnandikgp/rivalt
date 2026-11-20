@@ -1,9 +1,6 @@
 //! Durable, verified priorities for a one-page diagnostic. Equal-total plans
 //! with incomparable financial profiles require a separate reflection proof.
-use super::{
-    search::{RecoverySearch, SearchMember},
-    *,
-};
+use super::*;
 use core::cmp::Ordering;
 use default_plan_selection::{
     joint::{Charge, Receipt},
@@ -12,11 +9,6 @@ use default_plan_selection::{
 };
 use num_traits::ToPrimitive;
 
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Default, Clone, Copy)]
-pub struct StoredRatio {
-    numerator: i128,
-    denominator: u128,
-}
 impl StoredRatio {
     fn pack(value: Ratio) -> Result<Self> {
         let Ratio(numerator, denominator) = value.reduced();
@@ -28,12 +20,6 @@ impl StoredRatio {
     fn value(self) -> Ratio {
         Ratio(self.numerator.into(), self.denominator.into())
     }
-}
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Default, Clone, Copy)]
-pub struct Priorities {
-    fractions: [StoredRatio; 2],
-    deviation: [StoredRatio; 2],
-    costs: [[u128; 2]; 2],
 }
 fn ordinal(rows: &[SearchMember], member: u64) -> Result<usize> {
     rows.binary_search_by_key(&member, |row| row.id)

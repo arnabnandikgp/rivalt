@@ -14,9 +14,10 @@ mod search;
 mod source;
 use clearing as clearing_program;
 use clearing::frozen_history as read_profit_history;
-use inputs::*;
+#[path = "../../../../programs/clearing/src/instructions/account_safety/settlement/recovery/layout.rs"]
+mod layout;
+use layout::*;
 use kernel::*;
-use search::*;
 mod verify;
 declare_id!("92GA4Cm7NZq8GEwY5r7zLwdLeYLuQYa79Ut9f3gAQ8U7");
 

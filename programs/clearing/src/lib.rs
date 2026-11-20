@@ -56,14 +56,11 @@ pub mod state;
 pub use error::ClearingError;
 pub use events::*;
 pub use instructions::*;
-#[cfg(feature="recovery-search-qualification")]
 pub use instructions::account_safety::settlement::recovery::{AdvanceSearch, CaptureSearch, OpenSearch, RateWitness};
-#[cfg(feature="recovery-search-qualification")]
-pub(crate) use instructions::account_safety::settlement::recovery::search::{__client_accounts_opensearch,__client_accounts_capturesearch,__client_accounts_advancesearch};
+pub(crate) use instructions::account_safety::settlement::recovery::layout::{__client_accounts_opensearch,__client_accounts_capturesearch,__client_accounts_advancesearch};
 pub use state::*;
 pub use state::accounts::SettlementPageAccess;
 
-#[cfg(feature="recovery-search-qualification")]
 pub use instructions::account_safety::settlement::{BindRecoverySelection,__client_accounts_bindrecoveryselection};
 #[cfg(all(feature="recovery-search-qualification",any(feature="linked-allocation-qualification",feature="shared-inventory-qualification",feature="btc-allocation-qualification")))]
 compile_error!("The clearing-owned recovery qualification has a separate terminal adoption contract");
@@ -80,54 +77,73 @@ declare_id!("BbLhJdwymg9aGCtdrcxkFsBwP3L8N9NbGJucq37sS2jv");
 ))]
 compile_error!("local and devnet financial profiles are mutually exclusive");
 
+// Keep instruction layouts available to Anchor IDL generation in every build.
+macro_rules! local_recovery {
+    ($body:block) => {{
+        #[cfg(feature = "recovery-search-qualification")]
+        $body
+        #[cfg(not(feature = "recovery-search-qualification"))]
+        { Err(ClearingError::Profile.into()) }
+    }};
+}
+
 /// Financial paths require the explicit qualified local profile.
 // Consumers import state only; RC2 no-entrypoint alone still exports a dispatch symbol.
 #[cfg(not(feature = "state-only"))]
 #[program]
 pub mod clearing {
     use super::*;
-    #[cfg(feature="recovery-search-qualification")]
     pub fn open_search(
         ctx: &mut Context<OpenSearch>,
-        _nonce: u64,
+        nonce: u64,
         epoch: u64,
         rank: u128,
         original: RateWitness,
     ) -> Result<()> {
-        account_safety::settlement::recovery::search::open(&mut ctx.accounts, epoch, rank, original)
+        local_recovery!({
+            let _ = nonce; // The OpenSearch context binds this seed.
+            account_safety::settlement::recovery::search::open(&mut ctx.accounts, epoch, rank, original)
+        })
     }
-    #[cfg(feature="recovery-search-qualification")]
     pub fn capture_member(ctx: &mut Context<CaptureSearch>, ordinal: u64) -> Result<()> {
-        account_safety::settlement::recovery::search::capture(&mut ctx.accounts, ordinal)
+        local_recovery!({
+            account_safety::settlement::recovery::search::capture(&mut ctx.accounts, ordinal)
+        })
     }
-    #[cfg(feature="recovery-search-qualification")]
     pub fn derive_pairs(ctx: &mut Context<AdvanceSearch>) -> Result<()> {
-        account_safety::settlement::recovery::search::dimensions(&mut ctx.accounts)
+        local_recovery!({
+            account_safety::settlement::recovery::search::dimensions(&mut ctx.accounts)
+        })
     }
-    #[cfg(feature="recovery-search-qualification")]
     pub fn verify_incumbent(ctx: &mut Context<AdvanceSearch>, after: RateWitness) -> Result<()> {
-        account_safety::settlement::recovery::search::propose(&mut ctx.accounts, after)
+        local_recovery!({
+            account_safety::settlement::recovery::search::propose(&mut ctx.accounts, after)
+        })
     }
-    #[cfg(feature="recovery-search-qualification")]
     pub fn cover_plan(
         ctx: &mut Context<AdvanceSearch>,
         rank: u128,
         after: RateWitness,
     ) -> Result<()> {
-        account_safety::settlement::recovery::search::leaf(&mut ctx.accounts, rank, after)
+        local_recovery!({
+            account_safety::settlement::recovery::search::leaf(&mut ctx.accounts, rank, after)
+        })
     }
-    #[cfg(feature="recovery-search-qualification")]
     pub fn cover_range(ctx: &mut Context<AdvanceSearch>, first: u128, last: u128) -> Result<()> {
-        account_safety::settlement::recovery::search::skip(&mut ctx.accounts, first, last)
+        local_recovery!({
+            account_safety::settlement::recovery::search::skip(&mut ctx.accounts, first, last)
+        })
     }
-    #[cfg(feature="recovery-search-qualification")]
     pub fn seal_search(ctx: &mut Context<AdvanceSearch>) -> Result<()> {
-        account_safety::settlement::recovery::search::close(&mut ctx.accounts)
+        local_recovery!({
+            account_safety::settlement::recovery::search::close(&mut ctx.accounts)
+        })
     }
-    #[cfg(feature="recovery-search-qualification")]
     pub fn bind_recovery_selection(ctx:&mut Context<BindRecoverySelection>, epoch:u64,revision:u64) -> Result<()> {
-        scoped_history::run(ctx, [232, 106, 150, 46, 25, 38, 74, 226], false, |ctx,events|
-            account_safety::settlement::recovery::binding::bind(ctx,events,epoch,revision))
+        local_recovery!({
+            scoped_history::run(ctx, [232, 106, 150, 46, 25, 38, 74, 226], false, |ctx,events|
+                account_safety::settlement::recovery::binding::bind(ctx,events,epoch,revision))
+        })
     }
     pub fn verify_inventory_book(ctx: &mut Context<VerifyInventoryBook>, epoch:u64,revision:u64,ordinals:Vec<u64>) -> Result<()> {
         scoped_history::run_frozen_pages(ctx,[144,97,136,219,210,27,178,218],|ctx,events|

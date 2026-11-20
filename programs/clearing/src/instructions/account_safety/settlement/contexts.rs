@@ -701,9 +701,7 @@ pub struct VerifyInventoryBook {
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
 }
 
-#[cfg(feature="recovery-search-qualification")]
 use super::recovery::RecoverySearch;
-#[cfg(feature="recovery-search-qualification")]
 #[event_cpi]
 #[derive(Accounts)]
 #[instruction(epoch:u64)]
