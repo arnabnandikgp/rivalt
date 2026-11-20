@@ -93,7 +93,11 @@ pub struct FrozenMarginPage {
     pub epoch: u64,
     pub page_index: u64,
     pub row_count: u8,
+    #[cfg(not(feature = "populated-recovery-qualification"))]
     pub rows: [FrozenMargin; 8],
+    // Keep the fixed-width Borsh array on the heap while Anchor loads the page.
+    #[cfg(feature = "populated-recovery-qualification")]
+    pub rows: Box<[FrozenMargin; 8]>,
     #[cfg(feature = "populated-recovery-qualification")]
     pub original_budget_attempt: u64,
     pub bump: u8,
