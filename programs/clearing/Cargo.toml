@@ -23,6 +23,7 @@ bounded-market-read = ["aggregate-fee-qualification", "financial-core/parallel-m
 aggregate-fee-qualification = ["multi-lot-book-qualification"]
 multi-lot-book-qualification = ["book-inventory-qualification", "default-plan-selection/compact-book"]
 book-inventory-qualification = ["partial-inventory-qualification"]
+populated-recovery-qualification = ["partitioned-recovery-inputs"]
 partitioned-recovery-inputs = ["local-successor-qualification"]
 local-successor-qualification = ["paged-recovery-qualification", "integrated-recovery-qualification"]
 paged-recovery-qualification = ["recovery-search-qualification"]

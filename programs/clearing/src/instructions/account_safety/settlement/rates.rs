@@ -29,7 +29,7 @@ fn rounds(header: &PreparedSettlement, rates: &SettlementRates) -> Result<Insura
 #[inline(never)]
 pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Result<RateInput> {
     require!(
-        header.stage == PROPOSAL
+        rate_stage(header.stage)
             && rates.schema_version == SETTLEMENT_SCHEMA
             && rates.venue == header.venue
             && rates.epoch == header.epoch,
@@ -45,7 +45,7 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
             .and_then(|scan| scan.result()),
     )?;
     #[cfg(feature="single-pair-default-qualification")]
-    let totals = {
+    let totals = if original_rates(header.stage) { totals } else {
         #[cfg(all(feature="linked-pair-qualification", not(feature="recovery-search-qualification")))]
         let linked = super::linked_pair::Joint::read(header)?;
         #[cfg(all(feature="linked-pair-qualification", not(feature="recovery-search-qualification")))]
@@ -102,7 +102,7 @@ pub(super) fn verified_rates(
     [u64; 2],
 )> {
     require!(
-        rates.stage == VERIFIED_RATE && rates.attempt > 0,
+        header.stage == PROPOSAL && rates.stage == VERIFIED_RATE && rates.attempt > 0,
         ClearingError::Resolution
     );
     let insurance = rounds(header, rates)?;
@@ -148,7 +148,7 @@ pub fn initialize_rates(ctx: &mut Context<InitializeSettlementRates>, _epoch: u6
     let accounts = &mut ctx.accounts;
     accounts.source.frozen().matches(&accounts.prepared)?;
     require!(
-        accounts.prepared.stage == PROPOSAL,
+        rate_stage(accounts.prepared.stage),
         ClearingError::Resolution
     );
     super::workspace::reset_rates(&mut accounts.rates, &accounts.source.storage, accounts.prepared.epoch)?;
@@ -358,7 +358,12 @@ pub fn accept_rate_row(
         ClearingError::Resolution
     );
     let frozen = &accounts.page.rows[(ordinal % 8) as usize];
-    let effective = Row { cash: frozen.cash, claims: super::single_pair::economic_claims(&accounts.prepared,frozen)? };
+    let claims = if original_rates(accounts.prepared.stage) {
+        frozen.claims
+    } else {
+        super::single_pair::economic_claims(&accounts.prepared, frozen)?
+    };
+    let effective = Row { cash: frozen.cash, claims };
     #[cfg(feature="linked-pair-qualification")]
     let accepted = work.accept_reduction(ordinal, frozen.id, Row { cash: frozen.cash, claims: frozen.claims }, effective);
     #[cfg(not(feature="linked-pair-qualification"))]

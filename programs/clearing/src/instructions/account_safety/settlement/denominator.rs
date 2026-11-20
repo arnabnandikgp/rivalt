@@ -3,7 +3,7 @@ use crate::instructions::account_safety::settlement_pages::{PageVersion, PageWin
 use financial_core::clearing::scalable::pages::{PagePlan, PAGE_WORDS};
 
 fn cursor(header: &PreparedSettlement) -> Result<DenominatorPass> {
-    require!(header.stage == DENOMINATOR, ClearingError::Resolution);
+    require!(denominator_stage(header.stage), ClearingError::Resolution);
     let capacity =
         required_limbs(header.count).map_err(|_| ProgramError::from(ClearingError::Arithmetic))?;
     DenominatorPass::from_checkpoint(&header.state.denominator, header.count, capacity)
@@ -49,8 +49,8 @@ pub fn initialize_limb_page(
     let capacity = required_limbs(accounts.prepared.count)
         .map_err(|_| ProgramError::from(ClearingError::Arithmetic))?;
     require!(
-        ((accounts.prepared.stage <= DENOMINATOR && register <= 2)
-            || (accounts.prepared.stage == PROPOSAL && (3..=24).contains(&register)))
+        (((accounts.prepared.stage <= VALUE || denominator_stage(accounts.prepared.stage)) && register <= 2)
+            || (rate_stage(accounts.prepared.stage) && (3..=24).contains(&register)))
             && page_index < capacity.div_ceil(PAGE_WORDS),
         ClearingError::Resolution
     );
@@ -103,7 +103,7 @@ pub fn accept_denominator_row(
         .map_err(|_| ProgramError::from(ClearingError::Resolution))?;
     accounts.prepared.state.denominator = work.checkpoint();
     if work.is_done() {
-        accounts.prepared.stage = PROPOSAL;
+        accounts.prepared.stage = after_denominator(accounts.prepared.stage)?;
     }
     Ok(())
 }
@@ -158,7 +158,7 @@ pub(crate) fn continue_denominator(
     // Calling PageWindow::commit here would double-increment them.
     accounts.prepared.state.denominator = work.checkpoint();
     if work.is_done() {
-        accounts.prepared.stage = PROPOSAL;
+        accounts.prepared.stage = after_denominator(accounts.prepared.stage)?;
     }
     Ok(())
 }

@@ -39,6 +39,27 @@ pub const PREPARE_INDEX: u8 = 0;
 pub const VALUE: u8 = 1;
 pub const DENOMINATOR: u8 = 2;
 pub const PROPOSAL: u8 = 3;
+// Original-rate work in the dense recovery profile precedes plan selection.
+// Only the effective settlement can advance to payout planning.
+pub const ORIGINAL_DENOMINATOR: u8 = 20;
+pub const ORIGINAL_RATES: u8 = 21;
+
+fn denominator_stage(stage: u8) -> bool {
+    stage == DENOMINATOR || (cfg!(feature = "populated-recovery-qualification") && stage == ORIGINAL_DENOMINATOR)
+}
+fn original_rates(stage: u8) -> bool {
+    cfg!(feature = "populated-recovery-qualification") && stage == ORIGINAL_RATES
+}
+fn rate_stage(stage: u8) -> bool {
+    stage == PROPOSAL || original_rates(stage)
+}
+fn after_denominator(stage: u8) -> Result<u8> {
+    match stage {
+        DENOMINATOR => Ok(PROPOSAL),
+        ORIGINAL_DENOMINATOR if cfg!(feature = "populated-recovery-qualification") => Ok(ORIGINAL_RATES),
+        _ => Err(ClearingError::Resolution.into()),
+    }
+}
 
 pub(crate) fn snapshot_binding(header: &PreparedSettlement) -> SnapshotBinding {
     SnapshotBinding {
@@ -173,7 +194,9 @@ pub(crate) fn finish_value(header: &mut PreparedSettlement) -> Result<()> {
     header.state.denominator = DenominatorPass::new(header.count, capacity)
         .map_err(|_| ProgramError::from(ClearingError::Arithmetic))?
         .checkpoint();
-    header.stage = if cfg!(feature="single-pair-default-qualification") {
+    header.stage = if cfg!(feature="populated-recovery-qualification") {
+        ORIGINAL_DENOMINATOR
+    } else if cfg!(feature="single-pair-default-qualification") {
         single_pair::AWAIT_PAIR
     } else { DENOMINATOR };
     Ok(())
