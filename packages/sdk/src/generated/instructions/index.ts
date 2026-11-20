@@ -92,6 +92,7 @@ export * from "./resetSettlementPlanOrder.js";
 export * from "./resetSettlementRateProposal.js";
 export * from "./retireAccounts.js";
 export * from "./retireMargin.js";
+export * from "./scanForeignProtection.js";
 export * from "./sealLiquidity.js";
 export * from "./sealSearch.js";
 export * from "./seedMarketInsurance.js";

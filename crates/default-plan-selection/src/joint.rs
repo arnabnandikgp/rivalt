@@ -1,6 +1,7 @@
 //! Native admission of a complete proposed BTC/ETH reduction. A successful
 //! receipt establishes feasibility on the supplied cohort, not optimality.
 extern crate alloc;
+pub mod foreign_protection;
 pub mod original_terms;
 mod pair_order;
 use alloc::{collections::BTreeSet, vec::Vec};

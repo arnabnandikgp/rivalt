@@ -57,7 +57,7 @@ impl OriginalRegisters {
         Ok(Box::new(Self { values, pages }))
     }
 
-    fn terms(&self, window: &PageWindow<'_>) -> Result<OriginalTerms> {
+    pub(super) fn terms(&self, window: &PageWindow<'_>) -> Result<OriginalTerms> {
         let read = |position: usize| -> Result<BigUint> {
             let value = self.values[position];
             let mut digits = Vec::with_capacity(2 * value.used as usize);

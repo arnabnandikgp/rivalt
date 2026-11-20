@@ -41,6 +41,10 @@ pub struct OriginalTerms {
 }
 
 impl OriginalTerms {
+    pub(super) fn payment(&self, market: usize) -> (&BigUint, &BigUint) {
+        (&self.payment[market].numerator, &self.payment[market].denominator)
+    }
+
     pub fn from_verified(plan: &Verified<'_>) -> Result<Self> {
         let (rates, denominator) = plan.market_rates();
         Self::from_market_totals(

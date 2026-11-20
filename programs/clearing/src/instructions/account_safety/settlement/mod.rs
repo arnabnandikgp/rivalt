@@ -27,6 +27,8 @@ pub use denominator::*;
 mod handlers;
 #[cfg(feature = "populated-recovery-qualification")]
 pub mod original_budgets;
+#[cfg(feature = "populated-recovery-qualification")]
+pub mod foreign_protection;
 mod rates;
 pub use rates::*;
 mod plan;

@@ -205,6 +205,7 @@ import {
   getResetSettlementRateProposalInstructionAsync,
   getRetireAccountsInstructionAsync,
   getRetireMarginInstructionAsync,
+  getScanForeignProtectionInstructionAsync,
   getSealLiquidityInstructionAsync,
   getSealSearchInstruction,
   getSeedMarketInsuranceInstructionAsync,
@@ -310,6 +311,7 @@ import {
   parseResetSettlementRateProposalInstruction,
   parseRetireAccountsInstruction,
   parseRetireMarginInstruction,
+  parseScanForeignProtectionInstruction,
   parseSealLiquidityInstruction,
   parseSealSearchInstruction,
   parseSeedMarketInsuranceInstruction,
@@ -483,6 +485,7 @@ import {
   type ParsedResetSettlementRateProposalInstruction,
   type ParsedRetireAccountsInstruction,
   type ParsedRetireMarginInstruction,
+  type ParsedScanForeignProtectionInstruction,
   type ParsedSealLiquidityInstruction,
   type ParsedSealSearchInstruction,
   type ParsedSeedMarketInsuranceInstruction,
@@ -520,6 +523,7 @@ import {
   type ResetSettlementRateProposalAsyncInput,
   type RetireAccountsAsyncInput,
   type RetireMarginAsyncInput,
+  type ScanForeignProtectionAsyncInput,
   type SealLiquidityAsyncInput,
   type SealSearchInput,
   type SeedMarketInsuranceAsyncInput,
@@ -1571,6 +1575,7 @@ export enum ClearingInstruction {
   ResetSettlementRateProposal,
   RetireAccounts,
   RetireMargin,
+  ScanForeignProtection,
   SealLiquidity,
   SealSearch,
   SeedMarketInsurance,
@@ -2546,6 +2551,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([73, 181, 70, 177, 190, 240, 37, 225]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ScanForeignProtection;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([31, 143, 152, 241, 90, 106, 88, 11]),
       ),
       0,
@@ -3018,6 +3034,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.RetireMargin;
     } & ParsedRetireMarginInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ScanForeignProtection;
+    } & ParsedScanForeignProtectionInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SealLiquidity;
     } & ParsedSealLiquidityInstruction<TProgram>)
@@ -3683,6 +3702,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseRetireMarginInstruction(instruction),
       };
     }
+    case ClearingInstruction.ScanForeignProtection: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ScanForeignProtection,
+        ...parseScanForeignProtectionInstruction(instruction),
+      };
+    }
     case ClearingInstruction.SealLiquidity: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4317,6 +4343,11 @@ export type ClearingPluginInstructions = {
     input: RetireMarginAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRetireMarginInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  scanForeignProtection: (
+    input: ScanForeignProtectionAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getScanForeignProtectionInstructionAsync> &
     SelfPlanAndSendFunctions;
   sealLiquidity: (
     input: SealLiquidityAsyncInput,
@@ -5246,6 +5277,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getRetireMarginInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          scanForeignProtection: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getScanForeignProtectionInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
