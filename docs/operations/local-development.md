@@ -807,3 +807,10 @@ Use `RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-caps` and
 `RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-7df9585e0c3b99d62b6ffea4c6189609b7dd22e0`
 in the command above. Harness `b43351f8` checks each prefix and the final
 caps before comparing the complete financial checkpoint on fresh SQL replay.
+
+For the holder allocation probe, build that feature at `486d5818` and select
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-winner-allocations` with
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-486d581892d344b3d21a682a7933b5dd3d3dd5db`.
+The independent reference enumerates proportional ties and reconstructs the
+digest of each holder's weight and charge. The signed harness compares each
+page prefix and submits an additional losing proposal.

@@ -77,6 +77,53 @@ impl MarketInventory {
 mod tests {
     use super::*;
     #[test]
+    fn range_shortcuts_agree_with_direct_opposing_lot_enumeration() {
+        for quantities in [[0i64, 1, 3, 5], [2, 2, 2, 2], [1, 1, 5, 6]] {
+            for numerator in 0..=7 {
+                for denominator in 1..=7 {
+                    let rate = LotRate {
+                        numerator,
+                        denominator,
+                    };
+                    for winner in 1..=8i64 {
+                        let mut inventory = MarketInventory::default();
+                        for &quantity in &quantities {
+                            inventory
+                                .include(
+                                    quantity,
+                                    -50 * SCALE,
+                                    LotRate {
+                                        numerator: 0,
+                                        denominator: 1,
+                                    },
+                                    1,
+                                )
+                                .unwrap();
+                        }
+                        let expected = quantities
+                            .iter()
+                            .copied()
+                            .filter(|&q| q > 0 && (q.min(winner) as u64) * numerator >= denominator)
+                            .map(|quantity| quantity as u64)
+                            .sum::<u64>()
+                            .min(winner as u64);
+                        let actual = match inventory.opposing(-winner, 50 * SCALE, rate).unwrap() {
+                            OpposingLots::Known(lots) => lots,
+                            OpposingLots::Scan { minimum } => quantities
+                                .iter()
+                                .map(|&q| q as u64)
+                                .filter(|&q| q >= minimum)
+                                .sum::<u64>()
+                                .min(winner as u64),
+                        };
+                        assert_eq!(actual, expected);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn mixed_debtor_sizes_require_only_the_eligible_rows() {
         let rate = LotRate {
             numerator: 1,

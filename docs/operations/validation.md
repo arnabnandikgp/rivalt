@@ -4099,3 +4099,32 @@ final pair bounds. Six independent financial tests, the exhaustive three-holder
 sharing comparison and a market total above one member's u64 range passed.
 On-chain acceptance of the winning charges, effective settlement and wallet
 exit remains open. [Proof](../clearing/default-plan-verification.md#bounding-charges-to-positions-that-also-pay-a-foreign-creditor)
+
+## Winner charges on the populated freeze
+
+On clearing `486d5818` and harness `f85840f3`, two permissionless proposals
+verified the charges for all 128 frozen members in each market. After every
+eight members the on-chain commitment matched an independent reconstruction.
+At full recovery the BTC winners required at least 423 matched lots and its
+debtors 418. The corresponding ETH floors were 389 and 403. A separate native
+run against these exact RPC inputs found a feasible ordered schedule of 71 BTC
+and 64 ETH pairs attaining both market minima.
+
+| Signed action | Successful calls per market | Transaction bytes | Landed CU |
+|---|---:|---:|---:|
+| Open the proposed thresholds | 1 | 437 | 6,540–8,195 |
+| Read frozen opposite positions | 16 | 380 | 5,698–6,428 |
+| Verify eight member charges | 16 | 380 | 11,650–31,034 |
+
+Each passing proposal cost 165,000 local test lamports in fees and occupied
+a separate 572-byte account holding 3,556,000 rent lamports. A worse threshold
+failed its final comparison after scanning the full book. Substituting a frozen
+page, replaying work and asking for payout at this stage also failed. The run
+finalized 2,154 signed outcomes, reproduced 1,286 financial events in fresh
+PostgreSQL and reconciled 405 accounts, including all 128 members. The SPL
+vault and allocated collateral each held 332,907,140 atoms.
+
+The populated book used the direct inventory path. Native tests covered
+mixed opposite-side position sizes and sub-atom rates across 1,344 combinations.
+On-chain pair execution, adjusted cash settlement and wallet exit for this freeze
+remain open. [Verification contract](../clearing/default-plan-verification.md)

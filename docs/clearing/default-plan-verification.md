@@ -1266,3 +1266,32 @@ Matching the larger of the verified winner and debtor lot floors certifies
 the minimum matched lots. The final pair-prefix comparison still uses the
 admitted fills. [Protection arithmetic](../../crates/default-plan-selection/src/joint/foreign_protection.rs)
 · [Sharing check](../../crates/default-plan-selection/src/linked_sharing.rs)
+
+### Verifying a proposed winner allocation
+
+A proposer specifies two cutoffs per market, one for holders that owe the
+other market and one for the remaining holders. Each cutoff names the last
+included marginal atom, its holder and the holder's eligible gain. Within
+each set, the cost of the holder's kth atom is `(2k - 1) / eligible_gain`.
+Exact ties use the existing frozen-episode member order. A zero cutoff
+proposes an empty set. Cutoffs determine a full allocation, so the proposer
+cannot change an individual holder's charge during verification.
+
+A separate clearing-owned proof account records the proposal, the market and
+the frozen episode. The payer and nonce identify an independent attempt. Any
+payer may advance it. Its first pass measures the available opposing lots and
+fastest per-lot charge on each side of the market. Its second pass derives
+each holder's actual eligible gain. If a fractional rate requires several
+opposing lots before a single atom is chargeable, only debtors large enough
+to meet that minimum contribute to the holder's weight. For mixed debtor
+sizes a resumable subscan checks the individual opposing pages.
+
+Every completed row contributes its stable member ID, eligible gain and
+assigned charge to a digest in frozen membership order. Clearing verifies
+the cross-market cap, combined charge, both group boundaries and the
+unambiguous last atom in each set. It stores the lot lower bound and whether
+the winner-side floor was independently certified. The debtor-side floor
+can determine the market minimum even when some winners need fewer lots.
+The proof account can certify allocation before a pair schedule is known.
+Financial admission must still show that the proposed pairs can deliver this
+allocation at those lot counts and preserve the other market's payouts.
