@@ -3,6 +3,7 @@
 //! P54B owns authenticated account pages and persisted continuation fences.
 pub mod active_work;
 pub mod application;
+pub mod recovery_payout;
 pub mod atom_division;
 pub mod cohort_denominator;
 pub mod collection;

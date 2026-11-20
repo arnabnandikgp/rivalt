@@ -3,7 +3,9 @@ use super::super::{single_pair, BindRecoverySelection, DENOMINATOR, PROPOSAL};
 use super::*;
 use crate::state::accounts::FrozenMargin;
 use crate::ClearingError;
-use financial_core::clearing::scalable::graph_pages::FlowRecord;
+use financial_core::clearing::scalable::{
+    graph_pages::FlowRecord, recovery_payout::RecoveryPayoutScan,
+};
 
 const MARKER: &[u8; 8] = b"RVJOINT1";
 const RECEIPT_LEN: usize = 8 + 32 + 16 + 16 + 8 * 48 + 2 * 16;
@@ -126,17 +128,11 @@ pub fn bind(
             .ok_or(ClearingError::Arithmetic)?;
     }
     let mut members = [MemberResult::default(); 8];
-    let mut movements = [0i128; 2];
-    let mut total = 0u128;
+    let mut payouts = RecoveryPayoutScan::default();
     for (index, member) in members.iter_mut().enumerate() {
         let row = &proof.rows[index];
         let changes = proof.movements[index];
         let cash = proof.cash[index];
-        require!(
-            i128::from(row.cash) + i128::from(changes[0]) + i128::from(changes[1])
-                == i128::from(cash),
-            ClearingError::Reconciliation
-        );
         let [btc, eth] = net[index];
         *member = MemberResult {
             id: row.id,
@@ -147,26 +143,24 @@ pub fn bind(
             movements: changes,
             cash,
         };
-        total += u128::from(cash);
-        for market in 0..2 {
-            movements[market] += i128::from(changes[market]);
-        }
+        payouts = payouts
+            .accept(
+                index as u64,
+                row.id,
+                row.cash,
+                cash,
+                changes,
+                member.claim_delta,
+            )
+            .map_err(|_| ClearingError::Reconciliation)?;
     }
-    let mut spent = [0; 2];
-    for market in 0..2 {
-        spent[market] = header.insurance[market]
-            .checked_sub(proof.remaining_insurance[market])
-            .ok_or(ClearingError::Reconciliation)?;
-        require!(
-            movements[market] == i128::from(header.pools[market]) + i128::from(spent[market]),
-            ClearingError::Reconciliation
-        );
-        total += u128::from(proof.remaining_insurance[market]) + u128::from(header.fees[market]);
-    }
-    require!(
-        total == u128::from(header.allocated),
-        ClearingError::Reconciliation
-    );
+    let spent = payouts
+        .finish(
+            super::super::snapshot_binding(header),
+            proof.remaining_insurance,
+            proof.retained_fees,
+        )
+        .map_err(|_| ClearingError::Reconciliation)?;
     let result = BoundResult {
         epoch,
         search: *proof.address(),
