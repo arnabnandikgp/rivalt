@@ -264,11 +264,19 @@ and unrelated databases are never reset with the demo.
 
 ## Storage and older harnesses
 
-`.local/` holds local builds, test databases, logs, keys and raw evidence. Inspect
-usage and active ownership before cleanup. Compilers may regenerate build caches;
-never delete active PostgreSQL files, user research, key material or acceptance
-captures as an automatic cleanup. Reuse a stopped owned qualification cluster with
-`RIVALT_PG_REUSE_DIR` when the wrapper supports it; preserve fsync/WAL durability.
+`.local/` is Git-ignored. A qualification run stores its signed transactions,
+RPC receipts, WebSocket observations and diagnostic logs in its own run directory.
+The `postgres-data/` child contains PostgreSQL's physical database. These copies
+can dominate disk usage. Once a Rivalt test run has stopped, its disposable
+`postgres-data/` may be pruned for space without further approval. Verify that
+no running database or container uses the directory, including through
+`RIVALT_PG_REUSE_DIR`. Leave demo environments and runs selected for reuse in place.
+
+Keep the rest of the run directory when pruning a database. The signed wires and
+finalized receipts let reviewers inspect the original run after its local chain
+has stopped. A new run produces different signatures. Logs help diagnose failures.
+Shared test identities live in `.local/keys/`. Demo workspaces live under
+`.local/interactive-demo*` and `.local/demo/`. Neither is disposable database storage.
 
 `pnpm smoke` explicitly runs the broad current integration matrix on already built
 artifacts; it is not a default PR check. Earlier launchers/feature profiles are
