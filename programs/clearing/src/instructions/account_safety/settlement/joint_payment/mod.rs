@@ -20,7 +20,6 @@ pub struct JointMemberOpening {
 }
 
 #[account(borsh)]
-#[derive(Default)]
 pub struct JointPaymentProof {
     pub prepared: Address,
     pub epoch: u64,
@@ -39,7 +38,8 @@ pub struct JointPaymentProof {
     pub round: u8,
     pub row_cursor: u64,
     pub spent: [u64; 2],
-    pub checkpoints: RateCheckpoints,
+    pub insurance_state: [u8; 64],
+    pub rate_work: Vec<u8>,
     pub width: u16,
     pub registers: Vec<u64>,
 }

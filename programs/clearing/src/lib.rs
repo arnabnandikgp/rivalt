@@ -217,8 +217,8 @@ pub mod clearing {
         #[cfg(feature="populated-recovery-qualification")]
         {
             let _ = epoch;
-            scoped_history::run(ctx, [211, 81, 170, 171, 165, 168, 79, 166], false, |ctx, _|
-                account_safety::settlement::joint_payment::binding::copy_claims(ctx, index, revision))
+            scoped_history::run(ctx, [211, 81, 170, 171, 165, 168, 79, 166], false, |ctx, events|
+                account_safety::settlement::joint_payment::binding::copy_claims(ctx, events, index, revision))
         }
         #[cfg(not(feature="populated-recovery-qualification"))]
         { Err(ClearingError::Profile.into()) }

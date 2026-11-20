@@ -48,7 +48,7 @@ fn input(proof: &JointPaymentProof, header: &PreparedSettlement) -> Result<RateI
         .get(usize::from(proof.round))
         .ok_or(ClearingError::Resolution)?;
     let insurance = financial(InsuranceRounds::from_checkpoint(
-        &proof.checkpoints.insurance,
+        &proof.insurance_state,
         header.insurance,
     ))?;
     Ok(RateInput {
@@ -87,7 +87,7 @@ pub(super) fn start(proof: &mut JointPaymentProof, header: &PreparedSettlement) 
         proof.registers[base..base + words.len()].copy_from_slice(words);
     }
     proof.row_cursor = 0;
-    proof.checkpoints.work = financial(RateWork::new(input(proof, header)?))?.checkpoint();
+    proof.rate_work = financial(RateWork::new(input(proof, header)?))?.checkpoint().to_vec();
     Ok(())
 }
 
@@ -135,7 +135,7 @@ pub fn advance(ctx: &mut Context<AdvanceJointPayment>, revision: u64, steps: u16
         ClearingError::Resolution
     );
     let mut work = financial(RateWork::from_checkpoint(
-        &proof.checkpoints.work,
+        &proof.rate_work,
         input(proof, header)?,
     ))?;
     let mut cursor = proof.row_cursor;
@@ -168,15 +168,15 @@ pub fn advance(ctx: &mut Context<AdvanceJointPayment>, revision: u64, steps: u16
         }
     }
     proof.row_cursor = cursor;
-    proof.checkpoints.work = work.checkpoint();
+    proof.rate_work.copy_from_slice(&work.checkpoint());
     if work.is_done() {
         require!(cursor == header.count, ClearingError::Resolution);
         let mut insurance = financial(InsuranceRounds::from_checkpoint(
-            &proof.checkpoints.insurance,
+            &proof.insurance_state,
             header.insurance,
         ))?;
         financial(insurance.accept(financial(work.result())?))?;
-        proof.checkpoints.insurance = insurance.checkpoint();
+        proof.insurance_state = insurance.checkpoint();
         proof.round += 1;
         if insurance.is_done() {
             require!(

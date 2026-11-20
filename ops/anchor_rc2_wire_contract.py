@@ -215,9 +215,9 @@ def undo_liquidation_delta(actual, program):
                 ([meta for meta in item['accounts'] if meta.get('signer')], signers)):
             assert [meta['name'] for meta in actual_metas] == expected.split(), name
         actual['instructions'].remove(item)
-    for group, prefix, name in [('accounts','account','RecoverySearch'),('accounts','account','WinnerAllocationProof'),('accounts','account','PairScheduleProof'),('accounts','account','PairOrderPage'),('accounts','account','JointPaymentProof'),('accounts','account','JointPaymentPage'),('events','event','RecoverySelectionBound')]:
+    for group, prefix, name in [('accounts','account','RecoverySearch'),('accounts','account','WinnerAllocationProof'),('accounts','account','PairScheduleProof'),('accounts','account','PairOrderPage'),('accounts','account','JointPaymentProof'),('accounts','account','JointPaymentPage'),('events','event','JointClaimsCopied'),('events','event','RecoverySelectionBound')]:
         actual[group].remove(dict(name=name,discriminator=list(hashlib.sha256(f'{prefix}:{name}'.encode()).digest()[:8])))
-    for name in ('JointPaymentPage','JointPaymentProof','PaymentProposal','JointMemberOpening','PairOrderPage','PairScheduleProof','PairBookEntry','PairBookRow','PairMemberOpening','WinnerAllocationProof','WinnerCutoff','WinnerMarginal','WinnerRange','WinnerSide','RecoverySearch','RecoverySelectionBound','RateWitness','SearchMember','SearchEdge','StoredRatio','Priorities'):
+    for name in ('JointClaimsCopied','JointPaymentPage','JointPaymentProof','PaymentProposal','JointMemberOpening','PairOrderPage','PairScheduleProof','PairBookEntry','PairBookRow','PairMemberOpening','WinnerAllocationProof','WinnerCutoff','WinnerMarginal','WinnerRange','WinnerSide','RecoverySearch','RecoverySelectionBound','RateWitness','SearchMember','SearchEdge','StoredRatio','Priorities'):
         entry, = [item for item in actual['types'] if item['name'] == name]
         assert entry['type']['kind'] == 'struct'
         actual['types'].remove(entry)

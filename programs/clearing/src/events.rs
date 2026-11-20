@@ -886,3 +886,17 @@ pub struct PagedRecoverySelectionBound {
     pub final_cash: Vec<u64>,
     pub slot: u64,
 }
+
+/// One canonical prefix of certified claim reductions. Cash remains frozen.
+#[event]
+pub struct JointClaimsCopied {
+    pub venue: Address,
+    pub epoch: u64,
+    pub payment: Address,
+    pub first: u64,
+    pub charge_atoms: [u128; 2],
+    pub insurance_spent: [u64; 2],
+    pub member_ids: Vec<u64>,
+    pub deltas: Vec<[i64; 2]>,
+    pub slot: u64,
+}

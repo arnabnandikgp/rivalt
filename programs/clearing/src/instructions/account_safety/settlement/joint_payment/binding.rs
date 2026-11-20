@@ -85,7 +85,12 @@ pub fn bind(ctx: &mut Context<BindJointPayment>, revision: u64) -> Result<()> {
     receipt.store(header)
 }
 
-pub fn copy_claims(ctx: &mut Context<CopyJointClaims>, index: u64, revision: u64) -> Result<()> {
+pub fn copy_claims(
+    ctx: &mut Context<CopyJointClaims>,
+    events: &mut crate::event_cpi::Payloads,
+    index: u64,
+    revision: u64,
+) -> Result<()> {
     require!(
         ctx.remaining_accounts()?.is_empty(),
         ClearingError::Resolution
@@ -112,6 +117,23 @@ pub fn copy_claims(ctx: &mut Context<CopyJointClaims>, index: u64, revision: u64
     for (row, delta) in page.rows[..count as usize].iter_mut().zip(&source.deltas) {
         row.recovery_payout.claim_delta = *delta;
     }
+    events.emit(
+        &crate::JointClaimsCopied {
+            venue: header.venue,
+            epoch: header.epoch,
+            payment: receipt.payment,
+            first: receipt.next_member,
+            charge_atoms: receipt.charges,
+            insurance_spent: receipt.spent,
+            member_ids: page.rows[..count as usize]
+                .iter()
+                .map(|row| row.id)
+                .collect(),
+            deltas: source.deltas[..count as usize].to_vec(),
+            slot: Clock::get()?.slot,
+        },
+        accounts.event_authority.account().clone(),
+    )?;
     receipt.next_member += count;
     receipt.store(header)
 }
@@ -173,7 +195,12 @@ pub fn copy_register(
         rates.factor = terminal.factor;
         rates.lengths = terminal.rates.each_ref().map(|words| words.len() as u64);
         rates.uploaded = rates.lengths;
-        rates.state.clone_from(&proof.checkpoints);
+        require!(
+            proof.rate_work.len() == rates.state.work.len(),
+            ClearingError::Resolution
+        );
+        rates.state.work.copy_from_slice(&proof.rate_work);
+        rates.state.insurance = proof.insurance_state;
         header.stage = PROPOSAL;
         let (_, spent) = super::super::rates::verified_rates(header, rates)?;
         require!(spent == receipt.spent, ClearingError::Reconciliation);

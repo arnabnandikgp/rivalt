@@ -27570,6 +27570,19 @@
       ]
     },
     {
+      "name": "JointClaimsCopied",
+      "discriminator": [
+        243,
+        142,
+        113,
+        237,
+        209,
+        164,
+        23,
+        123
+      ]
+    },
+    {
       "name": "LedgerLaneFilled",
       "discriminator": [
         235,
@@ -30684,6 +30697,72 @@
       }
     },
     {
+      "name": "JointClaimsCopied",
+      "docs": [
+        "One canonical prefix of certified claim reductions. Cash remains frozen."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "payment",
+            "type": "pubkey"
+          },
+          {
+            "name": "first",
+            "type": "u64"
+          },
+          {
+            "name": "charge_atoms",
+            "type": {
+              "array": [
+                "u128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "insurance_spent",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "member_ids",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "deltas",
+            "type": {
+              "vec": {
+                "array": [
+                  "i64",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "JointMemberOpening",
       "type": {
         "kind": "struct",
@@ -30863,11 +30942,18 @@
             }
           },
           {
-            "name": "checkpoints",
+            "name": "insurance_state",
             "type": {
-              "defined": {
-                "name": "RateCheckpoints"
-              }
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "rate_work",
+            "type": {
+              "vec": "u8"
             }
           },
           {

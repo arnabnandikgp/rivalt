@@ -7,6 +7,8 @@
  */
 
 import {
+  addDecoderSizePrefix,
+  addEncoderSizePrefix,
   assertAccountExists,
   assertAccountsExist,
   combineCodec,
@@ -53,12 +55,8 @@ import {
 import {
   getPaymentProposalDecoder,
   getPaymentProposalEncoder,
-  getRateCheckpointsDecoder,
-  getRateCheckpointsEncoder,
   type PaymentProposal,
   type PaymentProposalArgs,
-  type RateCheckpoints,
-  type RateCheckpointsArgs,
 } from "../types/index.js";
 
 export const JOINT_PAYMENT_PROOF_DISCRIMINATOR: ReadonlyUint8Array =
@@ -89,7 +87,8 @@ export type JointPaymentProof = {
   round: number;
   rowCursor: bigint;
   spent: Array<bigint>;
-  checkpoints: RateCheckpoints;
+  insuranceState: ReadonlyUint8Array;
+  rateWork: ReadonlyUint8Array;
   width: number;
   registers: Array<bigint>;
 };
@@ -112,7 +111,8 @@ export type JointPaymentProofArgs = {
   round: number;
   rowCursor: number | bigint;
   spent: Array<number | bigint>;
-  checkpoints: RateCheckpointsArgs;
+  insuranceState: ReadonlyUint8Array;
+  rateWork: ReadonlyUint8Array;
   width: number;
   registers: Array<number | bigint>;
 };
@@ -142,7 +142,8 @@ export function getJointPaymentProofEncoder(): Encoder<JointPaymentProofArgs> {
       ["round", getU8Encoder()],
       ["rowCursor", getU64Encoder()],
       ["spent", getArrayEncoder(getU64Encoder(), { size: 2 })],
-      ["checkpoints", getRateCheckpointsEncoder()],
+      ["insuranceState", fixEncoderSize(getBytesEncoder(), 64)],
+      ["rateWork", addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
       ["width", getU16Encoder()],
       ["registers", getArrayEncoder(getU64Encoder())],
     ]),
@@ -174,7 +175,8 @@ export function getJointPaymentProofDecoder(): Decoder<JointPaymentProof> {
     ["round", getU8Decoder()],
     ["rowCursor", getU64Decoder()],
     ["spent", getArrayDecoder(getU64Decoder(), { size: 2 })],
-    ["checkpoints", getRateCheckpointsDecoder()],
+    ["insuranceState", fixDecoderSize(getBytesDecoder(), 64)],
+    ["rateWork", addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
     ["width", getU16Decoder()],
     ["registers", getArrayDecoder(getU64Decoder())],
   ]);

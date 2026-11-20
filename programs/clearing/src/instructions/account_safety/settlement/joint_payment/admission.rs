@@ -215,7 +215,7 @@ pub fn open(
     proof.original_spent = spent;
     proof.proposals = proposals;
     proof.registers = vec![0; usize::from(width) * 25];
-    proof.checkpoints.insurance = financial(InsuranceRounds::new(header.insurance))?.checkpoint();
+    proof.insurance_state = financial(InsuranceRounds::new(header.insurance))?.checkpoint();
     proof.payment_rates()?;
     proof.progress()
 }

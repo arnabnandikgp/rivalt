@@ -1071,6 +1071,7 @@ export enum ClearingEvent {
   FundingPublisherChanged,
   FundingReportAccepted,
   InventoryBookVerified,
+  JointClaimsCopied,
   LedgerLaneFilled,
   LiquidityMakerChanged,
   LiquidityRegistryChanged,
@@ -1433,6 +1434,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.InventoryBookVerified;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([243, 142, 113, 237, 209, 164, 23, 123]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.JointClaimsCopied;
   }
   if (
     containsBytes(
