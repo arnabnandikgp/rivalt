@@ -4065,3 +4065,37 @@ surplus. Both freezes had identical financial input bytes to the native
 selection case. The opt-in page occupies 2,124 bytes and preserves its fixed
 eight-row encoding. Clearing SBF was 3,237,720 bytes with SHA-256
 `22e98303eb1f8123d80b8468f96b7d21ad889d29fa696068d636751e7b32f485`.
+
+## Protected charges across markets on the populated freeze
+
+Clearing `7df9585e`, harness `b43351f8`, finalized 2,050 signed outcomes on
+a fresh 128-member freeze. Two ETH claims differed from the previous freeze
+by opposite 0.004444416-atom funding accruals. The native and independent
+checks were rerun on these exact RPC rows. Both the recorded prefixes on all 16 pages and the
+sealed caps matched the independent fractional calculation. Of 7,983,928 BTC
+budget atoms, at most 5,239,476 can be charged to holders whose gains also
+fund ETH creditors. The ETH figures were 780,159 of 3,723,808. These are
+upper bounds conditional on attaining both recovery ceilings.
+
+| Signed action | Outcomes | Transaction bytes | Landed CU |
+|---|---:|---:|---:|
+| Advance the first 15 pages | 15 | 823 | 42,428–56,443 |
+| Verify the final page and seal the caps | 1 | 1,054 | 189,975 |
+| Reject unrecorded budgets, wrong first page, repeated prefix, repeated seal or premature payout | 5 | 776–1,054 | 17,201–31,262 |
+
+Only the final page needed the seven market registers. The 16 successes cost
+80,000 test lamports at the observed fee. The signed failures preserved the
+checked account bytes. Fresh PostgreSQL replay matched 1,286 financial events
+and a 405-account reconciliation with 332,907,140 atoms both allocated and
+held in the SPL vault. No withdrawal occurred. An earlier invocation stopped
+at the clean-checkout guard before opening the financial workload.
+
+The native sharing checker at `b7b1af6a` reproduced both protected caps
+and the minimum 423 BTC and 403 ETH matched lots. The winning holders alone
+require at least 423 and 389 lots respectively. ETH debtors require the
+remaining difference. Its marginal comparisons cover both the optimal
+deviation and frozen winner order. The same 135 admitted pairs attained the
+final pair bounds. Six independent financial tests, the exhaustive three-holder
+sharing comparison and a market total above one member's u64 range passed.
+On-chain acceptance of the winning charges, effective settlement and wallet
+exit remains open. [Proof](../clearing/default-plan-verification.md#bounding-charges-to-positions-that-also-pay-a-foreign-creditor)

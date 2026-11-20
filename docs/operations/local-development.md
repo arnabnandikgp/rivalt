@@ -801,3 +801,9 @@ Use a new run directory for each qualification. The harness deploys locally,
 captures the frozen RPC rows, compares the clearing calculation with an
 independent fractional reference and replays the financial journal into a
 fresh PostgreSQL database.
+
+For the foreign charge cap check, build the same opt-in feature at `7df9585e`.
+Use `RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-caps` and
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-7df9585e0c3b99d62b6ffea4c6189609b7dd22e0`
+in the command above. Harness `b43351f8` checks each prefix and the final
+caps before comparing the complete financial checkpoint on fresh SQL replay.
