@@ -73,3 +73,24 @@ it('cannot activate custody, paused or historical snapshots and refuses an unrel
   const { input } = fixture();
   await expect(buildLiquidityRoute(input, testAddress(78))).rejects.toThrow(/authority/);
 });
+
+it('permits a keeper to reduce only a distressed target and rejects each adverse maker leg', async () => {
+  const {financial,input}=fixture(),{snapshot,trader}=input;
+  const {buildMakerLiquidation}=await import('./liquidity-route.js');
+  const outsider=testAddress(78),position=financial.root.positions[0];
+  Object.assign(position,{lots:20n,virtualScaled:-200_000n*1_000_000_000n,generation:3n});
+  // Conservative equity = 12,000 - 2,000 = 10,000; maintenance = 10,100.
+  // A single lot restores health. A two-lot forced fill goes past that point.
+  financial.root.cash=12_000n;
+  expect(await buildMakerLiquidation(snapshot,trader,0,2n,outsider)).toBeNull();
+  const fill=await buildMakerLiquidation(snapshot,trader,0,1n,outsider);
+  const parsed=protocol.parseLiquidateLiquidityRouteInstruction(fill!.instructions[0]);
+  expect(parsed.data).toMatchObject({side:1,reduceOnly:true,generation:{__option:'Some',value:3n},lots:1n});
+  expect(parsed.accounts.actor.address).toEqual(outsider);
+  await expect(buildLiquidityRoute({...input,side:1,allInLimit:0n},outsider)).rejects.toThrow(/authority/);
+  for(const maker of financial.makers)maker.shape={...maker.shape,bids:[{endLots:4096n,offset:101n,slope:0n}]};
+  expect(await buildMakerLiquidation(snapshot,trader,0,1n,outsider)).toBeNull();
+  financial.root.cash=12_500n;
+  for(const maker of financial.makers)maker.shape={...maker.shape,bids:[{endLots:4096n,offset:1n,slope:0n}]};
+  expect(await buildMakerLiquidation(snapshot,trader,0,1n,outsider)).toBeNull();
+});

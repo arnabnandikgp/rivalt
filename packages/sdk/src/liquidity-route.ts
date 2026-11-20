@@ -5,6 +5,7 @@ import { accountSourceMode,effectiveAccountFunding } from './account-balance.js'
 import { allocateLiquidityRoute } from './liquidity-allocation.js';
 import { requireValue } from './wallet-client.js';
 import * as protocol from './generated/index.js';
+import { MAX_CASH_ATOMS } from './quantity-limits.js';
 import { accountGuard } from './account-snapshot.js';
 import {requiredAccountMarkets,requiredAccountLiabilities} from './account-markets.js';
 
@@ -14,13 +15,22 @@ export type LiquidityRouteInput = MarginRouteIntent & {
 
 /** Exact preview is available before activation; no transaction authority is implied. */
 export function previewLiquidityRoute(input: LiquidityRouteInput) {
+  return previewRoute(input, false);
+}
+
+function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean) {
   const { snapshot,trader,marketIndex } = input;
   const root = snapshot.roots[trader];
   requireValue(snapshot.venueState.profileVersion === 6 && snapshot.liquidity && root?.schemaVersion === 10
     && root.venue === snapshot.venue && root.role === 0 && !snapshot.safetyState.paused
     && ![2,3,4].includes(snapshot.safetyState.mode), 'Liquidity preview unavailable.');
   requireValue(root.mode !== 0 || snapshot.marketStates[marketIndex].crossEligible, 'Market is not cross eligible.');
-  return allocateLiquidityRoute({ ...input,root,makers: snapshot.liquidity.adapters,markets: snapshot.marketStates,
+  // Clearing retains the pre-cancellation market accounts and cancels these
+  // orders on the candidate copy before evaluating health and source freshness.
+  const financialRoot = makerLiquidation ? { ...root, book: { ...root.book,
+    orders: root.book.orders.map(entry => [1,2].includes(entry.order.state) && !entry.order.reduceOnly
+      ? { ...entry, order: { ...entry.order, state: 6, reserve: 0n } } : entry) } } : root;
+  return allocateLiquidityRoute({ ...input, makerLiquidation, root: financialRoot, makers: snapshot.liquidity.adapters,markets: snapshot.marketStates,
     slot: snapshot.slot,now: snapshot.now,
     sources: snapshot.marketStates.map(market => accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)),
     funding: snapshot.marketStates.map(market => effectiveAccountFunding(snapshot.safetyState,market,snapshot.now,snapshot.slot)),
@@ -33,12 +43,25 @@ export function previewLiquidityRoute(input: LiquidityRouteInput) {
  * through the v0/v1 compiler rather than attaching v0 budget instructions to v1.
  * This cannot activate a profile: P32 safety qualification is still required. */
 export async function buildLiquidityRoute(input: LiquidityRouteInput, actor: Address) {
+  return buildRoute(input, actor, false);
+}
+
+/** Permissionless reduce-only instruction. The original trader guard and
+ * position generation still bind this proposal when clearing executes it. */
+export function buildMakerLiquidation(snapshot: LiquidityRouteInput['snapshot'], trader: Address,
+  marketIndex: 0|1, lots: bigint, actor: Address) {
+  const side = snapshot.roots[trader].positions[marketIndex].lots > 0n ? 1 : 0;
+  return buildRoute({snapshot,trader,marketIndex,lots,side,reduceOnly:true,
+    allInLimit:side === 0 ? MAX_CASH_ATOMS : 0n,maxFee:MAX_CASH_ATOMS},actor,true);
+}
+
+async function buildRoute(input: LiquidityRouteInput, actor: Address, makerLiquidation: boolean) {
   const { snapshot, trader, marketIndex } = input, root = snapshot.roots[trader];
   requireValue(snapshot.commitment === 'confirmed' && snapshot.safetyState.mode === 1 && !snapshot.safetyState.paused,
     'Canonical execution requires a confirmed, active qualification profile.');
-  requireValue(root && (input.stored || root.owner === actor || root.delegate === actor && snapshot.slot < root.delegateExpirySlot),
+  requireValue(root && (makerLiquidation || input.stored || root.owner === actor || root.delegate === actor && snapshot.slot < root.delegateExpirySlot),
     'Live canonical trade authority required.');
-  const preview = previewLiquidityRoute(input), allocation = preview.allocation;
+  const preview = previewRoute(input, makerLiquidation), allocation = preview.allocation;
   if (!allocation) return null;
   const selected = allocation.legs.map(leg => snapshot.liquidity!.adapters.find(maker => maker.registration === leg.registration)!);
   const market = snapshot.marketStates[marketIndex];
@@ -65,9 +88,10 @@ export async function buildLiquidityRoute(input: LiquidityRouteInput, actor: Add
   };
   const position = root.positions[marketIndex];
   const reduceOnly = input.reduceOnly ?? (input.side === 1 ? position.lots >= input.lots : -position.lots >= input.lots);
+  const liveInstruction = makerLiquidation ? protocol.getLiquidateLiquidityRouteInstructionAsync : protocol.getExecuteLiquidityRouteInstructionAsync;
   const instruction = input.stored
     ? await protocol.getExecuteLiquidityOrderInstructionAsync({ ...common, ...input.stored })
-    : await protocol.getExecuteLiquidityRouteInstructionAsync({ ...common, domain: snapshot.venueState.domain,
+    : await liveInstruction({ ...common, domain: snapshot.venueState.domain,
       termsEpoch: market.termsEpoch, configEpoch: market.configEpoch, side: input.side,
       allInLimit: input.allInLimit, maxFee: input.maxFee, reduceOnly, generation: position.generation });
   return { snapshotCommitment: snapshot.commitment, snapshotSlot: snapshot.slot, trader, marketIndex,

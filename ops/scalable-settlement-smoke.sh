@@ -140,7 +140,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;
   profit-attribution-recovery|profit-attribution-sponsor-recovery|profit-attribution-verified-pair|profit-attribution-verified-pair-limited|profit-attribution-btc-residual-*|profit-attribution-btc-allocation-*) node --import tsx tests/rpc-contract/btc-default-recovery-rpc.ts ;;
   profit-attribution) node --import tsx tests/rpc-contract/profit-attribution-rpc.ts ;;
-  profit-attribution-integrated-receiver|profit-attribution-bounded-market-receiver|maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
+  profit-attribution-integrated-automatic-liquidation|profit-attribution-integrated-receiver|profit-attribution-bounded-market-receiver|maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
   whole-account-risk) node --import tsx tests/rpc-contract/whole-account-risk-rpc.ts ;;
   freeze-cutoff) node --import tsx tests/rpc-contract/freeze-cutoff-rpc.ts ;;
   membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;

@@ -17,10 +17,12 @@ import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {verifyProfitBuild} from './profit-attribution-build.js';
 import {verifyLiquidationBuild} from './maker-liquidation-build.js';
+import {openLiquidationDriver} from './automatic-liquidation-driver.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const directory=process.env.RIVALT_RUN_DIR!;
-const integrated=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-receiver';
+const automatic=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-automatic-liquidation';
+const integrated=automatic||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-receiver';
 const bounded=integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-bounded-market-receiver';
 const build=bounded?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,integrated?'integrated':'market'):verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
@@ -32,6 +34,8 @@ const shape=(instance:number)=>{
   const regions=[{endLots,offset,slope:0n},...Array.from({length:7},()=>({endLots:0n,offset:0n,slope:0n}))];
   return {...goldenShape,skewTick:0n,longCap:4096n,shortCap:4096n,bidCount:1,askCount:1,bids:regions,asks:regions};
 };
+let worker:Awaited<ReturnType<typeof openLiquidationDriver>>|undefined;
+let liveJournal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
   const setup=await liquidityExecutionSetup(h,rpc,{shape,marketCheckpoints:integrated,marginLayout:integrated?'ledger-lanes':bounded?'bounded-market':undefined,traderCash:564_000n,verifyRejections:false});
   const checkGross=async(expected:bigint)=>{
@@ -115,12 +119,18 @@ try {
   assert(beforeFill.reserved>0n);
   assert(beforeFill.book.orders.some(entry=>entry.marketIndex===1&&!entry.order.reduceOnly&&entry.order.reserve>0n));
   assert(beforeFill.positions[1].lots===0n&&beforeFill.positions[1].virtualScaled===0n);
-  await h.send('liquidation keeper sells ten lots to maker B',await checked(fill));
+  if(automatic){
+    await flush();
+    liveJournal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
+    worker=await openLiquidationDriver(rpc,ws,liveJournal,()=>setup.sample([0]),receiverOwner,receiver);
+    await worker.maker();
+  }else await h.send('liquidation keeper sells ten lots to maker B',await checked(fill));
   await checkGross(100n);
   await verifyTarget('Maker filled ten',40n,563_286n,-2_530_020n,12_574n);
   assert.equal((await root(target)).reserved,0n);
   assert.equal((await root(setup.instances[2].capital)).positions[0].lots,10n);
   assert.equal((await setup.instances[2].registrationState()).sellConsumed,10n);
+  if(worker)await setup.sample();
   await reject('competing maker original is stale',fill,sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE);
   await reject('tight book exhausted',await forced(1n),sdk.CLEARING_ERROR__MAKER_QUOTE);
   await reject('remaining wide maker outside limit',await forced(1n,1),sdk.CLEARING_ERROR__ROUTE_LIMIT);
@@ -128,17 +138,20 @@ try {
   await reject('receiver cannot finance five lots',await takeover(5n),sdk.CLEARING_ERROR__ARITHMETIC,[receiverOwner]);
   assert.equal(sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).mode,1);
   await verifyTarget('No eligible liquidity or funded receiver',40n,563_286n,-2_530_020n,12_574n);
+  if(worker){await flush();await worker.blocked();}
   await fund(99_999n);
   const transfer=await takeover(5n);
   const generation=async()=>sdk.decodeCapacityAnchor((await h.read(setup.markets[0]))!,integrated?'ledger-lanes':false).generation;
   const beforeTransfer=bounded?await generation():0n;
-  await h.send('liquidation funded receiver takes five lots',await checked(transfer),[receiverOwner]);
+  if(worker)await worker.receiver();
+  else await h.send('liquidation funded receiver takes five lots',await checked(transfer),[receiverOwner]);
   await checkGross(100n);
   if(bounded)assert.equal(await generation(),beforeTransfer+1n);
   await verifyTarget('Receiver restores maintenance',35n,563_156n,-2_270_020n,0n);
   const received=await root(receiver);
   assert.equal(received.cash,100_130n);assert.equal(received.positions[0].lots,5n);
   assert.equal(received.positions[0].virtualScaled,-260_000n*scale);
+  if(worker){await worker.healthy();await setup.sample();}
   await reject('competing receiver original is stale',transfer,sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE,[receiverOwner]);
   await reject('liquidation stops at restored maintenance',await forced(1n),sdk.CLEARING_ERROR__LIQUIDATION);
   await h.send('liquidation receiver unwinds at the remaining wide bid',await checked(await route({trader:receiver,actor:receiverOwner,
@@ -148,13 +161,13 @@ try {
   assert.equal(unwound.cash,100_079n);assert.equal(unwound.positions[0].lots,0n);
   assert.equal(unwound.positions[0].virtualScaled,-5000n*scale);
   await flush();
-  const journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
+  const journal=liveJournal??await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   try {
     await journal.checkpoint('maker-liquidation');
     const replay=await journal.finish();
-    const summary={revision,artifactSet:build.artifactSet,stages,events:replay.events,
+    const summary={revision,artifactSet:build.artifactSet,stages,events:replay.events,workerReceipts:worker?.receipts,
       results:checks.filter(check=>String(check.label).startsWith('liquidation '))};
     writeFileSync(directory+'/liquidation.json',json(summary));
     console.log('Maker liquidation',json({stages,events:replay.events}));
   } finally {await journal.close();}
-} finally {try {await flush();}finally{ws.close();}}
+} finally {try {await worker?.close();await liveJournal?.close();await flush();}finally{ws.close();}}

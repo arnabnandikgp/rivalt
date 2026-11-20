@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {address,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
+import {automaticLiquidation} from './maker-liquidation-worker.js';
 import {quantityCandidates} from './quantity-candidates.js';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
@@ -49,6 +50,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
         {status:'blocked',reason:'default-step-presently-unavailable'};
     }
   }
+  if(selection==='integrated-recovery-candidate')return automaticLiquidation(runtime,key,budget,receiver);
   if(frozenOnly)return {status:'blocked',reason:'candidate-frozen-continuation-only'};
   const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
   const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;

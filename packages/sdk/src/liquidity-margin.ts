@@ -11,7 +11,7 @@ const MAX_U64 = (1n << 64n)-1n;
 const abs = (value: bigint) => value < 0n ? -value : value;
 export type LiquidityMarginInput = MarginRouteIntent & {
   root: MarginFinancialRoot; markets: MarginFinancialMarket[]; funding: bigint[];
-  sources: MarginSourceMode[]; slot: bigint; now: bigint;
+  sources: MarginSourceMode[]; slot: bigint; now: bigint; makerLiquidation?: boolean;
 };
 
 /** Same whole-account balance/reservation engine as V2/V3, prepared once per
@@ -96,6 +96,14 @@ export function prepareLiquidityMargin(input: LiquidityMarginInput) {
         || position.generation > MAX_U64 || position.lots !== 0n && position.generation === MAX_U64)) return false;
       const nextView = view(next);
       if (nextView.riskEquityScaled === null || nextView.initialMargin === null || BigInt(nextView.reserved) > MAX_CASH) return false;
+      if (isTrader && input.makerLiquidation) {
+        if (!reduceOnly || previousTrader.riskEquityScaled === null || previousTrader.maintenanceDeficitScaled === null
+          || nextView.maintenanceDeficitScaled === null) return false;
+        const equity = BigInt(previousTrader.riskEquityScaled);
+        const deficit = BigInt(nextView.maintenanceDeficitScaled);
+        return equity >= 0n && BigInt(nextView.riskEquityScaled) >= equity
+          && deficit < BigInt(previousTrader.maintenanceDeficitScaled) && (deficit > 0n || lots === 1n);
+      }
       if (BigInt(nextView.riskEquityScaled) >= (BigInt(nextView.initialMargin)+BigInt(nextView.reserved))*SCALE) return true;
       if (!isTrader || !reduceOnly) return false;
       const oldLots = before.positions[marketIndex].lots, nextLots = next.positions[marketIndex].lots;
