@@ -945,3 +945,36 @@ schedule is one requirement for release. Clearing also needs authenticated
 freeze membership and a proof that all competing allocations have been covered
 or bounded under D116–D127. General native feasibility alone cannot release
 funds. [Independent comparisons](../operations/validation.md#native-linked-market-reduction-admission).
+
+## Selecting across a complete linked book
+
+The native [comparison](../../crates/default-plan-selection/src/joint_search.rs)
+derives each possible debtor/winner pair from verified frozen debt budgets,
+opposite lots, positive claims and the clearing-owned entry and paid-gain
+history. The range for a pair starts at zero. Its upper endpoint is the smaller
+of the debtor's budget and the eligible gain on the lots the pair can actually
+close. A caller can supply rate, rounding and reflection witnesses. Clearing's
+financial kernel verifies their contents. Omitting a potentially winning
+schedule's required witness prevents selection.
+
+The exhaustive reference checks each combination against shared lot inventory
+and the original cash split. Each eligible settlement must pass the protected
+individual receipt and insurance tests. The two exact recovery fractions
+determine the maximum total and market-balance score. Among tied recoveries,
+the verifier compares proportional charge deviations and closure costs.
+Frozen-member priority settles exact ties. If the financial profiles trade off,
+the verifier requires the complete D127 market reflection. A modified fee bucket
+in an otherwise mirrored book therefore leaves that book without a selection.
+
+The [range verifier](../../crates/default-plan-selection/src/joint_search/ranges.rs)
+can begin with a verified proposal. It bisects the widest remaining charge
+interval. An interval can be discarded if its minimum charges already exceed
+a budget, positive face or available lots. For each market, aggregate maximum
+charges by debtor and cap each at its original budget. Also aggregate by winner
+and cap each at its eligible gain. The smaller total bounds the entire market's
+recovery. If the sum across markets is **strictly less** than the verified
+incumbent's recovery, discard that interval. Equality retains every possible
+competitor for the later financial comparisons. Checked leaves plus the sizes
+of discarded intervals must exhaust the entire space. An exhausted work budget
+returns no selection. The on-chain controller still needs authenticated, resumable
+coverage before this rule can authorize cash. [Measured cases](../operations/validation.md#native-selection-of-linked-default-plans).

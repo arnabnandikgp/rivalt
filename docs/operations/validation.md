@@ -1,5 +1,38 @@
 # Validation and measured limits
 
+## Native selection of linked default plans
+
+At `c41b5b7`, independent Python rational settlement and the Rust exhaustive
+and range verifiers agreed on the financial outcome of 19 cases. These cover
+joint-only admissibility, fractional paid gain, changed market insurance,
+competing debtors, competing winners, two frozen-episode priorities and an
+incomparable book. Missing witnesses, invalid rates, invalid reflections and
+an incomplete comparison produced no unauthorized selection.
+
+The same test read original frozen accounts and histories retained from three
+signed local episodes. The native winner's individual cash vector matched the
+recorded comparison in each. All counts below are from new native comparisons
+against those captured rows. Each comparison started the range search with the
+reference winner as an untrusted hint. Clearing's financial kernel checked it.
+
+| Retained freeze | Charge combinations | Admitted in full search | Tied on recovery | Ranges visited | Individual schedules reached |
+|---|---:|---:|---:|---:|---:|
+| Competing BTC winners and an ETH winner, `005230c` | 2,548 | 1,365 | 14 | 143 | 14 |
+| One lot available, `f462fc6` | 572 | 47 | 1 | 35 | 1 |
+| Shared inventory, `cfc2279` | 324 | 35 | 2 | 67 | 2 |
+
+A synthetic two-market case had 25,000,000,010,000,000,001 possible charge
+vectors. The verifier visited 129 ranges and reached one candidate. Both
+markets recovered five billion atoms and the flat creditor received two funded
+atoms. This fixture has one winner per market. Competing positions can require
+many individual settlement checks.
+
+Reproduce the synthetic comparisons with `cargo build --locked -p default-plan-selection --features native-joint --example joint_reduction_audit`
+and `python3 tests/financial/check_joint_search.py`. The latter accepts retained
+`linked-default.json` files as optional arguments. The measurements cover local
+native code. New on-chain transaction costs, persisted restart and release of a
+general linked plan still require signed qualification.
+
 ## Profit payment and parallel ledger reads
 
 The local `read-only-route-ledger` SBF came from clean `8bc01bb`, 3,023,024
