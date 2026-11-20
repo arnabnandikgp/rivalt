@@ -3705,6 +3705,26 @@ payer’s proof account. Reopening the worker reused the original account.
 Both isolated Anchor clients reproduced all eight recovery instructions and
 two emitted events. The amounts are local test collateral and lamports.
 
+### Recovery selection across two membership pages
+
+On `9b9894dc` a fresh local `efbaa02` clearing deployment froze nine Financial
+accounts after five signed fills. Member 8 was flat with a 4,996-atom BTC
+claim. The worker read both original pages, fenced each margin-history
+batch against the prepared revision, and selected rank 1,364 of 2,548.
+The independent calculation started from the signed fills and matched the
+charges of 13 BTC and 12 ETH collateral atoms. The existing clearing profile
+held the freeze. Neither wallet nor the vault moved during selection. The
+run recorded 284 harness outcomes and 43 finalized worker transactions. A
+fresh PostgreSQL replay matched 99 events.
+
+A separate nine-member fractional vector required three insurance calculations.
+The independent rational solver produced rate triples `[1,1,1]`, `[3,3,2]`
+and `[23,20,15]`. It paid the final flat creditor one atom from each market
+and spent zero insurance atoms. The worker reproduced all triples and both
+nine-member remainder orders. The native finance verifier accepted all three
+passes and rejected an omitted pass and an eight-member payout order. This
+fractional vector ran off chain. The signed freeze used whole-atom claims.
+
 The recovery proof admits exactly eight members and the supported rate witnesses.
 The nine-member route workload qualified contention and the freeze boundary.
 Its terminal settlement is outside this proof. A sponsor supplied the exact
