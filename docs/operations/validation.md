@@ -3721,6 +3721,16 @@ replay are separate from the 67 verifier transactions.
 
 Harness `7543e863` reached freeze on the paged clearing binary `37672622`. Snapshot reconciliation then rejected the new account layout before any proof or payout. The account and settlement snapshot readers now share the same deployment-specific frozen-page decoder.
 
+On `00a2858c`, the paged clearing binary rejected omitted or reversed frozen
+pages. Neither rejection changed the prepared header or either page. Binding
+all nine results consumed 41,209 CU. The premature withdrawal failed as
+expected. PostgreSQL ingestion then rejected the newly introduced binding
+event at the transport boundary. From the retained finalized original, the
+corrected decoder and projector matched the nine-member vector, including
+34,970 atoms of final cash for the last creditor. Isolated Anchor 1 and RC2
+clients reproduced all eight instructions, the binding event and the footer.
+This run ended before an authorized wallet payout.
+
 On `9b9894dc` a fresh local `efbaa02` clearing deployment froze nine Financial
 accounts after five signed fills. Member 8 was flat with a 4,996-atom BTC
 claim. The worker read both original pages, fenced each margin-history

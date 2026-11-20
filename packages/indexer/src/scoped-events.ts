@@ -2,6 +2,7 @@
  * log text and address-history pagination cannot establish invocation ancestry. */
 import {createHash} from 'node:crypto';
 import {address, getAddressDecoder, getBase58Encoder} from '@solana/kit';
+import {BIND_RECOVERY_SELECTION_DISCRIMINATOR,PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR} from '@rivalt/sdk/paged-recovery';
 import clearingIdl from '../../sdk/idl/clearing.json' with {type: 'json'};
 import {integer} from './rpc.js';
 import {inventoryInstruction, isValidTransitionScope, type ScopedEnvelope, type ScopedRead, type ScopedWrite} from './scoped-history.js';
@@ -184,7 +185,9 @@ export function scopedInvocations(signature: string, transaction: any, transacti
         if (invocation.footer) throw new Error('Duplicate or trailing event after scoped footer');
         if (payload.subarray(0, 8).equals(transitionTag)) invocation.footer = {inner, bytes: payload};
         else {
-          if (payload.length > 8184 || !payloadTags.has(payload.subarray(0, 8).toString('hex')))
+          const pagedBinding = payload.subarray(0,8).equals(Buffer.from(PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR))
+            && parent.instruction.bytes.subarray(0,8).equals(Buffer.from(BIND_RECOVERY_SELECTION_DISCRIMINATOR));
+          if (payload.length > 8184 || !(pagedBinding || payloadTags.has(payload.subarray(0, 8).toString('hex'))))
             throw new Error('Unknown or oversized critical scoped payload');
           if (invocation.payloads.length >= 4) throw new Error('Scoped payload count exceeds bound');
           invocation.payloads.push({inner, bytes: payload.toString('base64')});
