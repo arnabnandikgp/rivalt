@@ -113,7 +113,8 @@ fn rank(edges: &[Pair], charges: &[Charge]) -> Option<u64> {
     remaining.next().is_none().then_some(rank)
 }
 
-fn select(input: Request) -> Result<Value, String> {
+// Diagnostic only. A size or dimension count never authorizes a recovery plan.
+fn calculate(input: Request, measure: bool) -> Result<Value, String> {
     let members = input
         .rows
         .iter()
@@ -139,6 +140,21 @@ fn select(input: Request) -> Result<Value, String> {
     let original = input.original.parse()?;
     let failure = |err| format!("frozen book: {err:?}");
     let budgets = book.edge_budgets(original.witness()).map_err(failure)?;
+    if measure {
+        let mut edges = [0u64; 2];
+        let mut schedules = BigUint::from(1u8);
+        book.visit_edges(&budgets, |edge| {
+            edges[edge.market] += 1;
+            schedules *= BigUint::from(edge.maximum) + 1u8;
+            Ok(true)
+        })
+        .map_err(failure)?;
+        return Ok(json!({
+            "edgesByMarket": edges,
+            "schedules": schedules.to_string(),
+            "rankBits": (schedules - 1u8).bits(),
+        }));
+    }
     let mut edges = Vec::new();
     let mut count = 1u64;
     let complete = book
@@ -214,7 +230,13 @@ fn select(input: Request) -> Result<Value, String> {
 
 fn main() -> Result<(), String> {
     let input = serde_json::from_reader(io::stdin().lock()).map_err(|e| e.to_string())?;
-    println!("{}", select(input)?);
+    let arguments: Vec<_> = std::env::args().skip(1).collect();
+    let measure = match arguments.as_slice() {
+        [] => false,
+        [flag] if flag == "--dimensions" => true,
+        _ => return Err("expected no arguments or --dimensions".into()),
+    };
+    println!("{}", calculate(input, measure)?);
     Ok(())
 }
 
@@ -248,7 +270,11 @@ mod tests {
         let request = json!({"venue":vec![3u8;32],"epoch":"1","rows":rows,"marks":["100","200"],
             "insurance":["1","1"],"fees":["0","0"],"pools":["1","1"],"budget":1,
             "original":witness,"witnesses":[witness]});
-        let run = |value| select(serde_json::from_value(value).unwrap());
+        assert_eq!(
+            calculate(serde_json::from_value(request.clone()).unwrap(), true).unwrap(),
+            json!({"edgesByMarket":[0,0], "schedules":"1", "rankBits":0})
+        );
+        let run = |value| calculate(serde_json::from_value(value).unwrap(), false);
         assert_eq!(
             run(request.clone()).unwrap(),
             json!({"rank":"0","count":"1"})

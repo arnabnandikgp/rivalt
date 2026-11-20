@@ -16,7 +16,8 @@ export async function populateDefaultCohort(h:CanonicalHarness,setup:Setup,popul
   const before=sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!);
   assert.equal(before.financialCount,8n);assert.equal(before.nextId,8n);
   await provisionRecoveryWorkspace(h,setup.common,setup.payer,BigInt(population));
-  const {root,route}=executionTestHelpers(h,setup);
+  const {root,route,withCheckpoints}=executionTestHelpers(h,setup);
+  const ledgerLanes=setup.identity.marginLayout==='ledger-lanes';
   const additional:{margin:Address;owner:Awaited<ReturnType<typeof fixtureKey>>;ordinal:number;mode:number;market:number;cash:bigint;receiver:boolean}[]=[];
   for(let start=0;start<population-8;start+=16) {
     const owner=await fixtureKey(`p56-scale-owner-${start/16}`),token=await fixtureKey(`p56-scale-token-${start/16}`);
@@ -34,8 +35,9 @@ export async function populateDefaultCohort(h:CanonicalHarness,setup:Setup,popul
       const receiver=child===7,cash=(mode===0?400_000n:market===0?300_000n:200_000n)+BigInt(ordinal);
       await registerFinancialTestMargin(h,setup.common,setup.payer,{owner,portfolio,margin,subaccountIndex,mode,
         isolatedMarketIndex:mode===0?255:market,role:receiver?2:0});
-      await h.send('deposit actual populated-cohort collateral',[await sdk.getDepositAccountInstructionAsync({...setup.common,owner,margin,
-        quoteMint:setup.mint.address,userToken:token.address,amount:cash})],[owner]);
+      const deposit=await sdk.getDepositAccountInstructionAsync({...setup.common,owner,margin,
+        quoteMint:setup.mint.address,userToken:token.address,amount:cash});
+      await h.send('deposit actual populated-cohort collateral',ledgerLanes?await withCheckpoints(deposit):[deposit],[owner]);
       additional.push({margin,owner,ordinal,mode,market,cash,receiver});
     }
   }
@@ -50,7 +52,8 @@ export async function populateDefaultCohort(h:CanonicalHarness,setup:Setup,popul
     for(const marketIndex of markets) {
       const side=(item.mode===0?(Math.floor(item.ordinal/8)+marketIndex)%2:Math.floor(item.ordinal/2)%2) as 0|1;
       const lots=BigInt((marketIndex===0?35:30)+item.ordinal%5),maker=setup.instances[marketIndex*3+item.ordinal%3];
-      await h.send('open actual populated-cohort exposure',[await route({trader:item.margin,actor:item.owner,marketIndex,side,makers:[maker],lots:[lots],minimalMarkets:true})],[item.owner]);
+      const fill=await route({trader:item.margin,actor:item.owner,marketIndex,side,makers:[maker],lots:[lots],minimalMarkets:true});
+      await h.send('open actual populated-cohort exposure',ledgerLanes?await withCheckpoints(fill):[fill],[item.owner]);
       trades++;
     }
     const actual=await root(item.margin);
