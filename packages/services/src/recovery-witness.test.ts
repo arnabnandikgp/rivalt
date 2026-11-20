@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest';
-import {recoveryRateWitness,type FrozenRecoveryBook} from './recovery-witness.js';
+import {recoveryRateWitness,recoverySettlementCalculation,type FrozenRecoveryBook} from './recovery-witness.js';
 
 const scale = 1_000_000_000n;
 function book(claims:bigint[][], cash:bigint[], insurance=[0n,0n]):FrozenRecoveryBook {
@@ -31,4 +31,21 @@ it('refuses incomplete books and rates that need a second insurance pass', () =>
   expect(()=>recoveryRateWitness(original, [], 0n)).toThrow(/another insurance pass/);
   expect(()=>recoveryRateWitness({...original,rows:original.rows.slice(1)}, [], 0n)).toThrow(/eight/);
   expect(()=>recoveryRateWitness({...original,rows:[...original.rows].reverse()}, [], 0n)).toThrow(/increasing/);
+});
+
+it('includes a flat creditor on the second page in all three insurance calculations', () => {
+  const fifth = scale/5n;
+  const claims = [[0n,0n],[-3n*fifth,3n*fifth],[fifth,-4n*fifth]];
+  const original = book(claims,[2n,1n,2n],[1n,1n]);
+  const last = {id:90n, cash:2n, claims:[scale+2n*fifth,scale+fifth]};
+  const full = {...original, pools:[1n,1n], rows:[...original.rows,last]};
+  // The independent Fraction model pays the flat creditor one atom per market.
+  // Omitting that row makes the two pool balances impossible to reconcile.
+  const value = recoverySettlementCalculation(full, [], 0n);
+  expect(value.rounds).toEqual([[1n,1n,1n],[3n,3n,2n],[23n,20n,15n]]);
+  expect(value.orders).toEqual([
+    [8n,2n,0n,1n,3n,4n,5n,6n,7n], [8n,1n,0n,2n,3n,4n,5n,6n,7n],
+  ]);
+  expect(()=>recoverySettlementCalculation({...full,rows:original.rows}, [], 0n)).toThrow(/claim identity/);
+  expect(()=>recoveryRateWitness(full, [], 0n)).toThrow(/eight/);
 });

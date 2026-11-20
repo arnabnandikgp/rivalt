@@ -5,7 +5,11 @@ use default_plan_selection::{
     joint::{Charge, FrozenBook, Member, Witness},
     joint_search::{Coverage, FrozenPriority},
 };
-use financial_core::clearing::{row::Row, scalable::settlement::Proposal};
+use financial_core::clearing::{
+    row::Row,
+    scalable::{number::Number, settlement::Proposal},
+};
+use num_bigint::BigUint;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{io, str::FromStr};
@@ -15,7 +19,7 @@ use std::{io, str::FromStr};
 struct Request {
     venue: [u8; 32],
     epoch: String,
-    rows: [FrozenRow; 8],
+    rows: Vec<FrozenRow>,
     marks: [String; 2],
     pools: [String; 2],
     insurance: [String; 2],
@@ -35,13 +39,16 @@ struct FrozenRow {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct InputWitness {
     rates: [String; 3],
-    orders: [[u8; 8]; 2],
+    #[serde(default)]
+    additional_rates: Vec<[String; 3]>,
+    orders: [Vec<u64>; 2],
 }
 struct Calculation {
-    proposal: [Proposal; 1],
-    orders: [[u64; 8]; 2],
+    proposals: Vec<Proposal>,
+    orders: [Vec<u64>; 2],
 }
 fn number<T: FromStr>(value: &str) -> Result<T, String> {
     value.parse().map_err(|_| "invalid decimal".into())
@@ -51,20 +58,31 @@ fn pair<T: FromStr>(values: &[String; 2]) -> Result<[T; 2], String> {
 }
 impl InputWitness {
     fn parse(&self) -> Result<Calculation, String> {
-        let word = |index: usize| number::<u64>(&self.rates[index]).map(u128::from);
+        if self.additional_rates.len() > 2 {
+            return Err("two markets admit at most three rate calculations".into());
+        }
+        let amount = |text: &str| {
+            number::<BigUint>(text).map(|value| Number::from_words(value.to_u64_digits()))
+        };
+        let proposals = std::iter::once(&self.rates)
+            .chain(&self.additional_rates)
+            .map(|[factor, btc, eth]| {
+                Ok(Proposal {
+                    factor: amount(factor)?,
+                    rates: [amount(btc)?, amount(eth)?],
+                })
+            })
+            .collect::<Result<Vec<_>, String>>()?;
         Ok(Calculation {
-            proposal: [Proposal {
-                factor: word(0)?.into(),
-                rates: [word(1)?.into(), word(2)?.into()],
-            }],
-            orders: self.orders.map(|order| order.map(u64::from)),
+            proposals,
+            orders: self.orders.clone(),
         })
     }
 }
 impl Calculation {
     fn witness(&self) -> Witness<'_> {
         Witness {
-            rates: &self.proposal,
+            rates: &self.proposals,
             orders: [&self.orders[0], &self.orders[1]],
         }
     }
@@ -203,6 +221,48 @@ fn main() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ninth_flat_creditor_and_three_insurance_passes_are_verified_together() {
+        let mut rows: Vec<_> = (0..9)
+            .map(|member| {
+                json!({"id":(member*100+2).to_string(),"cash":"0",
+                "claims":["0","0"],"lots":["0","0"],"history":[[],[]]})
+            })
+            .collect();
+        for (index, cash, btc, eth) in [
+            (0, "2", "0", "0"),
+            (1, "1", "-600000000", "600000000"),
+            (2, "2", "200000000", "-800000000"),
+            (8, "2", "1400000000", "1200000000"),
+        ] {
+            rows[index]["cash"] = json!(cash);
+            rows[index]["claims"] = json!([btc, eth]);
+        }
+        // Independent rational settlement clips ETH, then BTC, and pays the
+        // ninth member one funded atom from each originating market.
+        let witness = json!({
+            "rates":["1","1","1"], "additionalRates":[["3","3","2"],["23","20","15"]],
+            "orders":[[8,2,0,1,3,4,5,6,7],[8,1,0,2,3,4,5,6,7]]
+        });
+        let request = json!({"venue":vec![3u8;32],"epoch":"1","rows":rows,"marks":["100","200"],
+            "insurance":["1","1"],"fees":["0","0"],"pools":["1","1"],"budget":1,
+            "original":witness,"witnesses":[witness]});
+        let run = |value| select(serde_json::from_value(value).unwrap());
+        assert_eq!(
+            run(request.clone()).unwrap(),
+            json!({"rank":"0","count":"1"})
+        );
+        let mut missing = request.clone();
+        missing["original"]["additionalRates"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(run(missing).is_err());
+        let mut partial = request;
+        partial["original"]["orders"][0] = json!([2, 0, 1, 3, 4, 5, 6, 7]);
+        assert!(run(partial).is_err());
+    }
 
     #[test]
     fn sparse_member_ids_and_missing_digits_recover_wire_rank() {

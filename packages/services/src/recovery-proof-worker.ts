@@ -87,7 +87,7 @@ export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,conte
   if(proof.stage===0){
     const ordinal=proof.rows.length;
     assert(ordinal<book.rows.length,'Invalid recovery capture cursor');
-    return ready('capture-'+ordinal,sdk.getCaptureMemberInstruction({...args,page:book.page,margin:book.rows[ordinal].member,ordinal}));
+    return ready('capture-'+ordinal,sdk.getCaptureMemberInstruction({...args,page:book.pages[Math.floor(ordinal/8)],margin:book.rows[ordinal].member,ordinal}));
   }
   if(proof.stage===1)return ready('derive-pairs',sdk.getDerivePairsInstruction(args));
   assert.deepEqual(proof.edges,edges,'Native and clearing recovery dimensions disagree');

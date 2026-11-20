@@ -33,11 +33,16 @@ def comparison(data):
     flat_counterparty = by_key[data['flatCounterparty']] if equal_winners else winners[0]
     if flat:
         expected_fills.extend([(other, flat_counterparty, 0, 1, 64_998, 13), (other, flat_counterparty, 0, 0, 60_002, 13)])
-    assert len(rows) == len(by_key) == 8
+    inactive = by_key[data['inactiveTrader']] if 'inactiveTrader' in data else None
+    trader_ids = {debtor, other}
+    if inactive is not None:
+        assert other == 8 and inactive not in trader_ids
+        trader_ids.add(inactive)
+    assert len(rows) == len(by_key) == 6 + len(trader_ids)
     lots = [[0, 0] for _ in rows]
     entries = [[None, None] for _ in rows]
     quote = [[0, 0] for _ in rows]
-    cash = [deposits if i in (debtor, other) else int(data['makerDeposit']) for i in range(len(rows))]
+    cash = [deposits if i in trader_ids else int(data['makerDeposit']) for i in range(len(rows))]
     for event, (trader, maker, market, side, gross, fee) in zip(data['fills'], expected_fills, strict=True):
         assert (event['market'], int(event['grossQuote']), int(event['fee']), event['side']) == (data['markets'][market], gross, fee, side)
         assert int(event['lots']) == 1 and len(event['legs']) == 1 and event['legs'][0]['capital'] == rows[maker]['key']

@@ -127,7 +127,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
       cargo build --locked --offline --release -p default-plan-selection --features keeper --bin rivalt-recovery-selector
     fi
     node --import tsx tests/rpc-contract/linked-default-recovery-rpc.ts
-    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-* ]]; then
+    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-* && "${RIVALT_FROZEN_PLAN_CASE:-}" != paged-read ]]; then
       node --import tsx tests/rpc-contract/recovery-wire-conformance.ts "$RIVALT_RUN_DIR"
     fi ;;
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;
