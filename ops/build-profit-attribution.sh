@@ -9,7 +9,7 @@ test -z "$(git status --porcelain --untracked-files=no)"
 output="${RIVALT_ATTRIBUTION_DIR:-.local/profit-attribution/build-$revision}"
 test ! -e "$output"
 profile="${RIVALT_ATTRIBUTION_PROFILE:-profit-attribution-qualification}"
-case "$profile" in profit-attribution-qualification|single-pair-default-qualification|btc-residual-qualification|btc-allocation-qualification|linked-pair-qualification|linked-allocation-qualification|foreign-creditor-qualification|recovery-search-qualification|shared-inventory-qualification|partial-inventory-qualification|book-inventory-qualification|multi-lot-book-qualification|aggregate-fee-qualification|bounded-market-read|checked-funding-prefix|read-only-route-market|read-only-route-ledger) ;; *) exit 2 ;; esac
+case "$profile" in profit-attribution-qualification|single-pair-default-qualification|btc-residual-qualification|btc-allocation-qualification|linked-pair-qualification|linked-allocation-qualification|foreign-creditor-qualification|recovery-search-qualification|integrated-recovery-qualification|shared-inventory-qualification|partial-inventory-qualification|book-inventory-qualification|multi-lot-book-qualification|aggregate-fee-qualification|bounded-market-read|checked-funding-prefix|read-only-route-market|read-only-route-ledger) ;; *) exit 2 ;; esac
 mkdir -p "$output"
 node --import tsx ops/verify-liquidity-artifacts.ts .local/anchor-rc2/current
 cargo build-sbf --manifest-path programs/clearing/Cargo.toml --arch v0 --tools-version v1.52 \

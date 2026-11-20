@@ -62,7 +62,10 @@ pub use state::*;
 pub use state::accounts::SettlementPageAccess;
 
 pub use instructions::account_safety::settlement::{BindRecoverySelection,__client_accounts_bindrecoveryselection};
-#[cfg(all(feature="recovery-search-qualification",any(feature="linked-allocation-qualification",feature="shared-inventory-qualification",feature="btc-allocation-qualification")))]
+#[cfg(all(feature="recovery-search-qualification", any(
+    feature="linked-allocation-qualification", feature="btc-allocation-qualification",
+    all(feature="shared-inventory-qualification", not(feature="integrated-recovery-qualification"))
+)))]
 compile_error!("The clearing-owned recovery qualification has a separate terminal adoption contract");
 
 #[cfg(not(feature = "devnet-test-profile"))]

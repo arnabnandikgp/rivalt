@@ -287,6 +287,8 @@ mod qualified {
         revision: u64,
         ordinals: Vec<u64>,
     ) -> Result<()> {
+        // Only the complete joint selection may advance the integrated profile.
+        require!(!cfg!(feature="integrated-recovery-qualification"), ClearingError::Profile);
         let mut pages = ctx.remaining_accounts()?;
         let accounts = &mut ctx.accounts;
         let header = &mut accounts.prepared;

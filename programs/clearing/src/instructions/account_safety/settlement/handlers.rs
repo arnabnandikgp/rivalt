@@ -108,7 +108,7 @@ pub fn value(ctx: &mut Context<ValuePreparedMember>, _epoch: u64, revision: u64)
         &entry,
         &accounts.margin,
     )?;
-    #[cfg(feature = "book-inventory-qualification")]
+    #[cfg(all(feature = "book-inventory-qualification", not(feature = "integrated-recovery-qualification")))]
     {
         let index=usize::from(accounts.page.row_count)-1;
         let row=&mut accounts.page.rows[index];

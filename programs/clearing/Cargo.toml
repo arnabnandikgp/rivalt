@@ -23,6 +23,7 @@ bounded-market-read = ["aggregate-fee-qualification", "financial-core/parallel-m
 aggregate-fee-qualification = ["multi-lot-book-qualification"]
 multi-lot-book-qualification = ["book-inventory-qualification", "default-plan-selection/compact-book"]
 book-inventory-qualification = ["partial-inventory-qualification"]
+integrated-recovery-qualification = ["recovery-search-qualification", "read-only-route-ledger"]
 recovery-search-qualification = ["foreign-creditor-qualification", "default-plan-selection/sbf-joint-probe", "financial-core/sbf-settlement-measurement", "dep:num-bigint", "dep:num-integer", "dep:num-traits"]
 foreign-creditor-qualification = ["linked-pair-qualification", "dep:default-plan-selection"]
 linked-allocation-qualification = ["linked-pair-qualification", "dep:default-plan-selection"]
