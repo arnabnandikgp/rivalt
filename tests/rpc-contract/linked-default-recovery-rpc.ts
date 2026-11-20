@@ -8,6 +8,7 @@ import {AccountRole,address,getAddressEncoder,getBase58Encoder} from '@solana/ki
 import * as paged from '@rivalt/sdk/paged-recovery';
 import * as sdk from '@rivalt/sdk';
 import {json} from '../../packages/indexer/src/events.js';
+import {accountDefaultStep} from '../../packages/services/src/account-default-worker.js';
 import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
 import {loadRecoverySelection} from '../../packages/services/src/recovery-selection.js';
 import {accountDefaultContext, readAccountResolution} from '../../packages/services/src/account-worker-state.js';
@@ -609,6 +610,26 @@ try {
       break;
     }
     const work = await worker.riskWork(setup.payer);
+    if(pagedWallet && work.status==='blocked') {
+      const context=await accountDefaultContext(worker.rpc,current);
+      const next=await accountDefaultStep(worker,setup.payer,current,context);
+      if(next.status==='ready') {
+        const instruction=next.instruction;
+        const keys=[...new Set(instruction.accounts!.map(meta=>meta.address))];
+        const accounts=await rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(current.contextSlot)}]);
+        const simulations=[];
+        for(const computeUnitLimit of [sdk.RESOLUTION_COMPUTE_UNITS,1_400_000]) {
+          const {transaction}=await sdk.signCanonicalInstructions(worker.connection,setup.payer,[instruction],
+            {computeUnitLimit,loadedAccountsDataSizeLimit:8*1024*1024,heapSize:sdk.inventoryBookHeap(selection,[instruction])});
+          const wire=Buffer.from(transaction.serialize()).toString('base64');
+          const result=await rpc.call('simulateTransaction',[wire,{encoding:'base64',sigVerify:true,commitment:'confirmed'}]);
+          simulations.push({computeUnitLimit,wire,result});
+        }
+        writeFileSync(directory+'/blocked-paged-step.json',json({reason:next.reason,instruction,keys,accounts,simulations}));
+        console.log(json({blocked:next.reason,simulations:simulations.map(({computeUnitLimit,result})=>({
+          computeUnitLimit,error:result.value.err,units:result.value.unitsConsumed,logs:result.value.logs?.slice(-5)}))}));
+      }
+    }
     assert.equal(work.status,'queued',json(work));
     const pending: {request_id:string;signature:string;wire:string}[] = (await worker.store.pool.query("SELECT request_id,signature,wire FROM service_intents WHERE run_id=$1 AND status IN ('pending','unresolved')",[worker.runId])).rows;
     assert.equal(pending.length,1);
