@@ -1,12 +1,13 @@
+use super::clearing_program::state::accounts::{FrozenMargin, MEMBER_FINANCIAL, SCHEMA_VERSION};
 use super::*;
-use clearing::state::accounts::{FrozenMargin, MEMBER_FINANCIAL, SCHEMA_VERSION};
 
 fn canonical(account: &Address, seeds: &[&[u8]]) -> Result<()> {
-    let key = create_program_address(seeds, &clearing::ID).map_err(|_| ProofError::Source)?;
+    let key =
+        create_program_address(seeds, &clearing_program::ID).map_err(|_| ProofError::Source)?;
     require_keys_eq!(key, *account, ProofError::Source);
     Ok(())
 }
-impl Source {
+impl RecoverySource {
     pub fn check(&self, epoch: u64) -> Result<()> {
         self.check_stage(epoch, 4)
     }
@@ -48,17 +49,6 @@ impl Source {
                 && header.fees == source.fees_before
                 && header.allocated == source.allocated_before,
             ProofError::Source
-        );
-        Ok(())
-    }
-    pub fn resume(&self, proof: &Comparison) -> Result<()> {
-        self.check(proof.epoch)?;
-        require!(
-            !proof.sealed
-                && proof.source == *self.prepared.address()
-                && proof.revision == self.prepared.revision
-                && proof.count == self.prepared.count,
-            ProofError::Cursor
         );
         Ok(())
     }

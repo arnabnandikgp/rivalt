@@ -3,10 +3,18 @@
 use anchor_lang::prelude::*;
 use clearing::state::accounts::{FrozenMarginPage, MarginAccount, PreparedSettlement, Resolution};
 use solana_sha256_hasher::hashv;
+#[path = "../../../../programs/clearing/src/instructions/account_safety/settlement/recovery/inputs.rs"]
+mod inputs;
 mod kernel;
+#[path = "../../../../programs/clearing/src/instructions/account_safety/settlement/recovery/priority.rs"]
 mod priority;
+#[path = "../../../../programs/clearing/src/instructions/account_safety/settlement/recovery/search.rs"]
 mod search;
+#[path = "../../../../programs/clearing/src/instructions/account_safety/settlement/recovery/source.rs"]
 mod source;
+use clearing as clearing_program;
+use clearing::frozen_history as read_profit_history;
+use inputs::*;
 use kernel::*;
 use search::*;
 mod verify;
@@ -42,11 +50,6 @@ pub struct Cut {
 }
 
 #[derive(Accounts)]
-pub struct Source {
-    pub prepared: Box<BorshAccount<PreparedSettlement>>,
-    pub resolution: Box<BorshAccount<Resolution>>,
-}
-#[derive(Accounts)]
 #[instruction(nonce:u64)]
 pub struct Begin {
     #[account(mut)]
@@ -54,7 +57,7 @@ pub struct Begin {
     #[account(init,payer=payer,space=8+Comparison::INIT_SPACE,
         seeds=[b"linked-check",payer.address().as_ref(),&nonce.to_le_bytes()],bump)]
     pub comparison: Box<BorshAccount<Comparison>>,
-    pub source: Nested<Source>,
+    pub source: Nested<RecoverySource>,
     pub page: Box<BorshAccount<FrozenMarginPage>>,
     pub system_program: Program<System>,
 }
@@ -62,7 +65,7 @@ pub struct Begin {
 pub struct Step {
     #[account(mut)]
     pub comparison: Box<BorshAccount<Comparison>>,
-    pub source: Nested<Source>,
+    pub source: Nested<RecoverySource>,
     pub page: Box<BorshAccount<FrozenMarginPage>>,
     pub margin: Box<BorshAccount<MarginAccount>>,
 }
@@ -70,7 +73,7 @@ pub struct Step {
 pub struct Seal {
     #[account(mut)]
     pub comparison: Box<BorshAccount<Comparison>>,
-    pub source: Nested<Source>,
+    pub source: Nested<RecoverySource>,
 }
 
 #[program]
@@ -176,4 +179,18 @@ pub enum ProofError {
     Incomplete,
     Priority,
     Accounting,
+}
+
+impl RecoverySource {
+    pub fn resume(&self, proof: &Comparison) -> Result<()> {
+        self.check(proof.epoch)?;
+        require!(
+            !proof.sealed
+                && proof.source == *self.prepared.address()
+                && proof.revision == self.prepared.revision
+                && proof.count == self.prepared.count,
+            ProofError::Cursor
+        );
+        Ok(())
+    }
 }

@@ -852,3 +852,20 @@ pub struct MultiLotBookVerified {
     pub capacities: Vec<[u64;4]>,
     pub pairs: Vec<[u64;6]>,
 }
+
+/// Complete frozen selection before any settlement cash or reserve can move.
+#[event]
+pub struct RecoverySelectionBound {
+    pub venue: Address,
+    pub epoch: u64,
+    pub search: Address,
+    pub schedule: u128,
+    pub schedules_checked: u128,
+    pub charge_atoms: [u64; 2],
+    pub insurance_spent: [u64; 2],
+    pub member_ids: [u64; 8],
+    pub claim_deltas: [[i64; 2]; 8],
+    pub movements: [[i64; 2]; 8],
+    pub final_cash: [u64; 8],
+    pub slot: u64,
+}

@@ -30,7 +30,10 @@ pub(super) fn economic_claims(
     header: &PreparedSettlement,
     frozen: &FrozenMargin,
 ) -> Result<[i128; 2]> {
-    #[cfg(feature = "single-pair-default-qualification")]
+    #[cfg(feature="recovery-search-qualification")]
+    { super::recovery::binding::BoundResult::read(header)?.claims(frozen) }
+
+    #[cfg(all(feature = "single-pair-default-qualification", not(feature = "recovery-search-qualification")))]
     {
         #[cfg(feature="book-inventory-qualification")]
         if super::inventory_book::Receipt::read(header)?.is_some() {

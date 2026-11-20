@@ -1,7 +1,7 @@
-//! A diagnostic covering every schedule against an authenticated, one-page book.
+//! Restartable verification of every schedule against an authenticated, one-page book.
 //! Ties use the frozen-book financial priorities. Incomparable plans stay unsealed.
+use super::priority::{episode_order, Priorities};
 use super::*;
-use crate::priority::{episode_order, Priorities};
 use default_plan_selection::joint::{Charge, FrozenBook, Member, Receipt, Witness};
 use financial_core::clearing::row::Row;
 use num_bigint::{BigInt, BigUint};
@@ -57,14 +57,14 @@ pub struct OpenSearch {
     pub payer: Signer,
     #[account(init,payer=payer,space=8+RecoverySearch::INIT_SPACE,seeds=[b"search",payer.address().as_ref(),&nonce.to_le_bytes()],bump)]
     pub search: Box<BorshAccount<RecoverySearch>>,
-    pub source: Nested<Source>,
+    pub source: Nested<RecoverySource>,
     pub system_program: Program<System>,
 }
 #[derive(Accounts)]
 pub struct CaptureSearch {
     #[account(mut)]
     pub search: Box<BorshAccount<RecoverySearch>>,
-    pub source: Nested<Source>,
+    pub source: Nested<RecoverySource>,
     pub page: Box<BorshAccount<FrozenMarginPage>>,
     pub margin: Box<BorshAccount<MarginAccount>>,
 }
@@ -72,7 +72,7 @@ pub struct CaptureSearch {
 pub struct AdvanceSearch {
     #[account(mut)]
     pub search: Box<BorshAccount<RecoverySearch>>,
-    pub source: Nested<Source>,
+    pub source: Nested<RecoverySource>,
 }
 
 pub fn open(
@@ -92,7 +92,7 @@ pub fn open(
     search.original = original;
     Ok(())
 }
-fn stage(source: &Source, search: &RecoverySearch, expected: u8) -> Result<()> {
+fn stage(source: &RecoverySource, search: &RecoverySearch, expected: u8) -> Result<()> {
     source.check(search.epoch)?;
     require!(
         search.prepared == *source.prepared.address()
@@ -117,7 +117,7 @@ pub fn capture(accounts: &mut CaptureSearch, ordinal: u64) -> Result<()> {
         histories: [[0; 256]; 2],
     };
     for (market, history) in member.histories.iter_mut().enumerate() {
-        clearing::frozen_history(&accounts.margin, market)?
+        read_profit_history(&accounts.margin, market)?
             .write(history)
             .map_err(|_| ProofError::Source)?;
     }
@@ -207,7 +207,7 @@ pub fn dimensions(accounts: &mut AdvanceSearch) -> Result<()> {
     Ok(())
 }
 // Zero-based mixed radix with the last pair as the least significant digit.
-fn charges(edges: &[SearchEdge], mut rank: u128) -> Vec<Charge> {
+pub(super) fn charges(edges: &[SearchEdge], mut rank: u128) -> Vec<Charge> {
     let mut charges = Vec::new();
     for edge in edges.iter().rev() {
         let radix = u128::from(edge.maximum) + 1;

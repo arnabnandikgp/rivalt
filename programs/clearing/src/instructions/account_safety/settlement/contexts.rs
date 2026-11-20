@@ -700,3 +700,17 @@ pub struct VerifyInventoryBook {
         constraint=prepared.venue == *source.venue.address() && prepared.epoch == epoch @ ClearingError::Resolution)]
     pub prepared: Box<BorshAccount<PreparedSettlement>>,
 }
+
+#[cfg(feature="recovery-search-qualification")]
+use super::recovery::RecoverySearch;
+#[cfg(feature="recovery-search-qualification")]
+#[event_cpi]
+#[derive(Accounts)]
+#[instruction(epoch:u64)]
+pub struct BindRecoverySelection{
+    pub source:Nested<PreparedSourceIdentity>,
+    #[account(mut,seeds=[b"prepared-settlement",source.venue.address().as_ref()],bump=prepared.bump,
+        constraint=prepared.epoch==epoch @ ClearingError::Resolution)]
+    pub prepared:Box<BorshAccount<PreparedSettlement>>,
+    pub search:Box<BorshAccount<RecoverySearch>>,
+}

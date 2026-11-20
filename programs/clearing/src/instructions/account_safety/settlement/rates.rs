@@ -46,12 +46,14 @@ pub(super) fn input(header: &PreparedSettlement, rates: &SettlementRates) -> Res
     )?;
     #[cfg(feature="single-pair-default-qualification")]
     let totals = {
-        #[cfg(feature="linked-pair-qualification")]
+        #[cfg(all(feature="linked-pair-qualification", not(feature="recovery-search-qualification")))]
         let linked = super::linked_pair::Joint::read(header)?;
-        #[cfg(feature="linked-pair-qualification")]
+        #[cfg(all(feature="linked-pair-qualification", not(feature="recovery-search-qualification")))]
         let charges = super::linked_allocation::charges(header)?.or_else(|| linked.map(|joint| joint.legs.map(|leg| leg.charge)));
-        #[cfg(feature="foreign-creditor-qualification")]
+        #[cfg(all(feature="foreign-creditor-qualification", not(feature="recovery-search-qualification")))]
         let charges = super::foreign_creditor::Receipt::read(header)?.map(|receipt| receipt.legs.map(|leg| leg.charge)).or(charges);
+        #[cfg(feature="recovery-search-qualification")]
+        let charges = Some(super::recovery::binding::BoundResult::read(header)?.charges);
         #[cfg(feature="shared-inventory-qualification")]
         let charges = match super::shared_inventory::Receipt::read(header)? {
             Some(receipt) => Some([receipt.total_charge()?, 0]),

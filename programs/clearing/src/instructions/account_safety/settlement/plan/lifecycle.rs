@@ -88,6 +88,11 @@ fn adopt(
             && source.revision == header.source_revision,
         ClearingError::Resolution
     );
+    #[cfg(feature = "recovery-search-qualification")]
+    require!(
+        super::super::recovery::binding::BoundResult::read(header)?.insurance_spent == plan.insurance_spent,
+        ClearingError::Reconciliation
+    );
     let graph = exact(GraphWork::from_checkpoint(
         checkpoint(plan, 352)?,
         header.count,
@@ -209,13 +214,21 @@ fn apply_margin(
     frozen: &FrozenMargin,
     root: &MarginAccount,
     flow: &mut FlowRecord,
-    increments: [u64; 3],
+    graph_increments: [u64; 3],
 ) -> Result<Box<MarginAccount>> {
     require!(
         flow.id == frozen.id && flow.seen_attempt == plan.order_attempt && !flow.applied,
         ClearingError::Resolution
     );
     let mut scan = application_scan(header, plan)?;
+    #[cfg(feature = "recovery-search-qualification")]
+    let increments = {
+        // Validate the ordinary rounding witness as well as the protected allocation.
+        require!(graph_increments.iter().all(|amount| *amount <= 1), ClearingError::Resolution);
+        super::super::recovery::binding::BoundResult::read(header)?.increments(frozen, flow)?
+    };
+    #[cfg(not(feature = "recovery-search-qualification"))]
+    let increments = graph_increments;
     let amounts = exact(scan.accept(
         plan.cursor,
         frozen.id,
