@@ -94,8 +94,8 @@ impl FrozenBook<'_> {
             certified: receipt.reaches_both_recovery_ceilings(),
         };
         for market in 0..2 {
-            let total = u64::try_from(bound.budget[market]).map_err(|_| Error::Bounds)?;
-            let cap = u64::try_from(caps[market]).map_err(|_| Error::Bounds)?;
+            let total = bound.budget[market];
+            let cap = caps[market];
             let mut sharing = LinkedSharing::default();
             let mut fastest = [0u64; 2];
             for (index, member) in self.members.iter().enumerate() {

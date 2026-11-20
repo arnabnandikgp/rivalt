@@ -84,6 +84,55 @@ pub(crate) fn compare_unit_cost(
         .then_with(|| (rem * u128::from(other_capacity)).cmp(&(other_rem * u128::from(capacity))))
 }
 
+/// Extremal marginal costs of a selected allocation. Combining ranges does
+/// not require summing the markets' charges in the per-member u64 unit.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MarginalRange {
+    pub last_selected: Option<Marginal>,
+    pub first_remaining: Option<Marginal>,
+}
+impl MarginalRange {
+    pub fn include(
+        &mut self,
+        member: MemberPriority,
+        capacity: u64,
+        charge: u64,
+        lots: impl Fn(u64) -> Option<u64>,
+    ) -> Option<()> {
+        if charge > capacity {
+            return None;
+        }
+        let matched = lots(charge)?;
+        let make = |unit, extra_lots| Marginal {
+            unit,
+            capacity,
+            extra_lots,
+            member,
+        };
+        let mut next = *self;
+        if charge > 0 {
+            let selected = make(charge, matched.checked_sub(lots(charge - 1)?)?);
+            if next
+                .last_selected
+                .is_none_or(|old| old.compare(&selected).is_lt())
+            {
+                next.last_selected = Some(selected);
+            }
+        }
+        if charge < capacity {
+            let remaining = make(charge + 1, lots(charge + 1)?.checked_sub(matched)?);
+            if next
+                .first_remaining
+                .is_none_or(|old| remaining.compare(&old).is_lt())
+            {
+                next.first_remaining = Some(remaining);
+            }
+        }
+        *self = next;
+        Some(())
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Boundary {
     pub recovered: u64,
@@ -107,31 +156,15 @@ impl Boundary {
         if charge > capacity || recovered > shortfall {
             return None;
         }
-        let matched = lots(charge)?;
-        let marginal = |unit, extra_lots| Marginal {
-            unit,
-            capacity,
-            extra_lots,
-            member,
+        let mut range = MarginalRange {
+            last_selected: self.last_selected,
+            first_remaining: self.first_remaining,
         };
-        let mut last = self.last_selected;
-        let mut first = self.first_remaining;
-        if charge > 0 {
-            let next = marginal(charge, matched.checked_sub(lots(charge - 1)?)?);
-            if last.is_none_or(|old| old.compare(&next).is_lt()) {
-                last = Some(next);
-            }
-        }
-        if charge < capacity {
-            let next = marginal(charge + 1, lots(charge + 1)?.checked_sub(matched)?);
-            if first.is_none_or(|old| next.compare(&old).is_lt()) {
-                first = Some(next);
-            }
-        }
+        range.include(member, capacity, charge, lots)?;
         self.recovered = recovered;
         self.capped_capacity = shortfall.min(self.capped_capacity.saturating_add(capacity));
-        self.last_selected = last;
-        self.first_remaining = first;
+        self.last_selected = range.last_selected;
+        self.first_remaining = range.first_remaining;
         Some(())
     }
 

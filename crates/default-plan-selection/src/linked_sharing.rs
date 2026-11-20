@@ -1,13 +1,14 @@
 //! Sufficient whole-market sharing certificates at a fixed recovery total.
 //! The linked subset has a separately proved upper bound on total charge.
-use crate::proportional::{Boundary, MemberPriority};
+use crate::proportional::{MarginalRange, MemberPriority};
 
 #[derive(Clone, Debug, Default)]
 pub struct LinkedSharing {
     // Both scans use the same exact marginal deviation cost. The secondary
     // key in one is claimant priority, in the other it is additional lots.
-    episode: [Boundary; 2],
-    lots: [Boundary; 2],
+    episode: [MarginalRange; 2],
+    lots: [MarginalRange; 2],
+    recovered: [u128; 2],
     winner_lot_sum: u128,
 }
 
@@ -22,32 +23,37 @@ impl LinkedSharing {
     pub fn include(
         &mut self,
         linked: bool,
-        total: u64,
+        total: u128,
         member: MemberPriority,
         capacity: u64,
         charge: u64,
         matched: impl Fn(u64) -> Option<u64>,
     ) -> Option<()> {
         let index = usize::from(linked);
-        let mut episode = self.episode[index].clone();
-        let mut lots = self.lots[index].clone();
-        episode.include(total, member, capacity, charge, |_| Some(0))?;
-        lots.include(total, member, capacity, charge, &matched)?;
+        let recovered = self.recovered[index].checked_add(u128::from(charge))?;
+        if recovered > total {
+            return None;
+        }
+        let mut episode = self.episode[index];
+        let mut lots = self.lots[index];
+        episode.include(member, capacity, charge, |_| Some(0))?;
+        lots.include(member, capacity, charge, &matched)?;
         let sum = self
             .winner_lot_sum
             .checked_add(u128::from(matched(charge)?))?;
         self.episode[index] = episode;
         self.lots[index] = lots;
         self.winner_lot_sum = sum;
+        self.recovered[index] = recovered;
         Some(())
     }
 
-    pub fn certify(&self, total: u64, linked_cap: u64) -> Option<SharingBounds> {
-        let used = self.episode[1].recovered;
-        if used > linked_cap || self.episode[0].recovered.checked_add(used)? != total {
+    pub fn certify(&self, total: u128, linked_cap: u128) -> Option<SharingBounds> {
+        let used = self.recovered[1];
+        if used > linked_cap || self.recovered[0].checked_add(used)? != total {
             return None;
         }
-        let permits_all_exchanges = |groups: &[Boundary; 2]| {
+        let permits_all_exchanges = |groups: &[MarginalRange; 2]| {
             groups.iter().enumerate().all(|(donor, group)| {
                 groups.iter().enumerate().all(|(recipient, other)| {
                     if donor == 0 && recipient == 1 && used == linked_cap {
@@ -73,6 +79,25 @@ impl LinkedSharing {
 mod tests {
     extern crate std;
     use super::*;
+
+    #[test]
+    fn market_totals_can_exceed_one_members_integer_range() {
+        let mut scan = LinkedSharing::default();
+        let total = 2 * u128::from(u64::MAX);
+        for id in 0..2 {
+            let member = MemberPriority {
+                digest: [id as u8; 32],
+                id,
+            };
+            scan.include(true, total, member, u64::MAX, u64::MAX, Some)
+                .unwrap();
+        }
+        assert_eq!(
+            scan.certify(total, total).unwrap().winner_lot_floor,
+            Some(total)
+        );
+        assert!(scan.certify(total, total - 1).is_none());
+    }
 
     // Compare the certificate with enumeration of all three holders' charges.
     // Integer LCM 60 represents every k^2/weight exactly for weights 1..=5.
@@ -141,7 +166,7 @@ mod tests {
                             for i in 0..3 {
                                 scan.include(
                                     mask & (1 << i) != 0,
-                                    total,
+                                    total.into(),
                                     holders[i],
                                     weights[i],
                                     amounts[i],
@@ -149,7 +174,7 @@ mod tests {
                                 )
                                 .unwrap();
                             }
-                            let cert = scan.certify(total, cap);
+                            let cert = scan.certify(total.into(), cap.into());
                             assert_eq!(
                                 cert.is_some(),
                                 [amounts[1], amounts[0], amounts[2]] == earliest
