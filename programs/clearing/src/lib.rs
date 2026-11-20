@@ -113,10 +113,10 @@ pub mod clearing {
         attempt:u64, revision:u64, page_revisions:[u64;7]) -> Result<()> {
         #[cfg(feature="populated-recovery-qualification")]
         {
-            use account_safety::settlement::{foreign_protection::scan, original_budgets::OriginalRegisters};
-            let _ = (epoch,page_index); // Bound by the account context.
-            let registers=OriginalRegisters::verified(&ctx.accounts.prepared,&ctx.accounts.rates)?;
-            scoped_history::run_pages(ctx,[73, 181, 70, 177, 190, 240, 37, 225],registers.pages,|ctx,_|scan(ctx,&registers,attempt,revision,page_revisions))
+            use account_safety::settlement::foreign_protection;
+            let _ = epoch; // Bound by the account context.
+            let (pages,registers)=foreign_protection::plan(&ctx.accounts.prepared,&ctx.accounts.rates,page_index)?;
+            scoped_history::run_pages(ctx,[73, 181, 70, 177, 190, 240, 37, 225],pages,|ctx,_|foreign_protection::scan(ctx,registers.as_deref(),attempt,revision,page_revisions))
         }
         #[cfg(not(feature="populated-recovery-qualification"))]
         { Err(ClearingError::Profile.into()) }

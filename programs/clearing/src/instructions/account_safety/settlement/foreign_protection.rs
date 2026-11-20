@@ -62,9 +62,37 @@ impl BoundScan {
     }
 }
 
+/// Original numerical registers are needed only when sealing the last page.
+pub fn plan(
+    header: &PreparedSettlement,
+    rates: &SettlementRates,
+    page: u64,
+) -> Result<(
+    financial_core::clearing::scalable::pages::PagePlan,
+    Option<Box<OriginalRegisters>>,
+)> {
+    require!(
+        original_rates(header.stage)
+            && rates.schema_version == SETTLEMENT_SCHEMA
+            && rates.stage == VERIFIED_RATE
+            && rates.attempt > 0
+            && header.count > 0,
+        ClearingError::Resolution
+    );
+    if page == (header.count - 1) / 8 {
+        let registers = OriginalRegisters::verified(header, rates)?;
+        Ok((registers.pages, Some(registers)))
+    } else {
+        let capacity = required_limbs(header.count).map_err(|_| ClearingError::Resolution)?;
+        let pages = financial_core::clearing::scalable::pages::PagePlan::metadata_only(capacity)
+            .map_err(|_| ClearingError::Resolution)?;
+        Ok((pages, None))
+    }
+}
+
 pub fn scan(
     ctx: &mut Context<ScanForeignProtection>,
-    registers: &OriginalRegisters,
+    registers: Option<&OriginalRegisters>,
     attempt: u64,
     revision: u64,
     revisions: [u64; 7],
@@ -86,14 +114,6 @@ pub fn scan(
             && u64::from(page.row_count) == (header.count - scan.members).min(8),
         ClearingError::Resolution
     );
-    let versions = revisions.map(|revision| PageVersion { attempt, revision });
-    let window = PageWindow::load(
-        &header.venue,
-        header.epoch,
-        registers.pages,
-        &versions,
-        &mut remaining,
-    )?;
     let mut totals = scan.totals()?;
     for record in &page.rows[..usize::from(page.row_count)] {
         totals
@@ -112,6 +132,16 @@ pub fn scan(
     scan.incoming_debt = totals.incoming_debt.map(ClaimTotal::words);
     scan.budget = totals.budget;
     if scan.members == header.count {
+        let registers = registers.ok_or(ClearingError::Resolution)?;
+        let versions = revisions.map(|revision| PageVersion { attempt, revision });
+        let window = PageWindow::load(
+            &header.venue,
+            header.epoch,
+            registers.pages,
+            &versions,
+            &mut remaining,
+        )?;
+
         let snapshot =
             SnapshotScan::from_checkpoint(&header.state.valuation, snapshot_binding(header))
                 .and_then(|scan| scan.result())
@@ -124,6 +154,11 @@ pub fn scan(
                 &registers.terms(&window)?,
             )
             .map_err(|_| ClearingError::Resolution)?;
+    } else {
+        require!(
+            remaining.is_empty() && registers.is_none() && revisions == [0; 7],
+            ClearingError::Resolution
+        );
     }
     let bytes = &mut header.state.membership;
     bytes.fill(0);
