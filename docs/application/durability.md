@@ -775,3 +775,11 @@ each result with its frozen page. The retained search transactions allow both
 isolated Anchor clients to reproduce the instruction bytes and dynamic account
 roles. See [validation](../operations/validation.md#recovery-selection-across-two-membership-pages)
 for the cases exercised on Surfpool.
+
+For the current paged search representation the keeper returns
+`recovery-proof-storage-insufficient` when the generated account cannot fit
+even one rate round, empty histories, zero edges and the mandatory member
+arrays. That lower bound is 17,061 bytes at 128 members against a 10,240-byte
+account. Smaller cohorts still depend on their actual histories, edges and
+rate widths. The keeper reports `recovery-unsupported-rate-witness` for an
+unencodable original rate. Neither condition enqueues a financial transaction.

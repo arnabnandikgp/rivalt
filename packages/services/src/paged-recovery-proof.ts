@@ -4,6 +4,17 @@ import * as paged from '@rivalt/sdk/paged-recovery';
 import {excludedRecoveryEnd} from './recovery-coverage.js';
 import {recoverySettlementCalculation,type readRecoveryWitnessBook} from './recovery-witness.js';
 
+// One 24-byte rate round and two complete ordinal arrays are mandatory.
+export function minimumPagedSearchBytes(count:bigint) {
+  return 397n+24n+(128n+2n)*count;
+}
+export function pagedRateWitness(book:Parameters<typeof recoverySettlementCalculation>[0],edges:paged.SearchEdge[],rank:bigint) {
+  const {rounds,orders}=recoverySettlementCalculation(book,edges,rank);
+  assert(rounds.flat().every(value=>value>=0n && value<(1n<<64n)),'Paged recovery rate exceeds its wire width');
+  assert(orders.every(order=>order.every(ordinal=>ordinal<=255n)),'Paged recovery order exceeds its wire width');
+  return {rates:rounds,orders:orders.map(order=>Uint8Array.from(order,Number))};
+}
+
 type Book=Awaited<ReturnType<typeof readRecoveryWitnessBook>>;
 type Schedule={rank:bigint;count:bigint;edges:paged.SearchEdge[]};
 
@@ -14,12 +25,7 @@ export function nextPagedProofInstruction(book:Book,choice:Schedule,
   proof:paged.PagedRecoverySearch|null,programAddress:Address):{action:string;instruction:Instruction;computeUnitLimit?:1_350_000}|null {
   const {rank,count,edges}=choice;
   const accounts={...args,prepared:book.prepared},program={programAddress};
-  const witness=(dimensions:paged.SearchEdge[],index:bigint)=>{
-    const {rounds,orders}=recoverySettlementCalculation(book,dimensions,index);
-    assert(rounds.flat().every(value=>value>=0n && value<(1n<<64n)),'Paged recovery rate exceeds its wire width');
-    assert(orders.every(order=>order.every(ordinal=>ordinal<=255n)),'Paged recovery order exceeds its wire width');
-    return {rates:rounds,orders:orders.map(order=>Uint8Array.from(order,Number))};
-  };
+  const witness=(dimensions:paged.SearchEdge[],index:bigint)=>pagedRateWitness(book,dimensions,index);
   if(!proof)return {action:'open',instruction:paged.getOpenSearchInstruction({...accounts,rank,original:witness([],0n)},program)};
   assert(proof.prepared===book.prepared && proof.epoch===args.epoch && proof.revision===args.revision
     && proof.proposed===rank,'Foreign paged recovery proof');

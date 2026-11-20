@@ -3960,3 +3960,25 @@ capacity of the successor search PDA. Even with empty histories, no edges and no
 rate or order entries, its generated encoding needs 16,781 bytes at the end of
 pair derivation. The account holds 10,240. Per-member budgets, weights and payout
 vectors all contribute to the bound. [Local runtime decision](../DECISIONS.md#d140--retain-p56-as-the-normal-local-runtime) · [Reproduce the qualification](local-development.md#combined-local-successor-qualification).
+
+## Populated successor recovery inputs
+
+21 November 2026. Clearing `ba2057df`, harness `14bc7ee8`, 1,165 signed
+Surfpool transactions, including the expected rejection. The test repriced
+both markets, froze 128 Financial members and valued every member in order.
+Sixteen accounts used cross margin, 120 held positions, and 136 market slots
+were open. All counterparties and oracle sources were local test participants.
+[Reproduction](local-development.md#populated-successor-recovery-inputs)
+
+| Check | Observed result |
+|---|---|
+| Admission | Forward registration order on the preceding successor stopped at maker inventory rising from 227 to 262 lots. The 256-byte sponsored slot refused the fill in simulation with error 6105. Reversing execution order kept the same requested trader quantities and maker assignments within the sponsor limit. The passing run executed 129 fills and transferred one lot into a funded liquidation receiver. |
+| Frozen pages | 16 pages of 1,988 bytes. All 128 member valuations cost 38,877–48,199 CU apiece and 640,000 lamports in total. A signed attempt to write the first member of page two into page one was rejected. Both pages and the membership cursor were byte-identical after rejection. |
+| Financial inputs | Independent per-lot arithmetic agreed at all 5,158 nonzero quantity checks. The separate Python fraction model reproduced both rate numerators and the rounding orders. The shared factor needed 108 bits and each numerator needed 152. |
+| Search | The native iterator using raw histories and the independent calculation using on-chain page rates and Python debtor budgets found 888 eligible BTC pairs and 1,023 ETH pairs. Multiplying their charge radices gives a 10,031-digit count. Representing the greatest rank takes 33,322 bits. Many of these assignments violate financial constraints. No schedule was selected or applied. |
+| Custody and history | Fresh PostgreSQL replay reproduced 1,286 events. RPC reconciliation covered 405 accounts and 128 Financial members. The vault and allocated collateral both held 332,907,140 atoms at frozen stage 2, with zero surplus. |
+
+This verifies the partitioned financial inputs through valuation. The freeze had
+no flat member with a positive market claim. The earlier nine-member wallet
+tests cover that case separately. The 128-member terminal payout and withdrawal
+are open. D140 keeps P56 selected.

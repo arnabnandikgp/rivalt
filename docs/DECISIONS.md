@@ -1544,3 +1544,11 @@ Keep P56 in the normal local launcher. Promotion requires a recovery design
 that can represent that population and a signed complete-cohort exit with
 independent reconciliation. The candidate remains available for bounded
 experiments. [Reproduction and probes](operations/local-development.md#combined-local-successor-qualification).
+
+On 21 November the opt-in partitioned build authenticated both markets' charge
+terms for 128 members across 16 pages. The signed book's exact rate numerators
+needed 152 bits and the current enumeration needed a 33,322-bit rank. The
+population gate therefore also needs a comparison certificate that can prove
+the agreed winner without enumerating the full mixed-radix range. Moving inputs
+to pages alone cannot authorize this cohort's payout. D122 continues to govern
+release. [Measured freeze](operations/validation.md#populated-successor-recovery-inputs)

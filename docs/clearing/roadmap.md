@@ -1,6 +1,6 @@
 # Clearing roadmap
 
-20 November 2026. This is the active engineering plan for Rivalt. The starting
+21 November 2026. This is the active engineering plan for Rivalt. The starting
 point is the locally qualified BTC/ETH prototype through P56. Its common clearing,
 isolated maker capital, one collateral mint, index-derived risk, whole-account
 funding and reservations, two-maker routes and current fees are the baseline for
@@ -22,7 +22,7 @@ as the default build are three distinct milestones.
 | 2. Functional code ownership | Whole-account risk, position accounting, paired fills, forced reductions and ordinary claim booking have identifiable rule owners. [Source map](README.md#trace-a-financial-transition). | Review the extraction and its nine signed before/after measurements in [PR #144](https://github.com/arnabnandikgp/rivalt/pull/144). |
 | 3. Ordinary settlement | A different-maker close paid 970 net atoms to the wallet. Both an already funded pool and delayed collection with a keeper restart passed. [Timing PR](https://github.com/arnabnandikgp/rivalt/pull/142). | An optional, atomic path for already-backed claims would need packet, compute and payout-priority checks. |
 | 4. Forced liquidation | The keeper discovered the best admissible maker route, waited while the receiver lacked collateral, transferred five lots after funding and stopped with 35 lots at restored maintenance. [Liquidation PR](https://github.com/arnabnandikgp/rivalt/pull/143). | Review and integrate the qualified local worker. A funded live backstop needs separate authorization. |
-| 5. Default and recovery | The keeper selects a schedule from frozen accounts, resumes after restart and completes wallet exits. Both nine-member recovery cases replayed on the mixed-traffic binary. [Signed cases](../operations/validation.md#combined-successor-qualification). | The proof storage needs to scale to the launcher's previously qualified 128 members before promotion. |
+| 5. Default and recovery | The keeper selects a schedule from frozen accounts, resumes after restart and completes wallet exits. Both nine-member recovery cases replayed on the mixed-traffic binary. [Signed cases](../operations/validation.md#combined-successor-qualification). | The [128-member freeze](../operations/validation.md#populated-successor-recovery-inputs) now stores and verifies the charge terms on 16 pages. The observed book has 1,911 eligible pairs. Next test a recovery upper bound against feasible plans, then verify the winning allocation, rounding, complete payout and wallet exit before promotion. |
 | 6. Shared writes and qualification | All 360 combined-binary fills finalized. Distinct BTC makers shared zero writes. The same maker shared its capital and registration. [Payer costs and CU](../operations/performance.md#mixed-traffic-on-the-combined-successor). | Review the final qualification in [PR #145](https://github.com/arnabnandikgp/rivalt/pull/145). [D140](../DECISIONS.md#d140--retain-p56-as-the-normal-local-runtime) keeps P56 selected. |
 
 ### What a default freeze means
@@ -41,8 +41,7 @@ is allocated explicitly. A *proof* supplies clearing with a proposed set of
 reductions and the calculations it can check against the original frozen book.
 The submitter has no discretion to choose a cheaper payout.
 
-The combined build verifies exactly eight frozen members and its supported
-insurance calculation. This limit applies to the verifier. Account registration has its own capacity rules. A separate verifier reached all 2,548 schedules for nine members over two pages, including a creditor who had already closed. Clearing has bound all nine payouts and refused a premature withdrawal. In a second nine-member freeze, the insurance calculation needed two passes and the flat creditor withdrew 4,996 atoms. The larger 2,548-schedule search also paid all four withdrawals and matched 134 events on fresh replay. Another payer can resume a valid proof or submit a
+The original combined verifier supported eight members. The successor in #145 reached all 2,548 schedules for nine members over two pages, including a creditor who had already closed. Clearing has bound all nine payouts and refused a premature withdrawal. In a second nine-member freeze, the insurance calculation needed two passes and the flat creditor withdrew 4,996 atoms. The larger 2,548-schedule search also paid all four withdrawals and matched 134 events on fresh replay. Another payer can resume a valid proof or submit a
 different proposal for the same frozen inputs. Affected funds can remain frozen
 indefinitely if no plan can be verified. Even a verified plan must be applied
 and reconciled before withdrawal. No timer changes anyone's entitlement.

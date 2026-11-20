@@ -1041,3 +1041,33 @@ advances to denominator verification only after all rows and both markets
 reconcile. The normal rate, plan, Apply and withdrawal checks follow. The
 [SBF measurements](../operations/validation.md#recovery-selection-across-two-membership-pages)
 record which gates have run end to end.
+
+## Partitioned recovery inputs
+
+In the opt-in `partitioned-recovery-inputs` build, the signed valuation of a
+Financial member records one numerator and denominator per market on its
+eight-member frozen page. Clearing derives these values from the member's
+surviving entry and already-paid gain at the frozen mark. The same instruction
+checks the membership cursor, page, margin identity and generation and records
+the accrued claim. A failed valuation rolls back the row and cursor together.
+
+For a winner with frozen quantity Q, the compact rate n/d gives the exact
+whole-atom gain available at every integer quantity q from zero through Q.
+The charge on paired lots is capped by the smallest of
+`floor(q × n / d)`, the winner's whole positive claim, and the verified
+debtor budget. Several pairs must still share the same lots and total claim.
+A zero numerator and denominator one represent an ineligible position.
+The bounded-rational calculation preserves these integer thresholds even
+when the original entry or paid-gain fraction needs more bits.
+[Representation](../../crates/clearing-accounting/src/attribution/lot_rate.rs)
+
+The two pairs add 32 bytes per member, or 256 bytes per page. Page addresses
+and membership order follow the existing prepared settlement. Only a fresh
+opt-in deployment allocates this layout. An artifact-specific decoder verifies
+its full size. The selected launcher continues to read its original layout.
+
+These pages establish inputs for a scalable proof. The existing verifier
+still packs its working state into a single search account, encodes proposed
+rates as 64-bit integers and uses a 128-bit mixed-radix cursor. A member's
+frozen charge terms do not determine the winning schedule, its protected
+rounding or its final cash. The release requirement in D122 still applies.

@@ -764,3 +764,23 @@ After a workload run use `python3 tests/performance/successor-workload-cost.py "
 to reproduce fees by actual payer, CU and lock conflicts from finalized transaction
 bytes. Run `node --import tsx tests/performance/successor-proof-space.ts` to
 measure the search account's minimum bytes at the selected launcher's population.
+
+### Populated successor recovery inputs
+
+Build the opt-in clearing artifact at `ba2057df` with
+`RIVALT_ATTRIBUTION_PROFILE=partitioned-recovery-inputs bash ops/build-profit-attribution.sh`.
+Back in the qualification checkout, run the following with that directory
+as `RIVALT_SETTLEMENT_ARTIFACT_DIR` and a fresh `RIVALT_RUN_DIR`.
+
+```sh
+source ops/env.sh
+cargo build --locked --offline --release -p default-plan-selection --features keeper --bin rivalt-recovery-selector
+RIVALT_SETTLEMENT_PROBE=profit-attribution-partitioned-population bash ops/scalable-settlement-smoke.sh
+```
+
+The test creates 128 Financial members using signed transactions, then
+registers the exact BTC and ETH charge terms for each member during frozen
+valuation. To reproduce the size of the search from the retained freeze,
+run `target/release/rivalt-recovery-selector --dimensions < "$RIVALT_RUN_DIR/population-input.json"`.
+This measurement visits eligible debtor/winner pairs once. It grants no
+authority to settle the book.

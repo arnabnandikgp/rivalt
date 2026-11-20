@@ -5,7 +5,9 @@ import {getAddressEncoder,type Address} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import type {Rpc} from '../../indexer/src/rpc.js';
 import {decodeAccountWorker} from './account-worker-state.js';
-import {readRecoveryWitnessBook,recoveryRateWitness,recoverySettlementCalculation,type FrozenRecoveryBook} from './recovery-witness.js';
+import {readRecoveryWitnessBook,recoveryRateWitness,type FrozenRecoveryBook} from './recovery-witness.js';
+
+import {pagedRateWitness} from './paged-recovery-proof.js';
 
 type Calculator = {blocked:string}|{rank:bigint;count:bigint;edges:sdk.SearchEdge[]};
 type Member = {id:bigint;cash:bigint;claims:readonly bigint[];lots:readonly bigint[];history:readonly Uint8Array[]};
@@ -18,15 +20,15 @@ export function recoveryBudget(value:string|undefined) {
   return Number(value);
 }
 type ProofFormat = 'one-page' | 'paged';
-function wireWitness(book:Inputs, edges:readonly sdk.SearchEdge[], rank:bigint, format:ProofFormat) {
+function wireWitness(book:Inputs, edges:sdk.SearchEdge[], rank:bigint, format:ProofFormat) {
   if (format === 'one-page') {
     const witness = recoveryRateWitness(book, edges, rank);
     return {rates:witness.rates.map(String), orders:witness.orders.map(order => Array.from(order))};
   }
-  const {rounds, orders} = recoverySettlementCalculation(book, edges, rank);
-  const [first, ...remaining] = rounds;
+  const {rates, orders} = pagedRateWitness(book, edges, rank);
+  const [first, ...remaining] = rates;
   return {rates:first.map(String), additionalRates:remaining.map(round => round.map(String)),
-    orders:orders.map(order => order.map(Number))};
+    orders:orders.map(order => Array.from(order))};
 }
 async function native(request:object) {
   const output=await new Promise<string>((resolve,reject)=>{
