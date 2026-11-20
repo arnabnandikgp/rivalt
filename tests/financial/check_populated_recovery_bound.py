@@ -8,8 +8,11 @@ from math import ceil, comb, prod
 from pathlib import Path
 
 from account_contract_reference import Account
+from cross_market_adl_model import protect_receipts
+from market_settlement_reference import MarketBook
 from clearing_network_reference import clear_atom_cohort, clear_rational_cohort
 from test_scalable_settlement import independent_input
+from recovery_lot_bound import earliest_winners, lot_bounds, lot_witness
 
 SCALE = 10**9
 
@@ -106,6 +109,31 @@ def bounded_shares(weights, total, linked, cap):
                 continue
             assert Fraction(2*paid-1,weights[i]) <= Fraction(2*received+1,weights[j])
     return shares
+
+
+def constrained_targets(weights,total,group,cap,limit):
+    # The integer minimum cost at a specified group total is convex in that
+    # total: marginal costs within each subset are nondecreasing. If every
+    # unrestricted minimizer exceeds cap, the constrained optimum binds cap.
+    def choices(subweights, amount):
+        base,ties,count = tied_shares(subweights,amount)
+        assert comb(len(ties),count) <= limit, "Too many tied allocations for this diagnostic"
+        return list(allocations(base,ties,count))
+    unconstrained = [x for x in choices(weights,total) if sum(x[i] for i in group) <= cap]
+    if unconstrained:
+        return unconstrained
+    inside = sorted(group)
+    outside = [i for i in range(len(weights)) if i not in group]
+    groups = [choices([weights[i] for i in indices],value)
+              for indices,value in ((inside,cap),(outside,total-cap))]
+    assert prod(map(len,groups)) <= limit, "Too many constrained ties for this diagnostic"
+    results = []
+    for left,right in product(*groups):
+        result = [0]*len(weights)
+        for i,x in zip(inside+outside,left+right):
+            result[i] = x
+        results.append(result)
+    return results
 
 
 class FrozenCase:
@@ -243,6 +271,23 @@ class FrozenCase:
             changed[winner][1][market] -= amount*SCALE
         accounts, _, rates, orders = independent_input(changed, *self.inputs, frozen_collections=collected)
         outcome = clear_atom_cohort(accounts, *self.inputs, frozen_collections=collected)
+        winners = [[0,0] for _ in self.rows]
+        for market,_,winner,amount in charges:
+            winners[winner][market] += amount
+        floors = {}
+        for market in range(2):
+            if not any(row[1-market] for row in winners):
+                continue
+            for index,account in enumerate(self.accounts):
+                if account.claims[market] > 0:
+                    direct = winners[index][market]
+                    assert (accounts[index].claims[market]*outcome.benchmark.rates[market]
+                            >= account.claims[market]*self.original.benchmark.rates[market]-direct)
+                    minimum = self.original.claim_cash_movements[index][market]-direct
+                    if minimum > 0:
+                        floors[index,market] = minimum
+        outcome = protect_receipts(MarketBook(accounts,*self.inputs,frozen=True),outcome,floors,collected)
+        assert outcome is not None
         original = self.source['original']
         request = dict(rows=[dict(row, history=[bytes(v).hex() for v in row['history']]) for row in self.rows],
                        charges=[[str(m), self.rows[d]['id'], self.rows[w]['id'], str(v)] for m,d,w,v in charges],
@@ -254,6 +299,9 @@ class FrozenCase:
             request[key] = self.source[key]
         receipt = json.loads(subprocess.check_output([binary], input=json.dumps(request), text=True))
         assert 'error' not in receipt, receipt
+        assert list(map(int,receipt['cash'])) == list(outcome.cash)
+        assert [list(map(int,row)) for row in receipt['movements']] == [list(row) for row in outcome.claim_cash_movements]
+        assert list(map(int,receipt['insuranceSpent'])) == list(outcome.insurance_spent)
         assert list(map(int, receipt['recoveryCeilings'])) == self.ceilings
         gross = [sum(amount for m, _, _, amount in charges if m == market) for market in range(2)]
         loss = lambda plan, market: sum(row[market] for row in plan.benchmark.creditor_impairments)
@@ -279,8 +327,17 @@ if __name__ == '__main__':
     targets = [bounded_shares(case.eligible_weights(m),case.ceilings[m],*bounds[m]) for m in range(2)]
     bounded = case.assess(args.binary, case.proposal(True,targets))
     assert bounded['bothCeilingsReached'], "Linked relaxation needs an additional feasibility constraint"
+    choices = [constrained_targets(case.eligible_weights(m),case.ceilings[m],*bounds[m],args.sharing_budget) for m in range(2)]
+    minimum_lots = lot_bounds(case,choices)
+    winners = earliest_winners(case,choices)
+    charges = lot_witness(case,winners)
+    assert [[sum(amount for market,_,index,amount in charges if market==m and index==i)
+             for i in range(len(case.rows))] for m in range(2)] == winners
+    fewest = case.assess(args.binary,charges)
+    assert fewest['bothCeilingsReached'] and list(map(int,fewest['lots'])) == minimum_lots
     assert saturated['bothCeilingsReached'], "This book needs a tighter bound or another feasible plan"
     print(json.dumps(dict(members=len(case.rows), ceilings=list(map(str,case.ceilings)), baseline=baseline,
                           attained=saturated, unconstrainedSharing=shared,
-                          optimalSharingAtMaximum=bounded, linkedChargeCaps=[str(cap) for _,cap in bounds],
+                          optimalSharingAtMaximum=bounded, minimumLots=minimum_lots,
+                          tiedWinnerAllocations=list(map(len,choices)), episodeOrderedWinners=fewest, linkedChargeCaps=[str(cap) for _,cap in bounds],
                           allUnconstrainedTargets=case.sharing_frontier(args.sharing_budget)), indent=2))
