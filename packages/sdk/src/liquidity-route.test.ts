@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { buildLiquidityRoute, type LiquidityRouteInput } from './liquidity-route.js';
+import { buildLiquidityRoute, buildMakerLiquidation, type LiquidityRouteInput } from './liquidity-route.js';
 import * as protocol from './generated/index.js';
 import { liquidityFixture, testAddress, emptyState } from '../test-support/liquidity-fixture.js';
 
@@ -76,7 +76,6 @@ it('cannot activate custody, paused or historical snapshots and refuses an unrel
 
 it('permits a keeper to reduce only a distressed target and rejects each adverse maker leg', async () => {
   const {financial,input}=fixture(),{snapshot,trader}=input;
-  const {buildMakerLiquidation}=await import('./liquidity-route.js');
   const outsider=testAddress(78),position=financial.root.positions[0];
   Object.assign(position,{lots:20n,virtualScaled:-200_000n*1_000_000_000n,generation:3n});
   // Conservative equity = 12,000 - 2,000 = 10,000; maintenance = 10,100.
@@ -93,4 +92,19 @@ it('permits a keeper to reduce only a distressed target and rejects each adverse
   financial.root.cash=12_500n;
   for(const maker of financial.makers)maker.shape={...maker.shape,bids:[{endLots:4096n,offset:1n,slope:0n}]};
   expect(await buildMakerLiquidation(snapshot,trader,0,1n,outsider)).toBeNull();
+});
+
+it('covers a short with two one-lot asks and refuses to average in an out-of-bound leg', async () => {
+  const {financial,input}=fixture(),{snapshot,trader}=input,keeper=testAddress(79);
+  Object.assign(financial.root.positions[0],{lots:-20n,virtualScaled:200_000n*1_000_000_000n,generation:4n});
+  // Equity starts at 10,000 − 2,000 = 8,000. A two-lot close at 10,010
+  // costs five fee atoms and adds 175 equity, below the remaining 9,090 MM.
+  financial.root.cash=10_000n;
+  for(const maker of financial.makers)maker.shape={...maker.shape,asks:[{endLots:1n,offset:10n,slope:0n}]};
+  financial.makers[2].unavailable='disabled';
+  const cover=await buildMakerLiquidation(snapshot,trader,0,2n,keeper);
+  expect(cover?.allocation.legs.map(leg=>leg.lots)).toEqual([1n,1n]);
+  expect(cover?.allocation.grossQuote).toBe(20_020n);
+  financial.makers[1].shape={...financial.makers[1].shape,asks:[{endLots:1n,offset:101n,slope:0n}]};
+  expect(await buildMakerLiquidation(snapshot,trader,0,2n,keeper)).toBeNull();
 });

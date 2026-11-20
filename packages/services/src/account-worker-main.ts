@@ -16,7 +16,7 @@ const cadence=process.env.RIVALT_FUNDING_INTERVAL_SECONDS??'2';if(!/^[2-5]$/.tes
 const signerPath=required('RIVALT_SIGNER_PATH'),stat=statSync(signerPath);
 if(!stat.isFile()||(stat.mode&0o077)!==0)throw new Error('Worker signer must be a private local file');
 const signer=await Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(signerPath,'utf8'))));
-const runtime=new AccountRuntime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),required('RIVALT_RPC_URL'),profile,accountDeploymentSelection());
+const runtime=new AccountRuntime(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),required('RIVALT_RPC_URL'),profile,accountDeploymentSelection(undefined,role));
 let lease:import('pg').PoolClient|undefined;
 let stopping=false,lastStatus='';for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{stopping=true;});
 try{

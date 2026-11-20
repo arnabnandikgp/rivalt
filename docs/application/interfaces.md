@@ -333,3 +333,31 @@ the checkpoints for every market and ledger supplied to that instruction.
 If the final scan and payment share a transaction, the worker repeats the
 required checkpoints immediately before the payment. The reference for the
 on-chain check is [the parallel ledger contract](../clearing/accounts.md).
+
+
+### Liquidation keeper on the combined local build
+
+The risk worker reads the reconciled Financial membership, rotates through two
+accounts with open positions per iteration, then authenticates each target and
+its market inputs over RPC. A solvent trader below maintenance first gets a
+reduce-only maker route. The SDK prices one- and two-maker allocations within
+the adverse oracle bound for each leg, includes the original order dependencies,
+and accounts for cancellation of risk-increasing orders. Clearing rechecks the
+actual fill, fee, equity and maintenance deficit.
+
+The service tries remaining exposure, successively halved sizes, and maker
+price-region endpoints including sums of two endpoints. A pass can miss a
+feasible intermediate size. Exhausting the exact allocation search budget stops
+the pass. When the size probes yield no admitted route, the worker can transfer
+exposure to the configured receiver only with its owner's signature and actual
+margin. It caps the requested lots at the first reference-price transfer that
+would restore target maintenance and preflights smaller quantities when needed.
+It records the original signed bytes and the guarded account version before
+broadcast. Subsequent cycles read current health again.
+
+Select `integrated-recovery-candidate` explicitly for the risk or settlement
+worker and executor. The risk signer's local SOL pays transaction fees. The
+configured `RIVALT_RECEIVER_MARGIN` belongs to that signer and supplies separate
+collateral for taking inventory. The reference run can discover and submit a
+maker route without a configured receiver. The normal local launcher selects
+P56. [On-chain liquidation rules](../clearing/risk-and-resolution.md#maker-liquidation-candidate).

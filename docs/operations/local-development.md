@@ -679,6 +679,7 @@ RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-lanes bash ops/scalable-se
 RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-funding bash ops/scalable-settlement-smoke.sh
 RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-payout bash ops/scalable-settlement-smoke.sh
 RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-receiver bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-automatic-liquidation bash ops/scalable-settlement-smoke.sh
 RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-integrated bash ops/scalable-settlement-smoke.sh
 ```
 

@@ -3,7 +3,7 @@ import {ExecutorWake} from './executor-wake.js';
 import {accountExecutionProfile,accountDeploymentSelection} from './account-profile.js';
 
 const required=(key:string)=>{const value=process.env[key];if(!value)throw new Error(`Missing ${key}`);return value;};
-const execution=new AccountExecution(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),required('RIVALT_RPC_URL'),accountExecutionProfile(),accountDeploymentSelection());
+const execution=new AccountExecution(required('RIVALT_DATABASE_URL'),required('RIVALT_RUN_ID'),required('RIVALT_RPC_URL'),accountExecutionProfile(),accountDeploymentSelection(undefined,'executor'));
 const wake=new ExecutorWake(execution.store.pool,execution.runId);
 let stopping=false;
 for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{stopping=true;});
