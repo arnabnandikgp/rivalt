@@ -4181,3 +4181,42 @@ used 9,701 conserving-plan continuations. A trading checkpoint prepended by
 the harness to the terminal withdrawal failed in simulation with error 6108.
 The wallet transfer was never submitted and this run did not reach SQL replay.
 Resolved accounts have a dedicated, guarded withdrawal for liability-free cash.
+
+Harness `eaeedf27` repeated the signed freeze with 128 accounts and 120
+exposed members. Clearing verified the 37 BTC and 33 ETH protected claims,
+applied every account’s final cash and reconciled all 128 accounts before
+permitting an exit. Two independent checks of each payout were available.
+The Python rational model supplied the expected numbers for the signed run.
+The current native driver matched all 128 balances and 256 market movements
+using both ordinary and protected rounding. Total funded cash was 332,877,029
+atoms. The BTC and ETH markets used 6,786 and 3,251 insurance atoms respectively.
+
+| Signed action | Successful calls | Landed CU per call | Maximum wire bytes |
+|---|---:|---:|---:|
+| Authenticate one page of protected creditors | 16 | 53,942–64,014 | 779 |
+| Verify adjusted payout-rate arithmetic | 51 | 30,979–101,776 | 422 |
+| Bind both market payments | 1 | 25,827 | 759 |
+| Copy certified claims and numerical registers | 38 | 27,588–38,581 | 796 |
+| Advance the conserving payout calculation with keeper page windows | 471 | 47,722–548,892 | 1,206 |
+| Apply one margin account’s final balance | 128 | 92,783–113,836 | 989 |
+| Withdraw one trader’s entire funded payout | 1 | 33,203 | 814 |
+
+The keeper's page windows cost 2,355,000 local test lamports across 471
+continuations. The diagnostic run’s 9,701 narrower continuations cost
+48,505,000. They are separate signed freezes with identical whole-atom
+payouts, market movements, charge deltas and insurance spending. The
+rate numerators differed. These counts cover the conserving calculation only.
+
+The active-market checkpoint was refused again after resolution. The guarded
+withdrawal alone moved 986,527 atoms from vault to wallet and left the margin
+account with zero cash. The post-withdrawal vault and allocated balance each
+held 331,920,613 atoms, with zero surplus.
+
+Surfpool finalized 3,984 signed outcomes with matching RPC and WebSocket
+observations. A fresh PostgreSQL database reproduced the 1,690 ordered event
+payloads byte for byte and reconciled 405 accounts, including all 128 members,
+to finalized RPC. No pending or unresolved journal jobs remained.
+This was an operator-driven qualification against the local synthetic sources.
+The normal local launcher still uses P56. The populated proof family and the
+smaller exhaustive proof family have yet to complete their wallet and restart
+acceptance together on one candidate.

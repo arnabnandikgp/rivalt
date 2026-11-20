@@ -842,8 +842,10 @@ conserving-plan work and the standalone terminal withdrawal after reconciliation
 The independent payment reference also runs separately
 against a saved freeze with
 `python3 tests/financial/joint_payment_reference.py < "$RIVALT_RUN_DIR/population-input.json"`.
-With the native scalable-settlement driver built, add `--compare-native`
-to compare both native circulations against all independent member payouts.
+Build the native driver at the harness revision with
+`cargo build --locked --offline -p financial-core --bin scalable-settlement-driver`.
+Add `--compare-native` to the Python command to compare both native
+circulations against all independent member payouts.
 
 ```bash
 RIVALT_SETTLEMENT_PROBE=profit-attribution-joint-settlement \
