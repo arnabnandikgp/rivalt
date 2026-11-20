@@ -9,6 +9,11 @@ import {inventoryInstruction, isValidTransitionScope, type ScopedEnvelope, type 
 const eventTag = Buffer.from('e445a52e51cb9a1d', 'hex');
 const transitionTag = createHash('sha256').update('event:AccountTransition').digest().subarray(0, 8);
 const grossView = createHash('sha256').update('global:read_market_gross').digest().subarray(0,8);
+// Only the independent search account and its rent payer may change here.
+const searchWork = new Map([
+  ['open_search', 5, 80], ['capture_member', 5, 16], ['derive_pairs', 3, 8],
+  ['verify_incumbent', 3, 48], ['cover_plan', 3, 64], ['cover_range', 3, 40], ['seal_search', 3, 8],
+].map(([name, accounts, bytes]) => [createHash('sha256').update('global:'+name).digest('hex').slice(0,16), {accounts, bytes}]));
 const instructions = new Set(clearingIdl.instructions.map(instruction => Buffer.from(instruction.discriminator).toString('hex')));
 const payloadTags = new Set(clearingIdl.events.filter(event => event.name !== 'AccountTransition')
   .map(event => createHash('sha256').update(`event:${event.name}`).digest().subarray(0, 8).toString('hex')));
@@ -148,6 +153,12 @@ export function scopedInvocations(signature: string, transaction: any, transacti
       if(current.bytes.equals(grossView)){
         if(current.accounts.length!==5)throw new Error('Invalid read-only market view');
         return null; // Five read-only accounts, eight bytes of return data, zero financial effects.
+      }
+      const scratch=searchWork.get(current.bytes.subarray(0,8).toString('hex'));
+      if(scratch) {
+        if(current.bytes.length!==scratch.bytes || current.accounts.length!==scratch.accounts)
+          throw new Error('Invalid recovery search instruction');
+        return null;
       }
       if (!instructions.has(current.bytes.subarray(0, 8).toString('hex'))) throw new Error('Unknown clearing entrypoint');
       const invocation = {outer, invocation: invocationIndex++, instruction: current, payloads: [], footer: null};

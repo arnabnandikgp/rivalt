@@ -4,7 +4,7 @@ import {address} from '@solana/kit';
 import {multiLotBookPlan} from '@rivalt/sdk/multi-lot-book';
 import {isMultiLotArtifact} from '@rivalt/sdk';
 import {inventoryBookPlan,twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
-import {isBookInventoryArtifact,isSharedInventoryArtifact,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
+import {isBookInventoryArtifact,isSharedInventoryArtifact,RECOVERY_SEARCH_ARTIFACT_SET,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -19,6 +19,39 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void,artifactSet?:string) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='RecoverySelectionBound') {
+    accountCheck(artifactSet===RECOVERY_SEARCH_ARTIFACT_SET && current.stage===2 && !current.boundRecovery,'unique sealed recovery');
+    const {search,schedule,schedulesChecked,chargeAtoms,insuranceSpent,memberIds,claimDeltas,movements,finalCash}=change;
+    eq(current.count,'8','complete eight-member recovery');
+    eq(memberIds,state.members.map(key=>state.roots[key].id).sort((a,b)=>BigInt(a)<BigInt(b)?-1:1),'complete original IDs');
+    accountCheck(BigInt(schedule)<BigInt(schedulesChecked),'sealed schedule in range');
+    const totals=[0n,0n],positive=[0n,0n],net=[0n,0n];
+    let allocated=0n;
+    for(const [index,id] of (memberIds as string[]).entries()) {
+      const member=present(state.roots[state.identities[id]],'frozen result member');
+      const faces=claims(member,current.prices,current.funding).map(BigInt);
+      let cash=BigInt(member.cash);
+      for(const market of [0,1]) {
+        const delta=BigInt(claimDeltas[index][market]), movement=BigInt(movements[index][market]);
+        const effective=faces[market]+delta*scale;
+        accountCheck(movement===0n || (movement>0n?effective>0n:effective<0n),'payout direction');
+        net[market]+=delta; if(delta>0n)positive[market]+=delta;
+        totals[market]+=movement;cash+=movement;
+      }
+      eq(String(cash),finalCash[index],'verified individual cash');allocated+=cash;
+    }
+    for(const market of [0,1]) {
+      eq(net[market],0n,'net forced close');
+      eq(String(positive[market]),chargeAtoms[market],'gross forced charge');
+      const spent=BigInt(insuranceSpent[market]),insurance=BigInt(current.insuranceBefore[market]);
+      accountCheck(spent<=insurance,'available insurance');
+      eq(totals[market],BigInt(current.poolsBefore[market])+spent,'market conservation');
+      allocated+=insurance-spent+BigInt(current.feesBefore[market]);
+    }
+    eq(String(allocated),current.allocatedBefore,'frozen custody including retained fees');
+    current.boundRecovery={search,schedule,schedulesChecked,chargeAtoms,insuranceSpent,memberIds,claimDeltas,movements,finalCash};
+    return;
+  }
   if(event.type==='MultiLotBookVerified') {
     accountCheck(isMultiLotArtifact(artifactSet) && current.stage===2 && !current.inventoryBook && !current.pair &&
       !current.sharedInventory && !current.foreignCreditors && !current.joint && !current.allocation && !current.linkedAllocation,'unique multi-lot certificate');
@@ -339,7 +372,16 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
-    if(current.inventoryBook) {
+    if(current.boundRecovery) {
+      const bound=current.boundRecovery, index=Number(ordinal);
+      eq(previous.id,bound.memberIds[index],'bound member');
+      for(const market of [0,1]) {
+        economic[market]=String(BigInt(economic[market])+BigInt(bound.claimDeltas[index][market])*scale);
+        const signed=BigInt(bound.movements[index][market]);
+        eq(change.flows[market],String(signed<0n?-signed:signed),'bound market payment');
+      }
+      eq(change.state.cash,bound.finalCash[index],'bound terminal cash');
+    } else if(current.inventoryBook) {
       const net=current.inventoryBook.pairs.reduce((value,[debtor,winner,amount])=>
         previous.id===debtor?value+BigInt(amount):previous.id===winner?value-BigInt(amount):value,0n);
       economic[0]=String(BigInt(economic[0])+net*scale);

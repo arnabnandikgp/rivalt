@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {AccountRole,address,getAddressEncoder,getProgramDerivedAddress,type Address,type Instruction} from '@solana/kit';
-import {deriveFrozenMarginPage} from '@rivalt/sdk';
+import {CLEARING_PROGRAM_ADDRESS,deriveFrozenMarginPage} from '@rivalt/sdk';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {payerKey} from './harness.js';
 type Witness={rates:string[][];orders:string[][]};
@@ -18,7 +18,8 @@ const input=JSON.parse(readFileSync(dir+'/search-input.json','utf8')) as {
     tieTest?:{best:number;inferior:number;ranges:Record<string,number>};
     witnesses:Witness[];cash:Record<string,string>;assignments:number;charges:number[]}
 };
-const program=address('92GA4Cm7NZq8GEwY5r7zLwdLeYLuQYa79Ut9f3gAQ8U7');
+const owned=process.env.RIVALT_SETTLEMENT_PROBE?.startsWith('profit-attribution-owned-');
+const program=owned?CLEARING_PROGRAM_ADDRESS:address('92GA4Cm7NZq8GEwY5r7zLwdLeYLuQYa79Ut9f3gAQ8U7');
 const readonly=(address:Address)=>({address,role:AccountRole.READONLY});
 const tag=(s:string)=>createHash('sha256').update(s).digest().subarray(0,8);
 const u64=(s:string|number|bigint)=>{const out=Buffer.alloc(8);out.writeBigUInt64LE(BigInt(s));return out;};
@@ -50,7 +51,7 @@ try{
     const name=(label:string)=>label+' proposal '+proposed;
     const raw=async()=>{const value=(await h.read(search))!;assert(value);assert.deepEqual(value.subarray(0,8),tag('account:RecoverySearch'));return value;};
     const refuse=async(label:string,instruction:Instruction,code:number)=>{
-      const prior=await raw();await h.send(name(label),[instruction],[],code);assert.deepEqual(await raw(),prior);};
+      const prior=await raw();await h.send(name(label),[instruction],[],owned?code+1100:code);assert.deepEqual(await raw(),prior);};
     const winnerWitness=input.comparison.coverage[proposed];
     assert(winnerWitness.recovery);
     const [num,den='1']=winnerWitness.recovery.split('/');

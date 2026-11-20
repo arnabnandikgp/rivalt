@@ -20,6 +20,7 @@ export * from "./memberIndexNode.js";
 export * from "./memberPage.js";
 export * from "./portfolio.js";
 export * from "./preparedSettlement.js";
+export * from "./recoverySearch.js";
 export * from "./recoveryStorage.js";
 export * from "./resolution.js";
 export * from "./retirementCertificate.js";

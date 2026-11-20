@@ -23,6 +23,7 @@ export * from "./marketLedger.js";
 export * from "./portfolio.js";
 export * from "./receipt.js";
 export * from "./resolution.js";
+export * from "./search.js";
 export * from "./secondMakerRegistration.js";
 export * from "./storage.js";
 export * from "./thirdMakerRegistration.js";

@@ -9,6 +9,9 @@ set --
 helper_dir=.local/settlement-helper
 case "$selection" in
   selected) ;;
+  recovery-search-candidate)
+    set -- --features clearing/recovery-search-qualification
+    helper_dir=.local/settlement-helper-recovery-search ;;
   bounded-market-candidate)
     set -- --features clearing/bounded-market-read
     helper_dir=.local/settlement-helper-bounded-market ;;
@@ -72,7 +75,9 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'revision':sys.argv[1],
  'trackedDirty':False,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
-if sys.argv[2]=='bounded-market-candidate':
+if sys.argv[2]=='recovery-search-candidate':
+    manifest['feature']='recovery-search-qualification'
+elif sys.argv[2]=='bounded-market-candidate':
     manifest['feature']='bounded-market-read'
 elif sys.argv[2]=='aggregate-fee-candidate':
     manifest['feature']='aggregate-fee-qualification'

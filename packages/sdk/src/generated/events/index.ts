@@ -47,6 +47,7 @@ export * from "./marketCheckpointed.js";
 export * from "./marketFeesClassified.js";
 export * from "./marketLaneFilled.js";
 export * from "./multiLotBookVerified.js";
+export * from "./recoverySelectionBound.js";
 export * from "./recoveryStorageRefunded.js";
 export * from "./retiredReserveWithdrawn.js";
 export * from "./settlementMarginApplied.js";

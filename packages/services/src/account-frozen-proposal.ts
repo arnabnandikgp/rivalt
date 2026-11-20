@@ -20,6 +20,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
     &&venueState.marketCount===2&&venueState.insuranceFeeShareBps===2500,'Foreign proposal venue/profile.');
   const pair=sdk.frozenPairReceipt(header),allocation=sdk.btcAllocationReceipt(header);
   const book=sdk.inventoryBookReceipt(header) || (allocationLayout==='multi' && sdk.inventoryBookReceipt(header,true));
+  const bound=sdk.boundRecoveryReceipt(header);
   const shared=sdk.sharedInventoryReceipt(header);
   const foreign=sdk.foreignCreditorReceipt(header);
   const linked=sdk.linkedAllocationReceipt(header),joint=sdk.frozenJointReceipt(header), originalClaims:[bigint,bigint][]=[];
@@ -41,7 +42,12 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
         const allocated=allocation?(row.id===allocation.debtorId?allocation.recovered:
           -(row as sdk.FrozenMargin & {btcCharge:bigint}).btcCharge):0n;
         const charge=(allocation?allocated:row.id===pair?.debtorId?pair.charge:row.id===pair?.winnerId?-pair.charge:0n)*1_000_000_000n;
-        if(book) {
+        if(bound) {
+          const ordinal=rows.length;
+          assert.equal(row.id,bound.memberIds[ordinal],'Frozen result identity');
+          originalClaims.push([row.claims[0],row.claims[1]]);
+          rows.push({...row,claims:row.claims.map((claim,market)=>claim+bound.claimDeltas[ordinal][market]*1_000_000_000n)});
+        } else if(book) {
           assert((allocationLayout==='book'||allocationLayout==='multi') && 'bookCharge' in row && typeof row.bookCharge==='bigint','Missing certified frozen charge');
           originalClaims.push([row.claims[0],row.claims[1]]);
           const delta=row.claims[0]<0n?row.bookCharge:-row.bookCharge;
@@ -88,7 +94,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   const budgets:[bigint,bigint]=[insurance.readBigUInt64LE(24),insurance.readBigUInt64LE(32)];
   assert(budgets.every((value,index)=>value<=header.insurance[index]),'Invalid insurance budget.');
   const input:AccountRateInputs={rows:rows.map((row,index)=>({cash:row.cash,claims:[row.claims[0],row.claims[1]],
-    ...(joint||linked||foreign||shared||book?{originalClaims:originalClaims[index]}:{})})),
+    ...(bound||joint||linked||foreign||shared||book?{originalClaims:originalClaims[index]}:{})})),
     pools:[header.pools[0],header.pools[1]],budgets};
   assert(input.rows.reduce((sum,row)=>sum+row.cash,0n)===before.header.cashBefore,'Frozen cash aggregate mismatch.');
   const proposal=proposeAccountRates(input),denominator=Buffer.from(header.state.denominator);

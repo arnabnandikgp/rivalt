@@ -50,6 +50,11 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(!resolution||value.epoch!==undefined&&value.epoch!==BigInt(resolution.epoch))return;
   if(kind===17) {
     const header=JSON.parse(json(value));
+    const bound=sdk.boundRecoveryReceipt(value);
+    if(bound || resolution.boundRecovery) {
+      assert(binding.artifactSet===sdk.RECOVERY_SEARCH_ARTIFACT_SET && bound && resolution.boundRecovery,'Missing verified recovery receipt or event');
+      assert.deepEqual(JSON.parse(json(bound)),resolution.boundRecovery,'Exact frozen selection and all protected payouts');
+    }
     const pair=sdk.frozenPairReceipt(value);
     const receipt=sdk.btcAllocationReceipt(value), projected=resolution.allocation;
     if(receipt?.committed||projected?.status===1) {

@@ -18,6 +18,7 @@ export type AccountResolution = {
   insuranceBefore:string[]; feesBefore:string[]; allocatedBefore:string; budgets:string[]; insuranceSpent:string[];
   inventoryBook?:{multiLot?:boolean;digest:string;total:string;capacities:string[][];pairs:string[][]};
   sharedInventory?:{members:string[];charges:string[];eligible:string[];prices:string[]};
+  boundRecovery?:{search:string;schedule:string;schedulesChecked:string;chargeAtoms:string[];insuranceSpent:string[];memberIds:string[];claimDeltas:string[][];movements:string[][];finalCash:string[]};
   foreignCreditors?:{members:string[];charges:string[];eligible:string[];matchedLots:string[];basePrices:string[];extraTickLots:string[]};
   linkedAllocation?:{attempt:string;debtorId:string;shares:string[];targets:string[];cursor:string;recovered:string[];status:number;charges:Record<string,string[]>};
   allocation?:{attempt:string;debtorId:string;shortfall:string;cursor:string;recovered:string;capacity:string;status:number;charges:Record<string,string>};
@@ -223,6 +224,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     case 'MultiLotBookVerified':
     case 'InventoryBookVerified':
     case 'SharedInventoryVerified':
+    case 'RecoverySelectionBound':
     case 'ForeignCreditorsVerified':
     case 'FrozenJointReductionVerified':
     case 'FrozenLinkedAllocationRow':

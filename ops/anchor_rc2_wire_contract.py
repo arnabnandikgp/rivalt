@@ -143,6 +143,7 @@ def check_domains():
     # Private native continuation domains bind the frozen source and proposed charge vector.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
         r'Rivalt/multi-lot-charge-proposal/v1\0', r'Rivalt/whole-single-market-search/v1\0'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'search'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -155,6 +156,29 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    # All financial inputs are read-only during search. Only the final binding
+    # can write the prepared settlement, under the original frozen dependencies.
+    work = {
+        'open_search': ('payer search prepared resolution system_program', 'payer search', 'payer'),
+        'capture_member': ('search prepared resolution page margin', 'search', ''),
+        **{name: ('search prepared resolution', 'search', '') for name in
+           ('derive_pairs', 'verify_incumbent', 'cover_range', 'cover_plan', 'seal_search')},
+        'bind_recovery_selection': ('venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault prepared search event_authority program', 'prepared', ''),
+    }
+    for name, (names, writes, signers) in work.items():
+        item = unique(name)
+        assert item['discriminator'] == list(hashlib.sha256(f'global:{name}'.encode()).digest()[:8])
+        for actual_metas, expected in ((item['accounts'], names),
+                ([meta for meta in item['accounts'] if meta.get('writable')], writes),
+                ([meta for meta in item['accounts'] if meta.get('signer')], signers)):
+            assert [meta['name'] for meta in actual_metas] == expected.split(), name
+        actual['instructions'].remove(item)
+    for group, prefix, name in [('accounts','account','RecoverySearch'),('events','event','RecoverySelectionBound')]:
+        actual[group].remove(dict(name=name,discriminator=list(hashlib.sha256(f'{prefix}:{name}'.encode()).digest()[:8])))
+    for name in ('RecoverySearch','RecoverySelectionBound','RateWitness','SearchMember','SearchEdge','StoredRatio','Priorities'):
+        entry, = [item for item in actual['types'] if item['name'] == name]
+        assert entry['type']['kind'] == 'struct'
+        actual['types'].remove(entry)
     checkpoint = unique('checkpoint_market')
     assert checkpoint['discriminator'] == list(hashlib.sha256(b'global:checkpoint_market').digest()[:8])
     assert not checkpoint['args'] and 'returns' not in checkpoint
