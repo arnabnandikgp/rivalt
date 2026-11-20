@@ -3607,3 +3607,44 @@ comparisons and an identical 128-event fresh SQL replay. Signed receipts are
 under `.local/profit-attribution/owned-tie-d2a1681`. The local proposer supplied
 the schedules and witnesses; a fully autonomous operating service and larger
 book resource qualification are still open.
+
+## Combined clearing lifecycle
+
+The local `integrated-recovery-qualification` SBF at `5d7a7c0f` is
+3,187,040 bytes, SHA-256
+`94a82ceab69599b2abb952b0ea2f2867b27a27f5d54eb3ef59e88ee19f7ace9f`.
+Each workload used the same clearing and maker binaries on a fresh Surfpool
+deployment, signed transactions, RPC/WS and its own PostgreSQL 18.6 database.
+
+- At `e5a9de5a`, all 36 paired routes and the additional pre-freeze fill
+  finalized. Independent makers on BTC shared zero writable keys. Only the
+  shared-maker pair wrote the same capital and registration. The test exercised
+  a funded exit, rejected an intervening fill that invalidated the checkpoint,
+  froze with exact insurance, and reproduced 231 events from scratch.
+  [Resource and timing measurements](performance.md#paired-routes-on-the-recovery-candidate).
+- At `49a90358`, two BTC lane fills and the full ETH cross-account fill
+  collected 24 and 13 fee atoms. The freeze rejected incomplete classification,
+  then recorded 6 and 3 insurance atoms with 18 and 10 retained. Clearing
+  compared 340 schedules, accepted charges of 9 and 33 and rejected the
+  competing 9/32 schedule. The 28 transactions for the winning proof used
+  5,999,369 CU in total and 140,000 test lamports in fees. Binding used
+  31,083 CU in 726 bytes. Early withdrawal failed. The makers withdrew
+  5,004 and 34,968 atoms, each in 806 bytes and 32,955 CU. All eight
+  member balances and sixteen market cash movements matched the independently
+  reconstructed book. There were 278 main outcomes, 55 worker originals and
+  142 freshly replayed events. Both independent Anchor clients reconstructed
+  eight recovery instructions and both emitted binding-event payloads.
+  The first harness at `e5a9de5a` stopped at freeze because its comparison
+  selected only the older fill event. The rerun explicitly checked both lane
+  fills and the full route before comparing any financial result.
+
+The recovery proof admits exactly eight members and the supported rate witnesses.
+The nine-member route workload qualified contention and the freeze boundary.
+Its terminal settlement is outside this proof. A sponsor supplied the exact
+proposal and witnesses in the recovery test. Operating an autonomous proposer,
+recovering larger cohorts and establishing a sustained throughput limit remain
+open. P56 remains the selected local runtime.
+
+On harness `b026dcba` the funding, ordinary payout and receiver runs stopped
+during setup with filesystem `ENOSPC`. Their partial evidence does not qualify
+these paths on this binary. Retry each sequentially with sufficient free disk.
