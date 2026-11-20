@@ -13,6 +13,7 @@ pub mod joint;
 pub mod joint_priority;
 #[cfg(all(feature = "native-joint", not(target_arch = "bpf")))]
 pub mod joint_search;
+pub mod linked_sharing;
 pub mod mirror;
 pub mod pair_prefix;
 #[cfg(feature = "native-search")]
