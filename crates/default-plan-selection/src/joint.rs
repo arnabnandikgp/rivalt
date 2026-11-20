@@ -56,10 +56,11 @@ pub struct Receipt {
     pub fills: Vec<PairedLots>,
     pub rounded: Rounded,
     pub spent: [u64; 2],
-    /// Net market loss removed, capped by the actual charge, in exact collateral atoms.
+    /// Insurance budgets in the effective settlement, before measuring insurance spent.
     pub effective_budgets: [u64; 2],
     pub market_rates: [(BigUint, BigUint); 2],
     pub original_losses: [BigUint; 2],
+    /// Net market loss removed, capped by the actual charge, in exact collateral atoms.
     pub recovered: [(BigInt, BigUint); 2],
 }
 

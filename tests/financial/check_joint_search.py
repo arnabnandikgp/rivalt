@@ -111,6 +111,12 @@ def large_joint():
     result=invoke(request)
     assert result['selected']==charges and int(result['combinations'])==(size+1)**2
     assert int(result['leaves'])==1 and int(result['pruned'])==(size+1)**2-1
+    reversed_request = deepcopy(request)
+    reversed_request['search']['hint'].reverse()
+    reversed_request['search']['witnesses'][0]['charges'].reverse()
+    assert invoke(reversed_request) == result
+    reversed_request['search']['witnesses'].append(request['search']['witnesses'][0])
+    assert invoke(reversed_request) == {'error':'duplicate schedule witness'}
     request['search']['witnesses'][0]['effective']['rates']=[]
     assert 'error' in invoke(request)
     return {key:result[key] for key in ('combinations','nodes','leaves','pruned')}

@@ -66,7 +66,13 @@ impl FrozenBook<'_> {
         let proposal = if hint.is_empty() {
             None
         } else {
-            Some(self.verify_proposal(original, witness(hint).ok_or(Error::Cohort)?, hint)?)
+            let mut canonical = hint.to_vec();
+            canonical.sort_unstable();
+            Some(self.verify_proposal(
+                original,
+                witness(&canonical).ok_or(Error::Cohort)?,
+                &canonical,
+            )?)
         };
         let floor = proposal.as_ref().unwrap_or(&baseline);
         let mut best = RecoveryScore::new(floor.recovered.clone(), &baseline.original_losses);

@@ -148,10 +148,9 @@ fn run(input: Input) -> Result<Value, String> {
         use default_plan_selection::joint_search::Coverage;
         let mut witnesses = std::collections::BTreeMap::new();
         for row in search.witnesses {
-            if witnesses
-                .insert(decode_charges(&row.charges)?, row.effective.parse()?)
-                .is_some()
-            {
+            let mut charges = decode_charges(&row.charges)?;
+            charges.sort_unstable();
+            if witnesses.insert(charges, row.effective.parse()?).is_some() {
                 return Err("duplicate schedule witness".into());
             }
         }
