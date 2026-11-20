@@ -3942,6 +3942,8 @@ replay. Each row identifies its own workload and harness revision.
 | Delayed collection and restart | `cc84a0b8` | Keeper reopened at +2.263 s and recovered its original signed wire. Pool funded at +2.307 s, cash at +7.360 s and wallet at +7.502 s. | 329 |
 | Liquidation | `7b71f15b` | The keeper sold 10 lots to a maker, held with one atom of receiver capital, then transferred five lots on consent after funding. Trader retained 35 lots at zero maintenance deficit. Maker fill used 247,099 CU / 1,103 bytes. Receiver transfer used 100,495 CU / 689 bytes. Operator paid 5,000 lamports each. | 155 |
 | Funding interruption | `7b71f15b` | One covered second, 30 skipped. The stored BTC funding index was 7,222,220 scaled units both before and after the gap. The two-maker trade crossed zero. | 113 |
+| Mixed route workload | `963b91d3` | 360 of 360 signed fills finalized, followed by wallet withdrawal, fee classification and a complete freeze. [Resources and cost by payer](performance.md#mixed-traffic-on-the-combined-successor). | 1,203 |
+| Nine-member joint recovery | `963b91d3` | Clearing covered 2,548 schedules, resumed after a keeper restart, bound the complete result, paid the flat trader 4,996 and the makers 29,981, and reduced the vault by 34,977. Its 126 keeper originals cost 630,000 lamports. Dual-client conformance matched all eight proof instruction shapes. | 176 |
 | Second insurance pass | `a3046433` | Three schedules on nine frozen members. One flat trader withdrew 4,996 atoms and makers withdrew 30,003. The vault decreased by 34,999. The keeper paid 395,000 lamports over 79 originals. | 176 |
 
 The first liquidation attempt reached a degraded BTC observation after replay and

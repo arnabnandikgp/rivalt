@@ -8,6 +8,39 @@ is not a public deployment. The completed P47 local
 qualification below compares Anchor RC2 against that immutable pre-migration baseline;
 [STATUS](../STATUS.md) records the verified P45–P47 stack integration.
 
+## Mixed traffic on the combined successor
+
+On harness `963b91d3` with SBF `d9a2a55b`, three independently funded
+traders submitted 360 one-lot orders to internal makers. Each pair reached
+a broadcast barrier after signing. The workload rotated through three market
+and maker combinations over 30 rounds. All 360 originals finalized. Every
+trader fill was 846 bytes and cost the originating trader 5,000 local lamports.
+
+| Pair of concurrent fills | Landed fills | Shared writable accounts | CU min / p95 / max |
+|---|---:|---|---:|
+| Same BTC maker | 120 | Maker capital and registration | 159,864 / 180,623 / 180,626 |
+| Distinct BTC makers | 120 | None | 159,109 / 173,765 / 173,765 |
+| BTC and ETH | 120 | None | 159,130 / 173,765 / 173,765 |
+
+The measured rounds took 421.279 seconds, or 0.855 landed fills per wall-clock
+second. This includes publication, signing, finality, WebSocket checks and
+reading back the signed messages before the next pair. It measures the offered
+local workload. Determining a saturation rate would require a load generator
+that offers work independently of confirmation.
+
+The three traders paid 900,000, 600,000 and 300,000 lamports. The fixture
+operator sponsored 180 combined source/maker updates (3,600,000 lamports)
+and 180 impact publications (1,800,000 lamports). Internal makers paid no
+separate transaction fee in this arrangement. Setup, rent and the subsequent
+exit/freeze checks are outside this measurement window. Payer amounts come
+from finalized receipts. Both total market fees and their exact 25% insurance
+allocation reconciled. Fresh PostgreSQL replay matched all 1,203 events.
+
+The RPC verifier finished before the shell wrapper encountered a trailing
+print error. The runner file had changed during execution. An independent
+audit of every measured transaction reproduced the table from retained originals.
+[Cost audit and reproduction](local-development.md#combined-local-successor-qualification).
+
 ## Paired routes on the recovery candidate
 
 The combined recovery and ledger-lane program at `5d7a7c0f` ran the same
