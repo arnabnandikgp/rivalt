@@ -11,6 +11,21 @@ deletes none of them. Recovery example:
 git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 ```
 
+## Successor clearing stack integration
+
+The 50 successor PRs through [#152](https://github.com/arnabnandikgp/rivalt/pull/152) and the
+[review closeout](https://github.com/arnabnandikgp/rivalt/pull/153) merged on 21 November 2026.
+GitHub reported every PR merged. The integrated revision
+[`34d4034d43a44dbfe6d59f14e6863d1fe744dc33`](https://github.com/arnabnandikgp/rivalt/commit/34d4034d43a44dbfe6d59f14e6863d1fe744dc33) contains
+the accepted tip `b100c41fb7479603950b335388bd8a29040612b4`. Both revisions have tree `236670ada467d1dea584179e6e041c23cd345b30`.
+
+Ten outstanding review threads were checked against the final code. The
+closeout corrected the indexer’s fee-counter revision ordering and documented
+the funding-window check. Eight indexer tests and typechecking passed at
+`f3cb87f0`. The updated reader reproduced the 405-account reconciliation
+from the retained finalized RPC reads. P56 remains selected until the
+[common keeper and runtime qualification](clearing/roadmap.md#pr-tracker).
+
 ## Account-scale and clearing roadmap integration
 
 On 19 November 2026, all 29 PRs of stack #74 merged together through
