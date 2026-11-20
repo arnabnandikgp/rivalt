@@ -1295,3 +1295,31 @@ can determine the market minimum even when some winners need fewer lots.
 The proof account can certify allocation before a pair schedule is known.
 Financial admission must still show that the proposed pairs can deliver this
 allocation at those lot counts and preserve the other market's payouts.
+
+### Verifying debtor and winner pairings
+
+Each market proposal names a certified winner allocation and commits to two
+ordered lists. The first lists every winner receiving a positive charge, the
+second every debtor contributing a positive amount. Both use the established
+frozen-episode member order. Clearing accepts immutable input entries eight at
+a time. Each entry records the frozen ordinal, stable member ID, signed position,
+lot rate and amount. The sum on each side must equal the market recovery ceiling.
+
+Clearing then checks the lists against the frozen book. Starting at the end of
+the verified winner digest, a keeper supplies the previous digest and opens one
+original membership page. Every positive winner charge and every original
+debtor budget must match its listed entry, including the original position.
+Strict ordering excludes duplicate identities. Checking all original members
+and both positive sums excludes additional or omitted entries. A keeper can
+resume this check from the certificate and committed pages.
+
+For each winner, clearing visits debtors in episode order. At each opposite
+position it calculates the first-difference upper bound and the exact lot
+quantity. The transaction updates the two proposal rows and commits to the
+debtor ID, winner ID, charge, matched lots, base concession and extra-tick lots.
+The final certificate requires every atom to match and the minimum lot budget
+to be exhausted. A market certificate proves the pairing conditional on the
+full-recovery amounts. Joint settlement must still verify that the resulting
+BTC and ETH claims can both be honored under the original creditor protections.
+[Clearing instructions](../../programs/clearing/src/instructions/account_safety/settlement/ordered_pairs)
+· [Pair arithmetic](../../crates/default-plan-selection/src/joint/ordered_fill.rs)

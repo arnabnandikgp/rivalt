@@ -814,3 +814,12 @@ For the holder allocation probe, build that feature at `486d5818` and select
 The independent reference enumerates proportional ties and reconstructs the
 digest of each holder's weight and charge. The signed harness compares each
 page prefix and submits an additional losing proposal.
+
+For the ordered debtor and winner pairing probe, use clearing `34359552`
+with the same populated recovery feature. Set
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-pair-schedule` and
+`RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-34359552d5900778bf305bd25334320239838b0c`.
+The reference for a retained input can also run separately with
+`python3 tests/financial/pair_schedule_reference.py < "$RIVALT_RUN_DIR/population-input.json"`.
+It enumerates lot quantities and derives the expected remaining lots and
+digest for each nonzero pair.

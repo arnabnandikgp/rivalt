@@ -4128,3 +4128,31 @@ The populated book used the direct inventory path. Native tests covered
 mixed opposite-side position sizes and sub-atom rates across 1,344 combinations.
 On-chain pair execution, adjusted cash settlement and wallet exit for this freeze
 remain open. [Verification contract](../clearing/default-plan-verification.md)
+
+## Ordered recovery pairings on the populated freeze
+
+Clearing `34359552` and signed harness `b8967e3c` verified the entire ordered
+schedule from a fresh 128-member freeze. BTC matched 7,983,928 collateral
+atoms across 71 pairs and 423 lots. ETH matched 3,723,808 atoms across 64
+pairs and 403 lots. Every observed prefix digest and every participating
+position's remaining quantity matched independent integer-lot enumeration.
+The native verifier also admitted this exact RPC book and both recovery ceilings.
+
+| Signed action | Successful calls, both markets | Landed CU | Wire bytes |
+|---|---:|---:|---:|
+| Open market proposals | 2 | 6,067 | 445 |
+| Commit ordered member pages | 17 | 7,910–14,176 | 498–835 |
+| Authenticate members against the frozen allocation | 32 | 8,086–10,883 | 641–740 |
+| Verify and consume the next debtor page | 77 | 6,871–10,283 | 412 |
+
+The 128 successful calls cost 640,000 local test lamports in fees. Each
+proposal occupied 426 bytes plus 563 bytes per order page. Twelve signed
+negative checks rejected changed preimages, substituted holders, swapped
+roles and replay. After both market certificates had completed, clearing
+also rejected a premature payout.
+
+Across 2,294 signed outcomes, fresh PostgreSQL replay matched all 1,286
+financial events. The SPL vault and the allocation each held 332,907,140
+atoms. All 405 accounts and 128 members reconciled. The next acceptance is
+joint BTC/ETH settlement of these adjusted claims and the actual token exits.
+[Pair verification](../clearing/default-plan-verification.md#verifying-debtor-and-winner-pairings)
