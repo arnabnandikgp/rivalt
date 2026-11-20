@@ -7,7 +7,8 @@ import {
 import {CLEARING_PROGRAM_ADDRESS,OPEN_SEARCH_DISCRIMINATOR,CAPTURE_MEMBER_DISCRIMINATOR,DERIVE_PAIRS_DISCRIMINATOR,
   VERIFY_INCUMBENT_DISCRIMINATOR,COVER_PLAN_DISCRIMINATOR,COVER_RANGE_DISCRIMINATOR,SEAL_SEARCH_DISCRIMINATOR,
   BIND_RECOVERY_SELECTION_DISCRIMINATOR,VERIFY_INVENTORY_BOOK_DISCRIMINATOR,getFrozenMarginDecoder,type PreparedSettlement} from './generated/index.js';
-import {isMultiLotDeployment,type AccountDeployment} from './account-deployment.js';
+import {getFrozenMarginDecoder as getPagedFrozenMarginDecoder} from './generatedPagedRecovery/types/frozenMargin.js';
+import {usesRecoverySearch,isMultiLotDeployment,type AccountDeployment} from './account-deployment.js';
 import {requireValue} from './wallet-client.js';
 
 export function getBtcAllocationPageDecoder() {
@@ -27,7 +28,7 @@ export const INVENTORY_BOOK_ACTIVE_PAGE_LIMIT=32-11;
 export const INVENTORY_BOOK_EVENT_PAGE_LIMIT=Math.floor((8192-108-10*41-49)/49);
 export const INVENTORY_BOOK_HEAP_BYTES=128*1024;
 export function inventoryBookHeap(selection:AccountDeployment|undefined,instructions:readonly Instruction[]) {
-  if((selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate') && instructions.some(ix=>
+  if(usesRecoverySearch(selection) && instructions.some(ix=>
     ix.programAddress===CLEARING_PROGRAM_ADDRESS && [OPEN_SEARCH_DISCRIMINATOR,CAPTURE_MEMBER_DISCRIMINATOR,DERIVE_PAIRS_DISCRIMINATOR,
       VERIFY_INCUMBENT_DISCRIMINATOR,COVER_PLAN_DISCRIMINATOR,COVER_RANGE_DISCRIMINATOR,SEAL_SEARCH_DISCRIMINATOR,BIND_RECOVERY_SELECTION_DISCRIMINATOR]
       .some(tag=>tag.every((byte,index)=>ix.data?.[index]===byte))))return 256*1024;
@@ -39,6 +40,13 @@ export function inventoryBookHeap(selection:AccountDeployment|undefined,instruct
 export function getInventoryBookPageDecoder() {
   return allocationPage(transformDecoder(getTupleDecoder([getFrozenMarginDecoder(),getU64Decoder(),getU64Decoder()]),
     ([original,bookCapacity,bookCharge])=>({...original,bookCapacity,bookCharge})));
+}
+
+/** Paged payout fields precede the inventory-book extension on the combined build. */
+export function getLocalSuccessorPageDecoder() {
+  return allocationPage(transformDecoder(getTupleDecoder([getPagedFrozenMarginDecoder(),getU64Decoder(),
+    getTupleDecoder([getU64Decoder(),getU64Decoder()]),getU64Decoder()]),
+    ([original,bookCapacity,lotRate,bookCharge])=>({...original,bookCapacity,lotRate,bookCharge})));
 }
 
 export function getMultiLotBookPageDecoder() {

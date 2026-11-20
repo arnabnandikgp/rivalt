@@ -19,14 +19,16 @@ const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const integrated=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-lanes';
-const ledgerLanes=integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-lanes';
+const successor=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-successor-workload';
+const ledgerLanes=successor||integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-lanes';
 const lane=ledgerLanes||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-market-lanes';
 const aggregate=lane||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-fee-lanes';
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,integrated?'integrated':ledgerLanes?'ledger':lane?'lane':aggregate?'fees':'multi');
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,successor?'successor':integrated?'integrated':ledgerLanes?'ledger':lane?'lane':aggregate?'fees':'multi');
 const payers=new Map<string,Keypair>();
+const offered=new Set<string>();
 let broadcast:((label:string)=>Promise<void>)|undefined;
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
-  deferFinality:true,payerFor:label=>payers.get(label),beforeBroadcast:async label=>{if(payers.has(label))await broadcast!(label);},
+  deferFinality:true,payerFor:label=>payers.get(label),beforeBroadcast:async label=>{if(payers.has(label)){assert(!offered.has(label));offered.add(label);await broadcast!(label);}},
 });
 type Workload='shared maker'|'distinct makers'|'distinct markets';
 type Receipt={signature:string;slot:number;cu:number;bytes:number;fee:number;locks:LockSet;confirmedMs:number;finalizedMs:number};
@@ -48,7 +50,9 @@ try {
     ...setup.ledgers.map((key,i)=>[key,i===0?'BTC ledger':'ETH ledger'] as const),
     ...setup.instances.flatMap((maker,i)=>[[maker.capital,`maker ${i} capital`],[maker.registration,`maker ${i} registration`]] as [string,string][])]);
   const workloads:Workload[]=['shared maker','distinct makers','distinct markets'];
-  for(let round=0;round<3;round++)for(let offset=0;offset<3;offset++){
+  const rounds=successor?30:3;
+  const started=performance.now();
+  for(let round=0;round<rounds;round++)for(let offset=0;offset<3;offset++){
     const workload=workloads[(round+offset)%3];
     const markets=workload==='distinct markets'?[0,1] as const:[0,0] as const;
     const traders=workload==='distinct markets'?[0,2]:[0,1];
@@ -105,6 +109,12 @@ try {
       writeFileSync(directory+'/paired-signed-routes.json',json(bursts));
     }
   }
+  const workloadMs=performance.now()-started;
+  const receipts=bursts.flatMap(burst=>burst.receipts);
+  assert.equal(offered.size,rounds*12);
+  assert.equal(new Set(receipts.map(receipt=>receipt.signature)).size,offered.size);
+  const workload={rounds,offered:offered.size,landed:receipts.length,elapsedMs:workloadMs,
+    fillsPerSecond:receipts.length*1000/workloadMs,traderLamports:receipts.reduce((sum,receipt)=>sum+receipt.fee,0)};
   for(const market of [0,1]){
     const snapshot=await setup.marketState(market);
     const gross=lane?(await sdk.readMarketGross(rpc,setup.venue,market as 0|1,'confirmed',ledgerLanes?'ledger-lanes':true)).grossLots:snapshot.grossLots;
@@ -221,7 +231,7 @@ try {
   }
   await journal.checkpoint('route-bursts-and-exit',true);
   const replay=await journal.finish();
-  const result={revision,sbf:build.revision,bursts,fees,originalVault,freshEvents:replay.events,harnessChecks:checks.length};
+  const result={revision,sbf:build.revision,workload,bursts,fees,originalVault,freshEvents:replay.events,harnessChecks:checks.length};
   writeFileSync(directory+'/successor-route-locks.json',json(result));
-  console.log(json({offered:signed.length,landed:signed.length,freshEvents:replay.events}));
+  console.log(json({...workload,freshEvents:replay.events}));
 } finally {await journal?.close();try{await flush();}finally{ws.close();}}

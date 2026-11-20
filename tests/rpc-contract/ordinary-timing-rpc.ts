@@ -18,11 +18,14 @@ import {verifyProfitBuild} from './profit-attribution-build.js';
 import {eventually} from './wire.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,url=process.env.RIVALT_RPC_URL!,wsUrl=process.env.RIVALT_WS_URL!;
-const delayed=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-delayed-payout';
+const probe=process.env.RIVALT_SETTLEMENT_PROBE!;
+const successor=probe.startsWith('profit-attribution-successor-');
+const selection=successor?'local-successor-candidate':'integrated-recovery-candidate';
+const delayed=probe.endsWith('-delayed-payout');
 const database=process.env.RIVALT_DATABASE_URL!, runId='p55b2-application';
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'integrated');
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,successor?'successor':'integrated');
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(url,wsUrl,directory,{deferFinality:true});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,indexer:LiquidityIndexer|undefined,worker:AccountRuntime|undefined;
 let observing=true,dispatch=true,loopError:unknown;
@@ -66,11 +69,11 @@ try{
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint('before-timed-close',true);
-  const service=()=>new AccountRuntime(database,runId,url,4,'integrated-recovery-candidate');
+  const service=()=>new AccountRuntime(database,runId,url,4,selection);
   worker=service();await worker.open();
   const {binding}=await worker.store.snapshot();
   indexer=new LiquidityIndexer({rpcUrl:url,wsUrl,databaseUrl:database,runId,venue:setup.venue,anchor:binding.anchor,
-    deployment:'integrated-recovery-candidate',profile:'liquidity-execution-qualification'});
+    deployment:selection,profile:'liquidity-execution-qualification'});
   await indexer.open();
   supervise(async()=>{while(observing){await indexer!.cycle();await delay(100);}});
   await setup.sample();

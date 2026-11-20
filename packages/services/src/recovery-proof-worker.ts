@@ -21,18 +21,19 @@ function searchNonce(venue:Address,epoch:bigint,revision:bigint,rank:bigint){
 }
 
 export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,context:Context,
-  selection:'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate') {
+  selection:sdk.RecoveryDeployment) {
   const {venue,prepared,preparedState,header}=context;
+  const pagedProof=sdk.hasPagedRecovery(sdk.accountDeployment(selection).artifactSet);
   const epoch=header.epoch,revision=preparedState.revision;
   const blocked=(reason:string)=>({status:'blocked' as const,reason});
-  if(header.count!==preparedState.count || (selection!=='paged-recovery-candidate' && header.count!==8n))return blocked('recovery-unsupported-cohort');
+  if(header.count!==preparedState.count || (!pagedProof && header.count!==8n))return blocked('recovery-unsupported-cohort');
   const budget=recoveryBudget(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET);
   if(!budget)return blocked('recovery-search-pending');
   const identity=[venue,epoch,revision,budget,selection].join(':');
   let cache=loaded.get(runtime);
   if(cache?.identity!==identity){
     try {
-      cache={identity,selection:await loadRecoverySelection(runtime.rpc,venue,selection,epoch,revision,budget,selection==='paged-recovery-candidate'?{format:'paged',count:header.count}:undefined)};
+      cache={identity,selection:await loadRecoverySelection(runtime.rpc,venue,selection,epoch,revision,budget,pagedProof?{format:'paged',count:header.count}:undefined)};
     }catch(error){
       if(error instanceof Error && /another insurance pass|exceeds its wire width/.test(error.message))
         return blocked('recovery-unsupported-rate-witness');
@@ -50,7 +51,7 @@ export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,conte
     id:`recovery:${search}:${reason}`,instruction});
   const response=await runtime.rpc.call('getAccountInfo',[search,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(context.contextSlot)}]);
   assert(response.context.slot>=Number(context.contextSlot),'Recovery checkpoint moved backwards');
-  if(selection==='paged-recovery-candidate') {
+  if(pagedProof) {
     const proof=response.value?decodeAccountWorker(response.value,paged.PAGED_RECOVERY_SEARCH_DISCRIMINATOR,paged.getPagedRecoverySearchDecoder()):null;
     const next=nextPagedProofInstruction(book,outcome,{...args,payer:key,nonce},proof,sdk.CLEARING_PROGRAM_ADDRESS);
     if(next)return {...ready(next.action,next.instruction),computeUnitLimit:next.computeUnitLimit};

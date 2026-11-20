@@ -23,6 +23,7 @@ export function scopedSchema(kind:number) {
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 export function frozenPageDecoder(artifactSet?:string) {
+  if(artifactSet===sdk.LOCAL_SUCCESSOR_ARTIFACT_SET)return sdk.getLocalSuccessorPageDecoder();
   if(artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET)return paged.getFrozenMarginPageDecoder();
   if(sdk.isMultiLotArtifact(artifactSet))return sdk.getMultiLotBookPageDecoder();
   if(sdk.isBookInventoryArtifact(artifactSet))return sdk.getInventoryBookPageDecoder();
@@ -58,7 +59,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     const header=JSON.parse(json(value));
     const bound=sdk.boundRecoveryReceipt(value);
     const pagedHeader=sdk.pagedRecoveryHeader(value);
-    if(binding.artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET && (resolution.boundRecovery || pagedHeader)) {
+    if(sdk.hasPagedRecovery(binding.artifactSet) && (resolution.boundRecovery || pagedHeader)) {
       assert(pagedHeader && resolution.boundRecovery,'Missing paged recovery header or event');
       const {memberCount,...terms}=pagedHeader;
       const {memberIds,claimDeltas,movements,finalCash,...projected}=resolution.boundRecovery;
@@ -123,7 +124,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
     const source=Object.entries(state.revisions).find(([,entry])=>entry.kind===10);assert(source);assert.equal(header.source,source[0]);
     if(plan)assert.equal(BigInt(header.sourceRevision)+1n,BigInt(plan.adoptionRevision));
   }
-  if(kind===18 && binding.artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET && resolution.boundRecovery) {
+  if(kind===18 && sdk.hasPagedRecovery(binding.artifactSet) && resolution.boundRecovery) {
     const bound=resolution.boundRecovery;
     const count=Math.min(8,bound.memberIds.length-Number(value.pageIndex)*8);
     assert.equal(value.rowCount,count,'Complete recovery page');

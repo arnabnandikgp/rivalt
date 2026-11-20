@@ -6,7 +6,14 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
-if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-integrated || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-integrated-* ]]; then
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-successor-* ]]; then
+  node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"successor");'
+  if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-successor-recovery ]]; then
+    [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && "${RIVALT_RECOVERY_SCHEDULE_BUDGET:-}" =~ ^[1-9][0-9]*$ ]]
+    [[ "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-wallet || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-insurance ]]
+    node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,"local-successor-candidate");'
+  fi
+elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-integrated || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-integrated-* ]]; then
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"integrated");'
   if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-integrated ]]; then
     test "${RIVALT_FROZEN_PLAN_PROOF:-0}" = 1
@@ -104,7 +111,7 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
 if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution* || "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk || "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation || "${RIVALT_SETTLEMENT_PROBE:-default}" == freeze-cutoff || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
-if [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && ( "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-owned-* || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-meter || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-coverage ) ]]; then bash ops/deploy-frozen-plan-probe.sh; fi
+if [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && ( "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-owned-* && "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-successor-recovery || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-meter || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-coverage ) ]]; then bash ops/deploy-frozen-plan-probe.sh; fi
 case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
   maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;
@@ -115,24 +122,24 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
   profit-attribution-checked-funding|profit-attribution-cross-fill-funding) node --import tsx tests/rpc-contract/cross-fill-funding-rpc.ts ;;
   profit-attribution-cross-maker-capacity|profit-attribution-bounded-market) node --import tsx tests/rpc-contract/cross-maker-capacity-rpc.ts ;;
-  profit-attribution-integrated-warm-payout|profit-attribution-integrated-delayed-payout) node --import tsx tests/rpc-contract/ordinary-timing-rpc.ts ;;
+  profit-attribution-successor-warm-payout|profit-attribution-successor-delayed-payout|profit-attribution-integrated-warm-payout|profit-attribution-integrated-delayed-payout) node --import tsx tests/rpc-contract/ordinary-timing-rpc.ts ;;
   profit-attribution-integrated-payout|profit-attribution-market-lane-payout|profit-attribution-ledger-payout) node --import tsx tests/rpc-contract/market-lane-payout-rpc.ts ;;
   profit-attribution-integrated-funding|profit-attribution-market-lane-funding|profit-attribution-ledger-funding) node --import tsx tests/rpc-contract/market-lane-funding-rpc.ts ;;
-  profit-attribution-integrated-lanes|profit-attribution-ledger-lanes|profit-attribution-market-lanes|profit-attribution-route-locks|profit-attribution-fee-lanes) node --import tsx tests/rpc-contract/successor-route-locks-rpc.ts ;;
+  profit-attribution-successor-workload|profit-attribution-integrated-lanes|profit-attribution-ledger-lanes|profit-attribution-market-lanes|profit-attribution-route-locks|profit-attribution-fee-lanes) node --import tsx tests/rpc-contract/successor-route-locks-rpc.ts ;;
   profit-attribution-bounded-market-apply|profit-attribution-fee-lanes-apply|profit-attribution-multi-lot-search|profit-attribution-multi-lot-apply|profit-attribution-multi-lot-tie)
     cargo build --locked --offline -p default-plan-selection --features native-search --example multi_lot_audit
     node --import tsx tests/rpc-contract/multi-lot-search-rpc.ts ;;
   profit-attribution-inventory-book-capacity|profit-attribution-inventory-book-expanded) node --import tsx tests/rpc-contract/inventory-book-capacity-rpc.ts ;;
-  profit-attribution-owned-paged|profit-attribution-owned-integrated|profit-attribution-owned-cross|profit-attribution-owned-tie|profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply|profit-attribution-linked-flat|profit-attribution-linked-flat-apply|profit-attribution-linked-contested|profit-attribution-linked-allocation|profit-attribution-foreign-winner-ordinary|profit-attribution-foreign-winner-gate|profit-attribution-foreign-winner-apply|profit-attribution-shared-inventory|profit-attribution-shared-inventory-apply|profit-attribution-scarce-inventory-one-apply|profit-attribution-scarce-inventory-one-ordinary|profit-attribution-scarce-inventory-zero-apply|profit-attribution-scarce-inventory-floor-apply|profit-attribution-inventory-book-ordinary|profit-attribution-inventory-book-apply|profit-attribution-inventory-book-expanded-apply)
+  profit-attribution-successor-recovery|profit-attribution-owned-paged|profit-attribution-owned-integrated|profit-attribution-owned-cross|profit-attribution-owned-tie|profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply|profit-attribution-linked-flat|profit-attribution-linked-flat-apply|profit-attribution-linked-contested|profit-attribution-linked-allocation|profit-attribution-foreign-winner-ordinary|profit-attribution-foreign-winner-gate|profit-attribution-foreign-winner-apply|profit-attribution-shared-inventory|profit-attribution-shared-inventory-apply|profit-attribution-scarce-inventory-one-apply|profit-attribution-scarce-inventory-one-ordinary|profit-attribution-scarce-inventory-zero-apply|profit-attribution-scarce-inventory-floor-apply|profit-attribution-inventory-book-ordinary|profit-attribution-inventory-book-apply|profit-attribution-inventory-book-expanded-apply)
     cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
     if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-inventory-book-* ]]; then
       cargo build --locked --offline -p default-plan-selection --example single_lot_assignment
     fi
-    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-* && -n "${RIVALT_RECOVERY_SCHEDULE_BUDGET:-}" ]]; then
+    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-* || "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-successor-recovery ]] && [[ -n "${RIVALT_RECOVERY_SCHEDULE_BUDGET:-}" ]]; then
       cargo build --locked --offline --release -p default-plan-selection --features keeper --bin rivalt-recovery-selector
     fi
     node --import tsx tests/rpc-contract/linked-default-recovery-rpc.ts
-    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-paged && "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-wallet ]]; then
+    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-paged || "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-successor-recovery ]] && [[ "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-wallet ]]; then
       node --import tsx tests/rpc-contract/recovery-wire-conformance.ts "$RIVALT_RUN_DIR" --paged
     elif [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-* && "${RIVALT_FROZEN_PLAN_CASE:-}" != paged-* ]]; then
       node --import tsx tests/rpc-contract/recovery-wire-conformance.ts "$RIVALT_RUN_DIR"
@@ -140,7 +147,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;
   profit-attribution-recovery|profit-attribution-sponsor-recovery|profit-attribution-verified-pair|profit-attribution-verified-pair-limited|profit-attribution-btc-residual-*|profit-attribution-btc-allocation-*) node --import tsx tests/rpc-contract/btc-default-recovery-rpc.ts ;;
   profit-attribution) node --import tsx tests/rpc-contract/profit-attribution-rpc.ts ;;
-  profit-attribution-integrated-automatic-liquidation|profit-attribution-integrated-receiver|profit-attribution-bounded-market-receiver|maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
+  profit-attribution-successor-automatic-liquidation|profit-attribution-integrated-automatic-liquidation|profit-attribution-integrated-receiver|profit-attribution-bounded-market-receiver|maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
   whole-account-risk) node --import tsx tests/rpc-contract/whole-account-risk-rpc.ts ;;
   freeze-cutoff) node --import tsx tests/rpc-contract/freeze-cutoff-rpc.ts ;;
   membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;
