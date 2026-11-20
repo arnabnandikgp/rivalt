@@ -1,0 +1,49 @@
+"""Independent checks for the bounds used on the populated successor freeze."""
+from fractions import Fraction
+from itertools import product
+import os
+import unittest
+
+from check_populated_recovery_bound import FrozenCase, SCALE, allocations, proportional_targets, tied_shares
+from test_scalable_settlement import independent_input
+
+
+def history(entry):
+    encoded = (entry*SCALE).to_bytes(5, 'little').rstrip(b'\x00')
+    return list(len(encoded).to_bytes(2, 'little') + bytes([0, 0, 1, 0]) + encoded + bytes([1]))
+
+
+class RecoveryCeilings(unittest.TestCase):
+    def test_discrete_sharing_against_complete_allocations(self):
+        for weights in ([1, 2], [0, 2, 3], [1, 8, 2], [3, 3, 3], [4, 1, 3, 2]):
+            options = list(product(*(range(weight+1) for weight in weights)))
+            cost = lambda shares: sum(Fraction(value*value, weight) for value,weight in zip(shares,weights) if weight)
+            for total in range(sum(weights)+1):
+                result = proportional_targets(weights,total)
+                self.assertEqual(sum(result),total)
+                best = min(cost(option) for option in options if sum(option)==total)
+                self.assertEqual(cost(result),best)
+                expected = {option for option in options if sum(option)==total and cost(option)==best}
+                self.assertEqual({tuple(option) for option in allocations(*tied_shares(weights,total))},expected)
+
+    def test_recovery_ceiling_requires_an_admitted_plan_reaching_the_net_loss_bound(self):
+        # The debtor can pay four of ten atoms. Each winner has two opposite lots.
+        # Entry 5 supplies enough unpaid gain for the whole six-atom shortfall.
+        # Entry 9 gives only two eligible atoms, with eight from earlier closed claims.
+        table = [(4,(-10*SCALE,0)),(0,(10*SCALE,0))]
+        _,_,rates,orders = independent_input(table,(0,0),(0,0))
+        for winner_entry, expected, saturated in [(5,6,True),(9,2,False)]:
+            rows = [dict(id=str(i), cash=str(cash), claims=list(map(str,claims)),
+                         lots=[str(qty),'0'], history=[history(entry), []])
+                    for i,((cash,claims),qty,entry) in enumerate(zip(table,(-2,2),(5,winner_entry)))]
+            case = FrozenCase(dict(rows=rows,marks=['10','10'],pools=['0','0'],insurance=['0','0'],fees=['0','0'],
+                                   original=dict(rates=list(map(str,rates[0])), additionalRates=[], orders=orders)))
+            self.assertEqual(case.ceilings,[6,0])
+            receipt = case.assess(os.environ.get('RIVALT_JOINT_AUDIT','target/release/examples/joint_reduction_audit'),
+                                  case.proposal(False))
+            self.assertEqual(receipt['recovered'],[str(expected),'0'])
+            self.assertEqual(receipt['bothCeilingsReached'],saturated)
+
+
+if __name__ == '__main__':
+    unittest.main()

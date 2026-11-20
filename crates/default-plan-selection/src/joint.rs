@@ -64,6 +64,28 @@ pub struct Receipt {
     pub recovered: [(BigInt, BigUint); 2],
 }
 
+impl Receipt {
+    /// A bound on net loss removed, independently in each market. A verified
+    /// charge consumes a debtor's original whole-atom budget. The recovery
+    /// score also caps the decline in impairment by the actual charge.
+    pub fn recovery_ceilings(&self) -> [BigUint; 2] {
+        core::array::from_fn(|market| {
+            self.budgets
+                .iter()
+                .map(|row| BigUint::from(row[market]))
+                .sum()
+        })
+    }
+
+    /// Equality in both columns proves the first two D120 priorities. Winner
+    /// sharing, lot usage and frozen-episode ordering require separate proofs.
+    pub fn reaches_both_recovery_ceilings(&self) -> bool {
+        self.recovered.iter().zip(self.recovery_ceilings()).all(
+            |((numerator, denominator), ceiling)| *numerator == BigInt::from(ceiling * denominator),
+        )
+    }
+}
+
 fn integer(value: &Number) -> BigUint {
     BigUint::new(
         value

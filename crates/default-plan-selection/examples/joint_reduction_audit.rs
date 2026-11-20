@@ -24,6 +24,8 @@ struct Input {
     original: WitnessInput,
     effective: WitnessInput,
     search: Option<Search>,
+    #[serde(default)]
+    measure_recovery_bound: bool,
 }
 #[derive(Deserialize)]
 struct Search {
@@ -221,15 +223,21 @@ fn run(input: Input) -> Result<Value, String> {
             &charges,
         )
         .map_err(|err| format!("{err:?}"))?;
-    Ok(json!({
+    let mut result = json!({
         "budgets":receipt.budgets.iter().map(|row|row.map(|x|x.to_string())).collect::<Vec<_>>(),
         "fills": receipt.fills.iter().map(|p|[p.charge,p.matched,p.base_ticks,p.extra_tick_lots].map(|x|x.to_string())).collect::<Vec<_>>(),
         "lots":receipt.remaining_lots.iter().map(|row|row.map(|x|x.to_string())).collect::<Vec<_>>(),
         "cash":receipt.rounded.cash.iter().map(u64::to_string).collect::<Vec<_>>(),
         "movements":receipt.rounded.movements.iter().map(|row|row.map(|x|x.to_string())).collect::<Vec<_>>(),
         "insuranceSpent":receipt.spent.map(|x|x.to_string()),
-        "recovered":receipt.recovered.map(|(numerator,denominator)|[numerator.to_string(),denominator.to_string()]),
-    }))
+        "recovered":receipt.recovered.each_ref().map(|(numerator,denominator)|[numerator.to_string(),denominator.to_string()]),
+    });
+    if input.measure_recovery_bound {
+        result["recoveryCeilings"] =
+            json!(receipt.recovery_ceilings().map(|value| value.to_string()));
+        result["bothCeilingsReached"] = json!(receipt.reaches_both_recovery_ceilings());
+    }
+    Ok(result)
 }
 fn main() {
     for line in io::stdin().lock().lines().map_while(Result::ok) {
