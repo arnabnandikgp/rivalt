@@ -268,9 +268,10 @@ local qualification.
 settlement. The SDK returns null before binding. After binding it exposes
 the search address, rank, verified schedule count, actual insurance use and
 each member’s separate claim changes and signed cash movements as exact
-integers. The default worker reports `recovery-search-pending` until a sealed
-schedule binds to the frozen source. It can then resume the existing rate,
-application and reconciliation stages from RPC after a restart.
+integers. An explicitly sponsored local risk worker can open, capture, verify,
+seal and bind a proof through its durable transaction queue. It resumes from
+the on-chain cursor after a restart and subsequently drives the existing rate,
+application and reconciliation stages.
 
 The [keeper calculation](../../packages/services/src/recovery-witness.ts)
 reads the prepared settlement, resolution and eight-member frozen page together
@@ -279,7 +280,24 @@ proposed schedule number, it derives both market rates and both rounding orders.
 Every candidate retains the debtor cash allocation at freeze. The calculator
 rejects a changed episode or revision, a different population, a rate wider
 than the wire format, or a settlement needing another insurance pass.
-Choosing the winning schedule and sponsoring the proof are separate steps.
+The [native selector](../../crates/default-plan-selection/src/bin/recovery_selector.rs)
+derives the eligible pairs and compares schedules using clearing’s financial
+rules and the frozen episode’s tie order. The worker reads all eight original
+margin histories against their frozen revisions. It identifies the proof
+account from the payer, venue, episode, revision and selected rank. Clearing
+verifies each proposed exclusion interval. Ties with the incumbent require
+individual financial checks. Each signed proof step has its own queue identity.
+
+Only the two explicit local search builds support sponsorship. Without a
+schedule budget, an eight-member freeze continues to accept an external proof
+and the risk worker reports `recovery-search-pending`. A different population
+returns `recovery-unsupported-cohort`. A search larger than the configured
+work budget returns `recovery-schedule-budget` before renting a proof account.
+An unresolved financial comparison or unsupported witness also blocks
+submission. The schedule budget bounds the search work. The existing operator
+fee budget meters transaction fees. On opening a new proof the sponsor also
+funds its rent. Restarting with the same payer reuses that account.
+The sponsor’s budget cannot change any entitlement.
 
 On the combined local profile, financial instructions that require a market
 or ledger checkpoint must follow the matching clearing instructions in the

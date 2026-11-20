@@ -199,3 +199,56 @@ fn main() -> Result<(), String> {
     println!("{}", select(input)?);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sparse_member_ids_and_missing_digits_recover_wire_rank() {
+        let edges = [
+            Pair {
+                market: 0,
+                debtor: 94,
+                winner: 7,
+                maximum: 8,
+            },
+            Pair {
+                market: 0,
+                debtor: 94,
+                winner: 21,
+                maximum: 4,
+            },
+            Pair {
+                market: 1,
+                debtor: 21,
+                winner: 94,
+                maximum: 3,
+            },
+        ];
+        for (ordinal, (btc_left, btc_right, eth)) in (0..9)
+            .flat_map(|a| (0..5).flat_map(move |b| (0..4).map(move |c| (a, b, c))))
+            .enumerate()
+        {
+            let charges: Vec<_> = edges
+                .iter()
+                .zip([btc_left, btc_right, eth])
+                .filter(|(_, amount)| *amount != 0)
+                .map(|(e, atoms)| Charge {
+                    market: e.market,
+                    debtor: e.debtor,
+                    winner: e.winner,
+                    atoms,
+                })
+                .collect();
+            assert_eq!(rank(&edges, &charges), Some(ordinal as u64));
+        }
+        let foreign = Charge {
+            market: 0,
+            debtor: 0,
+            winner: 0,
+            atoms: 1,
+        };
+        assert_eq!(rank(&edges, &[foreign]), None);
+    }
+}

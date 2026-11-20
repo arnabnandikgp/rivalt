@@ -681,3 +681,18 @@ RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-payout bash ops/scalable-s
 RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-receiver bash ops/scalable-settlement-smoke.sh
 RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-integrated bash ops/scalable-settlement-smoke.sh
 ```
+
+For the automatic recovery keeper, build its native selector on the same
+checkout. The acceptance command also builds it before running the worker.
+
+```sh
+cargo build --locked --offline --release -p default-plan-selection --features keeper --bin rivalt-recovery-selector
+RIVALT_RECOVERY_SCHEDULE_BUDGET=3000 RIVALT_FROZEN_PLAN_PROOF=1 \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-integrated bash ops/scalable-settlement-smoke.sh
+```
+
+The budget is the maximum number of schedules this local sponsor will compare
+for one frozen book, from 1 to 65,536. Omit it to leave submission to another
+payer. A larger budget increases native CPU and memory use. The ordinary P56
+runtime has its own recovery worker. The [successor worker contract](../application/interfaces.md#local-joint-recovery-selection)
+lists its blocked outcomes and restart behavior.
