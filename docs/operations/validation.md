@@ -3725,6 +3725,19 @@ nine-member remainder orders. The native finance verifier accepted all three
 passes and rejected an omitted pass and an eight-member payout order. This
 fractional vector ran off chain. The signed freeze used whole-atom claims.
 
+On `41269935` a read-only Solana verifier authenticated the prepared header,
+resolution, both membership pages and all nine original margin accounts. It
+verified the proposed forced trades and calculated protected payouts. The
+returned digest matched every member's cash and both market movements plus
+the remaining insurance balances. Repeating page zero in place of page one
+was rejected. The accepted transaction used **1,089,543 CU**, **901 bytes**
+and **5,000 test lamports**. Fresh PostgreSQL replay again matched 99 events.
+This measurement covers one proposed schedule. Enforcing optimality across
+the 2,548 schedules and applying wallet balances require further instructions.
+The clearing-side conservation scan at `97063aa3` separately rejects omitted
+members, unbalanced reductions, a wrong insurance market and fee reallocation
+in a targeted native test.
+
 The recovery proof admits exactly eight members and the supported rate witnesses.
 The nine-member route workload qualified contention and the freeze boundary.
 Its terminal settlement is outside this proof. A sponsor supplied the exact
