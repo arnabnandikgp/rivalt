@@ -146,3 +146,15 @@ it('admits a wider certificate footer only for the authenticated book instructio
   expect(()=>decodeTransition(bytes({...value,writes:writes.map((row,i)=>i===1?{...row,kind:5}:row)}))).toThrow();
   expect(()=>decodeTransition(bytes({...value,reads:[...reads].reverse()}))).toThrow();
 });
+
+it('accepts search scratch alongside a financial instruction and preserves its event boundary', () => {
+  const transaction=tx();
+  const sealTag=Buffer.from(clearingIdl.instructions.find(ix=>ix.name==='seal_search')!.discriminator);
+  transaction.transaction.message.instructions.unshift({...call(),data:encoded(sealTag),accounts:[1,2,4]});
+  transaction.meta.innerInstructions[0].index=1;
+  expect(decode(transaction).map(ix=>ix.outer)).toEqual([1]);
+  transaction.transaction.message.instructions[0].accounts.push(5);
+  expect(decode(transaction).map(ix=>ix.outer)).toEqual([1]);
+  transaction.meta.innerInstructions.unshift({index:0,instructions:[event(financialPayload)]});
+  expect(()=>decode(transaction)).toThrow(/Invalid event authority or foreign invocation frame/);
+});

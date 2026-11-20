@@ -1036,3 +1036,20 @@ ordinals/IDs and explicit plan stages. The indexer checks frozen/applied records
 and reconciles partial application without counting frozen and live cash twice.
 The candidate-specific signed harness verifies token exits and fresh PostgreSQL
 replay; normal runtime promotion remains a separate gated change.
+
+## Clearing-owned joint recovery
+
+On the local `recovery-search-qualification` profile, a completed frozen page
+of eight members waits for a verified joint BTC/ETH schedule. Clearing checks
+each original position and profit history, then scores candidate schedules with
+the same whole-account financial engine used in the native comparison. A signed
+binding transaction records the winning rank, verified coverage, claim changes
+and exact signed market movements for every member. Claim changes are measured
+in collateral atoms and are scaled before the rate calculation.
+
+Binding leaves balances and the vault untouched. The denominator and rate passes
+retain the original frozen debtor allocation. Each application checks the sealed
+payment against its independently verified whole-atom floor and allowable
+fractional increment. Reconciliation covers both markets, insurance, retained
+fees and the original custody balance before wallet withdrawal. See the
+[selection contract](default-plan-verification.md#clearing-owned-payout-binding).

@@ -1497,3 +1497,21 @@ different maker on its next fill. A complete bounded read sums the signed
 changes across the three registrations before applying them to the original
 ledger. Clearing checks that same set before classification, payment or freeze.
 [Account contract](clearing/accounts.md#read-only-ledger-on-a-local-fill).
+
+## D139 — Bind joint recovery inside clearing before applying cash
+
+20 November 2026. The fresh local eight-member qualification makes clearing
+verify both markets and the complete frozen membership itself. Any payer may
+supply a proposed schedule and computation witnesses. Clearing checks every
+unexcluded alternative before it can seal that proposal. The binding operation
+rechecks the frozen revision against the venue, vault, markets and ledgers.
+It records the verified per-member claim changes, market payments and final
+cash together. A keeper cannot substitute the ordinary rounding result when it
+differs from a protected payout. The application still has to reconcile both
+markets and custody before a wallet can withdraw.
+
+This implements D117–D122 for the admitted one-page case. The prior diagnostic
+established selection costs and the family-specific certificates established
+wallet payouts separately. Neither was a general payout authority. Larger
+cohorts, further insurance rounds and unresolved financial trade-offs still
+require their own proof before release.

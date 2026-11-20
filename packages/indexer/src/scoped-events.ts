@@ -156,7 +156,9 @@ export function scopedInvocations(signature: string, transaction: any, transacti
       }
       const scratch=searchWork.get(current.bytes.subarray(0,8).toString('hex'));
       if(scratch) {
-        if(current.bytes.length!==scratch.bytes || current.accounts.length!==scratch.accounts)
+        // Anchor may admit unused trailing metas or padding. The pinned scratch
+        // handlers never read either and cannot emit a financial event.
+        if(current.bytes.length<Number(scratch.bytes) || current.accounts.length<Number(scratch.accounts))
           throw new Error('Invalid recovery search instruction');
         return null;
       }

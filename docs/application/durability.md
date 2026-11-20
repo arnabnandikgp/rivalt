@@ -746,3 +746,15 @@ including their quantities and price remainders. RPC reconciliation matches
 the per-member charge, rate, receipt kind and digest to clearing-owned pages.
 A fresh database can reproduce the certificate after the worker process exits.
 [Verification contract](../clearing/default-plan-verification.md#how-the-multi-lot-clearing-certificate-binds-the-inputs).
+
+## Journal for a clearing-owned recovery selection
+
+`RecoverySelectionBound` records the selected search, its rank and complete
+coverage, all eight member IDs, claim changes, signed market payments, final
+cash and both insurance amounts. The finalized indexer checks membership and
+per-account cash against its frozen state, both market totals against pools and
+insurance, and aggregate cash plus fees and remaining insurance against custody.
+A later application must match the corresponding selected account and amounts.
+Fresh reconciliation compares the event projection with the `RVJOINT1` receipt.
+Search progress before binding changes only proposer scratch and rent. The
+financial journal begins at the clearing-owned binding transition.

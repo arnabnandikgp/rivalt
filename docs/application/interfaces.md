@@ -261,3 +261,13 @@ revision checks and finalized RPC reconciliation. `MarketCheckpointed` verifies
 these derived values against the newly written market account. Both route
 events appear in the trade feed. Runtime selection remains limited to explicit
 local qualification.
+
+## Local joint recovery selection
+
+`boundRecoveryReceipt` decodes the completed selection from the prepared
+settlement. The SDK returns null before binding. After binding it exposes
+the search address, rank, verified schedule count, actual insurance use and
+each member’s separate claim changes and signed cash movements as exact
+integers. The default worker reports `recovery-search-pending` until a sealed
+schedule binds to the frozen source. It can then resume the existing rate,
+application and reconciliation stages from RPC after a restart.

@@ -1002,3 +1002,27 @@ A new process can resume at the first unchecked ordinal. The first measured veri
 For each admissible plan the on-chain verifier computes the recovery fractions in the two originally impaired markets and sorts them from least to greatest. Among plans tied on total recovery it prefers the larger fraction at the first difference. If both fractions tie, it compares each market’s deviation from proportional charges, weighted by the winning members’ eligible open gains. If those also tie, it compares the pairs of amounts charged and lots closed, separately for BTC and ETH. A strict improvement in one market can decide the result only if the other market does at least as well under that rule. [Shared financial comparison](../../crates/default-plan-selection/src/joint_priority.rs).
 
 When the financial profiles match exactly, D121 orders winners using the venue, frozen episode and stable member IDs. Individual debtor/winner pair charges decide any further tie. A financial trade-off between markets keeps the comparison unsealed. The native selector can verify a D127 reflection, while the one-page on-chain comparison still requires dominance or an exact financial tie. A sealed checkpoint binds all eight cash balances, the signed movements from each market, insurance remaining and retained fees. Payout authorization belongs to clearing. [Signed cases and costs](../operations/validation.md#financial-priorities-on-a-signed-frozen-book).
+
+## Clearing-owned payout binding
+
+The local search uses a payer-sponsored `search` PDA. The [wire layout](../../programs/clearing/src/instructions/account_safety/settlement/recovery/layout.rs)
+fixes eight roots, two markets and one greatest-rate witness for each evaluated
+state. The payer selects a nonce. All economic terms come from the authenticated
+prepared-settlement revision, original roots and frozen profit histories.
+Anyone can continue an existing proof. A defeated or stalled proposal cannot
+exclude a competing sponsor's proof.
+
+Once every schedule is covered, [binding](../../programs/clearing/src/instructions/account_safety/settlement/recovery/binding.rs)
+compares the sealed source with live frozen clearing state. The 496-byte
+`RVJOINT1` record replaces completed traversal scratch in the prepared header.
+It holds the frozen epoch, immutable search address, aggregate charges and
+insurance spent, eight ordered member results, winning rank and schedule count.
+Each member result carries its ID, two signed claim changes, two signed cash
+movements and terminal funded cash. Binding makes no token transfer. Subsequent
+application and reconciliation must use those exact individual results.
+
+The qualified binary uses the ordinary frozen-page layout and its own explicit
+local artifact selection. A new proof for another epoch must use an unused
+payer/nonce pair. The test keeps the search account for audit and measures
+transaction fees separately from rent. Unrepresentable proofs, missing
+witnesses or incomparable tied outcomes keep the book frozen.
