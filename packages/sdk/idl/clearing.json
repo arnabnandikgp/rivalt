@@ -3222,6 +3222,73 @@
       ]
     },
     {
+      "name": "append_pair_order",
+      "discriminator": [
+        60,
+        157,
+        101,
+        231,
+        31,
+        4,
+        46,
+        114
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "certificate",
+          "writable": true
+        },
+        {
+          "name": "order_page",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "role",
+          "type": "u8"
+        },
+        {
+          "name": "index",
+          "type": "u64"
+        },
+        {
+          "name": "entries",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "PairBookEntry"
+              }
+            }
+          }
+        },
+        {
+          "name": "next",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "apply_settlement_margin",
       "discriminator": [
         190,
@@ -5698,6 +5765,55 @@
         {
           "name": "restart",
           "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "check_pair_members",
+      "discriminator": [
+        249,
+        200,
+        134,
+        170,
+        37,
+        118,
+        75,
+        216
+      ],
+      "accounts": [
+        {
+          "name": "certificate",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "frozen_page"
+        }
+      ],
+      "args": [
+        {
+          "name": "prefix",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "openings",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "PairMemberOpening"
+              }
+            }
+          }
         }
       ]
     },
@@ -15621,6 +15737,45 @@
       ]
     },
     {
+      "name": "match_pair_page",
+      "discriminator": [
+        81,
+        157,
+        33,
+        185,
+        253,
+        163,
+        80,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "certificate",
+          "writable": true
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "winners",
+          "writable": true
+        },
+        {
+          "name": "debtors",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "revision",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "net_account_claims",
       "discriminator": [
         234,
@@ -15812,6 +15967,88 @@
         {
           "name": "amount",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "open_pair_schedule",
+      "discriminator": [
+        254,
+        100,
+        26,
+        133,
+        165,
+        61,
+        149,
+        55
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "certificate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  105,
+                  114,
+                  45,
+                  115,
+                  99,
+                  104,
+                  101,
+                  100,
+                  117,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "allocation"
+        },
+        {
+          "name": "prepared"
+        },
+        {
+          "name": "resolution"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": "u64"
+        },
+        {
+          "name": "order_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
@@ -25309,6 +25546,32 @@
       ]
     },
     {
+      "name": "PairOrderPage",
+      "discriminator": [
+        152,
+        201,
+        113,
+        129,
+        144,
+        20,
+        98,
+        76
+      ]
+    },
+    {
+      "name": "PairScheduleProof",
+      "discriminator": [
+        22,
+        253,
+        97,
+        66,
+        152,
+        173,
+        244,
+        0
+      ]
+    },
+    {
       "name": "Portfolio",
       "discriminator": [
         94,
@@ -31473,6 +31736,274 @@
           {
             "name": "generation",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PairBookEntry",
+      "docs": [
+        "Canonical positive entry in a sparse, episode-ordered market book."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ordinal",
+            "type": "u64"
+          },
+          {
+            "name": "member_id",
+            "type": "u64"
+          },
+          {
+            "name": "lots",
+            "type": "i64"
+          },
+          {
+            "name": "rate",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "atoms",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PairBookRow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "original",
+            "type": {
+              "defined": {
+                "name": "PairBookEntry"
+              }
+            }
+          },
+          {
+            "name": "atoms_left",
+            "type": "u64"
+          },
+          {
+            "name": "lots_left",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PairMemberOpening",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "weight",
+            "type": "u64"
+          },
+          {
+            "name": "charge",
+            "type": "u64"
+          },
+          {
+            "name": "book_slot",
+            "type": "u64"
+          },
+          {
+            "name": "lookup",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PairOrderPage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "certificate",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": "u8"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "row_count",
+            "type": "u8"
+          },
+          {
+            "name": "rows",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "PairBookRow"
+                  }
+                },
+                8
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PairScheduleProof",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "prepared",
+            "type": "pubkey"
+          },
+          {
+            "name": "allocation",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "attempt",
+            "type": "u64"
+          },
+          {
+            "name": "market",
+            "type": "u8"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          },
+          {
+            "name": "total_atoms",
+            "type": "u128"
+          },
+          {
+            "name": "minimum_lots",
+            "type": "u128"
+          },
+          {
+            "name": "order_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "target_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "pair_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "rows",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "amounts",
+            "type": {
+              "array": [
+                "u128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "last_priority",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "last_member",
+            "type": "u64"
+          },
+          {
+            "name": "fastest",
+            "type": "u64"
+          },
+          {
+            "name": "members_left",
+            "type": "u64"
+          },
+          {
+            "name": "floor",
+            "type": {
+              "array": [
+                "u128",
+                2
+              ]
+            }
+          },
+          {
+            "name": "lots_left",
+            "type": "u128"
+          },
+          {
+            "name": "winner_cursor",
+            "type": "u64"
+          },
+          {
+            "name": "debtor_page",
+            "type": "u64"
+          },
+          {
+            "name": "first_unpaid_page",
+            "type": "u64"
+          },
+          {
+            "name": "pairs",
+            "type": "u64"
+          },
+          {
+            "name": "paired_atoms",
+            "type": "u128"
           }
         ]
       }

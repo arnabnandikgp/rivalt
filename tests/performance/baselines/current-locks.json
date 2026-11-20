@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "2f93e13d011474086a8ca70986f875b264c2894a28eb2fc8fd48ab60cb3ae9f0",
+    "clearing": "40b3603bab7e7f57efe9155f50b959f8b68a3dcde77058bc134f87c3878edd4d",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -277,6 +277,24 @@
     },
     {
       "program": "clearing",
+      "name": "append_pair_order",
+      "write": [
+        "payer",
+        "certificate",
+        "order_page"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "apply_settlement_margin",
       "write": [
         "btc",
@@ -504,6 +522,20 @@
         "eth",
         "event_authority",
         "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "check_pair_members",
+      "write": [
+        "certificate"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "frozen_page"
       ],
       "signers": [],
       "optional": []
@@ -1656,6 +1688,21 @@
     },
     {
       "program": "clearing",
+      "name": "match_pair_page",
+      "write": [
+        "certificate",
+        "winners",
+        "debtors"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "net_account_claims",
       "write": [
         "btc",
@@ -1680,6 +1727,24 @@
         "btc",
         "eth"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "open_pair_schedule",
+      "write": [
+        "payer",
+        "certificate"
+      ],
+      "read": [
+        "allocation",
+        "prepared",
+        "resolution",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
     },
     {
       "program": "clearing",

@@ -61,6 +61,13 @@ pub(crate) use instructions::account_safety::settlement::recovery::layout::{__cl
 pub use instructions::account_safety::settlement::{RecordOriginalBudgets,__client_accounts_recordoriginalbudgets, ScanForeignProtection,__client_accounts_scanforeignprotection};
 pub use instructions::account_safety::settlement::winner_allocation::{OpenWinnerProof,AdvanceWinnerProof,WinnerCutoff};
 pub(crate) use instructions::account_safety::settlement::winner_allocation::{__client_accounts_openwinnerproof,__client_accounts_advancewinnerproof};
+pub use instructions::account_safety::settlement::ordered_pairs::{
+    OpenPairSchedule, AppendPairOrder, CheckPairMembers, MatchPairPage, PairBookEntry, PairMemberOpening,
+};
+pub(crate) use instructions::account_safety::settlement::ordered_pairs::{
+    __client_accounts_openpairschedule, __client_accounts_appendpairorder,
+    __client_accounts_checkpairmembers, __client_accounts_matchpairpage,
+};
 pub use state::*;
 pub use state::accounts::SettlementPageAccess;
 
@@ -139,6 +146,33 @@ pub mod clearing {
             require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Resolution);
             account_safety::settlement::winner_allocation::scan::advance(&mut ctx.accounts,revision)
         }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn open_pair_schedule(ctx: &mut Context<OpenPairSchedule>, nonce:u64, order_root:[u8;32]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {
+            let _=nonce;
+            account_safety::settlement::ordered_pairs::open(ctx,order_root)
+        }
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn append_pair_order(ctx: &mut Context<AppendPairOrder>, role:u8, index:u64, entries:Vec<PairBookEntry>, next:[u8;32]) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::ordered_pairs::append(ctx,role,index,entries,next)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn check_pair_members(ctx: &mut Context<CheckPairMembers>, prefix:[u8;32], openings:Vec<PairMemberOpening>) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::ordered_pairs::check_members(ctx,prefix,openings)}
+        #[cfg(not(feature="populated-recovery-qualification"))]
+        {Err(ClearingError::Profile.into())}
+    }
+    pub fn match_pair_page(ctx: &mut Context<MatchPairPage>, revision:u64) -> Result<()> {
+        #[cfg(feature="populated-recovery-qualification")]
+        {account_safety::settlement::ordered_pairs::match_page(ctx,revision)}
         #[cfg(not(feature="populated-recovery-qualification"))]
         {Err(ClearingError::Profile.into())}
     }

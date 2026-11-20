@@ -16,6 +16,7 @@ use financial_core::clearing::{
 pub mod linked_pair;
 pub mod recovery;
 pub mod winner_allocation;
+pub mod ordered_pairs;
 pub mod foreign_creditor;
 pub mod shared_inventory;
 pub mod inventory_book;

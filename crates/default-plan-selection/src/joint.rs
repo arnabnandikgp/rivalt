@@ -3,6 +3,7 @@
 extern crate alloc;
 pub mod foreign_protection;
 pub mod original_terms;
+pub mod ordered_fill;
 pub mod winner_inventory;
 mod pair_order;
 #[cfg(not(target_arch = "bpf"))]

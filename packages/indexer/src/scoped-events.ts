@@ -10,8 +10,10 @@ import {inventoryInstruction, isValidTransitionScope, type ScopedEnvelope, type 
 const eventTag = Buffer.from('e445a52e51cb9a1d', 'hex');
 const transitionTag = createHash('sha256').update('event:AccountTransition').digest().subarray(0, 8);
 const grossView = createHash('sha256').update('global:read_market_gross').digest().subarray(0,8);
-// Only the independent search account and its rent payer may change here.
+// Only proposal accounts, their work pages and rent payers may change here.
 const searchWork = new Map([
+  ['open_pair_schedule', 6, 48], ['append_pair_order', 6, 53],
+  ['check_pair_members', 4, 44], ['match_pair_page', 5, 16],
   ['open_winner_proof', 5, 73], ['advance_winner_proof', 4, 16],
   ['open_search', 5, 80], ['capture_member', 5, 16], ['derive_pairs', 3, 8],
   ['verify_incumbent', 3, 48], ['cover_plan', 3, 64], ['cover_range', 3, 40], ['seal_search', 3, 8],

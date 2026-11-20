@@ -18,6 +18,8 @@ export * from "./market.js";
 export * from "./marketLedger.js";
 export * from "./memberIndexNode.js";
 export * from "./memberPage.js";
+export * from "./pairOrderPage.js";
+export * from "./pairScheduleProof.js";
 export * from "./portfolio.js";
 export * from "./preparedSettlement.js";
 export * from "./recoverySearch.js";
