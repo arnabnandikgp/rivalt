@@ -1,5 +1,25 @@
 # Validation and measured limits
 
+## Recovery verification when a BTC winner owes ETH
+
+On a signed eight-member freeze at `ec12a834`, two fresh client processes proposed and checked a joint forced reduction before clearing advanced settlement. The diagnostic verified BTC and ETH debtor budgets, derived 340 possible schedules, and covered all 340 without writing a financial account. Three actual trades supplied the position history. The independent rational reference selected BTC 9 and ETH 33. Those charges removed 9 and 307,515/10,001 atoms of loss. The cash vector agreed for all eight members.
+
+| Step on the winning proof | Successful transactions | Landed CU per transaction | Signed bytes each |
+|---|---:|---:|---:|
+| Create checkpoint | 1 | 6,312 | 452 |
+| Authenticate original margins and histories | 8 | 8,313–18,771 | 420 |
+| Derive pairs and budgets | 1 | 324,106 | 346 |
+| Verify the proposed recovery and protected payouts | 1 | 889,433 | 386 |
+| Exclude 334 schedules in ten intervals | 10 | 6,591–6,602 | 378 |
+| Check five alternatives individually | 5 | 889,902–909,996 | 402 |
+| Cover the already verified proposal and seal | 2 | 4,592–4,660 | 346–402 |
+
+The 28 successful transactions used 5,896,739 CU and 140,000 test lamports in fees, excluding checkpoint rent. The inferior 9/32 plan passed settlement in isolation. The verifier rejected it when it reached a better 8/33 alternative. Invalid rate witnesses, replayed or overbroad ranges and early completion also failed. Both attempts together produced 53 successes and seven signed rejections with unchanged checkpoints. The deployed diagnostic was 467,536 bytes, SHA-256 `798a6463ac5b26e64f79eeba89e24c0c0d079ecf37c510c10ea89a79c2e1fa73`.
+
+The four kernel transactions for original rates, adjusted rates, original cash and protected adjusted cash used 197,699, 213,745, 343,062 and 712,227 CU respectively, 443 bytes each. The signed harness verifies returned bytes against the independent reference. The pinned `d177cc5` clearing executable still authorized both maker withdrawals of 5,004 and 34,968 atoms through its existing restricted certificate. The run recorded 274 clearing-harness outcomes, 55 worker originals and 114 events reproduced in fresh PostgreSQL. The diagnostic covered a single page and a unique highest total. It has no custody or payout authority.
+
+Reproduce with `RIVALT_FROZEN_PLAN_PROOF=1`, `RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-apply` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` pointing to the pinned foreign-creditor clearing artifacts, then run `bash ops/scalable-settlement-smoke.sh`. [Proof and economic rules](../clearing/default-plan-verification.md#verifying-all-schedules-on-a-cross-creditor-freeze).
+
 ## Restartable comparison on a clearing freeze
 
 At `4c9ccbc`, Surfpool deployed and returned the 192,480-byte diagnostic executable with SHA-256 `153e6a6abf2d3e03cfd88446e0e2c77fce11d3386e807b076037e2a6f3384af9`. Clearing used the pinned `30434d5` artifact. Five actual trades produced eight frozen Financial accounts, including a flat BTC creditor. The independent reference enumerated 2,548 schedules. Original debtor cash contributed 19,978 BTC-market and 9,989 ETH-market collateral atoms. Insurance contributed 13 and 1. Forced charges were 4 and 9 on the two BTC makers and 12 on the ETH maker.
