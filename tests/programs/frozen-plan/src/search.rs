@@ -225,9 +225,10 @@ fn evaluate(
     })
 }
 fn total(receipt: &Receipt) -> (BigInt, BigUint) {
-    let [(a, b), (c, d)] = &receipt.recovered;
-    let num = a * BigInt::from(d.clone()) + c * BigInt::from(b.clone());
-    let den = b * d;
+    let [(btc_numerator, btc_denominator), (eth_numerator, eth_denominator)] = &receipt.recovered;
+    let num = btc_numerator * BigInt::from(eth_denominator.clone())
+        + eth_numerator * BigInt::from(btc_denominator.clone());
+    let den = btc_denominator * eth_denominator;
     let gcd = num.magnitude().gcd(&den);
     (num / BigInt::from(gcd.clone()), den / gcd)
 }
@@ -267,16 +268,12 @@ pub fn leaf(accounts: &mut AdvanceSearch, rank: u128, after: RateWitness) -> Res
     search.cursor += 1;
     Ok(())
 }
-pub fn skip(accounts: &mut AdvanceSearch, first: u128, last: u128) -> Result<()> {
-    let search = &mut accounts.search;
-    stage(&accounts.source, search, 3)?;
-    require!(
-        first == search.cursor && first <= last && last < search.count,
-        ProofError::Cursor
-    );
+/// Sum of the largest digit in the interval for each pair. These maxima need
+/// not occur together, so this can overestimate but never omit a recovery.
+fn charge_upper_bound(edges: &[SearchEdge], first: u128, last: u128) -> Result<u128> {
     let mut stride = 1u128;
     let mut upper = 0u128;
-    for edge in search.edges.iter().rev() {
+    for edge in edges.iter().rev() {
         let cycle = stride
             .checked_mul(u128::from(edge.maximum) + 1)
             .ok_or(ProofError::Accounting)?;
@@ -288,6 +285,16 @@ pub fn skip(accounts: &mut AdvanceSearch, first: u128, last: u128) -> Result<()>
         upper = upper.checked_add(maximum).ok_or(ProofError::Accounting)?;
         stride = cycle;
     }
+    Ok(upper)
+}
+pub fn skip(accounts: &mut AdvanceSearch, first: u128, last: u128) -> Result<()> {
+    let search = &mut accounts.search;
+    stage(&accounts.source, search, 3)?;
+    require!(
+        first == search.cursor && first <= last && last < search.count,
+        ProofError::Cursor
+    );
+    let upper = charge_upper_bound(&search.edges, first, last)?;
     // D120 caps the loss actually removed in each market by the atoms charged.
     // Strict inequality preserves all financial ties for subsequent verification.
     require!(
@@ -303,4 +310,56 @@ pub fn close(accounts: &mut AdvanceSearch) -> Result<()> {
     require!(search.cursor == search.count, ProofError::Incomplete);
     search.stage = 4;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn edges(maxima: &[u64]) -> Vec<SearchEdge> {
+        maxima
+            .iter()
+            .map(|&maximum| SearchEdge {
+                market: 0,
+                debtor: 1,
+                winner: 2,
+                maximum,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn interval_charge_bound_covers_every_rank_and_is_exact_for_singletons() {
+        for maxima in [&[][..], &[0][..], &[1, 2, 3][..], &[3, 0, 1, 2][..]] {
+            let edges = edges(maxima);
+            // Build the book in lexicographic order without using rank/stride arithmetic.
+            let mut sums = vec![0u128];
+            for &maximum in maxima {
+                sums = sums
+                    .iter()
+                    .flat_map(|&prefix| (0..=maximum).map(move |digit| prefix + u128::from(digit)))
+                    .collect();
+            }
+            for first in 0..sums.len() {
+                let mut highest = sums[first];
+                for (last, &value) in sums.iter().enumerate().skip(first) {
+                    highest = highest.max(value);
+                    let bound = charge_upper_bound(&edges, first as u128, last as u128).unwrap();
+                    assert!(bound >= highest);
+                    if last == first {
+                        assert_eq!(bound, value);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn two_full_u64_digits_exceed_the_representable_domain() {
+        assert!(charge_upper_bound(&edges(&[u64::MAX, u64::MAX]), 0, u128::MAX).is_err());
+        assert_eq!(
+            charge_upper_bound(&edges(&[u64::MAX]), 7, u64::MAX.into()).unwrap(),
+            u128::from(u64::MAX)
+        );
+    }
 }
