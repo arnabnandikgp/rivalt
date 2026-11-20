@@ -17,7 +17,7 @@ import {multiLotBookPlan} from '@rivalt/sdk/multi-lot-book';
 import {foreignCreditorProposal,type FrozenMember} from './foreign-creditor-proposal.js';
 
 type Continuation=Awaited<ReturnType<typeof readAccountResolution>>;
-export type DefaultStep={status:'blocked';reason:string}|{status:'ready';reason:string;id:string;instruction:Instruction};
+export type DefaultStep={status:'blocked';reason:string}|{status:'ready';reason:string;id:string;instruction:Instruction;computeUnitLimit?:1_350_000};
 const transports=new WeakMap<AccountRuntime,SettlementPages>();
 function transport(runtime:AccountRuntime) {
   let value=transports.get(runtime);if(!value){value=new SettlementPages(undefined,runtime.deploymentSelection);transports.set(runtime,value);}return value;

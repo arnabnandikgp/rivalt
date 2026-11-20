@@ -11,7 +11,7 @@ type Schedule={rank:bigint;count:bigint;edges:paged.SearchEdge[]};
  * program’s landed cursor. Returning null means clearing has sealed the proof. */
 export function nextPagedProofInstruction(book:Book,choice:Schedule,
   args:{payer:KeyPairSigner;resolution:Address;search:Address;epoch:bigint;revision:bigint;nonce:bigint},
-  proof:paged.PagedRecoverySearch|null,programAddress:Address):{action:string;instruction:Instruction}|null {
+  proof:paged.PagedRecoverySearch|null,programAddress:Address):{action:string;instruction:Instruction;computeUnitLimit?:1_350_000}|null {
   const {rank,count,edges}=choice;
   const accounts={...args,prepared:book.prepared},program={programAddress};
   const witness=(dimensions:paged.SearchEdge[],index:bigint)=>{
@@ -33,11 +33,19 @@ export function nextPagedProofInstruction(book:Book,choice:Schedule,
   if(proof.stage===1)return {action:'derive-pairs',instruction:paged.getDerivePairsInstruction(accounts,program)};
   assert.deepEqual(proof.edges,edges,'Paged clearing dimensions disagree with the native selector');
   assert(proof.count===count && proof.cursor<=count && proof.budgets.length===book.rows.length,'Invalid paged comparison cursor');
-  if(proof.stage===2)return {action:'verify-winner',instruction:paged.getVerifyIncumbentInstruction({...accounts,after:witness(edges,rank)},program)};
+  // Only full schedule comparisons recompute both the original and adjusted payout.
+  const compare=(index:bigint,incumbent:boolean)=>{
+    const after=witness(edges,index);
+    const computeUnitLimit=proof.original.rates.length>1 || after.rates.length>1 ? 1_350_000 as const : undefined;
+    return incumbent
+      ? {action:'verify-winner',computeUnitLimit,instruction:paged.getVerifyIncumbentInstruction({...accounts,after},program)}
+      : {action:'rank-'+index,computeUnitLimit,instruction:paged.getCoverPlanInstruction({...accounts,rank:index,after},program)};
+  };
+  if(proof.stage===2)return compare(rank,true);
   if(proof.stage===4){assert.equal(proof.cursor,count);return null;}
   assert.equal(proof.stage,3,'Unknown paged comparison stage');
   if(proof.cursor===count)return {action:'seal',instruction:paged.getSealSearchInstruction(accounts,program)};
   const end=excludedRecoveryEnd(proof);
   if(end>=proof.cursor)return {action:'range-'+proof.cursor,instruction:paged.getCoverRangeInstruction({...accounts,first:proof.cursor,last:end},program)};
-  return {action:'rank-'+proof.cursor,instruction:paged.getCoverPlanInstruction({...accounts,rank:proof.cursor,after:witness(edges,proof.cursor)},program)};
+  return compare(proof.cursor,false);
 }

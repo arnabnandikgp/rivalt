@@ -18,11 +18,13 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   if(runtime.deploymentSelection==='funding-prefix-candidate')return {status:'blocked',reason:'funding-qualification-only'};
   const budget=await runtime.budget('risk',key);
   if(await runtime.pendingBudget(budget))return {status:'blocked',reason:'original-risk-intent-pending'};
-  const submit=async(id:string,instruction:Instruction|Instruction[],resolution=false,authority:AccountAuthority|null=null)=>{
+  const submit=async(id:string,instruction:Instruction|Instruction[],resolution=false,authority:AccountAuthority|null=null,computeUnitLimit?:1_350_000)=>{
     try {
       // Frozen continuation has no invented expiry proof. Unknown originals hold
       // the budget; history/reconciliation must resolve them before any new wire.
-      await runtime.enqueue(`risk:${id}`,[resolution?(Array.isArray(instruction)?defaultBatchComputeBudget():sdk.resolutionComputeBudget()):sdk.liquidationComputeBudget(),...(Array.isArray(instruction)?instruction:[instruction])],key,budget,authority,true);
+      const compute=Array.isArray(instruction) ? defaultBatchComputeBudget()
+        : resolution ? sdk.resolutionComputeBudget(computeUnitLimit) : sdk.liquidationComputeBudget();
+      await runtime.enqueue(`risk:${id}`,[compute,...(Array.isArray(instruction)?instruction:[instruction])],key,budget,authority,true);
       return true;
     } catch(error) {if(error instanceof Error&&error.message==='Risk action presently unavailable')return false;throw error;}
   };
@@ -43,7 +45,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
         }
         // No original was queued. The scalar path performs its own guarded preflight.
       }
-      return await submit(step.id,step.instruction,true)?{status:'queued',reason:step.reason}:
+      return await submit(step.id,step.instruction,true,null,step.computeUnitLimit)?{status:'queued',reason:step.reason}:
         {status:'blocked',reason:'default-step-presently-unavailable'};
     }
   }

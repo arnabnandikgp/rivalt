@@ -53,7 +53,7 @@ export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,conte
   if(selection==='paged-recovery-candidate') {
     const proof=response.value?decodeAccountWorker(response.value,paged.PAGED_RECOVERY_SEARCH_DISCRIMINATOR,paged.getPagedRecoverySearchDecoder()):null;
     const next=nextPagedProofInstruction(book,outcome,{...args,payer:key,nonce},proof,sdk.CLEARING_PROGRAM_ADDRESS);
-    if(next)return ready(next.action,next.instruction);
+    if(next)return {...ready(next.action,next.instruction),computeUnitLimit:next.computeUnitLimit};
     const bind=paged.getBindRecoverySelectionInstruction(args);
     return ready('bind-selection',{...bind,accounts:[...bind.accounts,...book.pages.map(address=>({address,role:AccountRole.WRITABLE}))]});
   }

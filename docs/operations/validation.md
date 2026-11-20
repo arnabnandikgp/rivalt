@@ -3731,6 +3731,13 @@ corrected decoder and projector matched the nine-member vector, including
 clients reproduced all eight instructions, the binding event and the footer.
 This run ended before an authorized wallet payout.
 
+On `69e64a52` the two-pass insurance case reached the incumbent comparison.
+The signed wire exhausted its 1.2M CU preflight. The same instruction and
+frozen accounts simulated successfully at 1,221,755 CU under the 1.4M
+validator ceiling. LiteSVM replay of both original wires and captured account
+bytes reproduced both measurements exactly. Multi-pass individual comparisons
+now request 1.35M CU. The run measured a simulation and moved no payout.
+
 On `9b9894dc` a fresh local `efbaa02` clearing deployment froze nine Financial
 accounts after five signed fills. Member 8 was flat with a 4,996-atom BTC
 claim. The worker read both original pages, fenced each margin-history
