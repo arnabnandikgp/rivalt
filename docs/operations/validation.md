@@ -3890,3 +3890,40 @@ successful run preserves the oracle bounds and waits for fixture finality
 before publishing reconciled receiver capacity. The worker uses bounded size
 probes and one configured receiver. It reports a missed probe round separately
 from an executed liquidation. [Reproduction](local-development.md#reproduce-the-combined-clearing-lifecycle).
+
+
+### Financial domain extraction
+
+Harness `ecd515e4` ran identical signed payout and liquidation workloads on
+the parent binary `84ef28f3` and the extracted binary `90d71835`. Both used
+the integrated qualification features and the pinned RC2 SBF compiler.
+The loss, payment and receiver-transfer rules are exercised through the
+program entry points in the [financial source map](../clearing/README.md#trace-a-financial-transition).
+
+| Finalized transaction | Before CU | After CU | Change |
+|---|---:|---:|---:|
+| Open 50 BTC lots | 263,816 | 263,816 | 0 |
+| Close with a different maker | 167,361 | 167,361 | 0 |
+| Fill against an already-scanned book | 182,866 | 182,866 | 0 |
+| Collect maker loss | 123,033 | 123,112 | +79 |
+| Pay backed closed profit | 139,697 | 139,749 | +52 |
+| Withdraw net gain | 141,359 | 141,359 | 0 |
+| Force a ten-lot maker sale | 267,650 | 267,653 | +3 |
+| Transfer five lots to a funded receiver | 145,490 | 145,490 | 0 |
+| Receiver unwind | 247,283 | 247,283 | 0 |
+
+The SBF grew from 3,193,416 to 3,193,704 bytes. On **each** binary the
+payout run produced 332 signed outcomes, 996 gross gain, 26 trading fees,
+970 atoms to the wallet, and 315 events in fresh PostgreSQL replay. The
+liquidation run produced 294 signed outcomes, the same 43,910 → 12,574 → 0
+maintenance deficits, and 136 freshly replayed events. The fixture signs,
+submits, refetches and decodes the original transactions over RPC/WS.
+
+Eight financial-core margin cases, eight on-chain route tests and ten on-chain
+cash tests passed. The immutable D90 wire contract check passed. The public
+native whole-account settlement helper now shares the live program's gross-debt
+coverage rule. A cross account with 119 cash against debts of 80 and 40 refuses
+a one-atom collection from either market. With 120 cash, collecting one leaves
+119 cash, 79 and 40 debt, and one pool atom. The previous helper checked the
+selected claim alone. This corrects the native helper and preserves the signed
+program's economic behavior.

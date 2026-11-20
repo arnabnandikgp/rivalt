@@ -1122,6 +1122,12 @@ The [source map](clearing/risk-and-resolution.md#risk-equations-in-code) traces
 withdrawal and liquidation. The [matched comparison](operations/validation.md#whole-account-risk-engine-extraction)
 records the cost of moving the existing rules.
 
+On 20 November, paired whole-account fills moved to `financial_core::route`,
+forced reductions and receiver fees to `financial_core::liquidation`, and
+ordinary claim booking to `financial_core::settlement`. Compatibility exports
+preserve the existing Rust call paths. Both the native helper and clearing now
+use the program’s whole-account debt test before collection. [Financial source map](clearing/README.md#trace-a-financial-transition).
+
 ## D116 — Maximize recovery, then share the charge proportionally
 
 18 November 2026. For the D112 successor, the user selected the rule for several

@@ -695,6 +695,13 @@ RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-delayed-payout bash ops/sc
 The second case interrupts collection after the worker persists its signed wire.
 Each run writes `ordinary-timing.json` under its ignored run directory.
 
+For the financial-domain comparison, build both revisions in
+[validation](validation.md#financial-domain-extraction) with the integrated
+feature above. Set `RIVALT_DOMAIN_COMPARISON=baseline` for the parent or
+`extracted` for the successor and point `RIVALT_SETTLEMENT_ARTIFACT_DIR` at the
+corresponding build. Run the integrated payout and receiver commands separately.
+The harness verifies the exact binary against the comparison pin before deployment.
+
 For the automatic recovery keeper, build its native selector on the same
 checkout. The acceptance command also builds it before running the worker.
 
