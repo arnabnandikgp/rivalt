@@ -3927,3 +3927,34 @@ a one-atom collection from either market. With 120 cash, collecting one leaves
 119 cash, 79 and 40 debt, and one pool atom. The previous helper checked the
 selected claim alone. This corrects the native helper and preserves the signed
 program's economic behavior.
+
+### Combined successor qualification
+
+All cases below used fresh local venues with the same clearing SBF, built from
+`d9a2a55b` (3,199,280 bytes, SHA-256 `5be8497c6ae059d1864fb17e92be268cb3cd7a11adfb3542556d659fbb8806e6`).
+The on-chain program checked the financial transitions. The checks used signed
+originals, finalized RPC receipts, WebSocket observations and fresh PostgreSQL
+replay. Each row identifies its own workload and harness revision.
+
+| Case | Harness | Observed outcome | Fresh events |
+|---|---|---|---:|
+| Available payout pool | `963b91d3` | Gross gain 996, two fees of 13, funded cash at +4.974 s and 970 in the wallet at +5.109 s from close confirmation. | 334 |
+| Delayed collection and restart | `cc84a0b8` | Keeper reopened at +2.263 s and recovered its original signed wire. Pool funded at +2.307 s, cash at +7.360 s and wallet at +7.502 s. | 329 |
+| Liquidation | `7b71f15b` | The keeper sold 10 lots to a maker, held with one atom of receiver capital, then transferred five lots on consent after funding. Trader retained 35 lots at zero maintenance deficit. Maker fill used 247,099 CU / 1,103 bytes. Receiver transfer used 100,495 CU / 689 bytes. Operator paid 5,000 lamports each. | 155 |
+| Funding interruption | `7b71f15b` | One covered second, 30 skipped. The stored BTC funding index was 7,222,220 scaled units both before and after the gap. The two-maker trade crossed zero. | 113 |
+| Second insurance pass | `a3046433` | Three schedules on nine frozen members. One flat trader withdrew 4,996 atoms and makers withdrew 30,003. The vault decreased by 34,999. The keeper paid 395,000 lamports over 79 originals. | 176 |
+
+The first liquidation attempt reached a degraded BTC observation after replay and
+clearing rejected its preflight. The fixture now confirms a signed Normal
+observation before it offers work to the keeper. An initial delayed-payout run
+stopped when a reconciled database view was unavailable. The timed fixture
+now counts such polls and retries under the same 10-second publication rule as
+the service. The successful repeat had zero unavailable polls. Each ordinary
+payout used three keeper originals at 5,000 lamports each. The fixture sponsor
+also paid 10,000 for the two-signature close and 10,000 for the withdrawal.
+
+P56 remains the normal local runtime. Its 128-member acceptance exceeds the
+capacity of the successor search PDA. Even with empty histories, no edges and no
+rate or order entries, its generated encoding needs 16,781 bytes at the end of
+pair derivation. The account holds 10,240. Per-member budgets, weights and payout
+vectors all contribute to the bound. [Local runtime decision](../DECISIONS.md#d140--retain-p56-as-the-normal-local-runtime) · [Reproduce the qualification](local-development.md#combined-local-successor-qualification).
