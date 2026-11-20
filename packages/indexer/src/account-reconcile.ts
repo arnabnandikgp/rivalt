@@ -1,6 +1,6 @@
 import {membershipDescriptors,reconcileMembershipStorage,requireMembershipCoverage} from './membership-reconcile.js';
 import assert from 'node:assert/strict';
-import {scopedSchema,settlementDescriptors,reconcileSettlementScratch} from './settlement-reconcile.js';
+import {frozenPageDecoder,scopedSchema,settlementDescriptors,reconcileSettlementScratch} from './settlement-reconcile.js';
 import {address,getAddressDecoder,getAddressEncoder,getProgramDerivedAddress,type ReadonlyUint8Array} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
@@ -112,7 +112,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   const allocation=binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET;
   const linkedAllocation=binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET;
   const book=sdk.isBookInventoryArtifact(binding.artifactSet);
-  const sponsored=binding.artifactSet===sdk.RECOVERY_SEARCH_ARTIFACT_SET||book||sdk.isSharedInventoryArtifact(binding.artifactSet)||binding.artifactSet===sdk.FOREIGN_CREDITOR_ARTIFACT_SET||linkedAllocation||allocation||binding.artifactSet===sdk.LINKED_FLAT_ARTIFACT_SET||binding.artifactSet===sdk.LINKED_PAIR_ARTIFACT_SET||binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET||
+  const sponsored=sdk.hasJointRecovery(binding.artifactSet)||book||sdk.isSharedInventoryArtifact(binding.artifactSet)||binding.artifactSet===sdk.FOREIGN_CREDITOR_ARTIFACT_SET||linkedAllocation||allocation||binding.artifactSet===sdk.LINKED_FLAT_ARTIFACT_SET||binding.artifactSet===sdk.LINKED_PAIR_ARTIFACT_SET||binding.artifactSet===sdk.SPONSORED_PROFIT_ARTIFACT_SET||
     binding.artifactSet===sdk.VERIFIED_PAIR_ARTIFACT_SET||binding.artifactSet===sdk.BTC_RESIDUAL_ARTIFACT_SET;
   for(let pass=0;pass<(captured?1:2);pass++)for(let offset=0;offset<keys.length;offset+=100) {
     const chunk=keys.slice(offset,offset+100),response=captured?undefined:await read(chunk);
@@ -139,7 +139,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
           assert.equal(String(lifetime),entity.kind===7?(fees?.classified??'0'):(fees?.lanes[key]??'0'),'finalized fee counter');
           if(entity.kind===7&&!ledgerLanes)assert.equal(String(bytes.readBigUInt64LE(offset+16)),fees?.pending??'0','unclassified fees');
         } else {
-          assert(descriptor&&bytes.length===(entity.kind===18&&sdk.isMultiLotArtifact(binding.artifactSet)?sdk.getMultiLotBookPageDecoder().fixedSize:entity.kind===18&&book?sdk.getInventoryBookPageDecoder().fixedSize:entity.kind===18&&linkedAllocation?sdk.getLinkedAllocationPageDecoder().fixedSize:entity.kind===18&&allocation?sdk.getBtcAllocationPageDecoder().fixedSize:descriptor[1])&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
+          assert(descriptor&&bytes.length===(entity.kind===18?frozenPageDecoder(binding.artifactSet).fixedSize:descriptor[1])&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
         }
         assert.equal(bytes.readUInt16LE(8),scopedSchema(entity.kind));
         compareReconciliationRevision(bytes.readBigUInt64LE(10),BigInt(entity.revision));

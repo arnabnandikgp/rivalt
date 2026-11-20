@@ -3719,6 +3719,8 @@ calculation. The original clearing freeze stayed in place. The 284 harness
 outcomes, 43 clearing-worker transactions and fresh 99-event PostgreSQL
 replay are separate from the 67 verifier transactions.
 
+Harness `7543e863` reached freeze on the paged clearing binary `37672622`. Snapshot reconciliation then rejected the new account layout before any proof or payout. The account and settlement snapshot readers now share the same deployment-specific frozen-page decoder.
+
 On `9b9894dc` a fresh local `efbaa02` clearing deployment froze nine Financial
 accounts after five signed fills. Member 8 was flat with a 4,996-atom BTC
 claim. The worker read both original pages, fenced each margin-history

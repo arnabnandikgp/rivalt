@@ -22,13 +22,18 @@ export function scopedSchema(kind:number) {
 }
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
+export function frozenPageDecoder(artifactSet?:string) {
+  if(artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET)return paged.getFrozenMarginPageDecoder();
+  if(sdk.isMultiLotArtifact(artifactSet))return sdk.getMultiLotBookPageDecoder();
+  if(sdk.isBookInventoryArtifact(artifactSet))return sdk.getInventoryBookPageDecoder();
+  if(artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET)return sdk.getLinkedAllocationPageDecoder();
+  if(artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET)return sdk.getBtcAllocationPageDecoder();
+  return sdk.getFrozenMarginPageDecoder();
+}
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
   binding:{venue:string;program:string;artifactSet?:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
-  const allocation=kind===18&&binding.artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET?paged.getFrozenMarginPageDecoder():kind===18&&sdk.isMultiLotArtifact(binding.artifactSet)?sdk.getMultiLotBookPageDecoder():
-    kind===18&&sdk.isBookInventoryArtifact(binding.artifactSet)?sdk.getInventoryBookPageDecoder():
-    kind===18&&binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET?sdk.getLinkedAllocationPageDecoder():
-    kind===18&&binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET?sdk.getBtcAllocationPageDecoder():undefined;
+  const allocation=kind===18?frozenPageDecoder(binding.artifactSet):undefined;
   assert.equal(bytes.length,allocation?.fixedSize??descriptor[1]);assert(bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
   const value=(allocation??descriptor[2]).decode(bytes) as any;
   assert.equal(value.schemaVersion,10);assert.equal(value.venue,binding.venue);
