@@ -315,7 +315,7 @@ pub(crate) fn candidate_for_version(
     let prefix = order_index
         .map(|index| trader.book.orders[index].order.notional)
         .unwrap_or(0);
-    let (next, next_makers, fee) = checked(math::margin::route_candidate(
+    let (next, next_makers, fee) = checked(math::route::whole_account_candidate(
         trader_model,
         &models,
         usize::from(market.index),

@@ -103,18 +103,17 @@ impl Margin {
             return Err(Error::Bounds);
         }
         let accrued = self.accrued(risks.map(|risk| risk.funding))?;
-        let change = if gain { settle } else { collect };
-        let (selected, pools) = change(
-            accrued.selected(market)?,
-            pools,
-            amount,
-            prices[market],
-            risks[market].funding,
+        let booked = crate::settlement::book_claim(
+            &accrued, accrued.claims(prices, risks.map(|risk| risk.funding))?, market, amount, gain, pools.settlement,
         )?;
-        let next = accrued.with_selected(market, selected)?;
+        let mut next = accrued;
+        next.cash = booked.cash;
+        next.positions[market].virtual_scaled = booked.virtual_scaled;
+        next.validate()?;
         if gain {
             next.admissible(risks)?;
         }
+        let pools = Pools { settlement: booked.pool, ..pools };
         Ok((next, pools))
     }
 
@@ -138,7 +137,7 @@ impl Margin {
     }
 
     /// An ephemeral view into one position; never a second authoritative cash balance.
-    fn selected(&self, market: usize) -> Result<Participant> {
+    pub(crate) fn selected(&self, market: usize) -> Result<Participant> {
         let position = self.positions.get(market).ok_or(Error::Bounds)?;
         Ok(Participant {
             id: self.id,
@@ -151,7 +150,7 @@ impl Margin {
         })
     }
 
-    fn with_selected(mut self, market: usize, selected: Participant) -> Result<Self> {
+    pub(crate) fn with_selected(mut self, market: usize, selected: Participant) -> Result<Self> {
         if !self.allows(market) || selected.id != self.id || selected.reserved != 0 {
             return Err(Error::Invariant);
         }
@@ -237,166 +236,8 @@ pub fn transfer_candidate(
 /// are unique root balances, and all markets participate in health after the fee.
 /// Order cancellation/reservation refresh and receiver admission belong to the
 /// caller, which must commit all candidates atomically.
-pub fn liquidation_candidate(
-    target: Margin,
-    receiver: Margin,
-    market: usize,
-    lots: u64,
-    price: u64,
-    reference: u64,
-    risks: [Risk; MARKETS],
-) -> Result<(Margin, Margin, u64)> {
-    target.validate()?;
-    receiver.validate()?;
-    if !target.allows(market)
-        || !receiver.allows(market)
-        || target.id == receiver.id
-        || lots == 0
-        || lots > liquidation::MAX_LIQUIDATION_LOTS
-        || lots > target.positions[market].lots.unsigned_abs()
-        || reference == 0
-        || reference > MAX_PRICE
-        || price == 0
-        || price > MAX_PRICE
-        || u128::from(price) * u128::from(price_policy::EXECUTION_DENOMINATOR) < u128::from(reference) * u128::from(price_policy::EXECUTION_LOWER_NUMERATOR)
-        || u128::from(price) * u128::from(price_policy::EXECUTION_DENOMINATOR) > u128::from(reference) * u128::from(price_policy::EXECUTION_UPPER_NUMERATOR)
-    {
-        return Err(Error::Bounds);
-    }
-    let before = target.deficit(risks)?;
-    if before == 0 {
-        return Err(Error::Health);
-    }
-    let funding = risks.map(|risk| risk.funding);
-    let target = target.accrued(funding)?;
-    let receiver = receiver.accrued(funding)?;
-    let notional = lots.checked_mul(price).ok_or(Error::Overflow)?;
-    let (target_position, receiver_position) = if target.positions[market].lots > 0 {
-        let (receiver_position, target_position) = fill(
-            receiver.selected(market)?,
-            target.selected(market)?,
-            lots,
-            notional,
-            funding[market],
-        )?;
-        (target_position, receiver_position)
-    } else {
-        fill(
-            target.selected(market)?,
-            receiver.selected(market)?,
-            lots,
-            notional,
-            funding[market],
-        )?
-    };
-    let mut next_target = target.with_selected(market, target_position)?;
-    let mut next_receiver = receiver.with_selected(market, receiver_position)?;
-    let fee = notional
-        .div_ceil(2_000)
-        .min(liquidation::MAX_LIQUIDATION_FEE)
-        .min(next_target.cash);
-    next_target.cash = cash_sub(next_target.cash, fee)?;
-    next_receiver.cash = cash_add(next_receiver.cash, fee)?;
-    if next_target.positions[market].lots.unsigned_abs()
-        >= target.positions[market].lots.unsigned_abs()
-        || next_target.deficit(risks)? >= before
-    {
-        return Err(Error::Health);
-    }
-    Ok((next_target, next_receiver, fee))
-}
-
-/// Complete-cohort invariants; callers cannot establish solvency by selecting a
-/// profitable subset. Claim aggregation never stores a derived claim as ordinary v.
-pub fn reconcile(
-    cohort: &[Margin],
-    pools: Pools,
-    prices: [u64; MARKETS],
-    funding: [i128; MARKETS],
-) -> Result<()> {
-    if cohort.is_empty()
-        || cohort.len() > MAX_PARTICIPANTS
-        || [pools.vault, pools.settlement, pools.insurance, pools.fees]
-            .iter()
-            .any(|value| *value > MAX_CASH)
-    {
-        return Err(Error::Bounds);
-    }
-    let mut cash = 0;
-    let mut lots = [0i128; MARKETS];
-    let mut gross = [0u64; MARKETS];
-    let mut claims = 0;
-    for (index, root) in cohort.iter().enumerate() {
-        root.validate()?;
-        if cohort[..index].iter().any(|other| other.id == root.id) {
-            return Err(Error::Invariant);
-        }
-        cash = cash_add(cash, root.cash)?;
-        for market in 0..MARKETS {
-            lots[market] = add(lots[market], i128::from(root.positions[market].lots))?;
-            gross[market] = gross[market]
-                .checked_add(root.positions[market].lots.unsigned_abs())
-                .ok_or(Error::Overflow)?;
-        }
-        claims = root
-            .claims(prices, funding)?
-            .into_iter()
-            .try_fold(claims, add)?;
-    }
-    if lots != [0; MARKETS]
-        || gross.iter().any(|value| *value > MAX_GROSS_LOTS)
-        || claims != scaled(pools.settlement)?
-        || cash_add(
-            cash_add(cash_add(cash, pools.settlement)?, pools.insurance)?,
-            pools.fees,
-        )? != pools.vault
-    {
-        return Err(Error::Invariant);
-    }
-    Ok(())
-}
-
-/// Shared paired fill and cumulative fee arithmetic. The caller must recompute
-/// all order reservations and admit every returned root before committing it.
-pub fn route_candidate(
-    trader: Margin,
-    makers: &[Margin],
-    market: usize,
-    legs: &[(u64, u64)],
-    side: u8,
-    funding: [i128; MARKETS],
-    prefix: u64,
-) -> Result<(Margin, Vec<Margin>, u64)> {
-    trader.validate()?;
-    if !trader.allows(market) || makers.is_empty() || makers.len() > 2 {
-        return Err(Error::Bounds);
-    }
-    let trader = trader.accrued(funding)?;
-    let mut accrued_makers = Vec::with_capacity(makers.len());
-    for maker in makers {
-        maker.validate()?;
-        if maker.mode != Mode::Isolated(market) {
-            return Err(Error::Invariant);
-        }
-        accrued_makers.push(maker.accrued(funding)?);
-    }
-    let selected_makers: Vec<_> = accrued_makers
-        .iter()
-        .map(|maker| maker.selected(market))
-        .collect::<Result<_>>()?;
-    let (selected_trader, selected_makers, fee) = route::candidate(
-        trader.selected(market)?,
-        &selected_makers,
-        legs,
-        side,
-        funding[market],
-        prefix,
-    )?;
-    let trader = trader.with_selected(market, selected_trader)?;
-    let makers = accrued_makers
-        .into_iter()
-        .zip(selected_makers)
-        .map(|(maker, selected)| maker.with_selected(market, selected))
-        .collect::<Result<_>>()?;
-    Ok((trader, makers, fee))
-}
+// Compatibility paths for library callers. The implementations live with the
+// execution, liquidation and settlement rules used by the program.
+pub use crate::liquidation::whole_account_candidate as liquidation_candidate;
+pub use crate::route::whole_account_candidate as route_candidate;
+pub use crate::settlement::reconcile_accounts as reconcile;
