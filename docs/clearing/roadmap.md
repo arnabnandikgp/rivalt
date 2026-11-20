@@ -8,7 +8,70 @@ the design comparison. P57–P62 from the audit plan are retired as future work.
 [Status](../STATUS.md) records delivered work and [D111](../DECISIONS.md#d111--clearing-roadmap)
 records the change in direction.
 
-## Delivery order
+## PR tracker
+
+The goal is to put the successor settlement and liquidation rules into Rivalt's
+normal local clearing runtime. The ordinary launcher still selects P56. The
+successor is already code in the clearing program. Its opt-in build has moved
+test collateral all the way to wallets on Surfpool. Review, merge and selection
+as the default build are three distinct milestones.
+
+| Agreed deliverable | Where it stands | What remains |
+|---|---|---|
+| 1. Settlement and liquidation rules | The loss order, eligibility at freeze, cross-market protections, rounding and tie-breaking are decided. [Decision D112](../DECISIONS.md#d112--capped-adl-and-proportional-residual-recovery) and [the binding contract](../DECISIONS.md#d139--bind-joint-recovery-inside-clearing-before-applying-cash) describe who can be charged and when the result becomes spendable. | Implementation and operating coverage below. The one deferred **policy** question is how a future live venue handles a prolonged freeze if nobody can prove a valid payout. |
+| 2. Functional code ownership | Whole-account risk and shared position accounting have crate owners. [Risk engine PR](https://github.com/arnabnandikgp/rivalt/pull/91) · [source map](#functional-ownership). | Finish the execution, liquidation and settlement boundaries. |
+| 3. Ordinary settlement | A trader who closed against a different maker received 970 net atoms in the wallet. [Ordinary payout](https://github.com/arnabnandikgp/rivalt/pull/99) · [combined run](../operations/validation.md#combined-clearing-lifecycle). | Measure how long a backed claim waits with a continuously running worker and a prepared backing certificate. |
+| 4. Forced liquidation | A maker took 10 lots and a consenting funded receiver took five. The trader kept 35 once healthy. [Liquidation PR](https://github.com/arnabnandikgp/rivalt/pull/100) · [combined run](../operations/validation.md#combined-clearing-lifecycle). | Have the keeper find and execute these paths from live inputs, including the case when neither can fill. |
+| 5. Default and recovery | Clearing verified 340 possible schedules for eight frozen members, bound the winner, reconciled, and paid two wallets. [Clearing verification](https://github.com/arnabnandikgp/rivalt/pull/137) · [combined qualification](https://github.com/arnabnandikgp/rivalt/pull/138). | Generate and submit proofs without answers supplied by the test, support larger cohorts and additional insurance passes, and demonstrate restart and exit. |
+| 6. Shared writes and qualification | In 36 paired fills, routes across distinct makers on BTC had no writable account in common. Routes through the same maker still share its capital and registration. [Measurements](../operations/performance.md#paired-routes-on-the-recovery-candidate). | Measure sustained mixed traffic, include recovery and ordinary exits, and make a separate local promotion decision. |
+
+### What a default freeze means
+
+An ordinary profitable close records a claim. Once clearing verifies the
+backing and pays it, the trader has funded cash they can withdraw. An
+under-maintenance account can instead have part of its position closed by a
+maker or transferred to a funded, consenting receiver. Trading exposure changes
+hands here. If the account recovers maintenance, liquidation stops.
+
+Default determines who receives the available cash when obligations cannot
+be met. In the successor, debtor resources go first, then
+the originating market's insurance. Eligible opposite positions can be forcibly
+reduced within the approved caps to protect closed claims. Any remaining loss
+is allocated explicitly. A *proof* supplies clearing with a proposed set of
+reductions and the calculations it can check against the original frozen book.
+The submitter has no discretion to choose a cheaper payout.
+
+The combined build verifies exactly eight frozen members and its supported
+insurance calculation. This limit applies to the verifier. Account registration has its own capacity rules. The nine-member workload reached freeze. It did not settle
+through this verifier. Another payer can resume a valid proof or submit a
+different proposal for the same frozen inputs. Affected funds can remain frozen
+indefinitely if no plan can be verified. Even a verified plan must be applied
+and reconciled before withdrawal. No timer changes anyone's entitlement.
+[Release policy](../DECISIONS.md#d122--exact-proof-before-prototype-release)
+· [signed limits](../operations/validation.md#combined-clearing-lifecycle).
+
+### Upcoming PRs
+
+These are outcome-sized PR scopes. The numbers below are roadmap positions.
+Add the GitHub link when a PR opens, and record its tested revision, limits and
+next action in [Status](../STATUS.md). Independent rows can advance alongside
+each other. A row closes after its acceptance evidence and merge.
+
+| Planned PR | Status / PR | Dependency | What closes it |
+|---|---|---|---|
+| 1. Recovery keeper for the supported book | Next | [Combined clearing PR](https://github.com/arnabnandikgp/rivalt/pull/138) | From authenticated frozen accounts alone, find the schedule, generate calculation witnesses, submit and resume after restart. Repeat the signed payout and fresh SQL replay against independently calculated cash, insurance and inventory. Report cost and an explicit blocked reason for unsupported books. |
+| 2. Recovery across membership pages and insurance passes | Planned | The frozen-book contract is available now. Use the keeper from 1 for end-to-end acceptance. | Settle at least the nine-member case including flat creditors, and a case needing another insurance pass. Check fixed collections, foreign creditor and insurance protection, rounding, complete membership, interruption, wallet exits and cost. Publish the measured envelope. |
+| 3. Time from close to spendable cash | Ready | Can start now on the qualified ordinary payout path. | With the worker already running, time close, backing availability, payment and SPL withdrawal separately. Repeat with delayed backing and restart. Decide from these results whether an atomic close-and-pay path for already-backed claims is worth implementing. |
+| 4. Automated maker liquidation and funded receiver selection | Ready | Can start now on the signed liquidation path. | The keeper discovers eligible quotes and consenting funded capacity, stops when neither can fill, resumes on fresh capacity and stops at restored health. Reconcile position, fees and cash after each step, and identify who paid transaction costs. |
+| 5. Complete financial domain ownership | Ready | Can start now. Coordinate moves with edits to the same handlers in 1, 2 and 4. | A reader can follow a fill, forced reduction and payout to a single rule owner and its on-chain enforcement. Verify affected financial vectors, ABI, signed transactions and CU before and after extraction. |
+| 6. Sustained qualification and local runtime selection | Waiting | After the preceding behavior is integrated on one pinned artifact. | Publish landed workload, same-maker and distinct-maker contention, cost by payer, recovery and wallet exits with fresh replay. Document limits and either select the build for the normal local launcher or record the specific unmet gate. |
+
+This scope ends at local engineering qualification. A production freeze
+deadline, funded backstop economics, independent maker validation (P15B),
+independent review and funded readiness (P16B), and the deferred 24-hour
+endurance run remain outside these PRs.
+
+## Original deliverables and acceptance criteria
 
 Each row is a reviewable deliverable. Dependencies follow the financial behavior
 being changed. Source extraction can proceed against today's behavior while the
@@ -23,7 +86,12 @@ selected loss rule's eligibility and execution terms are being tested.
 | 5. Default and recovery | Implement the selected rules for debtor recoveries, market insurance, ADL and unpaid claims. Specify when the loss becomes binding, cross-market attribution, rounding, freeze scope and resumption. | Complete conservation across all affected obligations including flat accounts, no eligible opposite position and depleted insurance. Demonstrate bounded, authenticated continuation after restart. Eligibility and execution terms must pass the deliverable 1 gates. |
 | 6. Shared writes and qualification | Baseline same-market locks on the existing paths, then change ownership where measurements justify it. Qualify the resulting clearing lifecycle and its effects on makers and users. | Compare matched distinct-maker and shared-maker workloads, signed Surfpool RPC/WS results, PostgreSQL replay, exit, CU, transaction sizes, costs by payer and landed throughput. Verify aggregate exposure caps, fee carry, funding history and complete payment backing. |
 
-Use a user-visible outcome to size each delivery. The
+### Earlier evidence by deliverable
+
+The tracker above owns current status. The following checkpoints show how
+individual cases were verified as the implementation developed.
+
+The
 [ordinary payout demonstration](../operations/local-development.md#ordinary-payout-demonstration)
 follows one cross-maker close from claim to wallet. Its deliberately delayed
 first payment exposes the intermediate state. A separate continuous-worker
@@ -78,10 +146,9 @@ With insufficient opposing gain, the
 [partial-inventory case](../operations/validation.md#scarce-winning-inventory-and-flat-btc-claims)
 also pays the flat maker 19,996 and checks both a zero-capacity winning lot and
 a rounded-zero debtor budget. The [general native matcher](default-plan-verification.md#matching-a-population-of-single-lot-debtors-and-winners)
-now verifies a three-debtor assignment against real frozen positions. The [local clearing verifier](../operations/validation.md#clearing-verified-single-lot-book) paid all three predicted wallet amounts. The [resource qualification](../operations/validation.md#active-positions-and-frozen-page-placement) measured 22 dispersed positions and 162 dense positions on the revised verifier. The [multi-lot comparison](../operations/validation.md#exact-multi-lot-btc-comparison) now reproduces the independently selected nine-atom allocation on an eight-member freeze. The [signed clearing proof](../operations/validation.md#clearing-verified-multi-lot-recovery) now carries that allocation through both wallet exits. The [paired-route measurement](../operations/performance.md#paired-routes-on-the-recovery-candidate) now identifies the two shared writes across distinct BTC makers. A parallel route needs an explicit contract for per-fill insurance carry and market funding. The [native linked-book verifier](default-plan-verification.md#verifying-a-proposed-linked-btceth-schedule) now checks fill eligibility, fixed collections and protected BTC/ETH outcomes. The [native selection comparison](default-plan-verification.md#selecting-across-a-complete-linked-book) now verifies the winning schedule across both markets on bounded books. A [restartable signed comparison](../operations/validation.md#restartable-comparison-on-a-clearing-freeze) now verifies competing allocations for one cross debtor and independent creditors. An [eight-member cross-creditor freeze](../operations/validation.md#recovery-verification-when-a-btc-winner-owes-eth) now has a signed, restartable proof of the unique highest recovery and its protected cash vector. General release remains open. The approved fee prototype must reconcile all of a market’s fees before any insurance spend.
+now verifies a three-debtor assignment against real frozen positions. The [local clearing verifier](../operations/validation.md#clearing-verified-single-lot-book) paid all three predicted wallet amounts. The [resource qualification](../operations/validation.md#active-positions-and-frozen-page-placement) measured 22 dispersed positions and 162 dense positions on the revised verifier. The [multi-lot comparison](../operations/validation.md#exact-multi-lot-btc-comparison) now reproduces the independently selected nine-atom allocation on an eight-member freeze. The [signed clearing proof](../operations/validation.md#clearing-verified-multi-lot-recovery) now carries that allocation through both wallet exits. The [paired-route measurement](../operations/performance.md#paired-routes-on-the-recovery-candidate) now identifies the two shared writes across distinct BTC makers. At that checkpoint the parallel route still needed an explicit contract for per-fill insurance carry and market funding. The [native linked-book verifier](default-plan-verification.md#verifying-a-proposed-linked-btceth-schedule) now checks fill eligibility, fixed collections and protected BTC/ETH outcomes. The [native selection comparison](default-plan-verification.md#selecting-across-a-complete-linked-book) now verifies the winning schedule across both markets on bounded books. A [restartable signed comparison](../operations/validation.md#restartable-comparison-on-a-clearing-freeze) now verifies competing allocations for one cross debtor and independent creditors. An [eight-member cross-creditor freeze](../operations/validation.md#recovery-verification-when-a-btc-winner-owes-eth) now has a signed, restartable proof of the unique highest recovery and its protected cash vector. General release remains open. The approved fee prototype must reconcile all of a market’s fees before any insurance spend.
 [Measured comparison](../operations/validation.md#two-btc-debtors-sharing-winning-inventory).
-General linked selection,
-shared writes and broader cost qualification remain open.
+The current tracker above records the subsequent joint selection and shared-write results and the remaining scale and cost work.
 
 ## Functional ownership
 
