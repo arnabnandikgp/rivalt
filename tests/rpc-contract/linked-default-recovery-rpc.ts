@@ -1,6 +1,6 @@
 // Compare approved joint recovery with a real frozen cross debtor and two isolated makers.
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {execFileSync,spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {writeFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
@@ -161,10 +161,16 @@ try {
       const header=await h.read(common.prepared);
       writeFileSync(directory+'/search-input.json',json({venue:setup.venue,prepared:current.prepared,
         resolution:setup.resolution,epoch:frozen.epoch,revision:prepared.revision,members,comparison}));
-      const run=(phase:string)=>execFileSync(process.execPath,['--import','tsx','tests/rpc-contract/linked-search-rpc.ts',phase],{stdio:'inherit'});
-      run('start');
+      // Keep the parent RPC and WebSocket finality watchers running during the restarted search.
+      const run=(phase:string)=>new Promise<void>((resolve,reject)=>{
+        const child=spawn(process.execPath,['--import','tsx','tests/rpc-contract/linked-search-rpc.ts',phase],{stdio:'inherit'});
+        child.once('error',reject);
+        child.once('exit',(code,signal)=>code===0?resolve():reject(new Error('Recovery search '+phase+' exited '+(signal??code))));
+      });
+      await run('start');
       await h.send('refuse incomplete joint search',[bind(0)],[],sdk.CLEARING_ERROR__RESOLUTION);
-      run('resume');
+      await flush();
+      await run('resume');
       await h.send('refuse defeated joint search',[bind(1)],[],sdk.CLEARING_ERROR__RESOLUTION);
       await h.send('refuse stale joint search revision',[bind(0,prepared.revision-1n)],[],sdk.CLEARING_ERROR__RESOLUTION);
       assert.deepEqual(await h.read(common.prepared),header);
