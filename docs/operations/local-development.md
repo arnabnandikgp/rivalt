@@ -823,3 +823,21 @@ The reference for a retained input can also run separately with
 `python3 tests/financial/pair_schedule_reference.py < "$RIVALT_RUN_DIR/population-input.json"`.
 It enumerates lot quantities and derives the expected remaining lots and
 digest for each nonzero pair.
+
+For joint settlement, build clearing at
+`3acd4a4db4f3cdf6b7a7968ef46fb7f4e88566e3` with
+`RIVALT_ATTRIBUTION_PROFILE=populated-recovery-qualification` and
+`bash ops/build-profit-attribution.sh`. Run the following from the harness
+checkout with a fresh run directory. It uses the local test mint and an owned
+PostgreSQL instance. The independent payment reference also runs separately
+against a saved freeze with
+`python3 tests/financial/joint_payment_reference.py < "$RIVALT_RUN_DIR/population-input.json"`.
+With the native scalable-settlement driver built, add `--compare-native`
+to compare both native circulations against all independent member payouts.
+
+```bash
+RIVALT_SETTLEMENT_PROBE=profit-attribution-joint-settlement \
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-3acd4a4db4f3cdf6b7a7968ef46fb7f4e88566e3 \
+RIVALT_RUN_DIR=.local/profit-attribution/joint-wallet-reproduction \
+bash ops/scalable-settlement-smoke.sh
+```

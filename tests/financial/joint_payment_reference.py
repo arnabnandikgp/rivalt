@@ -1,12 +1,13 @@
 """Independent whole-book payments after both sets of frozen lot reductions."""
 import json
 import sys
+import subprocess
 from math import ceil
 
 from check_populated_recovery_bound import FrozenCase, constrained_targets
 from clearing_network_reference import clear_atom_cohort
 from recovery_lot_bound import earliest_winners
-from test_scalable_settlement import SCALE, independent_input
+from test_scalable_settlement import DRIVER, SCALE, command, decode, independent_input
 
 
 def joint_payments(source):
@@ -48,5 +49,39 @@ def joint_payments(source):
                           localOrders=[sorted(range(3), key=lambda k: (-(row[k] % 1), k)) for row in flows]))
 
 
+def compare_native(source, reference):
+    case = FrozenCase(source)
+    effective = [(cash, [claim + int(delta)*SCALE for claim, delta in zip(claims, deltas)])
+                 for (cash, claims), deltas in zip(case.table, reference['deltas'])]
+    proposals = [list(map(int, row)) for row in reference['proposals']]
+    orders = [list(map(int, row)) for row in reference['plan']['orders']]
+    fields = command(effective, *case.inputs, proposals, orders).split('|')
+    fields[0] = 'reduced'
+    fields.append(';'.join(f'{cash},{claims[0]},{claims[1]}' for cash, claims in case.table))
+    original = source['original']
+    original_rates = [original['rates'], *original['additionalRates']]
+    protected = ['protected', *fields[1:],
+                 ';'.join(','.join(f'{int(value):x}' for value in row) for row in original_rates),
+                 *[','.join(map(str, order)) for order in original['orders']]]
+    lines = ['|'.join(fields), '|'.join(protected)]
+    run = subprocess.run([str(DRIVER)], input='\n'.join(lines)+'\n', text=True, capture_output=True, check=True)
+    outcomes = run.stdout.splitlines()
+    assert len(outcomes) == 2
+    for line in outcomes:
+        result = decode(line)
+        assert list(map(str, result['cash'])) == reference['plan']['cash']
+        assert [list(map(str, pair)) for pair in result['movements']] == reference['plan']['movements']
+        assert list(map(str, result['spent'])) == reference['spent']
+    return dict(matchedCirculations=2, members=len(effective), marketMovements=2*len(effective),
+                settledCash=str(sum(map(int, reference['plan']['cash']))), insuranceSpent=reference['spent'])
+
+
 if __name__ == '__main__':
-    json.dump(joint_payments(json.load(sys.stdin)), sys.stdout)
+    source = json.load(sys.stdin)
+    reference = joint_payments(source)
+    if sys.argv[1:] == ['--compare-native']:
+        json.dump(compare_native(source, reference), sys.stdout)
+    elif not sys.argv[1:]:
+        json.dump(reference, sys.stdout)
+    else:
+        sys.exit('usage: joint_payment_reference.py [--compare-native]')

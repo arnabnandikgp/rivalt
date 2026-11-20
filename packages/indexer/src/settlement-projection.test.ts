@@ -164,3 +164,22 @@ describe('paged default independent one-atom ownership',()=>{
     expect(()=>emit(next,'SettlementMarginApplied',original)).toThrow('next Apply');
   });
 });
+
+it('binds complete joint charge pages to the frozen member order and market insurance',()=>{
+  const profile=sdk.JOINT_PAYMENT_ARTIFACT_SET;
+  const copied={venue:'venue',epoch:'3',slot:'1',payment:'payment',first:'0',memberIds:['0','1','2'],
+    chargeAtoms:['1','0'],insuranceSpent:['1','0'],deltas:[['1','0'],['-1','0'],['0','0']]};
+  const accept=(state:AccountState,change= copied)=>emit(state,'JointClaimsCopied',change,profile);
+  for(const change of [
+    {...copied,first:'1'}, {...copied,memberIds:['1','0','2']},
+    {...copied,deltas:[['-1','0'],['1','0'],['0','0']]},
+    {...copied,chargeAtoms:['2','0']}, {...copied,insuranceSpent:['4','0']},
+  ])expect(()=>accept(fixture(),change)).toThrow();
+  const state=fixture();
+  accept(state);
+  expect(state.resolution?.jointPayment?.deltas).toEqual(copied.deltas);
+  expect(()=>accept(structuredClone(state))).toThrow();
+  expect(()=>emit(structuredClone(state),'SettlementPlanProgress',progress(),profile)).toThrow(/insurance/);
+  emit(state,'SettlementPlanProgress',progress({insuranceSpent:['1','0']}),profile);
+  expect(state.pagedSettlement?.insuranceSpent).toEqual(['1','0']);
+});

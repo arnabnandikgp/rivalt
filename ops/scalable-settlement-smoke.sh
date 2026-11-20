@@ -76,7 +76,9 @@ if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then
   node --import tsx tests/browser/preflight.ts
 fi
 
-if [[ "${RIVALT_SETTLEMENT_PLAN:-0}" == 1 ]]; then
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-joint-settlement ]]; then
+  CARGO_INCREMENTAL=0 cargo build --locked --offline -p clearing --example settlement-plan-pages --features state-only,populated-recovery-qualification
+elif [[ "${RIVALT_SETTLEMENT_PLAN:-0}" == 1 ]]; then
   cargo build --locked -p clearing --example settlement-plan-pages --features state-only
 fi
 test "$(surfpool --version)" = 'surfpool 1.7.0'

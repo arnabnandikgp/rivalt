@@ -4156,3 +4156,21 @@ financial events. The SPL vault and the allocation each held 332,907,140
 atoms. All 405 accounts and 128 members reconciled. The next acceptance is
 joint BTC/ETH settlement of these adjusted claims and the actual token exits.
 [Pair verification](../clearing/default-plan-verification.md#verifying-debtor-and-winner-pairings)
+
+### Populated joint settlement qualification
+
+The local clearing build at `3acd4a4d` is 3,546,704 bytes, SHA-256
+`95c6ddc43384bb1bf143983d0c87e5b2fe6e25b47b25cc87cb4fb182188c180d`.
+The SBF stack check passed after moving the rate checkpoint out of the inline
+proposal decoder. Two native payment-bound tests and one wide market-total test
+passed. On the retained #151 freeze the independent rational reference found
+37 BTC and 33 ETH positive claims meeting the per-creditor protection bound.
+The native ordinary and protected circulations each reproduced all 128 cash
+balances and 256 market movements. Both allocated 332,877,029 cash atoms
+and charged 6,786 BTC-market and 3,251 ETH-market insurance atoms.
+
+The first signed run of harness `abad2f88` retained 251 RPC transactions and
+matching WebSocket records. The host ran out of disk space while writing the
+next signed wire during venue setup. This run reached neither joint settlement
+nor a wallet withdrawal. The [reproduction](local-development.md#combined-local-successor-qualification)
+uses a fresh local run directory.
