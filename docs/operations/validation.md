@@ -26,6 +26,16 @@ The final cleanup at `448c5659` rebuilt the diagnostic to 467,864 bytes, SHA-256
 
 At `15eb161d`, five real trades produced two eligible BTC makers with different amounts of unpaid open profit. The verifier covered 2,548 possible schedules, including 14 that recovered the same 25 atoms. The independently selected charges were BTC 4/9 and ETH 12. A BTC 5/8 split paid the same total and failed the proportional-sharing comparison. The general verifier sealed the selected schedule after 67 successful transactions totalling 14,487,219 CU and 335,000 test lamports in fees, excluding rent. The largest winning transaction used 976,374 CU. Both attempts together produced 96 successes and seven signed rejections. The local clearing gate refused to release the disputed funds. Fresh PostgreSQL replay matched all 96 clearing events. On a second book at `bf525754`, two makers had identical BTC gains. The winning schedule sealed. The TypeScript reader then shadowed the schedule count and exited before checking the terminal data or submitting the losing challenge.
 
+The corrected reader at `78b24496` completed that second case on a fresh validator. A third BTC maker took the flat trader’s round trip. That maker owed 4,996 atoms and could pay them from cash, leaving the two open winners with exactly 10,002 eligible atoms each. Of the 14 highest-recovery schedules, 7/6 and 6/7 matched on proportionality and forced lots. Frozen-episode order charged member 0 seven BTC atoms and member 2 six. This gave them 9,995 and 9,996 atoms of funded gain in the proof. Reversing the charges passed the financial checks but failed the episode ordering. The reader independently checked all eight cash balances, all 16 signed market movements, zero remaining insurance and retained fees of 39 BTC-market and six ETH-market atoms. The flat creditor gained 4,996 atoms. Clearing remained frozen throughout.
+
+| Signed comparison | Winning transactions | Winning total CU | Largest transaction CU | Both proposals, successful / rejected | Fresh clearing events |
+|---|---:|---:|---:|---:|---:|
+| Proportional allocation | 67 | 14,487,219 | 976,374 | 96 / 7 | 96 |
+| Exact financial tie | 67 | 14,741,700 | 993,923 | 108 / 7 | 96 |
+
+The funded local payer paid 335,000 test lamports in fees for each winning proof, excluding rent. Both clearing runs had 284 signed harness outcomes and 41 finalized worker originals. The equal-gain diagnostic executable was 564,608 bytes with SHA-256 `b9ea61c68c0d702edb35c2eae2e47345d7dc8f0aafe12a34daab4ecefa95332a`. Both runs used the signed competing-winner reproduction command below. Set `RIVALT_FROZEN_PLAN_CASE=equal-winners` for the equal-gain variant. On the narrower, previously measured one-debtor book, the direct proportional certificate used 121,169 CU across ten transactions. The general comparison pays for independently verifying each remaining alternative. [Direct certificate measurements](#restartable-comparison-on-a-clearing-freeze).
+
+
 
 ## Restartable comparison on a clearing freeze
 
