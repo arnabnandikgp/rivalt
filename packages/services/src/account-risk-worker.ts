@@ -35,7 +35,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
     if([2,14].includes(frozen.header.stage)) {
       const step=await accountDefaultStep(runtime,key,frozen,await accountDefaultContext(runtime.rpc,frozen));
       if(step.status==='blocked')return step;
-      if((runtime.defaultContinuationSteps??1)>1) {
+      if((runtime.defaultContinuationSteps??1)>1 && !step.id.startsWith('recovery:')) {
         const batch=await accountDefaultBatch(runtime,key,frozen,step,runtime.defaultContinuationSteps);
         if(batch.steps.length) {
           return await submit(`${step.id}:batch:${batch.steps.length}`,batch.steps.map(value=>value.instruction),true)?

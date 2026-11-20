@@ -1,0 +1,86 @@
+import assert from 'node:assert/strict';
+import {execFile} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {getAddressEncoder,type Address} from '@solana/kit';
+import * as sdk from '@rivalt/sdk';
+import type {Rpc} from '../../indexer/src/rpc.js';
+import {decodeAccountWorker} from './account-worker-state.js';
+import {readRecoveryWitnessBook,recoveryRateWitness,type FrozenRecoveryBook} from './recovery-witness.js';
+
+type Calculator = {blocked:string}|{rank:bigint;count:bigint;edges:sdk.SearchEdge[]};
+type Member = {id:bigint;cash:bigint;claims:readonly bigint[];lots:readonly bigint[];history:readonly Uint8Array[]};
+type Inputs = Omit<FrozenRecoveryBook,'rows'> & {rows:Member[];marks:readonly bigint[];fees:readonly bigint[]};
+const binary = fileURLToPath(new URL('../../../target/release/rivalt-recovery-selector',import.meta.url));
+
+export function recoveryBudget(value:string|undefined) {
+  if (value===undefined) return 0;
+  assert(/^[1-9][0-9]*$/.test(value) && Number(value)<=65536, 'Recovery worker schedule budget must be 1–65536');
+  return Number(value);
+}
+function wireWitness(value:sdk.RateWitness) {
+  return {rates:value.rates.map(String),orders:value.orders.map(order=>Array.from(order))};
+}
+async function native(request:object) {
+  const output=await new Promise<string>((resolve,reject)=>{
+    const child=execFile(binary,[],{timeout:120_000,maxBuffer:64*1024},(error,stdout)=>error?reject(error):resolve(stdout));
+    child.stdin!.on('error',reject);
+    child.stdin!.end(JSON.stringify(request));
+  });
+  return JSON.parse(output);
+}
+
+/** The native engine derives edges from inventory and verified debtor budgets,
+ * and independently scores every structurally possible proposal. No payout,
+ * candidate rank or exclusion range enters from an external model. */
+export async function selectRecovery(book:Inputs,venue:Address,epoch:bigint,budget:number):Promise<Calculator> {
+  const request={venue:Array.from(getAddressEncoder().encode(venue)),epoch:String(epoch),budget,
+    marks:book.marks.map(String),fees:book.fees.map(String),insurance:book.insurance.map(String),pools:book.pools.map(String),
+    rows:book.rows.map(row=>({id:String(row.id),cash:String(row.cash),lots:row.lots.map(String),
+      claims:row.claims.map(String),history:row.history.map(bytes=>Array.from(bytes))})),
+    original:wireWitness(recoveryRateWitness(book,[],0n))};
+  const dimensions=await native(request);
+  if(dimensions.blocked==='schedule-budget') return {blocked:'recovery-schedule-budget'};
+  const count=BigInt(dimensions.count);
+  assert(count>0n && count<=BigInt(budget) && Array.isArray(dimensions.edges) && dimensions.edges.length<=112,'Invalid recovery dimensions');
+  const edges:sdk.SearchEdge[]=dimensions.edges.map((edge:sdk.SearchEdge)=>({
+    market:edge.market,debtor:BigInt(edge.debtor),winner:BigInt(edge.winner),maximum:BigInt(edge.maximum)}));
+  assert.equal(count,edges.reduce((product,edge)=>product*(edge.maximum+1n),1n));
+  const witnesses=Array.from({length:Number(count)},(_,index)=>{
+    // Some rank digits overdraw original debt or need more insurance passes.
+    // The native selector blocks if an admissible schedule needs an absent witness.
+    try{return wireWitness(recoveryRateWitness(book,edges,BigInt(index)));}
+    catch(error){
+      if(error instanceof Error && /Invalid frozen collection basis|Reduction consumed frozen cash|another insurance pass|wire width/.test(error.message))return null;
+      throw error;
+    }
+  });
+  const outcome=await native({...request,witnesses});
+  if(outcome.blocked==='incomparable-plans'||outcome.blocked==='unsupported-rate-witness')return {blocked:'recovery-'+outcome.blocked};
+  const rank=BigInt(outcome.rank);
+  assert(BigInt(outcome.count)===count && rank>=0n && rank<count,'Incomplete recovery result');
+  return {rank,count,edges};
+}
+
+export async function loadRecoverySelection(rpc:Pick<Rpc,'call'>,venue:Address,
+  selection:'integrated-recovery-candidate'|'recovery-search-candidate',epoch:bigint,revision:bigint,budget:number) {
+  const book=await readRecoveryWitnessBook(rpc,venue,selection,epoch,revision);
+  const keys=book.rows.map(row=>row.member);
+  assert.equal(new Set(keys).size,8,'Duplicate frozen margin identity');
+  const snapshot=await rpc.call('getMultipleAccounts',[[book.prepared,...keys],
+    {encoding:'base64',commitment:'confirmed',minContextSlot:book.contextSlot}]);
+  assert(snapshot.context.slot>=book.contextSlot && snapshot.value.length===9,'Incomplete recovery histories');
+  const header=decodeAccountWorker(snapshot.value[0],sdk.PREPARED_SETTLEMENT_DISCRIMINATOR,sdk.getPreparedSettlementDecoder());
+  assert(header.stage===4 && header.venue===venue && header.epoch===epoch && header.revision===revision,'Recovery freeze advanced during selection');
+  const rows=book.rows.map((row,index)=>{
+    const account=snapshot.value[index+1];
+    assert(account?.owner===sdk.CLEARING_PROGRAM_ADDRESS && !account.executable && account.data[1]==='base64','Foreign recovery margin');
+    const {root,histories}=sdk.decodeProfitAttribution(Buffer.from(account.data[0],'base64'),true);
+    assert(root.id===row.id && root.venue===venue && root.revision===row.originalRevision && root.cash===row.cash
+      && root.activationGeneration===row.activationGeneration,'Frozen margin identity changed');
+    assert.deepEqual(root.positions.map(position=>position.generation),row.generations);
+    assert.deepEqual(root.positions.map(position=>position.lots),row.lots);
+    return {...row,history:histories};
+  });
+  const outcome=await selectRecovery({...book,rows},venue,epoch,budget);
+  return {book,outcome};
+}

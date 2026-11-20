@@ -56,6 +56,7 @@ export async function planDefaultBatch(input:{rpc:Reader;payer:Keypair;first:Rea
   const steps:ReadyStep[]=[],ids=new Set<string>();
   let next=input.first,simulatedUnits=0,wireBytes=0,stop='step-bound';
   for(let index=0;index<input.limit;index++) {
+    if(next.id.startsWith('recovery:')){stop='recovery-proof-transaction';break;}
     if(ids.has(next.id)){stop='repeated-step';break;}
     const candidate=[...steps,next],instructions=candidate.map(step=>step.instruction);
     assert(instructions.every(instruction=>instruction.programAddress===sdk.CLEARING_PROGRAM_ADDRESS),'Foreign default instruction');
@@ -105,6 +106,9 @@ export async function accountDefaultBatch(runtime:AccountRuntime,payer:Keypair,s
       const continuation=await readAccountResolution(reader,state.registryState.venue);
       assert(continuation.header.epoch===state.header.epoch,'Simulation changed frozen epoch');
       if(![2,14].includes(continuation.header.stage))return {status:'blocked',reason:'frozen-work-complete'};
+      if(continuation.header.stage===2 && continuation.preparedState.stage===4 &&
+        (runtime.deploymentSelection==='integrated-recovery-candidate'||runtime.deploymentSelection==='recovery-search-candidate'))
+        return {status:'blocked',reason:'recovery-proof-transaction'};
       return accountDefaultStep(proposedRuntime,payer,continuation,await accountDefaultContext(reader,continuation));
     }});
 }

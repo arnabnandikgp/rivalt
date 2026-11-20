@@ -7,6 +7,7 @@ import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime} from './account-runtime.js';
 import {decodeAccountWorker,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
 import {allocationCutoff,frozenWinner,type Winner} from './btc-allocation.js';
+import {recoveryProofStep} from './recovery-proof-worker.js';
 import {SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
 import {defaultProposal,matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
 
@@ -86,7 +87,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
     if((runtime.deploymentSelection==='recovery-search-candidate'||runtime.deploymentSelection==='integrated-recovery-candidate') && prepared.stage===4)
-      return blocked('recovery-search-pending');
+      return recoveryProofStep(runtime,key,common,runtime.deploymentSelection);
     if((book||['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate'].includes(runtime.deploymentSelection)) && prepared.stage===4) {
       const members:FrozenMember[]=[];
       for(let start=0n; start<prepared.count; start+=8n) {

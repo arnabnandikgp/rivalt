@@ -82,5 +82,6 @@ export async function readRecoveryWitnessBook(rpc:Pick<Rpc,'call'>, venue:Addres
     'Recovery verifier requires one complete eight-member book');
   assert.deepEqual(header.pools, source.poolsBefore);
   assert.deepEqual(header.insurance, source.insuranceBefore);
-  return {rows:frozen.rows, pools:header.pools, insurance:header.insurance};
+  return {rows:frozen.rows, pools:header.pools, insurance:header.insurance, fees:header.fees, marks:header.prices,
+    prepared, page, contextSlot:response.context.slot as number};
 }

@@ -1,7 +1,7 @@
 // Compare one finalized original per recovery instruction, with two independently
 // isolated Anchor clients. This requires only the retained qualification receipts.
 import assert from 'node:assert/strict';
-import {mkdirSync,readFileSync,readdirSync} from 'node:fs';
+import {existsSync,mkdirSync,readFileSync,readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {address,AccountRole,getBase58Encoder} from '@solana/kit';
 import {CLEARING_PROGRAM_ADDRESS} from '@rivalt/sdk';
@@ -13,7 +13,8 @@ const expected=new Set(['open_search','capture_member','derive_pairs','verify_in
 const names=new Map(clearingIdl.instructions.filter(ix=>expected.has(ix.name))
   .map(ix=>[Buffer.from(ix.discriminator).toString('hex'),ix.name]));
 const observed=new Set<string>(), check=new CanonicalConformance();
-for(const folder of [join(directory,'search-start'),join(directory,'search-resume'),directory]) {
+const keeper=join(directory,'keeper-proof');
+for(const folder of existsSync(keeper)?[keeper,directory]:[join(directory,'search-start'),join(directory,'search-resume'),directory]) {
   for(const file of readdirSync(folder).filter(name=>/^transaction-\d+\.json$/.test(name))) {
     const receipt=JSON.parse(readFileSync(join(folder,file),'utf8'));
     if(receipt.meta.err!==null)continue;

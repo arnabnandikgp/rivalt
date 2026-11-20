@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync,spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {writeFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
 import {AccountRole,getAddressEncoder} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
@@ -28,6 +28,7 @@ const probe = process.env.RIVALT_SETTLEMENT_PROBE;
 const integrated=probe==='profit-attribution-owned-integrated';
 const ownedCross=integrated||probe==='profit-attribution-owned-cross', ownedTie=probe==='profit-attribution-owned-tie';
 const owned=ownedCross||ownedTie;
+const automatic=owned && process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET!==undefined;
 const expandedBook=probe==='profit-attribution-inventory-book-expanded-apply';
 const bookApply=expandedBook||probe==='profit-attribution-inventory-book-apply';
 const populationBook=bookApply||probe==='profit-attribution-inventory-book-ordinary';
@@ -150,8 +151,10 @@ try {
   process.env.RIVALT_DEFAULT_BATCH_STEPS = owned||bookApply||gated||linked||foreignGate||foreignApply||sharedApply?'1':'32';
   worker = await openWorker();
   const originals: string[] = [];
-  const workerCosts: {request:string; units:number; bytes:number}[] = [];
+  const workerCosts: {request:string; units:number; bytes:number; fee:number; payerDebit:number}[] = [];
   let refused = false, partialChecked = false, jointChecked = false;
+  let proofRestarted=false;
+  if(automatic)mkdirSync(directory+'/keeper-proof');
   let badAttempt:bigint|undefined,rejectionChecked=false;
   const financialSnapshot=()=>Promise.all([setup.resolution,setup.vault,setup.token.address,setup.traderToken.address,
     ...setup.ledgers,...members].map(key=>h.read(key)));
@@ -160,7 +163,33 @@ try {
     assert(originals.length<128,'eight-member recovery exceeded the test continuation budget');
     const current = await readAccountResolution(worker.rpc,setup.venue);
     const prepared=current.preparedState;
-    if(owned && !rejectionChecked && prepared.epoch===frozen.epoch && prepared.stage===4) {
+    if(automatic && prepared.stage===4 && !rejectionChecked) {
+      const allocated=process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET!;
+      try {
+        process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET='1';
+        assert.deepEqual(await worker.riskWork(setup.payer),{status:'blocked',reason:'recovery-schedule-budget'});
+      } finally {process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET=allocated;}
+      beforeScoring=await financialSnapshot();
+      rejectionChecked=true;
+    }
+    if(automatic && rejectionChecked && !jointChecked && prepared.epoch===frozen.epoch && sdk.boundRecoveryReceipt(prepared)) {
+      const bound=sdk.boundRecoveryReceipt(prepared)!;
+      const expectedRank=comparison.tieTest?.best??comparison.charges[0]*comparison.radices.at(-1)+comparison.charges[1];
+      assert.equal(bound.schedule,BigInt(expectedRank));
+      assert.equal(bound.schedulesChecked,BigInt(comparison.assignments));
+      assert.deepEqual(bound.finalCash.map(String),members.map(key=>comparison.cash[key]));
+      assert.deepEqual(bound.movements.map(row=>row.map(String)),comparison.terminal.movements);
+      assert.deepEqual(await financialSnapshot(),beforeScoring);
+      const margin=makers[0].capital;
+      await h.send('refuse withdrawal after keeper proof before payment',[sdk.getWithdrawFundedAccountInstruction({
+        ...setup.common,btc:setup.markets[0],eth:setup.markets[1],owner:setup.owner,margin,quoteMint:setup.mint.address,
+        userToken:setup.token.address,guard:await guard(margin),amount:1n})],[setup.owner],sdk.CLEARING_ERROR__PROFILE);
+      await flush();await journal.checkpoint('joint-selection-bound-before-any-payment',true);
+      assert(proofRestarted,'Proof submission must resume from its landed cursor');
+      process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
+      await worker.close();worker=await openWorker();jointChecked=true;
+    }
+    if(!automatic && owned && !rejectionChecked && prepared.epoch===frozen.epoch && prepared.stage===4) {
       const common=await accountDefaultContext(worker.rpc,current);
       assert.deepEqual(await worker.riskWork(setup.payer),{status:'blocked',reason:'recovery-search-pending'});
       const best=comparison.tieTest?.best??comparison.charges[0]*comparison.radices.at(-1)+comparison.charges[1];
@@ -516,8 +545,18 @@ try {
     const receipt = await rpc.call('getTransaction',[intent.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     assert.equal(receipt.transaction[0],intent.wire);
     assert(Number.isSafeInteger(receipt.meta.computeUnitsConsumed) && receipt.meta.computeUnitsConsumed>0);
-    workerCosts.push({request:intent.request_id,units:receipt.meta.computeUnitsConsumed,bytes:Buffer.from(intent.wire,'base64').length});
+    workerCosts.push({request:intent.request_id,units:receipt.meta.computeUnitsConsumed,bytes:Buffer.from(intent.wire,'base64').length,
+      fee:receipt.meta.fee,payerDebit:receipt.meta.preBalances[0]-receipt.meta.postBalances[0]});
     originals.push(intent.signature);
+    if(automatic && intent.request_id.startsWith('risk:recovery:')) {
+      const confirmed=await rpc.call('getTransaction',[intent.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+      assert.equal(confirmed.transaction.signatures[0],intent.signature);
+      writeFileSync(directory+'/keeper-proof/transaction-'+originals.length+'.json',json(confirmed));
+      if(!proofRestarted && intent.request_id.includes(':cover-range-')) {
+        await worker.close();worker=await openWorker();proofRestarted=true;
+        assert.equal((await worker.queue.get(intent.request_id)).status,'finalized');
+      }
+    }
     if (originals.length===1) {
       await worker.close(); worker=await openWorker();
       assert.equal((await worker.queue.get(intent.request_id)).status,'finalized');

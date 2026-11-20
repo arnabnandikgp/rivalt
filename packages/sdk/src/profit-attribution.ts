@@ -41,15 +41,16 @@ export function decodeProfitAttribution(bytes:Uint8Array,allowSponsored=false) {
     marker.every((byte,index)=>bytes[prefix+index]===byte),'Invalid candidate margin layout.');
   const root=getMarginAccountDecoder().decode(bytes.subarray(0,prefix));
   requireValue(root.schemaVersion===10,'Invalid candidate margin schema.');
-  const positions=root.positions.map((position,index)=>{
+  const histories=root.positions.map((_,index)=>{
     const start=prefix+marker.length+index*width;
-    return slot(bytes.subarray(start,start+width),position.lots);
+    return bytes.subarray(start,start+width);
   });
+  const positions=histories.map((bytes,index)=>slot(bytes,root.positions[index].lots));
   const credit=expanded?{
     contributor:getAddressDecoder().decode(bytes.subarray(bytes.length-40,bytes.length-8)),
     lamports:new DataView(bytes.buffer,bytes.byteOffset+bytes.length-8,8).getBigUint64(0,true),
   }:null;
-  return {root,positions,width,credit};
+  return {root,positions,histories,width,credit};
 }
 
 export type MarginLayout='profit-attribution'|'sponsored-profit'|'aggregate-fees'|'bounded-market'|'checked-funding'|'market-lanes'|'ledger-lanes'|'selected';
