@@ -4,6 +4,10 @@ extern crate alloc;
 pub mod foreign_protection;
 pub mod original_terms;
 mod pair_order;
+#[cfg(not(target_arch = "bpf"))]
+mod dense_sharing;
+#[cfg(not(target_arch = "bpf"))]
+pub use dense_sharing::SharingResult;
 use alloc::{collections::BTreeSet, vec::Vec};
 use clearing_accounting::attribution::{Attribution, FrozenCapacity, PairedLots};
 use financial_core::{

@@ -1,7 +1,9 @@
 """Independent checks for the bounds used on the populated successor freeze."""
 from fractions import Fraction
 from itertools import product
+import json
 import os
+import subprocess
 import unittest
 
 from check_populated_recovery_bound import FrozenCase, SCALE, allocations, bounded_shares, constrained_targets, proportional_targets, tied_shares
@@ -15,6 +17,29 @@ def history(entry):
 
 
 class RecoveryCeilings(unittest.TestCase):
+    def test_search_does_not_silently_skip_requested_proposal_checks(self):
+        pair = dict(venue_hex='00'*32, epoch='invalid')
+        search = dict(venue_hex='00'*32, epoch='1', limit='1', witnesses=[], reflections=[])
+        base = dict(rows=[], marks=['1','1'], pools=['0','0'], insurance=['0','0'], fees=['0','0'],
+                    charges=[], original=dict(rates=[],orders=[[],[]]), effective=dict(rates=[],orders=[[],[]]))
+        requests = [dict(base,search=search,**options) for options in (
+            dict(pair_order=pair), dict(measure_recovery_bound=True), dict(check_original_page_budgets=True),
+            dict(check_dense_sharing=True))]
+        requests.append(dict(base,check_dense_sharing=True))
+        binary = os.environ.get('RIVALT_JOINT_AUDIT','target/release/examples/joint_reduction_audit')
+        output = subprocess.check_output([binary],input=''.join(json.dumps(r)+'\n' for r in requests),text=True)
+        errors = [json.loads(line)['error'] for line in output.splitlines()]
+        self.assertEqual(errors, ['Search and individual proposal checks must be requested separately']*4+
+                         ['Dense sharing requires a frozen episode for winner order'])
+
+    def test_one_debtor_supplies_spare_lots_to_three_winners(self):
+        from types import SimpleNamespace
+        from recovery_lot_bound import lot_witness
+        case = SimpleNamespace(budgets=[[9,0],[0,0],[0,0],[0,0]], lots=[[3,0],[-1,0],[-1,0],[-1,0]],
+                               rates=[[0,0],[10,0],[10,0],[10,0]])
+        self.assertEqual(lot_witness(case, [[0,3,3,3],[0,0,0,0]]),
+                         [(0,0,1,3),(0,0,2,3),(0,0,3,3)])
+
     def test_discrete_sharing_against_complete_allocations(self):
         for weights in ([1, 2], [0, 2, 3], [1, 8, 2], [3, 3, 3], [4, 1, 3, 2]):
             options = list(product(*(range(weight+1) for weight in weights)))

@@ -1224,3 +1224,45 @@ one frozen page with the attempt and its eight rows of BTC/ETH budgets. The
 page revision prevents concurrent overwrites. Registers exceeding one page
 each require another verifier. The recorded budgets are prerequisites for
 checking the proposed reductions. The account roots and vault remain frozen.
+
+### Bounding charges to positions that also pay a foreign creditor
+
+At both recovery ceilings, every debtor must contribute its entire original
+whole-atom budget. A market must preserve its original gross payments to remove
+one atom of impairment for every atom charged. This restricts how much BTC gain
+can be charged to positions that also owe ETH, and conversely.
+
+For each market let `P` be original positive face, `B` the sum of original
+debtor budgets, and `C` the funded pool plus the entire market insurance and
+original own-cash collections. Let `D` be the remaining cross debt owed to the
+market after original cash and debtor budgets. All quantities here are in
+collateral atoms. Even giving the market every possible inflow, its post-charge
+payment rate cannot exceed `U = min(1, (C + D) / (P - B))`. At zero remaining
+face, use one. A zero rate with positive required foreign receipts makes full
+recovery infeasible under this test.
+
+For a source market, let `F` be the positive face held by accounts that owe
+foreign debt after their own cash collection. The other market needs at least
+`N = max(0, P_other × original_rate_other - C_other)` from those positions.
+When `N > 0`, the aggregate charge to them is at most
+`min(B, floor(F - N/U))`. When `N = 0`, the debtor ceiling `B` suffices.
+The verifier rounds each own-cash collection upward to one billionth of an
+atom when bounding available resources. This can loosen the cap. Settlement
+and the original debtor budgets still use their exact rational collections.
+
+Clearing reads each stamped frozen page in index order. A completed membership
+checkpoint becomes a cursor for this pass. The final page reads the verified
+market registers and seals both caps. Keepers can reconstruct the cursor
+after interruption. These values bound a proposed schedule at full recovery.
+They grant no authority to charge a position or release collateral.
+
+At fixed recovery, the native verifier checks proportional sharing within the
+cap by comparing the most expensive selected marginal atom and the cheapest
+unselected marginal atom in the linked and unlinked sets. When the linked
+cap is saturated, only transfers from the unlinked set into the linked set
+are excluded. All other exchanges must pass. One comparison breaks equal
+costs by frozen member order and a second by the extra lots required.
+Matching the larger of the verified winner and debtor lot floors certifies
+the minimum matched lots. The final pair-prefix comparison still uses the
+admitted fills. [Protection arithmetic](../../crates/default-plan-selection/src/joint/foreign_protection.rs)
+· [Sharing check](../../crates/default-plan-selection/src/linked_sharing.rs)

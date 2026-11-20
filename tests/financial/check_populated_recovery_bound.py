@@ -297,6 +297,7 @@ class FrozenCase:
                        measure_recovery_bound=True)
         request['check_original_page_budgets'] = True
         if check_pair_order:
+            request['check_dense_sharing'] = True
             request['pair_order'] = dict(venue_hex=bytes(self.source['venue']).hex(), epoch=self.source['epoch'])
         for key in ('marks', 'pools', 'insurance', 'fees'):
             request[key] = self.source[key]
@@ -313,6 +314,10 @@ class FrozenCase:
         assert [Fraction(int(n), int(d)) for n,d in receipt['recovered']] == recovered
         assert receipt['bothCeilingsReached'] == (recovered == self.ceilings)
         pair_result = dict(pairOrderAtFixedTotals=receipt['pairOrderAtFixedTotals']) if check_pair_order else {}
+        if check_pair_order:
+            assert [int(value) for value in receipt['linkedChargeCaps']] == [cap for _,cap in self.linked_share_bounds()]
+            pair_result.update(sharingAtFullRecovery=receipt['sharingAtFullRecovery'],
+                               matchedLotFloors=receipt['matchedLotFloors'], winnerLotFloors=receipt['winnerLotFloors'])
         return dict(**pair_result, pairs=len(charges), gross=list(map(str,gross)), recovered=list(map(str,recovered)),
                     lots=[str(sum(int(fill[1]) for (m,*_),fill in zip(charges,receipt['fills']) if m==market))
                           for market in range(2)], bothCeilingsReached=receipt['bothCeilingsReached'])
@@ -345,10 +350,11 @@ if __name__ == '__main__':
              for i in range(len(case.rows))] for m in range(2)] == winners
     final = case.assess(args.binary,ordered,check_pair_order=True)
     assert final['bothCeilingsReached'] and final['pairOrderAtFixedTotals']
+    assert final['sharingAtFullRecovery'] and list(map(int,final['matchedLotFloors'])) == minimum_lots
     assert list(map(int,final['lots'])) == minimum_lots
     assert saturated['bothCeilingsReached'], "This book needs a tighter bound or another feasible plan"
     print(json.dumps(dict(members=len(case.rows), ceilings=list(map(str,case.ceilings)), baseline=baseline,
                           attained=saturated, unconstrainedSharing=shared,
-                          optimalSharingAtMaximum=bounded, minimumLots=minimum_lots,
+                          optimalSharingAtMaximum=bounded, minimumLots=list(map(str,minimum_lots)),
                           tiedWinnerAllocations=list(map(len,choices)), episodeOrderedWinners=fewest, episodeOrderedPairs=final, linkedChargeCaps=[str(cap) for _,cap in bounds],
                           allUnconstrainedTargets=case.sharing_frontier(args.sharing_budget)), indent=2))

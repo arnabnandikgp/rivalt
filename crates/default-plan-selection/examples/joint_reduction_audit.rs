@@ -28,6 +28,8 @@ struct Input {
     #[serde(default)]
     check_original_page_budgets: bool,
     #[serde(default)]
+    check_dense_sharing: bool,
+    #[serde(default)]
     measure_recovery_bound: bool,
 }
 #[derive(Deserialize)]
@@ -126,6 +128,13 @@ fn decode_charges(rows: &[[String; 4]]) -> Result<Vec<Charge>, String> {
         .collect()
 }
 fn run(input: Input) -> Result<Value, String> {
+    if input.search.is_some() && (input.pair_order.is_some() || input.measure_recovery_bound
+        || input.check_original_page_budgets || input.check_dense_sharing) {
+        return Err("Search and individual proposal checks must be requested separately".into());
+    }
+    if input.check_dense_sharing && input.pair_order.is_none() {
+        return Err("Dense sharing requires a frozen episode for winner order".into());
+    }
     let histories = input
         .rows
         .iter()
@@ -226,25 +235,27 @@ fn run(input: Input) -> Result<Value, String> {
     let charges = decode_charges(&input.charges)?;
     let original = input.original.parse()?;
     let effective = input.effective.parse()?;
-    let (receipt, pair_order) = if let Some(episode) = input.pair_order {
+    let (receipt, pair_order, sharing) = if let Some(episode) = input.pair_order {
         let venue = bytes(&episode.venue_hex)?
             .try_into()
             .map_err(|_| "invalid venue")?;
-        let (receipt, certified) = book
-            .verify_with_pair_order(
-                original.witness(),
-                effective.witness(),
-                &charges,
-                &venue,
-                decimal(&episode.epoch)?,
-            )
-            .map_err(|err| format!("{err:?}"))?;
-        (receipt, Some(certified))
+        let epoch = decimal(&episode.epoch)?;
+        if input.check_dense_sharing {
+            let (receipt, order, sharing) = book.verify_dense_selection(
+                original.witness(), effective.witness(), &charges, &venue, epoch
+            ).map_err(|err| format!("{err:?}"))?;
+            (receipt, Some(order), Some(sharing))
+        } else {
+            let (receipt, order) = book.verify_with_pair_order(
+                original.witness(), effective.witness(), &charges, &venue, epoch
+            ).map_err(|err| format!("{err:?}"))?;
+            (receipt, Some(order), None)
+        }
     } else {
         (
             book.verify_proposal(original.witness(), effective.witness(), &charges)
                 .map_err(|err| format!("{err:?}"))?,
-            None,
+            None, None,
         )
     };
     let mut result = json!({
@@ -267,6 +278,12 @@ fn run(input: Input) -> Result<Value, String> {
             .iter()
             .map(|row| row.map(|x| x.to_string()))
             .collect::<Vec<_>>());
+    }
+    if let Some(sharing) = sharing {
+        result["sharingAtFullRecovery"] = json!(sharing.certified);
+        result["linkedChargeCaps"] = json!(sharing.linked_caps.map(|n|n.to_string()));
+        result["matchedLotFloors"] = json!(sharing.lot_floor.map(|n|n.to_string()));
+        result["winnerLotFloors"] = json!(sharing.winner_floor.map(|n|n.map(|value|value.to_string())));
     }
     if let Some(certified) = pair_order {
         result["pairOrderAtFixedTotals"] = json!(certified);

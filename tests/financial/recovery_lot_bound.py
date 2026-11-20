@@ -40,10 +40,18 @@ def lot_witness(case, targets):
             winner_lots = {i:ceil(Fraction(v,ticks)) for i,v in gains.items()}
             lower = debtor_lots if sum(debtor_lots.values()) < sum(winner_lots.values()) else winner_lots
             extra = abs(sum(debtor_lots.values())-sum(winner_lots.values()))
-            for i in sorted(lower, key=lambda i:(-lower[i],i)):
-                if extra and lower[i] < abs(case.lots[i][market]):
-                    lower[i] += 1
-                    extra -= 1
+            positions = sorted(lower, key=lambda i:(-lower[i],i))
+            # Spread the first spare lots across positions, then use the rest
+            # of each position's capacity if one pass is insufficient.
+            for allowance in (1, extra):
+                for i in positions:
+                    spare = abs(case.lots[i][market]) - lower[i]
+                    assert spare >= 0, "A position cannot supply its minimum lots"
+                    added = min(allowance, extra, spare)
+                    lower[i] += added
+                    extra -= added
+                    if not extra:
+                        break
             assert extra == 0, "No capacity for the proposed whole-lot assignment"
             assert all(q <= abs(case.lots[i][market]) for side in (debtor_lots,winner_lots) for i,q in side.items())
             # Assign the unused tick capacity first. Then transfer full lots
