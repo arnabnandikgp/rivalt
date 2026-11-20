@@ -3857,3 +3857,36 @@ entitlements, and measure the signed packet and CU. A stale certificate or
 insufficient funds must still allow an ordinary close with asynchronous payment.
 Changing the payment priority under scarce backing needs a separate economic
 decision. [Reproduction](local-development.md#reproduce-the-combined-clearing-lifecycle).
+
+
+### Automatic maker and receiver liquidation
+
+Harness `84ef28f3` on combined clearing SBF `5d7a7c0f` ran the service against
+nine Financial members. A trader held 50 BTC lots and an ETH risk-increasing
+order. At a 52,000 reference, the independently valued maintenance deficit
+was 43,910 collateral atoms. The worker received no target, maker or fill size.
+
+| Signed outcome | Remaining trader lots | Trader cash | Maintenance deficit | Worker CU / wire |
+|---|---:|---:|---:|---|
+| Sell ten to the admitted maker at 51,998 and cancel the ETH order | 40 | 563,286 | 12,574 | 247,096 / 1,103 bytes |
+| Tight depth exhausted, receiver funded with one atom | 40 | 563,286 | 12,574 | No original |
+| After another 99,999 atoms arrive, consenting receiver takes five at 52,000 | 35 | 563,156 | 0 | 100,497 / 689 bytes |
+| Reprobe restored health | 35 | 563,156 | 0 | No original |
+
+The target paid a 104-atom taker fee on the maker sale and a 130-atom
+penalty directly to the receiver on the transfer. The worker fee payer was
+also the receiver owner. Its SOL balance fell by exactly 5,000 test lamports
+for each finalized original and by zero during the blocked and healthy probes.
+The receiver unwound its five lots at the remaining wide bid. Each signed
+worker transaction matched its PostgreSQL original when independently fetched
+over RPC and confirmed over WS. Fresh replay matched 149 events and reconciled
+accounts. The independent calculation included actual funding on each interval
+at the inventory held.
+
+The initial run did not queue the maker. A subsequent run exposed the old
+manual fixture's zero-premium assumption after consumed depth changed the
+funding sample. Another caught an indexer race with deposit finality. The
+successful run preserves the oracle bounds and waits for fixture finality
+before publishing reconciled receiver capacity. The worker uses bounded size
+probes and one configured receiver. It reports a missed probe round separately
+from an executed liquidation. [Reproduction](local-development.md#reproduce-the-combined-clearing-lifecycle).
