@@ -739,3 +739,28 @@ calculation. If a keeper preflight refuses a step, the harness saves its
 source accounts and both signed simulation wires in `blocked-paged-step.json`.
 Reproduce the CU and error against the same binary with
 `node --import tsx tests/rpc-contract/replay-paged-step.ts <capture> <clearing.so>`.
+
+### Combined local successor qualification
+
+Build clearing at `d9a2a55b` with `RIVALT_ATTRIBUTION_PROFILE=local-successor-qualification bash ops/build-profit-attribution.sh`.
+Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the resulting directory. From the
+qualification checkout, build the native helper with
+`bash ops/build-settlement-helper.sh local-successor-candidate`.
+The probes check the exact clearing and maker hashes before deployment.
+
+Run `bash ops/scalable-settlement-smoke.sh` once for each probe below, with a
+fresh `RIVALT_RUN_DIR` for each run. The harness starts local Surfpool and
+PostgreSQL. In the table, prefix each probe name with `profit-attribution-successor-`.
+
+| Probe | Additional environment | Observed boundary |
+|---|---|---|
+| `workload` | None | Thirty rounds of paired fills, market fee reconciliation, exit and freeze |
+| `funding` | None | Cross-market funding progress through a publication outage |
+| `warm-payout`, `delayed-payout` | None | Close to funded cash and wallet transfer, including restart |
+| `automatic-liquidation` | None | Maker admission, unfunded receiver refusal, funded takeover and restored health |
+| `recovery` | `RIVALT_FROZEN_PLAN_PROOF=1`, `RIVALT_RECOVERY_SCHEDULE_BUDGET=3000`, `RIVALT_FROZEN_PLAN_CASE=paged-wallet` or `paged-insurance` | Nine-member complete freeze, keeper restart, insurance, wallet exits and independent replay |
+
+After a workload run use `python3 tests/performance/successor-workload-cost.py "$RIVALT_RUN_DIR"`
+to reproduce fees by actual payer, CU and lock conflicts from finalized transaction
+bytes. Run `node --import tsx tests/performance/successor-proof-space.ts` to
+measure the search account's minimum bytes at the selected launcher's population.

@@ -1529,3 +1529,18 @@ transaction after checking both canonical pages, their complete membership
 and conservation by market. This keeps the header size independent of the
 member result table. Application and withdrawal retain their separate
 checks. [Paged receipt contract](clearing/default-plan-verification.md#paged-recovery-receipt-in-the-local-candidate).
+
+## D140 — retain P56 as the normal local runtime
+
+20 November 2026. The combined successor is an explicit qualification build.
+P56 has a verified exit with 128 populated Financial accounts. The successor
+stores frozen payouts across pages, but it still keeps captured members, budgets,
+weights and the selected cash vector in one 10,240-byte search account.
+At 128 members the generated encoder requires at least 16,781 bytes before
+including any position history, eligible pair, rate or rounding order.
+A larger compute budget cannot make the serialized state fit.
+
+Keep P56 in the normal local launcher. Promotion requires a recovery design
+that can represent that population and a signed complete-cohort exit with
+independent reconciliation. The candidate remains available for bounded
+experiments. [Reproduction and probes](operations/local-development.md#combined-local-successor-qualification).
