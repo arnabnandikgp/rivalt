@@ -4019,7 +4019,19 @@ the 423 BTC and 403 ETH whole-lot lower bounds with the greatest winner totals
 in frozen-episode order. Independent rounding matched every member's cash
 and both market movements and matched both insurance debits. The financial
 regressions and the full signed-input replay both passed. The priority of
-individual pair charges remains uncertified.
+individual pair charges was still open at that revision.
 
 The bound and the comparison ran natively. This run submitted no transactions.
 The population still requires an on-chain selection proof and terminal wallet exit.
+
+
+At `c9df514a` the 135-pair proposal (71 BTC, 64 ETH) reached every D121
+pair bound on this same input. It attained both recovery ceilings and exactly
+423 BTC and 403 ETH lots. All 128 members' cash, both movements per member
+and both insurance debits matched independent protected settlement. The earlier
+237-pair proposal passed admission and failed the final ordering check. The
+Rust bound matched exhaustive integer checks in 65,340 local endpoint cases.
+Four Python regressions passed, including two equally feasible pairings on
+eight frozen episodes. Both pairings won on different episodes. The native
+result gives no release authority. The next on-chain step is verification of
+the wide settlement rates on all original frozen rows.
