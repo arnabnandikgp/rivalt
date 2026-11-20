@@ -85,3 +85,53 @@ def earliest_winners(case, allocations):
     order = FrozenIdentity(bytes(case.source['venue']),int(case.source['epoch']),
                            tuple(int(row['id']) for row in case.rows)).order()
     return [max(choices,key=lambda shares:tuple(shares[i] for i in order)) for choices in allocations]
+
+
+def ordered_pair_witness(case, targets, minimum_lots):
+    """Try whole-lot choices at each pair in frozen order. Full admission proves feasibility."""
+    order = FrozenIdentity(bytes(case.source['venue']), int(case.source['epoch']),
+                           tuple(int(row['id']) for row in case.rows)).order()
+    charges = []
+    for market, shares in enumerate(targets):
+        debt = {i: case.budgets[i][market] for i in order if case.budgets[i][market]}
+        gain = {i: shares[i] for i in order if shares[i]}
+        lots = [abs(row[market]) for row in case.lots]
+        remaining = minimum_lots[market]
+        if not gain:
+            assert not debt and not remaining
+            continue
+        rates = {i: case.rates[i][market] for i in gain}
+        fastest = max(rates.values())
+        assert fastest > 0
+        for winner in gain:
+            rate = rates[winner]
+            for debtor in debt:
+                if not gain[winner]:
+                    break
+                if not debt[debtor] or case.lots[winner][market]*case.lots[debtor][market] >= 0:
+                    continue
+                # Reserve the minimum necessary lots for each other account.
+                others_owed = sum(ceil(Fraction(value)/fastest) for i,value in debt.items() if i != debtor)
+                others_due = sum(ceil(Fraction(value)/rates[i]) for i,value in gain.items() if i != winner)
+                available = min(lots[debtor], lots[winner], remaining - max(others_owed, others_due))
+                atoms = min(debt[debtor], gain[winner])
+                for quantity in range(min(available, ceil(Fraction(atoms)/rate)), -1, -1):
+                    charge = min(atoms, int(quantity*rate))
+                    matched = ceil(Fraction(charge)/rate)
+                    debtor_rest = ceil(Fraction(debt[debtor]-charge)/fastest)
+                    winner_rest = ceil(Fraction(gain[winner]-charge)/rate)
+                    if (matched+debtor_rest <= min(lots[debtor], remaining-others_owed)
+                            and matched+winner_rest <= min(lots[winner], remaining-others_due)):
+                        if charge:
+                            charges.append((market, debtor, winner, charge))
+                        debt[debtor] -= charge
+                        gain[winner] -= charge
+                        lots[debtor] -= matched
+                        lots[winner] -= matched
+                        remaining -= matched
+                        break
+                else:
+                    raise ValueError("The pair bound has no completion at this prefix")
+        if any(debt.values()) or any(gain.values()) or remaining:
+            raise ValueError("The prefix witness did not reach every fixed total")
+    return charges

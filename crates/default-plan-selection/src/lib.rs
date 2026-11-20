@@ -14,6 +14,7 @@ pub mod joint_priority;
 #[cfg(all(feature = "native-joint", not(target_arch = "bpf")))]
 pub mod joint_search;
 pub mod mirror;
+pub mod pair_prefix;
 #[cfg(feature = "native-search")]
 pub mod multi_lot;
 pub mod proportional;

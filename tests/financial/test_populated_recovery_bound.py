@@ -6,6 +6,7 @@ import unittest
 
 from check_populated_recovery_bound import FrozenCase, SCALE, allocations, bounded_shares, constrained_targets, proportional_targets, tied_shares
 from test_scalable_settlement import independent_input
+from frozen_plan_selection import FrozenIdentity
 
 
 def history(entry):
@@ -40,6 +41,32 @@ class RecoveryCeilings(unittest.TestCase):
                     self.assertEqual(cost(chosen),best)
                     self.assertEqual(set(map(tuple,constrained_targets(weights,total,group,cap,100))),
                                      {option for option in possible if cost(option)==best})
+
+    def test_admitted_pairings_with_identical_balances_follow_frozen_identity(self):
+        table = [(0,(sign*2*SCALE,0)) for sign in (-1,-1,1,1)]
+        _, _, rates, orders = independent_input(table,(0,0),(0,0))
+        ids = (7, 11, 32, 93)
+        rows = [dict(id=str(ids[i]),cash='0',claims=list(map(str,claims)),
+                     lots=[str(-1 if i<2 else 1),'0'],history=[history(8),[]])
+                for i,(_,claims) in enumerate(table)]
+        binary = os.environ.get('RIVALT_JOINT_AUDIT','target/release/examples/joint_reduction_audit')
+        results = set()
+        for epoch in range(8):
+            venue = bytes(32)
+            case = FrozenCase(dict(rows=rows,marks=['10','10'],pools=['0','0'],insurance=['0','0'],
+                                   fees=['0','0'],venue=list(venue),epoch=str(epoch),
+                                   original=dict(rates=list(map(str,rates[0])),additionalRates=[],orders=orders)))
+            order = FrozenIdentity(venue,epoch,ids).order()
+            first = (next(i for i in order if i<2),next(i for i in order if i>=2))
+            for pair in ((0,1),(1,0)):
+                plan = [(0,pair[1],3,2),(0,pair[0],2,2)]
+                receipt = case.assess(binary,plan,check_pair_order=True)
+                self.assertEqual(receipt['lots'],['2','0'])
+                expected = any((d,w)==first for _,d,w,_ in plan)
+                self.assertEqual(receipt['pairOrderAtFixedTotals'],expected)
+                if expected:
+                    results.add(pair)
+        self.assertEqual(len(results),2)
 
     def test_recovery_ceiling_requires_an_admitted_plan_reaching_the_net_loss_bound(self):
         # The debtor can pay four of ten atoms. Each winner has two opposite lots.

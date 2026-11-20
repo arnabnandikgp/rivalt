@@ -1155,8 +1155,48 @@ native verifier admitted a 237-pair plan with exactly those winner totals and
 lot counts in both markets. Independent protected rounding reproduced all 128
 cash balances, market movements and insurance debits.
 
-This establishes the financial priorities and the winner-total part of D121
-on this particular book. The last comparison in D121 orders the charges on
-individual debtor/winner pairs after those totals tie. The constructed pairing
-has no certificate for that final comparison. Publication of the inputs and
-native results does not release the frozen wallets.
+This construction establishes the financial priorities and winner totals.
+The individual pairs require the further comparison below.
+
+### Final pair order at fixed totals
+
+The earlier priorities fix the amount each debtor supplies, each winner's
+charge and the market's minimum matched lots. For the final comparison,
+visit winners and debtors in frozen-episode order. Within each market, a
+different feasible plan can win only by charging more at the first differing
+pair. The two market passes can be checked independently because both must
+attain their bounds. Interleaving the two ordered sequences by winner then
+market preserves that result.
+
+At a pair let `b` and `g` be the debtor and winner atoms still to assign.
+Let `r` bound the winner's atoms per lot and `R` be the largest such bound
+among winners with positive targets. Rounding a fractional rate up gives a
+safe relaxation. Reserve at least `ceil(remaining atoms / rate)` lots for
+each other winner and, separately, at least `ceil(remaining debt / R)` for
+each other debtor. The smaller of the position's remaining lots and the
+market budget after the corresponding reservation gives limits `D` and `W`
+on the debtor and winner. For any possible charge `x` using `q` lots,
+
+```text
+x <= A = min(b, g)
+x <= q*r
+q <= D - ceil((b-A)/R)
+q <= W - ceil((g-A)/r)
+q*(R-r) <= D*R-b
+```
+
+The last inequality follows because even the fastest remaining lots must
+still pay the rest of the debtor's obligation. These inequalities give a
+constant-work integer upper bound at the current pair. The native checker
+requires the admitted charge (including an omitted pair's zero) to equal
+the bound and consumes the actual filled lots. Induction on the first
+difference proves final pair priority if the complete schedule passes. A
+loose bound can leave a feasible plan uncertified.
+
+On the signed 128-member freeze, 71 BTC pairs and 64 ETH pairs attained every
+bound. Both markets kept their minimum lot counts and every account kept its
+independently calculated terminal cash. The previous 237-pair witness passed
+financial admission but missed this final comparison. This completes native
+selection on that freeze. On-chain binding and wallet release remain open.
+[Prefix bound](../../crates/default-plan-selection/src/pair_prefix.rs) ·
+[Native checker](../../crates/default-plan-selection/src/joint/pair_order.rs)

@@ -24,8 +24,14 @@ struct Input {
     original: WitnessInput,
     effective: WitnessInput,
     search: Option<Search>,
+    pair_order: Option<Episode>,
     #[serde(default)]
     measure_recovery_bound: bool,
+}
+#[derive(Deserialize)]
+struct Episode {
+    venue_hex: String,
+    epoch: String,
 }
 #[derive(Deserialize)]
 struct Search {
@@ -216,13 +222,29 @@ fn run(input: Input) -> Result<Value, String> {
         });
     }
     let charges = decode_charges(&input.charges)?;
-    let receipt = book
-        .verify_proposal(
-            input.original.parse()?.witness(),
-            input.effective.parse()?.witness(),
-            &charges,
+    let original = input.original.parse()?;
+    let effective = input.effective.parse()?;
+    let (receipt, pair_order) = if let Some(episode) = input.pair_order {
+        let venue = bytes(&episode.venue_hex)?
+            .try_into()
+            .map_err(|_| "invalid venue")?;
+        let (receipt, certified) = book
+            .verify_with_pair_order(
+                original.witness(),
+                effective.witness(),
+                &charges,
+                &venue,
+                decimal(&episode.epoch)?,
+            )
+            .map_err(|err| format!("{err:?}"))?;
+        (receipt, Some(certified))
+    } else {
+        (
+            book.verify_proposal(original.witness(), effective.witness(), &charges)
+                .map_err(|err| format!("{err:?}"))?,
+            None,
         )
-        .map_err(|err| format!("{err:?}"))?;
+    };
     let mut result = json!({
         "budgets":receipt.budgets.iter().map(|row|row.map(|x|x.to_string())).collect::<Vec<_>>(),
         "fills": receipt.fills.iter().map(|p|[p.charge,p.matched,p.base_ticks,p.extra_tick_lots].map(|x|x.to_string())).collect::<Vec<_>>(),
@@ -232,6 +254,9 @@ fn run(input: Input) -> Result<Value, String> {
         "insuranceSpent":receipt.spent.map(|x|x.to_string()),
         "recovered":receipt.recovered.each_ref().map(|(numerator,denominator)|[numerator.to_string(),denominator.to_string()]),
     });
+    if let Some(certified) = pair_order {
+        result["pairOrderAtFixedTotals"] = json!(certified);
+    }
     if input.measure_recovery_bound {
         result["recoveryCeilings"] =
             json!(receipt.recovery_ceilings().map(|value| value.to_string()));

@@ -12,7 +12,7 @@ from cross_market_adl_model import protect_receipts
 from market_settlement_reference import MarketBook
 from clearing_network_reference import clear_atom_cohort, clear_rational_cohort
 from test_scalable_settlement import independent_input
-from recovery_lot_bound import earliest_winners, lot_bounds, lot_witness
+from recovery_lot_bound import earliest_winners, lot_bounds, lot_witness, ordered_pair_witness
 
 SCALE = 10**9
 
@@ -263,7 +263,7 @@ class FrozenCase:
             minimum_gap = gap if minimum_gap is None else min(minimum_gap, gap)
         return dict(allocations=counts, complete=True, reached=reached, smallestShortfall=str(minimum_gap))
 
-    def assess(self, binary, charges):
+    def assess(self, binary, charges, check_pair_order=False):
         changed = [(cash, list(claims)) for cash, claims in self.table]
         collected = self.original.benchmark.collections
         for market, debtor, winner, amount in charges:
@@ -295,6 +295,8 @@ class FrozenCase:
                                      orders=[[str(i) for i in order] for order in original['orders']]),
                        effective=dict(rates=[list(map(str, r)) for r in rates], orders=[list(map(str, o)) for o in orders]),
                        measure_recovery_bound=True)
+        if check_pair_order:
+            request['pair_order'] = dict(venue_hex=bytes(self.source['venue']).hex(), epoch=self.source['epoch'])
         for key in ('marks', 'pools', 'insurance', 'fees'):
             request[key] = self.source[key]
         receipt = json.loads(subprocess.check_output([binary], input=json.dumps(request), text=True))
@@ -308,7 +310,8 @@ class FrozenCase:
         recovered = [min(gross[m], loss(self.original,m)-loss(outcome,m)) for m in range(2)]
         assert [Fraction(int(n), int(d)) for n,d in receipt['recovered']] == recovered
         assert receipt['bothCeilingsReached'] == (recovered == self.ceilings)
-        return dict(pairs=len(charges), gross=list(map(str,gross)), recovered=list(map(str,recovered)),
+        pair_result = dict(pairOrderAtFixedTotals=receipt['pairOrderAtFixedTotals']) if check_pair_order else {}
+        return dict(**pair_result, pairs=len(charges), gross=list(map(str,gross)), recovered=list(map(str,recovered)),
                     lots=[str(sum(int(fill[1]) for (m,*_),fill in zip(charges,receipt['fills']) if m==market))
                           for market in range(2)], bothCeilingsReached=receipt['bothCeilingsReached'])
 
@@ -333,11 +336,17 @@ if __name__ == '__main__':
     charges = lot_witness(case,winners)
     assert [[sum(amount for market,_,index,amount in charges if market==m and index==i)
              for i in range(len(case.rows))] for m in range(2)] == winners
-    fewest = case.assess(args.binary,charges)
+    fewest = case.assess(args.binary,charges,check_pair_order=True)
     assert fewest['bothCeilingsReached'] and list(map(int,fewest['lots'])) == minimum_lots
+    ordered = ordered_pair_witness(case,winners,minimum_lots)
+    assert [[sum(charge for market,_,winner,charge in ordered if market==m and winner==i)
+             for i in range(len(case.rows))] for m in range(2)] == winners
+    final = case.assess(args.binary,ordered,check_pair_order=True)
+    assert final['bothCeilingsReached'] and final['pairOrderAtFixedTotals']
+    assert list(map(int,final['lots'])) == minimum_lots
     assert saturated['bothCeilingsReached'], "This book needs a tighter bound or another feasible plan"
     print(json.dumps(dict(members=len(case.rows), ceilings=list(map(str,case.ceilings)), baseline=baseline,
                           attained=saturated, unconstrainedSharing=shared,
                           optimalSharingAtMaximum=bounded, minimumLots=minimum_lots,
-                          tiedWinnerAllocations=list(map(len,choices)), episodeOrderedWinners=fewest, linkedChargeCaps=[str(cap) for _,cap in bounds],
+                          tiedWinnerAllocations=list(map(len,choices)), episodeOrderedWinners=fewest, episodeOrderedPairs=final, linkedChargeCaps=[str(cap) for _,cap in bounds],
                           allUnconstrainedTargets=case.sharing_frontier(args.sharing_budget)), indent=2))
