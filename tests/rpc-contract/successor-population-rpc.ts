@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
+import {getTokenDecoder} from '@solana-program/token';
 import {getAddressEncoder} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from '../../packages/indexer/src/events.js';
@@ -10,6 +11,9 @@ import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {financialRoots} from './membership-scan-helper.js';
+import {qualifySettlementPlan} from './scalable-settlement-plan-rpc.js';
+import {qualifySettlementApplication} from './scalable-settlement-application-rpc.js';
+import {verifyJointPayment,type JointReference} from './populated-joint-payment.js';
 import {verifyPopulatedOriginalRates} from './populated-original-rates.js';
 import {verifyPartitionedInputs} from './partitioned-recovery-pages.js';
 import {verifyProfitBuild,verifyPartitionedBuild} from './profit-attribution-build.js';
@@ -20,7 +24,8 @@ const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const probe=process.env.RIVALT_SETTLEMENT_PROBE!;
-const pairSchedule=probe==='profit-attribution-pair-schedule';
+const jointSettlement=probe==='profit-attribution-joint-settlement';
+const pairSchedule=jointSettlement||probe==='profit-attribution-pair-schedule';
 const winnerScan=pairSchedule||probe==='profit-attribution-winner-allocations';
 const foreignCaps=winnerScan||probe==='profit-attribution-foreign-caps';
 const originalBudgets=foreignCaps||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-original-budgets';
@@ -28,7 +33,7 @@ const originalRates=originalBudgets||process.env.RIVALT_SETTLEMENT_PROBE==='prof
 const partitioned=originalRates||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-partitioned-population';
 const build=partitioned?verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,probe):verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'successor');
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
-  {deferFinality:true,computeUnitLimit:()=>1_000_000});
+  {deferFinality:true,computeUnitLimit:()=>1_000_000,heapSize:label=>jointSettlement&&/joint|certified settlement register|P54C/.test(label)?131_072:undefined});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
   const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:'ledger-lanes',marketCheckpoints:true,verifyRejections:false,
@@ -103,11 +108,44 @@ try {
   const pairReference=pairSchedule?JSON.parse(execFileSync('python3',['tests/financial/pair_schedule_reference.py'],{input:json(request),encoding:'utf8'})):undefined;
   const originalRateResult=originalRates?await verifyPopulatedOriginalRates(h,setup,rows,members,BigInt(expected.common),
     originalBudgets?expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)):undefined,protection,winnerReference,pairReference):null;
+  const reference:JointReference|undefined=jointSettlement?JSON.parse(execFileSync('python3',['tests/financial/joint_payment_reference.py'],{input:json(request),encoding:'utf8'})):undefined;
+  let jointPayment,terminal;
+  if(reference) {
+    assert(originalRateResult?.pairSchedules && originalRateResult.winnerProofs && pairReference);
+    const {prepared,rates,pages,limbs,pairSchedules,winnerProofs}=originalRateResult;
+    jointPayment=await verifyJointPayment(h,setup,prepared,rates,pages,limbs,pairSchedules,winnerProofs,pairReference,reference);
+    const tracked=[prepared,rates,setup.vault,setup.resolution,...pages,...members];
+    const frozen=await Promise.all(rows.map(async(row,index)=>({...row,key:members[index],root:await root(members[index])})));
+    const changed=frozen.map((row,index)=>({...row,claims:row.claims.map((claim,m)=>claim+BigInt(reference.deltas[index][m])*1_000_000_000n)}));
+    const reject:Parameters<typeof qualifySettlementPlan>[0]['reject']=async(label,ix,error=sdk.CLEARING_ERROR__RESOLUTION)=>{
+      await h.send(label,[ix],[],error);
+    };
+    const {plan,continuations,state}=await qualifySettlementPlan({h,setup,prepared,rates,epoch:initial.epoch,
+      expected:reference.plan,rows:changed,rowPages:pages,limbPages:limbs,tracked,reject});
+    assert.deepEqual(state.insuranceSpent.map(String),reference.spent);
+    const application=await qualifySettlementApplication({h,setup,prepared,rates,plan,epoch:initial.epoch,
+      rowPages:pages,rows:frozen,expected:reference.plan,tracked,reject,stopBeforeExitAndRecovery:true,
+      checkpoint:async(name)=>{writeFileSync(directory+'/joint-'+name+'.json',json(await source()));}});
+    const ordinal=frozen.findIndex((row,i)=>row.root.owner===setup.traderOwner.address && BigInt(reference.plan.cash[i])>0n);
+    assert(ordinal>=0,'test trader has a funded terminal payout');
+    const margin=members[ordinal],amount=BigInt(reference.plan.cash[ordinal]);
+    const token=async(key:typeof margin)=>getTokenDecoder().decode((await h.read(key))!).amount;
+    const before=await token(setup.traderToken.address), vault=await token(setup.vault);
+    const withdraw=sdk.getWithdrawFundedAccountInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
+      owner:setup.traderOwner,margin,userToken:setup.traderToken.address,quoteMint:setup.mint.address,amount,guard:await guard(margin)});
+    await h.send('withdraw full certified joint wallet payout',await withCheckpoints(withdraw),[setup.traderOwner]);
+    assert.equal(await token(setup.traderToken.address),before+amount);
+    assert.equal(await token(setup.vault),vault-amount);
+    assert.equal((await root(margin)).cash,0n);
+    terminal={continuations,applied:frozen.length,appliedCash:application.appliedCash,spent:application.insuranceSpent,
+      wallet:setup.traderToken.address,ordinal,withdrawn:amount,vaultAfter:await token(setup.vault)};
+
+  }
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
-  await journal.checkpoint('population-freeze',true);
+  await journal.checkpoint(terminal?'joint-wallet-exit':'population-freeze',true);
   const replay=await journal.finish();
-  const report={revision,build,pageInputs,originalRateResult,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
+  const report={revision,build,pageInputs,originalRateResult,jointPayment,terminal,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
     crossAccounts:cohort.additional.filter(member=>member.mode===0).length+1,trades:cohort.trades+2,
     maxRateBits:Math.max(...rounds.flat().map(value=>value.toString(2).length)),dimensions,
     freezeSignature:checks.find(check=>check.label==='freeze populated successor')!.signature,transactions:checks.length,replayedEvents:replay.events};

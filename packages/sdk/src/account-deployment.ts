@@ -27,8 +27,9 @@ export const POPULATED_RATES_ARTIFACT_SET='populated-rates-365fa254';
 export const ORIGINAL_BUDGETS_ARTIFACT_SET='populated-budgets-16f89bef';
 export const FOREIGN_PROTECTION_ARTIFACT_SET='foreign-protection-7df9585e';
 export const WINNER_ALLOCATION_ARTIFACT_SET='winner-allocation-486d5818';
+export const JOINT_PAYMENT_ARTIFACT_SET='joint-payment-3acd4a4d';
 export const PAIR_SCHEDULE_ARTIFACT_SET='pair-schedule-34359552';
-export const hasPartitionedInputs=(set?:string)=>set===PARTITIONED_INPUTS_ARTIFACT_SET||set===POPULATED_RATES_ARTIFACT_SET||set===ORIGINAL_BUDGETS_ARTIFACT_SET||set===FOREIGN_PROTECTION_ARTIFACT_SET||set===WINNER_ALLOCATION_ARTIFACT_SET||set===PAIR_SCHEDULE_ARTIFACT_SET;
+export const hasPartitionedInputs=(set?:string)=>set===PARTITIONED_INPUTS_ARTIFACT_SET||set===POPULATED_RATES_ARTIFACT_SET||set===ORIGINAL_BUDGETS_ARTIFACT_SET||set===FOREIGN_PROTECTION_ARTIFACT_SET||set===WINNER_ALLOCATION_ARTIFACT_SET||set===PAIR_SCHEDULE_ARTIFACT_SET||set===JOINT_PAYMENT_ARTIFACT_SET;
 const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set)
   ||set===DOMAIN_BASELINE_ARTIFACT_SET||set===DOMAIN_EXTRACTED_ARTIFACT_SET;
 export const hasLedgerLanes=(set?:string)=>set===READ_ONLY_LEDGER_ARTIFACT_SET||integratedLayout(set);

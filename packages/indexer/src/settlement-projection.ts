@@ -2,7 +2,7 @@
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
 import {address} from '@solana/kit';
 import {multiLotBookPlan} from '@rivalt/sdk/multi-lot-book';
-import {isMultiLotArtifact} from '@rivalt/sdk';
+import {isMultiLotArtifact,JOINT_PAYMENT_ARTIFACT_SET} from '@rivalt/sdk';
 import {inventoryBookPlan,twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
 import {isBookInventoryArtifact,isSharedInventoryArtifact,hasJointRecovery,hasPagedRecovery,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
@@ -19,6 +19,32 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void,artifactSet?:string) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
+  if(event.type==='JointClaimsCopied') {
+    accountCheck(artifactSet===JOINT_PAYMENT_ARTIFACT_SET && current.stage===2,'frozen joint payment');
+    const {payment,chargeAtoms,insuranceSpent,memberIds,deltas}=change;
+    const receipt=current.jointPayment??={payment,chargeAtoms,insuranceSpent,memberIds:[] as string[],deltas:[] as string[][]};
+    eq([payment,chargeAtoms,insuranceSpent],[receipt.payment,receipt.chargeAtoms,receipt.insuranceSpent],'bound joint payment');
+    const first=receipt.memberIds.length;
+    eq(String(first),change.first,'sequential joint claims');
+    const ids=state.members.map(key=>state.roots[key].id).sort((a,b)=>BigInt(a)<BigInt(b)?-1:1);
+    eq(memberIds,ids.slice(first,first+8),'frozen joint claim members');
+    accountCheck(memberIds.length>0 && deltas.length===memberIds.length,'complete joint claim page');
+    for(const [i,id] of (memberIds as string[]).entries()) {
+      const faces=claims(state.roots[state.identities[id]],current.prices,current.funding).map(BigInt);
+      for(const market of [0,1]) {
+        const face=faces[market],effective=face+BigInt(deltas[i][market])*scale;
+        accountCheck(face<0n?effective<=0n && effective>=face:effective>=0n && effective<=face,'claim moves toward zero');
+      }
+    }
+    receipt.memberIds.push(...memberIds);receipt.deltas.push(...deltas);
+    if(receipt.memberIds.length===ids.length)for(const market of [0,1]) {
+      const changes=receipt.deltas.map(row=>BigInt(row[market]));
+      eq(changes.reduce((sum,delta)=>sum+delta,0n),0n,'joint charge balance');
+      eq(String(changes.reduce((sum,delta)=>sum+(delta>0n?delta:0n),0n)),chargeAtoms[market],'joint charge total');
+      accountCheck(BigInt(insuranceSpent[market])<=BigInt(current.insuranceBefore[market]),'market insurance budget');
+    }
+    return;
+  }
   if(event.type==='RecoverySelectionBound'||event.type==='PagedRecoverySelectionBound') {
     accountCheck(hasJointRecovery(artifactSet) && current.stage===2 && !current.boundRecovery,'unique sealed recovery');
     const {search,schedule,schedulesChecked,chargeAtoms,insuranceSpent,memberIds,claimDeltas,movements,finalCash}=change;
@@ -375,7 +401,12 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     eq(change.cashBefore,previous.cash,'original cash');
     const economic=claims(previous,current.prices,current.funding),pair=current.pair;
     eq(economic,frozen.claimsScaled,'original frozen claims');
-    if(current.boundRecovery) {
+    if(current.jointPayment) {
+      const bound=current.jointPayment;
+      eq(bound.memberIds.length,Number(current.count),'complete joint payment');
+      eq(previous.id,bound.memberIds[Number(ordinal)],'joint payment member');
+      for(const market of [0,1])economic[market]=String(BigInt(economic[market])+BigInt(bound.deltas[Number(ordinal)][market])*scale);
+    } else if(current.boundRecovery) {
       const bound=current.boundRecovery, index=Number(ordinal);
       eq(previous.id,bound.memberIds[index],'bound member');
       for(const market of [0,1]) {
@@ -456,6 +487,10 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
   let plan=state.pagedSettlement;
   if(!plan) {
     accountCheck(current.stage===2&&current.cursor==='0'&&change.stage===9&&change.cursor==='0','paged adoption transition');
+    if(current.jointPayment) {
+      eq(change.insuranceSpent,current.jointPayment.insuranceSpent,'joint insurance at adoption');
+      eq(String(current.jointPayment.memberIds.length),current.count,'all certified claims before adoption');
+    }
     eq(change.count,String(state.members.length),'complete count');
     eq(change.remainingCash,current.cashBefore,'original total');eq(change.appliedCash,'0','initial payout');
     eq(change.marketMovements,['0','0'],'initial movements');

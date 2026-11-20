@@ -1,7 +1,7 @@
 /** Explicit schema-9 scratch identities. A valid checkpoint is never substituted
  * for financial event history or a reconciled margin account. */
 import assert from 'node:assert/strict';
-import {address,getAddressEncoder,getProgramDerivedAddress} from '@solana/kit';
+import {address,getAddressDecoder,getAddressEncoder,getProgramDerivedAddress} from '@solana/kit';
 import * as paged from '@rivalt/sdk/paged-recovery';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
@@ -23,7 +23,7 @@ export function scopedSchema(kind:number) {
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 export function frozenPageDecoder(artifactSet?:string) {
-  if(artifactSet===sdk.ORIGINAL_BUDGETS_ARTIFACT_SET||artifactSet===sdk.FOREIGN_PROTECTION_ARTIFACT_SET||artifactSet===sdk.WINNER_ALLOCATION_ARTIFACT_SET||artifactSet===sdk.PAIR_SCHEDULE_ARTIFACT_SET)return sdk.getOriginalBudgetPageDecoder();
+  if(artifactSet===sdk.ORIGINAL_BUDGETS_ARTIFACT_SET||artifactSet===sdk.FOREIGN_PROTECTION_ARTIFACT_SET||artifactSet===sdk.WINNER_ALLOCATION_ARTIFACT_SET||artifactSet===sdk.PAIR_SCHEDULE_ARTIFACT_SET||artifactSet===sdk.JOINT_PAYMENT_ARTIFACT_SET)return sdk.getOriginalBudgetPageDecoder();
   if(sdk.hasPartitionedInputs(artifactSet))return sdk.getPartitionedRecoveryPageDecoder();
   if(artifactSet===sdk.LOCAL_SUCCESSOR_ARTIFACT_SET)return sdk.getLocalSuccessorPageDecoder();
   if(artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET)return paged.getFrozenMarginPageDecoder();
@@ -59,6 +59,22 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(!resolution||value.epoch!==undefined&&value.epoch!==BigInt(resolution.epoch))return;
   if(kind===17) {
     const header=JSON.parse(json(value));
+    if(binding.artifactSet===sdk.JOINT_PAYMENT_ARTIFACT_SET) {
+      const bytes=Buffer.from(value.state.membership);
+      if(bytes.subarray(0,8).toString()==='RVJOINT2') {
+        assert.equal(bytes.readBigUInt64LE(8),value.epoch);
+        const count=bytes.readBigUInt64LE(104);
+        assert.equal(count,BigInt(resolution.jointPayment?.memberIds.length??0));
+        if(resolution.jointPayment) {
+          const joint=resolution.jointPayment;
+          assert.equal(getAddressDecoder().decode(bytes.subarray(16,48)),joint.payment);
+          const u128=(offset:number)=>bytes.readBigUInt64LE(offset)+(bytes.readBigUInt64LE(offset+8)<<64n);
+          assert.deepEqual([u128(48),u128(64)].map(String),joint.chargeAtoms);
+          assert.deepEqual([80,88].map(offset=>String(bytes.readBigUInt64LE(offset))),joint.insuranceSpent);
+        }
+        if(value.stage===3)assert.equal(count,value.count);
+      } else assert(!resolution.jointPayment,'Missing frozen joint receipt');
+    }
     const bound=sdk.boundRecoveryReceipt(value);
     const pagedHeader=sdk.pagedRecoveryHeader(value);
     if(sdk.hasPagedRecovery(binding.artifactSet) && (resolution.boundRecovery || pagedHeader)) {
@@ -125,6 +141,15 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
       insurance:resolution.insuranceBefore,fees:resolution.feesBefore}))assert.deepEqual(header[field],expected,`Prepared ${field}`);
     const source=Object.entries(state.revisions).find(([,entry])=>entry.kind===10);assert(source);assert.equal(header.source,source[0]);
     if(plan)assert.equal(BigInt(header.sourceRevision)+1n,BigInt(plan.adoptionRevision));
+  }
+  if(kind===18 && resolution.jointPayment) {
+    const joint=resolution.jointPayment;
+    for(let offset=0;offset<value.rowCount;offset++) {
+      const ordinal=Number(value.pageIndex)*8+offset,row=value.rows[offset];
+      if(ordinal>=joint.memberIds.length)continue;
+      assert.equal(String(row.id),joint.memberIds[ordinal]);
+      assert.deepEqual(row.recoveryPayout.claimDelta.map(String),joint.deltas[ordinal]);
+    }
   }
   if(kind===18 && sdk.hasPagedRecovery(binding.artifactSet) && resolution.boundRecovery) {
     const bound=resolution.boundRecovery;

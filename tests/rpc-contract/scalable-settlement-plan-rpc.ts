@@ -8,17 +8,17 @@ import * as sdk from '@rivalt/sdk';
 import type {CanonicalHarness} from './canonical-maker-cases.js';
 import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import type {ExpectedInstructionError} from './instruction-errors.js';
-type Reference={orders:string[][];cash:string[];movements:string[][];floors:string[][];fractions:boolean[][];localOrders:number[][]};
+export type SettlementReference={orders:string[][];cash:string[];movements:string[][];floors:string[][];fractions:boolean[][];localOrders:number[][]};
 export async function qualifySettlementPlan(options:{h:CanonicalHarness;
   setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>;prepared:Address;rates:Address;epoch:bigint;
-  rows:{cash:bigint;claims:bigint[]}[];rowPages:Address[];limbPages:Address[];tracked:Address[];
+  expected?:SettlementReference;rows:{cash:bigint;claims:bigint[]}[];rowPages:Address[];limbPages:Address[];tracked:Address[];
   reject:(label:string,instruction:Instruction,error?:ExpectedInstructionError)=>Promise<void>}) {
   const {h,setup,prepared,rates,epoch,rows,rowPages,limbPages,tracked,reject}=options;
   const preparedBytes=(await h.read(prepared))!,rateBytes=(await h.read(rates))!;
   const header=sdk.getPreparedSettlementDecoder().decode(preparedBytes),count=BigInt(rows.length);
-  const expected=JSON.parse(execFileSync('python3',['tests/financial/settlement_rpc_reference.py'],{
+  const expected=options.expected??JSON.parse(execFileSync('python3',['tests/financial/settlement_rpc_reference.py'],{
     input:JSON.stringify({rows,pools:header.pools,insurance:header.insurance},(_,value)=>typeof value==='bigint'?String(value):value),encoding:'utf8'
-  })).plan as Reference;
+  })).plan as SettlementReference;
   const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
   const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
   const pda=async(label:string,...suffix:Uint8Array[])=>(await getProgramDerivedAddress({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,

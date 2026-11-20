@@ -121,7 +121,7 @@ export async function verifyPopulatedOriginalRates(
     }
     assert.deepEqual(await readAll([setup.resolution,...members]),before.slice(0,members.length+1));
   }
-  return {pairSchedules,winnerProofs,foreignChargeCaps,budgetRows:expectedBudgets?.length??0,rows:accepted,denominatorContinuations:continuations,rateContinuations:verified.continuations,
+  return {prepared,rates:verified.rates,pages,limbs,pairSchedules,winnerProofs,foreignChargeCaps,budgetRows:expectedBudgets?.length??0,rows:accepted,denominatorContinuations:continuations,rateContinuations:verified.continuations,
     verifiedPrefixes:verified.observedPrefixes,rounds:verified.reference.evaluations.length,
     factorBits:BigInt(verified.reference.evaluations[0].proposal[0]).toString(2).length,
     originalRateBits:verified.reference.evaluations[0].proposal.slice(1).map(value=>BigInt(value).toString(2).length),

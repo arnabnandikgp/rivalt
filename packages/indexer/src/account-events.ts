@@ -8,6 +8,7 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['JointClaimsCopied',sdk.JOINT_CLAIMS_COPIED_EVENT_DISCRIMINATOR,sdk.getJointClaimsCopiedEventDecoder()],
   ['PagedRecoverySelectionBound',paged.PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,paged.getPagedRecoverySelectionBoundEventDecoder()],
   ['RecoverySelectionBound',sdk.RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,sdk.getRecoverySelectionBoundEventDecoder()],
   ['MultiLotBookVerified',sdk.MULTI_LOT_BOOK_VERIFIED_EVENT_DISCRIMINATOR,sdk.getMultiLotBookVerifiedEventDecoder()],
