@@ -682,6 +682,18 @@ RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-receiver bash ops/scalable
 RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-integrated bash ops/scalable-settlement-smoke.sh
 ```
 
+To measure ordinary payout on that same artifact, run each case separately.
+Each starts the settlement worker before the close, verifies its signed originals,
+withdraws the gain, and replays finalized history into a fresh SQL database.
+
+```sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-warm-payout bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-delayed-payout bash ops/scalable-settlement-smoke.sh
+```
+
+The second case interrupts collection after the worker persists its signed wire.
+Each run writes `ordinary-timing.json` under its ignored run directory.
+
 For the automatic recovery keeper, build its native selector on the same
 checkout. The acceptance command also builds it before running the worker.
 

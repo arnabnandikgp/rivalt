@@ -3816,3 +3816,44 @@ trader payment from finalized combined-build run `51123ea6`. Three focused
 settlement-worker tests passed, including separate contiguous checkpoint sets
 for an atomic final scan and payment, and TypeScript checking passed. This
 check reused signed originals. It establishes no new payout latency.
+
+### Ordinary close-to-wallet timing
+
+Harness `ddd4f36b` ran two independent eight-member Surfpool venues on combined
+SBF `5d7a7c0f`. In both, a trader bought one BTC lot at 60,002 and sold it to a
+different maker at 60,998. The close recorded a 996-atom claim. Two fees of 13
+left 970 atoms of net profit. Both backing certificates were complete before the
+close. The table uses the harness observation of close confirmation as time zero.
+
+| Confirmed observation | Pool funded before close | Collection delayed across restart |
+|---|---:|---:|
+| Pool had at least 996 atoms | Already present | +2.322 s |
+| Keeper reopened the same pending original | Continuously running | +2.277 s |
+| Claim paid into margin cash | +5.246 s | +7.611 s |
+| Net gain received in SPL wallet | +5.383 s | +7.790 s |
+| Events reproduced by fresh PostgreSQL replay | 334 | 329 |
+
+In the delayed case the pool held zero at close. The harness checked that the
+signed collection had never landed, stopped the worker, waited 1.5 s and
+reopened its PostgreSQL journal. The worker recovered the same signature and
+wire. In both cases it collected the outstanding maker loss and paid two gains
+in member order. The second payment cleared the trader's claim. The wallet and
+vault moved by exactly +970 and −970 atoms and the trader's funded cash returned
+to its opening balance.
+
+Each of the three worker originals cost the keeper 5,000 local test lamports.
+The close and withdrawal each cost the harness fee payer 10,000. The close used
+177,788 CU, the trader payment 91,116 CU and withdrawal 141,207 or 141,192 CU
+respectively. The measurements use one sample per case, local synthetic price
+updates, a 250 ms service loop and an immediately signed withdrawal. Setup and
+the preceding backing scan are outside the timing interval. Each original was
+independently fetched at finality and worker signatures were verified over WS.
+
+An optional atomic close-and-pay is worth prototyping for already-backed claims.
+Here the pool already held the full gain yet the trader waited another 5.246 s
+for the worker. Before exposing that path, demonstrate that the actual post-fill
+certificate, payout cap and pool cover the payment, preserve other creditors'
+entitlements, and measure the signed packet and CU. A stale certificate or
+insufficient funds must still allow an ordinary close with asynchronous payment.
+Changing the payment priority under scarce backing needs a separate economic
+decision. [Reproduction](local-development.md#reproduce-the-combined-clearing-lifecycle).

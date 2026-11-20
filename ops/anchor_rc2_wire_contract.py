@@ -143,7 +143,8 @@ def check_domains():
     # Private native continuation domains bind the frozen source and proposed charge vector.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
         r'Rivalt/multi-lot-charge-proposal/v1\0', r'Rivalt/whole-single-market-search/v1\0'})
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'search'})
+    # D139 uses distinct header markers for the fixed and paged payout receipts.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'RVPAGED1', 'search'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
