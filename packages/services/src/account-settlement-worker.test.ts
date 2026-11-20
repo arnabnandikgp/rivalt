@@ -1,5 +1,6 @@
 import {backingCheckpoint} from '../../sdk/src/backing-test-fixture.js';
 import {expect,it} from 'vitest';
+import {settlementInstructions} from './settlement-checkpoints.js';
 import {createNoopSigner,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
@@ -50,4 +51,29 @@ it.each([0n,1n])('persists final coverage with payment only for a payable cohort
   expect(authority).toEqual({kind:'accountStateVersion',venue,account:margin,value:root.stateVersion.toString()});
   for(const key of [test.custody,(await sdk.deriveVenueComponent(venue,'vault'))[0]])
     expect(instructions.slice(1).some(instruction=>instruction.accounts!.some(meta=>meta.address===key))).toBe(false);
+});
+
+// The on-chain guard consumes contiguous sibling instructions for each serial operation.
+it('refreshes every supplied market and ledger again for the payment after a backing scan',async()=>{
+  const fixture=await accountTradeFixture();
+  const venue=fixture.config.venue,markets=fixture.marketPdas.map(([key])=>key);
+  const ledgers=await Promise.all(markets.map(async market=>(await sdk.deriveMarketLedger(market))[0]));
+  const [safety]=await sdk.deriveVenueComponent(venue,'safety');
+  const {eventAuthority,registry}=await accountWorkerKeys(venue);
+  const snapshot={venue,safety,eventAuthority,markets,ledgers,marginLayout:'ledger-lanes' as const};
+  const [certificate]=await sdk.deriveSettlementCertificate(venue,0);
+  const common={...snapshot,registry,program:sdk.CLEARING_PROGRAM_ADDRESS,btc:markets[0],eth:markets[1],btcLedger:ledgers[0],ethLedger:ledgers[1]};
+  const scan=sdk.getCheckMarketBackingInstruction({...common,ledger:ledgers[0],certificate,restart:false,revision:1n});
+  const payment=sdk.getPayAccountGainInstruction({...common,actor:createNoopSigner(fixture.owner),margin:fixture.margins[0],certificate,marketIndex:0,amount:3n});
+  const limit=sdk.resolutionComputeBudget();
+  const prior=await settlementInstructions({...snapshot,marginLayout:undefined},limit,scan,payment);
+  expect(prior).toEqual([limit,scan,payment]);
+  const result=await settlementInstructions(snapshot,limit,scan,payment);
+  const fundingTag=sdk.hex(sdk.CHECKPOINT_MARKET_DISCRIMINATOR),feeTag=sdk.hex(sdk.CLASSIFY_MARKET_FEES_DISCRIMINATOR);
+  for(const instruction of result.slice(1).filter(instruction=>instruction!==scan&&instruction!==payment)) {
+    expect(instruction.accounts!.filter(meta=>meta.role!==0).map(meta=>meta.address)).toEqual([instruction.accounts![2].address]);
+  }
+  const observed=result.slice(1).map(ix=>ix===scan?'scan':ix===payment?'pay':[sdk.hex(ix.data!),ix.accounts![2].address]);
+  expect(observed).toEqual([[fundingTag,markets[0]],[feeTag,ledgers[0]],[fundingTag,markets[1]],'scan',
+    [fundingTag,markets[0]],[feeTag,ledgers[0]],[fundingTag,markets[1]],[feeTag,ledgers[1]],'pay']);
 });

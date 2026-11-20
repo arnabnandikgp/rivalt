@@ -322,3 +322,14 @@ individual recovery steps retain their 1.2M budget. Preflight and the
 on-chain resource limits still apply. The sponsor funds a 10,240-byte search
 account. Supported book shapes depend on the serialized histories, eligible
 pairs, packet size and compute cost. [Signed cases and limits](../operations/validation.md#recovery-selection-across-two-membership-pages).
+
+### Ordinary payout on the local parallel-ledger build
+
+The settlement worker identifies the market and ledger layout from the
+verified deployment in PostgreSQL. On the combined local build it reads the
+market, ledger and all three maker registrations in the same RPC snapshot.
+When it submits a loss collection, backing scan or gain payment, it includes
+the checkpoints for every market and ledger supplied to that instruction.
+If the final scan and payment share a transaction, the worker repeats the
+required checkpoints immediately before the payment. The reference for the
+on-chain check is [the parallel ledger contract](../clearing/accounts.md).

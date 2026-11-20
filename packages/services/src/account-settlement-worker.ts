@@ -3,6 +3,7 @@ import {address,type Address} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
+import {settlementInstructions} from './settlement-checkpoints.js';
 import {decodeAccountWorker} from './account-worker-state.js';
 
 const SCALE=1_000_000_000n;
@@ -46,9 +47,9 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
       if(amount>0n) {
         try {
           await runtime.enqueue(`keeper:loss:${snapshot.roots[margin].id}:${marketIndex}:${snapshot.roots[margin].stateVersion}`,
-            [sdk.routeComputeBudget(),sdk.getCollectAccountLossInstruction({...snapshot,
+            await settlementInstructions(snapshot,sdk.routeComputeBudget(),sdk.getCollectAccountLossInstruction({...snapshot,
               ...sdk.accountMarketMetas(snapshot.markets,[snapshot.roots[margin]],1<<marketIndex),
-              ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex),actor:key,margin,marketIndex,amount})],key,budget,
+              ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex),actor:key,margin,marketIndex,amount})),key,budget,
             {kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()},true);
           return {status:'queued',reason:'funded-account-loss'};
         } catch(error) {if(!(error instanceof Error&&error.message==='Risk action presently unavailable'))throw error;}
@@ -92,16 +93,16 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
         const payment=payOnCompletion?sdk.getPayAccountGainInstruction({...snapshot,actor:key,margin,certificate,marketIndex,amount,
           ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex)}):undefined;
         await runtime.enqueue(`keeper:proof:${marketIndex}:${proof.backingEpoch}:${registry.membershipEpoch}:${proof.revision}`,
-          [sdk.resolutionComputeBudget(),page,...(payment?[payment]:[])],key,budget,
+          await settlementInstructions(snapshot,sdk.resolutionComputeBudget(),page,...(payment?[payment]:[])),key,budget,
           payment?{kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()}:null,true);
         return {status:'queued',reason:payment?'atomic-backing-page-and-gain':'complete-market-backing-page'};
       }
       if(!status.payable)continue;
       const amount=accountClaimAmount(snapshot,margin,marketIndex,true);if(!amount)continue;
       await runtime.enqueue(`keeper:gain:${snapshot.roots[margin].id}:${marketIndex}:${snapshot.roots[margin].stateVersion}`,
-        [sdk.routeComputeBudget(),sdk.getPayAccountGainInstruction({...snapshot,
+        await settlementInstructions(snapshot,sdk.routeComputeBudget(),sdk.getPayAccountGainInstruction({...snapshot,
           ...sdk.accountMarketMetas(snapshot.markets,[snapshot.roots[margin]],(1<<marketIndex)|status.requiredMask),
-          ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex),actor:key,margin,certificate,marketIndex,amount})],key,budget,
+          ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex),actor:key,margin,certificate,marketIndex,amount})),key,budget,
         {kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()},true);
       return {status:'queued',reason:'certified-market-gain'};
     } catch(error) {if(!(error instanceof Error&&error.message==='Risk action presently unavailable'))throw error;}
