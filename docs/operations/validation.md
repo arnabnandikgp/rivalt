@@ -3753,8 +3753,22 @@ The 16 recovery-proof transactions used 1,965,510 CU in total and 80,000 local
 lamports in fees. The sponsor also posted 52,669,440 in rent. The full
 comparison used 1,221,755 CU in a 424-byte packet. Binding used 40,218 CU
 and 792 bytes. The peak comparison used 90.5% of the requested 1.35M CU.
-These are local measurements on this two-pass book. The separate
-2,548-schedule book reached binding, with terminal replay still pending.
+These are local measurements on this two-pass book.
+
+On `edf85cab` the separate nine-member case completed on the same SBF.
+The keeper resumed the proof, covered all 2,548 schedules and bound rank
+1,364. Recovery charges were 13 BTC-market and 12 ETH-market atoms.
+Insurance supplied 13 and one respectively. The second-page creditor held
+34,970 atoms of final cash and withdrew 4,996. Three makers withdrew
+29,981 in aggregate. The vault decreased by 34,977. Fresh PostgreSQL
+replay reproduced 134 events and reconciled the live accounts. The harness
+recorded 291 outcomes and 125 finalized worker transactions. Both isolated
+Anchor clients matched eight recovery instructions and two events.
+
+The 68 proof transactions, including binding, consumed 15,988,672 CU in total
+and 1,055,773 at peak. Binding consumed 41,209 CU. The largest packet was
+792 bytes. The sponsor spent 340,000 test lamports in proof fees and posted
+52,669,440 in rent.
 
 On `9b9894dc` a fresh local `efbaa02` clearing deployment froze nine Financial
 accounts after five signed fills. Member 8 was flat with a 4,996-atom BTC
@@ -3787,9 +3801,7 @@ The clearing-side conservation scan at `97063aa3` separately rejects omitted
 members, unbalanced reductions, a wrong insurance market and fee reallocation
 in a targeted native test.
 
-The recovery proof admits exactly eight members and the supported rate witnesses.
-The nine-member route workload qualified contention and the freeze boundary.
-Its terminal settlement is outside this proof. A sponsor supplied the exact
+The earlier combined-build proof admitted exactly eight members. Its nine-member route workload qualified contention and freeze. The separate paged clearing binary qualified the two nine-member payouts above. A sponsor supplied the exact
 proposal and witnesses in the original recovery run at `49a90358`. The automatic keeper covers the admitted profile. Recovering larger cohorts and establishing a sustained throughput limit remain open. P56 remains the selected local runtime.
 
 On harness `b026dcba` the funding, ordinary payout and receiver runs stopped
