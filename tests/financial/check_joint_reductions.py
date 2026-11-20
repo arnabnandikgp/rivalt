@@ -43,6 +43,13 @@ def witness(book, collections=None):
     return dict(rates=list(map(strings, rates)), orders=list(map(strings, orders)))
 
 
+def terminal_movements(book, payout):
+    """Signed claim cash movements and final market reserves, in collateral atoms."""
+    return dict(movements=[strings(row) for row in payout.claim_cash_movements],
+                remainingInsurance=strings([reserve - used for reserve, used in zip(book.insurance, payout.insurance_spent, strict=True)]),
+                retainedFees=strings(book.fees))
+
+
 def history_bytes(exposure, index):
     qty = exposure.lots[index]
     if not qty:

@@ -12,7 +12,7 @@ from clearing_network_reference import clear_atom_cohort
 from frozen_plan_selection import FrozenIdentity, select_joint
 from joint_reduction_model import Exposure, market_plans, evaluate
 from market_settlement_reference import MarketBook
-from check_joint_reductions import witness
+from check_joint_reductions import terminal_movements, witness
 from test_native_protected_receipts import protected_command
 from test_scalable_settlement import SCALE, decode, run
 
@@ -109,7 +109,7 @@ def compare(data):
             result = evaluate(book, search.baseline, legs)
             recovery = None if result is None else str(sum(result.recovered))
             coverage[str(rank)] = dict(witness=witness(adjusted,search.baseline.benchmark.collections),recovery=recovery)
-    return dict(coverage=coverage,radices=list(search.radices),witnesses=[witness(book), witness(effective, search.baseline.benchmark.collections)],ordinaryCash=balances(search.baseline), cash=balances(joint.payout), btcOnlyCash=balances(unprotected),
+    return dict(terminal=terminal_movements(book,joint.payout),coverage=coverage,radices=list(search.radices),witnesses=[witness(book), witness(effective, search.baseline.benchmark.collections)],ordinaryCash=balances(search.baseline), cash=balances(joint.payout), btcOnlyCash=balances(unprotected),
                 charges=joint.charges, assignments=search.size, btcOnlyRejected=native[1],
                 recovered=[str(value) for value in joint.recovered], insurance=joint.payout.insurance_spent)
 

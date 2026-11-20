@@ -37,6 +37,9 @@ pub struct RecoverySearch {
     pub score_num: i128,
     pub score_den: u128,
     pub cash: [u64; 8],
+    pub movements: [[i64; 2]; MEMBERS],
+    pub remaining_insurance: [u64; 2],
+    pub retained_fees: [u64; 2],
     pub original: RateWitness,
     #[max_len(8)]
     pub rows: Vec<SearchMember>,
@@ -257,6 +260,13 @@ pub fn propose(accounts: &mut AdvanceSearch, after: RateWitness) -> Result<()> {
     search.score_den = den.to_u128().ok_or(ProofError::Unsupported)?;
     search.priority =
         Priorities::verified(search, &receipt, &charges(&search.edges, search.proposed))?;
+    search.remaining_insurance = receipt.rounded.remaining_insurance;
+    search.retained_fees = receipt.rounded.retained_fees;
+    search.movements = receipt
+        .rounded
+        .movements
+        .try_into()
+        .map_err(|_| ProofError::Accounting)?;
     search.cash = receipt
         .rounded
         .cash
@@ -428,6 +438,70 @@ mod tests {
         }
     }
 
+    #[test]
+    fn budget_bounds_preserve_all_feasible_alternatives_even_across_digit_wraps() {
+        let rows = (4..6)
+            .map(|id| SearchMember {
+                id,
+                cash: 0,
+                claims: [0; 2],
+                lots: [0; 2],
+                histories: [[0; 256]; 2],
+            })
+            .collect();
+        let mut edge_list = edges(&[2, 2, 2]);
+        for (edge, (debtor, market)) in edge_list.iter_mut().zip([(4, 0), (4, 0), (5, 1)]) {
+            edge.debtor = debtor;
+            edge.market = market;
+        }
+        let mut budgets = [[0; 2]; MEMBERS];
+        budgets[0][0] = 2;
+        budgets[1][1] = 1;
+        let search = RecoverySearch {
+            rows,
+            edges: edge_list,
+            budgets,
+            prepared: Address::default(),
+            epoch: 1,
+            revision: 0,
+            proposed: 0,
+            count: 27,
+            cursor: 0,
+            stage: 3,
+            score_num: 0,
+            score_den: 1,
+            cash: [0; 8],
+            movements: [[0; 2]; 8],
+            remaining_insurance: [0; 2],
+            retained_fees: [0; 2],
+            original: Default::default(),
+            weights: [[0; 2]; MEMBERS],
+            priority: Default::default(),
+        };
+        let mut possible = Vec::new();
+        for first_btc in 0..=2 {
+            for second_btc in 0..=2 {
+                for eth in 0..=2 {
+                    possible.push(
+                        (first_btc + second_btc <= 2 && eth <= 1)
+                            .then_some(first_btc + second_btc + eth),
+                    );
+                }
+            }
+        }
+        for first in 0..possible.len() {
+            for last in first..possible.len() {
+                let actual = possible[first..=last].iter().copied().flatten().max();
+                let bound = bounded_recovery(&search, first as u128, last as u128).unwrap();
+                if let Some(achieved) = actual {
+                    assert!(bound.is_some_and(|upper| upper >= achieved));
+                }
+                if first == last {
+                    assert_eq!(bound, actual);
+                }
+            }
+        }
+    }
     #[test]
     fn two_full_u64_digits_exceed_the_representable_domain() {
         assert!(charge_upper_bound(&edges(&[u64::MAX, u64::MAX]), 0, u128::MAX).is_err());

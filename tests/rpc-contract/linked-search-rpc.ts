@@ -14,6 +14,7 @@ const dest=dir+'/search-'+phase;mkdirSync(dest);
 const input=JSON.parse(readFileSync(dir+'/search-input.json','utf8')) as {
   venue:Address;prepared:Address;resolution:Address;epoch:string;revision:string;members:Address[];
   comparison:{coverage:Record<string,{witness:Witness;recovery:string|null;beatsInferior?:boolean}>;radices:number[];
+    terminal:{movements:string[][];remainingInsurance:string[];retainedFees:string[]};
     tieTest?:{best:number;inferior:number;ranges:Record<string,number>};
     witnesses:Witness[];cash:Record<string,string>;assignments:number;charges:number[]}
 };
@@ -108,7 +109,14 @@ try{
         await h.send(name('seal verified financial winner'),[action('seal_search')]);
         const state=await raw();assert.equal(state[104],4);
         assert.equal(read128(state,88),BigInt(count));
-        assert.deepEqual(input.members.map((_,i)=>String(state.readBigUInt64LE(137+i*8))),input.members.map(id=>input.comparison.cash[id]));
+        const count=input.members.length, cashOffset=137, movementsOffset=cashOffset+8*count;
+        const insuranceOffset=movementsOffset+16*count;
+        assert.deepEqual(input.members.map((_,i)=>String(state.readBigUInt64LE(cashOffset+i*8))),input.members.map(id=>input.comparison.cash[id]));
+        const movements=input.members.map((_,i)=>[0,1].map(market=>String(state.readBigInt64LE(movementsOffset+16*i+8*market))));
+        assert.deepEqual(movements,input.comparison.terminal.movements);
+        const reserves=(offset:number)=>[0,1].map(market=>String(state.readBigUInt64LE(offset+8*market)));
+        assert.deepEqual(reserves(insuranceOffset),input.comparison.terminal.remainingInsurance);
+        assert.deepEqual(reserves(insuranceOffset+16),input.comparison.terminal.retainedFees);
       }else{
         assert(defeated);
         await refuse('outscored result stays unsealed',action('seal_search'),6005);

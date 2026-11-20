@@ -29,8 +29,10 @@ def comparison(data):
     expected_fills = [(debtor, winners[0], 0, 0, 60_002, 13), (debtor, winners[1], 1, 0, 30_002, 7)]
     if contested:
         expected_fills.append((debtor, second, 0, 0, 60_002, 13))
+    equal_winners = 'flatCounterparty' in data
+    flat_counterparty = by_key[data['flatCounterparty']] if equal_winners else winners[0]
     if flat:
-        expected_fills.extend([(other, winners[0], 0, 1, 64_998, 13), (other, winners[0], 0, 0, 60_002, 13)])
+        expected_fills.extend([(other, flat_counterparty, 0, 1, 64_998, 13), (other, flat_counterparty, 0, 0, 60_002, 13)])
     assert len(rows) == len(by_key) == 8
     lots = [[0, 0] for _ in rows]
     entries = [[None, None] for _ in rows]
@@ -66,9 +68,18 @@ def comparison(data):
     search = FrozenSearch(book,exposures,identity,bytes.fromhex(data['sourceDigest']))
     if contested:
         charges, shares = (13, 12), (19_978, 9_989)
-        allocations = ({winners[0]: 4, second: 9}, {winners[1]: 12})
+        if equal_winners:
+            earlier, later = sorted((winners[0], second), key=identity.order().index)
+            allocations = ({earlier: 7, later: 6}, {winners[1]: 12})
+        else:
+            allocations = ({winners[0]: 4, second: 9}, {winners[1]: 12})
         beneficiaries = (other, winners[0], second, winners[1])
-        ordinary, successor = (4993, 5003, 9995, 9990), (4996, 5002, 9993, 9990)
+        if equal_winners:
+            ordinary = (4993, 9997, 9997, 9990)
+            successor = (4996, 10002-allocations[0][winners[0]], 10002-allocations[0][second], 9990)
+            assert cash[flat_counterparty] == 1000000 and accounts[flat_counterparty].claims == (-4996,0)
+        else:
+            ordinary, successor = (4993, 5003, 9995, 9990), (4996, 5002, 9993, 9990)
     else:
         charges, share = ((5, 13), 9_988) if flat else ((3, 5), 9_996)
         allocations = ({winners[0]: charges[0]}, {winners[1]: charges[1]})
@@ -105,12 +116,12 @@ def comparison(data):
                 winnerCharges={rows[w]['key']: amount for allocation in allocations for w,amount in allocation.items()},
                 collections=shares, assignments=search.size)
     if contested and os.environ.get('RIVALT_FROZEN_PLAN_PROOF') == '1':
-        result.update(tied_comparison(book, exposures, search, identity, plan, winners[0], second))
+        result.update(tied_comparison(book, exposures, search, identity, plan, winners[0], second, equal_winners))
     return result
 
 
-def tied_comparison(book, exposures, search, identity, selected, first_winner, second_winner):
-    from check_joint_reductions import witness
+def tied_comparison(book, exposures, search, identity, selected, first_winner, second_winner, equal_winners):
+    from check_joint_reductions import terminal_movements, witness
     from frozen_plan_selection import _break_exact_ties
     from joint_reduction_model import evaluate, market_plans
     radices = search.radices
@@ -130,8 +141,10 @@ def tied_comparison(book, exposures, search, identity, selected, first_winner, s
         survivors[rank] = plan
     assert len(survivors) == 14
     best = next(rank for rank,plan in survivors.items() if plan.markets == selected.markets)
+    selected_split = tuple(selected.markets[0].winner_charges[maker] for maker in (first_winner,second_winner))
+    inferior_split = selected_split[::-1] if equal_winners else (5,8)
     inferior = next(rank for rank,plan in survivors.items() if
-                    (plan.markets[0].winner_charges[first_winner],plan.markets[0].winner_charges[second_winner]) == (5,8))
+                    (plan.markets[0].winner_charges[first_winner],plan.markets[0].winner_charges[second_winner]) == inferior_split)
     coverage = {}
     for rank,plan in survivors.items():
         better = _break_exact_ties([plan,survivors[inferior]], identity, book, exposures, search.baseline)
@@ -155,7 +168,7 @@ def tied_comparison(book, exposures, search, identity, selected, first_winner, s
             end += 1
         ranges[str(cursor)] = end
         cursor = end+1
-    return dict(coverage=coverage, radices=radices, witnesses=[witness(book)],
+    return dict(terminal=terminal_movements(book,selected.payout), coverage=coverage, radices=radices, witnesses=[witness(book)],
                 tieTest=dict(best=best,inferior=inferior,ranges=ranges))
 
 

@@ -141,3 +141,58 @@ pub fn episode_order(
     let (right, right_pairs) = ordered(challenger)?;
     Ok(compare_order(&left, &left_pairs, &right, &right_pairs))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn profile(recovery: [i128; 2], deviations: [i128; 2], lots: [u128; 2]) -> Priorities {
+        let integer = |numerator| StoredRatio {
+            numerator,
+            denominator: 1,
+        };
+        Priorities {
+            fractions: recovery.map(integer),
+            deviation: deviations.map(integer),
+            costs: lots.map(|value| [10, value]),
+        }
+    }
+
+    #[test]
+    fn market_balance_precedes_sharing_and_sharing_precedes_lots() {
+        let balanced = profile([5, 5], [2, 2], [3, 3]);
+        assert_eq!(
+            balanced.financial_order(&profile([4, 6], [0, 0], [1, 1])),
+            Some(Ordering::Greater)
+        );
+        assert_eq!(
+            balanced.financial_order(&profile([5, 5], [2, 3], [1, 1])),
+            Some(Ordering::Greater)
+        );
+        assert_eq!(
+            balanced.financial_order(&profile([5, 5], [2, 2], [3, 4])),
+            Some(Ordering::Greater)
+        );
+    }
+    #[test]
+    fn market_tradeoffs_never_reach_the_identity_tie_break() {
+        let original = profile([5, 5], [2, 2], [3, 3]);
+        assert_eq!(
+            original.financial_order(&profile([5, 5], [1, 3], [1, 1])),
+            None
+        );
+        assert_eq!(
+            original.financial_order(&profile([5, 5], [2, 2], [2, 4])),
+            None
+        );
+        assert_eq!(original.financial_order(&original), Some(Ordering::Equal));
+    }
+    #[test]
+    fn fractional_priorities_reduce_exactly_or_decline_the_book() {
+        let wide = num_bigint::BigUint::from(1u8) << 150u32;
+        let cap =
+            StoredRatio::pack(Ratio(num_bigint::BigInt::from(&wide * 3u8), &wide * 4u8)).unwrap();
+        assert_eq!((cap.numerator, cap.denominator), (3, 4));
+        assert!(StoredRatio::pack(Ratio(1.into(), wide)).is_err());
+    }
+}
