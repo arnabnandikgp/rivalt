@@ -3,7 +3,9 @@
 use anchor_lang::prelude::*;
 use clearing::state::accounts::{FrozenMarginPage, MarginAccount, PreparedSettlement, Resolution};
 use solana_sha256_hasher::hashv;
+mod kernel;
 mod source;
+use kernel::*;
 mod verify;
 declare_id!("92GA4Cm7NZq8GEwY5r7zLwdLeYLuQYa79Ut9f3gAQ8U7");
 
@@ -71,6 +73,16 @@ pub struct Seal {
 #[program]
 pub mod frozen_plan_probe {
     use super::*;
+    pub fn audit_settlement(
+        ctx: &mut Context<AuditSettlement>,
+        epoch: u64,
+        revision: u64,
+        phase: u8,
+        before: RateWitness,
+        after: RateWitness,
+    ) -> Result<[u64; 8]> {
+        kernel::audit(&ctx.accounts, epoch, revision, phase, before, after)
+    }
     pub fn begin(
         ctx: &mut Context<Begin>,
         _nonce: u64,

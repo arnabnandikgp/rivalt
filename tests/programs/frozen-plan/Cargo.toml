@@ -19,7 +19,7 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = { workspace = true }
-clearing = { path = "../../../programs/clearing", features = ["state-only", "single-pair-default-qualification"] }
+clearing = { path = "../../../programs/clearing", features = ["state-only", "foreign-creditor-qualification"] }
 default-plan-selection = { path = "../../../crates/default-plan-selection" }
-financial-core = { path = "../../../crates/financial-core" }
+financial-core = { path = "../../../crates/financial-core", features = ["sbf-settlement-measurement"] }
 solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }

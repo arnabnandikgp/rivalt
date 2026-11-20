@@ -8,6 +8,9 @@ fn canonical(account: &Address, seeds: &[&[u8]]) -> Result<()> {
 }
 impl Source {
     pub fn check(&self, epoch: u64) -> Result<()> {
+        self.check_stage(epoch, 4)
+    }
+    pub fn check_stage(&self, epoch: u64, stage: u8) -> Result<()> {
         let header = &self.prepared;
         let source = &self.resolution;
         canonical(
@@ -31,7 +34,7 @@ impl Source {
                 && source.venue == header.venue
                 && header.source == *source.address()
                 && header.source_revision == source.revision
-                && header.stage == 4
+                && header.stage == stage
                 && source.stage == 2
                 && header.count > 0
                 && header.count == source.count

@@ -239,6 +239,12 @@ try {
       assert.deepEqual(receipt.members,[debtor,makers[0].capital,otherTrader,makers[1].capital].map(key=>rows.find(row=>row.key===key)!.id));
       assert.deepEqual(receipt.legs.map(leg=>leg.matched),[1n,1n]);
       assert.deepEqual(await financialSnapshot(),beforeScoring);
+      if(process.env.RIVALT_FROZEN_PLAN_PROOF==='1') {
+        writeFileSync(directory+'/proof-kernel-input.json',json({venue:setup.venue,prepared:current.prepared,
+          resolution:setup.resolution,epoch:frozen.epoch,revision:prepared.revision,members,comparison}));
+        execFileSync(process.execPath,['--import','tsx','tests/rpc-contract/frozen-kernel-rpc.ts'],{stdio:'inherit'});
+        assert.deepEqual(await financialSnapshot(),beforeScoring);
+      }
       await journal.checkpoint('joint-foreign-creditors-certified-before-apply',true);
       process.env.RIVALT_DEFAULT_BATCH_STEPS='32';
       await worker.close();worker=await openWorker();

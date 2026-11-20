@@ -26,11 +26,11 @@ pub mod wide;
 // Native complete-kernel orchestration. These vector-backed schedules supply
 // arithmetic/rounding evidence, not on-chain pages or activation. P54B/P54C bind
 // the bounded steps to authenticated storage before any runtime can use them.
-#[cfg(not(target_os = "solana"))]
+#[cfg(any(not(target_os = "solana"), feature = "sbf-settlement-measurement"))]
 pub mod active;
-#[cfg(not(target_os = "solana"))]
+#[cfg(any(not(target_os = "solana"), feature = "sbf-settlement-measurement"))]
 pub mod number;
-#[cfg(not(target_os = "solana"))]
+#[cfg(any(not(target_os = "solana"), feature = "sbf-settlement-measurement"))]
 pub mod rounding;
-#[cfg(not(target_os = "solana"))]
+#[cfg(any(not(target_os = "solana"), feature = "sbf-settlement-measurement"))]
 pub mod settlement;

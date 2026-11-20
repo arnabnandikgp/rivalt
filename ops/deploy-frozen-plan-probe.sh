@@ -3,7 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-test "${RIVALT_SETTLEMENT_PROBE:-}" = profit-attribution-linked-contested
+case "${RIVALT_SETTLEMENT_PROBE:-}" in
+  profit-attribution-linked-contested|profit-attribution-foreign-winner-apply) ;;
+  *) exit 1 ;;
+esac
 test "$RIVALT_RPC_URL" = "http://127.0.0.1:$RIVALT_RPC_PORT"
 : "${RIVALT_RUN_DIR:?}"
 cargo build-sbf --manifest-path tests/programs/frozen-plan/Cargo.toml --tools-version v1.52 --arch v0 \

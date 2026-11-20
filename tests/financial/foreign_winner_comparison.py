@@ -89,7 +89,10 @@ def compare(data):
     assert joint.markets[0].pairs[0].winner == cross and joint.markets[1].pairs[0].winner == eth_maker
     def balances(plan):
         return {row['key']: str(amount) for row, amount in zip(rows, plan.cash, strict=True)}
-    return dict(ordinaryCash=balances(search.baseline), cash=balances(joint.payout), btcOnlyCash=balances(unprotected),
+    from check_joint_reductions import witness
+    effective = replace(book, accounts=tuple(Account(account.cash, tuple(market.claims[i] for market in joint.markets))
+                                              for i, account in enumerate(book.accounts)))
+    return dict(witnesses=[witness(book), witness(effective, search.baseline.benchmark.collections)],ordinaryCash=balances(search.baseline), cash=balances(joint.payout), btcOnlyCash=balances(unprotected),
                 charges=joint.charges, assignments=search.size, btcOnlyRejected=native[1],
                 recovered=[str(value) for value in joint.recovered], insurance=joint.payout.insurance_spent)
 
