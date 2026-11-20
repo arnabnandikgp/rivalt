@@ -117,7 +117,10 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-inventory-book-* ]]; then
       cargo build --locked --offline -p default-plan-selection --example single_lot_assignment
     fi
-    node --import tsx tests/rpc-contract/linked-default-recovery-rpc.ts ;;
+    node --import tsx tests/rpc-contract/linked-default-recovery-rpc.ts
+    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-* ]]; then
+      node --import tsx tests/rpc-contract/recovery-wire-conformance.ts "$RIVALT_RUN_DIR"
+    fi ;;
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;
   profit-attribution-recovery|profit-attribution-sponsor-recovery|profit-attribution-verified-pair|profit-attribution-verified-pair-limited|profit-attribution-btc-residual-*|profit-attribution-btc-allocation-*) node --import tsx tests/rpc-contract/btc-default-recovery-rpc.ts ;;
   profit-attribution) node --import tsx tests/rpc-contract/profit-attribution-rpc.ts ;;

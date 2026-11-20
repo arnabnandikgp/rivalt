@@ -176,6 +176,10 @@ try {
       assert.deepEqual(await h.read(common.prepared),header);
       await h.send('bind sealed joint search to frozen clearing',[bind(0)]);
       await h.send('refuse replay of the bound joint search',[bind(0)],[],sdk.CLEARING_ERROR__RESOLUTION);
+      const margin=makers[0].capital;
+      await h.send('refuse withdrawal before applying the sealed payout',[sdk.getWithdrawFundedAccountInstruction({
+        ...setup.common,btc:setup.markets[0],eth:setup.markets[1],owner:setup.owner,margin,quoteMint:setup.mint.address,
+        userToken:setup.token.address,guard:await guard(margin),amount:1n})],[setup.owner],sdk.CLEARING_ERROR__PROFILE);
       assert.deepEqual(await financialSnapshot(),beforeScoring);
       const bound=sdk.boundRecoveryReceipt(sdk.getPreparedSettlementDecoder().decode((await h.read(common.prepared))!));
       assert(bound);
