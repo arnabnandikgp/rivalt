@@ -23,7 +23,7 @@ export function projectedEntities(state:AccountState) {
 // Revision ownership follows physical account bytes. The three aggregate
 // fields in the public market view can advance on a maker-registration write.
 function storedFields(state:AccountState,key:string,logical:{revision:string}){
-  const cached=state.liquidity?.marketCheckpoints?.[key];
+  const cached=state.liquidity?.marketCheckpoints?.[key]??state.liquidity?.ledgerCheckpoints?.[key];
   return cached?{...logical,...cached}:logical;
 }
 

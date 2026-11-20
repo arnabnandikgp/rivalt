@@ -89,14 +89,14 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   requireValue(clockBytes.length === 40, 'Invalid funding Clock layout.');
   const clock = new DataView(clockBytes.buffer, clockBytes.byteOffset, clockBytes.byteLength);
   const slot = clock.getBigUint64(0, true), now = clock.getBigInt64(32, true);
-  if(marginLayout==='market-lanes'){
+  if((marginLayout==='market-lanes'||marginLayout==='ledger-lanes')){
     const marketBytes=fromBase64(accounts.get(market)!.data[0]);
     const registrations=registrationPdas.map(([key,bump])=>{
       const row=accounts.get(key);
       requireValue(row?.owner===clearing.CLEARING_PROGRAM_ADDRESS&&!row.executable&&row.data[1]==='base64','Missing funding checkpoint.');
       return {bytes:fromBase64(row!.data[0]),bump};
     });
-    marketState=marketFromExecutionLanes(market,marketBytes,registrations,slot,safetyState.mode===1);
+    marketState=marketFromExecutionLanes(market,marketBytes,registrations,slot,safetyState.mode===1,marginLayout==='ledger-lanes');
   }
   // RPC context orders reads; the authenticated Clock supplies report time/slot.
   // Surfpool 1.6.1 returns Clock.slot=context.slot+1 in the same batch. Do not

@@ -1,7 +1,7 @@
 // Explicit test intents. This deliberately permits constructing inadmissible
 // routes so real on-chain rejection/rollback can be exercised independently of
 // the production SDK allocator's filtering.
-import type { Address, TransactionSigner } from '@solana/kit';
+import type { Address, Instruction, TransactionSigner } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import type { liquidityExecutionSetup } from './liquidity-execution-setup.js';
 import type { CanonicalHarness } from './canonical-maker-cases.js';
@@ -36,11 +36,24 @@ export function executionTestHelpers(h: CanonicalHarness, setup: Setup) {
           shapeEpoch: config.shapeEpoch, depthEpoch: registered.depthEpoch };
       })) };
     if (input.stored) return sdk.getExecuteLiquidityOrderInstructionAsync({ ...shared, ...input.stored });
-    const buildRoute = input.liquidation ? sdk.getLiquidateLiquidityRouteInstructionAsync : input.marketLane?sdk.getExecuteMarketLaneInstructionAsync:sdk.getExecuteLiquidityRouteInstructionAsync;
+    const buildRoute = input.liquidation ? sdk.getLiquidateLiquidityRouteInstructionAsync : input.marketLane&&setup.identity.marginLayout==='ledger-lanes'?sdk.getExecuteLedgerLaneInstructionAsync:input.marketLane?sdk.getExecuteMarketLaneInstructionAsync:sdk.getExecuteLiquidityRouteInstructionAsync;
     return buildRoute({ ...shared, domain: setup.domain,
       termsEpoch: state.termsEpoch, configEpoch: state.configEpoch, side,
       allInLimit: input.allInLimit ?? (side === 0 ? 1_000_000_000n : 0n), maxFee: input.maxFee ?? 200_000n,
       reduceOnly: input.reduceOnly ?? false, generation: input.generation ?? null });
   };
-  return { root, guard, route };
+  const classify=(index:number)=>{
+    const [first,second,third]=setup.instances.slice(index*3,index*3+3).map(maker=>maker.registration);
+    return sdk.getClassifyMarketFeesInstruction({...setup.common,ledger:setup.ledgers[index],first,second,third});
+  };
+  async function withCheckpoints(instruction:Instruction){
+    const accounts=new Set(instruction.accounts?.map(meta=>meta.address));
+    const prefix:Instruction[]=[];
+    for(const index of [0,1] as const){
+      if(accounts.has(setup.markets[index]))prefix.push(await setup.checkpoint(index));
+      if(setup.identity.marginLayout==='ledger-lanes'&&accounts.has(setup.ledgers[index]))prefix.push(classify(index));
+    }
+    return [...prefix,instruction];
+  }
+  return { root, guard, route, classify, withCheckpoints };
 }

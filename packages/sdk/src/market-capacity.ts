@@ -1,5 +1,5 @@
 import {getAddressEncoder,getProgramDerivedAddress,type Address} from '@solana/kit';
-import {CLEARING_PROGRAM_ADDRESS,getMarketDecoder,getVenueDecoder,MARKET_DISCRIMINATOR,VENUE_DISCRIMINATOR} from './generated/index.js';
+import {CLEARING_PROGRAM_ADDRESS,getMarketDecoder,getMakerRegistrationDecoder,getVenueDecoder,MARKET_DISCRIMINATOR,VENUE_DISCRIMINATOR} from './generated/index.js';
 import {deriveAccountMarket,deriveAccountVenue} from './account-addresses.js';
 import {BASIS_POINTS,FUNDING_CAP_BPS,MAX_REFERENCE_PRICE} from './price-policy.js';
 import {decodeMakerFeeLane} from './market-fees.js';
@@ -7,7 +7,7 @@ import {fromBase64,requireValue,rpcInteger,type UserRpc} from './wallet-client.j
 
 const MAX_GROSS=200_000_000n;
 
-export function decodeCapacityAnchor(bytes:Uint8Array,checkedFunding=false){
+export function decodeCapacityAnchor(bytes:Uint8Array,checkedFunding:boolean|'ledger-lanes'=false){
   const decoder=getMarketDecoder(),prefix=decoder.fixedSize;
   requireValue(bytes.length===prefix+16+(checkedFunding?32:0)&&MARKET_DISCRIMINATOR.every((byte,index)=>bytes[index]===byte),'Invalid market capacity layout.');
   const tail=new DataView(bytes.buffer,bytes.byteOffset+prefix,16);
@@ -19,15 +19,15 @@ export function decodeCapacityAnchor(bytes:Uint8Array,checkedFunding=false){
 }
 
 /** Each input has already been identified by its canonical PDA in this market. */
-export function grossFromCapacity(marketKey:Address,marketBytes:Uint8Array,registrations:readonly Uint8Array[],checkedFunding=false){
+export function grossFromCapacity(marketKey:Address,marketBytes:Uint8Array,registrations:readonly Uint8Array[],checkedFunding:boolean|'ledger-lanes'=false){
   const anchor=decodeCapacityAnchor(marketBytes,checkedFunding);
   requireValue(registrations.length===3,'Incomplete market capacity.');
   const initialFree=MAX_GROSS-anchor.initialGross;
   let gross=MAX_GROSS;
   for(const [index,bytes] of registrations.entries()){
-    const {state}=decodeMakerFeeLane(bytes,checkedFunding?'checked-funding':true);
+    const {state}=decodeMakerFeeLane(bytes,checkedFunding==='ledger-lanes'?'ledger-lanes':checkedFunding?'checked-funding':true);
     requireValue(state.schemaVersion===10&&state.instance===index&&state.market===marketKey&&state.venue===anchor.market.venue,'Foreign capacity lane.');
-    const tail=new DataView(bytes.buffer,bytes.byteOffset+bytes.length-16-(checkedFunding?32:0),16);
+    const tail=new DataView(bytes.buffer,bytes.byteOffset+getMakerRegistrationDecoder().fixedSize+16,16);
     const generation=tail.getBigUint64(0,true),stored=tail.getBigUint64(8,true);
     requireValue(generation<=anchor.generation&&stored<=MAX_GROSS,'Invalid capacity generation or balance.');
     const free=generation!==0n&&generation===anchor.generation?stored:initialFree/3n+BigInt(BigInt(index)<initialFree%3n);
@@ -41,7 +41,7 @@ export function makerRegistrationPdas(market:Address){
     seeds:[new TextEncoder().encode('maker-v4'),getAddressEncoder().encode(market),Uint8Array.of(instance)]})));
 }
 
-export async function readMarketGross(rpc:Pick<UserRpc,'call'>,venue:Address,index:0|1,commitment:'confirmed'|'finalized'='finalized',checkedFunding=false){
+export async function readMarketGross(rpc:Pick<UserRpc,'call'>,venue:Address,index:0|1,commitment:'confirmed'|'finalized'='finalized',checkedFunding:boolean|'ledger-lanes'=false){
   const [market,marketBump]=await deriveAccountMarket(venue,index);
   const makers=await makerRegistrationPdas(market);
   const keys=[venue,market,...makers.map(([key])=>key)];
@@ -58,7 +58,7 @@ export async function readMarketGross(rpc:Pick<UserRpc,'call'>,venue:Address,ind
   requireValue(venueState.schemaVersion===10&&canonical===venue&&venueState.bump===bump&&venueState.markets[index]===market&&
     anchor.market.venue===venue&&anchor.market.index===index&&anchor.market.bump===marketBump,'Invalid market capacity identity.');
   const lanes=rows.slice(2);
-  requireValue(lanes.every((bytes,i)=>decodeMakerFeeLane(bytes,checkedFunding?'checked-funding':true).state.bump===makers[i][1]),'Invalid capacity lane bump.');
+  requireValue(lanes.every((bytes,i)=>decodeMakerFeeLane(bytes,checkedFunding==='ledger-lanes'?'ledger-lanes':checkedFunding?'checked-funding':true).state.bump===makers[i][1]),'Invalid capacity lane bump.');
   return {market,grossLots:grossFromCapacity(market,rows[1],lanes,checkedFunding),slot:rpcInteger(response.context.slot)};
 }
 
@@ -78,13 +78,13 @@ export function decodeFundingTouch(bytes:Uint8Array){
 /** Reconstruct the committed market from its authenticated account and all three
  * registrations from the same RPC context. The Clock only fences the read. */
 export function marketFromExecutionLanes(marketKey:Address,marketBytes:Uint8Array,
-  registrations:readonly {bytes:Uint8Array;bump:number}[],slot:bigint,active:boolean){
+  registrations:readonly {bytes:Uint8Array;bump:number}[],slot:bigint,active:boolean,ledgerLanes=false){
   const {market}=decodeCapacityAnchor(marketBytes,true);
   const rows=registrations.map(({bytes,bump})=>{
-    requireValue(decodeMakerFeeLane(bytes,'checked-funding').state.bump===bump,'Invalid execution lane bump.');
+    requireValue(decodeMakerFeeLane(bytes,ledgerLanes?'ledger-lanes':'checked-funding').state.bump===bump,'Invalid execution lane bump.');
     return bytes;
   });
-  const grossLots=grossFromCapacity(marketKey,marketBytes,rows,true);
+  const grossLots=grossFromCapacity(marketKey,marketBytes,rows,ledgerLanes?'ledger-lanes':true);
   const oracle=market.oracle;
   if(!active||oracle.heldEpoch!==market.configEpoch||oracle.heldUntil<=oracle.sampledAt)return {...market,grossLots};
   const maxPremium=MAX_REFERENCE_PRICE*1_000_000_000n*FUNDING_CAP_BPS/BASIS_POINTS;
@@ -94,8 +94,9 @@ export function marketFromExecutionLanes(marketKey:Address,marketBytes:Uint8Arra
     oracle.premiumScaled>=-maxPremium&&oracle.premiumScaled<=maxPremium,'Invalid funding window.');
   const materializations=new Map<bigint,bigint>();
   let latestSlot=-1n,through=oracle.sampledAt;
-  for(const bytes of [marketBytes,...rows]){
-    const stamp=decodeFundingTouch(bytes.subarray(-32));
+  const offset=getMakerRegistrationDecoder().fixedSize+32;
+  for(const bytes of [marketBytes.subarray(-32),...rows.map(row=>row.subarray(offset,offset+32))]){
+    const stamp=decodeFundingTouch(bytes);
     if(!stamp)continue;
     requireValue(stamp.slot<=slot&&stamp.config<=market.configEpoch&&stamp.observation<=market.observationSequence,'Future funding checkpoint.');
     if(stamp.config!==market.configEpoch||stamp.observation!==market.observationSequence)continue;

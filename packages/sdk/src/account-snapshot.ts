@@ -1,4 +1,5 @@
 import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
+import {ledgerFromExecutionLanes} from './ledger-lanes.js';
 import {decodeFeeLedger} from './market-fees.js';
 import {hasCapacityLayout,hasFundingLayout,hasFeeLayout,decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
 import {address,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
@@ -48,7 +49,8 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const liquidityDiscovery=liquidityMarketIndex===undefined?undefined:
     await discoverLiquidityAccounts(rpc,venue,markets[liquidityMarketIndex],commitment,identity.marginLayout);
   if(liquidityDiscovery) { makerDiscoverySlot=liquidityDiscovery.contextSlot;makerKeys.push(...liquidityDiscovery.keys); }
-  const checkpointPdas=identity.marginLayout==='market-lanes'?await Promise.all(markets.map(makerRegistrationPdas)):[];
+  const ledgerLanes=identity.marginLayout==='ledger-lanes';
+  const checkpointPdas=identity.marginLayout==='market-lanes'||ledgerLanes?await Promise.all(markets.map(makerRegistrationPdas)):[];
   for(const registrations of checkpointPdas)for(const [key] of registrations)makerKeys.push(key);
   const margins=[...new Set([...selectedMargins,...liquidityDiscovery?.capitals??[]])];
   const discovery=await rpc.call('getMultipleAccounts',[margins,{encoding:'base64',commitment,minContextSlot:Number(makerDiscoverySlot)}]);
@@ -83,12 +85,15 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(now>=0n,'Invalid snapshot clock.');
   const marketStates=markets.map((key,index)=>{
     const value=checkpointPdas[index]?marketFromExecutionLanes(key,raw(accounts.get(key)),
-      checkpointPdas[index].map(([address,bump])=>({bytes:raw(accounts.get(address)),bump})),slot,safetyState.mode===1):
+      checkpointPdas[index].map(([address,bump])=>({bytes:raw(accounts.get(address)),bump})),slot,safetyState.mode===1,ledgerLanes):
       hasCapacityLayout(identity.marginLayout)?decodeCapacityAnchor(raw(accounts.get(key)),hasFundingLayout(identity.marginLayout)).market:decode(accounts.get(key),protocol.MARKET_DISCRIMINATOR,protocol.getMarketDecoder());
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.index===index&&value.bump===marketPdas[index][1]&&
       value.lotsPerUnit===(index===0?1_000_000n:100_000n),'Market identity/units mismatch.');return value;
   });
-  const feeEscrow=hasFeeLayout(identity.marginLayout)?ledgers.map(key=>decodeFeeLedger(raw(accounts.get(key)))):undefined;
+  const feeEscrow=hasFeeLayout(identity.marginLayout)?ledgers.map((key,index)=>{
+    const escrow=decodeFeeLedger(raw(accounts.get(key)));
+    return ledgerLanes?ledgerFromExecutionLanes(escrow,checkpointPdas[index].map(([address,bump])=>({bytes:raw(accounts.get(address)),bump}))):escrow;
+  }):undefined;
   const ledgerStates=ledgers.map((key,index)=>{
     const value=feeEscrow?.[index].state??decode(accounts.get(key),protocol.MARKET_LEDGER_DISCRIMINATOR,protocol.getMarketLedgerDecoder());
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.market===markets[index]&&value.marketIndex===index&&value.bump===ledgerPdas[index][1]&&

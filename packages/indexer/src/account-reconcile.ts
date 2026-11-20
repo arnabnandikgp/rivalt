@@ -107,6 +107,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
   let minSlot:number|undefined,maxSlot=0;
   const checkedFunding=sdk.hasFundingCheckpoints(binding.artifactSet);
+  const ledgerLanes=binding.artifactSet===sdk.READ_ONLY_LEDGER_ARTIFACT_SET;
   const capacity=sdk.hasMarketCapacity(binding.artifactSet);
   const allocation=binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET;
   const linkedAllocation=binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET;
@@ -131,12 +132,12 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         } else if(sdk.hasAggregateFees(binding.artifactSet) && (entity.kind===7||entity.kind===15)) {
           assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])));
           const offset=descriptor[1];
-          assert.equal(bytes.length,offset+(entity.kind===7?24:checkedFunding?64:capacity?32:16),'fee lane account size');
+          assert.equal(bytes.length,offset+(entity.kind===7?24:ledgerLanes?192:checkedFunding?64:capacity?32:16),'fee lane account size');
           const lifetime=bytes.readBigUInt64LE(offset)+(bytes.readBigUInt64LE(offset+8)<<64n);
           const market=entity.kind===7?state.ledgers[key].market:state.liquidity!.makers[key].market;
           const fees=state.liquidity?.feeAccounting?.[market];
           assert.equal(String(lifetime),entity.kind===7?(fees?.classified??'0'):(fees?.lanes[key]??'0'),'finalized fee counter');
-          if(entity.kind===7)assert.equal(String(bytes.readBigUInt64LE(offset+16)),fees?.pending??'0','unclassified fees');
+          if(entity.kind===7&&!ledgerLanes)assert.equal(String(bytes.readBigUInt64LE(offset+16)),fees?.pending??'0','unclassified fees');
         } else {
           assert(descriptor&&bytes.length===(entity.kind===18&&sdk.isMultiLotArtifact(binding.artifactSet)?sdk.getMultiLotBookPageDecoder().fixedSize:entity.kind===18&&book?sdk.getInventoryBookPageDecoder().fixedSize:entity.kind===18&&linkedAllocation?sdk.getLinkedAllocationPageDecoder().fixedSize:entity.kind===18&&allocation?sdk.getBtcAllocationPageDecoder().fixedSize:descriptor[1])&&bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped layout ${key}`);
         }
@@ -160,12 +161,21 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         assert.equal(projected.grossLots,'0');
         continue;
       }
-      assert.equal(String(sdk.grossFromCapacity(address(market),raw(market),makers.map(([key])=>raw(key)),checkedFunding)),
+      assert.equal(String(sdk.grossFromCapacity(address(market),raw(market),makers.map(([key])=>raw(key)),ledgerLanes?'ledger-lanes':checkedFunding)),
         projected.grossLots,'bounded capacity versus finalized market gross');
+      if(ledgerLanes){
+        const [key,ledger]=Object.entries(state.ledgers).find(([,ledger])=>ledger.market===market)!;
+        const pdas=await sdk.makerRegistrationPdas(address(market));
+        const rows=makers.map(([key],i)=>{assert.equal(key,pdas[i][0]);return {bytes:raw(key),bump:pdas[i][1]};});
+        const logical=sdk.ledgerFromExecutionLanes(sdk.decodeFeeLedger(raw(key)),rows);
+        assert.deepEqual(accountFields(logical.state),ledger,'bounded ledger versus finalized financial effects');
+        assert.equal(String(logical.pendingFees),state.liquidity?.feeAccounting?.[market]?.pending??'0','bounded fee escrow');
+      }
       if(checkedFunding){
         const marketState=sdk.decodeCapacityAnchor(raw(market),true).market;
         const observation=marketState.oracle;
-        const stamps=[market,...makers.map(([key])=>key)].map(key=>sdk.decodeFundingTouch(raw(key).subarray(-32)));
+        const offset=sdk.getMakerRegistrationDecoder().fixedSize+32;
+        const stamps=[raw(market).subarray(-32),...makers.map(([key])=>raw(key).subarray(offset,offset+32))].map(sdk.decodeFundingTouch);
         let latest:ReturnType<typeof sdk.decodeFundingTouch>=null;
         const times=new Map<bigint,bigint>();
         for(const stamp of stamps){
@@ -209,7 +219,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   for(const [key,identity] of identities) {
     const actual=identity.decoder.decode(raw(key,identity.discriminator)) as {bump:number;vaultBump?:number};
     assert.equal(actual.bump,identity.bump,`Bump ${key}`);if(key===venue)assert.equal(actual.vaultBump,vaultBump);
-    const cached=state.liquidity?.marketCheckpoints?.[key];
+    const cached=state.liquidity?.marketCheckpoints?.[key]??state.liquidity?.ledgerCheckpoints?.[key];
     const expected=cached?{...identity.expected as object,...cached}:identity.expected;
     assert.deepEqual(accountFields(actual),expected,`Financial projection ${key}`);
   }

@@ -14,7 +14,7 @@ import {accountDefaultBatch,defaultBatchComputeBudget} from './account-default-b
 export const CANONICAL_DEFAULT_AUTOMATION_READY=true;
 
 export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receiver?:Address):Promise<AccountWorkerOutcome> {
-  if(runtime.deploymentSelection==='read-only-market-candidate')return {status:'blocked',reason:'market-lane-qualification-only'};
+  if(runtime.deploymentSelection==='read-only-market-candidate'||runtime.deploymentSelection==='read-only-ledger-candidate')return {status:'blocked',reason:'market-lane-qualification-only'};
   if(runtime.deploymentSelection==='funding-prefix-candidate')return {status:'blocked',reason:'funding-qualification-only'};
   const budget=await runtime.budget('risk',key);
   if(await runtime.pendingBudget(budget))return {status:'blocked',reason:'original-risk-intent-pending'};
