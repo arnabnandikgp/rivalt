@@ -2,6 +2,10 @@
 
 ## Read-only market on a signed fill
 
+The generated lock inventory contains both new instructions. Its 101 prior
+entries retain their original access sets. The check now covers 103 entrypoints
+across clearing and the two makers.
+
 SBF `10ab3b5`, 2,961,736 bytes, SHA-256
 `2e2aa670fc7e2aa318a4fb9bb7ee9db02f8f0f0ef517e0bab14f99fe8b21acac`.
 Harness `d45eae7` finalized 36 paired one-maker trades. With distinct payers and
