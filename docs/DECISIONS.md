@@ -1490,3 +1490,10 @@ and use them in the next instruction. Clearing enforces adjacency, the target
 market and the invocation level. The ordinary route continues to handle
 cross-market dependencies and capacity redistribution on the prototype.
 [Account contract](clearing/accounts.md#read-only-market-on-a-local-fill).
+
+Under D137/D138, the local ledger prototype attributes verified contribution
+changes to the first registration of the executing route. A member may use a
+different maker on its next fill. A complete bounded read sums the signed
+changes across the three registrations before applying them to the original
+ledger. Clearing checks that same set before classification, payment or freeze.
+[Account contract](clearing/accounts.md#read-only-ledger-on-a-local-fill).

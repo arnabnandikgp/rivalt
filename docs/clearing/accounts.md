@@ -830,3 +830,30 @@ earned funding only. A trader can sign checkpoints and the financial action
 together. Freeze consumes both checkpoints before capturing financial state.
 The [routing contract](../liquidity/routing.md#routes-with-a-read-only-market)
 describes when a fill can use the read-only path.
+
+### Read-only ledger on a local fill
+
+The explicitly selected `read-only-ledger-candidate` retains the 503-byte market
+and the 397-byte ledger. Each of the three maker registrations is 533 bytes.
+The additional 128 bytes record the ledger revision, number of fills, liability
+increments and fee atoms (four u64 values), followed by six signed i128 changes
+to the backing summary. These are the bad-account count, signed lots, positive
+and negative fixed claims, and two dependency counts. Membership stays with its
+margin account. Clearing computes each replacement from the actual old and new
+roots and attributes it to the first executing maker. A position can open and
+close on different makers. Signed changes from **all three** must be added before
+applying the result to the serial checkpoint, including its 192-bit claim totals.
+
+`execute_ledger_lane` retains the single-market route's financial admission.
+Its receipt records the maker's lifetime fees and its own pending fee amount.
+`classify_market_fees` folds the current generation of all three registrations
+and checks the full fee balance before crediting insurance. The ledger revision
+then advances, so a repeat cannot count the same fill twice. In Active mode,
+the funding and ledger checkpoints for every supplied dependency must immediately
+precede a serial consumer in the same invocation frame. This includes payment,
+withdrawal and freeze. Each market's checkpoints are permissionless.
+
+The SDK reads the market, ledger and canonical registrations in one RPC context.
+The indexer independently reconstructs backing changes from finalized root
+replacements, compares the physical account and complete logical totals, and
+attributes per-fill insurance in finalized block and transaction order.

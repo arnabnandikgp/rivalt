@@ -1,5 +1,43 @@
 # Validation and measured limits
 
+## Profit payment and parallel ledger reads
+
+The local `read-only-route-ledger` SBF came from clean `8bc01bb`, 3,023,024
+bytes, SHA-256 `6e0b3aa9e33eb79db214bb0cfb478d01a9e27bf27473624b34fece70e49d178e`.
+The stack-frame check, additive IDL/SDK comparison, 104-instruction lock
+inventory and two focused native backing cases passed. Each RPC check used
+the two pinned maker programs, real signatures and WS confirmations, a fresh
+PostgreSQL journal and independently refetched finalized account and token data.
+
+- `2697472` paired 36 fills, followed by a 50-lot open, a funded withdrawal
+  and complete freeze. All 359 signed outcomes and the 231-event database
+  replay completed. BTC and ETH fees for the pairs were 375 and 39 atoms.
+  The 50-lot open increased BTC fees by 601. The frozen insurance balances were
+  244 and 9 atoms. The last shell print failed when the launcher file changed
+  during execution. The financial verifier had already written its final result.
+  The retained database reproduced all 37 per-fill splits through the paginated
+  trades query with five rows per page.
+- `733490d` closed a BTC lot against a second maker for a 996-atom gain after
+  two 13-atom fees. Another maker's fill after the eight-account backing scan
+  changed the logical backing while leaving the physical ledger byte-identical.
+  Its positive, negative and signed lot totals matched the individual roots.
+  Clearing rejected both incomplete coverage and an omitted ledger checkpoint.
+  The closed gain moved to funded cash and the trader withdrew the expected 970
+  atoms from the SPL vault. All 332 signed outcomes and 315 replayed events passed.
+  Collection, proof and payout also ran on the preceding SBF `10ab3b5` at
+  harness `503e251`, with 331 signed outcomes and 270 replayed events.
+- `733490d` verified the ordinary cross-market fallback advances the sibling ETH
+  index from 4,999,999 to 5,555,555. BTC retained 6,111,110 across a 31-second
+  gap, accruing one second and skipping thirty. The two-maker reversal changed
+  the trader from +1 to −1 BTC lots and charged 24 atoms once. All 275 signed
+  outcomes and 113 replayed events passed.
+
+The dedicated probes are `profit-attribution-ledger-lanes`,
+`profit-attribution-ledger-payout` and `profit-attribution-ledger-funding` in
+`ops/scalable-settlement-smoke.sh`. A first payout test compared its rejected
+payment with a root from before membership certification. The corrected
+comparison uses the immediate predecessor bytes. [Costs and lock sets](performance.md#read-only-market-and-ledger).
+
 ## Read-only market on a signed fill
 
 The generated lock inventory contains both new instructions. Its 101 prior

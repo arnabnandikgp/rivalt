@@ -1,3 +1,4 @@
+import {ledgerTradeReceipts} from './ledger-trades.js';
 import Fastify from 'fastify';
 import {READ_ONLY_LEDGER_ARTIFACT_SET,READ_ONLY_MARKET_ARTIFACT_SET,hasAggregateFees,attributeFinalizedFee} from '@rivalt/sdk';
 import type {LiquidityIndexer} from './liquidity-indexer.js';
@@ -61,13 +62,8 @@ export function accountApi(indexer:LiquidityIndexer) {
         const tradeFilter=row.binding.artifactSet===READ_ONLY_MARKET_ARTIFACT_SET?
           "kind IN ('MarketLaneFilled','LiquidityRouteFeeRecorded')":`kind='${tradeKind}'`;
         const reconstructed=endpoint==='trades'&&row.binding.artifactSet===READ_ONLY_LEDGER_ARTIFACT_SET;
-        const ledgerTrades=`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload,prior::text FROM (
-          SELECT e.*,COALESCE(SUM((e.payload->>'fee')::numeric) OVER (PARTITION BY e.payload->>'market'
-            ORDER BY e.slot,t.transaction_index,e.outer_index,e.inner_index,e.ordinal ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) AS prior
-          FROM events e JOIN transactions t USING (run_id,signature) WHERE e.run_id=$1 AND e.sequence<=$4
-          AND e.kind IN ('LedgerLaneFilled','MarketLaneFilled','LiquidityRouteFeeRecorded')
-          ) ordered WHERE sequence>$2 ORDER BY ordered.sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`;
-        const result=await client.query(reconstructed?ledgerTrades:`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
+        const result=reconstructed?await ledgerTradeReceipts(client,indexer.config.runId,request.query.after??'0',request.query.limit??50,
+          row.state.sequence,request.query.latest):await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
           WHERE run_id=$1 AND sequence>$2 AND sequence<=$4 ${endpoint==='trades'?`AND ${tradeFilter}`:''}
           ORDER BY events.sequence ${request.query.latest?'DESC':'ASC'} LIMIT $3`,[indexer.config.runId,request.query.after??'0',request.query.limit??50,row.state.sequence]);
         await client.query('COMMIT');const items=request.query.latest?result.rows.reverse():result.rows;

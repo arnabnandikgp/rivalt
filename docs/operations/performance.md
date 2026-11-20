@@ -171,6 +171,27 @@ before each publication. The remaining ledger lock serializes all same-market
 fills. These paired receipts establish account access and per-transaction cost.
 They do not measure sustained throughput. [Financial checks](validation.md#read-only-market-on-a-signed-fill).
 
+### Read-only market and ledger
+
+On local clearing `8bc01bb`, two immediate fills from different traders and fee
+payers can consume different makers on BTC without a common writable address.
+The totals below come from finalized signed messages on Surfpool. Each pair was
+submitted together. Each of the three workloads had six pairs and twelve trades.
+
+| Workload | Common writable accounts per pair (#131 → this build) | CU per fill | Bytes / base fee per fill |
+|---|---|---:|---|
+| BTC, different makers | 1 → 0 | 159,100–173,756 | 846 / 5,000 lamports |
+| BTC, same maker | 3 → 2 (maker capital and registration) | 159,855–180,617 | 846 / 5,000 lamports |
+| BTC and ETH, different makers | 0 → 0 | 159,121–173,756 | 846 / 5,000 lamports |
+
+A shared trader or fee payer still serializes its own writes. The test measures
+account locks and costs on the local validator. Production capacity and
+priority-fee demand require a separate workload. Concurrent cold operations
+still lock the market or ledger. Checkpoint plus open-position withdrawal cost
+91,429 CU / 876 bytes, compared with 72,244 CU / 857 bytes on #131. Two-market
+insurance classification plus freeze cost 136,193 CU / 1,186 bytes. A two-maker
+position reversal consumed 207,091 CU / 1,110 bytes.
+
 ## Expanded quantity measurements (P49)
 
 Clean SBF `49c343e`, clean verifier `125a2b3`, same Anchor RC2/platform-tools v1.52,
