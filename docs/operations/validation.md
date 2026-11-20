@@ -3795,3 +3795,12 @@ proposal and witnesses in the original recovery run at `49a90358`. The automatic
 On harness `b026dcba` the funding, ordinary payout and receiver runs stopped
 during setup with filesystem `ENOSPC`. Their partial evidence was excluded. The successful cases above ran sequentially
 after removal of 24 approved, stopped test databases.
+
+### Ordinary settlement worker checkpoint parity
+
+On `73799a2b` the service builder reproduced instruction data and ordered
+account addresses for 39 backing scans, one maker loss collection and one
+trader payment from finalized combined-build run `51123ea6`. Three focused
+settlement-worker tests passed, including separate contiguous checkpoint sets
+for an atomic final scan and payment, and TypeScript checking passed. This
+check reused signed originals. It establishes no new payout latency.
