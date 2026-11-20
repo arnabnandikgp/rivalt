@@ -17,7 +17,13 @@ export const CHECKED_FUNDING_ARTIFACT_SET='funding-prefix-2da3e90';
 export const READ_ONLY_MARKET_ARTIFACT_SET='read-only-market-10ab3b5';
 export const READ_ONLY_LEDGER_ARTIFACT_SET='read-only-ledger-8bc01bb';
 export const INTEGRATED_RECOVERY_ARTIFACT_SET='integrated-recovery-5d7a7c0';
-export const hasLedgerLanes=(set?:string)=>set===READ_ONLY_LEDGER_ARTIFACT_SET||set===INTEGRATED_RECOVERY_ARTIFACT_SET;
+// The comparison identities select a decoder for replay. No runtime signer
+// or deployment selection accepts them as authority to operate a venue.
+export const DOMAIN_BASELINE_ARTIFACT_SET='financial-domains-before-84ef28f3';
+export const DOMAIN_EXTRACTED_ARTIFACT_SET='financial-domains-after-90d71835';
+const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET
+  ||set===DOMAIN_BASELINE_ARTIFACT_SET||set===DOMAIN_EXTRACTED_ARTIFACT_SET;
+export const hasLedgerLanes=(set?:string)=>set===READ_ONLY_LEDGER_ARTIFACT_SET||integratedLayout(set);
 export const hasMarketLanes=(set?:string)=>set===READ_ONLY_MARKET_ARTIFACT_SET||hasLedgerLanes(set);
 export const hasFundingCheckpoints=(set?:string)=>set===CHECKED_FUNDING_ARTIFACT_SET||hasMarketLanes(set);
 export const hasMarketCapacity=(set?:string)=>set===BOUNDED_MARKET_ARTIFACT_SET||hasFundingCheckpoints(set);
@@ -30,7 +36,7 @@ export const PARTIAL_INVENTORY_ARTIFACT_SET='partial-inventory-2256c51';
 export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY_ARTIFACT_SET || value===PARTIAL_INVENTORY_ARTIFACT_SET;
 export const PAGED_RECOVERY_ARTIFACT_SET='paged-recovery-37672622';
 export const RECOVERY_SEARCH_ARTIFACT_SET='recovery-search-efbaa02';
-export const hasJointRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===RECOVERY_SEARCH_ARTIFACT_SET||set===INTEGRATED_RECOVERY_ARTIFACT_SET;
+export const hasJointRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===RECOVERY_SEARCH_ARTIFACT_SET||integratedLayout(set);
 export const FOREIGN_CREDITOR_ARTIFACT_SET='foreign-creditor-d177cc5';
 export const LINKED_ALLOCATION_ARTIFACT_SET='linked-allocation-d0ae474';
 export const LINKED_FLAT_ARTIFACT_SET='linked-flat-30434d5';
