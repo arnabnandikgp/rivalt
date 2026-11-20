@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from check_joint_reductions import BINARY, comparison_books, original_input, proposal, signed_book
+from check_joint_reductions import BINARY, comparison_books, original_input, proposal, signed_book, witness
 from frozen_plan_selection import FrozenIdentity, IncomparableFinancialProfiles, select_joint
 from joint_reduction_model import evaluate, market_losses, market_plans, recovery_score
 from settlement_liquidation_model import terminal
@@ -78,7 +78,42 @@ def compare(book, exposures, epoch=1, ids=None, venue=bytes(32), source=None, ex
             index = invalid['search']['witnesses'].index(positive)
             invalid['search']['witnesses'][index]['effective']['rates'] = []
             assert 'error' in invoke(invalid)
-    return count, len(rows), len(scored), len(winners)
+    bounded = deepcopy(request)
+    # A valid lower bound is optional. A weaker proposal must lead to the same
+    # complete decision, including a refusal under a broken reflection.
+    bounded['search']['limit'] = str(2*count)
+    for hint in ([], result['selected'] or winners[0]):
+        bounded['search']['hint'] = hint
+        accelerated = invoke(bounded)
+        assert accelerated['selected'] == result['selected'] and sorted(accelerated['finalists']) == winners
+        assert int(accelerated['leaves'])+int(accelerated['pruned']) == count
+    bounded['search']['limit'] = str(int(accelerated['nodes'])-1)
+    pending = invoke(bounded)
+    assert pending['selected'] is None and pending['finalists'] is None
+    return count, len(rows), len(scored), len(winners), int(accelerated['nodes']), int(accelerated['leaves'])
+
+
+def large_joint():
+    size = 5_000_000_000
+    lots = size//100
+    book = MarketBook((Account(2,(-size-1,-size-1)),Account(0,(size,0)),Account(0,(0,size)),Account(0,(1,1))), frozen=True)
+    exposures = (Exposure(1000,(-lots,lots,0,0),(1000,900,None,None),(0,size,0,0)),
+                 Exposure(1000,(-lots,0,lots,0),(1000,None,900,None),(0,0,size,0)))
+    source = original_input(book,exposures,[10,20,30,40])
+    charges = [['0','10','20',str(size)],['1','10','30',str(size)]]
+    after = replace(book,accounts=(Account(2,(-1,-1)),Account(0,(0,0)),Account(0,(0,0)),Account(0,(1,1))))
+    effective = witness(after,terminal(book).benchmark.collections)
+    request=dict(source,charges=charges,effective=effective)
+    payment=invoke(request)
+    assert payment['cash']==['0','0','0','2'] and payment['recovered']==[[str(size),'1']]*2
+    request['search']=dict(limit='256',epoch='2',venue_hex=bytes(32).hex(),reflections=[],hint=charges,
+                           witnesses=[dict(charges=charges,effective=effective)])
+    result=invoke(request)
+    assert result['selected']==charges and int(result['combinations'])==(size+1)**2
+    assert int(result['leaves'])==1 and int(result['pruned'])==(size+1)**2-1
+    request['search']['witnesses'][0]['effective']['rates']=[]
+    assert 'error' in invoke(request)
+    return {key:result[key] for key in ('combinations','nodes','leaves','pruned')}
 
 
 if __name__ == '__main__':
@@ -93,7 +128,7 @@ if __name__ == '__main__':
             book = MarketBook((Account(4-debt, (-4,0)),Account(2,(-4,0)),Account(0,(4,0)),Account(0,(4,0))), frozen=True)
             btc = Exposure(100,(-1,-1,1,1),(100,100,100-gain,98),(0,0,gain,2))
             results.append(compare(book,(btc,inactive(4))))
-    print(json.dumps(dict(books=len(results),columns=['combinations','structural','admitted','bestRecovery'],results=results)))
+    print(json.dumps(dict(books=len(results),columns=['combinations','structural','admitted','bestRecovery','rangeNodes','rangeLeaves'],results=results,large=large_joint())))
 
     for filename in sys.argv[1:]:
         record, book, exposures, freeze, source = signed_book(Path(filename))

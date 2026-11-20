@@ -3,6 +3,7 @@
 //! A caller supplies rate/rounding witnesses, never the list of competitors.
 use crate::joint::{Charge, FrozenBook, Witness};
 mod priorities;
+mod ranges;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use financial_core::{Error, Result, SCALE};
@@ -10,6 +11,7 @@ use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::{One, Zero};
 pub use priorities::FrozenPriority;
+pub use ranges::{RangeCost, RangeCoverage};
 extern crate alloc;
 
 #[derive(Clone, Debug)]
@@ -72,6 +74,7 @@ impl RecoveryScore {
 }
 
 struct Edge {
+    capacity: clearing_accounting::attribution::FrozenCapacity,
     market: usize,
     debtor: usize,
     winner: usize,
@@ -110,37 +113,18 @@ impl FrozenBook<'_> {
                 at_least: combinations,
             });
         }
-        for market in 0..2 {
-            for (debtor, member) in self.members.iter().enumerate() {
-                let budget = baseline.budgets[debtor][market];
-                if budget == 0 || member.lots[market] == 0 {
-                    continue;
-                }
-                for (winner, opposite) in self.members.iter().enumerate() {
-                    if opposite.lots[market].signum() != -member.lots[market].signum() {
-                        continue;
-                    }
-                    let lots = opposite.lots[market]
-                        .unsigned_abs()
-                        .min(member.lots[market].unsigned_abs());
-                    let maximum = self.capacity(opposite, market, lots)?.eligible.min(budget);
-                    if maximum == 0 {
-                        continue;
-                    }
-                    combinations *= BigUint::from(maximum) + 1u8;
-                    if combinations > BigUint::from(limit) {
-                        return Ok(Coverage::OverBudget {
-                            at_least: combinations,
-                        });
-                    }
-                    edges.push(Edge {
-                        market,
-                        debtor,
-                        winner,
-                        maximum,
-                    });
-                }
+        let complete = self.visit_edges(&baseline, |edge| {
+            combinations *= BigUint::from(edge.maximum) + 1u8;
+            if combinations > BigUint::from(limit) {
+                return Ok(false);
             }
+            edges.push(edge);
+            Ok(true)
+        })?;
+        if !complete {
+            return Ok(Coverage::OverBudget {
+                at_least: combinations,
+            });
         }
         let mut digits = alloc::vec![0u64;edges.len()];
         let mut best = None::<RecoveryScore>;
@@ -184,17 +168,14 @@ impl FrozenBook<'_> {
                 finalists.push(charges);
             }
         }
-        let selected = if finalists.len() == 1 {
-            Some(finalists[0].clone())
-        } else {
-            priorities::select(self, &baseline, &edges, &finalists, priority, |charges| {
-                if charges.is_empty() {
-                    return self.verify_proposal(original, original, charges);
-                }
-                let target = witness(charges).ok_or(Error::Cohort)?;
-                self.verify_proposal(original, target, charges)
-            })?
-        };
+        let selected = self.selected(
+            original,
+            &baseline,
+            &edges,
+            &finalists,
+            priority,
+            &mut witness,
+        )?;
         Ok(Coverage::Complete {
             selected,
             combinations: count,
@@ -202,6 +183,66 @@ impl FrozenBook<'_> {
             admitted,
             finalists,
         })
+    }
+
+    fn selected<'w>(
+        &self,
+        original: Witness<'_>,
+        baseline: &crate::joint::Receipt,
+        edges: &[Edge],
+        finalists: &[Vec<Charge>],
+        priority: FrozenPriority<'_>,
+        witness: &mut impl FnMut(&[Charge]) -> Option<Witness<'w>>,
+    ) -> Result<Option<Vec<Charge>>> {
+        Ok(if finalists.len() == 1 {
+            Some(finalists[0].clone())
+        } else {
+            priorities::select(self, baseline, edges, finalists, priority, |charges| {
+                if charges.is_empty() {
+                    return self.verify_proposal(original, original, charges);
+                }
+                let target = witness(charges).ok_or(Error::Cohort)?;
+                self.verify_proposal(original, target, charges)
+            })?
+        })
+    }
+
+    fn visit_edges(
+        &self,
+        baseline: &crate::joint::Receipt,
+        mut visit: impl FnMut(Edge) -> Result<bool>,
+    ) -> Result<bool> {
+        for market in 0..2 {
+            for (debtor, member) in self.members.iter().enumerate() {
+                let budget = baseline.budgets[debtor][market];
+                if budget == 0 || member.lots[market] == 0 {
+                    continue;
+                }
+                for (winner, opposite) in self.members.iter().enumerate() {
+                    if opposite.lots[market].signum() != -member.lots[market].signum() {
+                        continue;
+                    }
+                    let lots = opposite.lots[market]
+                        .unsigned_abs()
+                        .min(member.lots[market].unsigned_abs());
+                    let capacity = self.capacity(opposite, market, lots)?;
+                    let maximum = capacity.eligible.min(budget);
+                    if maximum == 0 {
+                        continue;
+                    }
+                    if !visit(Edge {
+                        capacity,
+                        market,
+                        debtor,
+                        winner,
+                        maximum,
+                    })? {
+                        return Ok(false);
+                    }
+                }
+            }
+        }
+        Ok(true)
     }
 
     fn candidate(
@@ -233,14 +274,13 @@ impl FrozenBook<'_> {
                 ..
             } = edge;
             let available = inventory[winner][market].min(inventory[debtor][market]);
-            let terms = self.capacity(&self.members[winner], market, available)?;
-            if atoms > remaining[debtor][market]
-                || i128::from(atoms) > faces[winner][market]
-                || atoms > terms.eligible
-            {
+            if atoms > remaining[debtor][market] || i128::from(atoms) > faces[winner][market] {
                 return Ok(None);
             }
-            let lots = terms.schedule(atoms)?.matched;
+            let lots = edge.capacity.schedule(atoms)?.matched;
+            if lots > available {
+                return Ok(None);
+            }
             inventory[winner][market] -= lots;
             inventory[debtor][market] -= lots;
             faces[winner][market] -= i128::from(atoms);

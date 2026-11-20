@@ -27,6 +27,7 @@ struct Input {
 }
 #[derive(Deserialize)]
 struct Search {
+    hint: Option<Vec<[String; 4]>>,
     venue_hex: String,
     epoch: String,
     reflections: Vec<Vec<usize>>,
@@ -174,6 +175,23 @@ fn run(input: Input) -> Result<Value, String> {
                 })
                 .collect::<Vec<_>>()
         };
+        if let Some(hint) = search.hint {
+            let result = book
+                .cover_ranges(
+                    input.original.parse()?.witness(),
+                    &decode_charges(&hint)?,
+                    decimal(&search.limit)?,
+                    priority,
+                    |charges| witnesses.get(charges).map(RatesAndOrders::witness),
+                )
+                .map_err(|e| format!("{e:?}"))?;
+            return Ok(
+                json!({"combinations":result.combinations.to_string(),"nodes":result.cost.nodes.to_string(),
+                "leaves":result.cost.leaves.to_string(),"verified":result.cost.verified.to_string(),
+                "pruned":result.cost.pruned.to_string(),"selected":result.selected.map(wire),
+                "finalists":result.finalists.map(|plans|plans.into_iter().map(wire).collect::<Vec<_>>())}),
+            );
+        }
         let result = book
             .recovery_frontier(
                 input.original.parse()?.witness(),

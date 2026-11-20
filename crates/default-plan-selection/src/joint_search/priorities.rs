@@ -231,14 +231,7 @@ fn reflected(
     }))
 }
 
-pub(super) fn select(
-    book: &FrozenBook<'_>,
-    baseline: &Receipt,
-    edges: &[Edge],
-    choices: &[Vec<Charge>],
-    priority: FrozenPriority<'_>,
-    mut verify: impl FnMut(&[Charge]) -> Result<Receipt>,
-) -> Result<Option<Vec<Charge>>> {
+pub(super) fn weights(book: &FrozenBook<'_>, edges: &[Edge]) -> Result<Vec<[u64; 2]>> {
     let mut pairable = vec![[0u64; 2]; book.members.len()];
     for edge in edges {
         let lots = &mut pairable[edge.winner][edge.market];
@@ -246,8 +239,7 @@ pub(super) fn select(
             .saturating_add(book.members[edge.debtor].lots[edge.market].unsigned_abs())
             .min(book.members[edge.winner].lots[edge.market].unsigned_abs());
     }
-    let weights = book
-        .members
+    book.members
         .iter()
         .zip(pairable)
         .map(|(member, lots)| {
@@ -256,7 +248,18 @@ pub(super) fn select(
                 book.capacity(member, 1, lots[1])?.eligible,
             ])
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect()
+}
+
+pub(super) fn select(
+    book: &FrozenBook<'_>,
+    baseline: &Receipt,
+    edges: &[Edge],
+    choices: &[Vec<Charge>],
+    priority: FrozenPriority<'_>,
+    mut verify: impl FnMut(&[Charge]) -> Result<Receipt>,
+) -> Result<Option<Vec<Charge>>> {
+    let weights = weights(book, edges)?;
     let mut order: Vec<_> = (0..book.members.len()).collect();
     order.sort_by_key(|&ordinal| {
         let id = book.members[ordinal].id;
