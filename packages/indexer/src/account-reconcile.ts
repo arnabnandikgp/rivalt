@@ -107,7 +107,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
   let minSlot:number|undefined,maxSlot=0;
   const checkedFunding=sdk.hasFundingCheckpoints(binding.artifactSet);
-  const ledgerLanes=binding.artifactSet===sdk.READ_ONLY_LEDGER_ARTIFACT_SET;
+  const ledgerLanes=sdk.hasLedgerLanes(binding.artifactSet);
   const capacity=sdk.hasMarketCapacity(binding.artifactSet);
   const allocation=binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET;
   const linkedAllocation=binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET;

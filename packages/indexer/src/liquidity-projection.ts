@@ -46,7 +46,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
       fields(value,['venue','market','capital','owner','pricingProgram','programData','config','price','instance']),'immutable canonical maker');
     liquidity.makers[canonical]=accountFields<sdk.MakerRegistration>(value);
   };
-  const ledgerLanes=artifactSet===sdk.READ_ONLY_LEDGER_ARTIFACT_SET;
+  const ledgerLanes=sdk.hasLedgerLanes(artifactSet);
   switch(event.type) {
     case 'LiquidityRegistryChangedV4': {
       const value=change.state;

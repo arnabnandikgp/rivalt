@@ -1,6 +1,6 @@
 import {ledgerTradeReceipts} from './ledger-trades.js';
 import Fastify from 'fastify';
-import {READ_ONLY_LEDGER_ARTIFACT_SET,READ_ONLY_MARKET_ARTIFACT_SET,hasAggregateFees,attributeFinalizedFee} from '@rivalt/sdk';
+import {hasLedgerLanes,READ_ONLY_MARKET_ARTIFACT_SET,hasAggregateFees,attributeFinalizedFee} from '@rivalt/sdk';
 import type {LiquidityIndexer} from './liquidity-indexer.js';
 import {publishedSnapshot} from './store.js';
 
@@ -61,7 +61,7 @@ export function accountApi(indexer:LiquidityIndexer) {
         const tradeKind=aggregate?'LiquidityRouteFeeRecorded':'LiquidityRouteExecutedV4';
         const tradeFilter=row.binding.artifactSet===READ_ONLY_MARKET_ARTIFACT_SET?
           "kind IN ('MarketLaneFilled','LiquidityRouteFeeRecorded')":`kind='${tradeKind}'`;
-        const reconstructed=endpoint==='trades'&&row.binding.artifactSet===READ_ONLY_LEDGER_ARTIFACT_SET;
+        const reconstructed=endpoint==='trades'&&hasLedgerLanes(row.binding.artifactSet);
         const result=reconstructed?await ledgerTradeReceipts(client,indexer.config.runId,request.query.after??'0',request.query.limit??50,
           row.state.sequence,request.query.latest):await client.query(`SELECT sequence::text,signature,slot::text,block_time::text,kind,payload FROM events
           WHERE run_id=$1 AND sequence>$2 AND sequence<=$4 ${endpoint==='trades'?`AND ${tradeFilter}`:''}

@@ -18,10 +18,11 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const ledgerLanes=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-lanes';
+const integrated=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-lanes';
+const ledgerLanes=integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-lanes';
 const lane=ledgerLanes||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-market-lanes';
 const aggregate=lane||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-fee-lanes';
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,ledgerLanes?'ledger':lane?'lane':aggregate?'fees':'multi');
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,integrated?'integrated':ledgerLanes?'ledger':lane?'lane':aggregate?'fees':'multi');
 const payers=new Map<string,Keypair>();
 let broadcast:((label:string)=>Promise<void>)|undefined;
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{

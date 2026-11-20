@@ -85,7 +85,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if(runtime.deploymentSelection==='recovery-search-candidate' && prepared.stage===4)
+    if((runtime.deploymentSelection==='recovery-search-candidate'||runtime.deploymentSelection==='integrated-recovery-candidate') && prepared.stage===4)
       return blocked('recovery-search-pending');
     if((book||['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate'].includes(runtime.deploymentSelection)) && prepared.stage===4) {
       const members:FrozenMember[]=[];

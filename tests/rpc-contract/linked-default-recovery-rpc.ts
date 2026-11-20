@@ -25,7 +25,8 @@ const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).tr
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-allocation-linked';
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
-const ownedCross=probe==='profit-attribution-owned-cross', ownedTie=probe==='profit-attribution-owned-tie';
+const integrated=probe==='profit-attribution-owned-integrated';
+const ownedCross=integrated||probe==='profit-attribution-owned-cross', ownedTie=probe==='profit-attribution-owned-tie';
 const owned=ownedCross||ownedTie;
 const expandedBook=probe==='profit-attribution-inventory-book-expanded-apply';
 const bookApply=expandedBook||probe==='profit-attribution-inventory-book-apply';
@@ -46,18 +47,18 @@ const allocationProfile = probe === 'profit-attribution-linked-allocation';
 const contested = ownedTie || allocationProfile || probe === 'profit-attribution-linked-contested';
 const flatCreditor = contested || probe === 'profit-attribution-linked-flat' || probe === 'profit-attribution-linked-flat-apply';
 const linked = contested || probe === 'profit-attribution-linked-apply' || probe === 'profit-attribution-linked-flat-apply';
-const selection = owned?'recovery-search-candidate':expandedBook?'book-capacity-candidate':bookApply?'book-inventory-candidate':partialApply?'partial-inventory-candidate':sharedApply?'shared-inventory-candidate':foreignApply?'foreign-creditor-candidate':allocationProfile||foreignGate ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
+const selection = integrated?'integrated-recovery-candidate':owned?'recovery-search-candidate':expandedBook?'book-capacity-candidate':bookApply?'book-inventory-candidate':partialApply?'partial-inventory-candidate':sharedApply?'shared-inventory-candidate':foreignApply?'foreign-creditor-candidate':allocationProfile||foreignGate ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
   gated ? 'btc-allocation-candidate' : 'profit-attribution-candidate';
-const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,owned?'owned':expandedBook?'capacity':bookApply?'book':partialApply?'partial':sharedApply?'shared':foreignApply?'foreign':allocationProfile||foreignGate ? 'allocation' : linked && flatCreditor ? 'flat' : linked);
+const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,integrated?'integrated':owned?'owned':expandedBook?'capacity':bookApply?'book':partialApply?'partial':sharedApply?'shared':foreignApply?'foreign':allocationProfile||foreignGate ? 'allocation' : linked && flatCreditor ? 'flat' : linked);
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,
   {deferFinality:true,heapSize:label=>label.includes('joint search')?256*1024:undefined,computeUnitLimit:()=>1_000_000});
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
-  const setup = await liquidityExecutionSetup(h,rpc,{marginLayout:owned||bookApply||gated||linked||foreignGate||foreignApply||sharedApply?'sponsored-profit':'profit-attribution',
+  const setup = await liquidityExecutionSetup(h,rpc,{marketCheckpoints:integrated,marginLayout:integrated?'ledger-lanes':owned||bookApply||gated||linked||foreignGate||foreignApply||sharedApply?'sponsored-profit':'profit-attribution',
     shape:symmetricPayoutShape,traderCount:partialInventory||populationBook?3:2, traderCash:populationBook?20_011n:zeroDebtorBudget?20_013n:partialInventory?20_000n:sharedInventory?20_010n:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
-  const {guard,route,root} = executionTestHelpers(h,setup);
+  const {guard,route,root,classify} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = foreignBook?[setup.roots[1],setup.roots[0]]:setup.roots;
   const makers = populationBook?setup.instances.slice(0,3):[setup.instances[partialInventory?1:0], setup.instances[sharedInventory?2:3]];
   const sources = {primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
@@ -101,12 +102,20 @@ try {
   setup.sourcePrices.btc = sharedInventory||foreignBook?40_000_000_000n:50_000_000_000n;
   setup.sourcePrices.eth = sharedInventory?3_000_000_000n:foreignBook?1_250_000_000n:2_000_000_000n;
   await setup.freshSources();
-  await h.send(sharedInventory?'freeze the first of two insolvent BTC debtors':foreignBook?'freeze the insolvent isolated BTC debtor':'freeze a cross debtor with both BTC and ETH losses',[sdk.getFreezeAccountsInstruction({...setup.safetyCommon,...sources,
+  const freeze=sdk.getFreezeAccountsInstruction({...setup.safetyCommon,...sources,
     caller:setup.payer,target:debtor,members:(await sdk.deriveMemberPage(setup.venue,(await root(debtor)).id/64n))[0],
-    safetyEpoch:(await safety()).epoch,resolutionEpoch:(await resolution()).epoch,emergency:false})]);
+    safetyEpoch:(await safety()).epoch,resolutionEpoch:(await resolution()).epoch,emergency:false});
+  const checkpoint=integrated?await Promise.all(([0,1] as const).map(setup.checkpoint)):[];
+  if(integrated)await h.send('refuse unclassified fees at freeze',[...checkpoint,freeze],[],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
+  await h.send(sharedInventory?'freeze the first of two insolvent BTC debtors':foreignBook?'freeze the insolvent isolated BTC debtor':'freeze a cross debtor with both BTC and ETH losses',integrated?[classify(0),classify(1),...checkpoint,freeze]:[freeze]);
   await flush();
   const frozen = await resolution();
   assert.deepEqual(frozen.prices,sharedInventory?[40_000n,30_000n]:foreignBook?[40_000n,12_500n]:[50_000n,20_000n]);
+  if(integrated) {
+    // Signed fills collected 13 and 11 atoms on BTC, 13 on ETH before the freeze.
+    assert.deepEqual(frozen.insuranceBefore,[6n,3n]);
+    assert.deepEqual(frozen.feesBefore,[18n,10n]);
+  }
   const members = await financialRoots(h,setup.venue,setup.registry);
   const rows = await Promise.all(members.map(async key=>{
     const {root:value,positions:basis} = sdk.decodeProfitAttribution((await h.read(key))!,owned||bookApply||gated||linked||foreignGate||foreignApply||sharedApply);

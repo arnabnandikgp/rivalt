@@ -4,7 +4,7 @@ import {address} from '@solana/kit';
 import {multiLotBookPlan} from '@rivalt/sdk/multi-lot-book';
 import {isMultiLotArtifact} from '@rivalt/sdk';
 import {inventoryBookPlan,twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
-import {isBookInventoryArtifact,isSharedInventoryArtifact,RECOVERY_SEARCH_ARTIFACT_SET,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
+import {isBookInventoryArtifact,isSharedInventoryArtifact,hasJointRecovery,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -20,7 +20,7 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
   if(event.type==='RecoverySelectionBound') {
-    accountCheck(artifactSet===RECOVERY_SEARCH_ARTIFACT_SET && current.stage===2 && !current.boundRecovery,'unique sealed recovery');
+    accountCheck(hasJointRecovery(artifactSet) && current.stage===2 && !current.boundRecovery,'unique sealed recovery');
     const {search,schedule,schedulesChecked,chargeAtoms,insuranceSpent,memberIds,claimDeltas,movements,finalCash}=change;
     eq(current.count,'8','complete eight-member recovery');
     eq(memberIds,state.members.map(key=>state.roots[key].id).sort((a,b)=>BigInt(a)<BigInt(b)?-1:1),'complete original IDs');
