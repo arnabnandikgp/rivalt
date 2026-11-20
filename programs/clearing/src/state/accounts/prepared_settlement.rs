@@ -69,6 +69,10 @@ pub struct FrozenMargin {
     pub lot_rate:[u64;2],
     #[cfg(feature = "book-inventory-qualification")]
     pub book_charge:u64,
+    /// Exact whole-atom charge per lot for BTC and ETH over the frozen quantity.
+    /// Each pair is a numerator and denominator. The original claim also caps the charge.
+    #[cfg(feature = "partitioned-recovery-inputs")]
+    pub recovery_lot_rates: [[u64; 2]; 2],
 }
 #[cfg(feature = "paged-recovery-qualification")]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, IdlType)]

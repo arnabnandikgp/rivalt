@@ -148,6 +148,8 @@ pub(crate) fn value_member(
         lot_rate:[0,1],
         #[cfg(feature = "book-inventory-qualification")]
         book_charge:0,
+        #[cfg(feature = "partitioned-recovery-inputs")]
+        recovery_lot_rates: [[0, 1]; 2],
     };
     page.row_count += 1;
     header.state.valuation = valuation.checkpoint();
