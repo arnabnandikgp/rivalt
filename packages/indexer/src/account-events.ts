@@ -1,3 +1,4 @@
+import * as paged from '@rivalt/sdk/paged-recovery';
 import * as sdk from '@rivalt/sdk';
 import {eventPayloads, json, PROGRAM, type JournalEvent} from './events.js';
 import {scopedInvocations, decodeTransition, type ScopedInvocation} from './scoped-events.js';
@@ -7,6 +8,7 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['PagedRecoverySelectionBound',paged.PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,paged.getPagedRecoverySelectionBoundEventDecoder()],
   ['RecoverySelectionBound',sdk.RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,sdk.getRecoverySelectionBoundEventDecoder()],
   ['MultiLotBookVerified',sdk.MULTI_LOT_BOOK_VERIFIED_EVENT_DISCRIMINATOR,sdk.getMultiLotBookVerifiedEventDecoder()],
   ['InventoryBookVerified',sdk.INVENTORY_BOOK_VERIFIED_EVENT_DISCRIMINATOR,sdk.getInventoryBookVerifiedEventDecoder()],

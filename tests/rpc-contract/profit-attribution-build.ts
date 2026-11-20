@@ -1,8 +1,9 @@
 import {accountDeployment,type AccountDeployment} from '@rivalt/sdk';
 import {BACKING_ARTIFACTS,verifyTestBuild} from './backing-artifacts.js';
 
-type Linked = boolean|'integrated'|'owned'|'flat'|'allocation'|'foreign'|'shared'|'partial'|'book'|'capacity'|'multi'|'fees'|'market'|'funding'|'lane'|'ledger';
+type Linked = boolean|'paged'|'integrated'|'owned'|'flat'|'allocation'|'foreign'|'shared'|'partial'|'book'|'capacity'|'multi'|'fees'|'market'|'funding'|'lane'|'ledger';
 const linkedBuilds = {
+  paged:['paged-recovery-candidate','paged-recovery-qualification'],
   integrated:['integrated-recovery-candidate','integrated-recovery-qualification'],
   owned:['recovery-search-candidate','recovery-search-qualification'],
   pair:['linked-pair-candidate','linked-pair-qualification'],

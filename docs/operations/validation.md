@@ -3707,6 +3707,18 @@ two emitted events. The amounts are local test collateral and lamports.
 
 ### Recovery selection across two membership pages
 
+On `51214434` a signed verifier captured the nine Financial roots from both
+canonical frozen pages, including the final flat BTC creditor. It sealed rank
+1,364 after covering all 2,548 schedules. The sponsor process exited at cursor
+169 and a new process reread the landed proof. The 67 finalized proof
+transactions consumed 15,937,670 CU in total, with a peak of 1,055,640 CU
+and a maximum signed packet of 466 bytes. The payer spent 335,000 local
+lamports in fees and posted 52,669,440 in account rent. The final cash,
+movements, remaining insurance and retained fees matched the independent
+calculation. The original clearing freeze stayed in place. The 284 harness
+outcomes, 43 clearing-worker transactions and fresh 99-event PostgreSQL
+replay are separate from the 67 verifier transactions.
+
 On `9b9894dc` a fresh local `efbaa02` clearing deployment froze nine Financial
 accounts after five signed fills. Member 8 was flat with a 4,996-atom BTC
 claim. The worker read both original pages, fenced each margin-history

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import type {Address,KeyPairSigner,Instruction} from '@solana/kit';
 import * as paged from '@rivalt/sdk/paged-recovery';
-import {excludedRecoveryEnd} from './recovery-proof-worker.js';
+import {excludedRecoveryEnd} from './recovery-coverage.js';
 import {recoverySettlementCalculation,type readRecoveryWitnessBook} from './recovery-witness.js';
 
 type Book=Awaited<ReturnType<typeof readRecoveryWitnessBook>>;

@@ -4,7 +4,7 @@ import {address} from '@solana/kit';
 import {multiLotBookPlan} from '@rivalt/sdk/multi-lot-book';
 import {isMultiLotArtifact} from '@rivalt/sdk';
 import {inventoryBookPlan,twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
-import {isBookInventoryArtifact,isSharedInventoryArtifact,hasJointRecovery,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
+import {isBookInventoryArtifact,isSharedInventoryArtifact,hasJointRecovery,PAGED_RECOVERY_ARTIFACT_SET,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
 import {accountCheck, present, type AccountState} from './account-projection.js';
 import {isDeepStrictEqual} from 'node:util';
@@ -19,10 +19,13 @@ const claims=(root:AccountState['roots'][string],prices:string[],funding:string[
 export function projectSettlement(state:AccountState,event:AccountEvent,root:(value:any,key?:string)=>void,artifactSet?:string) {
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
-  if(event.type==='RecoverySelectionBound') {
+  if(event.type==='RecoverySelectionBound'||event.type==='PagedRecoverySelectionBound') {
     accountCheck(hasJointRecovery(artifactSet) && current.stage===2 && !current.boundRecovery,'unique sealed recovery');
     const {search,schedule,schedulesChecked,chargeAtoms,insuranceSpent,memberIds,claimDeltas,movements,finalCash}=change;
-    eq(current.count,'8','complete eight-member recovery');
+    eq(event.type==='PagedRecoverySelectionBound',artifactSet===PAGED_RECOVERY_ARTIFACT_SET,'recovery artifact');
+    if(event.type==='RecoverySelectionBound')eq(current.count,'8','complete eight-member recovery');
+    eq(String(memberIds.length),current.count,'complete recovery membership');
+    for(const values of [claimDeltas,movements,finalCash])eq(values.length,memberIds.length,'complete payout rows');
     eq(memberIds,state.members.map(key=>state.roots[key].id).sort((a,b)=>BigInt(a)<BigInt(b)?-1:1),'complete original IDs');
     accountCheck(BigInt(schedule)<BigInt(schedulesChecked),'sealed schedule in range');
     const totals=[0n,0n],positive=[0n,0n],net=[0n,0n];

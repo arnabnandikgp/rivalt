@@ -12,6 +12,9 @@ case "$selection" in
   integrated-recovery-candidate)
     set -- --features clearing/integrated-recovery-qualification
     helper_dir=.local/settlement-helper-integrated-recovery ;;
+  paged-recovery-candidate)
+    set -- --features clearing/paged-recovery-qualification
+    helper_dir=.local/settlement-helper-paged-recovery ;;
   recovery-search-candidate)
     set -- --features clearing/recovery-search-qualification
     helper_dir=.local/settlement-helper-recovery-search ;;
@@ -80,6 +83,8 @@ manifest={'version':2,'accountSchema':10,'programProfile':6,
  'binary':'rivalt-settlement-pages','bytes':binary.stat().st_size,'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()}
 if sys.argv[2]=='integrated-recovery-candidate':
     manifest['feature']='integrated-recovery-qualification'
+elif sys.argv[2]=='paged-recovery-candidate':
+    manifest['feature']='paged-recovery-qualification'
 elif sys.argv[2]=='recovery-search-candidate':
     manifest['feature']='recovery-search-qualification'
 elif sys.argv[2]=='bounded-market-candidate':

@@ -30,3 +30,20 @@ export function boundRecoveryReceipt(header: PreparedSettlement) {
     'Invalid frozen recovery commitment.');
   return {search, schedule, schedulesChecked, chargeAtoms, insuranceSpent, memberIds, claimDeltas, movements, finalCash};
 }
+
+/** The epoch-bound market totals stay in the header. Each member's authorized
+ * cash and forced-close delta live on that member's canonical frozen page. */
+export function pagedRecoveryHeader(header:PreparedSettlement) {
+  const bytes=Uint8Array.from(header.state.membership);
+  if(new TextDecoder().decode(bytes.subarray(0,8))!=='RVPAGED1')return null;
+  requireValue(bytes.length===544 && [2,3].includes(header.stage),'Invalid paged recovery stage');
+  const view=new DataView(bytes.buffer);
+  const word=(offset:number)=>view.getBigUint64(offset,true);
+  const wide=(offset:number)=>word(offset)+(word(offset+8)<<64n);
+  const search=getAddressDecoder().decode(bytes.subarray(16,48));
+  const memberCount=word(80),schedule=wide(88),schedulesChecked=wide(104);
+  requireValue(word(8)===header.epoch && memberCount>0n && memberCount===header.count
+    && search!=='11111111111111111111111111111111' && schedule<schedulesChecked
+    && bytes.subarray(120).every(value=>value===0),'Invalid paged recovery commitment');
+  return {search,schedule,schedulesChecked,chargeAtoms:[word(48),word(56)],insuranceSpent:[word(64),word(72)],memberCount};
+}

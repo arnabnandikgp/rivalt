@@ -1,6 +1,9 @@
+import {excludedRecoveryEnd} from './recovery-coverage.js';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {getAddressEncoder,type Address,type Instruction} from '@solana/kit';
+import * as paged from '@rivalt/sdk/paged-recovery';
+import {nextPagedProofInstruction} from './paged-recovery-proof.js';
+import {AccountRole,getAddressEncoder,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime} from './account-runtime.js';
@@ -12,58 +15,24 @@ type Context=Awaited<ReturnType<typeof accountDefaultContext>>;
 type Selection=Awaited<ReturnType<typeof loadRecoverySelection>>;
 const loaded=new WeakMap<AccountRuntime,{identity:string;selection:Selection}>();
 
-/** Find the longest prefix that clearing can exclude by charge ceilings or
- * debtor budgets. Widening an interval only relaxes its min/max bounds. Equal
- * recovery still needs the full financial comparison. */
-export function excludedRecoveryEnd(search:Pick<sdk.RecoverySearch,'cursor'|'count'|'edges'|'budgets'|'scoreNum'|'scoreDen'> & {rows:readonly {id:bigint}[]}) {
-  const {cursor,count,edges,rows,budgets,scoreNum,scoreDen}=search;
-  assert(cursor>=0n && cursor<count && scoreDen>0n,'Invalid recovery cursor');
-  const ordinals=new Map(rows.map((row,index)=>[row.id,index]));
-  const excluded=(last:bigint)=>{
-    const lower=rows.map(()=>[0n,0n]),upper=rows.map(()=>[0n,0n]);
-    let stride=1n;
-    for(let index=edges.length-1;index>=0;index--){
-      const {maximum,debtor,market}=edges[index];
-      const ordinal=ordinals.get(debtor);
-      assert(ordinal!==undefined && (market===0||market===1),'Foreign recovery dimension');
-      const cycle=stride*(maximum+1n), wraps=cursor/cycle!==last/cycle;
-      lower[ordinal][market]+=wraps?0n:(cursor%cycle)/stride;
-      upper[ordinal][market]+=wraps?maximum:(last%cycle)/stride;
-      stride=cycle;
-    }
-    let total=0n;
-    for(const [index,row] of budgets.entries())for(const [market,budget] of row.entries()){
-      if(lower[index][market]>budget)return true;
-      total+=upper[index][market]<budget?upper[index][market]:budget;
-    }
-    return total*scoreDen<scoreNum;
-  };
-  let end=cursor-1n, high=count-1n;
-  while(end<high){
-    const middle=(end+high+1n)/2n;
-    if(excluded(middle))end=middle;
-    else high=middle-1n;
-  }
-  return end;
-}
 function searchNonce(venue:Address,epoch:bigint,revision:bigint,rank:bigint){
   return createHash('sha256').update('Rivalt/recovery-keeper/v1\0')
     .update(Buffer.from(getAddressEncoder().encode(venue))).update([epoch,revision,rank].join(':')).digest().readBigUInt64LE();
 }
 
 export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,context:Context,
-  selection:'integrated-recovery-candidate'|'recovery-search-candidate') {
+  selection:'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate') {
   const {venue,prepared,preparedState,header}=context;
   const epoch=header.epoch,revision=preparedState.revision;
   const blocked=(reason:string)=>({status:'blocked' as const,reason});
-  if(header.count!==8n || preparedState.count!==8n)return blocked('recovery-unsupported-cohort');
+  if(header.count!==preparedState.count || (selection!=='paged-recovery-candidate' && header.count!==8n))return blocked('recovery-unsupported-cohort');
   const budget=recoveryBudget(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET);
   if(!budget)return blocked('recovery-search-pending');
   const identity=[venue,epoch,revision,budget,selection].join(':');
   let cache=loaded.get(runtime);
   if(cache?.identity!==identity){
     try {
-      cache={identity,selection:await loadRecoverySelection(runtime.rpc,venue,selection,epoch,revision,budget)};
+      cache={identity,selection:await loadRecoverySelection(runtime.rpc,venue,selection,epoch,revision,budget,selection==='paged-recovery-candidate'?{format:'paged',count:header.count}:undefined)};
     }catch(error){
       if(error instanceof Error && /another insurance pass|exceeds its wire width/.test(error.message))
         return blocked('recovery-unsupported-rate-witness');
@@ -81,6 +50,13 @@ export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,conte
     id:`recovery:${search}:${reason}`,instruction});
   const response=await runtime.rpc.call('getAccountInfo',[search,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(context.contextSlot)}]);
   assert(response.context.slot>=Number(context.contextSlot),'Recovery checkpoint moved backwards');
+  if(selection==='paged-recovery-candidate') {
+    const proof=response.value?decodeAccountWorker(response.value,paged.PAGED_RECOVERY_SEARCH_DISCRIMINATOR,paged.getPagedRecoverySearchDecoder()):null;
+    const next=nextPagedProofInstruction(book,outcome,{...args,payer:key,nonce},proof,sdk.CLEARING_PROGRAM_ADDRESS);
+    if(next)return ready(next.action,next.instruction);
+    const bind=paged.getBindRecoverySelectionInstruction(args);
+    return ready('bind-selection',{...bind,accounts:[...bind.accounts,...book.pages.map(address=>({address,role:AccountRole.WRITABLE}))]});
+  }
   if(!response.value)return ready('open-proof',sdk.getOpenSearchInstruction({...args,payer:key,nonce,rank,original:recoveryRateWitness(book,[],0n)}));
   const proof=decodeAccountWorker(response.value,sdk.RECOVERY_SEARCH_DISCRIMINATOR,sdk.getRecoverySearchDecoder());
   assert(proof.prepared===prepared && proof.epoch===epoch && proof.revision===revision && proof.proposed===rank,'Foreign recovery checkpoint');

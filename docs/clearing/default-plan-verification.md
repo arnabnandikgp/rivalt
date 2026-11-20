@@ -1026,3 +1026,18 @@ local artifact selection. A new proof for another epoch must use an unused
 payer/nonce pair. The test keeps the search account for audit and measures
 transaction fees separately from rent. Unrepresentable proofs, missing
 witnesses or incomparable tied outcomes keep the book frozen.
+
+### Paged recovery receipt in the local candidate
+
+The paged candidate allocates a sponsor-owned-cost proof PDA and authenticates
+the original margin history of every frozen member. The prepared revision and
+freeze epoch bind every proof step. After complete coverage, a single clearing
+instruction checks all canonical frozen pages in order, the exact populated
+tail, the original rows and every final balance against the sealed proof.
+Each frozen row then holds its forced-close claim deltas, settlement movements
+and final cash. The header records `RVPAGED1`, the epoch, search account, number
+of members, charges, insurance use and schedule coverage. The transaction
+advances to denominator verification only after all rows and both markets
+reconcile. The normal rate, plan, Apply and withdrawal checks follow. The
+[SBF measurements](../operations/validation.md#recovery-selection-across-two-membership-pages)
+record which gates have run end to end.

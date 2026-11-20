@@ -42,8 +42,7 @@ reductions and the calculations it can check against the original frozen book.
 The submitter has no discretion to choose a cheaper payout.
 
 The combined build verifies exactly eight frozen members and its supported
-insurance calculation. This limit applies to the verifier. Account registration has its own capacity rules. The nine-member workload reached freeze. It did not settle
-through this verifier. Another payer can resume a valid proof or submit a
+insurance calculation. This limit applies to the verifier. Account registration has its own capacity rules. A separate verifier reached all 2,548 schedules for nine members over two pages, including a creditor who had already closed. The next signed test binds the result in clearing and follows that creditor through withdrawal. Another payer can resume a valid proof or submit a
 different proposal for the same frozen inputs. Affected funds can remain frozen
 indefinitely if no plan can be verified. Even a verified plan must be applied
 and reconciled before withdrawal. No timer changes anyone's entitlement.

@@ -2,6 +2,7 @@
  * for financial event history or a reconciled margin account. */
 import assert from 'node:assert/strict';
 import {address,getAddressEncoder,getProgramDerivedAddress} from '@solana/kit';
+import * as paged from '@rivalt/sdk/paged-recovery';
 import * as sdk from '@rivalt/sdk';
 import {json} from './events.js';
 import type {AccountState} from './account-projection.js';
@@ -24,7 +25,7 @@ const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(valu
 export async function reconcileSettlementScratch(key:string,kind:number,bytes:Buffer,state:AccountState,
   binding:{venue:string;program:string;artifactSet?:string},frozenIds:readonly string[]) {
   const descriptor=settlementDescriptors[kind-17];assert(descriptor,'Known settlement kind');
-  const allocation=kind===18&&sdk.isMultiLotArtifact(binding.artifactSet)?sdk.getMultiLotBookPageDecoder():
+  const allocation=kind===18&&binding.artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET?paged.getFrozenMarginPageDecoder():kind===18&&sdk.isMultiLotArtifact(binding.artifactSet)?sdk.getMultiLotBookPageDecoder():
     kind===18&&sdk.isBookInventoryArtifact(binding.artifactSet)?sdk.getInventoryBookPageDecoder():
     kind===18&&binding.artifactSet===sdk.LINKED_ALLOCATION_ARTIFACT_SET?sdk.getLinkedAllocationPageDecoder():
     kind===18&&binding.artifactSet===sdk.BTC_ALLOCATION_ARTIFACT_SET?sdk.getBtcAllocationPageDecoder():undefined;
@@ -51,7 +52,14 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(kind===17) {
     const header=JSON.parse(json(value));
     const bound=sdk.boundRecoveryReceipt(value);
-    if(bound || resolution.boundRecovery) {
+    const pagedHeader=sdk.pagedRecoveryHeader(value);
+    if(binding.artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET && (resolution.boundRecovery || pagedHeader)) {
+      assert(pagedHeader && resolution.boundRecovery,'Missing paged recovery header or event');
+      const {memberCount,...terms}=pagedHeader;
+      const {memberIds,claimDeltas,movements,finalCash,...projected}=resolution.boundRecovery;
+      assert.equal(memberCount,BigInt(memberIds.length));
+      assert.deepEqual(JSON.parse(json(terms)),projected,'Paged recovery terms');
+    } else if(bound || resolution.boundRecovery || pagedHeader) {
       assert(sdk.hasJointRecovery(binding.artifactSet) && bound && resolution.boundRecovery,'Missing verified recovery receipt or event');
       assert.deepEqual(JSON.parse(json(bound)),resolution.boundRecovery,'Exact frozen selection and all protected payouts');
     }
@@ -109,6 +117,17 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
       insurance:resolution.insuranceBefore,fees:resolution.feesBefore}))assert.deepEqual(header[field],expected,`Prepared ${field}`);
     const source=Object.entries(state.revisions).find(([,entry])=>entry.kind===10);assert(source);assert.equal(header.source,source[0]);
     if(plan)assert.equal(BigInt(header.sourceRevision)+1n,BigInt(plan.adoptionRevision));
+  }
+  if(kind===18 && binding.artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET && resolution.boundRecovery) {
+    const bound=resolution.boundRecovery;
+    const count=Math.min(8,bound.memberIds.length-Number(value.pageIndex)*8);
+    assert.equal(value.rowCount,count,'Complete recovery page');
+    for(let offset=0;offset<count;offset++) {
+      const row=value.rows[offset], ordinal=Number(value.pageIndex)*8+offset;
+      assert.equal(String(row.id),bound.memberIds[ordinal]);
+      assert.deepEqual(JSON.parse(json(row.recoveryPayout)),{claimDelta:bound.claimDeltas[ordinal],movements:bound.movements[ordinal],
+        finalCash:bound.finalCash[ordinal]},'Frozen member payout');
+    }
   }
   if(kind===18 && resolution.inventoryBook) {
     const {capacities,pairs}=resolution.inventoryBook;

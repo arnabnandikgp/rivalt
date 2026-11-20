@@ -224,6 +224,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     case 'MultiLotBookVerified':
     case 'InventoryBookVerified':
     case 'SharedInventoryVerified':
+    case 'PagedRecoverySelectionBound':
     case 'RecoverySelectionBound':
     case 'ForeignCreditorsVerified':
     case 'FrozenJointReductionVerified':

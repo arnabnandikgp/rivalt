@@ -12,6 +12,10 @@ if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-integrat
     test "${RIVALT_FROZEN_PLAN_PROOF:-0}" = 1
     node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,"integrated-recovery-candidate");'
   fi
+elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-paged ]]; then
+  test "${RIVALT_FROZEN_PLAN_PROOF:-0}" = 1 && test "${RIVALT_FROZEN_PLAN_CASE:-}" = paged-wallet
+  node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"paged");'
+  node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,"paged-recovery-candidate");'
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-* ]]; then
   test "${RIVALT_FROZEN_PLAN_PROOF:-0}" = 1
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"owned");'
@@ -118,7 +122,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     cargo build --locked --offline -p default-plan-selection --features native-search --example multi_lot_audit
     node --import tsx tests/rpc-contract/multi-lot-search-rpc.ts ;;
   profit-attribution-inventory-book-capacity|profit-attribution-inventory-book-expanded) node --import tsx tests/rpc-contract/inventory-book-capacity-rpc.ts ;;
-  profit-attribution-owned-integrated|profit-attribution-owned-cross|profit-attribution-owned-tie|profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply|profit-attribution-linked-flat|profit-attribution-linked-flat-apply|profit-attribution-linked-contested|profit-attribution-linked-allocation|profit-attribution-foreign-winner-ordinary|profit-attribution-foreign-winner-gate|profit-attribution-foreign-winner-apply|profit-attribution-shared-inventory|profit-attribution-shared-inventory-apply|profit-attribution-scarce-inventory-one-apply|profit-attribution-scarce-inventory-one-ordinary|profit-attribution-scarce-inventory-zero-apply|profit-attribution-scarce-inventory-floor-apply|profit-attribution-inventory-book-ordinary|profit-attribution-inventory-book-apply|profit-attribution-inventory-book-expanded-apply)
+  profit-attribution-owned-paged|profit-attribution-owned-integrated|profit-attribution-owned-cross|profit-attribution-owned-tie|profit-attribution-linked|profit-attribution-btc-allocation-linked|profit-attribution-linked-apply|profit-attribution-linked-flat|profit-attribution-linked-flat-apply|profit-attribution-linked-contested|profit-attribution-linked-allocation|profit-attribution-foreign-winner-ordinary|profit-attribution-foreign-winner-gate|profit-attribution-foreign-winner-apply|profit-attribution-shared-inventory|profit-attribution-shared-inventory-apply|profit-attribution-scarce-inventory-one-apply|profit-attribution-scarce-inventory-one-ordinary|profit-attribution-scarce-inventory-zero-apply|profit-attribution-scarce-inventory-floor-apply|profit-attribution-inventory-book-ordinary|profit-attribution-inventory-book-apply|profit-attribution-inventory-book-expanded-apply)
     cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
     if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-inventory-book-* ]]; then
       cargo build --locked --offline -p default-plan-selection --example single_lot_assignment

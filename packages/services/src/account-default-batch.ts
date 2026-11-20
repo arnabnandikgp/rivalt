@@ -107,7 +107,7 @@ export async function accountDefaultBatch(runtime:AccountRuntime,payer:Keypair,s
       assert(continuation.header.epoch===state.header.epoch,'Simulation changed frozen epoch');
       if(![2,14].includes(continuation.header.stage))return {status:'blocked',reason:'frozen-work-complete'};
       if(continuation.header.stage===2 && continuation.preparedState.stage===4 &&
-        (runtime.deploymentSelection==='integrated-recovery-candidate'||runtime.deploymentSelection==='recovery-search-candidate'))
+        (runtime.deploymentSelection==='paged-recovery-candidate'||runtime.deploymentSelection==='integrated-recovery-candidate'||runtime.deploymentSelection==='recovery-search-candidate'))
         return {status:'blocked',reason:'recovery-proof-transaction'};
       return accountDefaultStep(proposedRuntime,payer,continuation,await accountDefaultContext(reader,continuation));
     }});

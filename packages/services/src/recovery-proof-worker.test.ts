@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest';
-import {excludedRecoveryEnd} from './recovery-proof-worker.js';
+import {excludedRecoveryEnd} from './recovery-coverage.js';
 import {recoveryBudget} from './recovery-selection.js';
 
 it('keeps feasible tied or better schedules after every cursor, including radix wraps',()=>{

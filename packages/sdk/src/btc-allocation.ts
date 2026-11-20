@@ -27,7 +27,7 @@ export const INVENTORY_BOOK_ACTIVE_PAGE_LIMIT=32-11;
 export const INVENTORY_BOOK_EVENT_PAGE_LIMIT=Math.floor((8192-108-10*41-49)/49);
 export const INVENTORY_BOOK_HEAP_BYTES=128*1024;
 export function inventoryBookHeap(selection:AccountDeployment|undefined,instructions:readonly Instruction[]) {
-  if((selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate') && instructions.some(ix=>
+  if((selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate') && instructions.some(ix=>
     ix.programAddress===CLEARING_PROGRAM_ADDRESS && [OPEN_SEARCH_DISCRIMINATOR,CAPTURE_MEMBER_DISCRIMINATOR,DERIVE_PAIRS_DISCRIMINATOR,
       VERIFY_INCUMBENT_DISCRIMINATOR,COVER_PLAN_DISCRIMINATOR,COVER_RANGE_DISCRIMINATOR,SEAL_SEARCH_DISCRIMINATOR,BIND_RECOVERY_SELECTION_DISCRIMINATOR]
       .some(tag=>tag.every((byte,index)=>ix.data?.[index]===byte))))return 256*1024;

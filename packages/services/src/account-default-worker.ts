@@ -1,5 +1,6 @@
 /** One durable, revision-bound step of complete paged default. Proposals and
  * helper descriptors are untrusted; only the landed program advances authority. */
+import * as paged from '@rivalt/sdk/paged-recovery';
 import assert from 'node:assert/strict';
 import {AccountRole,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
@@ -39,7 +40,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
   const frozen=async(ordinal:bigint,initialize=false)=>{
     assert(ordinal>=0n&&ordinal<header.count,'Invalid frozen ordinal');
     const [page,bump]=await sdk.deriveFrozenMarginPage(venue,ordinal/8n);
-    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,multi?sdk.getMultiLotBookPageDecoder():book?sdk.getInventoryBookPageDecoder():linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
+    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,runtime.deploymentSelection==='paged-recovery-candidate'?paged.getFrozenMarginPageDecoder():multi?sdk.getMultiLotBookPageDecoder():book?sdk.getInventoryBookPageDecoder():linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
     assert(row.schemaVersion===10&&row.venue===venue&&row.pageIndex===ordinal/8n&&row.bump===bump&&row.revision>0n,'Foreign frozen row page');
     if(row.epoch!==epoch) {
       assert(initialize&&row.epoch<epoch,'Unavailable frozen row epoch');
@@ -86,7 +87,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       assert(request.kind==='node'||request.kind==='page','Incomplete valuation has no next member');
       return ready('advance-membership',sdk.getAdvancePreparedMembershipInstruction({...args,revision:prepared.revision,index:metas[0].address}));
     }
-    if((runtime.deploymentSelection==='recovery-search-candidate'||runtime.deploymentSelection==='integrated-recovery-candidate') && prepared.stage===4)
+    if((runtime.deploymentSelection==='paged-recovery-candidate'||runtime.deploymentSelection==='recovery-search-candidate'||runtime.deploymentSelection==='integrated-recovery-candidate') && prepared.stage===4)
       return recoveryProofStep(runtime,key,common,runtime.deploymentSelection);
     if((book||['foreign-creditor-candidate','shared-inventory-candidate','partial-inventory-candidate'].includes(runtime.deploymentSelection)) && prepared.stage===4) {
       const members:FrozenMember[]=[];
