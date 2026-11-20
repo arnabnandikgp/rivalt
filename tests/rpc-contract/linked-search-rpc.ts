@@ -109,8 +109,8 @@ try{
         await h.send(name('seal verified financial winner'),[action('seal_search')]);
         const state=await raw();assert.equal(state[104],4);
         assert.equal(read128(state,88),BigInt(count));
-        const count=input.members.length, cashOffset=137, movementsOffset=cashOffset+8*count;
-        const insuranceOffset=movementsOffset+16*count;
+        const memberCount=input.members.length, cashOffset=137, movementsOffset=cashOffset+8*memberCount;
+        const insuranceOffset=movementsOffset+16*memberCount;
         assert.deepEqual(input.members.map((_,i)=>String(state.readBigUInt64LE(cashOffset+i*8))),input.members.map(id=>input.comparison.cash[id]));
         const movements=input.members.map((_,i)=>[0,1].map(market=>String(state.readBigInt64LE(movementsOffset+16*i+8*market))));
         assert.deepEqual(movements,input.comparison.terminal.movements);

@@ -20,6 +20,13 @@ The four kernel transactions for original rates, adjusted rates, original cash a
 
 Reproduce with `RIVALT_FROZEN_PLAN_PROOF=1`, `RIVALT_SETTLEMENT_PROBE=profit-attribution-foreign-winner-apply` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` pointing to the pinned foreign-creditor clearing artifacts, then run `bash ops/scalable-settlement-smoke.sh`. [Proof and economic rules](../clearing/default-plan-verification.md#verifying-all-schedules-on-a-cross-creditor-freeze).
 
+The final cleanup at `448c5659` rebuilt the diagnostic to 467,864 bytes, SHA-256 `3aa23ac912916edadd582636d5463fef3721c6ee37e05cdec66694bb9b5732ee`. On a fresh deployment the same winning proof used 5,896,799 CU across 28 successful transactions. Both candidate outcomes, two wallet exits, 55 worker originals and the 114-event PostgreSQL replay reproduced.
+
+## Financial priorities on a signed frozen book
+
+At `15eb161d`, five real trades produced two eligible BTC makers with different amounts of unpaid open profit. The verifier covered 2,548 possible schedules, including 14 that recovered the same 25 atoms. The independently selected charges were BTC 4/9 and ETH 12. A BTC 5/8 split paid the same total and failed the proportional-sharing comparison. The general verifier sealed the selected schedule after 67 successful transactions totalling 14,487,219 CU and 335,000 test lamports in fees, excluding rent. The largest winning transaction used 976,374 CU. Both attempts together produced 96 successes and seven signed rejections. The local clearing gate refused to release the disputed funds. Fresh PostgreSQL replay matched all 96 clearing events. On a second book at `bf525754`, two makers had identical BTC gains. The winning schedule sealed. The TypeScript reader then shadowed the schedule count and exited before checking the terminal data or submitting the losing challenge.
+
+
 ## Restartable comparison on a clearing freeze
 
 At `4c9ccbc`, Surfpool deployed and returned the 192,480-byte diagnostic executable with SHA-256 `153e6a6abf2d3e03cfd88446e0e2c77fce11d3386e807b076037e2a6f3384af9`. Clearing used the pinned `30434d5` artifact. Five actual trades produced eight frozen Financial accounts, including a flat BTC creditor. The independent reference enumerated 2,548 schedules. Original debtor cash contributed 19,978 BTC-market and 9,989 ETH-market collateral atoms. Insurance contributed 13 and 1. Forced charges were 4 and 9 on the two BTC makers and 12 on the ETH maker.
