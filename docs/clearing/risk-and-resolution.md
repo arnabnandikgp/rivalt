@@ -1053,3 +1053,10 @@ payment against its independently verified whole-atom floor and allowable
 fractional increment. Reconciliation covers both markets, insurance, retained
 fees and the original custody balance before wallet withdrawal. See the
 [selection contract](default-plan-verification.md#clearing-owned-payout-binding).
+
+The local combined profile `integrated-recovery-qualification` accepts
+parallel single-market fills. Before freezing, clearing requires a current
+gross-lot checkpoint and fee classification for **each** market. The freeze
+records the resulting fee, insurance, funding and exposure totals. Recovery
+then uses the clearing-owned selector and its original member histories.
+Specialized book verifiers cannot authorize payments on this profile.

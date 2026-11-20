@@ -664,3 +664,20 @@ Each case uses a fresh local deployment. It reconstructs the book from signed
 fills, checks an inferior proposal, restarts the verifier, and follows clearing
 and the wallet through actual RPC. The pricing and custody fixtures use test
 collateral. The separate external review and funded-pilot gates still apply.
+
+### Reproduce the combined clearing lifecycle
+
+Build clean program revision `5d7a7c0f` with
+`RIVALT_ATTRIBUTION_PROFILE=integrated-recovery-qualification bash ops/build-profit-attribution.sh`.
+Export the resulting directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR`. At the
+harness revision in [validation](validation.md#combined-clearing-lifecycle),
+run `bash ops/build-settlement-helper.sh integrated-recovery-candidate` once.
+Each invocation below starts its own local chain and PostgreSQL database.
+
+```sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-lanes bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-funding bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-payout bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=profit-attribution-integrated-receiver bash ops/scalable-settlement-smoke.sh
+RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-integrated bash ops/scalable-settlement-smoke.sh
+```

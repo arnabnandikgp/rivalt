@@ -10,6 +10,23 @@ qualification below compares Anchor RC2 against that immutable pre-migration bas
 
 ## Paired routes on the recovery candidate
 
+The combined recovery and ledger-lane program at `5d7a7c0f` ran the same
+18 two-transaction bursts at harness revision `e5a9de5a`. Each route used
+846 wire bytes and charged its trader 5,000 test lamports. All 36 paired fills
+finalized. A further single fill before the freeze was also replayed.
+
+| Pair workload | Finalized fills | Shared writes per pair | CU per fill | Median elapsed per pair |
+|---|---:|---|---:|---:|
+| Two BTC makers, separate capitals and traders | 12 | 0 | 159,109–173,765 | 153.7 ms |
+| Same BTC maker, separate traders | 12 | 2, maker capital and registration | 159,864–180,626 | 149.4 ms |
+| BTC and ETH, separate makers and traders | 12 | 0 | 159,130–173,765 | 153.3 ms |
+
+These are six short local bursts per workload. The receipts establish which
+writes still conflict. The elapsed times include client and RPC overhead and
+do not establish a sustained cluster throughput limit. Fresh PostgreSQL replay
+reproduced 231 events, including both the 3-atom and 4-atom insurance shares
+on individual 13-atom BTC fees in finalized order.
+
 On clearing `baef259`, harness `12f9902` offered 36 one-lot trader routes
 to local Surfpool. Each pair used independently funded cross accounts and
 distinct fee payers. Both traders signed and simulated before a common broadcast

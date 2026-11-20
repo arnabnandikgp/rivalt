@@ -17,8 +17,9 @@ import {verifyProfitBuild} from './profit-attribution-build.js';
 const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
-const ledgerLanes=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-payout';
-const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,ledgerLanes?'ledger':'lane');
+const integrated=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-payout';
+const ledgerLanes=integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-ledger-payout';
+const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,integrated?'integrated':ledgerLanes?'ledger':'lane');
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {

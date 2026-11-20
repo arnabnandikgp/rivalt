@@ -6,7 +6,7 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
-if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-integrated || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-integrated-lanes ]]; then
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-integrated || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-integrated-* ]]; then
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"integrated");'
   if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-integrated ]]; then
     test "${RIVALT_FROZEN_PLAN_PROOF:-0}" = 1
@@ -111,8 +111,8 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
     node --import tsx tests/rpc-contract/account-lifecycle-client-rpc.ts ;;
   profit-attribution-checked-funding|profit-attribution-cross-fill-funding) node --import tsx tests/rpc-contract/cross-fill-funding-rpc.ts ;;
   profit-attribution-cross-maker-capacity|profit-attribution-bounded-market) node --import tsx tests/rpc-contract/cross-maker-capacity-rpc.ts ;;
-  profit-attribution-market-lane-payout|profit-attribution-ledger-payout) node --import tsx tests/rpc-contract/market-lane-payout-rpc.ts ;;
-  profit-attribution-market-lane-funding|profit-attribution-ledger-funding) node --import tsx tests/rpc-contract/market-lane-funding-rpc.ts ;;
+  profit-attribution-integrated-payout|profit-attribution-market-lane-payout|profit-attribution-ledger-payout) node --import tsx tests/rpc-contract/market-lane-payout-rpc.ts ;;
+  profit-attribution-integrated-funding|profit-attribution-market-lane-funding|profit-attribution-ledger-funding) node --import tsx tests/rpc-contract/market-lane-funding-rpc.ts ;;
   profit-attribution-integrated-lanes|profit-attribution-ledger-lanes|profit-attribution-market-lanes|profit-attribution-route-locks|profit-attribution-fee-lanes) node --import tsx tests/rpc-contract/successor-route-locks-rpc.ts ;;
   profit-attribution-bounded-market-apply|profit-attribution-fee-lanes-apply|profit-attribution-multi-lot-search|profit-attribution-multi-lot-apply|profit-attribution-multi-lot-tie)
     cargo build --locked --offline -p default-plan-selection --features native-search --example multi_lot_audit
@@ -130,7 +130,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;
   profit-attribution-recovery|profit-attribution-sponsor-recovery|profit-attribution-verified-pair|profit-attribution-verified-pair-limited|profit-attribution-btc-residual-*|profit-attribution-btc-allocation-*) node --import tsx tests/rpc-contract/btc-default-recovery-rpc.ts ;;
   profit-attribution) node --import tsx tests/rpc-contract/profit-attribution-rpc.ts ;;
-  profit-attribution-bounded-market-receiver|maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
+  profit-attribution-integrated-receiver|profit-attribution-bounded-market-receiver|maker-liquidation) node --import tsx tests/rpc-contract/maker-liquidation-rpc.ts ;;
   whole-account-risk) node --import tsx tests/rpc-contract/whole-account-risk-rpc.ts ;;
   freeze-cutoff) node --import tsx tests/rpc-contract/freeze-cutoff-rpc.ts ;;
   membership-races) node --import tsx tests/rpc-contract/membership-races-rpc.ts ;;

@@ -20,8 +20,9 @@ import {verifyLiquidationBuild} from './maker-liquidation-build.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const directory=process.env.RIVALT_RUN_DIR!;
-const bounded=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-bounded-market-receiver';
-const build=bounded?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'market'):verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
+const integrated=process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-integrated-receiver';
+const bounded=integrated||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-bounded-market-receiver';
+const build=bounded?verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,integrated?'integrated':'market'):verifyLiquidationBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!);
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const scale=1_000_000_000n;
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
@@ -32,11 +33,12 @@ const shape=(instance:number)=>{
   return {...goldenShape,skewTick:0n,longCap:4096n,shortCap:4096n,bidCount:1,askCount:1,bids:regions,asks:regions};
 };
 try {
-  const setup=await liquidityExecutionSetup(h,rpc,{shape,marginLayout:bounded?'bounded-market':undefined,traderCash:564_000n,verifyRejections:false});
+  const setup=await liquidityExecutionSetup(h,rpc,{shape,marketCheckpoints:integrated,marginLayout:integrated?'ledger-lanes':bounded?'bounded-market':undefined,traderCash:564_000n,verifyRejections:false});
   const checkGross=async(expected:bigint)=>{
-    if(bounded)assert.equal((await sdk.readMarketGross(rpc,setup.venue,0,'confirmed')).grossLots,expected);
+    if(bounded)assert.equal((await sdk.readMarketGross(rpc,setup.venue,0,'confirmed',integrated?'ledger-lanes':false)).grossLots,expected);
   };
-  const {root,route,guard}=executionTestHelpers(h,setup);
+  const {root,route,guard,withCheckpoints}=executionTestHelpers(h,setup);
+  const checked=(instruction:Instruction)=>integrated?withCheckpoints(instruction):[instruction];
   const [target]=setup.roots, owner=setup.traderOwner, keeper=setup.payer;
   const receiverOwner=await fixtureKey('liquidation-backstop'),token=await fixtureKey('liquidation-backstop-token');
   const [portfolio]=await sdk.deriveAccountPortfolio(setup.venue,receiverOwner.address,0);
@@ -46,7 +48,7 @@ try {
   const snapshot=()=>Promise.all(publicKeys.map(h.read));
   async function reject(label:string,instruction:Instruction,expected:number,signers:Keypair[]=[]) {
     const prior=await snapshot();
-    await h.send('liquidation '+label,[instruction],signers,expected);
+    await h.send('liquidation '+label,await checked(instruction),signers,expected);
     assert.deepEqual(await snapshot(),prior,label);
   }
   await h.send('fund separate local receiver and token account',[
@@ -64,14 +66,14 @@ try {
   const takeover=async(lots:bigint,signer=receiverOwner)=>sdk.getLiquidateAccountInstruction({...common,receiverOwner:signer,target,receiver,
     targetGuard:await guard(target),receiverGuard:await guard(receiver),marketIndex:0,lots,price:52_000n});
   await setup.sample();
-  await h.send('liquidation open 50 BTC lots at 61000',[await route({trader:target,actor:owner,marketIndex:0,side:0,
-    makers:[setup.instances[0]],lots:[50n]})],[owner]);
+  await h.send('liquidation open 50 BTC lots at 61000',await checked(await route({trader:target,actor:owner,marketIndex:0,side:0,
+    makers:[setup.instances[0]],lots:[50n]})),[owner]);
   await checkGross(100n);
   await reject('healthy target',await forced(1n),sdk.CLEARING_ERROR__LIQUIDATION);
   const slot=await setup.slot();
-  await h.send('place target ETH risk-increasing order',[sdk.getManageAccountOrderInstruction({...common,actor:owner,margin:target,
+  await h.send('place target ETH risk-increasing order',await checked(sdk.getManageAccountOrderInstruction({...common,actor:owner,margin:target,
     guard:await guard(target),marketIndex:1,operation:{__kind:'Place',expectedId:1n,terms:{side:0,lots:1n,
-      limit:33_000n,feeBudget:100n,startSlot:slot,expirySlot:slot+5000n,trigger:0,threshold:0n,reduceOnly:false,generation:0n}}})],[owner]);
+      limit:33_000n,feeBudget:100n,startSlot:slot,expirySlot:slot+5000n,trigger:0,threshold:0n,reduceOnly:false,generation:0n}}})),[owner]);
   setup.sourcePrices.btc=52_000_000_000n;
   await setup.qualify();
   const stages:{stage:string;lots:string;cash:string;deficit:string}[]=[];
@@ -105,7 +107,7 @@ try {
   assert(beforeFill.reserved>0n);
   assert(beforeFill.book.orders.some(entry=>entry.marketIndex===1&&!entry.order.reduceOnly&&entry.order.reserve>0n));
   assert(beforeFill.positions[1].lots===0n&&beforeFill.positions[1].virtualScaled===0n);
-  await h.send('liquidation keeper sells ten lots to maker B',[fill]);
+  await h.send('liquidation keeper sells ten lots to maker B',await checked(fill));
   await checkGross(100n);
   await verifyTarget('Maker filled ten',40n,563_286n,-2_530_020n,12_574n);
   assert.equal((await root(target)).reserved,0n);
@@ -120,9 +122,9 @@ try {
   await verifyTarget('No eligible liquidity or funded receiver',40n,563_286n,-2_530_020n,12_574n);
   await fund(99_999n);
   const transfer=await takeover(5n);
-  const generation=async()=>sdk.decodeCapacityAnchor((await h.read(setup.markets[0]))!).generation;
+  const generation=async()=>sdk.decodeCapacityAnchor((await h.read(setup.markets[0]))!,integrated?'ledger-lanes':false).generation;
   const beforeTransfer=bounded?await generation():0n;
-  await h.send('liquidation funded receiver takes five lots',[transfer],[receiverOwner]);
+  await h.send('liquidation funded receiver takes five lots',await checked(transfer),[receiverOwner]);
   await checkGross(100n);
   if(bounded)assert.equal(await generation(),beforeTransfer+1n);
   await verifyTarget('Receiver restores maintenance',35n,563_156n,-2_270_020n,0n);
@@ -131,8 +133,8 @@ try {
   assert.equal(received.positions[0].virtualScaled,-260_000n*scale);
   await reject('competing receiver original is stale',transfer,sdk.CLEARING_ERROR__FINANCIAL_SEQUENCE,[receiverOwner]);
   await reject('liquidation stops at restored maintenance',await forced(1n),sdk.CLEARING_ERROR__LIQUIDATION);
-  await h.send('liquidation receiver unwinds at the remaining wide bid',[await route({trader:receiver,actor:receiverOwner,
-    marketIndex:0,side:1,makers:[setup.instances[0]],lots:[5n],reduceOnly:true,generation:received.positions[0].generation})],[receiverOwner]);
+  await h.send('liquidation receiver unwinds at the remaining wide bid',await checked(await route({trader:receiver,actor:receiverOwner,
+    marketIndex:0,side:1,makers:[setup.instances[0]],lots:[5n],reduceOnly:true,generation:received.positions[0].generation})),[receiverOwner]);
   await checkGross(90n);
   const unwound=await root(receiver);
   assert.equal(unwound.cash,100_079n);assert.equal(unwound.positions[0].lots,0n);

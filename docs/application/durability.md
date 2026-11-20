@@ -758,3 +758,10 @@ A later application must match the corresponding selected account and amounts.
 Fresh reconciliation compares the event projection with the `RVJOINT1` receipt.
 Search progress before binding changes only proposer scratch and rent. The
 financial journal begins at the clearing-owned binding transition.
+
+For the combined local deployment the same journal follows `LedgerLaneFilled`
+for single-market routes and `LiquidityRouteFeeRecorded` for the full cross-account
+route. It reconstructs fee carry from the finalized order of both kinds of fill.
+At freeze it compares the classified market totals with clearing before accepting
+the recovery receipt. The [local lifecycle checks](../operations/validation.md#combined-clearing-lifecycle)
+use a fresh PostgreSQL replay for each workload.
