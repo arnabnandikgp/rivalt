@@ -131,11 +131,13 @@ try {
   assert.equal(freezes[0].data.trigger,debtor);
   const history = events.slice(0,events.indexOf(freezes[0]));
   assert(!history.some(event=>event.type==='AccountFinancialChangedV3' && [2,3].includes(event.data.kind)));
+  const fills = history.filter(event => ['LedgerLaneFilled','LiquidityRouteFeeRecorded','LiquidityRouteExecutedV4'].includes(event.type));
+  if (integrated) assert.deepEqual(fills.map(event=>event.type), ['LedgerLaneFilled','LedgerLaneFilled','LiquidityRouteFeeRecorded']);
   const input = {flatCreditor,flatCounterparty:equalWinners?flatCounterparty.capital:undefined,traders:populationBook?setup.roots:undefined,smallWinnerEntry,zeroDebtorBudget,thirdTrader:partialInventory?setup.roots[2]:undefined,flatMaker:partialInventory?setup.instances[0].capital:undefined,secondBtcWinner:contested?secondMaker.capital:undefined,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
     insurance:frozen.insuranceBefore,fees:frozen.feesBefore,markets:setup.markets,rows,makerDeposit,debtor,otherTrader,
     winners:makers.map(maker=>maker.capital),venueHex:Buffer.from(getAddressEncoder().encode(setup.venue)).toString('hex'),
     sourceDigest:createHash('sha256').update(json([setup.venue,frozen,rows,freezes[0].signature])).digest('hex'),
-    fills:history.filter(event=>event.type==='LiquidityRouteExecutedV4').map(event=>event.data)};
+    fills:fills.map(event=>event.data)};
   const reference=populationBook?'inventory_book_comparison':sharedInventory?'shared_inventory_comparison':foreignBook?'foreign_winner_comparison':'linked_default_comparison';
   const comparison = JSON.parse(execFileSync('python3',[`tests/financial/${reference}.py`],{input:json(input),encoding:'utf8'}));
   await journal.checkpoint(sharedInventory?'frozen-competing-debtors':'frozen-two-market-debtor',true);
