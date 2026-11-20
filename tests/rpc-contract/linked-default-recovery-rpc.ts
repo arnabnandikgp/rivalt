@@ -325,6 +325,15 @@ try {
       }
     }
     if(contested && !allocationProfile && current.preparedState.epoch===frozen.epoch && current.preparedState.stage===4) {
+      if(process.env.RIVALT_FROZEN_PLAN_PROOF==='1') {
+        const stable=await financialSnapshot();
+        writeFileSync(directory+'/proof-input.json',json({venue:setup.venue,prepared:current.prepared,
+          resolution:setup.resolution,revision:current.preparedState.revision,epoch:frozen.epoch,
+          registryHash:Array.from(frozen.registryHash),debtor,rows,comparison}));
+        for(const phase of ['start','resume'])execFileSync(process.execPath,
+          ['--import','tsx','tests/rpc-contract/frozen-plan-rpc.ts',phase],{stdio:'inherit'});
+        assert.deepEqual(await financialSnapshot(),stable);
+      }
       const blocked=await worker.riskWork(setup.payer);
       assert.deepEqual(blocked,{status:'blocked',reason:'unsupported-linked-creditors'});
       const common=await accountDefaultContext(worker.rpc,current);

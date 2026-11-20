@@ -113,7 +113,7 @@ pub(crate) fn frozen_btc_history(root:&BorshAccount<MarginAccount>) -> Result<At
 }
 
 #[cfg(feature="single-pair-default-qualification")]
-pub(crate) fn frozen_history(root:&BorshAccount<MarginAccount>, market:usize) -> Result<Attribution> {
+pub fn frozen_history(root:&BorshAccount<MarginAccount>, market:usize) -> Result<Attribution> {
     require!(market < 2, ClearingError::Resolution);
     let account=root.account();
     require!(valid_margin_size(account.data_len()),ClearingError::Profile);

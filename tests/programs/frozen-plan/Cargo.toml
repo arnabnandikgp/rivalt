@@ -1,0 +1,25 @@
+[package]
+name = "frozen-plan-probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "frozen_plan_probe"
+
+[features]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = { workspace = true }
+clearing = { path = "../../../programs/clearing", features = ["state-only", "single-pair-default-qualification"] }
+default-plan-selection = { path = "../../../crates/default-plan-selection" }
+financial-core = { path = "../../../crates/financial-core" }
+solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }

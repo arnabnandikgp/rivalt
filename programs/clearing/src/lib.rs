@@ -40,6 +40,8 @@ pub mod events;
 pub mod instructions;
 #[cfg(feature = "profit-attribution-qualification")]
 mod profit_attribution;
+#[cfg(all(feature = "state-only", feature = "single-pair-default-qualification"))]
+pub use profit_attribution::frozen_history;
 mod program_accounts;
 mod manual_account;
 #[cfg(any(test, feature = "devnet-test-profile"))]
