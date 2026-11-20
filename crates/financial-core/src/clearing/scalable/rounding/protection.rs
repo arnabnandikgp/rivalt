@@ -5,6 +5,15 @@ use super::*;
 use crate::SCALE;
 
 impl<'a, 'rows> Circulation<'a, 'rows> {
+    /// A complete residual search found no augmenting path for the required
+    /// protected receipts. Arithmetic failures and invalid witnesses stay errors.
+    pub fn protected_search_exhausted(&self) -> bool {
+        self.protected.is_some()
+            && matches!(self.stage, Stage::Search)
+            && self.depth == 0
+            && self.sent < self.required
+    }
+
     /// Derive mandatory receipts from a *completed* unadjusted baseline.
     /// Callers provide no replacement creditor amounts or rounding priority.
     pub fn after_reduction(

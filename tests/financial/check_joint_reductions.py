@@ -99,7 +99,7 @@ def verify(vectors):
     return len(vectors), sum(expected is not None for _, expected in vectors)
 
 
-def synthetic():
+def comparison_books():
     portfolios = [mirror_book(), linked_defaults(), linked_defaults(insurance=(1, 2))]
     book, exposures = linked_defaults()
     rows = list(book.accounts)
@@ -114,8 +114,12 @@ def synthetic():
     btc = Exposure(100, (-3, 3, 0, 0), (100, 98, None, None), (0, Fraction(5, 2), 0, 0))
     eth = Exposure(80, (0, -2, 0, 2), (None, 80, None, 78), (0, 0, 0, 4))
     portfolios.append((split, (btc, eth)))
+    return portfolios
+
+
+def synthetic():
     vectors = []
-    for book, exposures in portfolios:
+    for book, exposures in comparison_books():
         source = original_input(book, exposures, [11 + i*13 for i in range(len(book.accounts))])
         baseline = terminal(book)
         choices = [market_plans(book, market, exposure, baseline) for market, exposure in enumerate(exposures)]
@@ -155,7 +159,7 @@ def synthetic():
     return verify(vectors)
 
 
-def signed(path):
+def signed_book(path):
     result = json.loads(path.read_text())
     data = result['inputs']
     ids = tuple(int(row['id']) for row in data['rows'])
@@ -178,14 +182,19 @@ def signed(path):
             gains.append(max(0, qty*(mark-entry)-paid))
         exposures.append(Exposure(mark, tuple(quantities), tuple(entries), tuple(gains)))
     identity = FrozenIdentity(bytes.fromhex(data['venueHex']), int(data['epoch']), ids)
-    selected = select_joint(book, exposures, identity)
     source = original_input(book, exposures, ids)
     # Use the exact carry and paid history captured from the accounts, including
     # previously paid gains on positions currently below entry.
     for config, row in zip(source['rows'], data['rows'], strict=True):
         config['history'] = [history(terms, int(lots)) for terms, lots in zip(row['basis'], row['lots'], strict=True)]
+    return result, book, exposures, identity, source
+
+
+def signed(path):
+    result, book, exposures, identity, source = signed_book(path)
+    selected = select_joint(book, exposures, identity)
     request, expected = proposal(source, book, terminal(book), selected.markets)
-    assert expected['cash'] == [result['comparison']['cash'][r['key']] for r in data['rows']]
+    assert expected['cash'] == [result['comparison']['cash'][r['key']] for r in result['inputs']['rows']]
     assert verify([(request, expected)]) == (1, 1)
     return dict(freeze=result['freeze'], recovered=expected['recovered'], charges=request['charges'])
 

@@ -36,12 +36,13 @@ pub struct FrozenBook<'a> {
 
 /// The rate and remainder witnesses are proposals. Clearing independently
 /// verifies the greatest rates and the canonical rounding order for both books.
+#[derive(Clone, Copy)]
 pub struct Witness<'a> {
     pub rates: &'a [Proposal],
     pub orders: [&'a [u64]; 2],
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Charge {
     pub market: usize,
     pub debtor: u64,
@@ -56,6 +57,9 @@ pub struct Receipt {
     pub rounded: Rounded,
     pub spent: [u64; 2],
     /// Net market loss removed, capped by the actual charge, in exact collateral atoms.
+    pub effective_budgets: [u64; 2],
+    pub market_rates: [(BigUint, BigUint); 2],
+    pub original_losses: [BigUint; 2],
     pub recovered: [(BigInt, BigUint); 2],
 }
 
@@ -113,6 +117,21 @@ fn debtor_budgets(
 }
 
 impl FrozenBook<'_> {
+    pub(super) fn capacity(
+        &self,
+        member: &Member<'_>,
+        market: usize,
+        available: u64,
+    ) -> Result<FrozenCapacity> {
+        let lots = member.lots[market];
+        Attribution::read(member.history[market], lots)?.frozen_capacity(
+            lots,
+            self.marks[market],
+            member.row.claims[market],
+            available,
+        )
+    }
+
     pub fn verify_proposal(
         &self,
         original: Witness<'_>,
@@ -126,22 +145,16 @@ impl FrozenBook<'_> {
         }
         let rows: Vec<_> = self.members.iter().map(|member| member.row).collect();
         let mut lots: Vec<_> = self.members.iter().map(|member| member.lots).collect();
-        let terms = |member: &Member<'_>, market: usize| -> Result<FrozenCapacity> {
-            let qty = member.lots[market];
-            Attribution::read(member.history[market], qty)?.frozen_capacity(
-                qty,
-                self.marks[market],
-                member.row.claims[market],
-                qty.unsigned_abs(),
-            )
-        };
         let mut capacity = Vec::with_capacity(self.members.len());
         let mut net = [0i128; 2];
         for member in self.members {
             for (total, qty) in net.iter_mut().zip(member.lots) {
                 *total = total.checked_add(i128::from(qty)).ok_or(Error::Overflow)?;
             }
-            capacity.push([terms(member, 0)?, terms(member, 1)?]);
+            capacity.push([
+                self.capacity(member, 0, member.lots[0].unsigned_abs())?,
+                self.capacity(member, 1, member.lots[1].unsigned_abs())?,
+            ]);
         }
         if net != [0, 0] {
             return Err(Error::Cohort);
@@ -231,14 +244,23 @@ impl FrozenBook<'_> {
             &mut arithmetic,
         )?;
         while !payout.is_done() {
+            if payout.protected_search_exhausted() {
+                return Err(Error::Entitlement);
+            }
             payout.step()?;
         }
+        let (rates, denominator) = plan.market_rates();
         Ok(Receipt {
+            effective_budgets: plan.effective_budgets(),
+            market_rates: rates
+                .each_ref()
+                .map(|value| (integer(value), integer(denominator))),
             budgets,
             remaining_lots: lots,
             fills,
             rounded: payout.result()?,
             spent: plan.insurance_spent(),
+            original_losses: baseline.market_losses().each_ref().map(integer),
             recovered: recovery(&baseline, &plan, charged),
         })
     }

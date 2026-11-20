@@ -197,6 +197,10 @@ impl Verified<'_> {
     pub fn denominator(&self) -> &Number {
         &self.denominator
     }
+    /// Verified market rates share a denominator before conversion to collateral atoms.
+    pub fn market_rates(&self) -> (&[Number; 2], &Number) {
+        (&self.rates, &self.rate_denominator)
+    }
     pub fn insurance_spent(&self) -> [u64; 2] {
         self.spent
     }

@@ -23,6 +23,20 @@ struct Input {
     charges: Vec<[String; 4]>,
     original: WitnessInput,
     effective: WitnessInput,
+    search: Option<Search>,
+}
+#[derive(Deserialize)]
+struct Search {
+    venue_hex: String,
+    epoch: String,
+    reflections: Vec<Vec<usize>>,
+    limit: String,
+    witnesses: Vec<Candidate>,
+}
+#[derive(Deserialize)]
+struct Candidate {
+    charges: Vec<[String; 4]>,
+    effective: WitnessInput,
 }
 #[derive(Deserialize)]
 struct MemberInput {
@@ -88,6 +102,18 @@ impl RatesAndOrders {
         }
     }
 }
+fn decode_charges(rows: &[[String; 4]]) -> Result<Vec<Charge>, String> {
+    rows.iter()
+        .map(|[market, debtor, winner, atoms]| {
+            Ok(Charge {
+                market: decimal(market)?,
+                debtor: decimal(debtor)?,
+                winner: decimal(winner)?,
+                atoms: decimal(atoms)?,
+            })
+        })
+        .collect()
+}
 fn run(input: Input) -> Result<Value, String> {
     let histories = input
         .rows
@@ -110,18 +136,6 @@ fn run(input: Input) -> Result<Value, String> {
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let charges = input
-        .charges
-        .iter()
-        .map(|[market, debtor, winner, atoms]| {
-            Ok(Charge {
-                market: decimal(market)?,
-                debtor: decimal(debtor)?,
-                winner: decimal(winner)?,
-                atoms: decimal(atoms)?,
-            })
-        })
-        .collect::<Result<Vec<_>, String>>()?;
     let book = FrozenBook {
         members: &members,
         marks: pair(&input.marks)?,
@@ -129,6 +143,60 @@ fn run(input: Input) -> Result<Value, String> {
         insurance: pair(&input.insurance)?,
         fees: pair(&input.fees)?,
     };
+    if let Some(search) = input.search {
+        use default_plan_selection::joint_search::Coverage;
+        let mut witnesses = std::collections::BTreeMap::new();
+        for row in search.witnesses {
+            if witnesses
+                .insert(decode_charges(&row.charges)?, row.effective.parse()?)
+                .is_some()
+            {
+                return Err("duplicate schedule witness".into());
+            }
+        }
+        let venue: [u8; 32] = bytes(&search.venue_hex)?
+            .try_into()
+            .map_err(|_| "invalid venue")?;
+        let priority = default_plan_selection::joint_search::FrozenPriority {
+            venue: &venue,
+            episode: decimal(&search.epoch)?,
+            reflections: &search.reflections,
+        };
+        let wire = |plan: Vec<Charge>| {
+            plan.into_iter()
+                .map(|c| {
+                    [
+                        c.market.to_string(),
+                        c.debtor.to_string(),
+                        c.winner.to_string(),
+                        c.atoms.to_string(),
+                    ]
+                })
+                .collect::<Vec<_>>()
+        };
+        let result = book
+            .recovery_frontier(
+                input.original.parse()?.witness(),
+                decimal(&search.limit)?,
+                priority,
+                |charges| witnesses.get(charges).map(RatesAndOrders::witness),
+            )
+            .map_err(|e| format!("{e:?}"))?;
+        return Ok(match result {
+            Coverage::OverBudget { at_least } => json!({"atLeast":at_least.to_string()}),
+            Coverage::Complete {
+                combinations,
+                structurally_valid,
+                admitted,
+                finalists,
+                selected,
+            } => json!({
+                "combinations":combinations.to_string(),"valid":structurally_valid.to_string(),"admitted":admitted.to_string(),
+                "finalists":finalists.into_iter().map(wire).collect::<Vec<_>>(),"selected":selected.map(wire)
+            }),
+        });
+    }
+    let charges = decode_charges(&input.charges)?;
     let receipt = book
         .verify_proposal(
             input.original.parse()?.witness(),

@@ -59,3 +59,4 @@ cargo build --locked -p default-plan-selection --features native-search --exampl
 python3 tests/financial/check_multi_lot_search.py
 cargo build --locked -p default-plan-selection --features native-joint --example joint_reduction_audit
 python3 tests/financial/check_joint_reductions.py
+python3 tests/financial/check_joint_search.py
