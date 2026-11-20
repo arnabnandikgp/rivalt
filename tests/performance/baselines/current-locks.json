@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "d24445ea1134b75389f1ddb47d880ab8b75933cf20878ed50e049d437d0511a2",
+    "clearing": "1ccd36072c7c6b82e32a22d594b185f5a11d848e9254d0b06b8371f0226ffad4",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -394,6 +394,31 @@
     },
     {
       "program": "clearing",
+      "name": "bind_recovery_selection",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "search",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "cancel_recovery_provision",
       "write": [
         "storage"
@@ -408,6 +433,21 @@
       "signers": [
         "authority"
       ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "capture_member",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "page",
+        "margin"
+      ],
+      "signers": [],
       "optional": []
     },
     {
@@ -741,6 +781,32 @@
     },
     {
       "program": "clearing",
+      "name": "cover_plan",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "cover_range",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "create_portfolio",
       "write": [
         "owner",
@@ -809,6 +875,19 @@
         "btc_ledger",
         "eth_ledger"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "derive_pairs",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
     },
     {
       "program": "clearing",
@@ -1587,6 +1666,23 @@
     },
     {
       "program": "clearing",
+      "name": "open_search",
+      "write": [
+        "payer",
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution",
+        "system_program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "pause_venue",
       "write": [
         "safety"
@@ -2045,6 +2141,19 @@
     },
     {
       "program": "clearing",
+      "name": "seal_search",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "seed_market_insurance",
       "write": [
         "custody",
@@ -2280,6 +2389,19 @@
       "optional": [
         "winner_page"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "verify_incumbent",
+      "write": [
+        "search"
+      ],
+      "read": [
+        "prepared",
+        "resolution"
+      ],
+      "signers": [],
+      "optional": []
     },
     {
       "program": "clearing",
