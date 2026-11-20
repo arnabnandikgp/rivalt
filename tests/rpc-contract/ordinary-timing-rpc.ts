@@ -29,6 +29,7 @@ const build=verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(url,wsUrl,directory,{deferFinality:true});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,indexer:LiquidityIndexer|undefined,worker:AccountRuntime|undefined;
 let observing=true,dispatch=true,loopError:unknown;
+let unavailableProjectionPolls=0;
 let settlementLoop:Promise<void>|undefined;
 const loops:Promise<void>[]=[];
 function supervise(run:()=>Promise<void>){loops.push(run().catch(error=>{loopError=error;observing=false;}));}
@@ -97,7 +98,15 @@ try{
   const startSettlement=()=>{
     settlementLoop=(async()=>{while(observing&&dispatch){
       await dispatchOriginals();
-      if(dispatch)await worker!.settle(setup.payer);
+      if(dispatch){
+        try{await worker!.settle(setup.payer);}
+        catch(error){
+          // As in the worker process, a poll with no published view submits
+          // nothing. Keep the timer running through the next reconciliation.
+          if(!(error instanceof Error && error.message==='Reconciled projection unavailable'))throw error;
+          unavailableProjectionPolls++;
+        }
+      }
       await delay(250);
     }})().catch(error=>{loopError=error;observing=false;});
     loops.push(settlementLoop);
@@ -152,7 +161,7 @@ try{
   }
   await journal.checkpoint('timed-wallet-exit',true);
   const replay=await journal.finish();
-  const result={revision,artifact:build.revision,delayed,fees,gain,net,events:replay.events,receipts,
+  const result={revision,artifact:build.revision,delayed,unavailableProjectionPolls,fees,gain,net,events:replay.events,receipts,
     relativeToCloseMs:Object.fromEntries(Object.entries(stages).map(([key,time])=>[key,Math.round(time-stages.closeConfirmed)]))};
   writeFileSync(directory+'/ordinary-timing.json',json(result));console.log(json(result));
 }finally{
