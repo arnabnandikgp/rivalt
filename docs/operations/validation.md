@@ -3561,3 +3561,49 @@ client output removes the capture buffer; original builder metas replace compile
 transaction privilege unions in the negative probe and all worker parity checks.
 Offline comparison classified exactly two promoted read-only metas; no program
 layout or economic rule changed. A complete corrected run is required.
+
+## Clearing-owned joint recovery
+
+Local SBF `efbaa024` is 3,055,624 bytes, SHA-256
+`902291ec1c562037e18bb04f7311276bd8d9c3b82ff8857dffd86484c2e43fdd`.
+The page helper is built from the same revision. The default IDL adds eight
+instructions, a search account and a binding event. Every prior instruction,
+account, event and type was structurally identical in the generated IDL.
+The D90 ABI check, TypeScript type-check, seven Rust verifier tests, the SDK
+receipt test and nine scoped-event tests passed.
+
+At `f46b6032` the cross-creditor book covered all 340 schedules. The selected
+BTC 9 / ETH 33 plan took 28 successful search transactions totaling 5,998,545 CU.
+The largest used 922,695 CU. The winner cost 140,000 test lamports in fees and
+the sponsor deposited 42,636,440 rent lamports in the search account. Binding
+used 30,734 CU in 726 signed bytes. Incomplete, defeated, stale and duplicate
+bindings were rejected. All eight balances and 16 signed movements matched the
+independent model. The two maker capital accounts paid 5,004 and 34,968 atoms to their owner’s wallet;
+each withdrawal used 32,726 CU in 806 bytes. The run recorded 276 main harness
+outcomes and 54 worker originals. A fresh database reproduced all 114 events
+and the reconciled cash, fees and reserves. Retained finalized bytes for all
+eight new instructions and both binding payloads matched the isolated legacy
+and RC2 Anchor clients.
+
+The first attempt at `3f669775` stopped after selection when a synchronous
+test subprocess starved the parent's finality poll. The repeated `f46b6032`
+financial harness completed and emitted its checked result. Its outer shell
+reported a trailing parse error after the final reconciliation while the
+script file was edited during the run. The pinned supervisor passes
+`bash -n`. Raw receipts are retained in the existing ignored
+`.local/profit-attribution/owned-cross-f46b603` directory.
+
+At `d2a16818`, two BTC makers each held 10,002 eligible atoms. Clearing
+verified 2,548 schedules, selected BTC charges of 7/6 by frozen member order,
+and charged 12 on ETH. The winner took 67 successful search transactions,
+14,743,233 CU total, 994,013 CU peak and 335,000 test lamports in fees.
+Binding took 31,184 CU in 726 bytes. A one-atom withdrawal after binding and
+before application failed. All eight funded balances and 16 market movements
+matched the independent result. The flat trader withdrew 4,996 atoms; maker
+credits of 9,995, 9,996 and 9,990 reached their owner's token account. Both
+reserves ended at zero, alongside retained fees of 39 and 6. The supervisor
+completed 291 main harness outcomes, 55 worker originals, both isolated Anchor
+comparisons and an identical 128-event fresh SQL replay. Signed receipts are
+under `.local/profit-attribution/owned-tie-d2a1681`. The local proposer supplied
+the schedules and witnesses; a fully autonomous operating service and larger
+book resource qualification are still open.

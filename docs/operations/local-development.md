@@ -642,3 +642,25 @@ for paired fills, withdrawal and freeze, and
 for the nonzero-premium cross-account and outage cases. Run the latter at
 `aa0a209` to include the two-maker reversal. Each invocation owns a
 fresh Surfpool instance and PostgreSQL database.
+
+### Reproduce clearing-owned joint recovery
+
+On clean program revision `efbaa024`, build the candidate with
+`RIVALT_ATTRIBUTION_PROFILE=recovery-search-qualification bash ops/build-profit-attribution.sh`.
+Export the printed directory as `RIVALT_SETTLEMENT_ARTIFACT_DIR`. Return to
+the qualification revision recorded in [validation](validation.md#clearing-owned-joint-recovery).
+Build its pinned page helper with `bash ops/build-settlement-helper.sh recovery-search-candidate`.
+Run either case with the repository's pinned local Surfpool and PostgreSQL tools.
+
+```sh
+RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-cross \
+  bash ops/scalable-settlement-smoke.sh
+
+RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_FROZEN_PLAN_CASE=equal-winners \
+  RIVALT_SETTLEMENT_PROBE=profit-attribution-owned-tie bash ops/scalable-settlement-smoke.sh
+```
+
+Each case uses a fresh local deployment. It reconstructs the book from signed
+fills, checks an inferior proposal, restarts the verifier, and follows clearing
+and the wallet through actual RPC. The pricing and custody fixtures use test
+collateral. The separate external review and funded-pilot gates still apply.
