@@ -4174,3 +4174,10 @@ matching WebSocket records. The host ran out of disk space while writing the
 next signed wire during venue setup. This run reached neither joint settlement
 nor a wallet withdrawal. The [reproduction](local-development.md#combined-local-successor-qualification)
 uses a fresh local run directory.
+
+After pruning stopped test databases, harness `067149aa` finished the
+128-member on-chain reconciliation on the same binary. The diagnostic path
+used 9,701 conserving-plan continuations. A trading checkpoint prepended by
+the harness to the terminal withdrawal failed in simulation with error 6108.
+The wallet transfer was never submitted and this run did not reach SQL replay.
+Resolved accounts have a dedicated, guarded withdrawal for liability-free cash.

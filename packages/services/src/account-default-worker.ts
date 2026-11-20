@@ -9,7 +9,7 @@ import type {AccountRuntime} from './account-runtime.js';
 import {decodeAccountWorker,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
 import {allocationCutoff,frozenWinner,type Winner} from './btc-allocation.js';
 import {recoveryProofStep} from './recovery-proof-worker.js';
-import {SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
+import {resolveSettlementWindow,SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
 import {defaultProposal,matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
 
 import {sharedInventoryProposal} from './shared-inventory-proposal.js';
@@ -341,24 +341,15 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       ordinal=proposeMarketOrder(proposed.rows,plan.orderMarket,proposed.proposal.rates[plan.orderMarket])[Number(position)];
     } else assert([1,4,6,7].includes(plan.stage),'Unsupported conserving plan stage');
     if(ordinal===undefined) {
-      const loaded=new Map<string,{page:Address;value:sdk.SettlementLimbPage;encoded:string}>();
-      for(let round=0;round<=8;round++) {
-        const requested=await transport(runtime).requests(state,'plan-window',undefined,[...loaded.values()].map(value=>value.encoded));
-        const missing=requested.filter(request=>!loaded.has(`${request.register}:${request.index}`));
-        if(!missing.length) {
-          const metas=requested.map(request=>({address:loaded.get(`${request.register}:${request.index}`)!.page,
-            role:request.writable?AccountRole.WRITABLE:AccountRole.READONLY}));
-          return ready('plan-window',withPages(sdk.getContinueSettlementPlanWindowInstruction({...args,
-            revision:plan.revision,attempt:plan.orderAttempt,steps:128,pages:requested.map(request=>({register:request.register,
-              pageIndex:request.index,writable:request.writable,revision:loaded.get(`${request.register}:${request.index}`)!.value.revision}))}),metas));
-        }
-        for(const request of missing) {
-          const result=await limb(request);if(result.step)return result.step;
-          loaded.set(`${request.register}:${request.index}`,{page:result.page,value:result.value,encoded:result.encoded!});
-        }
-        assert(loaded.size<=8,'Oversized default scratch preview');
-      }
-      throw new Error('Default scratch preview failed to converge');
+      const window=await resolveSettlementWindow<DefaultStep>(
+        loaded=>transport(runtime).requests(state,'plan-window',undefined,loaded),
+        async request=>{
+          const result=await limb(request);
+          return result.step?{step:result.step}:{page:result.page,value:result.value,encoded:result.encoded};
+        });
+      if('step' in window)return window.step;
+      return ready('plan-window',withPages(sdk.getContinueSettlementPlanWindowInstruction({...args,
+        revision:plan.revision,attempt:plan.orderAttempt,steps:128,pages:window.descriptors}),window.metas));
     }
     const current=await pages(await transport(runtime).requests(state,'plan-row',ordinal));if(current.step)return current.step;
     const guarded={...args,revision:plan.revision,attempt:plan.orderAttempt,revisions:current.revisions};

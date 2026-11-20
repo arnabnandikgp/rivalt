@@ -837,7 +837,9 @@ For joint settlement, build clearing at
 `RIVALT_ATTRIBUTION_PROFILE=populated-recovery-qualification` and
 `bash ops/build-profit-attribution.sh`. Run the following from the harness
 checkout with a fresh run directory. It uses the local test mint and an owned
-PostgreSQL instance. The independent payment reference also runs separately
+PostgreSQL instance. The harness uses the keeper’s authenticated page window for
+conserving-plan work and the standalone terminal withdrawal after reconciliation.
+The independent payment reference also runs separately
 against a saved freeze with
 `python3 tests/financial/joint_payment_reference.py < "$RIVALT_RUN_DIR/population-input.json"`.
 With the native scalable-settlement driver built, add `--compare-native`

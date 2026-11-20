@@ -5,13 +5,14 @@ import {execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {AccountRole,getAddressEncoder,getProgramDerivedAddress,type Address,type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
+import {decodeSettlementPages,resolveSettlementWindow} from '../../packages/services/src/settlement-pages.js';
 import type {CanonicalHarness} from './canonical-maker-cases.js';
 import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import type {ExpectedInstructionError} from './instruction-errors.js';
 export type SettlementReference={orders:string[][];cash:string[];movements:string[][];floors:string[][];fractions:boolean[][];localOrders:number[][]};
 export async function qualifySettlementPlan(options:{h:CanonicalHarness;
   setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>;prepared:Address;rates:Address;epoch:bigint;
-  expected?:SettlementReference;rows:{cash:bigint;claims:bigint[]}[];rowPages:Address[];limbPages:Address[];tracked:Address[];
+  expected?:SettlementReference;operatorWindows?:boolean;rows:{cash:bigint;claims:bigint[]}[];rowPages:Address[];limbPages:Address[];tracked:Address[];
   reject:(label:string,instruction:Instruction,error?:ExpectedInstructionError)=>Promise<void>}) {
   const {h,setup,prepared,rates,epoch,rows,rowPages,limbPages,tracked,reject}=options;
   const preparedBytes=(await h.read(prepared))!,rateBytes=(await h.read(rates))!;
@@ -57,16 +58,38 @@ export async function qualifySettlementPlan(options:{h:CanonicalHarness;
       sdk.getAcceptSettlementPlanRowInstruction({...args,ordinal,page:rowPages[Number(ordinal/8n)],actor:setup.payer});
     return {base,pages,full:{...base,accounts:[...base.accounts,...pages.map(page=>({address:page.key,role:page.writable?AccountRole.WRITABLE:AccountRole.READONLY}))]}};
   };
+  const operatorWindow=async():Promise<Instruction>=>{
+    const planBytes=(await h.read(plan))!;
+    const current=sdk.getSettlementPlanDecoder().decode(planBytes);
+    const window=await resolveSettlementWindow<never>(async loaded=>{
+      const output=execFileSync('target/debug/rivalt-settlement-pages',[],{encoding:'utf8',
+        input:JSON.stringify({version:2,operation:'plan-window',prepared:preparedBytes.toString('hex'),
+          rates:rateBytes.toString('hex'),plan:planBytes.toString('hex'),ordinal:null,pages:loaded})});
+      return decodeSettlementPages(output,8);
+    },async request=>{
+      const page=pageKeys.get(String(request.register)+':'+String(request.index));
+      assert(page,'preprovisioned canonical page');
+      const raw=(await h.read(page))!;
+      return {page,value:sdk.getSettlementLimbPageDecoder().decode(raw),encoded:raw.toString('hex')};
+    });
+    assert(!('step' in window));
+    const base=sdk.getContinueSettlementPlanWindowInstruction({...common,revision:current.revision,
+      attempt:current.orderAttempt,steps:128,pages:window.descriptors});
+    return {...base,accounts:[...base.accounts,...window.metas]};
+  };
   let continuations=0,checkedPages=false;
   const work=async()=>{
-    const {base,pages,full}=await instruction();
-    if(!checkedPages&&pages.length){
-      await reject('plan continuation missing canonical page',base);
-      await reject('stale plan revision',{...full,data:sdk.getContinueSettlementPlanInstruction({...common,
-        revision:(await state()).revision-1n,attempt:(await state()).orderAttempt,steps:128,revisions:[0n,0n,0n]}).data});
+    const narrow=options.operatorWindows&&checkedPages?undefined:await instruction();
+    if(!checkedPages&&narrow?.pages.length){
+      await reject('plan continuation missing canonical page',narrow.base);
+      const current=await state();
+      await reject('stale plan revision',{...narrow.full,data:sdk.getContinueSettlementPlanInstruction({...common,
+        revision:current.revision-1n,attempt:current.orderAttempt,steps:128,revisions:[0n,0n,0n]}).data});
       checkedPages=true;
     }
-    await h.send('P54C bounded conserving work',[full]);continuations++;assert(continuations<10_000,'bounded fixture progress');
+    const full=options.operatorWindows?await operatorWindow():narrow!.full;
+    await h.send('P54C bounded conserving work',[full]);continuations++;
+    assert(continuations<10_000,'bounded fixture progress');
   };
   while((await state()).stage<3){
     const current=await state();

@@ -121,7 +121,7 @@ try {
       await h.send(label,[ix],[],error);
     };
     const {plan,continuations,state}=await qualifySettlementPlan({h,setup,prepared,rates,epoch:initial.epoch,
-      expected:reference.plan,rows:changed,rowPages:pages,limbPages:limbs,tracked,reject});
+      operatorWindows:true,expected:reference.plan,rows:changed,rowPages:pages,limbPages:limbs,tracked,reject});
     assert.deepEqual(state.insuranceSpent.map(String),reference.spent);
     const application=await qualifySettlementApplication({h,setup,prepared,rates,plan,epoch:initial.epoch,
       rowPages:pages,rows:frozen,expected:reference.plan,tracked,reject,stopBeforeExitAndRecovery:true,
@@ -133,7 +133,10 @@ try {
     const before=await token(setup.traderToken.address), vault=await token(setup.vault);
     const withdraw=sdk.getWithdrawFundedAccountInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
       owner:setup.traderOwner,margin,userToken:setup.traderToken.address,quoteMint:setup.mint.address,amount,guard:await guard(margin)});
-    await h.send('withdraw full certified joint wallet payout',await withCheckpoints(withdraw),[setup.traderOwner]);
+    await h.send('reject trading checkpoint during terminal exit',await withCheckpoints(withdraw),[setup.traderOwner],sdk.CLEARING_ERROR__PROFILE);
+    assert.equal(await token(setup.traderToken.address),before);
+    assert.equal(await token(setup.vault),vault);
+    await h.send('withdraw full certified joint wallet payout',[withdraw],[setup.traderOwner]);
     assert.equal(await token(setup.traderToken.address),before+amount);
     assert.equal(await token(setup.vault),vault-amount);
     assert.equal((await root(margin)).cash,0n);

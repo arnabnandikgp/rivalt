@@ -5,6 +5,7 @@ import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
+import {AccountRole,type AccountMeta,type Address} from '@solana/kit';
 import {accountDeployment,type AccountDeployment} from '@rivalt/sdk';
 import type {readAccountResolution} from './account-worker-state.js';
 
@@ -54,4 +55,35 @@ export function decodeSettlementPages(output:string,maximum:3|8=3):SettlementPag
   for(let index=1;index<pages.length;index++)assert(pages[index-1].register<pages[index].register
     ||pages[index-1].register===pages[index].register&&pages[index-1].index<pages[index].index,'Duplicate or unordered descriptor pages');
   return pages;
+}
+
+type WindowPage={page:Address;value:{revision:bigint};encoded:string};
+type WindowDescriptor={register:number;pageIndex:bigint;writable:boolean;revision:bigint};
+
+/** Preview the same bounded page window for the keeper and signed qualification.
+ * A missing page can require a separate provisioning transaction before resuming. */
+export async function resolveSettlementWindow<Step>(
+  preview:(pages:string[])=>Promise<SettlementPageRequest[]>,
+  read:(request:SettlementPageRequest)=>Promise<WindowPage|{step:Step}>,
+):Promise<{metas:AccountMeta[];descriptors:WindowDescriptor[]}|{step:Step}> {
+  const loaded=new Map<string,WindowPage>();
+  const identity=(page:SettlementPageRequest)=>String(page.register)+':'+String(page.index);
+  for(let round=0;round<=8;round++) {
+    const requested=await preview([...loaded.values()].map(page=>page.encoded));
+    const missing=requested.filter(page=>!loaded.has(identity(page)));
+    if(!missing.length) {
+      const metas=requested.map(page=>({address:loaded.get(identity(page))!.page,
+        role:page.writable?AccountRole.WRITABLE:AccountRole.READONLY}));
+      const descriptors=requested.map(page=>({register:page.register,pageIndex:page.index,
+        writable:page.writable,revision:loaded.get(identity(page))!.value.revision}));
+      return {metas,descriptors};
+    }
+    for(const page of missing) {
+      const result=await read(page);
+      if('step' in result)return result;
+      loaded.set(identity(page),result);
+    }
+    assert(loaded.size<=8,'Oversized default scratch preview');
+  }
+  throw new Error('Default scratch preview failed to converge');
 }
