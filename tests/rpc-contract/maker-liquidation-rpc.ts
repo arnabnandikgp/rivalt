@@ -58,8 +58,16 @@ try {
     getMintToInstruction({mint:setup.mint.address,token:token.address,mintAuthority:keeper,amount:100_000n})],[token]);
   await h.send('create separate receiver portfolio',[await sdk.getCreatePortfolioInstructionAsync({...setup.common,owner:receiverOwner,portfolio,index:0})],[receiverOwner]);
   await registerFinancialTestMargin(h,common,keeper,{owner:receiverOwner,portfolio,margin:receiver,subaccountIndex:1,mode:1,isolatedMarketIndex:0,role:0});
-  const fund=async(amount:bigint)=>h.send('fund receiver '+amount,[await sdk.getDepositAccountInstructionAsync({...setup.common,
-    owner:receiverOwner,margin:receiver,quoteMint:setup.mint.address,userToken:token.address,amount})],[receiverOwner]);
+  async function fund(amount:bigint) {
+    const deposit=await sdk.getDepositAccountInstructionAsync({...setup.common,
+      owner:receiverOwner,margin:receiver,quoteMint:setup.mint.address,userToken:token.address,amount});
+    if (integrated && amount===1n) {
+      const before=await snapshot();
+      await h.send('refuse receiver deposit with missing ledger checkpoints',[deposit],[receiverOwner],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
+      assert.deepEqual(await snapshot(),before);
+    }
+    await h.send('fund receiver '+amount,await checked(deposit),[receiverOwner]);
+  }
   await fund(1n);
   const forced=async(lots:bigint,instance=2,liquidation=true)=>route({trader:target,actor:keeper,marketIndex:0,side:1,
     makers:[setup.instances[instance]],lots:[lots],liquidation,reduceOnly:true,generation:(await root(target)).positions[0].generation});
