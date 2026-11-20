@@ -84,7 +84,7 @@ it('permits a keeper to reduce only a distressed target and rejects each adverse
   expect(await buildMakerLiquidation(snapshot,trader,0,2n,outsider)).toBeNull();
   const fill=await buildMakerLiquidation(snapshot,trader,0,1n,outsider);
   const parsed=protocol.parseLiquidateLiquidityRouteInstruction(fill!.instructions[0]);
-  expect(parsed.data).toMatchObject({side:1,reduceOnly:true,generation:{__option:'Some',value:3n},lots:1n});
+  expect(parsed.data).toMatchObject({side:1,reduceOnly:true,generation:{__option:'Some',value:3n},lots:1n,allInLimit:9988n,maxFee:2n});
   expect(parsed.accounts.actor.address).toEqual(outsider);
   await expect(buildLiquidityRoute({...input,side:1,allInLimit:0n},outsider)).rejects.toThrow(/authority/);
   for(const maker of financial.makers)maker.shape={...maker.shape,bids:[{endLots:4096n,offset:101n,slope:0n}]};

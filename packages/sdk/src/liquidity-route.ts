@@ -93,7 +93,8 @@ async function buildRoute(input: LiquidityRouteInput, actor: Address, makerLiqui
     ? await protocol.getExecuteLiquidityOrderInstructionAsync({ ...common, ...input.stored })
     : await liveInstruction({ ...common, domain: snapshot.venueState.domain,
       termsEpoch: market.termsEpoch, configEpoch: market.configEpoch, side: input.side,
-      allInLimit: input.allInLimit, maxFee: input.maxFee, reduceOnly, generation: position.generation });
+      allInLimit: makerLiquidation ? allocation.allIn : input.allInLimit,
+      maxFee: makerLiquidation ? allocation.fee : input.maxFee, reduceOnly, generation: position.generation });
   return { snapshotCommitment: snapshot.commitment, snapshotSlot: snapshot.slot, trader, marketIndex,
     guard: common.guard, expirySlot, allocation, metrics: preview.metrics, excluded: preview.excluded,
     instructions: [instruction], resourceBudget: { computeUnitLimit: 800_000, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 } };

@@ -88,17 +88,35 @@ try {
       limit:33_000n,feeBudget:100n,startSlot:slot,expirySlot:slot+5000n,trigger:0,threshold:0n,reduceOnly:false,generation:0n}}})),[owner]);
   setup.sourcePrices.btc=52_000_000_000n;
   await setup.qualify();
-  const stages:{stage:string;lots:string;cash:string;deficit:string}[]=[];
+  const stages:{stage:string;lots:string;cash:string;deficit:string;deficitScaled:string;fundingDebitScaled:string}[]=[];
+  let previousLots=0n,previousIndex=0n,fundingDebit=0n;
   async function verifyTarget(stage:string,lots:bigint,cash:bigint,virtual:bigint,expectedDeficit:bigint) {
     const account=await root(target),market=await setup.marketState(0);
     assert.equal(market.lower,51_480n);assert.equal(market.upper,52_520n);
-    assert.equal(account.positions[0].lots,lots);assert.equal(account.positions[0].virtualScaled,virtual*scale);
+    const position=account.positions[0];
+    fundingDebit+=previousLots*(position.fundingCheckpointScaled-previousIndex);
+    previousIndex=position.fundingCheckpointScaled;previousLots=lots;
+    assert.equal(position.lots,lots);assert.equal(position.virtualScaled,virtual*scale-fundingDebit);
     assert.equal(account.positions[1].lots,0n);assert.equal(account.cash,cash);
-    assert.equal(market.fundingIndexScaled,0n);assert.equal(market.oracle.premiumScaled,0n);
+    if(!automatic){assert.equal(market.fundingIndexScaled,0n);assert.equal(market.oracle.premiumScaled,0n);}
     const claim=lots*51_480n+virtual,equity=cash+(claim<0n?claim:0n);
     const gap=(lots*52_520n+19n)/20n-equity,deficit=gap>0n?gap:0n;
     assert.equal(deficit,expectedDeficit);
-    stages.push({stage,lots:String(lots),cash:String(cash),deficit:String(deficit)});
+    // Independently value the literal signed trade flows and apply every funding
+    // interval at the inventory actually held before that interval ended.
+    const now=await setup.now(),slot=await setup.slot(),observation=market.oracle;
+    const accrues=observation.heldEpoch===market.configEpoch&&observation.heldUntil>observation.sampledAt
+      &&slot<observation.heldSlot&&now>=observation.sampledAt&&now-observation.sampledAt<=30n;
+    const through=now<observation.heldUntil?now:observation.heldUntil;
+    const index=accrues?observation.fundingBase+observation.premiumScaled*(through-observation.sampledAt)/3600n:market.fundingIndexScaled;
+    const accruedDebit=fundingDebit+lots*(index-previousIndex);
+    const riskClaim=claim*scale-accruedDebit;
+    const fundedEquity=cash*scale+(riskClaim<0n?riskClaim:0n);
+    const actualGap=(lots*52_520n+19n)/20n*scale-fundedEquity;
+    const deficitScaled=actualGap>0n?actualGap:0n;
+    assert.equal(deficitScaled===0n,expectedDeficit===0n);
+    if(!automatic)assert.equal(deficitScaled,deficit*scale);
+    stages.push({stage,lots:String(lots),cash:String(cash),deficit:String(deficit),deficitScaled:String(deficitScaled),fundingDebitScaled:String(accruedDebit)});
   }
   await verifyTarget('Below maintenance',50n,563_390n,-3_050_000n,43_910n);
   // Expire the signed sources, then restore through the same oracle/publisher entrypoints.
@@ -159,7 +177,8 @@ try {
   await checkGross(90n);
   const unwound=await root(receiver);
   assert.equal(unwound.cash,100_079n);assert.equal(unwound.positions[0].lots,0n);
-  assert.equal(unwound.positions[0].virtualScaled,-5000n*scale);
+  assert.equal(unwound.positions[0].virtualScaled,-5000n*scale-
+    5n*(unwound.positions[0].fundingCheckpointScaled-received.positions[0].fundingCheckpointScaled));
   await flush();
   const journal=liveJournal??await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   try {
