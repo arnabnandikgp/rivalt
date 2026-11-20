@@ -141,7 +141,17 @@ try {
   if(automatic){
     await flush();
     liveJournal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
-    worker=await openLiquidationDriver(rpc,ws,liveJournal,flush,()=>setup.sample([0]),receiverOwner,receiver,successor?'local-successor-candidate':'integrated-recovery-candidate');
+    // Journal replay can outlast the held observation. Reestablish the normal
+    // BTC window with signed publications before offering work to the keeper.
+    const refreshBtc=async()=>{
+      for(let sample=0;sample<4;sample++){
+        await setup.sample([0]);
+        const safety=sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
+        if(sdk.accountSourceMode(safety,await setup.marketState(0),await setup.now(),await setup.slot())==='Normal')return;
+      }
+      assert.fail('BTC did not recover through four signed funding observations');
+    };
+    worker=await openLiquidationDriver(rpc,ws,liveJournal,flush,refreshBtc,receiverOwner,receiver,successor?'local-successor-candidate':'integrated-recovery-candidate');
     await worker.maker();
   }else await h.send('liquidation keeper sells ten lots to maker B',await checked(fill));
   await checkGross(100n);
