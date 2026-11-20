@@ -140,7 +140,7 @@ try {
   if(automatic){
     await flush();
     liveJournal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
-    worker=await openLiquidationDriver(rpc,ws,liveJournal,()=>setup.sample([0]),receiverOwner,receiver);
+    worker=await openLiquidationDriver(rpc,ws,liveJournal,flush,()=>setup.sample([0]),receiverOwner,receiver);
     await worker.maker();
   }else await h.send('liquidation keeper sells ten lots to maker B',await checked(fill));
   await checkGross(100n);

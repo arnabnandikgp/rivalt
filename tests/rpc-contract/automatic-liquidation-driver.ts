@@ -7,7 +7,7 @@ import type {openSettlementJournal} from './scalable-settlement-journal.js';
 import {eventually,type WireRpc,type WireSubscriptions} from './wire.js';
 
 export async function openLiquidationDriver(rpc:WireRpc,ws:WireSubscriptions,
-  journal:Awaited<ReturnType<typeof openSettlementJournal>>,refresh:()=>Promise<void>,signer:Keypair,receiver:Address) {
+  journal:Awaited<ReturnType<typeof openSettlementJournal>>,finalizeFixture:()=>Promise<void>,refresh:()=>Promise<void>,signer:Keypair,receiver:Address) {
   const runtime=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',
     process.env.RIVALT_RPC_URL!,4,'integrated-recovery-candidate');
   await journal.checkpoint('initialize-risk-worker',true);
@@ -25,6 +25,7 @@ export async function openLiquidationDriver(rpc:WireRpc,ws:WireSubscriptions,
     [runtime.runId])).rows;
   const balance=async()=>BigInt((await rpc.call('getBalance',[signer.address,{commitment:'confirmed'}])).value);
   async function check(stage:string,expected:string,queue:boolean,configuredReceiver?:Address) {
+    await finalizeFixture();
     await journal.checkpoint(stage,true);
     await refresh();
     const beforeFee=await balance(),before=await intents();
