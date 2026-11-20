@@ -12,7 +12,7 @@ const directory=process.argv[2], destination=join(directory,'recovery-wire');
 const expected=new Set(['open_search','capture_member','derive_pairs','verify_incumbent','cover_plan','cover_range','seal_search','bind_recovery_selection']);
 const names=new Map(clearingIdl.instructions.filter(ix=>expected.has(ix.name))
   .map(ix=>[Buffer.from(ix.discriminator).toString('hex'),ix.name]));
-const observed=new Set<string>(), check=new CanonicalConformance();
+const observed=new Set<string>(), check=new CanonicalConformance(process.argv[3]==='--paged');
 const keeper=join(directory,'keeper-proof');
 for(const folder of existsSync(keeper)?[keeper,directory]:[join(directory,'search-start'),join(directory,'search-resume'),directory]) {
   for(const file of readdirSync(folder).filter(name=>/^transaction-\d+\.json$/.test(name))) {

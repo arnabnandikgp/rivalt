@@ -133,6 +133,7 @@ export function identifyClearingAccount(
 }
 
 export enum ClearingEvent {
+  AccountTransition,
   PagedRecoverySelectionBound,
 }
 
@@ -140,6 +141,17 @@ export function identifyClearingEvent(
   event: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): ClearingEvent {
   const data = "data" in event ? event.data : event;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([19, 20, 239, 97, 181, 177, 128, 179]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.AccountTransition;
+  }
   if (
     containsBytes(
       data,

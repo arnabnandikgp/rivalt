@@ -10,6 +10,8 @@ export * from "./frozenMargin.js";
 export * from "./frozenRecoveryPayout.js";
 export * from "./priorities.js";
 export * from "./rateWitness.js";
+export * from "./scopedRead.js";
+export * from "./scopedWrite.js";
 export * from "./searchEdge.js";
 export * from "./searchMember.js";
 export * from "./storedRatio.js";

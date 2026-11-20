@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, openSync, closeSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { getBase58Encoder, type Address, type Instruction } from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
+import * as paged from '@rivalt/sdk/paged-recovery';
 const camel = (value: string) => value.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase()).replace(/^[A-Z]/, letter => letter.toLowerCase());
 const upper = (value: string) => value[0].toUpperCase()+value.slice(1);
 export function canonicalValue(value: any): any {
@@ -15,13 +16,18 @@ export function canonicalValue(value: any): any {
     .map(([key, item]) => [key, canonicalValue(item)]));
   return value;
 }
-export class CanonicalConformance {
-  readonly modules = [
-    { name: 'clearing', address: sdk.CLEARING_PROGRAM_ADDRESS, sdk },
+function conformanceModules(pagedRecovery:boolean) {
+  return [
+    pagedRecovery?{name:'paged_recovery',address:sdk.CLEARING_PROGRAM_ADDRESS,sdk:paged}:
+      { name: 'clearing', address: sdk.CLEARING_PROGRAM_ADDRESS, sdk },
     { name: 'maker_a', address: sdk.makerA.MAKER_A_PROGRAM_ADDRESS, sdk: sdk.makerA },
     { name: 'maker_b', address: sdk.makerB.MAKER_B_PROGRAM_ADDRESS, sdk: sdk.makerB },
   ].map(module => ({ ...module, idl: JSON.parse(readFileSync(`packages/sdk/idl/${module.name}.json`, 'utf8')),
     instructions: [] as any[], accounts: [] as any[], events: [] as string[], expectedEvents: [] as any[], expectedAccounts: [] as any[] }));
+}
+export class CanonicalConformance {
+  readonly modules:ReturnType<typeof conformanceModules>;
+  constructor(pagedRecovery=false) {this.modules=conformanceModules(pagedRecovery);}
   record(instructions: Instruction[], history?: any) {
     for (const module of this.modules) {
       for (const instruction of instructions.filter(item => item.programAddress === module.address)) {

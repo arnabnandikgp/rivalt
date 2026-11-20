@@ -1,6 +1,6 @@
 import {expect,it} from 'vitest';
 import {getPreparedSettlementDecoder} from './generated/index.js';
-import {boundRecoveryReceipt} from './recovery-receipt.js';
+import {boundRecoveryReceipt,pagedRecoveryHeader} from './recovery-receipt.js';
 
 it('reads signed payments separately from claim adjustments and rejects a mixed freeze',()=>{
   const decoder=getPreparedSettlementDecoder();
@@ -29,4 +29,21 @@ it('reads signed payments separately from claim adjustments and rejects a mixed 
   bytes[543]=0;
   bytes.writeBigUInt64LE(10n,128);
   expect(()=>boundRecoveryReceipt(header)).toThrow();
+});
+
+it('binds a paged header to the exact population and a fully covered rank',()=>{
+  const decoder=getPreparedSettlementDecoder();
+  const bytes=Buffer.alloc(544);
+  const header={...decoder.decode(new Uint8Array(decoder.fixedSize)),epoch:7n,count:9n,stage:2};
+  header.state.membership=bytes;
+  bytes.write('RVPAGED1');bytes.writeBigUInt64LE(7n,8);bytes.fill(2,16,48);
+  bytes.writeBigUInt64LE(9n,80);bytes.writeBigUInt64LE(1364n,88);bytes.writeBigUInt64LE(2548n,104);
+  expect(pagedRecoveryHeader(header)).toMatchObject({memberCount:9n,schedule:1364n,schedulesChecked:2548n});
+  expect(boundRecoveryReceipt(header)).toBeNull();
+  expect(()=>pagedRecoveryHeader({...header,count:8n})).toThrow();
+  expect(()=>pagedRecoveryHeader({...header,stage:4})).toThrow();
+  bytes.writeBigUInt64LE(2548n,88);
+  expect(()=>pagedRecoveryHeader(header)).toThrow();
+  bytes.writeBigUInt64LE(1364n,88);bytes[120]=1;
+  expect(()=>pagedRecoveryHeader(header)).toThrow();
 });

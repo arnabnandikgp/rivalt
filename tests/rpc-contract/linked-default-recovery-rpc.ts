@@ -4,7 +4,7 @@ import {execFileSync,spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {getTokenDecoder} from '@solana-program/token';
-import {AccountRole,address,getAddressEncoder} from '@solana/kit';
+import {AccountRole,address,getAddressEncoder,getBase58Encoder} from '@solana/kit';
 import * as paged from '@rivalt/sdk/paged-recovery';
 import * as sdk from '@rivalt/sdk';
 import {json} from '../../packages/indexer/src/events.js';
@@ -30,6 +30,8 @@ const gated = process.env.RIVALT_SETTLEMENT_PROBE === 'profit-attribution-btc-al
 const probe = process.env.RIVALT_SETTLEMENT_PROBE;
 const integrated=probe==='profit-attribution-owned-integrated';
 const pagedWallet=probe==='profit-attribution-owned-paged';
+const additionalInsurancePass=pagedWallet && process.env.RIVALT_FROZEN_PLAN_CASE==='paged-insurance';
+const contestedDeposit=additionalInsurancePass?30_029n:30_000n;
 const ownedCross=integrated||probe==='profit-attribution-owned-cross', ownedTie=pagedWallet||probe==='profit-attribution-owned-tie';
 const owned=ownedCross||ownedTie;
 const automatic=owned && process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET!==undefined;
@@ -67,7 +69,7 @@ let worker: AccountRuntime | undefined;
 try {
   const makerDeposit = 1_000_000n;
   const setup = await liquidityExecutionSetup(h,rpc,{marketCheckpoints:integrated,marginLayout:integrated?'ledger-lanes':owned||bookApply||gated||linked||foreignGate||foreignApply||sharedApply?'sponsored-profit':'profit-attribution',
-    shape:symmetricPayoutShape,traderCount:secondPage||partialInventory||populationBook?3:2, traderCash:populationBook?20_011n:zeroDebtorBudget?20_013n:partialInventory?20_000n:sharedInventory?20_010n:foreignBook?20_000n:contested?30_000n:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
+    shape:symmetricPayoutShape,traderCount:secondPage||partialInventory||populationBook?3:2, traderCash:populationBook?20_011n:zeroDebtorBudget?20_013n:partialInventory?20_000n:sharedInventory?20_010n:foreignBook?20_000n:contested?contestedDeposit:flatCreditor?19_996n:20_012n, makerCash:makerDeposit,verifyRejections:false});
   const {guard,route,root,classify} = executionTestHelpers(h,setup);
   const [debtor,otherTrader] = foreignBook?[setup.roots[1],setup.roots[0]]:secondPage?[setup.roots[0],setup.roots[2]]:setup.roots;
   const makers = populationBook?setup.instances.slice(0,3):[setup.instances[partialInventory?1:0], setup.instances[sharedInventory?2:3]];
@@ -107,7 +109,7 @@ try {
       marketIndex:0, side:0, makers:[flatCounterparty], lots:[1n], allInLimit:60_015n,maxFee:13n,
       reduceOnly:true,generation:(await root(otherTrader)).positions[0].generation})],[setup.traderOwner]);
     const closed=await root(otherTrader);
-    assert.deepEqual([closed.cash,closed.positions[0].lots,closed.positions[0].virtualScaled],[contested?29_974n:19_970n,0n,4_996_000_000_000n]);
+    assert.deepEqual([closed.cash,closed.positions[0].lots,closed.positions[0].virtualScaled],[contested?contestedDeposit-26n:19_970n,0n,4_996_000_000_000n]);
   }
   setup.sourcePrices.btc = sharedInventory||foreignBook?40_000_000_000n:50_000_000_000n;
   setup.sourcePrices.eth = sharedInventory?3_000_000_000n:foreignBook?1_250_000_000n:2_000_000_000n;
@@ -143,7 +145,7 @@ try {
   assert(!history.some(event=>event.type==='AccountFinancialChangedV3' && [2,3].includes(event.data.kind)));
   const fills = history.filter(event => ['LedgerLaneFilled','LiquidityRouteFeeRecorded','LiquidityRouteExecutedV4'].includes(event.type));
   if (integrated) assert.deepEqual(fills.map(event=>event.type), ['LedgerLaneFilled','LedgerLaneFilled','LiquidityRouteFeeRecorded']);
-  const input = {inactiveTrader:secondPage?setup.roots[1]:undefined,flatCreditor,flatCounterparty:equalWinners?flatCounterparty.capital:undefined,traders:populationBook?setup.roots:undefined,smallWinnerEntry,zeroDebtorBudget,thirdTrader:partialInventory?setup.roots[2]:undefined,flatMaker:partialInventory?setup.instances[0].capital:undefined,secondBtcWinner:contested?secondMaker.capital:undefined,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
+  const input = {additionalInsurancePass,inactiveTrader:secondPage?setup.roots[1]:undefined,flatCreditor,flatCounterparty:equalWinners?flatCounterparty.capital:undefined,traders:populationBook?setup.roots:undefined,smallWinnerEntry,zeroDebtorBudget,thirdTrader:partialInventory?setup.roots[2]:undefined,flatMaker:partialInventory?setup.instances[0].capital:undefined,secondBtcWinner:contested?secondMaker.capital:undefined,epoch:frozen.epoch,marks:frozen.prices,funding:frozen.funding,pools:frozen.poolsBefore,
     insurance:frozen.insuranceBefore,fees:frozen.feesBefore,markets:setup.markets,rows,makerDeposit,debtor,otherTrader,
     winners:makers.map(maker=>maker.capital),venueHex:Buffer.from(getAddressEncoder().encode(setup.venue)).toString('hex'),
     sourceDigest:createHash('sha256').update(json([setup.venue,frozen,rows,freezes[0].signature])).digest('hex'),
@@ -234,7 +236,21 @@ try {
         cash=rows.map(row=>row.recoveryPayout.finalCash);movements=rows.map(row=>row.recoveryPayout.movements);
       }
       const bound=recoveryHeader;
-      const expectedRank=comparison.tieTest?.best??comparison.charges[0]*comparison.radices.at(-1)+comparison.charges[1];
+      if(additionalInsurancePass) {
+        const proof=paged.getPagedRecoverySearchDecoder().decode((await h.read(bound.search))!);
+        assert.deepEqual(proof.original.rates.map(row=>row.map(String)),comparison.beforeRates,'Both original insurance passes');
+        const transactions=workerCosts.filter(cost=>cost.request.endsWith(':verify-winner'));
+        assert.equal(transactions.length,1);
+        const landed=JSON.parse(readFileSync(directory+'/keeper-proof/transaction-'+(workerCosts.indexOf(transactions[0])+1)+'.json','utf8'));
+        const instructions=landed.transaction.message.instructions;
+        const tag=Buffer.from(paged.VERIFY_INCUMBENT_DISCRIMINATOR);
+        const payload=instructions.filter((ix:any)=>landed.transaction.message.accountKeys[ix.programIdIndex]===sdk.CLEARING_PROGRAM_ADDRESS)
+          .map((ix:any)=>Buffer.from(getBase58Encoder().encode(ix.data))).find((data:Buffer)=>data.subarray(0,8).equals(tag));
+        assert(payload);
+        const {after}=paged.getVerifyIncumbentInstructionDataDecoder().decode(payload);
+        assert.deepEqual(after.rates.map(row=>row.map(String)),comparison.afterRates,'Both proposed insurance passes');
+      }
+      const expectedRank=comparison.proposedRank??comparison.tieTest?.best??comparison.charges[0]*comparison.radices.at(-1)+comparison.charges[1];
       assert.equal(bound.schedule,BigInt(expectedRank));
       assert.equal(bound.schedulesChecked,BigInt(comparison.assignments));
       assert.deepEqual(cash.map(String),members.map(key=>comparison.cash[key]));
@@ -649,7 +665,7 @@ try {
       await h.send('withdraw the flat BTC claim into the trader wallet',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
         btc:setup.markets[0],eth:setup.markets[1],owner,margin:otherTrader,quoteMint:setup.mint.address,
         userToken:setup.traderToken.address,guard:await guard(otherTrader),amount:traderPayout})],[owner]);
-      assert.equal((await root(otherTrader)).cash,ownedTie||allocationProfile?29_974n:19_970n);
+      assert.equal((await root(otherTrader)).cash,ownedTie||allocationProfile?contestedDeposit-26n:19_970n);
       assert.deepEqual([await traderWallet(),await vault()],[before.traderWallet+traderPayout,before.vault-traderPayout]);
     }
     const payoutAccounts=partialInventory?[setup.instances[0],...makers]:ownedTie||allocationProfile?[makers[0],secondMaker,makers[1]]:makers;

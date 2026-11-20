@@ -765,3 +765,13 @@ route. It reconstructs fee carry from the finalized order of both kinds of fill.
 At freeze it compares the classified market totals with clearing before accepting
 the recovery receipt. The [local lifecycle checks](../operations/validation.md#combined-clearing-lifecycle)
 use a fresh PostgreSQL replay for each workload.
+
+The paged candidate uses a distinct search discriminator and emits
+`PagedRecoverySelectionBound` once. The indexer requires the exact pinned
+deployment, compares the full ordered member list with its Financial
+registry, and reconciles every final cash balance and both market movements.
+It checks the `RVPAGED1` header for the epoch and selected rank, then compares
+each result with its frozen page. The retained search transactions allow both
+isolated Anchor clients to reproduce the instruction bytes and dynamic account
+roles. See [validation](../operations/validation.md#recovery-selection-across-two-membership-pages)
+for the cases exercised on Surfpool.

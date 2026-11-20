@@ -6,4 +6,5 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./accountTransition.js";
 export * from "./pagedRecoverySelectionBound.js";

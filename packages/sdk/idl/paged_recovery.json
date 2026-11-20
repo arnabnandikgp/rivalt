@@ -673,6 +673,19 @@
   ],
   "events": [
     {
+      "name": "AccountTransition",
+      "discriminator": [
+        19,
+        20,
+        239,
+        97,
+        181,
+        177,
+        128,
+        179
+      ]
+    },
+    {
       "name": "PagedRecoverySelectionBound",
       "discriminator": [
         234,
@@ -687,6 +700,71 @@
     }
   ],
   "types": [
+    {
+      "name": "AccountTransition",
+      "docs": [
+        "Final authenticated footer for one successful clearing invocation."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "domain",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "instruction",
+            "type": {
+              "array": [
+                "u8",
+                8
+              ]
+            }
+          },
+          {
+            "name": "payload_count",
+            "type": "u16"
+          },
+          {
+            "name": "reads",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ScopedRead"
+                }
+              }
+            }
+          },
+          {
+            "name": "writes",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ScopedWrite"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "FrozenMargin",
       "type": {
@@ -1128,6 +1206,50 @@
                 2
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScopedRead",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "account",
+            "type": "pubkey"
+          },
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ScopedWrite",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "account",
+            "type": "pubkey"
+          },
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "before",
+            "type": "u64"
+          },
+          {
+            "name": "after",
+            "type": "u64"
           }
         ]
       }

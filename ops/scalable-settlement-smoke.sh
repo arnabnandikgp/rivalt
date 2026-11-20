@@ -13,7 +13,7 @@ if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-integrat
     node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,"integrated-recovery-candidate");'
   fi
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-paged ]]; then
-  test "${RIVALT_FROZEN_PLAN_PROOF:-0}" = 1 && test "${RIVALT_FROZEN_PLAN_CASE:-}" = paged-wallet
+  test "${RIVALT_FROZEN_PLAN_PROOF:-0}" = 1 && [[ "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-wallet || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-insurance ]]
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"paged");'
   node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,"paged-recovery-candidate");'
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-* ]]; then
@@ -131,7 +131,9 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
       cargo build --locked --offline --release -p default-plan-selection --features keeper --bin rivalt-recovery-selector
     fi
     node --import tsx tests/rpc-contract/linked-default-recovery-rpc.ts
-    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-* && "${RIVALT_FROZEN_PLAN_CASE:-}" != paged-* ]]; then
+    if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-paged && "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-wallet ]]; then
+      node --import tsx tests/rpc-contract/recovery-wire-conformance.ts "$RIVALT_RUN_DIR" --paged
+    elif [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-owned-* && "${RIVALT_FROZEN_PLAN_CASE:-}" != paged-* ]]; then
       node --import tsx tests/rpc-contract/recovery-wire-conformance.ts "$RIVALT_RUN_DIR"
     fi ;;
   profit-attribution-sponsor) node --import tsx tests/rpc-contract/profit-capacity-rpc.ts ;;

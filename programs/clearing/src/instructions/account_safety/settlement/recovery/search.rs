@@ -1,4 +1,4 @@
-//! Restartable verification of every schedule against an authenticated, one-page book.
+//! Restartable verification of every schedule against the authenticated frozen membership.
 //! Ties use the frozen-book financial priorities. Incomparable plans stay unsealed.
 use super::priority::episode_order;
 use super::*;

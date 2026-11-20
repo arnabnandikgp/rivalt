@@ -24,7 +24,8 @@ def comparison(data):
     other = by_key[data['otherTrader']]
     second = by_key[data['secondBtcWinner']] if data.get('secondBtcWinner') else None
     contested = second is not None
-    deposits = 30_000 if contested else 19_996 if flat else 20_012
+    additional_pass = data.get('additionalInsurancePass', False)
+    deposits = 30_029 if additional_pass else 30_000 if contested else 19_996 if flat else 20_012
     assert marks == (50_000, 20_000) and list(map(int, data['funding'])) == [0, 0]
     expected_fills = [(debtor, winners[0], 0, 0, 60_002, 13), (debtor, winners[1], 1, 0, 30_002, 7)]
     if contested:
@@ -71,6 +72,33 @@ def comparison(data):
                           tuple(max(0, lots[i][m]*(marks[m]-(entries[i][m] or 0))) for i in range(len(rows)))) for m in range(2)]
     identity = FrozenIdentity(bytes.fromhex(data['venueHex']),int(data['epoch']),tuple(int(r['id']) for r in rows))
     search = FrozenSearch(book,exposures,identity,bytes.fromhex(data['sourceDigest']))
+    if additional_pass:
+        from check_joint_reductions import terminal_movements, witness
+        # Five signed fills leave ten atoms of deficit. Original debtor cash has
+        # a 2:1 claim split. BTC's fractional reserve use must round down to six.
+        # A second rate solution then preserves that floor and ETH's one atom.
+        assert equal_winners and inactive is not None
+        original = search.baseline
+        collections = original.benchmark.collections
+        assert collections[debtor] == (Fraction(59_992, 3), Fraction(29_996, 3))
+        assert search.radices == (3,)
+        selected = select_joint(book, exposures, identity)
+        assert selected.charges == selected.recovered == (0, 2)
+        audit = search.advance(search.begin(2), 0, 3)
+        assert search.verified_plan(audit) == selected
+        before = witness(book)['rates']
+        after = witness(selected.book, collections)['rates']
+        assert before == [['10002','30006','29999'], ['62512500','187532499','187493750']]
+        assert after == [['10000','30000','29999'], ['50000','149996','149995']]
+        assert selected.payout.insurance_spent == (6, 1)
+        assert selected.payout.cash[other] == 34_999
+        assert [selected.payout.cash[i] for i in [winners[0],second,winners[1]]] == [1_010_002,1_010_001,1_010_000]
+        def balances(payout):
+            return {row['key']: str(amount) for row, amount in zip(rows, payout.cash, strict=True)}
+        return dict(cash=balances(selected.payout), ordinaryCash=balances(original),
+                    terminal=terminal_movements(book, selected.payout), charges=selected.charges,
+                    radices=search.radices, assignments=search.size, proposedRank=2,
+                    beforeRates=before, afterRates=after)
     if contested:
         charges, shares = (13, 12), (19_978, 9_989)
         if equal_winners:

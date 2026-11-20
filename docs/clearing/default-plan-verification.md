@@ -1029,7 +1029,7 @@ witnesses or incomparable tied outcomes keep the book frozen.
 
 ### Paged recovery receipt in the local candidate
 
-The paged candidate allocates a sponsor-owned-cost proof PDA and authenticates
+The paged candidate uses a clearing-owned proof PDA funded by the sponsor and authenticates
 the original margin history of every frozen member. The prepared revision and
 freeze epoch bind every proof step. After complete coverage, a single clearing
 instruction checks all canonical frozen pages in order, the exact populated

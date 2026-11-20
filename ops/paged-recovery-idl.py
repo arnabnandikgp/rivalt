@@ -8,8 +8,8 @@ names = {"open_search", "capture_member", "derive_pairs", "verify_incumbent",
          "cover_plan", "cover_range", "seal_search", "bind_recovery_selection"}
 instructions = [item for item in source["instructions"] if item["name"] in names]
 accounts = [item for item in source["accounts"] if item["name"] in {"PagedRecoverySearch", "FrozenMarginPage"}]
-events = [item for item in source["events"] if item["name"] == "PagedRecoverySelectionBound"]
-assert len(instructions) == len(names) and len(accounts) == 2 and len(events) == 1
+events = [item for item in source["events"] if item["name"] in {"PagedRecoverySelectionBound", "AccountTransition"}]
+assert len(instructions) == len(names) and len(accounts) == 2 and len(events) == 2
 
 def references(value):
     if isinstance(value, dict):
