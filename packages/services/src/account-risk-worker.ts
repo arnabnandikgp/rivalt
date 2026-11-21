@@ -50,7 +50,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
         {status:'blocked',reason:'default-step-presently-unavailable'};
     }
   }
-  if(selection==='local-successor-candidate'||selection==='integrated-recovery-candidate')return automaticLiquidation(runtime,key,budget,receiver);
+  if(selection==='unified-recovery-candidate'||selection==='local-successor-candidate'||selection==='integrated-recovery-candidate')return automaticLiquidation(runtime,key,budget,receiver);
   if(frozenOnly)return {status:'blocked',reason:'candidate-frozen-continuation-only'};
   const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
   const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;

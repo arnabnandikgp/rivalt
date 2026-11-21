@@ -40,7 +40,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
   const frozen=async(ordinal:bigint,initialize=false)=>{
     assert(ordinal>=0n&&ordinal<header.count,'Invalid frozen ordinal');
     const [page,bump]=await sdk.deriveFrozenMarginPage(venue,ordinal/8n);
-    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,runtime.deploymentSelection==='local-successor-candidate'?sdk.getLocalSuccessorPageDecoder():runtime.deploymentSelection==='paged-recovery-candidate'?paged.getFrozenMarginPageDecoder():multi?sdk.getMultiLotBookPageDecoder():book?sdk.getInventoryBookPageDecoder():linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
+    const row=decodeAccountWorker(await read(page),sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,runtime.deploymentSelection==='unified-recovery-candidate'?sdk.getOriginalBudgetPageDecoder():runtime.deploymentSelection==='local-successor-candidate'?sdk.getLocalSuccessorPageDecoder():runtime.deploymentSelection==='paged-recovery-candidate'?paged.getFrozenMarginPageDecoder():multi?sdk.getMultiLotBookPageDecoder():book?sdk.getInventoryBookPageDecoder():linkedAllocation?sdk.getLinkedAllocationPageDecoder():allocation?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
     assert(row.schemaVersion===10&&row.venue===venue&&row.pageIndex===ordinal/8n&&row.bump===bump&&row.revision>0n,'Foreign frozen row page');
     if(row.epoch!==epoch) {
       assert(initialize&&row.epoch<epoch,'Unavailable frozen row epoch');
@@ -276,7 +276,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
         debtorOrdinal:debtor.ordinal,winnerOrdinal:winner.ordinal,debtor:debtor.key,winner:winner.key,
         debtorPage:debtor.page,winnerPage:debtor.page===winner.page?undefined:winner.page}));
     }
-    if(prepared.stage===2) {
+    if(prepared.stage===2 || runtime.deploymentSelection==='unified-recovery-candidate' && prepared.stage===20) {
       const work=Buffer.from(prepared.state.denominator);
       if(work[1]===1) {
         const row=await frozen(work.readBigUInt64LE(16));
@@ -286,7 +286,8 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       return ready('denominator-work',withPages(sdk.getContinueSettlementDenominatorInstruction({...args,revision:prepared.revision,
         steps:128,revisions:current.revisions}),current.metas));
     }
-    assert(prepared.stage===3,'Unsupported prepared stage');
+    const originalRates=runtime.deploymentSelection==='unified-recovery-candidate' && prepared.stage===21;
+    assert(prepared.stage===3 || originalRates,'Unsupported prepared stage');
     if(rates.epoch!==epoch)return ready('initialize-rates',sdk.getInitializeSettlementRatesInstruction(args));
     if(rates.stage===0||rates.stage===3) {
       const {proposal}=await defaultProposal(runtime,state);
@@ -324,6 +325,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
         steps:128,revisions:current.revisions}),current.metas));
     }
     assert(rates.stage===4,'Unsupported rate stage');
+    if(originalRates)return blocked('populated-recovery-proof-pending');
     if(plan.epoch!==epoch)return ready('initialize-plan',sdk.getInitializeSettlementPlanInstruction(args));
     if(plan.stage===5)return ready('reset-rejected-order',sdk.getResetSettlementPlanOrderInstruction({...args,actor:key,
       revision:plan.revision,attempt:plan.orderAttempt}));

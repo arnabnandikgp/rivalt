@@ -21,7 +21,7 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 import {measurePagedRecovery} from './paged-recovery-cost.js';
 import {openSharedInventory} from './shared-inventory-trades.js';
 import {openForeignWinnerBook} from './foreign-winner-trades.js';
-import {verifyProfitBuild} from './profit-attribution-build.js';
+import {successorSelection,verifyProfitBuild} from './profit-attribution-build.js';
 import {eventually} from './wire.js';
 
 const directory = process.env.RIVALT_RUN_DIR!, url = process.env.RIVALT_RPC_URL!;
@@ -62,7 +62,7 @@ const allocationProfile = probe === 'profit-attribution-linked-allocation';
 const contested = ownedTie || allocationProfile || probe === 'profit-attribution-linked-contested';
 const flatCreditor = contested || probe === 'profit-attribution-linked-flat' || probe === 'profit-attribution-linked-flat-apply';
 const linked = contested || probe === 'profit-attribution-linked-apply' || probe === 'profit-attribution-linked-flat-apply';
-const selection = successor?'local-successor-candidate':pagedWallet?'paged-recovery-candidate':integrated?'integrated-recovery-candidate':owned?'recovery-search-candidate':expandedBook?'book-capacity-candidate':bookApply?'book-inventory-candidate':partialApply?'partial-inventory-candidate':sharedApply?'shared-inventory-candidate':foreignApply?'foreign-creditor-candidate':allocationProfile||foreignGate ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
+const selection = successor?successorSelection():pagedWallet?'paged-recovery-candidate':integrated?'integrated-recovery-candidate':owned?'recovery-search-candidate':expandedBook?'book-capacity-candidate':bookApply?'book-inventory-candidate':partialApply?'partial-inventory-candidate':sharedApply?'shared-inventory-candidate':foreignApply?'foreign-creditor-candidate':allocationProfile||foreignGate ? 'linked-allocation-candidate' : linked ? (flatCreditor ? 'linked-flat-candidate' : 'linked-pair-candidate') :
   gated ? 'btc-allocation-candidate' : 'profit-attribution-candidate';
 const build = verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,gated,gated,gated,gated,successor?'successor':pagedWallet?'paged':integrated?'integrated':owned?'owned':expandedBook?'capacity':bookApply?'book':partialApply?'partial':sharedApply?'shared':foreignApply?'foreign':allocationProfile||foreignGate ? 'allocation' : linked && flatCreditor ? 'flat' : linked);
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(url,process.env.RIVALT_WS_URL!,directory,
@@ -237,7 +237,7 @@ try {
         const rows=[];
         for(let index=0n;index<prepared.count;index+=8n) {
           const [key]=await sdk.deriveFrozenMarginPage(setup.venue,index/8n);
-          const page=(successor?sdk.getLocalSuccessorPageDecoder():paged.getFrozenMarginPageDecoder()).decode((await h.read(key))!);
+          const page=(selection==='unified-recovery-candidate'?sdk.getOriginalBudgetPageDecoder():successor?sdk.getLocalSuccessorPageDecoder():paged.getFrozenMarginPageDecoder()).decode((await h.read(key))!);
           assert.equal(page.epoch,frozen.epoch);assert.equal(page.pageIndex,index/8n);
           rows.push(...page.rows.slice(0,page.rowCount));
         }

@@ -13,7 +13,7 @@ elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-successor-* 
   if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-successor-recovery ]]; then
     [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && "${RIVALT_RECOVERY_SCHEDULE_BUDGET:-}" =~ ^[1-9][0-9]*$ ]]
     [[ "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-wallet || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-insurance ]]
-    node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,"local-successor-candidate");'
+    node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,process.env.RIVALT_SUCCESSOR_BUILD??"local-successor-candidate");'
   fi
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-integrated || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-integrated-* ]]; then
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"integrated");'
