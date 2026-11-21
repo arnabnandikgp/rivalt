@@ -8,6 +8,7 @@ import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime} from './account-runtime.js';
 import {decodeAccountWorker,readAccountResolution,accountDefaultContext} from './account-worker-state.js';
 import {allocationCutoff,frozenWinner,type Winner} from './btc-allocation.js';
+import {populatedProofStep} from './populated-recovery-proof.js';
 import {recoveryProofStep} from './recovery-proof-worker.js';
 import {resolveSettlementWindow,SettlementPages,type SettlementPageRequest} from './settlement-pages.js';
 import {defaultProposal,matchesRejectedRate,proposeMarketOrder} from './account-default-proposal.js';
@@ -286,6 +287,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
       return ready('denominator-work',withPages(sdk.getContinueSettlementDenominatorInstruction({...args,revision:prepared.revision,
         steps:128,revisions:current.revisions}),current.metas));
     }
+    if(runtime.deploymentSelection==='unified-recovery-candidate' && prepared.stage===22)return populatedProofStep(runtime,key,common);
     const originalRates=runtime.deploymentSelection==='unified-recovery-candidate' && prepared.stage===21;
     assert(prepared.stage===3 || originalRates,'Unsupported prepared stage');
     if(rates.epoch!==epoch)return ready('initialize-rates',sdk.getInitializeSettlementRatesInstruction(args));
@@ -325,7 +327,7 @@ export async function accountDefaultStep(runtime:AccountRuntime,key:Keypair,stat
         steps:128,revisions:current.revisions}),current.metas));
     }
     assert(rates.stage===4,'Unsupported rate stage');
-    if(originalRates)return blocked('populated-recovery-proof-pending');
+    if(originalRates)return populatedProofStep(runtime,key,common);
     if(plan.epoch!==epoch)return ready('initialize-plan',sdk.getInitializeSettlementPlanInstruction(args));
     if(plan.stage===5)return ready('reset-rejected-order',sdk.getResetSettlementPlanOrderInstruction({...args,actor:key,
       revision:plan.revision,attempt:plan.orderAttempt}));

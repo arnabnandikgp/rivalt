@@ -13,6 +13,7 @@ import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {financialRoots} from './membership-scan-helper.js';
 import {qualifySettlementPlan} from './scalable-settlement-plan-rpc.js';
 import {qualifySettlementApplication} from './scalable-settlement-application-rpc.js';
+import {populatedKeeperExit} from './populated-keeper-exit.js';
 import {verifyJointPayment,type JointReference} from './populated-joint-payment.js';
 import {verifyPopulatedOriginalRates} from './populated-original-rates.js';
 import {verifyPartitionedInputs} from './partitioned-recovery-pages.js';
@@ -24,6 +25,7 @@ const directory=process.env.RIVALT_RUN_DIR!;
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const probe=process.env.RIVALT_SETTLEMENT_PROBE!;
+const automatic=probe==='profit-attribution-successor-populated-keeper';
 const jointSettlement=probe==='profit-attribution-joint-settlement';
 const pairSchedule=jointSettlement||probe==='profit-attribution-pair-schedule';
 const winnerScan=pairSchedule||probe==='profit-attribution-winner-allocations';
@@ -33,7 +35,7 @@ const originalRates=originalBudgets||process.env.RIVALT_SETTLEMENT_PROBE==='prof
 const partitioned=originalRates||process.env.RIVALT_SETTLEMENT_PROBE==='profit-attribution-partitioned-population';
 const build=partitioned?verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,probe):verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!,false,false,false,false,'successor');
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,
-  {deferFinality:true,computeUnitLimit:()=>1_000_000,heapSize:label=>jointSettlement&&/joint|certified settlement register|P54C/.test(label)?131_072:undefined});
+  {deferFinality:true,computeUnitLimit:()=>1_000_000,heapSize:label=>(automatic||jointSettlement)&&/joint|certified settlement register|P54C/.test(label)?131_072:undefined});
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined;
 try {
   const setup=await liquidityExecutionSetup(h,rpc,{marginLayout:'ledger-lanes',marketCheckpoints:true,verifyRejections:false,
@@ -110,7 +112,13 @@ try {
     originalBudgets?expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)):undefined,protection,winnerReference,pairReference):null;
   const reference:JointReference|undefined=jointSettlement?JSON.parse(execFileSync('python3',['tests/financial/joint_payment_reference.py'],{input:json(request),encoding:'utf8'})):undefined;
   let jointPayment,terminal;
-  if(reference) {
+  if(automatic) {
+    assert.equal(process.env.RIVALT_SUCCESSOR_BUILD,'unified-recovery-candidate');
+    const expectedJoint:JointReference=JSON.parse(execFileSync('python3',['tests/financial/joint_payment_reference.py'],{input:json(request),encoding:'utf8'}));
+    journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
+    await journal.checkpoint('keeper-frozen-cohort',true);
+    terminal=await populatedKeeperExit(h,setup,members,expectedJoint);
+  } else if(reference) {
     assert(originalRateResult?.pairSchedules && originalRateResult.winnerProofs && pairReference);
     const {prepared,rates,pages,limbs,pairSchedules,winnerProofs}=originalRateResult;
     jointPayment=await verifyJointPayment(h,setup,prepared,rates,pages,limbs,pairSchedules,winnerProofs,pairReference,reference);
@@ -145,7 +153,7 @@ try {
 
   }
   await flush();
-  journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
+  journal??=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint(terminal?'joint-wallet-exit':'population-freeze',true);
   const replay=await journal.finish();
   const report={revision,build,pageInputs,originalRateResult,jointPayment,terminal,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
