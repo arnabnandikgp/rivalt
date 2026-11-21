@@ -58,7 +58,7 @@ function lastCutoff(holders:Holder[],charges:bigint[],linked:boolean) {
   return cutoff;
 }
 
-function marketBook(venue:Address,epoch:bigint,rows:PopulatedRow[],market:number,cap:bigint,total:bigint) {
+export function populatedMarketOrder(venue:Address,epoch:bigint,rows:PopulatedRow[],market:number,cap:bigint,total:bigint) {
   const holders=rows.map((row):Holder=>{
     const lots=row.lots[market],[num,den]=row.recoveryLotRates[market];
     assert(den>0n);
@@ -116,7 +116,7 @@ function marketBook(venue:Address,epoch:bigint,rows:PopulatedRow[],market:number
 export function populatedRecoveryProposal(venue:Address,epoch:bigint,rows:PopulatedRow[],caps:bigint[],totals:bigint[],
   pools:bigint[],insurance:bigint[]) {
   assert(rows.length && rows.every((row,index)=>index===0 || rows[index-1].id<row.id),'Invalid ordered frozen membership');
-  const markets=[0,1].map(m=>marketBook(venue,epoch,rows,m,caps[m],totals[m]));
+  const markets=[0,1].map(m=>populatedMarketOrder(venue,epoch,rows,m,caps[m],totals[m]));
   const effective=rows.map((row,index)=>{
     const claims=(market:number)=>row.claims[market]+scale*(row.originalDebtorBudgets[market]-markets[market].charges[index]);
     return {cash:row.cash,claims:[claims(0),claims(1)] as [bigint,bigint],originalClaims:[row.claims[0],row.claims[1]] as [bigint,bigint]};

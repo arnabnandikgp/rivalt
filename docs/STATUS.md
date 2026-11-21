@@ -18,10 +18,12 @@ on `main` at [`34d4034d`](https://github.com/arnabnandikgp/rivalt/commit/34d4034
 settled through wallet exit and fresh SQL replay. The normal local launcher
 still selects P56 under [D140](DECISIONS.md#d140--retain-p56-as-the-normal-local-runtime).
 
-**Next action.** Run the small-book and populated default proofs through one
-keeper on the same pinned local build, including a restart and terminal wallet
-withdrawal for each. Then repeat ordinary payouts, forced liquidation and
-mixed-maker contention on that build before selecting it for the launcher.
+**Next action.** Finish the 128-member keeper restart, wallet exit and fresh SQL
+replay on clearing `3d90b3ef`. The nine-member two-pass insurance case passed on
+the same build with harness `7e5a1dc3`, 79 keeper originals, four withdrawals
+totaling 34,999 atoms and 176 replayed events. Ordinary payouts, liquidation,
+funding and mixed-maker contention still require requalification on this build
+before launcher promotion.
 [Six-workstream tracker](clearing/roadmap.md#pr-tracker) · [Integration evidence](HISTORY.md#successor-clearing-stack-integration)
 
 | Work | Status | Deliverable / next acceptance |

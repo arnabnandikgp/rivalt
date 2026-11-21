@@ -1552,3 +1552,19 @@ population gate therefore also needs a comparison certificate that can prove
 the agreed winner without enumerating the full mixed-radix range. Moving inputs
 to pages alone cannot authorize this cohort's payout. D122 continues to govern
 release. [Measured freeze](operations/validation.md#populated-successor-recovery-inputs)
+
+## D141 — choose the local recovery verifier at the freeze
+
+21 November 2026. A fresh unified qualification build selects a verifier from
+the minimum storage needed for the exhaustive search. Its generated layout
+requires 421 fixed bytes plus 130 bytes per member before variable history,
+pairs and rounding orders. Up to 75 members pass that preliminary size check.
+From 76 members onward the minimum exceeds the 10,240-byte account, so clearing
+starts the paged original-rate and pair-certificate path. The keeper reads
+clearing's persisted stage. It cannot choose a different loss allocation.
+
+Passing the minimum size check does not establish that a particular exhaustive
+book fits. The populated certificate also requires an attainable bound, a valid
+ordered pairing and protection of foreign creditors. An unsupported book stays
+frozen under D122. This selection concerns the verifier only. The existing
+registration rules, insurance budget and withdrawal conditions still apply.

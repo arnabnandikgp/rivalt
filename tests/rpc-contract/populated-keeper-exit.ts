@@ -26,10 +26,29 @@ export async function populatedKeeperExit(h:CanonicalHarness,setup:Awaited<Retur
   const [prepared]=await sdk.deriveSettlementWorkspace(setup.venue,'prepared');
   const header=sdk.getPreparedSettlementDecoder().decode((await h.read(prepared))!);
   assert.equal(header.count,BigInt(members.length));
+  const flowPages=await Promise.all(Array.from({length:Math.ceil(members.length/36)},async(_,index)=>{
+    const [key]=await sdk.deriveSettlementLimbPage(setup.venue,64,BigInt(index));
+    const page=sdk.getSettlementLimbPageDecoder().decode((await h.read(key))!);
+    assert(page.venue===setup.venue && page.epoch===header.epoch && page.register===64 && page.pageIndex===BigInt(index));
+    return page;
+  }));
   for(let index=0;index<Math.ceil(members.length/8);index++) {
     const [key]=await sdk.deriveFrozenMarginPage(setup.venue,BigInt(index));
     const page=sdk.getOriginalBudgetPageDecoder().decode((await h.read(key))!);
     assert.deepEqual(page.rows.slice(0,page.rowCount).map(row=>row.recoveryPayout.claimDelta.map(String)),expected.deltas.slice(index*8,index*8+page.rowCount));
+    for(const [slot,row] of page.rows.slice(0,page.rowCount).entries()) {
+      const ordinal=index*8+slot,flow=flowPages[Math.floor(ordinal/36)],offset=(ordinal%36)*7;
+      assert(offset+7<=flow.wordCount);
+      const [id,cashBefore,btc,eth,cashAfter,,flags]=flow.payload.words.slice(offset,offset+7);
+      assert.equal(id,row.id);assert.equal(row.member,members[ordinal]);assert.equal(cashBefore,row.cash);
+      assert.equal(cashAfter,positions[ordinal].cash);assert.equal(flags>>56n,1n);
+      const movements=[btc,eth].map((amount,market)=>{
+        const claim=row.claims[market]+row.recoveryPayout.claimDelta[market]*1_000_000_000n;
+        if(claim===0n)assert.equal(amount,0n);
+        return String(claim<0n?-amount:amount);
+      });
+      assert.deepEqual(movements,expected.plan.movements[ordinal]);
+    }
   }
   const ordinal=positions.findIndex(account=>account.owner===setup.traderOwner.address && account.cash>0n);
   assert(ordinal>=0);

@@ -773,6 +773,25 @@ to reproduce fees by actual payer, CU and lock conflicts from finalized transact
 bytes. Run `node --import tsx tests/performance/successor-proof-space.ts` to
 measure the search account's minimum bytes at the selected launcher's population.
 
+### Run both recovery families on the same build
+
+Build clearing from `3d90b3ef` with
+`RIVALT_ATTRIBUTION_PROFILE=unified-recovery-qualification bash ops/build-profit-attribution.sh`.
+Build the host helper with `bash ops/build-settlement-helper.sh unified-recovery-candidate`.
+Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the pinned clearing build directory and
+`RIVALT_SUCCESSOR_BUILD=unified-recovery-candidate`. Use
+`RIVALT_RECOVERY_SCHEDULE_BUDGET=3000` and a new run directory for each probe.
+The budget limits exhaustive enumeration and explicitly enables the populated
+proposer. The populated path verifies certificates against frozen pages.
+
+Run the `recovery` probe above for each nine-member case. For 128 members set
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-successor-populated-keeper` and run
+`bash ops/scalable-settlement-smoke.sh`. This case terminates the keeper
+after PostgreSQL stores a signed joint-verification transaction and before its
+first broadcast. A new process must recover the same original, finish the
+complete cohort, and permit the wallet withdrawal. The Python financial
+reference supplies expectations only to the test harness.
+
 ### Populated successor recovery inputs
 
 Build the opt-in clearing artifact at `ba2057df` with
