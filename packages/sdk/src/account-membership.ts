@@ -2,6 +2,7 @@ import {AccountRole,type Address,type Decoder,type ReadonlyUint8Array} from '@so
 import * as protocol from './generated/index.js';
 import {deriveAccountPortfolio,deriveCapitalBinding,deriveMarginAccount,deriveMemberIndex,deriveMemberPage,deriveMemberPath,
   deriveRecoveryStorage,deriveVenueComponent} from './account-addresses.js';
+import {decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
 import {fromBase64,hex,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
 export const ACCOUNT_SCHEMA=10;
@@ -16,6 +17,10 @@ export function decodeMembershipAccount<T>(raw:any,discriminator:ReadonlyUint8Ar
   requireValue(bytes.length===decoder.fixedSize&&hex(bytes.slice(0,8))===hex(discriminator),'Wrong membership account layout.');
   return decoder.decode(bytes);
 }
+export function decodeMembershipMargin(raw:any,layout?:MarginLayout) {
+  requireValue(raw?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&!raw.executable&&raw.data?.[1]==='base64','Missing or foreign membership account.');
+  return decodeMarginForLayout(fromBase64(raw.data[0]),layout);
+}
 export async function readMembershipRegistry(rpc:Pick<UserRpc,'call'>,venue:Address) {
   const [registry,bump]=await deriveVenueComponent(venue,'registry'),[liveIndex]=await deriveMemberIndex(venue,14,0n);
   const response=await rpc.call('getAccountInfo',[registry,{encoding:'base64',commitment:'finalized'}]);
@@ -28,9 +33,9 @@ export async function readMembershipRegistry(rpc:Pick<UserRpc,'call'>,venue:Addr
 
 /** One coherent bounded RPC snapshot for an owner membership transition. It
  * provides optimistic revision guards, never a replacement for landed admission. */
-export async function readMarginMembership(rpc:Pick<UserRpc,'call'>,venue:Address,owner:Address,margin:Address,financialPath=true) {
+export async function readMarginMembership(rpc:Pick<UserRpc,'call'>,venue:Address,owner:Address,margin:Address,financialPath=true,layout?:MarginLayout) {
   const discovery=await rpc.call('getAccountInfo',[margin,{encoding:'base64',commitment:'finalized'}]);
-  const discovered=decodeMembershipAccount(discovery.value,protocol.MARGIN_ACCOUNT_DISCRIMINATOR,protocol.getMarginAccountDecoder());
+  const discovered=decodeMembershipMargin(discovery.value,layout);
   const [registryPda,safetyPda,membersPda,storagePda,bindingPda,path]=await Promise.all([
     deriveVenueComponent(venue,'registry'),deriveVenueComponent(venue,'safety'),deriveMemberPage(venue,discovered.id/64n),
     deriveRecoveryStorage(venue),deriveCapitalBinding(margin),deriveMemberPath(venue,discovered.id)]);
@@ -39,7 +44,7 @@ export async function readMarginMembership(rpc:Pick<UserRpc,'call'>,venue:Addres
   const response=await rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized',minContextSlot:Number(rpcInteger(discovery.context.slot))}]);
   requireValue(response.value?.length===keys.length&&rpcInteger(response.context.slot)>=rpcInteger(discovery.context.slot),'Incomplete membership snapshot.');
   const decode=<T>(index:number,tag:ReadonlyUint8Array,decoder:Decoder<T>&{fixedSize:number})=>decodeMembershipAccount(response.value[index],tag,decoder);
-  const root=decode(0,protocol.MARGIN_ACCOUNT_DISCRIMINATOR,protocol.getMarginAccountDecoder());
+  const root=decodeMembershipMargin(response.value[0],layout);
   const portfolio=decode(1,protocol.PORTFOLIO_DISCRIMINATOR,protocol.getPortfolioDecoder());
   const registry=decode(2,protocol.VENUE_REGISTRY_DISCRIMINATOR,protocol.getVenueRegistryDecoder());
   const safety=decode(3,protocol.VENUE_SAFETY_DISCRIMINATOR,protocol.getVenueSafetyDecoder());

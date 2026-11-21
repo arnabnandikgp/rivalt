@@ -68,9 +68,12 @@ export class AccountExecution {
       throw new Error('Account service initialization mismatch');
     await this.artifacts.verify(address(state.venue.authority));return binding;
   }
+  private walletCheckpoints?:readonly sdk.MarketCheckpoint[];
   async submit(requestId:string,wire:string) {
     const binding=await this.environment(),id=publicRequestId(requestId);
-    return this.queue.put(id,wire,accountUserAuthority(wire,binding.venue,this.profile));
+    if(this.deploymentSelection==='unified-recovery-candidate')
+      this.walletCheckpoints??=await sdk.venueMarketCheckpoints(address(binding.venue));
+    return this.queue.put(id,wire,accountUserAuthority(wire,binding.venue,this.profile,this.walletCheckpoints));
   }
   async budget(role:OperatorRole,payer:Keypair,marketIndex?:number,makerId?:number) {
     const budget=accountBudget(role,marketIndex,makerId,this.profile);await this.queue.budget(budget.name,payer.address,budget.cap);return budget.name;
