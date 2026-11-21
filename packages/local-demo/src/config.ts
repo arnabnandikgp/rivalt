@@ -2,7 +2,7 @@ import {resolve} from 'node:path';
 import {UNIFIED_RECOVERY_ARTIFACT_SET} from '../../sdk/src/account-deployment.js';
 export const DEMO_ROOT=resolve(process.env.RIVALT_DEMO_ROOT??'.local/interactive-demo');
 export const RUNTIME=resolve(DEMO_ROOT,'runtime');
-const requested=process.env.RIVALT_DEMO_DEPLOYMENT??'unified-recovery-candidate';
+const requested=process.env.RIVALT_DEMO_DEPLOYMENT??'selected';
 if(requested!=='selected'&&requested!=='unified-recovery-candidate')throw new Error('Unknown local demo deployment');
 export const DEMO_DEPLOYMENT:'selected'|'unified-recovery-candidate'=requested;
 export const ARTIFACT_DIRECTORY=DEMO_DEPLOYMENT==='selected'?

@@ -4270,3 +4270,36 @@ used actual signed transactions, Surfpool RPC/WS and fresh PostgreSQL replay.
 | Paired fills, cash exit and subsequent default freeze | `655358c3` | 360 of 360 fills finalized. Distinct BTC makers shared no writable account. Same-maker fills shared capital and registration. | 1,203 |
 
 [Measured resources and fees](performance.md#mixed-traffic-on-the-fresh-local-runtime)
+
+The ordinary risk worker at `f7535f93` also submitted the original
+default freeze after a second adverse source update took the 35-lot trader
+below zero. Clearing froze all nine Financial accounts. The freeze used
+136,354 CU and 1,186 bytes. Fresh SQL replay matched 160 events across both
+liquidation stages, receiver unwind and the subsequent freeze.
+
+The fresh launcher with the unified deployment at `db5c2997` and the local browser wallet finalized 14
+successful user actions and recorded 0 finalized refusals. With positions in
+both BTC and ETH, a signed 1,000,000-atom top-up classified both ledgers.
+The browser then placed and cancelled TP/SL, closed both positions, withdrew
+1,000,000 collateral atoms, reloaded the receipts and displayed the four
+indexed fills. An explicit wallet decline created no signed original. The
+compiler reproduced all four SDK-pinned program hashes from archived Git
+sources. The local test supervisor and PostgreSQL stopped after the wallet run.
+This qualifies the stated local program set and workload only. The live
+backstop, policy for an indefinitely frozen book and external reviews remain open.
+
+The initial launcher run exposed a publisher-journal mismatch when a valid
+checkpoint preceded the signed report. Another browser run exposed a check
+that assumed a fixed instruction index for a stale route. Both were corrected.
+A subsequent run stopped on a finalized maker-quote refusal before the signed
+slot expiry. Its cause was unclassified and its original remained recorded.
+The successful 14-action session used independently rebuilt program files and
+had zero signed refusals. Source and maker lifetime checks stayed enabled.
+
+The flow audit also verifies each frozen page's expected row count. It accepted
+all 16 original pages from the finalized 128-member capture and rejected a
+copy with its first page shortened from eight rows to seven. Reproduce the
+mid-sized storage and sparse-book controls with the recovery selector installed
+and `node --import tsx tests/performance/successor-proof-space.ts --compare-verifiers`.
+[D142](../DECISIONS.md#d142--keep-the-qualified-successor-launcher-explicit)
+records why P56 remains the default.

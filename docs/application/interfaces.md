@@ -359,7 +359,7 @@ Select `integrated-recovery-candidate` explicitly for the risk or settlement
 worker and executor. The risk signer's local SOL pays transaction fees. The
 configured `RIVALT_RECEIVER_MARGIN` belongs to that signer and supplies separate
 collateral for taking inventory. The reference run can discover and submit a
-maker route without a configured receiver. The fresh local launcher selects the unified successor and leaves receiver configuration explicit. [On-chain liquidation rules](../clearing/risk-and-resolution.md#maker-liquidation-candidate).
+maker route without a configured receiver. The local launcher can explicitly select the unified successor and leaves receiver configuration explicit. [On-chain liquidation rules](../clearing/risk-and-resolution.md#maker-liquidation-candidate).
 
 
 The explicit `unified-recovery-candidate` risk worker reads the proof family

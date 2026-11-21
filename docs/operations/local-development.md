@@ -33,7 +33,7 @@ Rust, SBF compiler, runtime version and transaction format are different identit
 Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
-For a fresh local demo, install the host dependencies below, then run
+For an explicit fresh successor demo, install the host dependencies below, then run
 `bash ops/build-demo-programs.sh`. The installer extracts the clearing source at
 `3d90b3ef` and maker/oracle source at `ed46603` from Git, builds the locked
 programs with platform tools v1.52 and compares every binary against the SDK's
@@ -44,7 +44,7 @@ verify the installed directory. Set `RIVALT_DEMO_PROGRAMS` consistently for a
 different installation directory. The install command creates missing local
 fixture keys and preserves existing keys.
 
-For the prior P56 demo, explicitly set `RIVALT_DEMO_DEPLOYMENT=selected` with its
+The default launcher selects P56. It also accepts `RIVALT_DEMO_DEPLOYMENT=selected` with its
 original programs in `.local/anchor-rc2/current` (or `RIVALT_ARTIFACT_DIR`) and
 its original helper. Its historical fresh-build checkout is `657a255`, with
 `bash ops/install-anchor-rc2.sh` and `bash ops/build.sh`. That program set also
@@ -237,7 +237,7 @@ receiver. The normal launcher continues to require the qualified P56 binaries.
 ## Interactive local demo
 
 `bash ops/demo.sh start|status|stop|reset` starts or controls the local venue.
-The default for a fresh session is `unified-recovery-candidate`. It binds the
+For a new successor session set `RIVALT_DEMO_DEPLOYMENT=unified-recovery-candidate` and use a fresh `RIVALT_DEMO_ROOT`. The launcher binds the
 SDK, wallet, workers, indexer and executor to the four verified programs from
 `bash ops/build-demo-programs.sh`. An operator can set
 `RIVALT_RECOVERY_SCHEDULE_BUDGET` to a positive integer through 65,536. The demo

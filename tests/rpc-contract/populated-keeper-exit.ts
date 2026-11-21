@@ -21,6 +21,10 @@ export async function checkPopulatedFlows(read:(key:Address)=>Promise<Buffer|nul
   for(let index=0;index<Math.ceil(members.length/8);index++) {
     const [key]=await sdk.deriveFrozenMarginPage(venue,BigInt(index));
     const page=sdk.getOriginalBudgetPageDecoder().decode((await read(key))!);
+    assert.equal(page.venue,venue);
+    assert.equal(page.epoch,header.epoch);
+    assert.equal(page.pageIndex,BigInt(index));
+    assert.equal(page.rowCount,Math.min(8,members.length-index*8),'Incomplete frozen membership page');
     assert.deepEqual(page.rows.slice(0,page.rowCount).map(row=>row.recoveryPayout.claimDelta.map(String)),expected.deltas.slice(index*8,index*8+page.rowCount));
     for(const [slot,row] of page.rows.slice(0,page.rowCount).entries()) {
       const ordinal=index*8+slot,flow=flowPages[Math.floor(ordinal/36)],offset=(ordinal%36)*7;
