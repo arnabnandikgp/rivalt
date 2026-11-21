@@ -122,6 +122,20 @@ try{
   await select('Margin account','0');await select('Market','0');await action('Review atomic trade',cross);
   await select('Market','1');await action('Review atomic trade',cross);
   const opened=(await client.snapshot([cross])).roots[cross];assert.deepEqual(opened.positions.map(position=>position.lots),[5n,5n]);
+  if(config.deployment==='unified-recovery-candidate'){
+    // The cross account now owes both market ledgers. Adding collateral must
+    // classify the same two ledgers in the signed wallet transaction.
+    const token=address(await page.getByLabel('Wallet collateral account',{exact:true}).inputValue());
+    const balance=async()=>(await client.walletTokens(owner)).find(item=>item.address===token)!.amount;
+    const before=await balance();
+    await page.getByLabel('Collateral amount',{exact:true}).fill('1');
+    const deposit=await action('Deposit');
+    assert.equal(before-await balance(),1_000_000n);
+    const message=VersionedTransaction.deserialize(Buffer.from(deposit.wire,'base64')).message;
+    const clearing=message.compiledInstructions.filter(ix=>message.staticAccountKeys[ix.programIdIndex].address===sdk.CLEARING_PROGRAM_ADDRESS);
+    assert.deepEqual(clearing.map(ix=>sdk.hex(ix.data.slice(0,8))),[sdk.CLASSIFY_MARKET_FEES_DISCRIMINATOR,sdk.CLASSIFY_MARKET_FEES_DISCRIMINATOR,
+      sdk.DEPOSIT_ACCOUNT_DISCRIMINATOR].map(sdk.hex));
+  }
   await page.getByText('Protect existing position',{exact:true}).click();await action('Review TP/SL');
   assert.equal((await client.snapshot([cross])).roots[cross].book.orders.filter(entry=>[1,2].includes(entry.order.state)).length,2);
   await action('Cancel pair');

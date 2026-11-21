@@ -21,7 +21,7 @@ export async function venueMarketCheckpoints(venue:Address):Promise<MarketCheckp
 const tag=(ix:Instruction)=>hex(ix.data?.slice(0,8)??[]);
 const checkpointTags=new Set([clearing.CHECKPOINT_MARKET_DISCRIMINATOR,clearing.CLASSIFY_MARKET_FEES_DISCRIMINATOR].map(hex));
 const consumers=new Set([clearing.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR,clearing.EXECUTE_LIQUIDITY_ORDER_DISCRIMINATOR,
-  clearing.LIQUIDATE_LIQUIDITY_ROUTE_DISCRIMINATOR,clearing.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,clearing.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR,
+  clearing.LIQUIDATE_LIQUIDITY_ROUTE_DISCRIMINATOR,clearing.DEPOSIT_ACCOUNT_DISCRIMINATOR,clearing.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,clearing.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR,
   clearing.MANAGE_ACCOUNT_ORDER_DISCRIMINATOR,clearing.NET_ACCOUNT_CLAIMS_DISCRIMINATOR].map(hex));
 /** Derive financial dependencies from a scoped consumer on this venue. */
 export function marketCheckpointsFor(known:readonly MarketCheckpoint[],consumer:Instruction):Instruction[] {
