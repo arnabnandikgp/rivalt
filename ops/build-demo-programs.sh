@@ -25,14 +25,16 @@ else
     git archive "$1" "${paths[@]}" |
       tar -x -C "$source_dir/$1"
   }
+  mkdir "$source_dir/binaries"
   export CARGO_TARGET_DIR="$PWD/target"
   build_program() {
     local commit="$1" manifest="$2" program="$3"
     shift 3
     if [[ ! -d "$source_dir/$commit" ]]; then archive_source "$commit"; fi
     (cd "$source_dir/$commit" && cargo build-sbf --manifest-path "$manifest" --arch v0 --tools-version v1.52 \
-      --sbf-out-dir "$stage" -- --locked "$@") >"$stage/$program.log" 2>&1 || { tail -30 "$stage/$program.log" >&2; return 1; }
+      --sbf-out-dir "$source_dir/binaries" -- --locked "$@") >"$stage/$program.log" 2>&1 || { tail -30 "$stage/$program.log" >&2; return 1; }
     if rg 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' "$stage/$program.log"; then return 1; fi
+    cp "$source_dir/binaries/$program.so" "$stage/"
   }
   build_program "$revision" programs/clearing/Cargo.toml clearing --features unified-recovery-qualification
   for component in maker-a maker-b; do
