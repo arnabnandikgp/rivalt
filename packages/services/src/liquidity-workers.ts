@@ -55,7 +55,7 @@ export async function publishLiquidityFunding(runtime:AccountRuntime,marketIndex
   const original=await runtime.enqueue(`funding:${marketIndex}:${input.report.authorityEpoch}:${input.report.sequence}`,instructions,key,budget,
     {kind:'accountObservation',venue:identity.venue,account:input.report.market,value:input.marketState.observationSequence.toString()},false,
     {contextSlot:input.contextSlot,accounts:input.accounts,inputDigest:Uint8Array.from(input.report.inputDigest),
-      calculation:{kind:'funding-report-v1',trust:'restricted-publisher-attestation',report:input.report,allocations:input.allocations,coverageReason:input.coverageReason}});
+      calculation:{kind:'funding-report-v1',marginLayout:identity.marginLayout,trust:'restricted-publisher-attestation',report:input.report,allocations:input.allocations,coverageReason:input.coverageReason}});
   if(original)console.log(JSON.stringify({event:'funding-report-prepared',runId:runtime.runId,requestId:original.request_id,
     signature:original.signature,marketIndex,buildStartedAt,readAndCalculateMs,buildToPersistMs:performance.now()-buildStarted}));
   return {status:'queued',reason:input.report.outcome===0?'available-published-funding-depth':`funding-unavailable-outcome-${input.report.outcome}`};
