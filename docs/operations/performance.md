@@ -8,6 +8,31 @@ is not a public deployment. The completed P47 local
 qualification below compares Anchor RC2 against that immutable pre-migration baseline;
 [STATUS](../STATUS.md) records the verified P45–P47 stack integration.
 
+## Mixed traffic on the fresh local runtime
+
+The unified clearing program at `3d90b3ef` finalized all 360 offered fills.
+Harness `655358c3` used three independently funded traders, 30 rounds and 180
+two-trader bursts. It checked the writable keys of each signed pair and read
+the fee and compute units from finalized receipts.
+
+| Pair of fills | Fills | Shared writable accounts | CU min / p95 / max |
+|---|---:|---|---:|
+| Same BTC maker | 120 | Maker capital and registration | 159,879 / 180,638 / 180,641 |
+| Distinct BTC makers | 120 | None | 159,124 / 173,780 / 173,780 |
+| BTC and ETH | 120 | None | 159,145 / 173,780 / 173,780 |
+
+Each fill used 846 bytes and cost its trader 5,000 test lamports. Traders paid
+1,800,000 lamports in total. In this fixture the operator paid 3,600,000 for
+combined source/maker updates and 1,800,000 for funding publications. This window
+excludes setup, storage and subsequent exits. The 360 fills took 407.800 seconds
+(0.883 fills per second) including signing, publication, waiting for finality and
+checking receipts between bursts. That offered rate does not establish peak throughput.
+
+The same run checked the wallet exit, the rejection of an intervening fill and
+complete insurance classification before default. A fresh PostgreSQL replay
+matched all 1,203 events. The payer and lock calculation is reproducible with
+`python3 tests/performance/successor-workload-cost.py <run-directory>`.
+
 ## Mixed traffic on the combined successor
 
 On harness `963b91d3` with SBF `d9a2a55b`, three independently funded
