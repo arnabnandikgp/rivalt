@@ -36,15 +36,13 @@ it does not route trades to other perpetual exchanges.
 ## Run locally
 
 Install the [pinned toolchain and dependencies](docs/operations/local-development.md#pinned-toolchain)
-in the checkout you will run. For a fresh demo build use revision `657a255`,
-which selects the qualified local programs. A checkout with the matching
-artifacts already installed can start the demo directly. The verified
-environment is macOS arm64 with native Surfpool and Apple Containers for
-PostgreSQL.
+in the checkout you will run. The demo installer builds from pinned Git revisions
+and checks all four program hashes. The verified environment is macOS arm64
+with native Surfpool and Apple Containers for PostgreSQL.
 
 ```sh
 source ops/env.sh
-bash ops/build.sh
+bash ops/build-demo-programs.sh
 bash ops/demo.sh start
 ```
 

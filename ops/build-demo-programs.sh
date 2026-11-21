@@ -34,15 +34,11 @@ else
       --sbf-out-dir "$stage" -- --locked "$@") >"$stage/$program.log" 2>&1 || { tail -30 "$stage/$program.log" >&2; return 1; }
     if rg 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' "$stage/$program.log"; then return 1; fi
   }
-  retained=".local/profit-attribution/build-$revision"
-  if [[ -f "$retained/clearing.so" ]]; then cp "$retained/clearing.so" "$stage/"
-  else build_program "$revision" programs/clearing/Cargo.toml clearing --features unified-recovery-qualification; fi
-  for component in maker-a maker-b oracle-fixture; do
-    program="${component//-/_}"
-    if [[ -f ".local/anchor-rc2/current/$program.so" ]]; then cp ".local/anchor-rc2/current/$program.so" "$stage/"
-    elif [[ "$component" == oracle-fixture ]]; then build_program "$baseline_revision" tests/fixtures/oracle/Cargo.toml "$program"
-    else build_program "$baseline_revision" "programs/$component/Cargo.toml" "$program" --features maker-liquidity-qualification; fi
+  build_program "$revision" programs/clearing/Cargo.toml clearing --features unified-recovery-qualification
+  for component in maker-a maker-b; do
+    build_program "$baseline_revision" "programs/$component/Cargo.toml" "${component//-/_}" --features maker-liquidity-qualification
   done
+  build_program "$baseline_revision" tests/fixtures/oracle/Cargo.toml oracle_fixture
   verify "$stage" > "$stage/build-manifest.json"
   python3 -c 'import os,sys; os.rename(sys.argv[1],sys.argv[2])' "$stage" "$directory"
 fi
