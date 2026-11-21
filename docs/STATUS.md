@@ -18,16 +18,16 @@ on `main` at [`34d4034d`](https://github.com/arnabnandikgp/rivalt/commit/34d4034
 settled through wallet exit and fresh SQL replay. The normal local launcher
 still selects P56 under [D140](DECISIONS.md#d140--retain-p56-as-the-normal-local-runtime).
 
-**Next action.** Finish the 128-member keeper restart, wallet exit and fresh SQL
-replay on clearing `3d90b3ef`. The nine-member two-pass insurance case passed on
-the same build with harness `7e5a1dc3`, 79 keeper originals, four withdrawals
-totaling 34,999 atoms and 176 replayed events. Ordinary payouts, liquidation,
-funding and mixed-maker contention still require requalification on this build
-before launcher promotion.
+**Next action.** Requalify the ordinary lifecycle, same/distinct-maker workload
+and normal browser wallet on clearing `3d90b3ef` before changing the launcher.
+The unified keeper passed both nine-member books and the populated 128-member
+freeze through restart, wallet exit and fresh replay. P56 is still selected.
+[Unified recovery results](operations/validation.md#one-keeper-for-both-recovery-families) ·
 [Six-workstream tracker](clearing/roadmap.md#pr-tracker) · [Integration evidence](HISTORY.md#successor-clearing-stack-integration)
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| Unified recovery keeper | Ready for review | Clearing `3d90b3ef`, populated harness `7e5a1dc3`, captured payout verification `25205003`. At 128 members, 517 finalized originals, 986,527 atoms withdrawn, all 256 movements matched and 1,690 events replayed. Both nine-member cases settled through four withdrawals each. |
 | P51A audit-remediation roadmap | Closed | [PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
 | P51B account/settlement contract and feasibility | Closed | [PR #73](https://github.com/arnabnandikgp/rivalt/pull/73), above #72 in stack #74; clean `a5ac218`: 254 independent cohorts, 1,016 actual Rust comparisons, 16 compact scale diagnostics and maintained-backing model; native scope only |
 | P52 bounded-progress finalized indexer | Closed | [PR #75](https://github.com/arnabnandikgp/rivalt/pull/75), above #73; clean `fe1c754`: 10,642 transactions / 4,306 invocations, three SIGKILL boundaries, continuous-write publication and identical 4,353-event fresh SQL replay |

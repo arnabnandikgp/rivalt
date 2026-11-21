@@ -361,3 +361,14 @@ configured `RIVALT_RECEIVER_MARGIN` belongs to that signer and supplies separate
 collateral for taking inventory. The reference run can discover and submit a
 maker route without a configured receiver. The normal local launcher selects
 P56. [On-chain liquidation rules](../clearing/risk-and-resolution.md#maker-liquidation-candidate).
+
+
+The explicit `unified-recovery-candidate` risk worker reads the proof family
+from the prepared freeze. On a populated freeze it reads the original rates,
+debtor budgets, lot histories and foreign protection caps from canonical pages.
+It proposes the winner cutoffs and ordered pair pages, then the adjusted rates.
+Clearing verifies them. The fee payer and frozen episode determine the worker's
+proof addresses. After process loss the executor resumes the original bytes
+in PostgreSQL. An unattainable winner bound returns
+`insufficient-certified-winner-capacity`. Funds stay frozen until clearing
+verifies a complete payment. [Signed restart and exits](../operations/validation.md#one-keeper-for-both-recovery-families).
