@@ -191,6 +191,17 @@ try {
   assert.equal(unwound.positions[0].virtualScaled,-5000n*scale-
     5n*(unwound.positions[0].fundingCheckpointScaled-received.positions[0].fundingCheckpointScaled));
   await flush();
+  if(worker && build.artifactSet===sdk.UNIFIED_RECOVERY_ARTIFACT_SET){
+    // A second, deeper move makes the remaining 35-lot trader insolvent.
+    // Let the stock risk worker discover and submit the complete freeze.
+    setup.sourcePrices.btc=25_000_000_000n;
+    await worker.insolvent(setup.freshSources);
+    assert.equal(sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!).mode,2);
+    const frozen=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
+    assert.equal(frozen.stage,2);
+    assert.equal(frozen.count,BigInt(setup.roots.length+setup.instances.length+1));
+    await flush();
+  }
   const journal=liveJournal??await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   try {
     await journal.checkpoint('maker-liquidation');

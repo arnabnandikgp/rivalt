@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {randomBytes,createHash} from 'node:crypto';
+import {randomBytes} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {mkdirSync,writeFileSync,readFileSync,statfsSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -18,8 +18,10 @@ import {provisionRecoveryWorkspace} from '../../../tests/rpc-contract/account-me
 import {DemoProcesses} from './processes.js';
 import {demoTransport,until} from './transport.js';
 import {DemoFaucet,FaucetUnavailable} from './faucet.js';
+import {requireRecoverySelector,recoveryBudget} from '../../services/src/recovery-selection.js';
+import {verifyDemoPrograms} from './artifacts.js';
 import {SettlementPages} from '../../services/src/settlement-pages.js';
-import {CONTAINER,IMAGE,RUNTIME,DEMO_ROOT,UI,json,publicRequest,DEMO_DEPLOYMENT,demoArtifact} from './config.js';
+import {CONTAINER,IMAGE,RUNTIME,DEMO_ROOT,UI,json,publicRequest,DEMO_DEPLOYMENT,ARTIFACT_DIRECTORY,demoArtifact} from './config.js';
 
 process.umask(0o077);
 const session=new Date().toISOString().replaceAll(/[^0-9]/g,'')+'-'+randomBytes(4).toString('hex');
@@ -95,9 +97,10 @@ function child(name:string,script:string,environment:NodeJS.ProcessEnv){
   process.once('exit',()=>{if(!stopping)void shutdown(`${name} exited; inspect ${name}.log`,1);});return process;
 }
 try {
-  for(const artifact of sdk.accountDeployment(DEMO_DEPLOYMENT).artifacts){
-    const file=readFileSync(demoArtifact(artifact.name.replaceAll('-','_')));
-    assert.equal(file.length,artifact.bytes);assert.equal(createHash('sha256').update(file).digest('hex'),artifact.sha256,`Unqualified ${artifact.name}`);
+  verifyDemoPrograms(ARTIFACT_DIRECTORY,DEMO_DEPLOYMENT);
+  if(DEMO_DEPLOYMENT==='unified-recovery-candidate'){
+    requireRecoverySelector();
+    recoveryBudget(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET??'3000');
   }
   new SettlementPages(undefined,DEMO_DEPLOYMENT); // Fail before provisioning if default continuation cannot run.
   const disk=statfsSync(DEMO_ROOT);assert(disk.bavail*disk.bsize>1024**3,'At least 1 GiB free disk is required');

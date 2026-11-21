@@ -74,16 +74,22 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     // current source admission again. Unknown outcomes never retry here.
     assert.equal(name,'Review atomic trade',JSON.stringify(receipt.error));
     const code=history.meta.err?.InstructionError?.[1]?.Custom;
-    assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:code}]});
+    // Verify the exact terminal route that failed. A serial route can include
+    // market/fee checkpoints ahead of it, while a direct lane has no prefix.
+    const {message}=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
+    const index=message.compiledInstructions.length-1,instruction=message.compiledInstructions[index];
+    assert.deepEqual(history.meta.err,{InstructionError:[index,{Custom:code}]});
+    assert.equal(message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
+    const tag=sdk.hex(instruction.data.slice(0,8));
+    const direct=tag===sdk.hex(sdk.EXECUTE_LEDGER_LANE_DISCRIMINATOR);
+    assert(direct||tag===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR),'Expected signed route');
     assert(code===6122||code===6117||code===6115||code===sdk.CLEARING_ERROR__ORACLE_POLICY,JSON.stringify(history.meta.err));
     if(code===6117||code===6115){
       // Quote lifetime can reject before the route-intent check. Both errors
       // are broad: require independently proven signed route expiry, never
       // infer a transient failure from the error number alone.
-      const transaction=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
-      const instruction=transaction.message.compiledInstructions[3];
-      assert.equal(transaction.message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
-      const intent=sdk.getExecuteLiquidityRouteInstructionDataDecoder().decode(instruction.data);
+      const decoder=direct?sdk.getExecuteLedgerLaneInstructionDataDecoder():sdk.getExecuteLiquidityRouteInstructionDataDecoder();
+      const intent=decoder.decode(instruction.data);
       assert(BigInt(history.slot)>=intent.expirySlot,'Finalized route must have landed after its signed expiry');
     }
     assert(reviewAttempt<3,'Bounded fresh review after finalized version/source refusal or proven expiry');
