@@ -12,7 +12,7 @@ records the change in direction.
 
 The six deliverables now have local implementation and signed qualification.
 The [common keeper](https://github.com/arnabnandikgp/rivalt/pull/155) and its
-dependent fresh-local launcher are in Review. Explicit successor sessions bind clearing and
+[dependent local launcher](https://github.com/arnabnandikgp/rivalt/pull/156) are in Review. Explicit successor sessions bind clearing and
 all consumers to `unified-recovery-3d90b3ef`. P56 remains the default while the mid-sized recovery decision is open. [Local qualification](../operations/validation.md#fresh-local-successor-lifecycle)
 
 | Agreed deliverable | Where it stands | What remains |

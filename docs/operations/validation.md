@@ -4303,3 +4303,9 @@ mid-sized storage and sparse-book controls with the recovery selector installed
 and `node --import tsx tests/performance/successor-proof-space.ts --compare-verifiers`.
 [D142](../DECISIONS.md#d142--keep-the-qualified-successor-launcher-explicit)
 records why P56 remains the default.
+
+After restoring P56 as the default at `fb7152b4`, a new session explicitly
+selected the rebuilt successor. Both the BTC and ETH publishers finalized a
+report at slot 1,519. For each market, the 29 retained input accounts, digest
+and decoded report were verified in PostgreSQL and its original wire matched
+an independent finalized RPC lookup. The owned services shut down cleanly.
