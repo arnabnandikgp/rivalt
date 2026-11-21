@@ -74,16 +74,22 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     // current source admission again. Unknown outcomes never retry here.
     assert.equal(name,'Review atomic trade',JSON.stringify(receipt.error));
     const code=history.meta.err?.InstructionError?.[1]?.Custom;
-    assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:code}]});
+    // Verify the exact terminal route that failed. A serial route can include
+    // market/fee checkpoints ahead of it, while a direct lane has no prefix.
+    const {message}=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
+    const index=message.compiledInstructions.length-1,instruction=message.compiledInstructions[index];
+    assert.deepEqual(history.meta.err,{InstructionError:[index,{Custom:code}]});
+    assert.equal(message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
+    const tag=sdk.hex(instruction.data.slice(0,8));
+    const direct=tag===sdk.hex(sdk.EXECUTE_LEDGER_LANE_DISCRIMINATOR);
+    assert(direct||tag===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR),'Expected signed route');
     assert(code===6122||code===6117||code===6115||code===sdk.CLEARING_ERROR__ORACLE_POLICY,JSON.stringify(history.meta.err));
     if(code===6117||code===6115){
       // Quote lifetime can reject before the route-intent check. Both errors
       // are broad: require independently proven signed route expiry, never
       // infer a transient failure from the error number alone.
-      const transaction=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
-      const instruction=transaction.message.compiledInstructions[3];
-      assert.equal(transaction.message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
-      const intent=sdk.getExecuteLiquidityRouteInstructionDataDecoder().decode(instruction.data);
+      const decoder=direct?sdk.getExecuteLedgerLaneInstructionDataDecoder():sdk.getExecuteLiquidityRouteInstructionDataDecoder();
+      const intent=decoder.decode(instruction.data);
       assert(BigInt(history.slot)>=intent.expirySlot,'Finalized route must have landed after its signed expiry');
     }
     assert(reviewAttempt<3,'Bounded fresh review after finalized version/source refusal or proven expiry');
@@ -116,6 +122,20 @@ try{
   await select('Margin account','0');await select('Market','0');await action('Review atomic trade',cross);
   await select('Market','1');await action('Review atomic trade',cross);
   const opened=(await client.snapshot([cross])).roots[cross];assert.deepEqual(opened.positions.map(position=>position.lots),[5n,5n]);
+  if(config.deployment==='unified-recovery-candidate'){
+    // The cross account now owes both market ledgers. Adding collateral must
+    // classify the same two ledgers in the signed wallet transaction.
+    const token=address(await page.getByLabel('Wallet collateral account',{exact:true}).inputValue());
+    const balance=async()=>(await client.walletTokens(owner)).find(item=>item.address===token)!.amount;
+    const before=await balance();
+    await page.getByLabel('Collateral amount',{exact:true}).fill('1');
+    const deposit=await action('Deposit');
+    assert.equal(before-await balance(),1_000_000n);
+    const message=VersionedTransaction.deserialize(Buffer.from(deposit.wire,'base64')).message;
+    const clearing=message.compiledInstructions.filter(ix=>message.staticAccountKeys[ix.programIdIndex].address===sdk.CLEARING_PROGRAM_ADDRESS);
+    assert.deepEqual(clearing.map(ix=>sdk.hex(ix.data.slice(0,8))),[sdk.CLASSIFY_MARKET_FEES_DISCRIMINATOR,sdk.CLASSIFY_MARKET_FEES_DISCRIMINATOR,
+      sdk.DEPOSIT_ACCOUNT_DISCRIMINATOR].map(sdk.hex));
+  }
   await page.getByText('Protect existing position',{exact:true}).click();await action('Review TP/SL');
   assert.equal((await client.snapshot([cross])).roots[cross].book.orders.filter(entry=>[1,2].includes(entry.order.state)).length,2);
   await action('Cancel pair');

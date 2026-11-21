@@ -88,7 +88,10 @@ it('selects the combined local artifact only for the qualified keeper roles and 
   for(const candidate of ['integrated-recovery-candidate','unified-recovery-candidate']) {
     for(const role of ['risk','settlement','executor'])
       expect(accountDeploymentSelection(candidate,role)).toBe(candidate);
-    for(const role of [undefined,'maker','funding','orders'])
-      expect(()=>accountDeploymentSelection(candidate,role)).toThrow();
+    expect(()=>accountDeploymentSelection(candidate)).toThrow();
+    for(const role of ['maker','funding','orders']) {
+      if(candidate==='unified-recovery-candidate')expect(accountDeploymentSelection(candidate,role)).toBe(candidate);
+      else expect(()=>accountDeploymentSelection(candidate,role)).toThrow();
+    }
   }
 });

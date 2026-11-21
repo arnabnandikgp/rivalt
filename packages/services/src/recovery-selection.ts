@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {accessSync,constants} from 'node:fs';
 import {execFile} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {getAddressEncoder,type Address} from '@solana/kit';
@@ -13,6 +14,10 @@ type Calculator = {blocked:string}|{rank:bigint;count:bigint;edges:sdk.SearchEdg
 type Member = {id:bigint;cash:bigint;claims:readonly bigint[];lots:readonly bigint[];history:readonly Uint8Array[]};
 type Inputs = Omit<FrozenRecoveryBook,'rows'> & {rows:Member[];marks:readonly bigint[];fees:readonly bigint[]};
 const binary = fileURLToPath(new URL('../../../target/release/rivalt-recovery-selector',import.meta.url));
+
+export function requireRecoverySelector() {
+  accessSync(binary,constants.X_OK);
+}
 
 export function recoveryBudget(value:string|undefined) {
   if (value===undefined) return 0;

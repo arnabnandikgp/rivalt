@@ -1,9 +1,10 @@
 // Public deterministic fixtures for offline local testing only. Never fund on a cluster.
 import { createHash, createPrivateKey, createPublicKey } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 
 mkdirSync('.local/keys', { recursive: true, mode: 0o700 });
 for (const role of ['clearing', 'payer', 'maker-a', 'maker-b', 'oracle-fixture']) {
+  if (process.argv.includes('--missing') && existsSync(`.local/keys/${role}.json`)) continue;
   const seed = createHash('sha256').update(`rivalt/p01/local-only/${role}`).digest();
   const privateKey = createPrivateKey({
     key: Buffer.concat([Buffer.from('302e020100300506032b657004220420', 'hex'), seed]),

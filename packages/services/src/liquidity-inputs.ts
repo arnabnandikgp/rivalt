@@ -11,10 +11,22 @@ const canonical=(value:any):any=>Array.isArray(value)?value.map(canonical):value
 export function assertLiquidityInputWire(wire:string,inputDigest:string,calculation:any) {
   const transaction=VersionedTransaction.deserialize(Buffer.from(wire,'base64')),keys=transaction.message.staticAccountKeys;
   const economic=transaction.message.compiledInstructions.filter(instruction=>keys[instruction.programIdIndex].address!=='ComputeBudget111111111111111111111111111111');
-  if(economic.length!==1||keys[economic[0].programIdIndex].address!==sdk.CLEARING_PROGRAM_ADDRESS||
-    sdk.hex(economic[0].data.slice(0,8))!==sdk.hex(sdk.PUBLISH_FUNDING_REPORT_DISCRIMINATOR))throw new Error('Publisher provenance requires its exact report instruction');
-  const [value,end]=sdk.getPublishFundingReportInstructionDataDecoder().read(economic[0].data,0);
-  if(end!==economic[0].data.length||sdk.hex(value.report.inputDigest)!==inputDigest||calculation?.kind!=='funding-report-v1'||
+  const report=economic.at(-1);
+  if(calculation?.marginLayout==='ledger-lanes') {
+    const [checkpoint]=economic;
+    // The report's fixed accounts include publisher, venue, safety, market,
+    // configuration, four feeds and event CPI, followed by the three registrations.
+    const indices=[1,2,3,11,12,13,9,10];
+    if(economic.length!==2 || keys[checkpoint.programIdIndex].address!==sdk.CLEARING_PROGRAM_ADDRESS ||
+      sdk.hex(checkpoint.data)!==sdk.hex(sdk.CHECKPOINT_MARKET_DISCRIMINATOR) || report?.accountKeyIndexes.length!==14 ||
+      checkpoint.accountKeyIndexes.length!==indices.length ||
+      indices.some((index,i)=>checkpoint.accountKeyIndexes[i]!==report.accountKeyIndexes[index]))
+      throw new Error('Publisher requires its own market checkpoint');
+  } else if(economic.length!==1)throw new Error('Publisher provenance requires one report');
+  if(!report||keys[report.programIdIndex].address!==sdk.CLEARING_PROGRAM_ADDRESS||
+    sdk.hex(report.data.slice(0,8))!==sdk.hex(sdk.PUBLISH_FUNDING_REPORT_DISCRIMINATOR))throw new Error('Publisher provenance requires its exact report instruction');
+  const [value,end]=sdk.getPublishFundingReportInstructionDataDecoder().read(report.data,0);
+  if(end!==report.data.length||sdk.hex(value.report.inputDigest)!==inputDigest||calculation?.kind!=='funding-report-v1'||
     JSON.stringify(canonical(JSON.parse(json(value.report))))!==JSON.stringify(canonical(JSON.parse(json(calculation.report)))))
     throw new Error('Publisher calculation differs from signed report');
 }

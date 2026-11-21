@@ -8,6 +8,8 @@ import {deriveMemberPage,deriveMemberIndex,deriveStorageFunding} from './account
 import {ArtifactVerifier} from './artifacts.js';
 import {accountDeployment,type AccountDeployment} from './account-deployment.js';
 import {readOwnerAccounts} from './account-owner-discovery.js';
+import {marketCheckpointsFor,venueMarketCheckpoints,walletEconomicActions,type MarketCheckpoint} from './market-checkpoints.js';
+import {decodeMembershipAccount} from './account-membership.js';
 import {validateActivationDeposit} from './account-wallet-envelope.js';
 import {compileCanonicalTransaction} from './canonical-transport.js';
 import {buildLiquidityRoute} from './liquidity-route.js';
@@ -22,7 +24,7 @@ import type {LiquidityRouteInput} from './liquidity-route.js';
 export type AccountUserConfig={version:4;accountSchema:10;deployment:AccountDeployment;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
   genesis:string;anchor:string;anchorHash:string;venue:Address;mint:Address;domain:string};
 export function accountUserConfig(value:AccountUserConfig):AccountUserConfig {
-  requireValue(value?.version===4&&value.accountSchema===10&&(value.deployment==='selected'||value.deployment==='account-scale-candidate')&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
+  requireValue(value?.version===4&&value.accountSchema===10&&(value.deployment==='selected'||value.deployment==='account-scale-candidate'||value.deployment==='unified-recovery-candidate')&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
   return validateAccountConfig(value);
 }
 function validateAccountConfig<Config extends AccountUserConfig>(value:Config):Config {
@@ -34,12 +36,12 @@ function validateAccountConfig<Config extends AccountUserConfig>(value:Config):C
   requireValue(/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(value.anchor),'Missing venue initialization identity.');
   return {...value,venue:address(value.venue),mint:address(value.mint),genesis:address(value.genesis)};
 }
-export function accountWalletInstructions(instructions:Instruction[]) {
-  const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
+export function accountWalletInstructions(instructions:Instruction[],checkpoints?:readonly MarketCheckpoint[]) {
+  const economic=walletEconomicActions(instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111'),checkpoints);
   if(economic.length===2){validateActivationDeposit(economic);return walletComputeBudget(instructions,400_000);}
   requireValue(economic.length===1&&economic[0].programAddress===protocol.CLEARING_PROGRAM_ADDRESS,'Unsupported account wallet envelope.');
   const discriminator=hex(economic[0].data?.slice(0,8)??[]);
-  const route=discriminator===hex(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
+  const route=discriminator===hex(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)||checkpoints!==undefined&&discriminator===hex(protocol.EXECUTE_LEDGER_LANE_DISCRIMINATOR);
   const supported=[protocol.CREATE_PORTFOLIO_DISCRIMINATOR,protocol.REGISTER_MARGIN_DISCRIMINATOR,protocol.DEPOSIT_ACCOUNT_DISCRIMINATOR,
     protocol.WITHDRAW_ACCOUNT_CUSTODY_DISCRIMINATOR,protocol.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,protocol.TRANSFER_ACCOUNT_CUSTODY_DISCRIMINATOR,
     protocol.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR,protocol.MANAGE_ACCOUNT_ORDER_DISCRIMINATOR,protocol.SET_ACCOUNT_DELEGATE_DISCRIMINATOR,
@@ -59,16 +61,33 @@ export class AccountUserClient extends WalletClient {
     super(checked.rpcUrl);this.config=checked;
     this.artifacts=new ArtifactVerifier(this.rpc,accountDeployment(checked.deployment).artifacts);
   }
+  private checkpoints?:MarketCheckpoint[];
+  override async prepare(label:string,owner:Address,instructions:Instruction[],details:string[]=[]) {
+    if(this.marginLayout==='ledger-lanes') {
+      this.checkpoints??=await venueMarketCheckpoints(this.config.venue);
+      if(instructions.length===1) {
+        const prefix=marketCheckpointsFor(this.checkpoints,instructions[0]);
+        if(prefix.length) {
+          const [key,bump]=await deriveVenueComponent(this.config.venue,'safety');
+          const raw=await this.rpc.call('getAccountInfo',[key,{encoding:'base64',commitment:'confirmed'}]);
+          const safety=decodeMembershipAccount(raw.value,protocol.VENUE_SAFETY_DISCRIMINATOR,protocol.getVenueSafetyDecoder());
+          requireValue(safety.schemaVersion===10&&safety.venue===this.config.venue&&safety.bump===bump,'Invalid wallet safety account.');
+          // Terminal cash exits have their own guarded path after resolution.
+          if(safety.mode===1)instructions=[...prefix,...instructions];
+        }
+      }
+    }
+    return super.prepare(label,owner,instructions,details);
+  }
   protected override get maxTransactionVersion():0|1{return 1;}
   protected override compile(owner:Address,recentBlockhash:Blockhash,instructions:Instruction[]) {
     const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
-    accountWalletInstructions(economic); // Also validates the narrowly bounded two-action envelope.
-    const route=hex(economic[0].data?.slice(0,8)??[])===hex(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
-    if(!route)accountWalletInstructions(economic); // Shared financial action allowlist.
+    const [budget]=accountWalletInstructions(instructions,this.checkpoints);
+    const units=new DataView(Uint8Array.from(budget.data!).buffer).getUint32(1,true);
     return compileCanonicalTransaction({payerKey:new PublicKey(owner),recentBlockhash},economic,
-      {computeUnitLimit:route?800_000:400_000,loadedAccountsDataSizeLimit:8*1024*1024}).transaction;
+      {computeUnitLimit:units,loadedAccountsDataSizeLimit:8*1024*1024}).transaction;
   }
-  protected override walletInstructions(instructions:Instruction[]){return accountWalletInstructions(instructions);}
+  protected override walletInstructions(instructions:Instruction[]){return accountWalletInstructions(instructions,this.checkpoints);}
   async environment() {
     const [genesis,anchor,observed]=await Promise.all([this.rpc.call('getGenesisHash'),this.rpc.call('getTransaction',[
       this.config.anchor,{commitment:'finalized',encoding:'json',maxSupportedTransactionVersion:0}]),
@@ -84,11 +103,12 @@ export class AccountUserClient extends WalletClient {
     requireValue(venue.schemaVersion===10&&venue.profileVersion===ACCOUNT_PROFILE&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
     await this.artifacts.verify(venue.authority);
   }
+  private get marginLayout(){return this.config.deployment==='unified-recovery-candidate'?'ledger-lanes' as const:undefined;}
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
-    await this.environment();return readAccountSnapshot(this.rpc,this.config,margins,commitment);
+    await this.environment();return readAccountSnapshot(this.rpc,{...this.config,marginLayout:this.marginLayout},margins,commitment);
   }
   async tradeSnapshot(trader:Address,marketIndex:0|1) {
-    await this.environment();return readAccountTradeSnapshot(this.rpc,this.config,trader,marketIndex,'confirmed');
+    await this.environment();return readAccountTradeSnapshot(this.rpc,{...this.config,marginLayout:this.marginLayout},trader,marketIndex,'confirmed');
   }
   balance(snapshot:AccountSnapshot,margin:Address) {
     this.bound(snapshot);requireValue(snapshot.roots[margin],'Margin absent from snapshot.');
@@ -133,7 +153,7 @@ export class AccountUserClient extends WalletClient {
   }
   /** Includes retired namespaces; one coherent portfolio/children RPC batch. */
   async ownerAccounts(owner:Address,index=0) {
-    return readOwnerAccounts(this.rpc,this.config.venue,owner,index);
+    return readOwnerAccounts(this.rpc,this.config.venue,owner,index,this.marginLayout);
   }
   async register(owner:Address,portfolioIndex:number,subaccountIndex:number,isolatedMarketIndex?:0|1,role:0|1|2=0) {
     requireValue([0,1,2].includes(role)&&(subaccountIndex===0?isolatedMarketIndex===undefined&&role!==1:isolatedMarketIndex===0||isolatedMarketIndex===1),'Invalid immutable margin mode/role.');
@@ -152,7 +172,7 @@ export class AccountUserClient extends WalletClient {
     return protocol.getFundMemberIndexInstructionAsync({...await this.common(),payer:createNoopSigner(payer),allocation,receipt,level,prefix});
   }
   async changeMembership(owner:Address,margin:Address,activate:boolean) {
-    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin);
+    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin,true,this.marginLayout);
     requireValue(state.root.lifecycle===(activate?1:2),'Wrong account lifecycle for membership transition.');
     const input={...state,...await this.common(),owner:createNoopSigner(owner)};
     const instruction=activate?protocol.getActivateMarginInstruction(input):protocol.getDeactivateMarginInstruction(input);
@@ -163,7 +183,7 @@ export class AccountUserClient extends WalletClient {
    * explicit payer; this action never silently funds operator storage. */
   async activateAndDeposit(owner:Address,margin:Address,userToken:Address,amount:bigint) {
     requireValue(amount>0n&&amount<(1n<<64n),'Invalid deposit amount.');
-    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin);
+    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin,true,this.marginLayout);
     requireValue(state.root.lifecycle===1,'Activation requires a Registered account.');
     requireValue([0,1].includes(state.safetyState.mode)&&!state.safetyState.paused,'Activation unavailable.');
     requireValue(state.storageState&&state.storageState.lockedEpoch===0n
@@ -175,7 +195,7 @@ export class AccountUserClient extends WalletClient {
     return {instructions:[{...activation,accounts:[...activation.accounts,...state.remaining]},deposit]};
   }
   async retire(owner:Address,margin:Address) {
-    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin,false);
+    const state=await readMarginMembership(this.rpc,this.config.venue,owner,margin,false,this.marginLayout);
     requireValue(state.root.lifecycle===1,'Deactivate an empty account before retirement.');
     return protocol.getRetireMarginInstruction({...state,...await this.common(),owner:createNoopSigner(owner)});
   }

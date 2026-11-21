@@ -55,11 +55,16 @@ function makerSizes(snapshot:Snapshot,marketIndex:0|1,position:bigint) {
   return [...sizes].filter(size=>size>0n).sort((left,right)=>left===right?0:left>right?-1:1);
 }
 
-export async function automaticLiquidation(runtime:AccountRuntime,payer:Keypair,budget:string,receiver?:Address):Promise<AccountWorkerOutcome> {
+async function liquidationCandidates(runtime:AccountRuntime) {
   const {state}=await runtime.discovery();
   const members=state.members.filter(member=>state.roots[member].positions.some(position=>BigInt(position.lots)!==0n));
   const count=Math.min(2,members.length),offset=runtime.riskProbeCursor;
   runtime.riskProbeCursor=members.length?(offset+count)%members.length:0;
+  return Array.from({length:count},(_,index)=>address(members[(offset+index)%members.length]));
+}
+
+export async function automaticLiquidation(runtime:AccountRuntime,payer:Keypair,budget:string,receiver?:Address,targets?:Address[]):Promise<AccountWorkerOutcome> {
+  const candidates=targets??await liquidationCandidates(runtime);
   async function submit(snapshot:Snapshot,id:string,instruction:Instruction,guarded:Address) {
     const before=snapshot.roots[guarded];
     try {
@@ -73,8 +78,7 @@ export async function automaticLiquidation(runtime:AccountRuntime,payer:Keypair,
     }
   }
   let reason='no-under-maintenance-target-in-probe';
-  for(let index=0;index<count;index++){
-    const target=address(members[(offset+index)%members.length]);
+  for(const target of candidates){
     const initial=await runtime.snapshot([target]),root=initial.roots[target];
     if(initial.safetyState.mode!==1||initial.safetyState.paused)return {status:'blocked',reason:'venue-mode'};
     const health=sdk.accountBalanceView(root,initial.safetyState,initial.marketStates,initial.now,initial.slot);
