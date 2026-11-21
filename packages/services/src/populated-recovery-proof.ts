@@ -7,7 +7,7 @@ import {accountDefaultContext,decodeAccountWorker} from './account-worker-state.
 import type {AccountRuntime} from './account-runtime.js';
 import type {DefaultStep} from './account-default-worker.js';
 import {recoveryBudget} from './recovery-selection.js';
-import {populatedRecoveryProposal,type PopulatedRow} from './populated-recovery-selection.js';
+import {PopulatedRecoveryUnavailable,populatedRecoveryProposal,type PopulatedRow} from './populated-recovery-selection.js';
 
 type Context=Awaited<ReturnType<typeof accountDefaultContext>>;
 type Proposal=ReturnType<typeof populatedRecoveryProposal>;
@@ -92,7 +92,12 @@ export async function populatedProofStep(runtime:AccountRuntime,key:Keypair,ctx:
         rows.push(...page.rows.slice(0,page.rowCount));
       });
     }
-    cached={identity,proposal:populatedRecoveryProposal(venue,epoch,rows,[...progress.linkedCaps],[...progress.budget],header.pools,header.insurance)};
+    try {
+      cached={identity,proposal:populatedRecoveryProposal(venue,epoch,rows,[...progress.linkedCaps],[...progress.budget],header.pools,header.insurance)};
+    } catch(error) {
+      if(error instanceof PopulatedRecoveryUnavailable)return blocked(error.reason);
+      throw error;
+    }
     proposals.set(runtime,cached);
   }
   const {markets,proposals:ratesAfter}=cached.proposal;

@@ -14,6 +14,9 @@ export type PopulatedRow={
 type Entry={ordinal:bigint;memberId:bigint;lots:bigint;rate:bigint[];atoms:bigint};
 type Holder={id:bigint;capacity:bigint;linked:boolean;priority:Buffer;lotsFor:(charge:bigint)=>bigint};
 type Cutoff={unit:bigint;capacity:bigint;memberId:bigint};
+export class PopulatedRecoveryUnavailable extends Error {
+  constructor(readonly reason:string,message:string){super(message);}
+}
 const abs=(value:bigint)=>value<0n?-value:value;
 const min=(a:bigint,b:bigint)=>a<b?a:b;
 const sum=(values:bigint[])=>values.reduce((total,value)=>total+value,0n);
@@ -30,7 +33,9 @@ function digest(...parts:(Buffer|Uint8Array|string)[]) {
   return hash.digest();
 }
 function allocate(venue:Address,epoch:bigint,holders:Holder[],total:bigint) {
-  assert(total>=0n && sum(holders.map(holder=>holder.capacity))>=total,'Insufficient eligible gain for the populated proof');
+  assert(total>=0n,'Negative charge target');
+  if(sum(holders.map(holder=>holder.capacity))<total)
+    throw new PopulatedRecoveryUnavailable('insufficient-certified-winner-capacity','Insufficient eligible gain for the populated proof');
   if(total===0n)return holders.map(()=>0n);
   // The on-chain cutoff reconstructs ties by episode priority with extra lots set to zero.
   const [unit,capacity,,member]=allocationCutoff(venue,epoch,total,holders);
@@ -129,5 +134,5 @@ export function populatedRecoveryProposal(venue:Address,epoch:bigint,rows:Popula
     if(!proposal.fractional.some(Boolean))return {markets,proposals};
     budgets=budgets.map((available,m)=>proposal.fractional[m]?proposal.insuranceSpent[m]:available) as [bigint,bigint];
   }
-  throw new Error('Populated joint payments exceed the two-market insurance bound');
+  throw new PopulatedRecoveryUnavailable('joint-payment-insurance-rounds','Populated joint payments exceed the two-market insurance bound');
 }
