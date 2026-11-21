@@ -203,11 +203,19 @@ pub(crate) fn finish_value(header: &mut PreparedSettlement) -> Result<()> {
     header.state.denominator = DenominatorPass::new(header.count, capacity)
         .map_err(|_| ProgramError::from(ClearingError::Arithmetic))?
         .checkpoint();
-    header.stage = if cfg!(feature="populated-recovery-qualification") {
+    #[cfg(all(feature = "populated-recovery-qualification", not(feature = "unified-recovery-qualification")))]
+    let next_stage = ORIGINAL_DENOMINATOR;
+    #[cfg(feature = "unified-recovery-qualification")]
+    let next_stage = if recovery::can_store_exhaustive_members(header.count) {
+        single_pair::AWAIT_PAIR
+    } else {
         ORIGINAL_DENOMINATOR
-    } else if cfg!(feature="single-pair-default-qualification") {
+    };
+    #[cfg(not(feature = "populated-recovery-qualification"))]
+    let next_stage = if cfg!(feature="single-pair-default-qualification") {
         single_pair::AWAIT_PAIR
     } else { DENOMINATOR };
+    header.stage = next_stage;
     Ok(())
 }
 

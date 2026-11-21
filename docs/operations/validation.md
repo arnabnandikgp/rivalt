@@ -4220,3 +4220,36 @@ This was an operator-driven qualification against the local synthetic sources.
 The normal local launcher still uses P56. The populated proof family and the
 smaller exhaustive proof family have yet to complete their wallet and restart
 acceptance together on one candidate.
+
+
+### One keeper for both recovery families
+
+Clearing `3d90b3ef` (3,546,744 bytes, SHA-256
+`6d99c5365724baaa7369d6b19bfaadc853ea3afae70a5b9d335b258dcfb7dca2`)
+and the pinned native page helper served all three freezes. The SBF build passed
+its stack check. Seven focused native settlement checks passed. Each signed case
+used an owned Surfpool RPC/WS, PostgreSQL, synthetic sources, and test collateral.
+
+| Frozen cohort | Harness | Finalized keeper originals | Funded wallet withdrawal | Fresh ordered SQL events |
+|---|---|---:|---:|---:|
+| Nine members, 2,548 exhaustive schedules | `a66c3177` | 126 | 4,996 trader + 29,981 makers | 176 |
+| Nine members, two insurance passes | `7e5a1dc3` | 79 | 4,996 trader + 30,003 makers | 176 |
+| 128 members, joint verified payments | `7e5a1dc3` | 517 | 986,527 trader | 1,690 |
+
+In the populated case a fresh process broadcast the exact joint verification
+original that PostgreSQL held when its predecessor received SIGKILL. Every
+worker original matched its independent finalized RPC wire and WebSocket
+notification. Worker transactions used 5,696–899,867 CU and up to 3,288 wire
+bytes. The operator paid 2,585,000 test lamports in network fees. The net payer
+debit above fees was 124,353,320 lamports for proof storage. The qualification
+did not reclaim that storage. The run also sent 987 fixture/exit transactions.
+
+Final funded cash totaled 332,877,029 atoms. BTC and ETH used 6,786 and 3,251
+insurance atoms. The frozen-input rational reference and two native circulations
+matched all cash and market movements. The per-member flow reader at `25205003`
+compared all 256 signed movements and all 256 claim changes against the finalized
+RPC capture. After withdrawal, the vault and allocated balance both held
+331,920,613 atoms. Fresh replay matched every event and reconciled 405 accounts,
+including all 128 members, with no pending journal jobs. The same keeper changes
+no release criteria for a book whose optimum cannot be proved.
+[Verifier choice](../DECISIONS.md#d141--choose-the-local-recovery-verifier-at-the-freeze)

@@ -23,7 +23,7 @@ export function scopedSchema(kind:number) {
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};
 export function frozenPageDecoder(artifactSet?:string) {
-  if(artifactSet===sdk.ORIGINAL_BUDGETS_ARTIFACT_SET||artifactSet===sdk.FOREIGN_PROTECTION_ARTIFACT_SET||artifactSet===sdk.WINNER_ALLOCATION_ARTIFACT_SET||artifactSet===sdk.PAIR_SCHEDULE_ARTIFACT_SET||artifactSet===sdk.JOINT_PAYMENT_ARTIFACT_SET)return sdk.getOriginalBudgetPageDecoder();
+  if(artifactSet===sdk.ORIGINAL_BUDGETS_ARTIFACT_SET||artifactSet===sdk.FOREIGN_PROTECTION_ARTIFACT_SET||artifactSet===sdk.WINNER_ALLOCATION_ARTIFACT_SET||artifactSet===sdk.PAIR_SCHEDULE_ARTIFACT_SET||sdk.hasJointPayment(artifactSet))return sdk.getOriginalBudgetPageDecoder();
   if(sdk.hasPartitionedInputs(artifactSet))return sdk.getPartitionedRecoveryPageDecoder();
   if(artifactSet===sdk.LOCAL_SUCCESSOR_ARTIFACT_SET)return sdk.getLocalSuccessorPageDecoder();
   if(artifactSet===sdk.PAGED_RECOVERY_ARTIFACT_SET)return paged.getFrozenMarginPageDecoder();
@@ -59,7 +59,7 @@ export async function reconcileSettlementScratch(key:string,kind:number,bytes:Bu
   if(!resolution||value.epoch!==undefined&&value.epoch!==BigInt(resolution.epoch))return;
   if(kind===17) {
     const header=JSON.parse(json(value));
-    if(binding.artifactSet===sdk.JOINT_PAYMENT_ARTIFACT_SET) {
+    if(sdk.hasJointPayment(binding.artifactSet)) {
       const bytes=Buffer.from(value.state.membership);
       if(bytes.subarray(0,8).toString()==='RVJOINT2') {
         assert.equal(bytes.readBigUInt64LE(8),value.epoch);

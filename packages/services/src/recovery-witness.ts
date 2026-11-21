@@ -82,7 +82,7 @@ export async function readRecoveryWitnessBook(rpc:Pick<Rpc,'call'>, venue:Addres
   const [[prepared, preparedBump], [resolution, resolutionBump]] = await Promise.all([
     sdk.deriveSettlementWorkspace(venue, 'prepared'), sdk.deriveVenueComponent(venue, 'resolution'),
   ]);
-  const decoder = deployment === 'local-successor-candidate' ? sdk.getLocalSuccessorPageDecoder() : deployment === 'paged-recovery-candidate' ? paged.getFrozenMarginPageDecoder() : deployment === 'integrated-recovery-candidate' ? sdk.getMultiLotBookPageDecoder() : sdk.getFrozenMarginPageDecoder();
+  const decoder = deployment === 'unified-recovery-candidate' ? sdk.getOriginalBudgetPageDecoder() : deployment === 'local-successor-candidate' ? sdk.getLocalSuccessorPageDecoder() : deployment === 'paged-recovery-candidate' ? paged.getFrozenMarginPageDecoder() : deployment === 'integrated-recovery-candidate' ? sdk.getMultiLotBookPageDecoder() : sdk.getFrozenMarginPageDecoder();
   const pageCount = (count + 7n) / 8n;
   const pages: Address[] = [], rows: sdk.FrozenMargin[] = [], members = new Set<Address>();
   let contextSlot = 0;

@@ -15,7 +15,7 @@ import {goldenShape} from './canonical-maker-cases.js';
 import {fixtureKey} from './harness.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
-import {verifyProfitBuild} from './profit-attribution-build.js';
+import {successorSelection,verifyProfitBuild} from './profit-attribution-build.js';
 import {verifyLiquidationBuild} from './maker-liquidation-build.js';
 import {openLiquidationDriver} from './automatic-liquidation-driver.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
@@ -151,7 +151,7 @@ try {
       }
       assert.fail('BTC did not recover through four signed funding observations');
     };
-    worker=await openLiquidationDriver(rpc,ws,liveJournal,flush,refreshBtc,receiverOwner,receiver,successor?'local-successor-candidate':'integrated-recovery-candidate');
+    worker=await openLiquidationDriver(rpc,ws,liveJournal,flush,refreshBtc,receiverOwner,receiver,successor?successorSelection():'integrated-recovery-candidate');
     await worker.maker();
   }else await h.send('liquidation keeper sells ten lots to maker B',await checked(fill));
   await checkGross(100n);

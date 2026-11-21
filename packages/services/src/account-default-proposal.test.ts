@@ -85,8 +85,10 @@ it('rejects a self-consistent helper manifest from another checkout or a dirty b
 });
 
 it('selects the combined local artifact only for the qualified keeper roles and executor',()=>{
-  for(const role of ['risk','settlement','executor'])
-    expect(accountDeploymentSelection('integrated-recovery-candidate',role)).toBe('integrated-recovery-candidate');
-  for(const role of [undefined,'maker','funding','orders'])
-    expect(()=>accountDeploymentSelection('integrated-recovery-candidate',role)).toThrow();
+  for(const candidate of ['integrated-recovery-candidate','unified-recovery-candidate']) {
+    for(const role of ['risk','settlement','executor'])
+      expect(accountDeploymentSelection(candidate,role)).toBe(candidate);
+    for(const role of [undefined,'maker','funding','orders'])
+      expect(()=>accountDeploymentSelection(candidate,role)).toThrow();
+  }
 });
