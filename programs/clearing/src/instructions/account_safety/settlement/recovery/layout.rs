@@ -120,6 +120,16 @@ use paged_book::SEARCH_ACCOUNT_BYTES;
 #[cfg(feature = "paged-recovery-qualification")]
 pub use paged_book::{PagedRecoverySearch as RecoverySearch, RateWitness};
 
+/// Minimum serialized search account with one rate round, no edges or history
+/// payloads and both ordinal arrays. Actual variable data is checked at every
+/// write. This selects a verifier and never grants payout authority.
+#[cfg(feature = "unified-recovery-qualification")]
+pub(crate) fn can_store_exhaustive_members(count: u64) -> bool {
+    const HEADER_AND_ONE_ROUND: u64 = 397 + 24;
+    const MEMBER_AND_TWO_ORDINALS: u64 = 128 + 2;
+    count > 0 && count <= (SEARCH_ACCOUNT_BYTES as u64 - HEADER_AND_ONE_ROUND) / MEMBER_AND_TWO_ORDINALS
+}
+
 #[derive(Accounts)]
 #[instruction(nonce:u64)]
 pub struct OpenSearch {
