@@ -1617,3 +1617,21 @@ journals retain their original deployment identities. The historical P56
 profile remains selectable explicitly. Wider deployment and live
 freeze-resolution policy remain separate decisions.
 [Mid-sized qualification](operations/validation.md#frozen-book-verifier-selection-and-mid-sized-exits)
+
+## D145 — Select ordinary trader routes at execution
+
+23 November 2026. Implement current-state selection in clearing for a trader's
+market order. The signed intent authorizes a side, exact size, time window,
+all-in limit and fee ceiling. Supply all three sealed maker registrations and
+their authenticated dependencies. Choose the best financially admissible singleton
+or pair. Preserve the existing tie order, fee rounding, maker isolation and full
+atomic financial admission. This supersedes the SDK's authority to fix the
+winning maker IDs and quantities for this entry point. The SDK can still preview
+a route. The existing instruction continues to honor its signed leg assignments.
+
+All prospective maker capitals and fill counters must be declared writable up
+front. Two all-maker orders in the same market therefore conflict even if they
+ultimately fill against different makers. The expanded workload must measure
+this explicitly, together with quote changes and profit settlement under load.
+Risk stays index-derived and funding retains its attested off-chain calculation.
+[Routing delivery](liquidity/routing.md#execution-time-selection)

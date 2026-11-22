@@ -7,6 +7,26 @@ eligible risk. Ordinary route authority still belongs to the owner or delegate.
 
 ## Implementation boundary
 
+### Execution-time selection
+
+D145 authorizes a new ordinary market-order entry point. The code described
+below is the released, signed-leg path. The following are delivery criteria for
+its execution-time successor.
+
+| Deliverable | Acceptance |
+|---|---|
+| Clearing selects the fill | A trader signs their limits once. Changed depth or prices can change the chosen makers and split at landing. Authenticate the complete three-maker registry. Compare all eligible singletons and pairs. On an incomplete search, fail atomically. Verify winner selection against independent exhaustive cases, including disconnected financial feasibility and a sell fee-rounding tie. |
+| Wallet and execution | Use the new entry point from the ordinary wallet path. Fetch signed one- and two-maker fills and refusals over RPC. Reconcile actual maker consumption, margin, fees and fills with PostgreSQL. Measure packet bytes, loaded keys, write locks and CU on the emitted transaction. |
+| Matched load | Replay the same seed, order arrivals, maker schedule and starting book with and without a real outstanding-profit settlement worker. Vary funded traders, market skew, offered rate, size, maker availability and reprice cadence. Count every original offer, retry, refusal, expiry and unresolved transaction separately. Report filled lots, execution quality against the landed book, latency percentiles, costs by payer, shared writes and time to an actual payout. Reconcile both arms before reporting a comparison. |
+
+Solana locks all declared writable accounts for execution. A writer can land
+between two fills in the same slot. A lock alone gives neither FIFO ordering nor
+a guarantee that a submitted fill lands in that slot. Qualification must exercise
+both transaction orders. No change to the maker's pricing authority is established
+by the scheduler.
+
+### Released SDK selection
+
 `readAccountTradeSnapshot` discovers the selected market's three sealed
 registrations, then reads immutable root identities. One final `getMultipleAccounts`
 batch contains custody, vault/mint, safety, both markets/ledgers, Clock, the selected

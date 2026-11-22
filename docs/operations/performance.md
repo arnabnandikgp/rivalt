@@ -1,5 +1,25 @@
 # Performance contract and reproducible measurements
 
+## Funding publications on the qualified local clearing build
+
+Clearing `79724a5a`, harness `3e89caf2`, three 75-member runs. Each row measures
+the **whole successful transaction** across BTC and ETH. The operator computed
+the impact bid and ask off chain. The transaction contained no trader fill.
+
+| Top-level clearing instructions, in execution order | Transactions | Minimum CU | Maximum CU |
+|---|---:|---:|---:|
+| Publish BTC, publish ETH | 12 | 48,940 | 49,110 |
+| Checkpoint BTC, publish BTC, checkpoint ETH, publish ETH | 54 | 89,682 | 99,550 |
+
+Reproduce with `python3 tests/performance/funding-receipts.py <run-directory>`
+on each of `frozen-book-{sparse,pairs,dense}-3e89caf2`. The reader matches signed wires to RPC receipts
+and groups them by program and instruction discriminator. Each market checkpoint
+materializes prior activity before publication. A single-market CU figure cannot
+be inferred by dividing these transaction totals. The earlier on-chain depth
+search was retired before this build. [Funding contract](../liquidity/funding.md)
+
+## Reading the historical baselines
+
 P39–P44 are integrated at `6b14e8a` within their bounded engineering scope. This
 document owns the audit, comparison methodology and recorded delivery gates;
 the clearing/liquidity/application documents own current financial rules and
@@ -657,7 +677,9 @@ standard RPC/WS plus isolated Anchor conformance. It has independent literal
 fee/cash/claim checks. It does not launch PostgreSQL because it does not test
 services/indexing; P40/P44 must run their actual database acceptance separately.
 
-## Current results
+<a id="current-results"></a>
+
+## P39 baseline results
 
 P43’s [fresh scoped comparison](validation.md#targeted-cu-acceptance-p43) records
 small arithmetic savings (669–1,230 CU per tested route), unchanged observed fees
@@ -735,7 +757,9 @@ separates maker costs from venue costs, requested-CU v0 bids from explicit v1 bi
 and retained protocol revenue from insurance. Inputs are assumptions; use measured
 receipts to choose a base case. It does not forecast landing, hedge cost or revenue.
 
-## Current instruction cost reference (RC2 C0)
+<a id="current-instruction-cost-reference-rc2-c0"></a>
+
+## Historical instruction cost reference (RC2 C0)
 
 The immutable [pre-migration B inventory](../../tests/performance/baselines/p44-pre-v2.json)
 remains available separately. This table uses the 61-entrypoint
@@ -963,7 +987,7 @@ end RSS is 526,991,360 bytes. Child Surfpool, PostgreSQL and browser resources a
 outside that process measurement. Full-system utilization is not inferred.
 
 
-### Current indexer and classified-original measurement
+### Pre-migration indexer and classified-original measurement
 
 Clean `8b8c33f`, `p44-load-final/`, repeats the same declared ramps after bounded
 parallel history reads. This run has no concurrent Rivalt service qualification.

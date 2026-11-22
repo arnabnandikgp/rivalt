@@ -14,9 +14,10 @@ The backend gathers a coherent snapshot of the complete configured maker set,
 authenticates bindings/publications/code, and calculates published bid/ask totals
 for the protocol reference quantity with the existing one/two-maker allocation,
 depth/inventory/reduce-only caps, price bands and tie rules. D74's decision to omit
-hypothetical financial admission remains in force. Reuse P30/P31's canonical
-pricing and snapshot components; do not accidentally reuse the trader optimizer's
-financial, fee or self-trade filters as funding policy.
+hypothetical financial admission remains in force. The independent oracle sets
+the risk bounds used for margin and liquidation. Changing where trader routes
+are selected does not change who computes the funding report.
+[Measured two-market publication costs](../operations/performance.md#funding-publications-on-the-qualified-local-clearing-build)
 
 The program authorizes the report publisher and validates a bounded report rather
 than loading all maker accounts, hashing maker programs, invoking their quotes
@@ -101,13 +102,11 @@ and authority/economic rules below remain unchanged.
   state. Invalid reports revert every effect. Authority/control changes invalidate
   prepared reports through epoch/observation CAS; pure repricing retains the
   bounded snapshot-lag trust assumption and does not rewrite already-held funding.
-- Disable `sample_liquidity_v4` in the new source; it cannot compete with reports.
-  No new financial activation instruction is enabled by this replacement.
-- Resource gate: submit publisher updates with 200,000 CU, require measured maximum
+- The historical D76 publisher qualification submitted updates with 200,000 CU and required measured maximum
   <=160,000 CU (20% headroom), <=20 unique loaded keys, default32KiB heap and existing
   measured v0/v1 packet bounds. Initialize/rotate/revoke use the same 200k/160k gate.
-  These are acceptance ceilings. A miss requires repair or an explicit recorded
-  contract change, not silent budget inflation. Route gates remain unchanged.
+  These were ceilings for the original instruction workload. The measured
+  transaction compositions on the successor build are linked above.
 
 The backend must authenticate complete current maker coverage, preserve all
 publication/depth/capacity rules, select exact best published one/two-maker totals
