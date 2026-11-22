@@ -4384,3 +4384,23 @@ four withdrawals. Each fresh PostgreSQL replay reproduced 176 events. The
 finalized 517 originals, compared 128 cash payouts and 256 market movements,
 and withdrew 986,527 atoms. Fresh replay reproduced 1,690 events and the
 331,920,613-atom remaining vault balance reconciled.
+
+### Frozen-book reference checks
+
+At `2d799902`, the native audit and independent Python reference checked the
+original debtor budgets, recoverable amounts, per-member cash, movements and
+insurance against all three retained 75-member inputs from `3e89caf2`.
+
+| Frozen book | Original debtor writeoffs, BTC / ETH atoms | Maximum recovered from open lots, BTC / ETH atoms | Matched BTC / ETH lots |
+|---|---:|---:|---:|
+| Flat | 400,801 / 0 | 0 / 0 | 0 / 0 |
+| Two eligible pairs | 400,481 / 0 | 400,481 / 0 | 22 / 0 |
+| Dense | 4,580,723 / 2,132,634 | 4,580,723 / 2,132,634 | 240 / 231 |
+
+Eight financial reference tests passed, including a mixed book with 20 atoms
+written off and 10 recoverable. The native sparse-budget regression checked
+an equivalent 180-bit witness against the full cohort. The generated account
+encoder measured 6,045 bytes during capture and 10,245 bytes after materializing
+75 members with 50 history bytes and two insurance rounds. The allocation was
+10,240 bytes. The focused selector comparison and TypeScript checks also passed.
+These were host calculations against retained signed inputs.

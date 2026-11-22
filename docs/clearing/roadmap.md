@@ -13,6 +13,10 @@ records the change in direction.
 The six deliverables now have local implementation and signed qualification.
 The [common keeper](https://github.com/arnabnandikgp/rivalt/pull/155) and its
 [dependent local launcher](https://github.com/arnabnandikgp/rivalt/pull/156) are in Review. [PR #158](https://github.com/arnabnandikgp/rivalt/pull/158) qualified three 75-member freezes through wallet exit and independent replay on the corrected build. [PR #159](https://github.com/arnabnandikgp/rivalt/pull/159) qualified the fresh-session default on the rebuilt successor with 14 successful wallet actions and one finalized refusal. [Local qualification](../operations/validation.md#fresh-local-successor-lifecycle)
+[PR #160](https://github.com/arnabnandikgp/rivalt/pull/160) covers the three
+verifier review findings and compares original writeoffs with recoverable loss
+on each retained 75-member book. All five PRs await integration.
+
 
 | Agreed deliverable | Where it stands | What remains |
 |---|---|---|
