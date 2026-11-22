@@ -21,12 +21,13 @@ at `4164f7cd` completed 14 wallet actions and recorded one finalized refusal.
 [Wallet qualification](operations/validation.md#default-fresh-local-wallet) ·
 [Six deliverables](clearing/roadmap.md#pr-tracker)
 
-**Next action.** Implement complete-registry route selection for ordinary market
-orders and compare its allocations with independent exhaustive financial cases.
+**Next action.** Bind the complete maker registry to the Rust selector in the
+ordinary clearing instruction and qualify a signed reroute after a reprice.
 P15B and P16B remain open external gates. The 24-hour run is deferred.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| Standing maker quotes and route selection | In progress | On parent `cd5f98d5` with the selector changes, all 17 maker-interface tests passed. These include 1,024 exhaustive allocation comparisons, an actual isolated maker margin and reservation boundary, and both sides of the 5,000-atom sell fee step. This is native evidence. Signed clearing execution, wallet use and the paired settlement load remain open. |
 | Execution-time routing and matched load | In progress, D145 | The released instruction commits at most two signed legs. The [delivery criteria](liquidity/routing.md#execution-time-selection) cover clearing, wallet execution and paired settlement load. Re-reading 66 retained signed transactions from clearing `79724a5a` distinguished report-only and checkpoint-plus-report costs. [Funding measurements](operations/performance.md#funding-publications-on-the-qualified-local-clearing-build). |
 | Verifier review findings | Closed, [PR #160](https://github.com/arnabnandikgp/rivalt/pull/160) | At `2d799902`, eight independent financial tests and the native wide-factor regression passed. Original budgets, eligible recovery and settled cash matched on all three retained 75-member books. The generated account encoder reproduced 6,045 bytes before materialization and 10,245 after it. [Validation](operations/validation.md#frozen-book-reference-checks). |
 | Fresh-session default | Closed, [PR #159](https://github.com/arnabnandikgp/rivalt/pull/159) | Browser `4164f7cd` verified both account modes, a two-market top-up, TP/SL, both closes, a 1,000,000-atom withdrawal and the indexed fills after reload. One stale financial sequence required a fresh ETH review. Earlier sessions identified expired original recovery and funding contention during backing scans. [Results and limits](operations/validation.md#default-fresh-local-wallet). |

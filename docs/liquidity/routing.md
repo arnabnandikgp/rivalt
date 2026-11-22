@@ -22,8 +22,10 @@ its execution-time successor.
 Solana locks all declared writable accounts for execution. A writer can land
 between two fills in the same slot. A lock alone gives neither FIFO ordering nor
 a guarantee that a submitted fill lands in that slot. Qualification must exercise
-both transaction orders. No change to the maker's pricing authority is established
-by the scheduler.
+both transaction orders. The approved [standing quote](quoting.md#standing-execution-quotes)
+uses the price at execution and survives its age alone. A reprice, disable or
+depth consumption is visible immediately. The existing SDK signed-leg allocator
+continues to use expiring publications.
 
 ### Released SDK selection
 

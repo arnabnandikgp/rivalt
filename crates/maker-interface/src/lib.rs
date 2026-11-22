@@ -1,5 +1,6 @@
 //! Bounded, read-only maker quote contract. Quotes confer no clearing authority.
 pub mod canonical;
+pub mod routing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QuoteError {

@@ -1635,3 +1635,18 @@ ultimately fill against different makers. The expanded workload must measure
 this explicitly, together with quote changes and profit settlement under load.
 Risk stays index-derived and funding retains its attested off-chain calculation.
 [Routing delivery](liquidity/routing.md#execution-time-selection)
+
+### Maker quotes stand until changed or consumed
+
+For the new ordinary router, use the current quote at execution regardless of
+the elapsed time since the maker published it. Repricing takes effect immediately
+in transaction order, including between fills in a slot. Consumed depth stays
+consumed until an authorized replenishment. Disabling or quarantining the maker,
+invalidating its control epoch, and its capital and user limits still constrain
+execution. An absent or future publication supplies no quote. The maker bears
+the risk of leaving an old executable price outstanding.
+
+The request version distinguishes standing trade quotes from the existing
+expiring funding and signed-leg requests. Independent risk-oracle checks and
+funding report freshness still apply whenever clearing requires them. A standing
+maker quote alone cannot make a market eligible for a new position.

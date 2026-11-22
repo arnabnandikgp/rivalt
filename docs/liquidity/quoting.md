@@ -1,5 +1,18 @@
 # Maker quoting contract
 
+## Standing execution quotes
+
+The D145 ordinary router uses request version 5 on the existing read-only maker
+quote interface. It prices current inventory and unconsumed depth at the maker's
+last authorized anchor. A reprice is visible to the very next instruction.
+This request has no age expiry. Its two expiry fields carry the maximum values
+of their wire types. It still rejects unpublished prices, future publications,
+revoked control, disabled shapes and insufficient capacity. Both admitted maker
+programs must support this request before the new path can be used.
+
+Version 4 retains expiry for funding and the existing signed-leg path. A funding
+publisher cannot use version 5 to extend a market's held window.
+
 ## Identity, deployment and authority
 
 - Fresh local venue/domain with `Venue.schema_version=10`, immutable
