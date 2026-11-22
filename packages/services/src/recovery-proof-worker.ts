@@ -2,7 +2,7 @@ import {excludedRecoveryEnd} from './recovery-coverage.js';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import * as paged from '@rivalt/sdk/paged-recovery';
-import {minimumPagedSearchBytes,nextPagedProofInstruction,pagedRateWitness} from './paged-recovery-proof.js';
+import {pagedSearchBytes,nextPagedProofInstruction,pagedRateWitness} from './paged-recovery-proof.js';
 import {AccountRole,getAddressEncoder,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
@@ -27,7 +27,7 @@ export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,conte
   const epoch=header.epoch,revision=preparedState.revision;
   const blocked=(reason:string)=>({status:'blocked' as const,reason});
   if(header.count!==preparedState.count || (!pagedProof && header.count!==8n))return blocked('recovery-unsupported-cohort');
-  if(pagedProof && minimumPagedSearchBytes(header.count)>10_240n)return blocked('recovery-proof-storage-insufficient');
+  if(pagedProof && pagedSearchBytes(header.count)>10_240n)return blocked('recovery-proof-storage-insufficient');
   const budget=recoveryBudget(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET);
   if(!budget)return blocked('recovery-search-pending');
   const identity=[venue,epoch,revision,budget,selection].join(':');

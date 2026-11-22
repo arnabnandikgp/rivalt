@@ -6,6 +6,7 @@ import {getTokenDecoder} from '@solana-program/token';
 import {getAddressEncoder} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from '../../packages/indexer/src/events.js';
+import {compactHistoryBytes,pagedSearchBytes} from '../../packages/services/src/paged-recovery-proof.js';
 import {recoverySettlementCalculation} from '../../packages/services/src/recovery-witness.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
@@ -27,7 +28,7 @@ assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],
 const probe=process.env.RIVALT_SETTLEMENT_PROBE!;
 const automatic=probe==='profit-attribution-successor-populated-keeper';
 const shape=process.env.RIVALT_MIDSIZE_BOOK;
-assert(shape===undefined || automatic && (shape==='sparse'||shape==='dense'),'Unknown mid-sized recovery fixture');
+assert(shape===undefined || automatic && (shape==='sparse'||shape==='dense'||shape==='pairs'),'Unknown mid-sized recovery fixture');
 const population=shape?75:128;
 const jointSettlement=probe==='profit-attribution-joint-settlement';
 const pairSchedule=jointSettlement||probe==='profit-attribution-pair-schedule';
@@ -53,11 +54,11 @@ try {
       ...setup.common,margin:maker.capital,actor:setup.owner,payer:setup.owner,previousContributor:setup.owner.address,
       slotBytes:256,revision:(await root(maker.capital)).revision,maxPayment})],[setup.owner]);
   }
-  const cohort=await populateDefaultCohort(h,setup,population,shape==='sparse'?'cash-only':'traded');
+  const cohort=await populateDefaultCohort(h,setup,population,shape && shape!=='dense'?'cash-only':'traded');
   const trader=setup.roots[0],actor=setup.traderOwner;
-  for(const marketIndex of (shape==='sparse'?[0] as const:[0,1] as const)) {
+  for(const marketIndex of (shape && shape!=='dense'?[0] as const:[0,1] as const)) {
     await setup.sample();
-    const fill=await route({trader,actor,marketIndex,side:0,makers:[setup.instances[marketIndex*3]],lots:[marketIndex===0?40n:20n]});
+    const fill=await route({trader,actor,marketIndex,side:0,makers:shape==='pairs'?setup.instances.slice(0,2):[setup.instances[marketIndex*3]],lots:shape==='pairs'?[20n,20n]:[marketIndex===0?40n:20n]});
     await h.send('open cross default trigger',await withCheckpoints(fill),[actor]);
   }
   if(shape==='sparse') {
@@ -68,8 +69,11 @@ try {
     await h.send('close the insolvent position against its original maker',await withCheckpoints(close),[actor]);
     assert.equal((await root(trader)).positions[0].lots,0n);
     await setup.freshSources();
+  } else if(shape==='pairs') {
+    setup.sourcePrices.btc=40_000_000_000n;
+    await setup.freshSources();
   } else {
-    const target=cohort.additional.find(member=>member.ordinal>=64&&member.market===0&&member.mode===1&&Math.floor(member.ordinal/2)%2===0)!.margin;
+    const target=cohort.additional.find(member=>member.ordinal>=(population===75?56:64)&&member.market===0&&member.mode===1&&Math.floor(member.ordinal/2)%2===0)!.margin;
     setup.sourcePrices.btc=53_500_000_000n;
     await setup.qualify();
     const transfer=sdk.getLiquidateAccountInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
@@ -104,7 +108,8 @@ try {
   if(shape==='sparse') {
     assert.equal(active,0);
     assert(rows.some(row=>row.claims[0]< -row.cash*1_000_000_000n),'Frozen debtor must have a real residual loss');
-  } else if(shape==='dense')assert(active>50);
+  } else if(shape==='pairs')assert.equal(active,3);
+  else if(shape==='dense')assert(active>50);
   else assert.equal(active,120);
   const book={rows,pools:initial.poolsBefore,insurance:initial.insuranceBefore};
   const {rounds,orders}=recoverySettlementCalculation(book,[],0n);
@@ -117,6 +122,11 @@ try {
   writeFileSync(directory+'/population-input.json',json(request));
   const dimensions=JSON.parse(execFileSync('target/release/rivalt-recovery-selector',['--dimensions'],{input:json(request),encoding:'utf8'}));
   assert.equal(dimensions.rankBits,(BigInt(dimensions.schedules)-1n).toString(2).replace(/^0$/,'').length);
+  if(shape==='pairs') {
+    const histories=rows.reduce((total,row)=>row.history.reduce((bytes,slot)=>bytes+compactHistoryBytes(slot),total),0n);
+    const before=pagedSearchBytes(BigInt(rows.length),histories,0n,BigInt(rounds.length));
+    assert(before<=10_240n && before+25n*BigInt(dimensions.edgesByMarket[0])>10_240n,'Fixture must overflow only after deriving eligible pairs');
+  }
   const pageInputs=partitioned?await verifyPartitionedInputs(h,setup,members,expected.debtorWriteoffs.map((row:string[])=>row.map(BigInt)),originalRates?20:4,originalBudgets):null;
   if(pageInputs) {
     assert.deepEqual(pageInputs.edgesByMarket,dimensions.edgesByMarket);
@@ -134,7 +144,8 @@ try {
     const expectedJoint:JointReference=JSON.parse(execFileSync('python3',['tests/financial/joint_payment_reference.py'],{input:json(request),encoding:'utf8'}));
     journal=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
     await journal.checkpoint('keeper-frozen-cohort',true);
-    terminal=await populatedKeeperExit(h,setup,members,expectedJoint);
+    terminal=await populatedKeeperExit(h,setup,members,expectedJoint,shape && shape!=='dense'?setup.instances[0].capital:undefined);
+    if(shape==='pairs')assert(terminal.redirected,'Clearing must certify the dimension overflow');
   } else if(reference) {
     assert(originalRateResult?.pairSchedules && originalRateResult.winnerProofs && pairReference);
     const {prepared,rates,pages,limbs,pairSchedules,winnerProofs}=originalRateResult;
@@ -174,7 +185,7 @@ try {
   await journal.checkpoint(terminal?'joint-wallet-exit':'population-freeze',true);
   const replay=await journal.finish();
   const report={revision,build,pageInputs,originalRateResult,jointPayment,terminal,shape,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
-    crossAccounts:cohort.additional.filter(member=>member.mode===0).length+1,trades:cohort.trades+2,
+    crossAccounts:cohort.additional.filter(member=>member.mode===0).length+1,trades:cohort.trades+(shape==='pairs'?1:2),
     maxRateBits:Math.max(...rounds.flat().map(value=>value.toString(2).length)),dimensions,
     freezeSignature:checks.find(check=>check.label==='freeze populated successor')!.signature,transactions:checks.length,replayedEvents:replay.events};
   writeFileSync(directory+'/population-result.json',json(report));

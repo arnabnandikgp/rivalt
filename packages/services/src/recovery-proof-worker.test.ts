@@ -1,7 +1,7 @@
 import {expect,it} from 'vitest';
 import {address} from '@solana/kit';
 import {getPagedRecoverySearchEncoder} from '@rivalt/sdk/paged-recovery';
-import {minimumPagedSearchBytes,pagedRateWitness} from './paged-recovery-proof.js';
+import {pagedSearchBytes,pagedRateWitness} from './paged-recovery-proof.js';
 import {excludedRecoveryEnd} from './recovery-coverage.js';
 import {recoveryBudget} from './recovery-selection.js';
 
@@ -47,7 +47,7 @@ it('classifies insufficient search storage using a valid minimum-width generated
       expect(bytes.length).toBe(10171);
       expect(encoder.encode({...fields,edges}).length).toBe(10246);
     }
-    expect(minimumPagedSearchBytes(BigInt(count))).toBe(BigInt(bytes.length));
+    expect(pagedSearchBytes(BigInt(count))).toBe(BigInt(bytes.length));
     expect(bytes.length>10240).toBe(count>=76);
   }
 });

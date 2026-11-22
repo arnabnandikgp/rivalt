@@ -8,7 +8,7 @@ import type {Rpc} from '../../indexer/src/rpc.js';
 import {decodeAccountWorker} from './account-worker-state.js';
 import {readRecoveryWitnessBook,recoveryRateWitness,type FrozenRecoveryBook} from './recovery-witness.js';
 
-import {pagedRateWitness} from './paged-recovery-proof.js';
+import {compactHistoryBytes,pagedRateWitness,pagedSearchBytes} from './paged-recovery-proof.js';
 
 type Calculator = {blocked:string}|{rank:bigint;count:bigint;edges:sdk.SearchEdge[]};
 type Member = {id:bigint;cash:bigint;claims:readonly bigint[];lots:readonly bigint[];history:readonly Uint8Array[]};
@@ -56,13 +56,9 @@ export async function selectRecovery(book:Inputs,venue:Address,epoch:bigint,budg
   if(checkStorage) {
     const measured=await native(request,['--dimensions']);
     const pairs=BigInt(measured.edgesByMarket[0])+BigInt(measured.edgesByMarket[1]);
-    let bytes=397n+130n*BigInt(book.rows.length)+25n*pairs+24n*BigInt(1+(request.original.additionalRates?.length??0));
-    for(const row of book.rows)for(const history of row.history) {
-      let length=history.length;
-      while(length>0 && history[length-1]===0)length--;
-      bytes+=BigInt(length);
-    }
-    if(bytes>10_240n || BigInt(measured.schedules)>=(1n<<128n))
+    const historyBytes=book.rows.reduce((total,row)=>row.history.reduce((bytes,slot)=>bytes+compactHistoryBytes(slot),total),0n);
+    const rounds=1n+BigInt(request.original.additionalRates?.length??0);
+    if(pagedSearchBytes(BigInt(book.rows.length),historyBytes,pairs,rounds)>10_240n || BigInt(measured.schedules)>=(1n<<128n))
       return {blocked:'recovery-prove-dimensions'};
   }
   const dimensions=await native(request);

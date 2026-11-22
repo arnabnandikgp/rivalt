@@ -42,7 +42,7 @@ export async function checkPopulatedFlows(read:(key:Address)=>Promise<Buffer|nul
   }
 }
 
-export async function populatedKeeperExit(h:CanonicalHarness,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,members:Address[],expected:JointReference) {
+export async function populatedKeeperExit(h:CanonicalHarness,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,members:Address[],expected:JointReference,creditor?:Address) {
   const directory=process.env.RIVALT_RUN_DIR!;
   for(const mode of ['interrupt','resume']) {
     const child=spawn(process.execPath,['--import','tsx','tests/rpc-contract/populated-keeper-driver.ts',mode,setup.venue],{stdio:'inherit'});
@@ -58,15 +58,21 @@ export async function populatedKeeperExit(h:CanonicalHarness,setup:Awaited<Retur
   const source=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
   assert.deepEqual(source.insuranceSpent.map(String),expected.spent);
   await checkPopulatedFlows(key=>h.read(key),setup.venue,members,expected);
-  const ordinal=positions.findIndex(account=>account.owner===setup.traderOwner.address && account.cash>0n);
+  const owner=creditor?setup.owner:setup.traderOwner;
+  const wallet=creditor?setup.token.address:setup.traderToken.address;
+  const ordinal=creditor?members.indexOf(creditor):positions.findIndex(account=>account.owner===setup.traderOwner.address && account.cash>0n);
   assert(ordinal>=0);
   const margin=members[ordinal],amount=positions[ordinal].cash;
   const token=async(key:Address)=>getTokenDecoder().decode((await h.read(key))!).amount;
-  const before=await token(setup.traderToken.address),vault=await token(setup.vault);
+  if(creditor) {
+    assert.equal(positions[ordinal].owner,owner.address);
+    assert(BigInt(expected.plan.movements[ordinal][0])>0n,'The withdrawing creditor must have actually received BTC recovery');
+  }
+  const before=await token(wallet),vault=await token(setup.vault);
   await h.send('withdraw full keeper-verified wallet payout',[sdk.getWithdrawFundedAccountInstruction({...setup.common,
-    btc:setup.markets[0],eth:setup.markets[1],owner:setup.traderOwner,margin,userToken:setup.traderToken.address,quoteMint:setup.mint.address,
-    amount,guard:await guard(margin)})],[setup.traderOwner]);
-  assert.equal(await token(setup.traderToken.address),before+amount);assert.equal(await token(setup.vault),vault-amount);
+    btc:setup.markets[0],eth:setup.markets[1],owner,margin,userToken:wallet,quoteMint:setup.mint.address,
+    amount,guard:await guard(margin)})],[owner]);
+  assert.equal(await token(wallet),before+amount);assert.equal(await token(setup.vault),vault-amount);
   assert.equal((await root(margin)).cash,0n);
   const originals=readFileSync(directory+'/populated-worker.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
   const interrupted=JSON.parse(readFileSync(directory+'/interrupted-intent.json','utf8'));
@@ -74,6 +80,6 @@ export async function populatedKeeperExit(h:CanonicalHarness,setup:Awaited<Retur
   assert.equal(new Set(originals.map(row=>row.signature)).size,originals.length);
   const fees=originals.reduce((sum,row)=>sum+BigInt(row.fee),0n);
   assert.equal(JSON.parse(readFileSync(directory+'/populated-worker-budget.json','utf8')).spent,String(fees));
-  return {applied:positions.length,spent:expected.spent,withdrawn:amount,ordinal,vaultAfter:await token(setup.vault),originals:originals.length,fees,
+  return {wallet,redirected:originals.some(row=>row.request.endsWith(':select-paged')),applied:positions.length,spent:expected.spent,withdrawn:amount,ordinal,vaultAfter:await token(setup.vault),originals:originals.length,fees,
     restartedSignature:interrupted.signature};
 }
