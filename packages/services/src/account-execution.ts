@@ -1,4 +1,5 @@
 import {readFileSync} from 'node:fs';
+import {setTimeout as delay} from 'node:timers/promises';
 import {address,type Instruction} from '@solana/kit';
 import {Connection,type Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
@@ -52,8 +53,22 @@ export class AccountExecution {
     this.artifacts=new sdk.ArtifactVerifier(this.rpc,this.deployment.artifacts);
   }
   async open() {
-    await this.store.migrate();await this.store.pool.query(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
-    await this.store.pool.query(readFileSync(new URL('./liquidity-schema.sql',import.meta.url),'utf8'));await this.environment();
+    // Live workers can hold row locks while a new process installs idempotent
+    // DDL. PostgreSQL aborts one transaction on a deadlock. Only retry schema
+    // initialization here, before checking the deployment or dispatching work.
+    for(let attempt=0;;attempt++){
+      try{
+        await this.store.migrate();
+        for(const file of ['schema.sql','liquidity-schema.sql']){
+          await this.store.pool.query(readFileSync(new URL(file,import.meta.url),'utf8'));
+        }
+        break;
+      }catch(error){
+        if((error as {code?:string})?.code!=='40P01'||attempt>=3)throw error;
+        await delay(100*(2**attempt));
+      }
+    }
+    await this.environment();
     await this.queue.prepare();
   }
   async environment() {
