@@ -11,6 +11,18 @@ deletes none of them. Recovery example:
 git show 84c46d4d26b23f25d6f3a7ae4bcbec591fa31503:docs/evidence/P34.md
 ```
 
+## Local recovery and wallet integration
+
+On 23 November 2026 local time, GitHub atomically merged PRs #155, #156, #158,
+#159 and #160 into `main`. The
+[merge commit](https://github.com/arnabnandikgp/rivalt/commit/f0302d8d7745b2e049800e2fb8b060d413c06ac0)
+contains the reviewed tip `a61b5dd9`. Both have Git tree
+`f3dcb9828437c8793c81c381f800471ddafbf10d`. Each PR reported merged,
+its applicable CI checks passed, and all five review threads were resolved.
+The recorded local wallet, settlement and replay results apply to their
+pinned builds. [Validation](operations/validation.md#default-fresh-local-wallet)
+· [Verifier review evidence](operations/validation.md#frozen-book-reference-checks)
+
 ## Successor clearing stack integration
 
 The 50 successor PRs through [#152](https://github.com/arnabnandikgp/rivalt/pull/152) and the
