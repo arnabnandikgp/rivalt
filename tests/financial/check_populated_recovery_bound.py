@@ -146,7 +146,8 @@ class FrozenCase:
         self.accounts = tuple(Account(cash, tuple(Fraction(claim, SCALE) for claim in claims))
                               for cash, claims in self.table)
         self.original = clear_atom_cohort(self.accounts, *self.inputs)
-        self.budgets = [[int(amount) for amount in row] for row in self.original.benchmark.debtor_writeoffs]
+        self.budgets = [[int(amount) if lots[m] else 0 for m, amount in enumerate(row)]
+                        for row, lots in zip(self.original.benchmark.debtor_writeoffs, self.lots)]
         self.ceilings = [sum(row[m] for row in self.budgets) for m in range(2)]
         self.rates = [[charge_rate(row, m, int(mark)) for m, mark in enumerate(source['marks'])]
                       for row in self.rows]

@@ -26,6 +26,9 @@ const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const probe=process.env.RIVALT_SETTLEMENT_PROBE!;
 const automatic=probe==='profit-attribution-successor-populated-keeper';
+const shape=process.env.RIVALT_MIDSIZE_BOOK;
+assert(shape===undefined || automatic && (shape==='sparse'||shape==='dense'),'Unknown mid-sized recovery fixture');
+const population=shape?75:128;
 const jointSettlement=probe==='profit-attribution-joint-settlement';
 const pairSchedule=jointSettlement||probe==='profit-attribution-pair-schedule';
 const winnerScan=pairSchedule||probe==='profit-attribution-winner-allocations';
@@ -50,23 +53,33 @@ try {
       ...setup.common,margin:maker.capital,actor:setup.owner,payer:setup.owner,previousContributor:setup.owner.address,
       slotBytes:256,revision:(await root(maker.capital)).revision,maxPayment})],[setup.owner]);
   }
-  const cohort=await populateDefaultCohort(h,setup,128);
+  const cohort=await populateDefaultCohort(h,setup,population,shape==='sparse'?'cash-only':'traded');
   const trader=setup.roots[0],actor=setup.traderOwner;
-  for(const marketIndex of [0,1] as const) {
+  for(const marketIndex of (shape==='sparse'?[0] as const:[0,1] as const)) {
     await setup.sample();
     const fill=await route({trader,actor,marketIndex,side:0,makers:[setup.instances[marketIndex*3]],lots:[marketIndex===0?40n:20n]});
     await h.send('open cross default trigger',await withCheckpoints(fill),[actor]);
   }
-  const target=cohort.additional.find(member=>member.ordinal>=64&&member.market===0&&member.mode===1&&Math.floor(member.ordinal/2)%2===0)!.margin;
-  setup.sourcePrices.btc=53_500_000_000n;
-  await setup.qualify();
-  const transfer=sdk.getLiquidateAccountInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
-    target,receiver:setup.roots[1],receiverOwner:actor,targetGuard:await guard(target),receiverGuard:await guard(setup.roots[1]),
-    marketIndex:0,price:53_500n,lots:1n});
-  await h.send('liquidate one populated lot into funded receiver',await withCheckpoints(transfer),[actor]);
-  setup.sourcePrices.btc=40_000_000_000n;
-  setup.sourcePrices.eth=2_000_000_000n;
-  await setup.freshSources();
+  if(shape==='sparse') {
+    setup.sourcePrices.btc=40_000_000_000n;
+    await setup.qualify();
+    const generation=(await root(trader)).positions[0].generation;
+    const close=await route({trader,actor,marketIndex:0,side:1,makers:[setup.instances[0]],lots:[40n],reduceOnly:true,generation});
+    await h.send('close the insolvent position against its original maker',await withCheckpoints(close),[actor]);
+    assert.equal((await root(trader)).positions[0].lots,0n);
+    await setup.freshSources();
+  } else {
+    const target=cohort.additional.find(member=>member.ordinal>=64&&member.market===0&&member.mode===1&&Math.floor(member.ordinal/2)%2===0)!.margin;
+    setup.sourcePrices.btc=53_500_000_000n;
+    await setup.qualify();
+    const transfer=sdk.getLiquidateAccountInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
+      target,receiver:setup.roots[1],receiverOwner:actor,targetGuard:await guard(target),receiverGuard:await guard(setup.roots[1]),
+      marketIndex:0,price:53_500n,lots:1n});
+    await h.send('liquidate one populated lot into funded receiver',await withCheckpoints(transfer),[actor]);
+    setup.sourcePrices.btc=40_000_000_000n;
+    setup.sourcePrices.eth=2_000_000_000n;
+    await setup.freshSources();
+  }
   const sources={primaryBtc:setup.feeds[0].feed,primaryCollateral:setup.feeds[1].feed,guardBtc:setup.feeds[2].feed,
     guardCollateral:setup.feeds[3].feed,primaryEth:setup.feeds[4].feed,guardEth:setup.feeds[5].feed};
   const source=async()=>sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
@@ -76,7 +89,7 @@ try {
   await h.send('freeze populated successor',[classify(0),classify(1),...await Promise.all([setup.checkpoint(0),setup.checkpoint(1)]),freeze]);
   await flush();
   const initial=await source();
-  assert.equal(initial.stage,2);assert.equal(initial.count,128n);
+  assert.equal(initial.stage,2);assert.equal(initial.count,BigInt(population));
   const members=await financialRoots(h,setup.venue,setup.registry);
   const rows=await Promise.all(members.map(async key=>{
     const {root:account,histories}=sdk.decodeProfitAttribution((await h.read(key))!,true);
@@ -86,9 +99,13 @@ try {
       history:histories.map(bytes=>Array.from(bytes))};
   }));
   assert.deepEqual(await source(),initial);
-  assert.equal(rows.length,128);
+  assert.equal(rows.length,population);
   const active=rows.filter(row=>row.lots.some(value=>value!==0n)).length;
-  assert.equal(active,120);
+  if(shape==='sparse') {
+    assert.equal(active,0);
+    assert(rows.some(row=>row.claims[0]< -row.cash*1_000_000_000n),'Frozen debtor must have a real residual loss');
+  } else if(shape==='dense')assert(active>50);
+  else assert.equal(active,120);
   const book={rows,pools:initial.poolsBefore,insurance:initial.insuranceBefore};
   const {rounds,orders}=recoverySettlementCalculation(book,[],0n);
   const expected=JSON.parse(execFileSync('python3',['tests/financial/settlement_rpc_reference.py'],{input:json(book),encoding:'utf8'}));
@@ -156,7 +173,7 @@ try {
   journal??=await openSettlementJournal(rpc,setup,checks.map(check=>String(check.signature)),build);
   await journal.checkpoint(terminal?'joint-wallet-exit':'population-freeze',true);
   const replay=await journal.finish();
-  const report={revision,build,pageInputs,originalRateResult,jointPayment,terminal,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
+  const report={revision,build,pageInputs,originalRateResult,jointPayment,terminal,shape,active,members:members.length,positions:rows.flatMap(row=>row.lots).filter(value=>value!==0n).length,
     crossAccounts:cohort.additional.filter(member=>member.mode===0).length+1,trades:cohort.trades+2,
     maxRateBits:Math.max(...rounds.flat().map(value=>value.toString(2).length)),dimensions,
     freezeSignature:checks.find(check=>check.label==='freeze populated successor')!.signature,transactions:checks.length,replayedEvents:replay.events};

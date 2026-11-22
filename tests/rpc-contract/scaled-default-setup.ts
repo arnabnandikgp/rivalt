@@ -12,7 +12,7 @@ import {fixtureKey} from './harness.js';
 import * as sdk from '@rivalt/sdk';
 
 type Setup=Awaited<ReturnType<typeof liquidityExecutionSetup>>;
-export async function populateDefaultCohort(h:CanonicalHarness,setup:Setup,population:128|1024) {
+export async function populateDefaultCohort(h:CanonicalHarness,setup:Setup,population:75|128|1024,activity:'traded'|'cash-only'='traded') {
   const before=sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!);
   assert.equal(before.financialCount,8n);assert.equal(before.nextId,8n);
   await provisionRecoveryWorkspace(h,setup.common,setup.payer,BigInt(population));
@@ -50,6 +50,7 @@ export async function populateDefaultCohort(h:CanonicalHarness,setup:Setup,popul
   // lots, beyond the recovery capacity of its 256-byte attribution slot.
   const byExecution=ledgerLanes?[...additional].reverse():additional;
   for(const item of byExecution) {
+    if(activity==='cash-only')break;
     if(item===byExecution[0]||item.ordinal%4===0)await setup.sample();
     if(item.receiver)continue;
     const markets=item.mode===0?[0,1] as const:[item.market as 0|1];
