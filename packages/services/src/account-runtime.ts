@@ -79,6 +79,6 @@ export class AccountRuntime extends AccountExecution {
     if(intervalSeconds<2n||intervalSeconds>5n)throw new Error('Local funding cadence must be 2–5 seconds');
     return publishLiquidityFunding(this,marketIndex,key,intervalSeconds);
   }
-  settle(key:Keypair){return settleAccounts(this,key);}
+  settle(key:Keypair,allowBackgroundPage=true){return settleAccounts(this,key,allowBackgroundPage);}
   riskWork(key:Keypair,receiver?:Address){return accountRiskWork(this,key,receiver);}
 }

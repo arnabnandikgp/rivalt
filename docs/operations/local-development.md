@@ -75,10 +75,15 @@ Keys stay in the ignored session configuration.
 Synthetic independent sources refresh after a one-second producer delay, matching
 service qualification. Source-age, recovery and signed quote lifetime checks are
 unchanged; delayed originals can still reject and require a new user review.
-The interactive workers target funding publication every two seconds. A report
+The successor demo targets funding publication every two seconds. The explicit
+P56 launcher retains its four-second funding cadence. A report
 can arrive with just two to four seconds left on its maker quotes. A later
 report must overlap that window for the six-second recovery clock to continue.
-Actual publication times and wallet admission depend on local dispatch load.
+A background backing page held both market checkpoints for four to six seconds
+in the wallet exercise. The successor demo settlement worker spaces standalone page
+submissions by 15 seconds so quotes can recover between scans. Loss collections,
+already-backed payments and the final page with a payable gain are eligible
+on every poll. This can lengthen a complete background scan.
 
 From the repository root, bootstrap only missing baseline tools:
 

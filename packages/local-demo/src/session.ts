@@ -104,7 +104,11 @@ async function startService(name:string,script:string,environment:NodeJS.Process
       if(line.startsWith('{')&&JSON.parse(line).status==='started')return;
     }
     throw new Error(`${name} did not report startup; inspect ${name}.log`);
-  }finally{lines.close();}
+  }finally{
+    lines.close();
+    // readline pauses the pipe on close. Keep the session log draining it.
+    service.stdout!.resume();
+  }
 }
 try {
   verifyDemoPrograms(ARTIFACT_DIRECTORY,DEMO_DEPLOYMENT);
@@ -192,11 +196,12 @@ try {
   // Refresh before the previous maker-backed observation expires, even when
   // dispatch consumes part of the six-second quote lifetime.
   const environment={...process.env,RIVALT_RPC_URL:rpcUrl,RIVALT_WS_URL:wsUrl,RIVALT_DATABASE_URL:databaseUrl,RIVALT_RUN_ID:config.runId,RIVALT_ACCOUNT_PROFILE:config.profile,RIVALT_ACCOUNT_DEPLOYMENT:DEMO_DEPLOYMENT,
-    RIVALT_RECOVERY_SCHEDULE_BUDGET:lanes?(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET??'3000'):undefined,RIVALT_FUNDING_INTERVAL_SECONDS:'2'};
+    RIVALT_RECOVERY_SCHEDULE_BUDGET:lanes?(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET??'3000'):undefined,RIVALT_FUNDING_INTERVAL_SECONDS:lanes?'2':'4'};
   await startService('executor','packages/services/src/account-executor-main.ts',environment);
   const worker=(name:string,role:string,key:Keypair,marketIndex?:number,makerId?:number)=>{
     const path=RUNTIME+`/signer-${name}.json`;writeFileSync(path,JSON.stringify([...key.secretKey]),{mode:0o600});
     return startService(name,'packages/services/src/account-worker-main.ts',{...environment,RIVALT_ACCOUNT_ROLE:role,RIVALT_SIGNER_PATH:path,
+      RIVALT_BACKING_PAGE_INTERVAL_MS:lanes&&role==='settlement'?'15000':undefined,
       RIVALT_MARKET_INDEX:marketIndex===undefined?undefined:String(marketIndex),RIVALT_MAKER_ID:makerId===undefined?undefined:String(makerId)});
   };
   for(const market of [0,1]){

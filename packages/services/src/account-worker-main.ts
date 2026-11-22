@@ -13,6 +13,9 @@ const profile=accountExecutionProfile();
 if(makerText!==undefined&&!['0','1','2'].includes(makerText))throw new Error('Unsupported market maker identity');
 const marketIndex=Number(marketText) as 0|1,makerId=Number(makerText) as 0|1|2;
 const cadence=process.env.RIVALT_FUNDING_INTERVAL_SECONDS??'2';if(!/^[2-5]$/.test(cadence))throw new Error('Funding cadence must be 2–5 seconds');
+const pageInterval=Number(process.env.RIVALT_BACKING_PAGE_INTERVAL_MS??0);
+if(!Number.isSafeInteger(pageInterval)||pageInterval<0||pageInterval>60_000)throw new Error('Invalid background backing-page interval');
+let nextBackgroundPage=0;
 const signerPath=required('RIVALT_SIGNER_PATH'),stat=statSync(signerPath);
 if(!stat.isFile()||(stat.mode&0o077)!==0)throw new Error('Worker signer must be a private local file');
 const signer=await Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(signerPath,'utf8'))));
@@ -29,11 +32,14 @@ try{
   console.log(JSON.stringify({role,marketIndex:marketText===undefined?undefined:marketIndex,makerId:role==='maker'?makerId:undefined,pid:process.pid,status:'started'}));
   while(!stopping){
     let outcome;
-    try{outcome=role==='maker'?await runtime.maker(marketIndex,makerId,signer):role==='orders'?await runtime.orders(signer):role==='settlement'?await runtime.settle(signer):role==='risk'?await runtime.riskWork(signer,receiver):await runtime.funding(marketIndex,signer,BigInt(cadence));}
+    try{outcome=role==='maker'?await runtime.maker(marketIndex,makerId,signer):role==='orders'?await runtime.orders(signer):role==='settlement'?await runtime.settle(signer,performance.now()>=nextBackgroundPage):role==='risk'?await runtime.riskWork(signer,receiver):await runtime.funding(marketIndex,signer,BigInt(cadence));}
     catch(error){const message=error instanceof Error?error.message:'';outcome={status:'unavailable',reason:
       message==='Funding publisher is not authorized.'?'publisher-disabled':message==='Funding publication is suspended.'?'venue-mode':
       message==='Funding snapshot predates the publisher fence.'?'snapshot-before-publisher-fence':
       message.includes('signer mismatch')||message.includes('authority mismatch')?'worker-signer-mismatch':'worker-input-or-execution-error'};}
+    if(role==='settlement'&&outcome.status==='queued'&&outcome.reason==='complete-market-backing-page'){
+      nextBackgroundPage=performance.now()+pageInterval;
+    }
     const status=JSON.stringify(outcome);if(status!==lastStatus){console.log(JSON.stringify({role,marketIndex:marketText===undefined?undefined:marketIndex,...outcome}));lastStatus=status;}
     await new Promise(resolve=>setTimeout(resolve,role==='risk'?1000:250));
   }
