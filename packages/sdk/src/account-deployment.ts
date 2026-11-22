@@ -29,7 +29,7 @@ export const FOREIGN_PROTECTION_ARTIFACT_SET='foreign-protection-7df9585e';
 export const WINNER_ALLOCATION_ARTIFACT_SET='winner-allocation-486d5818';
 export const JOINT_PAYMENT_ARTIFACT_SET='joint-payment-3acd4a4d';
 export const PAIR_SCHEDULE_ARTIFACT_SET='pair-schedule-34359552';
-export const UNIFIED_RECOVERY_ARTIFACT_SET='unified-recovery-84c8464f';
+export const UNIFIED_RECOVERY_ARTIFACT_SET='unified-recovery-79724a5a';
 export const hasJointPayment=(set?:string)=>set===JOINT_PAYMENT_ARTIFACT_SET||set===UNIFIED_RECOVERY_ARTIFACT_SET;
 export const hasPartitionedInputs=(set?:string)=>set===PARTITIONED_INPUTS_ARTIFACT_SET||set===POPULATED_RATES_ARTIFACT_SET||set===ORIGINAL_BUDGETS_ARTIFACT_SET||set===FOREIGN_PROTECTION_ARTIFACT_SET||set===WINNER_ALLOCATION_ARTIFACT_SET||set===PAIR_SCHEDULE_ARTIFACT_SET||hasJointPayment(set);
 const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set)
@@ -61,9 +61,9 @@ export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
   if(selection==='unified-recovery-candidate')return {
-    artifactSet:UNIFIED_RECOVERY_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'84c8464fe8435178f027bcd014886f2e755893a6',
+    artifactSet:UNIFIED_RECOVERY_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'79724a5a0182eb8f22f916c6a9f23fd5f1dfcc91',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
-      bytes:3550456,sha256:'2d11301cfb569cf91bba1bb61c53c771bf14df0eb08b60d3df59e0ae6980c6ec'}:artifact)
+      bytes:3555384,sha256:'c8c98fb4906426c3582f9d478da983c0ea43b3ba518a5c145b7e45923bc05828'}:artifact)
   };
   if(selection==='local-successor-candidate')return {
     artifactSet:LOCAL_SUCCESSOR_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'d9a2a55b8c43f490b83c70b1151ebf306543f74c',

@@ -1,6 +1,6 @@
 # Current status
 
-Updated 21 November 2026. This is the live handoff, not a cumulative run diary.
+Updated 23 November 2026. This is the live handoff, not a cumulative run diary.
 
 ## Baseline and active work
 
@@ -21,14 +21,14 @@ the 128-member full exit and all 14 successor browser wallet actions passed.
 [Qualification](operations/validation.md#fresh-local-successor-lifecycle) ·
 [Six deliverables](clearing/roadmap.md#pr-tracker)
 
-**Next action.** Decide how clearing chooses a recovery verifier when a
-mid-sized frozen book fits only one proof family. The recommended design
-preserves both demonstrable paths using immutable frozen inputs. The engineering
-and financial consequences are recorded in [D142](DECISIONS.md#d142--keep-the-qualified-successor-launcher-explicit).
-P15B, P16B and the deferred 24-hour run retain their own gates.
+**Next action.** Qualify the corrected sparse, dense and pair-overflow 75-member
+books on clearing `79724a5a` with keeper restart, signed wallet withdrawal and
+independent PostgreSQL replay. P56 is the default under [D143](DECISIONS.md#d143--qualify-frozen-book-verifier-selection-before-local-promotion).
+P15B and P16B remain open external gates. The 24-hour run is deferred.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| Frozen-book verifier selection | In progress | Clearing `84c8464f`, harness `93f4ffed`: a dense 75-member book with 71 exposed accounts completed 327 keeper originals, withdrew 986,527 atoms and reproduced 1,025 events. A sparse book stopped at an unused register. The two-pair control exhausted compute while deriving budgets after capturing 75 members. Clearing `79724a5a` addresses both. |
 | Unified recovery keeper | Review | [PR #155](https://github.com/arnabnandikgp/rivalt/pull/155). Clearing `3d90b3ef`, populated harness `7e5a1dc3`, captured payout verification `25205003`. At 128 members, 517 finalized originals, 986,527 atoms withdrawn, all 256 movements matched and 1,690 events replayed. Both nine-member cases settled through four withdrawals each. |
 | Explicit local successor launcher | Review, default selection held | [PR #156](https://github.com/arnabnandikgp/rivalt/pull/156) above #155. Clearing `3d90b3ef`. Browser `db5c2997` completed 14 actions including a two-market top-up and funded withdrawal. The verified workload landed 360/360 fills. Risk worker `f7535f93` initiated default after a second adverse move. [Results and limits](operations/validation.md#fresh-local-successor-lifecycle). |
 | P51A audit-remediation roadmap | Closed | [PR #72](https://github.com/arnabnandikgp/rivalt/pull/72); [P51–P62 plan](operations/remediation-plan.md) maps all 20 findings to 25 proposed PR scopes, dependencies, six decision gates and acceptance; clean `4025168` documentation checks pass |
