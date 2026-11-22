@@ -16,7 +16,7 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 The earlier successor stack and its integration record are merged through
 [PR #154](https://github.com/arnabnandikgp/rivalt/pull/154) at `a947e79e`.
 The new stack qualifies the common recovery keeper and the stock launcher with
-an explicitly selected successor. P56 is the default. Both nine-member cases,
+the successor. The fresh-session default is in qualification. Both nine-member cases,
 the 128-member full exit and all 14 successor browser wallet actions passed.
 [Qualification](operations/validation.md#fresh-local-successor-lifecycle) ·
 [Six deliverables](clearing/roadmap.md#pr-tracker)

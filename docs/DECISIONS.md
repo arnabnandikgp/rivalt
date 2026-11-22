@@ -1604,3 +1604,16 @@ A storage or rank overflow can start a second verification procedure while
 all withdrawals remain frozen. Local promotion requires independently
 reconciled sparse and dense mid-sized exits and keeper restart.
 [Selection contract](clearing/default-plan-verification.md#choosing-a-verifier-from-frozen-positions)
+
+## D144 — use the qualified successor for fresh local demos
+
+23 November 2026. The three 75-member freezes required by D143 reached
+independently reconciled wallet exits on clearing `79724a5a`. They covered a
+flat creditor, a book that exceeded exhaustive storage only after deriving
+eligible pairs, and a dense BTC/ETH book. Fresh local demos select this build.
+The launcher publishes its deployment identity to clients and passes the
+matching helper and program hashes to its services. Existing sessions and
+journals retain their original deployment identities. The historical P56
+profile remains selectable explicitly. Wider deployment and live
+freeze-resolution policy remain separate decisions.
+[Mid-sized qualification](operations/validation.md#frozen-book-verifier-selection-and-mid-sized-exits)

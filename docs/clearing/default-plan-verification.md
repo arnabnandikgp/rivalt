@@ -1366,7 +1366,7 @@ simulation cannot authorize the switch. Every payout still needs a complete
 verified plan and reconciliation. The populated certificate retains original
 cash and debt attribution. A debtor's charge target in a market where its
 position is flat is zero. The resulting unpaid debt goes through the existing
-residual-loss calculation. P56 remains the normal local launcher.
+residual-loss calculation. [Deployment selection](../operations/deployment.md#supported-boundary) identifies the local launcher build.
 
 To derive eligible pairs, clearing calculates debtor budgets from the original
 cash and claims. Members with zero claims in both markets can contribute only

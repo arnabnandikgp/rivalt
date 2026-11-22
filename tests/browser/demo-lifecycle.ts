@@ -8,11 +8,12 @@ import {chromium} from 'playwright-core';
 import {address,type Address} from '@solana/kit';
 import {VersionedTransaction} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
-import {RUNTIME,ARTIFACT_DIRECTORY} from '../../packages/local-demo/src/config.js';
+import {RUNTIME,ARTIFACT_DIRECTORY,DEMO_DEPLOYMENT} from '../../packages/local-demo/src/config.js';
 const directory=resolve(process.env.RIVALT_DEMO_EVIDENCE??`.local/demo-checks/${Date.now()}`);mkdirSync(directory,{recursive:true});
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const config=JSON.parse(readFileSync(`${RUNTIME}/deployment.json`,'utf8'));
+assert.equal(config.deployment,DEMO_DEPLOYMENT,'The active venue must match the requested launcher profile');
 const client=new sdk.AccountUserClient(config),outcomes:{label:string;signature:string;wire:string;fee:number;status:string;error:unknown;reviewAttempt:number}[]=[],errors:string[]=[],preparations:unknown[]=[];
 const sourceObservations:unknown[]=[];
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,
