@@ -5,8 +5,9 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {resolve} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
-import {address,type Address} from '@solana/kit';
+import {address,type AccountRole,type Address} from '@solana/kit';
 import {VersionedTransaction} from '@solana/web3.js';
+import {expiredMakerPublication} from './expired-maker-publication.js';
 import * as sdk from '@rivalt/sdk';
 import {RUNTIME,ARTIFACT_DIRECTORY,DEMO_DEPLOYMENT} from '../../packages/local-demo/src/config.js';
 const directory=resolve(process.env.RIVALT_DEMO_EVIDENCE??`.local/demo-checks/${Date.now()}`);mkdirSync(directory,{recursive:true});
@@ -86,12 +87,21 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     assert(direct||tag===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR),'Expected signed route');
     assert(code===6122||code===6117||code===6115||code===sdk.CLEARING_ERROR__ORACLE_POLICY,JSON.stringify(history.meta.err));
     if(code===6117||code===6115){
-      // Quote lifetime can reject before the route-intent check. Both errors
-      // are broad: require independently proven signed route expiry, never
-      // infer a transient failure from the error number alone.
-      const decoder=direct?sdk.getExecuteLedgerLaneInstructionDataDecoder():sdk.getExecuteLiquidityRouteInstructionDataDecoder();
-      const intent=decoder.decode(instruction.data);
-      assert(BigInt(history.slot)>=intent.expirySlot,'Finalized route must have landed after its signed expiry');
+      const decode=direct?sdk.parseExecuteLedgerLaneInstruction:sdk.parseExecuteLiquidityRouteInstruction;
+      const accounts=Array.from(instruction.accountKeyIndexes,index=>({
+        address:message.staticAccountKeys[index].address,
+        role:(Number(message.isAccountSigner(index))*2+Number(message.isAccountWritable(index))) as AccountRole,
+      }));
+      const route=decode({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data:instruction.data,accounts});
+      if(BigInt(history.slot)<route.data.expirySlot){
+        assert.equal(code,sdk.CLEARING_ERROR__MAKER_QUOTE,'Route refused before signed slot expiry');
+        const {firstProgram,firstConfig,firstPrice,secondProgram,secondConfig,secondPrice}=route.accounts;
+        const makers=[{program:firstProgram.address,config:firstConfig.address,price:firstPrice.address}];
+        if(secondProgram && secondConfig && secondPrice)makers.push({program:secondProgram.address,config:secondConfig.address,price:secondPrice.address});
+        const evidence=await Promise.all(makers.map(maker=>expiredMakerPublication(client.rpc,maker,receipt.signature,history.slot,history.blockTime)));
+        assert(evidence.some(Boolean),'No selected maker publication independently proved expired');
+        writeFileSync(`${directory}/expired-publication-${receipt.signature}.json`,JSON.stringify(evidence));
+      }
     }
     assert(reviewAttempt<3,'Bounded fresh review after finalized version/source refusal or proven expiry');
     await button('Refresh').click();

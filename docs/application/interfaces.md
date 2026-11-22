@@ -129,6 +129,9 @@ freshness and classified unavailability. Quote validity is provisional; an HTTP
 response is not instruction authority. Rebuild and authenticate instructions in
 the SDK with user size, side, limits, fee cap and exact account bindings. Current
 price may improve/change within signed bounds; structural-epoch changes reject.
+The wallet displays the route's signed slot deadline. Clearing also checks each
+maker publication at execution. A six-second-old price can expire while the
+route still has slots remaining. A fresh review is required to sign again.
 
 An unfinished exact route search reports `liquidity-search-budget-exhausted` with
 bounded search metrics, distinct from insufficient depth or failed account health.
