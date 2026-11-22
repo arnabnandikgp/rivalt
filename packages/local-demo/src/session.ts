@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
+import {createInterface} from 'node:readline';
 import {randomBytes} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {mkdirSync,writeFileSync,readFileSync,statfsSync} from 'node:fs';
@@ -92,9 +93,18 @@ const control=createServer(async(request,response)=>{
 control.listen(18094,'127.0.0.1');
 for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>void shutdown(signal));
 async function ready(url:string){return until(()=>fetch(url,{signal:AbortSignal.timeout(1000)}).then(response=>response.ok).catch(()=>false),Boolean,url,60000);}
-function child(name:string,script:string,environment:NodeJS.ProcessEnv){
-  const process=processes.start(name,globalThis.process.execPath,['--import','tsx',script],environment);
-  process.once('exit',()=>{if(!stopping)void shutdown(`${name} exited; inspect ${name}.log`,1);});return process;
+async function startService(name:string,script:string,environment:NodeJS.ProcessEnv){
+  const service=processes.start(name,process.execPath,['--import','tsx',script],environment);
+  service.once('exit',()=>{if(!stopping)void shutdown(`${name} exited; inspect ${name}.log`,1);});
+  // Each worker verifies the deployed binaries over RPC before claiming its role.
+  // Wait for that acknowledgement before the next worker downloads the programs.
+  const lines=createInterface({input:service.stdout!,signal:AbortSignal.timeout(30_000)});
+  try{
+    for await(const line of lines){
+      if(line.startsWith('{')&&JSON.parse(line).status==='started')return;
+    }
+    throw new Error(`${name} did not report startup; inspect ${name}.log`);
+  }finally{lines.close();}
 }
 try {
   verifyDemoPrograms(ARTIFACT_DIRECTORY,DEMO_DEPLOYMENT);
@@ -183,17 +193,17 @@ try {
   // dispatch consumes part of the six-second quote lifetime.
   const environment={...process.env,RIVALT_RPC_URL:rpcUrl,RIVALT_WS_URL:wsUrl,RIVALT_DATABASE_URL:databaseUrl,RIVALT_RUN_ID:config.runId,RIVALT_ACCOUNT_PROFILE:config.profile,RIVALT_ACCOUNT_DEPLOYMENT:DEMO_DEPLOYMENT,
     RIVALT_RECOVERY_SCHEDULE_BUDGET:lanes?(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET??'3000'):undefined,RIVALT_FUNDING_INTERVAL_SECONDS:'2'};
-  child('executor','packages/services/src/account-executor-main.ts',environment);
+  await startService('executor','packages/services/src/account-executor-main.ts',environment);
   const worker=(name:string,role:string,key:Keypair,marketIndex?:number,makerId?:number)=>{
     const path=RUNTIME+`/signer-${name}.json`;writeFileSync(path,JSON.stringify([...key.secretKey]),{mode:0o600});
-    child(name,'packages/services/src/account-worker-main.ts',{...environment,RIVALT_ACCOUNT_ROLE:role,RIVALT_SIGNER_PATH:path,
+    return startService(name,'packages/services/src/account-worker-main.ts',{...environment,RIVALT_ACCOUNT_ROLE:role,RIVALT_SIGNER_PATH:path,
       RIVALT_MARKET_INDEX:marketIndex===undefined?undefined:String(marketIndex),RIVALT_MAKER_ID:makerId===undefined?undefined:String(makerId)});
   };
   for(const market of [0,1]){
-    for(const maker of [0,1,2])worker(`maker-${market}-${maker}`,'maker',makerSigners[market*3+maker],market,maker);
-    worker(`funding-${market}`,'funding',publisherSigners[market],market);
+    for(const maker of [0,1,2])await worker(`maker-${market}-${maker}`,'maker',makerSigners[market*3+maker],market,maker);
+    await worker(`funding-${market}`,'funding',publisherSigners[market],market);
   }
-  worker('orders','orders',setup.payer);worker('settlement','settlement',setup.payer);worker('risk','risk',setup.payer);
+  for(const role of ['orders','settlement','risk'])await worker(role,role,setup.payer);
   // Ordinary risk probing/default remains active; no receiver is invented.
   // The demo does not orchestrate forced insolvency or authority recovery.
   transport.finishProvisioning();

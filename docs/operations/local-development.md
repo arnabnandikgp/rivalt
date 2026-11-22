@@ -69,7 +69,9 @@ records.
 Six maker updaters and two funding publishers each use a separately funded local
 signer/fee payer, matching service qualification. Their existing restricted
 authorities are assigned through signed provisioning; no shared payer serializes
-all publication workers. Keys stay in the ignored session configuration.
+all publication workers. At startup, each worker verifies the deployed binaries
+and acknowledges readiness before the next starts downloading them from Surfpool.
+Keys stay in the ignored session configuration.
 Synthetic independent sources refresh after a one-second producer delay, matching
 service qualification. Source-age, recovery and signed quote lifetime checks are
 unchanged; delayed originals can still reject and require a new user review.
