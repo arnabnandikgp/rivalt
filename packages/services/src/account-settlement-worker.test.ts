@@ -45,7 +45,7 @@ it.each([0n,1n])('persists final coverage with payment only for a payable cohort
   expect(submissions).toHaveLength(1);
   const {instructions,authority}=submissions[0];expect(instructions).toHaveLength(bad?2:3);
   expect(sdk.hex(instructions[1].data!.slice(0,8))).toBe(sdk.hex(sdk.CHECK_MARKET_BACKING_DISCRIMINATOR));
-  if(bad) {expect(authority).toBeNull();return;}
+  if(bad) {expect(authority).toEqual({kind:'backingRevision',venue,account:certificate,value:'1'});return;}
   expect(sdk.hex(instructions[2].data!.slice(0,8))).toBe(sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR));
   expect(sdk.getPayAccountGainInstructionDataDecoder().decode(instructions[2].data!).amount).toBe(3n);
   expect(authority).toEqual({kind:'accountStateVersion',venue,account:margin,value:root.stateVersion.toString()});

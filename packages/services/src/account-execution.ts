@@ -45,8 +45,10 @@ export class AccountExecution {
   constructor(database:string,readonly runId:string,url:string,readonly profile:4=4,readonly deploymentSelection:AccountDeployment='selected') {
     if(profile!==4)throw new Error('Unsupported account service profile');
     sdk.testRpcUrl(url,'solana:localnet');this.store=new LiquidityStore(database,runId);this.rpc=new Rpc(url);
-    this.connection=new Connection(url,'confirmed');this.queue=new Queue(this.store,this.rpc,sdk.CLEARING_PROGRAM_ADDRESS,1);
+    this.connection=new Connection(url,'confirmed');
     this.deployment=accountDeployment(deploymentSelection);
+    const layout=sdk.hasLedgerLanes(this.deployment.artifactSet)?'ledger-lanes':'selected';
+    this.queue=new Queue(this.store,this.rpc,sdk.CLEARING_PROGRAM_ADDRESS,1,layout);
     this.artifacts=new sdk.ArtifactVerifier(this.rpc,this.deployment.artifacts);
   }
   async open() {

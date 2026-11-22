@@ -94,7 +94,8 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
           ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex)}):undefined;
         await runtime.enqueue(`keeper:proof:${marketIndex}:${proof.backingEpoch}:${registry.membershipEpoch}:${proof.revision}`,
           await settlementInstructions(snapshot,sdk.resolutionComputeBudget(),page,...(payment?[payment]:[])),key,budget,
-          payment?{kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()}:null,true);
+          payment?{kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()}:
+            {kind:'backingRevision',venue:snapshot.venue,account:certificate,value:proof.revision.toString()},true);
         return {status:'queued',reason:payment?'atomic-backing-page-and-gain':'complete-market-backing-page'};
       }
       if(!status.payable)continue;

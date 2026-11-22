@@ -548,6 +548,16 @@ reserved. Confirmed-valid originals can broadcast the same bytes while awaiting
 finality. Never rebroadcast an already proven-unexecuted original or release its
 unknown fee without an independently fetched landed receipt.
 
+For account observations and revisions, the executor decodes the market or
+margin using its bound deployment layout. The BTC/ETH successor market has
+48 more bytes than the P56 market. The certificate for an ordinary backing
+scan has its own monotone revision. A successful page, including one bundled
+with payment, advances that revision atomically. For older page originals
+without a stored authority, the executor recovers the expected revision and
+account addresses from the original signed clearing instruction. It verifies
+the canonical certificate, market index, bump, venue and unchanged revision
+at finalized commitment before allowing a fresh attempt.
+
 This is an additive nullable SQL column, with no on-chain or signed-wire change.
 Stop older executors before upgrading. Existing unknown originals start without a
 validity witness; do not invent one or relabel historical expired records as newly
