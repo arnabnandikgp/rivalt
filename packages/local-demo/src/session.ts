@@ -179,11 +179,10 @@ try {
   runtime=new AccountRuntime(databaseUrl,config.runId,rpcUrl,4,DEMO_DEPLOYMENT);await runtime.open();
   readApi=accountApi(indexer);await readApi.listen({host:'127.0.0.1',port:18092});
   executionApi=accountServiceApi(runtime);await executionApi.listen({host:'127.0.0.1',port:18093});
-  // The interactive venue also runs settlement/orders/risk workers. Use the
-  // already supported four-second publication cadence to leave dispatch room
-  // for wallet actions; source validity, recovery and signed TTLs stay on-chain.
+  // Refresh before the previous maker-backed observation expires, even when
+  // dispatch consumes part of the six-second quote lifetime.
   const environment={...process.env,RIVALT_RPC_URL:rpcUrl,RIVALT_WS_URL:wsUrl,RIVALT_DATABASE_URL:databaseUrl,RIVALT_RUN_ID:config.runId,RIVALT_ACCOUNT_PROFILE:config.profile,RIVALT_ACCOUNT_DEPLOYMENT:DEMO_DEPLOYMENT,
-    RIVALT_RECOVERY_SCHEDULE_BUDGET:lanes?(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET??'3000'):undefined,RIVALT_FUNDING_INTERVAL_SECONDS:'4'};
+    RIVALT_RECOVERY_SCHEDULE_BUDGET:lanes?(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET??'3000'):undefined,RIVALT_FUNDING_INTERVAL_SECONDS:'2'};
   child('executor','packages/services/src/account-executor-main.ts',environment);
   const worker=(name:string,role:string,key:Keypair,marketIndex?:number,makerId?:number)=>{
     const path=RUNTIME+`/signer-${name}.json`;writeFileSync(path,JSON.stringify([...key.secretKey]),{mode:0o600});

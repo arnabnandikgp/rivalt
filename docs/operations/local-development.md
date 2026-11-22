@@ -73,10 +73,10 @@ all publication workers. Keys stay in the ignored session configuration.
 Synthetic independent sources refresh after a one-second producer delay, matching
 service qualification. Source-age, recovery and signed quote lifetime checks are
 unchanged; delayed originals can still reject and require a new user review.
-The full interactive worker set targets funding publication every four seconds,
-within the existing supported 2–5-second operator range, to leave dispatch room
-for wallet and settlement actions. The separate P47 service/load measurements
-retain their recorded two-second policy; demo results are not substituted for them.
+The interactive workers target funding publication every two seconds. A report
+can arrive with just two to four seconds left on its maker quotes. A later
+report must overlap that window for the six-second recovery clock to continue.
+Actual publication times and wallet admission depend on local dispatch load.
 
 From the repository root, bootstrap only missing baseline tools:
 
