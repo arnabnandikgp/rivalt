@@ -149,6 +149,7 @@ class FrozenCase:
         self.original_budgets = [list(map(int, row)) for row in self.original.benchmark.debtor_writeoffs]
         self.budgets = [[amount if lots[m] else 0 for m, amount in enumerate(row)]
                         for row, lots in zip(self.original_budgets, self.lots)]
+        self.original_ceilings = [sum(row[m] for row in self.original_budgets) for m in range(2)]
         self.ceilings = [sum(row[m] for row in self.budgets) for m in range(2)]
         self.rates = [[charge_rate(row, m, int(mark)) for m, mark in enumerate(source['marks'])]
                       for row in self.rows]
@@ -309,14 +310,13 @@ class FrozenCase:
         assert list(map(int,receipt['cash'])) == list(outcome.cash)
         assert [list(map(int,row)) for row in receipt['movements']] == [list(row) for row in outcome.claim_cash_movements]
         assert list(map(int,receipt['insuranceSpent'])) == list(outcome.insurance_spent)
-        original_ceilings = [sum(column) for column in zip(*self.original_budgets)]
-        assert list(map(int, receipt['recoveryCeilings'])) == original_ceilings
+        assert list(map(int, receipt['recoveryCeilings'])) == self.original_ceilings
         assert list(map(int, receipt['openLotCeilings'])) == self.ceilings
         gross = [sum(amount for m, _, _, amount in charges if m == market) for market in range(2)]
         loss = lambda plan, market: sum(row[market] for row in plan.benchmark.creditor_impairments)
         recovered = [min(gross[m], loss(self.original,m)-loss(outcome,m)) for m in range(2)]
         assert [Fraction(int(n), int(d)) for n,d in receipt['recovered']] == recovered
-        assert receipt['bothCeilingsReached'] == (recovered == original_ceilings)
+        assert receipt['bothCeilingsReached'] == (recovered == self.original_ceilings)
         assert receipt['openLotCeilingsReached'] == (recovered == self.ceilings)
         pair_result = dict(pairOrderAtFixedTotals=receipt['pairOrderAtFixedTotals']) if check_pair_order else {}
         if check_pair_order:
@@ -325,7 +325,8 @@ class FrozenCase:
                                matchedLotFloors=receipt['matchedLotFloors'], winnerLotFloors=receipt['winnerLotFloors'])
         return dict(**pair_result, pairs=len(charges), gross=list(map(str,gross)), recovered=list(map(str,recovered)),
                     lots=[str(sum(int(fill[1]) for (m,*_),fill in zip(charges,receipt['fills']) if m==market))
-                          for market in range(2)], bothCeilingsReached=receipt['openLotCeilingsReached'])
+                          for market in range(2)], bothCeilingsReached=receipt['openLotCeilingsReached'],
+                    originalWriteoffCeilingsReached=receipt['bothCeilingsReached'])
 
 
 if __name__ == '__main__':
@@ -358,7 +359,8 @@ if __name__ == '__main__':
     assert final['sharingAtFullRecovery'] and list(map(int,final['matchedLotFloors'])) == minimum_lots
     assert list(map(int,final['lots'])) == minimum_lots
     assert saturated['bothCeilingsReached'], "This book needs a tighter bound or another feasible plan"
-    print(json.dumps(dict(members=len(case.rows), ceilings=list(map(str,case.ceilings)), baseline=baseline,
+    print(json.dumps(dict(members=len(case.rows), ceilings=list(map(str,case.ceilings)),
+                          originalWriteoffCeilings=list(map(str,case.original_ceilings)), baseline=baseline,
                           attained=saturated, unconstrainedSharing=shared,
                           optimalSharingAtMaximum=bounded, minimumLots=list(map(str,minimum_lots)),
                           tiedWinnerAllocations=list(map(len,choices)), episodeOrderedWinners=fewest, episodeOrderedPairs=final, linkedChargeCaps=[str(cap) for _,cap in bounds],
