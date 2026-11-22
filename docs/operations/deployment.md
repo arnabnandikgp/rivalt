@@ -3,7 +3,7 @@
 ## Supported boundary
 
 The normal launcher selects P56. Fresh successor sessions require the explicit local deployment
-`unified-recovery-candidate`, artifact set `unified-recovery-3d90b3ef`. The
+`unified-recovery-candidate`, artifact set `unified-recovery-79724a5a`. The
 public config carries the selection, genesis and anchor. The launcher supplies
 the same selection to its executor, native helper and workers. P56 journals
 retain the distinct `p56-window-ed46603` identity. Follow the

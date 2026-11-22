@@ -4309,3 +4309,41 @@ selected the rebuilt successor. Both the BTC and ETH publishers finalized a
 report at slot 1,519. For each market, the 29 retained input accounts, digest
 and decoded report were verified in PostgreSQL and its original wire matched
 an independent finalized RPC lookup. The owned services shut down cleanly.
+
+### Frozen-book verifier selection and mid-sized exits
+
+Clearing `79724a5a` is 3,555,384 bytes with SHA-256
+`c8c98fb4906426c3582f9d478da983c0ea43b3ba518a5c145b7e45923bc05828`.
+The installer independently rebuilt this executable and the three pinned
+maker/oracle binaries from Git. The 75-member runs used harness `3e89caf2`.
+The keeper restarted from an original signed before its first broadcast.
+For each settled book, the checks compare every funded cash balance and
+both market movements and claim changes per member, the wallet and vault
+token deltas, and the complete event stream in a fresh PostgreSQL projection.
+
+| Frozen book | Finalized keeper transactions | Wallet withdrawal in collateral atoms | BTC / ETH insurance spent | Replayed events |
+|---|---:|---:|---:|---:|
+| 75 flat accounts with unpaid BTC debt | 193 | 50,399,399 | 200 / 0 | 710 |
+| 75 accounts with one BTC debtor and two opposing makers | 285 | 50,199,819 | 120 / 0 | 689 |
+| 75 accounts with 71 exposed across BTC and ETH | 327 | 986,527 | 3,894 / 1,855 | 1,025 |
+
+The two creditor withdrawals include 50,000,000 atoms each of existing maker
+cash. The respective BTC recoveries were 399,399 and 199,819 atoms.
+The two-pair freeze captured all 75 members. The original histories added
+39 bytes to the 10,171-byte minimum, and the two eligible pairs took the
+search to 10,260 bytes. Deriving these dimensions used 218,467 CU and the
+signed switch to paged verification used 46,551 CU. The all-flat book
+started with pages directly.
+
+The first sparse run on `84c8464f` stopped when binding an untouched
+register. The two-pair run on that build exhausted its compute budget while
+deriving pair budgets. Both failed before any wallet release. The corrected
+build initializes the eligible register and combines claimless cash only
+for the original rate calculation. Two native circulation calculations
+matched the independent rational reference on the three 75-member inputs
+and on the populated 128-member input.
+
+Passing these cases establishes recovery for the recorded books. A representable
+search can still exceed a keeper's schedule budget or require a wider rate
+witness. A book without a verifiable plan stays frozen.
+[Reproduction](local-development.md#run-both-recovery-families-on-the-same-build)

@@ -12,7 +12,7 @@ records the change in direction.
 
 The six deliverables now have local implementation and signed qualification.
 The [common keeper](https://github.com/arnabnandikgp/rivalt/pull/155) and its
-[dependent local launcher](https://github.com/arnabnandikgp/rivalt/pull/156) are in Review. The follow-up qualifies frozen-book verifier selection on a fresh local artifact. P56 stays selected through the mid-sized wallet and replay checks. [Local qualification](../operations/validation.md#fresh-local-successor-lifecycle)
+[dependent local launcher](https://github.com/arnabnandikgp/rivalt/pull/156) are in Review. [PR #158](https://github.com/arnabnandikgp/rivalt/pull/158) qualified three 75-member freezes through wallet exit and independent replay on the corrected build. The next PR qualifies the default for fresh local sessions. [Local qualification](../operations/validation.md#fresh-local-successor-lifecycle)
 
 | Agreed deliverable | Where it stands | What remains |
 |---|---|---|
@@ -21,7 +21,7 @@ The [common keeper](https://github.com/arnabnandikgp/rivalt/pull/155) and its
 | 3. Ordinary settlement | A different-maker close paid 970 net atoms to the wallet. Both an already funded pool and delayed collection with a keeper restart passed. [Timing PR](https://github.com/arnabnandikgp/rivalt/pull/142). | An optional, atomic path for already-backed claims would need packet, compute and payout-priority checks. |
 | 4. Forced liquidation | The keeper discovered the best admissible maker route, waited while the receiver lacked collateral, transferred five lots after funding and stopped with 35 lots at restored maintenance. [Liquidation PR](https://github.com/arnabnandikgp/rivalt/pull/143). | A funded live backstop needs separate authorization. |
 | 5. Default and recovery | One keeper and one program settled two nine-member books and a 128-member populated book after restart. All 128 payouts and 256 market movements matched the independent calculation. | Review and integrate the common keeper. Books outside the demonstrated proof families can remain frozen. [Recovery evidence](../operations/validation.md#one-keeper-for-both-recovery-families). |
-| 6. Shared writes and qualification | The fresh-local candidate passed the normal browser wallet, automatic default discovery, funding gap and both payout timing cases. All 360 offered fills finalized. Distinct BTC makers shared zero writes. The same maker shared capital and registration. | Review the opt-in launcher. Default selection awaits the [approved mid-sized recovery checks](../DECISIONS.md#d143--qualify-frozen-book-verifier-selection-before-local-promotion). [Performance and payer costs](../operations/performance.md#mixed-traffic-on-the-fresh-local-runtime). |
+| 6. Shared writes and qualification | The fresh-local candidate passed the normal browser wallet, automatic default discovery, funding gap and both payout timing cases. All 360 offered fills finalized. Distinct BTC makers shared zero writes. The same maker shared capital and registration. | Qualify the default fresh-session launcher after the [three mid-sized recoveries](../operations/validation.md#frozen-book-verifier-selection-and-mid-sized-exits). [Performance and payer costs](../operations/performance.md#mixed-traffic-on-the-fresh-local-runtime). |
 
 ### What a default freeze means
 
