@@ -35,10 +35,10 @@ imports or workspace overrides make it appear compatible with the modern client.
 
 For an explicit fresh successor demo, install the host dependencies below, then run
 `bash ops/build-demo-programs.sh`. The installer extracts the clearing source at
-`3d90b3ef` and maker/oracle source at `ed46603` from Git, builds the locked
+`79724a5a` and maker/oracle source at `ed46603` from Git, builds the locked
 programs with platform tools v1.52 and compares every binary against the SDK's
 fixed length and SHA-256. It installs into
-`.local/demo-programs/unified-recovery-3d90b3ef/`, prepares the matching
+`.local/demo-programs/unified-recovery-79724a5a/`, prepares the matching
 settlement helper and builds the native recovery selector. Subsequent invocations
 verify the installed directory. Set `RIVALT_DEMO_PROGRAMS` consistently for a
 different installation directory. The install command creates missing local
@@ -781,7 +781,7 @@ measure the search account's minimum bytes at the selected launcher's population
 
 ### Run both recovery families on the same build
 
-Build clearing from `3d90b3ef` with
+Build clearing from `79724a5a` with
 `RIVALT_ATTRIBUTION_PROFILE=unified-recovery-qualification bash ops/build-profit-attribution.sh`.
 Build the host helper with `bash ops/build-settlement-helper.sh unified-recovery-candidate`.
 Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the pinned clearing build directory and
@@ -797,6 +797,15 @@ after PostgreSQL stores a signed joint-verification transaction and before its
 first broadcast. A new process must recover the same original, finish the
 complete cohort, and permit the wallet withdrawal. The Python financial
 reference supplies expectations only to the test harness.
+
+For 75 members use the same populated-keeper probe with one of the following
+settings. Use a separate run directory per case.
+
+| `RIVALT_MIDSIZE_BOOK` | Frozen book | Acceptance |
+|---|---|---|
+| `sparse` | All positions are flat. A closed BTC creditor is awaiting cash. | Check the creditor's exact recovery and withdraw it to its own token account. |
+| `pairs` | One BTC debtor traded against two makers. | Capture all members, certify the pair-storage overflow on chain, resume with pages and complete settlement. |
+| `dense` | 71 members have open positions. | Select pages from the original frozen histories and check both market movements for every member. |
 
 ### Populated successor recovery inputs
 

@@ -1367,3 +1367,16 @@ verified plan and reconciliation. The populated certificate retains original
 cash and debt attribution. A debtor's charge target in a market where its
 position is flat is zero. The resulting unpaid debt goes through the existing
 residual-loss calculation. P56 remains the normal local launcher.
+
+To derive eligible pairs, clearing calculates debtor budgets from the original
+cash and claims. Members with zero claims in both markets can contribute only
+their funded cash to this calculation. Clearing sums that cash with checked
+arithmetic, verifies the original rates, and gives each of those members a
+zero pair budget. A flat position can still have an unpaid claim. Such members
+keep individual rows. Capture, final cash, market movements and wallet rights
+always use the full original membership.
+
+A sparse book can leave a preallocated rate register unused until payout
+binding. Binding reuses its canonical page under the ordinary storage-epoch
+guard, verifies the completed payment proof and copies the register in receipt
+order. The receipt must cover all members before the first register copy.
