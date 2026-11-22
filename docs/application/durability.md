@@ -795,3 +795,11 @@ arrays. That lower bound is 17,061 bytes at 128 members against a 10,240-byte
 account. Smaller cohorts still depend on their actual histories, edges and
 rate widths. The keeper reports `recovery-unsupported-rate-witness` for an
 unencodable original rate. Neither condition enqueues a financial transaction.
+
+On process startup, service schema initialization retries PostgreSQL deadlock
+error `40P01` up to three times after the initial attempt. Deployment binding
+and queue dispatch follow successful initialization. For the local interactive
+successor, `RIVALT_BACKING_PAGE_INTERVAL_MS=15000` spaces standalone backing
+page submissions. The worker continues to check collections and payable gains
+during that interval, including a payment bundled with the final page. Service
+workers default to zero added delay.

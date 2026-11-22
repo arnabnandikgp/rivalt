@@ -4347,3 +4347,40 @@ Passing these cases establishes recovery for the recorded books. A representable
 search can still exceed a keeper's schedule budget or require a wider rate
 witness. A book without a verifiable plan stays frozen.
 [Reproduction](local-development.md#run-both-recovery-families-on-the-same-build)
+
+### Default fresh-local wallet
+
+The stock launcher and browser at `4164f7cd` used clearing `79724a5a`, six
+internal maker signers and two restricted publishers. Fourteen of 15 signed
+wallet originals succeeded. One ETH buy finalized with financial-sequence
+error 6122. After a fresh review the ETH buy landed. The user declined a
+separate deposit before signing. The wallet paid 75,000 local lamports across
+all signed originals, including 5,000 for the refusal.
+
+The flow registered cross and isolated accounts, deposited and allocated
+collateral, opened BTC and ETH, topped up with both markets exposed, placed
+and canceled TP/SL, and closed both positions reduce-only. The withdrawal
+added exactly 1,000,000 atoms to the wallet token balance. After reload the UI
+recovered the originals and displayed the four indexed fills. The local supervisor
+and PostgreSQL stopped after acceptance.
+
+Earlier sessions exposed a maker publication expiring at exactly six seconds,
+an expired funding original bound to the successor's 503-byte market, and a
+legacy page-only backing original without a stored revision stamp. The corrected
+executor verified both expired originals from finalized state on the retained
+chain, kept their unknown fees reserved, and a new BTC report landed at slot
+12,156. In a further run the wallet waited a minute for Normal while background
+backing pages occupied both markets for four to six seconds per page. The local
+launcher now targets two-second funding publication and spaces standalone backing
+page submissions by 15 seconds. Earlier operator timings used different worker
+settings. This wallet run measures one completed workflow and supplies no
+continuous availability or worst-case time-to-payment guarantee.
+
+On this clearing binary the nine-member exhaustive run at `959f1348` checked
+2,548 schedules, finalized 126 keeper originals and completed four withdrawals.
+The two-pass insurance case at `3e89caf2` finalized 79 originals and completed
+four withdrawals. Each fresh PostgreSQL replay reproduced 176 events. The
+128-member run at `3e89caf2` recovered its interrupted keeper original and
+finalized 517 originals, compared 128 cash payouts and 256 market movements,
+and withdrew 986,527 atoms. Fresh replay reproduced 1,690 events and the
+331,920,613-atom remaining vault balance reconciled.
