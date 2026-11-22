@@ -786,6 +786,6 @@ pub struct CopyJointRegister {
     pub rates: Box<BorshAccount<SettlementRates>>,
     pub payment: Box<BorshAccount<super::joint_payment::JointPaymentProof>>,
     #[account(mut,seeds=[b"resolution-limbs",source.venue.address().as_ref(),&register.to_le_bytes(),&0u64.to_le_bytes()],bump=page.bump,
-        constraint=page.venue == prepared.venue && page.epoch == epoch && page.page_index == 0 && page.register == register @ ClearingError::Resolution)]
+        constraint=page.venue == prepared.venue && page.page_index == 0 && page.register == register @ ClearingError::Resolution)]
     pub page: Box<BorshAccount<SettlementLimbPage>>,
 }

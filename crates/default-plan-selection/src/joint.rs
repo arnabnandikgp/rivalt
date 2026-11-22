@@ -173,6 +173,27 @@ impl FrozenBook<'_> {
         )?;
         debtor_budgets(&plan, rows.len(), &mut arithmetic)
     }
+    /// A zero-claim row contributes its retained cash and no market flow to
+    /// the original rate equations. Combine those balances for this rate
+    /// calculation, then return one budget for every original member.
+    pub fn sparse_edge_budgets(&self, original: Witness<'_>) -> Result<Vec<[u64; 2]>> {
+        let mut neutral = self.members.iter().filter(|member| member.row.claims == [0; 2]);
+        if neutral.clone().count() < 2 {
+            return self.edge_budgets(original);
+        }
+        let retained_cash = neutral.try_fold(0u64, |total, member| {
+            total.checked_add(member.row.cash).ok_or(Error::Overflow)
+        })?;
+        let mut rows: Vec<_> = self.members.iter().map(|member| member.row)
+            .filter(|row| row.claims != [0; 2]).collect();
+        rows.push(Row { cash: retained_cash, claims: [0; 2] });
+        let mut arithmetic = Arithmetic::new(required_limbs(rows.len() as u64)?, 128)?;
+        let plan = verify(&rows, self.pools, self.insurance, self.fees, original.rates, &mut arithmetic)?;
+        let mut active = debtor_budgets(&plan, rows.len() - 1, &mut arithmetic)?.into_iter();
+        self.members.iter().map(|member| {
+            if member.row.claims == [0; 2] { Ok([0; 2]) } else { active.next().ok_or(Error::Cohort) }
+        }).collect()
+    }
     /// Reconstruct each budget from payment rates and market loss fractions.
     /// The original settled book authenticates those terms once for all rows.
     #[cfg(not(target_arch = "bpf"))]
@@ -378,5 +399,31 @@ impl FrozenBook<'_> {
             original_losses: baseline.market_losses().each_ref().map(integer),
             recovered: recovery(&baseline, &plan, charged),
         })
+    }
+}
+
+#[cfg(test)]
+mod budget_tests {
+    use super::*;
+
+    #[test]
+    fn only_claimless_rows_can_be_combined_when_deriving_original_budgets() {
+        let members: Vec<_> = (0..75).map(|id| Member {
+            id,
+            row: match id {
+                3 => Row { cash: 20, claims: [-100 * SCALE, 0] },
+                71 => Row { cash: 0, claims: [100 * SCALE, 0] },
+                _ => Row { cash: id + 1, claims: [0; 2] },
+            },
+            lots: [0; 2],
+            history: [&[], &[]],
+        }).collect();
+        let book = FrozenBook { members: &members, marks: [1; 2], pools: [0; 2], insurance: [0; 2], fees: [0; 2] };
+        let rates = [Proposal { factor: 5u128.into(), rates: [1u128.into(), 5u128.into()] }];
+        let witness = Witness { rates: &rates, orders: [&[], &[]] };
+        let mut expected = alloc::vec![[0; 2]; 75];
+        expected[3] = [80, 0];
+        assert_eq!(book.edge_budgets(witness).unwrap(), expected);
+        assert_eq!(book.sparse_edge_budgets(witness).unwrap(), expected);
     }
 }

@@ -148,7 +148,12 @@ pub fn dimensions(accounts: &mut AdvanceSearch) -> Result<()> {
     let dimensions = with_book(search, &accounts.source.prepared, |book| {
         let budgets = search
             .original
-            .with(|w| book.edge_budgets(w))
+            .with(|w| {
+                #[cfg(feature = "unified-recovery-qualification")]
+                return book.sparse_edge_budgets(w);
+                #[cfg(not(feature = "unified-recovery-qualification"))]
+                book.edge_budgets(w)
+            })
             .map_err(|_| ProofError::Accounting)?;
         let mut count = 1u128;
         let mut edges = Vec::new();
