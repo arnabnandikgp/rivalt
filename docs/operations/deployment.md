@@ -2,6 +2,14 @@
 
 ## Supported boundary
 
+The local demo selects `unified-recovery-candidate` for a fresh session,
+with artifact set `unified-recovery-79724a5a`. Operators can explicitly
+select P56 with `RIVALT_DEMO_DEPLOYMENT=selected`. The
+public config carries the selection, genesis and anchor. The launcher supplies
+the same selection to its executor, native helper and workers. P56 journals
+retain the distinct `p56-window-ed46603` identity. Follow the
+[local installation instructions](local-development.md#pinned-toolchain).
+
 The account-scale RC2 profile is explicit local `liquidity-execution-qualification`.
 Pin actual clearing/maker A/maker B/oracle-fixture binaries, IDLs, domain/mint/venue,
 registry, genesis, initialization signature/hash and resource settings in an explicit
@@ -37,7 +45,7 @@ by relabeling database rows. Keep any needed compatibility reader explicitly sco
 P46 introduces, and P47 qualifies, a separate RC2 deployment with clearing/binding schema 8,
 maker account schema 5 and, at that qualification, SQL journal format 2. It requires new
 instruction/maker discriminators, genesis, domain, mint and empty database. Existing
-schema-7 originals and journals stay with the previous executor. Normal builds/probes/demo select `.local/anchor-rc2/current`; P56's successor
+schema-7 originals and journals stay with the previous executor. The P56 build and baseline probes select `.local/anchor-rc2/current`. Its
 allowlist selects D108 SBF `ed46603` (artifact set `p56-window-ed46603`), account
 schema 10/profile 6, and helper transport version 2. Its price policy remains the
 P53B-approved numeric policy 2. This is a fresh-domain replacement with an empty

@@ -11,7 +11,7 @@ export async function transferLiquidityBudget(runtime:AccountRuntime,role:'maker
   if(runtime.profile!==4)throw new Error('Canonical operator handover required');
   const {identity,state}=await runtime.discovery();
   if(role==='funding') {
-    const input=await sdk.readFundingReport(runtime.rpc,identity.venue,marketIndex);
+    const input=await sdk.readFundingReport(runtime.rpc,identity.venue,marketIndex,'confirmed',identity.marginLayout);
     if(input.configurationState.publisher!==signer.address)throw new Error('New publisher is not authorized');
   }else {
     const maker=Object.entries(state.liquidity!.makers).find(([,value])=>value.market===state.venue!.markets[marketIndex]&&value.instance===instance);

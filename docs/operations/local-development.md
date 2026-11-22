@@ -33,23 +33,26 @@ Rust, SBF compiler, runtime version and transaction format are different identit
 Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
-For a fresh build of the qualified demo, create a separate checkout with
-`git worktree add --detach ../rivalt-qualified 657a255` and install the pinned
-tools and dependencies there. Run `bash ops/install-anchor-rc2.sh`, then
-`bash ops/build.sh` from that checkout. To build the extracted risk engine for
-comparison, use `RIVALT_LIQUIDITY_ARTIFACTS=.local/risk-engine-candidate bash ops/build-liquidity-execution.sh`
-at the candidate source revision in [validation](validation.md#whole-account-risk-engine-extraction). P56 selects the account-scale RC2 artifacts with the unchanged approved policy-2
-price bounds, quantities and risk safeguards
-and selects `.local/anchor-rc2/current` for builds, probes and the local demo. Actual files
-must match the SDK's admitted hashes; changing a manifest does not qualify code.
-`RIVALT_ARTIFACT_DIR` may explicitly select another directory containing those
-same qualified artifacts. `RIVALT_LIQUIDITY_ARTIFACTS` changes a build destination.
-Builds retain a separate staging directory and logs; the default destination is
-updated only after fixed SDK hash verification passes. An explicit alternate build
-destination may contain unqualified candidates, but runtime probes still reject
-them until separately qualified and admitted. Run
-`node --import tsx ops/verify-liquidity-artifacts.ts <directory>` for the same
-preflight used by normal probes and the broad smoke launcher.
+For a fresh local demo, install the host dependencies below, then run
+`bash ops/build-demo-programs.sh`. The installer extracts the clearing source at
+`79724a5a` and maker/oracle source at `ed46603` from Git, builds the locked
+programs with platform tools v1.52 and compares every binary against the SDK's
+fixed length and SHA-256. It installs into
+`.local/demo-programs/unified-recovery-79724a5a/`, prepares the matching
+settlement helper and builds the native recovery selector. Subsequent invocations
+verify the installed directory. Set `RIVALT_DEMO_PROGRAMS` consistently for a
+different installation directory. The install command creates missing local
+fixture keys and preserves existing keys.
+
+To run the P56 demo, set `RIVALT_DEMO_DEPLOYMENT=selected` and use its
+original programs in `.local/anchor-rc2/current` (or `RIVALT_ARTIFACT_DIR`) and
+its original helper. Its historical fresh-build checkout is `657a255`, with
+`bash ops/install-anchor-rc2.sh` and `bash ops/build.sh`. That program set also
+remains the default for the historical qualification probes. The before/after
+[risk engine comparison](validation.md#whole-account-risk-engine-extraction)
+identifies its own inputs. `RIVALT_LIQUIDITY_ARTIFACTS` selects an alternate
+build destination for those probes. The baseline preflight is
+`node --import tsx ops/verify-liquidity-artifacts.ts <directory>`.
 The frozen P44 directory and `.tools/bin/anchor` remain untouched; RC2 build scripts
 select `.tools/anchor-v2-rc2/bin/anchor`. Install the isolated test client with
 `pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile`.
@@ -66,14 +69,21 @@ records.
 Six maker updaters and two funding publishers each use a separately funded local
 signer/fee payer, matching service qualification. Their existing restricted
 authorities are assigned through signed provisioning; no shared payer serializes
-all publication workers. Keys stay in the ignored session configuration.
+all publication workers. At startup, each worker verifies the deployed binaries
+and acknowledges readiness before the next starts downloading them from Surfpool.
+Keys stay in the ignored session configuration.
 Synthetic independent sources refresh after a one-second producer delay, matching
 service qualification. Source-age, recovery and signed quote lifetime checks are
 unchanged; delayed originals can still reject and require a new user review.
-The full interactive worker set targets funding publication every four seconds,
-within the existing supported 2–5-second operator range, to leave dispatch room
-for wallet and settlement actions. The separate P47 service/load measurements
-retain their recorded two-second policy; demo results are not substituted for them.
+The successor demo targets funding publication every two seconds. The explicit
+P56 launcher retains its four-second funding cadence. A report
+can arrive with just two to four seconds left on its maker quotes. A later
+report must overlap that window for the six-second recovery clock to continue.
+A background backing page held both market checkpoints for four to six seconds
+in the wallet exercise. The successor demo settlement worker spaces standalone page
+submissions by 15 seconds so quotes can recover between scans. Loss collections,
+already-backed payments and the final page with a payable gain are eligible
+on every poll. This can lengthen a complete background scan.
 
 From the repository root, bootstrap only missing baseline tools:
 
@@ -229,15 +239,18 @@ bash ops/scalable-settlement-smoke.sh
 The result in `liquidation.json` contains the realized shortfalls, fees in the
 transaction receipts and replay count. The maker and receiver in this exercise
 use internal capital and separate signing keys for the trader, keeper and
-receiver. The normal launcher continues to require the qualified P56 binaries.
+receiver. This historical probe requires the qualified P56 binaries.
 
 ## Interactive local demo
 
-`bash ops/demo.sh start|status|stop|reset` launches the same current canonical
-profile as the SDK and services. It needs qualified `.local/anchor-rc2/current/`
-artifacts (or `RIVALT_ARTIFACT_DIR` pointing to the same admitted binaries) and
-frozen dependencies; [STATUS](../STATUS.md) records the current
-launcher's acceptance checkpoint. Open `http://127.0.0.1:18083`, select **Rivalt
+`bash ops/demo.sh start|status|stop|reset` starts or controls the local venue.
+New sessions use the unified recovery build by default. Set `RIVALT_DEMO_ROOT` to a fresh directory to keep an earlier session for inspection. The launcher binds the
+SDK, wallet, workers, indexer and executor to the four verified programs from
+`bash ops/build-demo-programs.sh`. An operator can set
+`RIVALT_RECOVERY_SCHEDULE_BUDGET` to a positive integer through 65,536. The demo
+default is 3,000 candidate schedules per exhaustive book. The populated verifier
+has separate proof requirements. [Verification limits](../clearing/default-plan-verification.md).
+Open `http://127.0.0.1:18083`, select **Rivalt
 Local Demo**, get test funds, create portfolio/cross or isolated account, deposit,
 trade BTC/ETH, place/cancel existing-position TP/SL, close and withdraw admissible
 cash. Fixed synthetic prices demonstrate placement, not triggered-stop execution.
@@ -315,7 +328,7 @@ bash ops/build-settlement-helper.sh
 
 The locked native executable and SHA-256 manifest live under ignored
 `.local/settlement-helper/`, or the explicit `RIVALT_SETTLEMENT_HELPER_DIR`.
-The script builds the clean D108 Git tree declared in the SDK deployment contract,
+The baseline script builds the clean D108 Git tree declared in the SDK deployment contract,
 including its lockfile. The worker requires that exact source revision, version 2,
 schema 10/profile 6 and a matching local binary size and hash. The helper
 suggests canonical page descriptors; clearing independently verifies all work.
@@ -772,6 +785,34 @@ After a workload run use `python3 tests/performance/successor-workload-cost.py "
 to reproduce fees by actual payer, CU and lock conflicts from finalized transaction
 bytes. Run `node --import tsx tests/performance/successor-proof-space.ts` to
 measure the search account's minimum bytes at the selected launcher's population.
+
+### Run both recovery families on the same build
+
+Build clearing from `79724a5a` with
+`RIVALT_ATTRIBUTION_PROFILE=unified-recovery-qualification bash ops/build-profit-attribution.sh`.
+Build the host helper with `bash ops/build-settlement-helper.sh unified-recovery-candidate`.
+Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the pinned clearing build directory and
+`RIVALT_SUCCESSOR_BUILD=unified-recovery-candidate`. Use
+`RIVALT_RECOVERY_SCHEDULE_BUDGET=3000` and a new run directory for each probe.
+The budget limits exhaustive enumeration and explicitly enables the populated
+proposer. The populated path verifies certificates against frozen pages.
+
+Run the `recovery` probe above for each nine-member case. For 128 members set
+`RIVALT_SETTLEMENT_PROBE=profit-attribution-successor-populated-keeper` and run
+`bash ops/scalable-settlement-smoke.sh`. This case terminates the keeper
+after PostgreSQL stores a signed joint-verification transaction and before its
+first broadcast. A new process must recover the same original, finish the
+complete cohort, and permit the wallet withdrawal. The Python financial
+reference supplies expectations only to the test harness.
+
+For 75 members use the same populated-keeper probe with one of the following
+settings. Use a separate run directory per case.
+
+| `RIVALT_MIDSIZE_BOOK` | Frozen book | Acceptance |
+|---|---|---|
+| `sparse` | All positions are flat. A closed BTC creditor is awaiting cash. | Check the creditor's exact recovery and withdraw it to its own token account. |
+| `pairs` | One BTC debtor traded against two makers. | Capture all members, certify the pair-storage overflow on chain, resume with pages and complete settlement. |
+| `dense` | 71 members have open positions. | Select pages from the original frozen histories and check both market movements for every member. |
 
 ### Populated successor recovery inputs
 

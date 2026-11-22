@@ -1552,3 +1552,68 @@ population gate therefore also needs a comparison certificate that can prove
 the agreed winner without enumerating the full mixed-radix range. Moving inputs
 to pages alone cannot authorize this cohort's payout. D122 continues to govern
 release. [Measured freeze](operations/validation.md#populated-successor-recovery-inputs)
+
+## D141 — choose the local recovery verifier at the freeze
+
+21 November 2026. A fresh unified qualification build selects a verifier from
+the minimum storage needed for the exhaustive search. Its generated layout
+requires 421 fixed bytes plus 130 bytes per member before variable history,
+pairs and rounding orders. Up to 75 members pass that preliminary size check.
+From 76 members onward the minimum exceeds the 10,240-byte account, so clearing
+starts the paged original-rate and pair-certificate path. The keeper reads
+clearing's persisted stage. It cannot choose a different loss allocation.
+
+Passing the minimum size check does not establish that a particular exhaustive
+book fits. The populated certificate also requires an attainable bound, a valid
+ordered pairing and protection of foreign creditors. An unsupported book stays
+frozen under D122. This selection concerns the verifier only. The existing
+registration rules, insurance budget and withdrawal conditions still apply.
+
+## D142 — keep the qualified successor launcher explicit
+
+21 November 2026. The same local clearing artifact passed nine- and 128-member
+recovery, ordinary payout, liquidation, funding, mixed traffic and 14 signed
+browser-wallet actions. It is available for fresh sessions as
+`RIVALT_DEMO_DEPLOYMENT=unified-recovery-candidate`. D140 continues to select
+P56 by default. The new runs exposed a coverage gap between the two recovery
+verifiers that the endpoint population tests do not measure.
+
+At 75 members the generated exhaustive-search encoder needs 10,171 bytes before
+histories or pairs. Three pairs raise that to 10,246 against a 10,240-byte
+allocation. Once clearing selects that verifier, the current executable cannot
+resume the paged procedure for the same freeze. Routing every medium book to the
+paged procedure also loses a recovery mechanism. With 75 flat rows, 20 atoms
+of debtor cash, a 100-atom debt and no eligible opposite gain, native exhaustive
+selection finds one schedule. The populated planner cannot certify the remaining
+80 atoms. These are encoder and native measurements, without a signed 75-member
+settlement. A book outside a verifier's coverage can remain frozen indefinitely.
+
+The recommended next gate is to let clearing determine verifier eligibility from
+the authenticated frozen book and preserve the viable sparse path. Verify both
+sparse and dense mid-sized books, restart, wallet exit and reconciliation before
+reconsidering the default. No timer or operator override may release cash.
+[Local lifecycle results](operations/validation.md#fresh-local-successor-lifecycle)
+
+## D143 — qualify frozen-book verifier selection before local promotion
+
+22 November 2026. Keep P56 as the default while clearing selects a verifier
+using authenticated positions, profit histories and certified dimensions.
+The existing loss order applies to every member. Flat debt has no lots
+available for forced reduction and keeps its original debtor cash allocation.
+A storage or rank overflow can start a second verification procedure while
+all withdrawals remain frozen. Local promotion requires independently
+reconciled sparse and dense mid-sized exits and keeper restart.
+[Selection contract](clearing/default-plan-verification.md#choosing-a-verifier-from-frozen-positions)
+
+## D144 — use the qualified successor for fresh local demos
+
+23 November 2026. The three 75-member freezes required by D143 reached
+independently reconciled wallet exits on clearing `79724a5a`. They covered a
+flat creditor, a book that exceeded exhaustive storage only after deriving
+eligible pairs, and a dense BTC/ETH book. Fresh local demos select this build.
+The launcher publishes its deployment identity to clients and passes the
+matching helper and program hashes to its services. Existing sessions and
+journals retain their original deployment identities. The historical P56
+profile remains selectable explicitly. Wider deployment and live
+freeze-resolution policy remain separate decisions.
+[Mid-sized qualification](operations/validation.md#frozen-book-verifier-selection-and-mid-sized-exits)

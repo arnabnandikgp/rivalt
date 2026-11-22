@@ -1,4 +1,5 @@
 import {readFileSync} from 'node:fs';
+import {setTimeout as delay} from 'node:timers/promises';
 import {address,type Instruction} from '@solana/kit';
 import {Connection,type Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
@@ -45,13 +46,29 @@ export class AccountExecution {
   constructor(database:string,readonly runId:string,url:string,readonly profile:4=4,readonly deploymentSelection:AccountDeployment='selected') {
     if(profile!==4)throw new Error('Unsupported account service profile');
     sdk.testRpcUrl(url,'solana:localnet');this.store=new LiquidityStore(database,runId);this.rpc=new Rpc(url);
-    this.connection=new Connection(url,'confirmed');this.queue=new Queue(this.store,this.rpc,sdk.CLEARING_PROGRAM_ADDRESS,1);
+    this.connection=new Connection(url,'confirmed');
     this.deployment=accountDeployment(deploymentSelection);
+    const layout=sdk.hasLedgerLanes(this.deployment.artifactSet)?'ledger-lanes':'selected';
+    this.queue=new Queue(this.store,this.rpc,sdk.CLEARING_PROGRAM_ADDRESS,1,layout);
     this.artifacts=new sdk.ArtifactVerifier(this.rpc,this.deployment.artifacts);
   }
   async open() {
-    await this.store.migrate();await this.store.pool.query(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
-    await this.store.pool.query(readFileSync(new URL('./liquidity-schema.sql',import.meta.url),'utf8'));await this.environment();
+    // Live workers can hold row locks while a new process installs idempotent
+    // DDL. PostgreSQL aborts one transaction on a deadlock. Only retry schema
+    // initialization here, before checking the deployment or dispatching work.
+    for(let attempt=0;;attempt++){
+      try{
+        await this.store.migrate();
+        for(const file of ['schema.sql','liquidity-schema.sql']){
+          await this.store.pool.query(readFileSync(new URL(file,import.meta.url),'utf8'));
+        }
+        break;
+      }catch(error){
+        if((error as {code?:string})?.code!=='40P01'||attempt>=3)throw error;
+        await delay(100*(2**attempt));
+      }
+    }
+    await this.environment();
     await this.queue.prepare();
   }
   async environment() {
@@ -68,9 +85,12 @@ export class AccountExecution {
       throw new Error('Account service initialization mismatch');
     await this.artifacts.verify(address(state.venue.authority));return binding;
   }
+  private walletCheckpoints?:readonly sdk.MarketCheckpoint[];
   async submit(requestId:string,wire:string) {
     const binding=await this.environment(),id=publicRequestId(requestId);
-    return this.queue.put(id,wire,accountUserAuthority(wire,binding.venue,this.profile));
+    if(this.deploymentSelection==='unified-recovery-candidate')
+      this.walletCheckpoints??=await sdk.venueMarketCheckpoints(address(binding.venue));
+    return this.queue.put(id,wire,accountUserAuthority(wire,binding.venue,this.profile,this.walletCheckpoints));
   }
   async budget(role:OperatorRole,payer:Keypair,marketIndex?:number,makerId?:number) {
     const budget=accountBudget(role,marketIndex,makerId,this.profile);await this.queue.budget(budget.name,payer.address,budget.cap);return budget.name;

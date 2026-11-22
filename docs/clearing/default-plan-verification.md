@@ -1346,3 +1346,49 @@ continuations copy the certified signed claim changes and numerical registers.
 The final copy checks that the canonical rate verifier restores the same result.
 The ordinary conserving graph then determines atom ownership. Vault reconciliation
 and the complete-cohort application still precede wallet exits.
+
+### Choosing a verifier from frozen positions
+
+During valuation the unified candidate measures the bytes of the two canonical
+profit histories on every original member. Flat positions have empty histories.
+An exhaustive search requires 397 header bytes, 130 per member, 24 per verified
+insurance evaluation, the history payload and 25 per eligible pair. If even one
+round cannot fit in 10,240 bytes, or a history exceeds the 256-byte capture slot,
+clearing starts the original-rate page scan. An entirely flat book also starts
+that scan because no member has an open position to reduce.
+
+The four per-member vectors for payouts, market movements, budgets and weights
+are written after the exact size check. For example, with 75 members, 50 history
+bytes, two rate evaluations and both complete rounding orders, capture occupies
+6,045 bytes. Materializing the four vectors would take 10,245 bytes. Clearing
+can therefore finish capture and switch verifiers before that write.
+
+An original debtor budget measures a member's loss in the frozen settlement.
+Forced reduction can use that budget only in a market where the same member
+has open lots. The independent audit checks every original budget before
+applying that per-market filter. It compares each recovery ceiling and the
+resulting payout against the corresponding Rust calculation.
+
+When the minimum fits, clearing can capture the complete book and verify original
+rates and debtor budgets. A verified pair prefix that exceeds search storage or
+the u128 schedule-count field stamps the sponsor’s search as unrepresentable
+(stage 5). Binding that stage advances only the frozen preparation header to the
+original-denominator pass. A sponsor's search budget, proposed rank or failed
+simulation cannot authorize the switch. Every payout still needs a complete
+verified plan and reconciliation. The populated certificate retains original
+cash and debt attribution. A debtor's charge target in a market where its
+position is flat is zero. The resulting unpaid debt goes through the existing
+residual-loss calculation. [Deployment selection](../operations/deployment.md#supported-boundary) identifies the local launcher build.
+
+To derive eligible pairs, clearing calculates debtor budgets from the original
+cash and claims. Members with zero claims in both markets can contribute only
+their funded cash to this calculation. Clearing sums that cash with checked
+arithmetic, verifies the original rates, and gives each of those members a
+zero pair budget. A flat position can still have an unpaid claim. Such members
+keep individual rows. Capture, final cash, market movements and wallet rights
+always use the full original membership.
+
+A sparse book can leave a preallocated rate register unused until payout
+binding. Binding reuses its canonical page under the ordinary storage-epoch
+guard, verifies the completed payment proof and copies the register in receipt
+order. The receipt must cover all members before the first register copy.

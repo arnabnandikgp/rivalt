@@ -293,7 +293,7 @@ pub fn check_members(
             &opening.charge.to_le_bytes(),
         ])
         .to_bytes();
-        let budget = row.original_debtor_budgets[market];
+        let budget = row.reducible_budgets()[market];
         require!(
             opening.charge == 0 || budget == 0,
             ClearingError::Resolution

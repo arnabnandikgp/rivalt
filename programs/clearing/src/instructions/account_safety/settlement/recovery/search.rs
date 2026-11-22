@@ -137,18 +137,39 @@ impl RateWitness {
     }
 }
 
+/// Only verified dimensions can write this stage. It authorizes switching
+/// verification methods before any plan is bound, never a financial transition.
+#[cfg(feature = "unified-recovery-qualification")]
+pub const EXHAUSTIVE_UNREPRESENTABLE: u8 = 5;
+
 pub fn dimensions(accounts: &mut AdvanceSearch) -> Result<()> {
     let search = &mut accounts.search;
     stage(&accounts.source, search, 1)?;
-    let (edges, count, budgets, weights) = with_book(search, &accounts.source.prepared, |book| {
+    let dimensions = with_book(search, &accounts.source.prepared, |book| {
         let budgets = search
             .original
-            .with(|w| book.edge_budgets(w))
+            .with(|w| {
+                #[cfg(feature = "unified-recovery-qualification")]
+                return book.sparse_edge_budgets(w);
+                #[cfg(not(feature = "unified-recovery-qualification"))]
+                book.edge_budgets(w)
+            })
             .map_err(|_| ProofError::Accounting)?;
         let mut count = 1u128;
         let mut edges = Vec::new();
         let mut full_edges = Vec::new();
-        book.visit_edges(&budgets, |edge| {
+        #[cfg(feature = "unified-recovery-qualification")]
+        let history_bytes = search.rows.iter().flat_map(|row| &row.histories)
+            .map(|slot| slot.len() as u64).sum::<u64>();
+        #[cfg(feature = "unified-recovery-qualification")]
+        let fits = |pairs| exhaustive_fits(search.rows.len() as u64, history_bytes, pairs, search.original.rates.len() as u64);
+        #[cfg(feature = "unified-recovery-qualification")]
+        if !fits(0) { return Ok(None); }
+        let complete = book.visit_edges(&budgets, |edge| {
+            #[cfg(feature = "unified-recovery-qualification")]
+            if !fits(edges.len() as u64 + 1) || count.checked_mul(u128::from(edge.maximum) + 1).is_none() {
+                return Ok(false);
+            }
             count = count
                 .checked_mul(u128::from(edge.maximum) + 1)
                 .ok_or(financial_core::Error::Bounds)?;
@@ -162,15 +183,25 @@ pub fn dimensions(accounts: &mut AdvanceSearch) -> Result<()> {
             Ok(true)
         })
         .map_err(|_| ProofError::Unsupported)?;
+        if !complete { return Ok(None); }
         let weights = default_plan_selection::joint_priority::weights(&book, &full_edges)
             .map_err(|_| ProofError::Accounting)?;
-        Ok((
+        Ok(Some((
             edges,
             count,
             budgets.try_into().map_err(|_| ProofError::Accounting)?,
             weights.try_into().map_err(|_| ProofError::Accounting)?,
-        ))
+        )))
     })?;
+    let Some((edges, count, budgets, weights)) = dimensions else {
+        #[cfg(feature = "unified-recovery-qualification")]
+        {
+            search.stage = EXHAUSTIVE_UNREPRESENTABLE;
+            return Ok(());
+        }
+        #[cfg(not(feature = "unified-recovery-qualification"))]
+        return Err(ProofError::Unsupported.into());
+    };
     require!(search.proposed < count, ProofError::Charge);
     search.edges = edges;
     search.count = count;

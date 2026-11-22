@@ -13,7 +13,7 @@ elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-successor-* 
   if [[ "$RIVALT_SETTLEMENT_PROBE" == profit-attribution-successor-recovery ]]; then
     [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && "${RIVALT_RECOVERY_SCHEDULE_BUDGET:-}" =~ ^[1-9][0-9]*$ ]]
     [[ "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-wallet || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-insurance ]]
-    node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,"local-successor-candidate");'
+    node --import tsx --input-type=module -e 'import {SettlementPages} from "./packages/services/src/settlement-pages.ts";new SettlementPages(undefined,process.env.RIVALT_SUCCESSOR_BUILD??"local-successor-candidate");'
   fi
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-owned-integrated || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-integrated-* ]]; then
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"integrated");'
@@ -130,7 +130,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   profit-attribution-successor-warm-payout|profit-attribution-successor-delayed-payout|profit-attribution-integrated-warm-payout|profit-attribution-integrated-delayed-payout) node --import tsx tests/rpc-contract/ordinary-timing-rpc.ts ;;
   profit-attribution-integrated-payout|profit-attribution-market-lane-payout|profit-attribution-ledger-payout) node --import tsx tests/rpc-contract/market-lane-payout-rpc.ts ;;
   profit-attribution-successor-funding|profit-attribution-integrated-funding|profit-attribution-market-lane-funding|profit-attribution-ledger-funding) node --import tsx tests/rpc-contract/market-lane-funding-rpc.ts ;;
-  profit-attribution-successor-population|profit-attribution-partitioned-population|profit-attribution-populated-rates|profit-attribution-original-budgets|profit-attribution-foreign-caps|profit-attribution-winner-allocations|profit-attribution-pair-schedule|profit-attribution-joint-settlement) node --import tsx tests/rpc-contract/successor-population-rpc.ts ;;
+  profit-attribution-successor-populated-keeper|profit-attribution-successor-population|profit-attribution-partitioned-population|profit-attribution-populated-rates|profit-attribution-original-budgets|profit-attribution-foreign-caps|profit-attribution-winner-allocations|profit-attribution-pair-schedule|profit-attribution-joint-settlement) node --import tsx tests/rpc-contract/successor-population-rpc.ts ;;
   profit-attribution-successor-workload|profit-attribution-integrated-lanes|profit-attribution-ledger-lanes|profit-attribution-market-lanes|profit-attribution-route-locks|profit-attribution-fee-lanes) node --import tsx tests/rpc-contract/successor-route-locks-rpc.ts ;;
   profit-attribution-bounded-market-apply|profit-attribution-fee-lanes-apply|profit-attribution-multi-lot-search|profit-attribution-multi-lot-apply|profit-attribution-multi-lot-tie)
     cargo build --locked --offline -p default-plan-selection --features native-search --example multi_lot_audit

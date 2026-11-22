@@ -9,10 +9,10 @@ import {proposeAccountRates,type AccountRateInputs} from './account-rate-proposa
 /** Bounded page reads with a final exact-header fence. Frozen rows are immutable
  * until Apply, which is excluded here. A mixed revision/epoch never supplies a
  * rate proposal. The program independently checks every uploaded limb/row. */
-export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:6=6,allocationLayout:boolean|'local-successor'|'paged'|'linked'|'book'|'multi'=false) {
+export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address,epoch:bigint,expectedProfile:6=6,allocationLayout:boolean|'unified'|'local-successor'|'paged'|'linked'|'book'|'multi'=false) {
   assert(expectedProfile===6,'Unsupported frozen proposal profile.');
   const before=await readAccountResolution(rpc,venue),header=before.preparedState;
-  assert(before.header.epoch===epoch&&before.header.stage===2&&header.epoch===epoch&&header.stage===3&&header.count>0n
+  assert(before.header.epoch===epoch&&before.header.stage===2&&header.epoch===epoch&&(header.stage===3 || allocationLayout==='unified' && header.stage===21)&&header.count>0n
     &&header.count===before.header.count&&header.membershipEpoch===before.header.membershipEpoch,'No complete frozen cohort awaiting proposal.');
   const venueRaw=await rpc.call('getAccountInfo',[venue,{encoding:'base64',commitment:'confirmed',minContextSlot:Number(before.contextSlot)}]);
   const venueState=decodeAccountWorker(venueRaw.value,sdk.VENUE_DISCRIMINATOR,sdk.getVenueDecoder());
@@ -23,7 +23,8 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   const book=sdk.inventoryBookReceipt(header) || (allocationLayout==='multi' && sdk.inventoryBookReceipt(header,true));
   const bound=sdk.boundRecoveryReceipt(header);
   const pagedHeader=sdk.pagedRecoveryHeader(header);
-  assert((allocationLayout==='paged'||allocationLayout==='local-successor')===!!pagedHeader,'Missing or foreign paged recovery receipt');
+  const jointPayment=allocationLayout==='unified' && header.stage===3 && Buffer.from(header.state.membership).subarray(0,8).toString()==='RVJOINT2';
+  assert((allocationLayout==='paged'||allocationLayout==='local-successor'||allocationLayout==='unified' && header.stage===3 && !jointPayment)===!!pagedHeader,'Missing or foreign paged recovery receipt');
   const shared=sdk.sharedInventoryReceipt(header);
   const foreign=sdk.foreignCreditorReceipt(header);
   const linked=sdk.linkedAllocationReceipt(header),joint=sdk.frozenJointReceipt(header), originalClaims:[bigint,bigint][]=[];
@@ -33,7 +34,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
     const response=await rpc.call('getMultipleAccounts',[keys.map(([key])=>key),{encoding:'base64',commitment:'confirmed',minContextSlot:Number(before.contextSlot)}]);
     assert(response.value?.length===keys.length,'Incomplete frozen page batch.');
     for(const [offset,[key,pageBump]] of keys.entries()) {
-      const index=start+BigInt(offset),page=decodeAccountWorker(response.value[offset],sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,allocationLayout==='local-successor'?sdk.getLocalSuccessorPageDecoder():allocationLayout==='paged'?paged.getFrozenMarginPageDecoder():allocationLayout==='multi'?sdk.getMultiLotBookPageDecoder():allocationLayout==='book'?sdk.getInventoryBookPageDecoder():allocationLayout==='linked'?sdk.getLinkedAllocationPageDecoder():allocationLayout?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
+      const index=start+BigInt(offset),page=decodeAccountWorker(response.value[offset],sdk.FROZEN_MARGIN_PAGE_DISCRIMINATOR,allocationLayout==='unified'?sdk.getOriginalBudgetPageDecoder():allocationLayout==='local-successor'?sdk.getLocalSuccessorPageDecoder():allocationLayout==='paged'?paged.getFrozenMarginPageDecoder():allocationLayout==='multi'?sdk.getMultiLotBookPageDecoder():allocationLayout==='book'?sdk.getInventoryBookPageDecoder():allocationLayout==='linked'?sdk.getLinkedAllocationPageDecoder():allocationLayout?sdk.getBtcAllocationPageDecoder():sdk.getFrozenMarginPageDecoder());
       const length=Number(header.count-index*8n<8n?header.count-index*8n:8n);
       assert(page.schemaVersion===10&&page.venue===venue&&page.bump===pageBump&&page.epoch===epoch&&page.pageIndex===index
         &&page.rowCount===length&&page.revision>0n,'Incomplete or foreign frozen page.');
@@ -45,9 +46,9 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
         const allocated=allocation?(row.id===allocation.debtorId?allocation.recovered:
           -(row as sdk.FrozenMargin & {btcCharge:bigint}).btcCharge):0n;
         const charge=(allocation?allocated:row.id===pair?.debtorId?pair.charge:row.id===pair?.winnerId?-pair.charge:0n)*1_000_000_000n;
-        if(pagedHeader) {
+        if(pagedHeader || jointPayment) {
           const payout=(row as paged.FrozenMargin).recoveryPayout;
-          assert.equal(row.cash+payout.movements[0]+payout.movements[1],payout.finalCash,'Frozen payout cash');
+          if(pagedHeader)assert.equal(row.cash+payout.movements[0]+payout.movements[1],payout.finalCash,'Frozen payout cash');
           originalClaims.push([row.claims[0],row.claims[1]]);
           rows.push({...row,claims:row.claims.map((claim,market)=>claim+payout.claimDelta[market]*1_000_000_000n)});
         } else if(bound) {
@@ -102,7 +103,7 @@ export async function readAccountRateProposal(rpc:Pick<Rpc,'call'>,venue:Address
   const budgets:[bigint,bigint]=[insurance.readBigUInt64LE(24),insurance.readBigUInt64LE(32)];
   assert(budgets.every((value,index)=>value<=header.insurance[index]),'Invalid insurance budget.');
   const input:AccountRateInputs={rows:rows.map((row,index)=>({cash:row.cash,claims:[row.claims[0],row.claims[1]],
-    ...(pagedHeader||bound||joint||linked||foreign||shared||book?{originalClaims:originalClaims[index]}:{})})),
+    ...(jointPayment||pagedHeader||bound||joint||linked||foreign||shared||book?{originalClaims:originalClaims[index]}:{})})),
     pools:[header.pools[0],header.pools[1]],budgets};
   assert(input.rows.reduce((sum,row)=>sum+row.cash,0n)===before.header.cashBefore,'Frozen cash aggregate mismatch.');
   const proposal=proposeAccountRates(input),denominator=Buffer.from(header.state.denominator);

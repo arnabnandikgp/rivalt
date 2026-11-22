@@ -5,8 +5,14 @@ import {excludedRecoveryEnd} from './recovery-coverage.js';
 import {recoverySettlementCalculation,type readRecoveryWitnessBook} from './recovery-witness.js';
 
 // One 24-byte rate round and two complete ordinal arrays are mandatory.
-export function minimumPagedSearchBytes(count:bigint) {
-  return 397n+24n+(128n+2n)*count;
+export function pagedSearchBytes(count:bigint,historyBytes=0n,pairs=0n,rateRounds=1n) {
+  return 397n+24n*rateRounds+130n*count+historyBytes+25n*pairs;
+}
+
+export function compactHistoryBytes(history:ArrayLike<number>) {
+  let length=history.length;
+  while(length>0 && history[length-1]===0)length--;
+  return BigInt(length);
 }
 export function pagedRateWitness(book:Parameters<typeof recoverySettlementCalculation>[0],edges:paged.SearchEdge[],rank:bigint) {
   const {rounds,orders}=recoverySettlementCalculation(book,edges,rank);

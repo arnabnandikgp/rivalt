@@ -1,6 +1,6 @@
 # Clearing roadmap
 
-21 November 2026. This is the active engineering plan for Rivalt. The starting
+23 November 2026. This is the active engineering plan for Rivalt. The starting
 point is the locally qualified BTC/ETH prototype through P56. Its common clearing,
 isolated maker capital, one collateral mint, index-derived risk, whole-account
 funding and reservations, two-maker routes and current fees are the baseline for
@@ -10,11 +10,13 @@ records the change in direction.
 
 ## PR tracker
 
-The goal is to put the successor settlement and liquidation rules into Rivalt's
-normal local clearing runtime. The ordinary launcher still selects P56. The
-successor is already code in the clearing program. Its opt-in build has moved
-test collateral all the way to wallets on Surfpool. The successor stack has
-merged. Two engineering gates remain before the launcher can select it.
+The six deliverables now have local implementation and signed qualification.
+The [common keeper](https://github.com/arnabnandikgp/rivalt/pull/155) and its
+[dependent local launcher](https://github.com/arnabnandikgp/rivalt/pull/156) are in Review. [PR #158](https://github.com/arnabnandikgp/rivalt/pull/158) qualified three 75-member freezes through wallet exit and independent replay on the corrected build. [PR #159](https://github.com/arnabnandikgp/rivalt/pull/159) qualified the fresh-session default on the rebuilt successor with 14 successful wallet actions and one finalized refusal. [Local qualification](../operations/validation.md#fresh-local-successor-lifecycle)
+[PR #160](https://github.com/arnabnandikgp/rivalt/pull/160) covers the three
+verifier review findings and compares original writeoffs with recoverable loss
+on each retained 75-member book. All five PRs await integration.
+
 
 | Agreed deliverable | Where it stands | What remains |
 |---|---|---|
@@ -22,8 +24,8 @@ merged. Two engineering gates remain before the launcher can select it.
 | 2. Functional code ownership | Whole-account risk, position accounting, paired fills, forced reductions and ordinary claim booking have identifiable rule owners, with nine signed before/after measurements in [PR #144](https://github.com/arnabnandikgp/rivalt/pull/144). [Source map](README.md#trace-a-financial-transition). | The agreed extraction is complete. |
 | 3. Ordinary settlement | A different-maker close paid 970 net atoms to the wallet. Both an already funded pool and delayed collection with a keeper restart passed. [Timing PR](https://github.com/arnabnandikgp/rivalt/pull/142). | An optional, atomic path for already-backed claims would need packet, compute and payout-priority checks. |
 | 4. Forced liquidation | The keeper discovered the best admissible maker route, waited while the receiver lacked collateral, transferred five lots after funding and stopped with 35 lots at restored maintenance. [Liquidation PR](https://github.com/arnabnandikgp/rivalt/pull/143). | A funded live backstop needs separate authorization. |
-| 5. Default and recovery | The keeper selects a schedule from frozen accounts, resumes after restart and completes wallet exits. Both nine-member recovery cases replayed on the mixed-traffic binary. [Signed cases](../operations/validation.md#combined-successor-qualification). | The [128-member qualification](../operations/validation.md#populated-joint-settlement-qualification) now covers 16 frozen pages, 135 debtor/winner pairs, the adjusted rates, every payout and a 986,527-atom wallet exit. Fresh PostgreSQL replay reproduced 1,690 events and reconciled 405 accounts. [PR #152](https://github.com/arnabnandikgp/rivalt/pull/152) is integrated. Next bring the exhaustive small-book and populated proof paths to one keeper and demonstrate restart and exit on the same local build. |
-| 6. Shared writes and qualification | All 360 combined-binary fills finalized. Distinct BTC makers shared zero writes. The same maker shared its capital and registration. [Payer costs and CU](../operations/performance.md#mixed-traffic-on-the-combined-successor). | The earlier mixed-workload qualification is integrated in [PR #145](https://github.com/arnabnandikgp/rivalt/pull/145). Requalify the combined keeper, ordinary payout, liquidation and measured routes on the promotion candidate. [D140](../DECISIONS.md#d140--retain-p56-as-the-normal-local-runtime) keeps P56 selected. |
+| 5. Default and recovery | One keeper and one program settled two nine-member books and a 128-member populated book after restart. All 128 payouts and 256 market movements matched the independent calculation. | Review and integrate the common keeper. Books outside the demonstrated proof families can remain frozen. [Recovery evidence](../operations/validation.md#one-keeper-for-both-recovery-families). |
+| 6. Shared writes and qualification | The fresh-local candidate passed the normal browser wallet, automatic default discovery, funding gap and both payout timing cases. All 360 offered fills finalized. Distinct BTC makers shared zero writes. The same maker shared capital and registration. | Review and integrate the [qualified fresh-session launcher](../operations/validation.md#default-fresh-local-wallet). [Performance and payer costs](../operations/performance.md#mixed-traffic-on-the-fresh-local-runtime). |
 
 ### What a default freeze means
 
@@ -51,7 +53,7 @@ and reconciled before withdrawal. No timer changes anyone's entitlement.
 ### Integrated delivery PRs
 
 These six PRs established the local baseline for the populated recovery work.
-The tracker above identifies the remaining runtime promotion gates.
+The tracker above records the subsequent common-build qualification and PR integration status.
 
 | Planned PR | Status / PR | Dependency | What closes it |
 |---|---|---|---|
@@ -229,7 +231,7 @@ aggregate gross cap when traders switch makers, and the same funded gain must
 remain spendable after any valid interleaving. The native capacity and funding
 comparison reproduced the existing clearing totals. The [D138 local program](../operations/validation.md#signed-bounded-market-gross) now returns current gross from the market and its maker capacities. Removing the shared market write also requires recovering the last valid funding index when the next action occurs after expiry, including funding materialized for ETH by a BTC cross-account fill. The [read and accounting trade-off](../operations/performance.md#gross-lots-funding-and-payment-backing-on-parallel-fills)
 covers all three responsibilities. The [signed checkpoint publisher](../operations/validation.md#clearing-verified-funding-checkpoints)
-now preserves both markets through a publication gap. The [read-only route](../operations/validation.md#read-only-market-on-a-signed-fill) removes the shared market write on signed single-market fills. The distinct-maker BTC pair still shares its ledger. The [ledger prototype](../operations/validation.md#profit-payment-and-parallel-ledger-reads) now removes that last shared write on a single-market fill. The eight-member payout and complete freeze reconcile with current fee and backing totals. The native optimality comparison now reproduces the individual balances on three retained freezes. Two [signed equal-recovery comparisons](../operations/validation.md#financial-priorities-on-a-signed-frozen-book) now exercise proportional charges and the final frozen-episode member ordering on authenticated inputs. Two signed eight-member books now use clearing’s own selected result through wallet exit, including a cross-market obligation and a frozen member-order tie. The [contract](default-plan-verification.md#clearing-owned-payout-binding) describes the local eight-member admission boundary. The [combined clearing lifecycle](../operations/validation.md#combined-clearing-lifecycle) now verifies contention, complete fee classification and the eight-member protected wallet exits on one binary. The same binary preserved funding over an outage, paid a backed gain after a later fill changed the book, and restored maintenance through a maker fill followed by a consenting receiver. The local qualification is integrated. Terminal recovery is verified for the admitted eight-member books. The keeper now generates proposals from those frozen histories. The populated 128-member exit is now qualified separately. The common keeper and runtime promotion remain open.
+now preserves both markets through a publication gap. The [read-only route](../operations/validation.md#read-only-market-on-a-signed-fill) removes the shared market write on signed single-market fills. The distinct-maker BTC pair still shares its ledger. The [ledger prototype](../operations/validation.md#profit-payment-and-parallel-ledger-reads) now removes that last shared write on a single-market fill. The eight-member payout and complete freeze reconcile with current fee and backing totals. The native optimality comparison now reproduces the individual balances on three retained freezes. Two [signed equal-recovery comparisons](../operations/validation.md#financial-priorities-on-a-signed-frozen-book) now exercise proportional charges and the final frozen-episode member ordering on authenticated inputs. Two signed eight-member books now use clearing’s own selected result through wallet exit, including a cross-market obligation and a frozen member-order tie. The [contract](default-plan-verification.md#clearing-owned-payout-binding) describes the local eight-member admission boundary. The [combined clearing lifecycle](../operations/validation.md#combined-clearing-lifecycle) now verifies contention, complete fee classification and the eight-member protected wallet exits on one binary. The same binary preserved funding over an outage, paid a backed gain after a later fill changed the book, and restored maintenance through a maker fill followed by a consenting receiver. The local qualification is integrated. Terminal recovery is verified for the admitted eight-member books. The keeper now generates proposals from those frozen histories. The populated 128-member exit is now qualified separately. The common keeper and fresh-local launcher subsequently passed the unified qualification recorded above.
 
 Model ordinary payment from deposited collateral first. A settlement advance
 facility requires measured timing demand plus an identified funder, repayment

@@ -5,6 +5,7 @@ import { accountSourceMode,effectiveAccountFunding } from './account-balance.js'
 import { allocateLiquidityRoute } from './liquidity-allocation.js';
 import { requireValue } from './wallet-client.js';
 import * as protocol from './generated/index.js';
+import {MARKET_GROSS_CAP} from './market-capacity.js';
 import { MAX_CASH_ATOMS } from './quantity-limits.js';
 import { accountGuard } from './account-snapshot.js';
 import {requiredAccountMarkets,requiredAccountLiabilities} from './account-markets.js';
@@ -88,7 +89,21 @@ async function buildRoute(input: LiquidityRouteInput, actor: Address, makerLiqui
   };
   const position = root.positions[marketIndex];
   const reduceOnly = input.reduceOnly ?? (input.side === 1 ? position.lots >= input.lots : -position.lots >= input.lots);
-  const liveInstruction = makerLiquidation ? protocol.getLiquidateLiquidityRouteInstructionAsync : protocol.getExecuteLiquidityRouteInstructionAsync;
+  const held=market.oracle;
+  const laneCapacity='capacity' in market ? market.capacity as {generation:bigint;available:bigint[]}:undefined;
+  const absolute=(lots:bigint)=>lots<0n?-lots:lots;
+  const direction=input.side===0?1n:-1n;
+  const delta=selected.reduce((change,maker,index)=>{
+    const before=snapshot.roots[maker.registrationState.capital].positions[marketIndex].lots;
+    return change+absolute(before-direction*allocation.legs[index].lots)-absolute(before);
+  },absolute(root.positions[marketIndex].lots+direction*input.lots)-absolute(root.positions[marketIndex].lots));
+  const headroom=laneCapacity?.available[first.registrationState.instance];
+  const direct=laneCapacity!==undefined&&laneCapacity.generation>0n&&headroom!==undefined&&headroom>=delta&&
+    headroom-delta<=MARKET_GROSS_CAP&&snapshot.marginLayout==='ledger-lanes' && !makerLiquidation && required===(1<<marketIndex) &&
+    liabilityRequired===(1<<marketIndex) && held.heldEpoch===market.configEpoch && held.heldUntil>held.sampledAt &&
+    snapshot.slot>=market.validFrom && snapshot.slot<held.heldSlot && snapshot.now>=held.sampledAt && snapshot.now<=held.heldUntil;
+  const liveInstruction = makerLiquidation ? protocol.getLiquidateLiquidityRouteInstructionAsync :
+    direct ? protocol.getExecuteLedgerLaneInstructionAsync : protocol.getExecuteLiquidityRouteInstructionAsync;
   const instruction = input.stored
     ? await protocol.getExecuteLiquidityOrderInstructionAsync({ ...common, ...input.stored })
     : await liveInstruction({ ...common, domain: snapshot.venueState.domain,

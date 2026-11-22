@@ -2,7 +2,7 @@
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
 import {address} from '@solana/kit';
 import {multiLotBookPlan} from '@rivalt/sdk/multi-lot-book';
-import {isMultiLotArtifact,JOINT_PAYMENT_ARTIFACT_SET} from '@rivalt/sdk';
+import {isMultiLotArtifact,hasJointPayment} from '@rivalt/sdk';
 import {inventoryBookPlan,twoDebtorRecovery,singleLotWinnerOrder} from '@rivalt/sdk/frozen-order';
 import {isBookInventoryArtifact,isSharedInventoryArtifact,hasJointRecovery,hasPagedRecovery,PARTIAL_INVENTORY_ARTIFACT_SET,FOREIGN_CREDITOR_ARTIFACT_SET,LINKED_ALLOCATION_ARTIFACT_SET,LINKED_FLAT_ARTIFACT_SET} from '@rivalt/sdk';
 import type {AccountEvent} from './account-events.js';
@@ -20,7 +20,7 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
   const change=event.data,current=present(state.resolution,'paged source'),safety=present(state.safety,'paged safety');
   eq(change.epoch,current.epoch,'epoch');
   if(event.type==='JointClaimsCopied') {
-    accountCheck(artifactSet===JOINT_PAYMENT_ARTIFACT_SET && current.stage===2,'frozen joint payment');
+    accountCheck(hasJointPayment(artifactSet) && current.stage===2,'frozen joint payment');
     const {payment,chargeAtoms,insuranceSpent,memberIds,deltas}=change;
     const receipt=current.jointPayment??={payment,chargeAtoms,insuranceSpent,memberIds:[] as string[],deltas:[] as string[][]};
     eq([payment,chargeAtoms,insuranceSpent],[receipt.payment,receipt.chargeAtoms,receipt.insuranceSpent],'bound joint payment');

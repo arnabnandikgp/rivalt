@@ -1,7 +1,7 @@
 import {expect,it} from 'vitest';
 import {address} from '@solana/kit';
 import {getPagedRecoverySearchEncoder} from '@rivalt/sdk/paged-recovery';
-import {minimumPagedSearchBytes,pagedRateWitness} from './paged-recovery-proof.js';
+import {pagedSearchBytes,pagedRateWitness} from './paged-recovery-proof.js';
 import {excludedRecoveryEnd} from './recovery-coverage.js';
 import {recoveryBudget} from './recovery-selection.js';
 
@@ -36,11 +36,18 @@ it('classifies insufficient search storage using a valid minimum-width generated
   for(const count of [9,75,76,128]) {
     const rows=Array.from({length:count},(_,id)=>({id,cash:0n,claims:pair(),lots:pair(),histories:[new Uint8Array(),new Uint8Array()]}));
     const order=Uint8Array.from(rows.map(row=>row.id));
-    const bytes=getPagedRecoverySearchEncoder().encode({prepared:address('11111111111111111111111111111111'),epoch:1,revision:1,
+    const fields={prepared:address('11111111111111111111111111111111'),epoch:1,revision:1,
       proposed:0,count:1,cursor:0,stage:2,scoreNum:0,scoreDen:1,remainingInsurance:pair(),retainedFees:pair(),
-      original:{rates:[[1,1,1]],orders:[order,order]},rows,edges:[],cash:rows.map(()=>0n),movements:rows.map(pair),
-      budgets:rows.map(pair),weights:rows.map(pair),priority:{fractions:[ratio,ratio],deviation:[ratio,ratio],costs:[pair(),pair()]}});
-    expect(minimumPagedSearchBytes(BigInt(count))).toBe(BigInt(bytes.length));
+      original:{rates:[[1,1,1]],orders:[order,order]},rows,cash:rows.map(()=>0n),movements:rows.map(pair),
+      budgets:rows.map(pair),weights:rows.map(pair),priority:{fractions:[ratio,ratio],deviation:[ratio,ratio],costs:[pair(),pair()]}};
+    const encoder=getPagedRecoverySearchEncoder();
+    const bytes=encoder.encode({...fields,edges:[]});
+    if(count===75){
+      const edges=[1,2,3].map(winner=>({market:0,debtor:0,winner,maximum:1}));
+      expect(bytes.length).toBe(10171);
+      expect(encoder.encode({...fields,edges}).length).toBe(10246);
+    }
+    expect(pagedSearchBytes(BigInt(count))).toBe(BigInt(bytes.length));
     expect(bytes.length>10240).toBe(count>=76);
   }
 });

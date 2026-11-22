@@ -23,6 +23,13 @@ const linkedBuilds = {
   shared:['shared-inventory-candidate','shared-inventory-qualification'],
 } as const;
 
+export function successorSelection() {
+  const profile=process.env.RIVALT_SUCCESSOR_BUILD;
+  if(profile===undefined || profile==='local-successor-candidate')return 'local-successor-candidate' as const;
+  if(profile==='unified-recovery-candidate')return profile;
+  throw new Error('Unknown successor build');
+}
+
 export function verifyProfitBuild(directory:string,sponsored=false,paired=false,residual=false,allocation=false,linked:Linked=false) {
   const comparison=process.env.RIVALT_DOMAIN_COMPARISON;
   if(comparison){
@@ -43,6 +50,10 @@ export function verifyProfitBuild(directory:string,sponsored=false,paired=false,
   else if(residual) [selection,feature]=['btc-residual-candidate','btc-residual-qualification'];
   else if(paired) [selection,feature]=['verified-pair-candidate','single-pair-default-qualification'];
   else [selection,feature]=[sponsored?'sponsored-profit-candidate':'profit-attribution-candidate','profit-attribution-qualification'];
+  if(linked==='successor' && successorSelection()==='unified-recovery-candidate') {
+    selection='unified-recovery-candidate';
+    feature='unified-recovery-qualification';
+  }
   const deployment=accountDeployment(selection);
   // The first two attribution builds use the pre-existing arithmetic helper.
   const revision=selection==='profit-attribution-candidate'?'33361d969978543716697373826a3f3675e1edc4':

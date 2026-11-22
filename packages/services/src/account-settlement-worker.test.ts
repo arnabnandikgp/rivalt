@@ -40,12 +40,18 @@ it.each([0n,1n])('persists final coverage with payment only for a payable cohort
     discovery:async()=>({state:{members:[margin]}}),
     snapshot:async()=>({...await sdk.readAccountSnapshot(test.rpc,test.config,[margin],'confirmed'),...keys}),
     enqueue:async(_id:string,instructions:Instruction[],_key:Keypair,_budget:string,authority:AccountAuthority|null)=>{submissions.push({instructions,authority});}};
-  expect(await settleAccounts(runtime as unknown as AccountRuntime,createNoopSigner(test.owner) as Keypair))
+  // Spacing pure background scans must still admit the payable final page.
+  const worker=runtime as unknown as AccountRuntime,signer=createNoopSigner(test.owner) as Keypair;
+  if(bad){
+    expect(await settleAccounts(worker,signer,false)).toEqual({status:'idle',reason:'background-page-interval'});
+    expect(submissions).toHaveLength(0);
+  }
+  expect(await settleAccounts(worker,signer,Boolean(bad)))
     .toEqual({status:'queued',reason:bad?'complete-market-backing-page':'atomic-backing-page-and-gain'});
   expect(submissions).toHaveLength(1);
   const {instructions,authority}=submissions[0];expect(instructions).toHaveLength(bad?2:3);
   expect(sdk.hex(instructions[1].data!.slice(0,8))).toBe(sdk.hex(sdk.CHECK_MARKET_BACKING_DISCRIMINATOR));
-  if(bad) {expect(authority).toBeNull();return;}
+  if(bad) {expect(authority).toEqual({kind:'backingRevision',venue,account:certificate,value:'1'});return;}
   expect(sdk.hex(instructions[2].data!.slice(0,8))).toBe(sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR));
   expect(sdk.getPayAccountGainInstructionDataDecoder().decode(instructions[2].data!).amount).toBe(3n);
   expect(authority).toEqual({kind:'accountStateVersion',venue,account:margin,value:root.stateVersion.toString()});

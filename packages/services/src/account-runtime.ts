@@ -57,8 +57,10 @@ export class AccountRuntime extends AccountExecution {
             const quote=await this.quote(key.address,trader,marketIndex,stored.order.side as 0|1,lots,
               {id:stored.order.id,version:stored.order.version,filled:stored.order.filled});
             if(quote.available) {
+              const instructions=snapshot.marginLayout==='ledger-lanes'?
+                [...sdk.marketCheckpointsFor(await sdk.venueMarketCheckpoints(snapshot.venue),quote.instructions[0]),...quote.instructions]:quote.instructions;
               await this.enqueue(`order:${root.id}:${marketIndex}:${stored.order.id}:${stored.order.version}:${stored.order.filled}:${quote.guard.stateVersion}`,
-                quote.instructions,key,budget,{kind:'accountStateVersion',venue:snapshot.venue,account:trader,value:quote.guard.stateVersion.toString()},true);
+                instructions,key,budget,{kind:'accountStateVersion',venue:snapshot.venue,account:trader,value:quote.guard.stateVersion.toString()},true);
               return {status:'queued',reason:'durable-account-order-fill'};
             }
             // Smaller quantities cannot repair a missing market source in this pass.
@@ -77,6 +79,6 @@ export class AccountRuntime extends AccountExecution {
     if(intervalSeconds<2n||intervalSeconds>5n)throw new Error('Local funding cadence must be 2–5 seconds');
     return publishLiquidityFunding(this,marketIndex,key,intervalSeconds);
   }
-  settle(key:Keypair){return settleAccounts(this,key);}
+  settle(key:Keypair,allowBackgroundPage=true){return settleAccounts(this,key,allowBackgroundPage);}
   riskWork(key:Keypair,receiver?:Address){return accountRiskWork(this,key,receiver);}
 }

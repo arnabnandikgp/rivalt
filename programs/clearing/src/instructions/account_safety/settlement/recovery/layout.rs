@@ -120,6 +120,19 @@ use paged_book::SEARCH_ACCOUNT_BYTES;
 #[cfg(feature = "paged-recovery-qualification")]
 pub use paged_book::{PagedRecoverySearch as RecoverySearch, RateWitness};
 
+/// Required search bytes for a complete cohort, including both rounding orders.
+/// At least one rate round is mandatory. Only certified pairs contribute here.
+#[cfg(feature = "unified-recovery-qualification")]
+pub(crate) fn exhaustive_fits(count: u64, history_bytes: u64, pairs: u64, rounds: u64) -> bool {
+    const HEADER: u128 = 397;
+    const MEMBER_WITH_ORDERS: u128 = 130;
+    const PAIR: u128 = 25;
+    const RATE_ROUND: u128 = 24;
+    count > 0 && (1..=3).contains(&rounds)
+        && HEADER + u128::from(count) * MEMBER_WITH_ORDERS + u128::from(history_bytes)
+            + u128::from(pairs) * PAIR + u128::from(rounds) * RATE_ROUND <= SEARCH_ACCOUNT_BYTES as u128
+}
+
 #[derive(Accounts)]
 #[instruction(nonce:u64)]
 pub struct OpenSearch {

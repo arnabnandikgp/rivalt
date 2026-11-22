@@ -155,6 +155,16 @@ pub fn copy_register(
     let rates = &mut accounts.rates;
     let page = &mut accounts.page;
     let length = financial(required_limbs(header.count))?.min(PAGE_WORDS);
+    // A sparse original rate proof may never have touched this register.
+    // Its canonical pre-funded page can still belong to a completed older
+    // epoch. Reuse it only under the same storage guard as ordinary rate work.
+    if page.epoch != header.epoch {
+        super::super::workspace::reset_limbs(page, &accounts.source.storage, header.epoch)?;
+        page.epoch = header.epoch;
+        page.register = register;
+        page.page_index = 0;
+        page.word_count = u16::try_from(length).map_err(|_| ClearingError::Arithmetic)?;
+    }
     require!(
         receipt.next_member == header.count
             && receipt.next_register == register

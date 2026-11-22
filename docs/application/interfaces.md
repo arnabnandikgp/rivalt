@@ -129,6 +129,9 @@ freshness and classified unavailability. Quote validity is provisional; an HTTP
 response is not instruction authority. Rebuild and authenticate instructions in
 the SDK with user size, side, limits, fee cap and exact account bindings. Current
 price may improve/change within signed bounds; structural-epoch changes reject.
+The wallet displays the route's signed slot deadline. Clearing also checks each
+maker publication at execution. A six-second-old price can expire while the
+route still has slots remaining. A fresh review is required to sign again.
 
 An unfinished exact route search reports `liquidity-search-budget-exhausted` with
 bounded search metrics, distinct from insufficient depth or failed account health.
@@ -359,5 +362,29 @@ Select `integrated-recovery-candidate` explicitly for the risk or settlement
 worker and executor. The risk signer's local SOL pays transaction fees. The
 configured `RIVALT_RECEIVER_MARGIN` belongs to that signer and supplies separate
 collateral for taking inventory. The reference run can discover and submit a
-maker route without a configured receiver. The normal local launcher selects
-P56. [On-chain liquidation rules](../clearing/risk-and-resolution.md#maker-liquidation-candidate).
+maker route without a configured receiver. The local launcher can explicitly select the unified successor and leaves receiver configuration explicit. [On-chain liquidation rules](../clearing/risk-and-resolution.md#maker-liquidation-candidate).
+
+
+The explicit `unified-recovery-candidate` risk worker reads the proof family
+from the prepared freeze. On a populated freeze it reads the original rates,
+debtor budgets, lot histories and foreign protection caps from canonical pages.
+It proposes the winner cutoffs and ordered pair pages, then the adjusted rates.
+Clearing verifies them. The fee payer and frozen episode determine the worker's
+proof addresses. After process loss the executor resumes the original bytes
+in PostgreSQL. An unattainable winner bound returns
+`insufficient-certified-winner-capacity`. Funds stay frozen until clearing
+verifies a complete payment. [Signed restart and exits](../operations/validation.md#one-keeper-for-both-recovery-families).
+
+### Wallet and publisher checkpoints in the local successor
+
+A signed wallet request can contain a single direct-lane action or a serial
+financial action preceded by its venue-derived market and fee checkpoints.
+The SDK and ingress verify the instruction sequence, accounts, privileges and
+terminal action. Cross-market exposure and exhausted lane capacity use the
+serial route. A funded terminal exit uses clearing's resolution checks. The
+stored transaction and its expiry authority identify the actual signed action.
+
+A funding publisher signs the selected market checkpoint followed by the
+report and its three registered maker accounts. Its PostgreSQL record binds
+the report, digest and calculation to that exact wire. Historical single-report
+originals retain their deployment-specific format.

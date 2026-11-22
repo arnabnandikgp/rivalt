@@ -294,7 +294,7 @@ fn actual_margin_model_values_both_markets_preserving_fractional_claims_and_cash
     }
     header.state.membership = cursor.checkpoint();
     finish_value(&mut header).unwrap();
-    let expected_stage = if cfg!(feature = "populated-recovery-qualification") {
+    let expected_stage = if cfg!(feature = "populated-recovery-qualification") && (!cfg!(feature = "unified-recovery-qualification") || header.gross == [0; 2]) {
         ORIGINAL_DENOMINATOR
     } else if cfg!(feature = "single-pair-default-qualification") {
         single_pair::AWAIT_PAIR
@@ -569,4 +569,30 @@ fn adopted_source_fences_legacy_and_authenticates_partial_exposure_and_final_buc
         .source()
         .adopted(&header, &plan, [0; 2], true)
         .is_err());
+}
+
+#[cfg(feature = "unified-recovery-qualification")]
+#[test]
+fn dispatch_uses_the_serialized_exhaustive_proof_storage_floor() {
+    assert!(!recovery::exhaustive_fits(0, 0, 0, 1));
+    for count in [1, 9, 75] {
+        assert!(recovery::exhaustive_fits(count, 0, 0, 1));
+    }
+    for count in [76, 128, u64::MAX] {
+        assert!(!recovery::exhaustive_fits(count, 0, 0, 1));
+    }
+}
+
+
+#[cfg(feature = "unified-recovery-qualification")]
+#[test]
+fn exact_search_width_and_flat_debtor_bounds() {
+    assert!(recovery::exhaustive_fits(75, 19, 2, 1)); // exactly 10,240
+    assert!(!recovery::exhaustive_fits(75, 20, 2, 1));
+    assert!(!recovery::exhaustive_fits(75, 0, 3, 1));
+    assert!(!recovery::exhaustive_fits(75, 22, 0, 3));
+    assert!(!recovery::exhaustive_fits(1, u64::MAX, u64::MAX, 3));
+    let row = FrozenMargin { lots: [0, -1], original_debtor_budgets: [80, 9], ..Default::default() };
+    assert_eq!(row.reducible_budgets(), [0, 9]);
+    assert_eq!(row.original_debtor_budgets, [80, 9]);
 }

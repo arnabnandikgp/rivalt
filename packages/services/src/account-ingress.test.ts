@@ -116,3 +116,20 @@ it('accepts only the exact same-owner atomic activation/deposit envelope and bin
     const signed=await encode(instructions);expect(()=>accountUserAuthority(signed,venue)).toThrow();
   }
 });
+
+it('accepts only the venue-derived checkpoint set for the signed action on a lane deployment',async()=>{
+  const checkpoints=await sdk.venueMarketCheckpoints(venue);
+  const action=withdrawal(),prefix=sdk.marketCheckpointsFor(checkpoints,action);
+  expect(prefix).toHaveLength(4);
+  const signed=await wire(sdk.accountWalletInstructions([...prefix,action],checkpoints));
+  expect(accountUserAuthority(signed,venue,4,checkpoints)).toMatchObject({kind:'accountStateVersion',account:margin});
+  expect(()=>accountUserAuthority(signed,venue)).toThrow();
+  const foreign={...prefix[0],accounts:prefix[0].accounts!.map((meta,index)=>index===3?{...meta,address:other.address}:meta)};
+  for(const invalid of [[prefix[0],prefix[0],...prefix.slice(2),action],[...prefix.slice(1),action],
+    [foreign,...prefix.slice(1),action],[...prefix,action,action]]) {
+    const message=await wire(sdk.walletComputeBudget(invalid));
+    expect(()=>accountUserAuthority(message,venue,4,checkpoints)).toThrow();
+  }
+  // A resolved cash exit uses the guarded consumer by itself.
+  expect(accountUserAuthority(await wire(envelope(action)),venue,4,checkpoints)).toMatchObject({account:margin});
+});

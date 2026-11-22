@@ -5,14 +5,16 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {resolve} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright-core';
-import {address,type Address} from '@solana/kit';
+import {address,type AccountRole,type Address} from '@solana/kit';
 import {VersionedTransaction} from '@solana/web3.js';
+import {expiredMakerPublication} from './expired-maker-publication.js';
 import * as sdk from '@rivalt/sdk';
-import {RUNTIME,ARTIFACT_DIRECTORY} from '../../packages/local-demo/src/config.js';
+import {RUNTIME,ARTIFACT_DIRECTORY,DEMO_DEPLOYMENT} from '../../packages/local-demo/src/config.js';
 const directory=resolve(process.env.RIVALT_DEMO_EVIDENCE??`.local/demo-checks/${Date.now()}`);mkdirSync(directory,{recursive:true});
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const config=JSON.parse(readFileSync(`${RUNTIME}/deployment.json`,'utf8'));
+assert.equal(config.deployment,DEMO_DEPLOYMENT,'The active venue must match the requested launcher profile');
 const client=new sdk.AccountUserClient(config),outcomes:{label:string;signature:string;wire:string;fee:number;status:string;error:unknown;reviewAttempt:number}[]=[],errors:string[]=[],preparations:unknown[]=[];
 const sourceObservations:unknown[]=[];
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,
@@ -74,17 +76,32 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     // current source admission again. Unknown outcomes never retry here.
     assert.equal(name,'Review atomic trade',JSON.stringify(receipt.error));
     const code=history.meta.err?.InstructionError?.[1]?.Custom;
-    assert.deepEqual(history.meta.err,{InstructionError:[3,{Custom:code}]});
+    // Verify the exact terminal route that failed. A serial route can include
+    // market/fee checkpoints ahead of it, while a direct lane has no prefix.
+    const {message}=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
+    const index=message.compiledInstructions.length-1,instruction=message.compiledInstructions[index];
+    assert.deepEqual(history.meta.err,{InstructionError:[index,{Custom:code}]});
+    assert.equal(message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
+    const tag=sdk.hex(instruction.data.slice(0,8));
+    const direct=tag===sdk.hex(sdk.EXECUTE_LEDGER_LANE_DISCRIMINATOR);
+    assert(direct||tag===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR),'Expected signed route');
     assert(code===6122||code===6117||code===6115||code===sdk.CLEARING_ERROR__ORACLE_POLICY,JSON.stringify(history.meta.err));
     if(code===6117||code===6115){
-      // Quote lifetime can reject before the route-intent check. Both errors
-      // are broad: require independently proven signed route expiry, never
-      // infer a transient failure from the error number alone.
-      const transaction=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64'));
-      const instruction=transaction.message.compiledInstructions[3];
-      assert.equal(transaction.message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
-      const intent=sdk.getExecuteLiquidityRouteInstructionDataDecoder().decode(instruction.data);
-      assert(BigInt(history.slot)>=intent.expirySlot,'Finalized route must have landed after its signed expiry');
+      const decode=direct?sdk.parseExecuteLedgerLaneInstruction:sdk.parseExecuteLiquidityRouteInstruction;
+      const accounts=Array.from(instruction.accountKeyIndexes,index=>({
+        address:message.staticAccountKeys[index].address,
+        role:(Number(message.isAccountSigner(index))*2+Number(message.isAccountWritable(index))) as AccountRole,
+      }));
+      const route=decode({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data:instruction.data,accounts});
+      if(BigInt(history.slot)<route.data.expirySlot){
+        assert.equal(code,sdk.CLEARING_ERROR__MAKER_QUOTE,'Route refused before signed slot expiry');
+        const {firstProgram,firstConfig,firstPrice,secondProgram,secondConfig,secondPrice}=route.accounts;
+        const makers=[{program:firstProgram.address,config:firstConfig.address,price:firstPrice.address}];
+        if(secondProgram && secondConfig && secondPrice)makers.push({program:secondProgram.address,config:secondConfig.address,price:secondPrice.address});
+        const evidence=await Promise.all(makers.map(maker=>expiredMakerPublication(client.rpc,maker,receipt.signature,history.slot,history.blockTime)));
+        assert(evidence.some(Boolean),'No selected maker publication independently proved expired');
+        writeFileSync(`${directory}/expired-publication-${receipt.signature}.json`,JSON.stringify(evidence));
+      }
     }
     assert(reviewAttempt<3,'Bounded fresh review after finalized version/source refusal or proven expiry');
     await button('Refresh').click();
@@ -116,6 +133,20 @@ try{
   await select('Margin account','0');await select('Market','0');await action('Review atomic trade',cross);
   await select('Market','1');await action('Review atomic trade',cross);
   const opened=(await client.snapshot([cross])).roots[cross];assert.deepEqual(opened.positions.map(position=>position.lots),[5n,5n]);
+  if(config.deployment==='unified-recovery-candidate'){
+    // The cross account now owes both market ledgers. Adding collateral must
+    // classify the same two ledgers in the signed wallet transaction.
+    const token=address(await page.getByLabel('Wallet collateral account',{exact:true}).inputValue());
+    const balance=async()=>(await client.walletTokens(owner)).find(item=>item.address===token)!.amount;
+    const before=await balance();
+    await page.getByLabel('Collateral amount',{exact:true}).fill('1');
+    const deposit=await action('Deposit');
+    assert.equal(before-await balance(),1_000_000n);
+    const message=VersionedTransaction.deserialize(Buffer.from(deposit.wire,'base64')).message;
+    const clearing=message.compiledInstructions.filter(ix=>message.staticAccountKeys[ix.programIdIndex].address===sdk.CLEARING_PROGRAM_ADDRESS);
+    assert.deepEqual(clearing.map(ix=>sdk.hex(ix.data.slice(0,8))),[sdk.CLASSIFY_MARKET_FEES_DISCRIMINATOR,sdk.CLASSIFY_MARKET_FEES_DISCRIMINATOR,
+      sdk.DEPOSIT_ACCOUNT_DISCRIMINATOR].map(sdk.hex));
+  }
   await page.getByText('Protect existing position',{exact:true}).click();await action('Review TP/SL');
   assert.equal((await client.snapshot([cross])).roots[cross].book.orders.filter(entry=>[1,2].includes(entry.order.state)).length,2);
   await action('Cancel pair');

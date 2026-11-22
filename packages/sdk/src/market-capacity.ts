@@ -5,35 +5,39 @@ import {BASIS_POINTS,FUNDING_CAP_BPS,MAX_REFERENCE_PRICE} from './price-policy.j
 import {decodeMakerFeeLane} from './market-fees.js';
 import {fromBase64,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
-const MAX_GROSS=200_000_000n;
+export const MARKET_GROSS_CAP=200_000_000n;
 
 export function decodeCapacityAnchor(bytes:Uint8Array,checkedFunding:boolean|'ledger-lanes'=false){
   const decoder=getMarketDecoder(),prefix=decoder.fixedSize;
   requireValue(bytes.length===prefix+16+(checkedFunding?32:0)&&MARKET_DISCRIMINATOR.every((byte,index)=>bytes[index]===byte),'Invalid market capacity layout.');
   const tail=new DataView(bytes.buffer,bytes.byteOffset+prefix,16);
   const generation=tail.getBigUint64(0,true),initialGross=tail.getBigUint64(8,true);
-  requireValue(initialGross<=MAX_GROSS&&(generation>0n||initialGross===0n),'Invalid market capacity anchor.');
+  requireValue(initialGross<=MARKET_GROSS_CAP&&(generation>0n||initialGross===0n),'Invalid market capacity anchor.');
   const market=decoder.decode(bytes);
   requireValue(market.schemaVersion===10,'Invalid capacity market schema.');
   return {market,generation,initialGross};
 }
 
 /** Each input has already been identified by its canonical PDA in this market. */
-export function grossFromCapacity(marketKey:Address,marketBytes:Uint8Array,registrations:readonly Uint8Array[],checkedFunding:boolean|'ledger-lanes'=false){
+function readCapacity(marketKey:Address,marketBytes:Uint8Array,registrations:readonly Uint8Array[],checkedFunding:boolean|'ledger-lanes'=false){
   const anchor=decodeCapacityAnchor(marketBytes,checkedFunding);
   requireValue(registrations.length===3,'Incomplete market capacity.');
-  const initialFree=MAX_GROSS-anchor.initialGross;
-  let gross=MAX_GROSS;
+  const initialFree=MARKET_GROSS_CAP-anchor.initialGross;
+  let gross=MARKET_GROSS_CAP;const available:bigint[]=[];
   for(const [index,bytes] of registrations.entries()){
     const {state}=decodeMakerFeeLane(bytes,checkedFunding==='ledger-lanes'?'ledger-lanes':checkedFunding?'checked-funding':true);
     requireValue(state.schemaVersion===10&&state.instance===index&&state.market===marketKey&&state.venue===anchor.market.venue,'Foreign capacity lane.');
     const tail=new DataView(bytes.buffer,bytes.byteOffset+getMakerRegistrationDecoder().fixedSize+16,16);
     const generation=tail.getBigUint64(0,true),stored=tail.getBigUint64(8,true);
-    requireValue(generation<=anchor.generation&&stored<=MAX_GROSS,'Invalid capacity generation or balance.');
+    requireValue(generation<=anchor.generation&&stored<=MARKET_GROSS_CAP,'Invalid capacity generation or balance.');
     const free=generation!==0n&&generation===anchor.generation?stored:initialFree/3n+BigInt(BigInt(index)<initialFree%3n);
-    requireValue(free<=gross,'Capacity exceeds the market limit.');gross-=free;
+    requireValue(free<=gross,'Capacity exceeds the market limit.');gross-=free;available.push(free);
   }
-  return gross;
+  return {grossLots:gross,available,generation:anchor.generation};
+}
+
+export function grossFromCapacity(marketKey:Address,marketBytes:Uint8Array,registrations:readonly Uint8Array[],checkedFunding:boolean|'ledger-lanes'=false) {
+  return readCapacity(marketKey,marketBytes,registrations,checkedFunding).grossLots;
 }
 
 export function makerRegistrationPdas(market:Address){
@@ -84,9 +88,10 @@ export function marketFromExecutionLanes(marketKey:Address,marketBytes:Uint8Arra
     requireValue(decodeMakerFeeLane(bytes,ledgerLanes?'ledger-lanes':'checked-funding').state.bump===bump,'Invalid execution lane bump.');
     return bytes;
   });
-  const grossLots=grossFromCapacity(marketKey,marketBytes,rows,ledgerLanes?'ledger-lanes':true);
+  const capacity=readCapacity(marketKey,marketBytes,rows,ledgerLanes?'ledger-lanes':true);
+  const grossLots=capacity.grossLots;
   const oracle=market.oracle;
-  if(!active||oracle.heldEpoch!==market.configEpoch||oracle.heldUntil<=oracle.sampledAt)return {...market,grossLots};
+  if(!active||oracle.heldEpoch!==market.configEpoch||oracle.heldUntil<=oracle.sampledAt)return {...market,grossLots,capacity};
   const maxPremium=MAX_REFERENCE_PRICE*1_000_000_000n*FUNDING_CAP_BPS/BASIS_POINTS;
   const withinIndex=(index:bigint)=>index>=-1_000_000_000_000_000n&&index<=1_000_000_000_000_000n;
   requireValue(market.configEpoch>0n&&market.observationSequence>0n&&oracle.sampledAt>0n&&
@@ -108,5 +113,5 @@ export function marketFromExecutionLanes(marketKey:Address,marketBytes:Uint8Arra
   }
   const fundingIndexScaled=oracle.fundingBase+oracle.premiumScaled*(through-oracle.sampledAt)/3600n;
   requireValue(withinIndex(fundingIndexScaled),'Funding index exceeds the supported range.');
-  return {...market,grossLots,fundingTime:through,fundingIndexScaled};
+  return {...market,grossLots,capacity,fundingTime:through,fundingIndexScaled};
 }

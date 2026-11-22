@@ -55,10 +55,11 @@ impl FrozenBook<'_> {
             &mut arithmetic,
         )?;
         let terms = OriginalTerms::from_verified(&original)?;
+        let reducible = self.open_lot_bound(receipt)?;
         let mut bound = ProtectionTotals::default();
         let mut positive = [ClaimTotal::default(); 2];
         let mut links = Vec::with_capacity(rows.len());
-        for (row, budget) in rows.iter().zip(&receipt.budgets) {
+        for (row, budget) in rows.iter().zip(&reducible.budgets) {
             links.push(bound.include(row, *budget)?);
             for (market, total) in positive.iter_mut().enumerate() {
                 let value = row.claims[market].max(0) as u128;
@@ -71,7 +72,7 @@ impl FrozenBook<'_> {
         }
         let caps = bound.linked_caps(positive, self.pools, self.insurance, &terms)?;
         let mut edges = Vec::new();
-        self.visit_edges(&receipt.budgets, |edge| {
+        self.visit_edges(&reducible.budgets, |edge| {
             edges.push(edge);
             Ok(true)
         })?;
@@ -91,7 +92,7 @@ impl FrozenBook<'_> {
             linked_caps: caps,
             lot_floor: [0; 2],
             winner_floor: [None; 2],
-            certified: receipt.reaches_both_recovery_ceilings(),
+            certified: reducible.reached,
         };
         for market in 0..2 {
             let total = bound.budget[market];
@@ -128,7 +129,7 @@ impl FrozenBook<'_> {
                 fastest[side] = fastest[side].max(rate.numerator.div_ceil(rate.denominator));
             }
             let mut debtor_floor = 0u128;
-            for (member, budget) in self.members.iter().zip(&receipt.budgets) {
+            for (member, budget) in self.members.iter().zip(&reducible.budgets) {
                 if budget[market] > 0 {
                     let upper = fastest[usize::from(member.lots[market] < 0)];
                     if upper == 0 || member.lots[market] == 0 {

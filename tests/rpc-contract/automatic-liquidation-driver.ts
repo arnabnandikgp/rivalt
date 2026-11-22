@@ -7,7 +7,7 @@ import type {openSettlementJournal} from './scalable-settlement-journal.js';
 import {eventually,type WireRpc,type WireSubscriptions} from './wire.js';
 
 export async function openLiquidationDriver(rpc:WireRpc,ws:WireSubscriptions,
-  journal:Awaited<ReturnType<typeof openSettlementJournal>>,finalizeFixture:()=>Promise<void>,refresh:()=>Promise<void>,signer:Keypair,receiver:Address,selection:'local-successor-candidate'|'integrated-recovery-candidate') {
+  journal:Awaited<ReturnType<typeof openSettlementJournal>>,finalizeFixture:()=>Promise<void>,refresh:()=>Promise<void>,signer:Keypair,receiver:Address,selection:'unified-recovery-candidate'|'local-successor-candidate'|'integrated-recovery-candidate') {
   const runtime=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',
     process.env.RIVALT_RPC_URL!,4,selection);
   await journal.checkpoint('initialize-risk-worker',true);
@@ -24,10 +24,10 @@ export async function openLiquidationDriver(rpc:WireRpc,ws:WireSubscriptions,
     "SELECT request_id,signature,wire,status FROM service_intents WHERE run_id=$1 AND budget='liquidity-risk' ORDER BY request_id",
     [runtime.runId])).rows;
   const balance=async()=>BigInt((await rpc.call('getBalance',[signer.address,{commitment:'confirmed'}])).value);
-  async function check(stage:string,expected:string,queue:boolean,configuredReceiver?:Address) {
+  async function check(stage:string,expected:string,queue:boolean,configuredReceiver?:Address,refreshMarket=refresh) {
     await finalizeFixture();
     await journal.checkpoint(stage,true);
-    await refresh();
+    await refreshMarket();
     const beforeFee=await balance(),before=await intents();
     const {state}=await runtime.discovery();
     const memberCount=state.members.filter(member=>state.roots[member].positions.some(position=>BigInt(position.lots)!==0n)).length;
@@ -67,5 +67,6 @@ export async function openLiquidationDriver(rpc:WireRpc,ws:WireSubscriptions,
     maker:()=>check('discover-maker','admitted-maker-liquidation',true),
     blocked:()=>check('probe-unfunded-receiver','no-admissible-maker-or-funded-receiver',false,receiver),
     receiver:()=>check('discover-funded-receiver','funded-whole-account-liquidation',true,receiver),
+    insolvent:(refreshMarket:()=>Promise<void>)=>check('discover-insolvency','authenticated-net-insolvency',true,undefined,refreshMarket),
     healthy:()=>check('rescan-restored-health','no-under-maintenance-target-in-probe',false,receiver)};
 }

@@ -28,10 +28,26 @@ export function signedWire(wire:string,maxVersion:0|1=0) {
   });
   return {tx,keys,signature:getBase58Decoder().decode(tx.signatures[0]),blockhash:tx.message.recentBlockhash};
 }
+// Older settlement workers did not persist the authority for a backing page.
+// Its signed top-level instruction binds the venue, certificate and expected
+// revision. A successful transaction must advance that certificate.
+function signedBackingAuthority(wire:string):AccountAuthority|null {
+  const {tx}=signedWire(wire,1);
+  const message=tx.message,keys=message.staticAccountKeys;
+  for(const ix of message.compiledInstructions){
+    if(keys[ix.programIdIndex].address!==sdk.CLEARING_PROGRAM_ADDRESS ||
+      sdk.hex(ix.data.slice(0,8))!==sdk.hex(sdk.CHECK_MARKET_BACKING_DISCRIMINATOR))continue;
+    const accounts=Array.from(ix.accountKeyIndexes,index=>({address:keys[index].address,role:0 as const}));
+    const parsed=sdk.parseCheckMarketBackingInstruction({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data:ix.data,accounts});
+    return {kind:'backingRevision',venue:parsed.accounts.venue.address,account:parsed.accounts.certificate.address,value:parsed.data.revision.toString()};
+  }
+  return null;
+}
+
 // External ingress accepts only one wallet-owned financial action. No relay key
 // or sponsorship is exposed by this API, and a wallet signature is never rebuilt.
 export class Queue {
-  constructor(readonly store:{pool:Pool;runId:string},readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS,readonly maxVersion:0|1=0){}
+  constructor(readonly store:{pool:Pool;runId:string},readonly rpc:Rpc,readonly program:Address=sdk.CLEARING_PROGRAM_ADDRESS,readonly maxVersion:0|1=0,readonly marginLayout:sdk.MarginLayout='selected'){}
   async prepare(){await prepareDispatch(this.store.pool,this.store.runId);}
   async budget(name:string,wallet:string,cap:bigint){
     await this.store.pool.query('INSERT INTO service_budgets(run_id,name,wallet,cap) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[this.store.runId,name,wallet,cap.toString()]);
@@ -120,22 +136,23 @@ export class Queue {
           const confirmed=valid.value===true?valid:await this.rpc.call('isBlockhashValid',[r.blockhash,{commitment:'confirmed'}]);
           const expired=valid.value===false&&confirmed.value===false&&blockhashFinalizedSlot!==null
             &&finalizedSlot>=BigInt(blockhashFinalizedSlot);
-          if(expired && r.authority){
-            if(r.authority.kind==='liquidityPriceSequence') {
+          const authority:Authority|null=r.authority??(expired && this.maxVersion===1 && id.startsWith('keeper:proof:')?signedBackingAuthority(r.wire):null);
+          if(expired && authority){
+            if(authority.kind==='liquidityPriceSequence') {
               if(this.maxVersion!==1)throw new Error('Canonical authority requires profile 4');
-              const proof=await liquidityPriceSequence(this.rpc,r.authority,integer(valid.context.slot));
-              if(proof.value.toString()===r.authority.value) {
+              const proof=await liquidityPriceSequence(this.rpc,authority,integer(valid.context.slot));
+              if(proof.value.toString()===authority.value) {
                 status='expired-unexecuted';result={slot:proof.slot.toString(),fee:null,error:null,economicEffect:'not-applied'};
               }
             }else{
-            const a=await this.rpc.call('getAccountInfo',[r.authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
+            const a=await this.rpc.call('getAccountInfo',[authority.account,{encoding:'base64',commitment:'finalized',minContextSlot:integer(valid.context.slot)}]);
             if(a.value?.owner===this.program){
               const bytes=Buffer.from(a.value.data[0],'base64');
-              const value=await accountAuthorityValue(r.authority,bytes);
+              const value=await accountAuthorityValue(authority,bytes,this.marginLayout);
               // Unchanged authority rules out the economic effect, not a failed
               // landing/network fee hidden by incomplete history. Keep any fee
               // reservation until independent transaction evidence exists.
-              if(value.toString()===r.authority.value){status='expired-unexecuted';result={slot:integer(a.context.slot).toString(),fee:null,error:null,economicEffect:'not-applied'};}
+              if(value.toString()===authority.value){status='expired-unexecuted';result={slot:integer(a.context.slot).toString(),fee:null,error:null,economicEffect:'not-applied'};}
             }
             }
           }else if(confirmed.value===true&&r.status!=='expired-unexecuted'){

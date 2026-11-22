@@ -14,13 +14,13 @@ import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {backingStep} from './membership-scan-helper.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
-import {verifyProfitBuild} from './profit-attribution-build.js';
+import {successorSelection,verifyProfitBuild} from './profit-attribution-build.js';
 import {eventually} from './wire.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,url=process.env.RIVALT_RPC_URL!,wsUrl=process.env.RIVALT_WS_URL!;
 const probe=process.env.RIVALT_SETTLEMENT_PROBE!;
 const successor=probe.startsWith('profit-attribution-successor-');
-const selection=successor?'local-successor-candidate':'integrated-recovery-candidate';
+const selection=successor?successorSelection():'integrated-recovery-candidate';
 const delayed=probe.endsWith('-delayed-payout');
 const database=process.env.RIVALT_DATABASE_URL!, runId='p55b2-application';
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();

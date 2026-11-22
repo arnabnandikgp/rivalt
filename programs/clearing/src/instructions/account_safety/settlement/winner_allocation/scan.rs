@@ -183,7 +183,7 @@ pub fn advance(accounts: &mut AdvanceWinnerProof, revision: u64) -> Result<()> {
                     row.lots[market],
                     row.claims[market],
                     rate(row, market),
-                    row.original_debtor_budgets[market],
+                    row.reducible_budgets()[market],
                 )
                 .map_err(|_| ClearingError::Resolution)?;
         }
@@ -256,7 +256,7 @@ fn score_page(
                     frozen_page(page, header, proof.opponent_cursor, proof.original_attempt)?;
                 for debtor in debtors {
                     let size = debtor.lots[market];
-                    if debtor.original_debtor_budgets[market] > 0
+                    if debtor.reducible_budgets()[market] > 0
                         && size.signum() == -lots.signum()
                         && size.unsigned_abs() >= minimum
                     {
@@ -315,7 +315,7 @@ fn score_page(
         .to_bytes();
         proof.debtor_lots += u128::from(
             inventory
-                .debtor_floor(lots, row.original_debtor_budgets[market])
+                .debtor_floor(lots, row.reducible_budgets()[market])
                 .map_err(|_| ClearingError::Resolution)?,
         );
         proof.cursor += 1;

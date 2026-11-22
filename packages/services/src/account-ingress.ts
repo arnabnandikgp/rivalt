@@ -7,6 +7,7 @@ type ParsedInput=Instruction&InstructionWithAccounts<readonly AccountMeta[]>&Ins
 type Parser=(instruction:ParsedInput)=>{accounts:Record<string,AccountMeta|undefined>;data:unknown};
 const action=(discriminator:ReadonlyUint8Array,parse:Parser,decoder:Decoder<unknown>,wallet:'owner'|'actor'|'payer',root?:'trader'|'margin'|'donor',remaining=0)=>
   ({discriminator,parse,decoder,wallet,root,remaining});
+const lane=action(sdk.EXECUTE_LEDGER_LANE_DISCRIMINATOR,sdk.parseExecuteLedgerLaneInstruction,sdk.getExecuteLedgerLaneInstructionDataDecoder(),'actor','trader');
 const actions=[
   action(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR,sdk.parseExecuteLiquidityRouteInstruction,sdk.getExecuteLiquidityRouteInstructionDataDecoder(),'actor','trader'),
   action(sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,sdk.parseWithdrawFundedAccountInstruction,sdk.getWithdrawFundedAccountInstructionDataDecoder(),'owner','margin'),
@@ -28,16 +29,16 @@ const actions=[
 
 /** Opaque signed wallet bytes, one action or exact activation/deposit, explicit zero
  * priority fee. Generated schema parsers bind account roles; no V2 index reuse. */
-export function accountUserAuthority(wire:string,venue:string,profile:4=4):AccountAuthority|null {
+export function accountUserAuthority(wire:string,venue:string,profile:4=4,checkpoints?:readonly sdk.MarketCheckpoint[]):AccountAuthority|null {
   if(profile!==4)throw new Error('Unsupported account service profile');
   const {tx,keys}=signedWire(wire,1);if(tx.signatures.length!==1)throw new Error('Expected one account wallet signer');
-  const economic:ParsedInput[]=[];let limit:Buffer|undefined,price=false,loaded=false;
+  const message:ParsedInput[]=[];let limit:Buffer|undefined,price=false,loaded=false;
   const canonicalLimit=Buffer.alloc(5);canonicalLimit[0]=2;canonicalLimit.writeUInt32LE(800_000,1);
   const loadedLimit=Buffer.alloc(5);loadedLimit[0]=4;loadedLimit.writeUInt32LE(8*1024*1024,1);
   for(const instruction of tx.message.compiledInstructions) {
     const data=Buffer.from(instruction.data);
     if(keys[instruction.programIdIndex]==='ComputeBudget111111111111111111111111111111') {
-      if(tx.message.version===1||economic.length||instruction.accountKeyIndexes.length)throw new Error('Misplaced account compute budget');
+      if(tx.message.version===1||message.length||instruction.accountKeyIndexes.length)throw new Error('Misplaced account compute budget');
       if(data.equals(Buffer.from(sdk.zeroPriorityFee().data!))) {if(price)throw new Error('Duplicate account priority price');price=true;}
       else if(data.equals(loadedLimit)){if(loaded)throw new Error('Duplicate loaded account budget');loaded=true;}
       else {
@@ -46,20 +47,22 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4):Accou
         limit=data;
       }
     }else {
-      if(economic.length>=2||keys[instruction.programIdIndex]!==sdk.CLEARING_PROGRAM_ADDRESS)throw new Error('Unsupported account transaction');
+      if(message.length>=(checkpoints?5:2)||keys[instruction.programIdIndex]!==sdk.CLEARING_PROGRAM_ADDRESS)throw new Error('Unsupported account transaction');
       const {numRequiredSignatures,numReadonlySignedAccounts,numReadonlyUnsignedAccounts}=tx.message.header;
-      economic.push({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data,accounts:instruction.accountKeyIndexes.map(index=>{
+      message.push({programAddress:sdk.CLEARING_PROGRAM_ADDRESS,data,accounts:instruction.accountKeyIndexes.map(index=>{
         const signer=index<numRequiredSignatures,writable=signer?index<numRequiredSignatures-numReadonlySignedAccounts:index<keys.length-numReadonlyUnsignedAccounts;
         return {address:address(keys[index]),role:signer?(writable?AccountRole.WRITABLE_SIGNER:AccountRole.READONLY_SIGNER):(writable?AccountRole.WRITABLE:AccountRole.READONLY)};
       })});
     }
   }
-  if(!economic.length||tx.message.version===0&&(!limit||!price||!loaded))throw new Error('Missing explicit account action/budget/zero price');
+  const economic=sdk.walletEconomicActions(message,checkpoints) as ParsedInput[];
+  const supported=checkpoints?[...actions,lane]:actions;
+  if(!economic.length||economic.length>2||tx.message.version===0&&(!limit||!price||!loaded))throw new Error('Missing explicit account action/budget/zero price');
   if(economic.length===2)sdk.validateActivationDeposit(economic);
   const first=economic[0];
-  const entry=actions.find(entry=>sdk.hex(entry.discriminator)===sdk.hex(first.data.slice(0,8)));
+  const entry=supported.find(entry=>sdk.hex(entry.discriminator)===sdk.hex(first.data.slice(0,8)));
   if(!entry)throw new Error('Unsupported account wallet action');
-  const canonicalRoute=sdk.hex(entry.discriminator)===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
+  const canonicalRoute=sdk.hex(entry.discriminator)===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)||entry===lane;
   if(entry.root==='trader'&&!canonicalRoute)throw new Error('Foreign account route profile');
   const units=entry.root==='trader'?800_000:400_000;
   if(tx.message.version===1) {
@@ -69,7 +72,7 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4):Accou
       throw new Error('Incorrect canonical header budget/priority fee');
   } else if(!limit||limit.readUInt32LE(1)!==units)throw new Error('Incorrect account action budget');
   const parsedActions=economic.map(instruction=>{
-    const allowed=actions.find(action=>sdk.hex(action.discriminator)===sdk.hex(instruction.data.slice(0,8)));
+    const allowed=supported.find(action=>sdk.hex(action.discriminator)===sdk.hex(instruction.data.slice(0,8)));
     if(!allowed)throw new Error('Unsupported account wallet action');
     const [,end]=allowed.decoder.read(instruction.data,0);if(end!==instruction.data.length)throw new Error('Trailing account instruction bytes');
     const parsed=allowed.parse(instruction),fixed=Object.keys(parsed.accounts).length;

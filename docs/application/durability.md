@@ -548,6 +548,16 @@ reserved. Confirmed-valid originals can broadcast the same bytes while awaiting
 finality. Never rebroadcast an already proven-unexecuted original or release its
 unknown fee without an independently fetched landed receipt.
 
+For account observations and revisions, the executor decodes the market or
+margin using its bound deployment layout. The BTC/ETH successor market has
+48 more bytes than the P56 market. The certificate for an ordinary backing
+scan has its own monotone revision. A successful page, including one bundled
+with payment, advances that revision atomically. For older page originals
+without a stored authority, the executor recovers the expected revision and
+account addresses from the original signed clearing instruction. It verifies
+the canonical certificate, market index, bump, venue and unchanged revision
+at finalized commitment before allowing a fresh attempt.
+
 This is an additive nullable SQL column, with no on-chain or signed-wire change.
 Stop older executors before upgrading. Existing unknown originals start without a
 validity witness; do not invent one or relabel historical expired records as newly
@@ -785,3 +795,11 @@ arrays. That lower bound is 17,061 bytes at 128 members against a 10,240-byte
 account. Smaller cohorts still depend on their actual histories, edges and
 rate widths. The keeper reports `recovery-unsupported-rate-witness` for an
 unencodable original rate. Neither condition enqueues a financial transaction.
+
+On process startup, service schema initialization retries PostgreSQL deadlock
+error `40P01` up to three times after the initial attempt. Deployment binding
+and queue dispatch follow successful initialization. For the local interactive
+successor, `RIVALT_BACKING_PAGE_INTERVAL_MS=15000` spaces standalone backing
+page submissions. The worker continues to check collections and payable gains
+during that interval, including a payment bundled with the final page. Service
+workers default to zero added delay.

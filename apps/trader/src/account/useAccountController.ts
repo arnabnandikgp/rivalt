@@ -221,7 +221,7 @@ export function useAccountController(config: AccountTraderConfig) {
             (leg) =>
               `Maker instance ${leg.instance} (${leg.registration.slice(0,8)}): ${fixed(leg.lots, selectedMarket.decimals)} ${selectedMarket.name}.`,
           ),
-          `Quote expires at slot ${quote.expirySlot}. All submitted legs execute atomically.`,
+          `Route slot deadline ${quote.expirySlot}. Maker prices can expire sooner. All legs execute atomically.`,
         ],
       };
     });

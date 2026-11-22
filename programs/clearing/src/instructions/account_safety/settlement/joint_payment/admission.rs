@@ -280,7 +280,7 @@ pub fn capture(
             ])
             .to_bytes();
             page.deltas[i][market] = i64::try_from(
-                i128::from(row.original_debtor_budgets[market])
+                i128::from(row.reducible_budgets()[market])
                     - i128::from(opening.charges[market]),
             )
             .map_err(|_| ClearingError::Arithmetic)?;

@@ -26,7 +26,7 @@ def joint_payments(source):
     for i, account in enumerate(accounts):
         payments = []
         for m, claim in enumerate(account.claims):
-            if case.accounts[i].claims[m] > 0:
+            if case.ceilings[1-m] and case.accounts[i].claims[m] > 0:
                 assert int(claim * benchmark.rates[m]) + targets[m][i] >= ceil(
                     case.accounts[i].claims[m] * case.original.benchmark.rates[m])
                 protected[m] += 1

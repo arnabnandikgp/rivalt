@@ -4220,3 +4220,187 @@ This was an operator-driven qualification against the local synthetic sources.
 The normal local launcher still uses P56. The populated proof family and the
 smaller exhaustive proof family have yet to complete their wallet and restart
 acceptance together on one candidate.
+
+
+### One keeper for both recovery families
+
+Clearing `3d90b3ef` (3,546,744 bytes, SHA-256
+`6d99c5365724baaa7369d6b19bfaadc853ea3afae70a5b9d335b258dcfb7dca2`)
+and the pinned native page helper served all three freezes. The SBF build passed
+its stack check. Seven focused native settlement checks passed. Each signed case
+used an owned Surfpool RPC/WS, PostgreSQL, synthetic sources, and test collateral.
+
+| Frozen cohort | Harness | Finalized keeper originals | Funded wallet withdrawal | Fresh ordered SQL events |
+|---|---|---:|---:|---:|
+| Nine members, 2,548 exhaustive schedules | `a66c3177` | 126 | 4,996 trader + 29,981 makers | 176 |
+| Nine members, two insurance passes | `7e5a1dc3` | 79 | 4,996 trader + 30,003 makers | 176 |
+| 128 members, joint verified payments | `7e5a1dc3` | 517 | 986,527 trader | 1,690 |
+
+In the populated case a fresh process broadcast the exact joint verification
+original that PostgreSQL held when its predecessor received SIGKILL. Every
+worker original matched its independent finalized RPC wire and WebSocket
+notification. Worker transactions used 5,696–899,867 CU and up to 3,288 wire
+bytes. The operator paid 2,585,000 test lamports in network fees. The net payer
+debit above fees was 124,353,320 lamports for proof storage. The qualification
+did not reclaim that storage. The run also sent 987 fixture/exit transactions.
+
+Final funded cash totaled 332,877,029 atoms. BTC and ETH used 6,786 and 3,251
+insurance atoms. The frozen-input rational reference and two native circulations
+matched all cash and market movements. The per-member flow reader at `25205003`
+compared all 256 signed movements and all 256 claim changes against the finalized
+RPC capture. After withdrawal, the vault and allocated balance both held
+331,920,613 atoms. Fresh replay matched every event and reconciled 405 accounts,
+including all 128 members, with no pending journal jobs. The same keeper changes
+no release criteria for a book whose optimum cannot be proved.
+[Verifier choice](../DECISIONS.md#d141--choose-the-local-recovery-verifier-at-the-freeze)
+
+
+### Fresh local successor lifecycle
+
+The ordinary path, funding, liquidation and mixed-traffic runs used the same
+clearing artifact as the nine- and 128-member recovery cases above. Each case
+used actual signed transactions, Surfpool RPC/WS and fresh PostgreSQL replay.
+
+| Case | Harness | Measured result | Replayed events |
+|---|---|---|---:|
+| Already-backed different-maker close | `25205003` | 996 atoms of gain, 26 in fees, 970 withdrawn. From close confirmation to cash 5.096 s, to wallet 5.237 s. | 334 |
+| Delayed backing and keeper restart | `25205003` | Same 970-atom wallet exit. Backing available at 2.373 s, cash at 7.659 s, wallet at 7.693 s. | 329 |
+| Two-market funding and publication outage | `a66c3177` | 275 outcomes. ETH funding advanced from 4,999,999 to 5,555,555. After one covered second and a 30-second uncovered interval, BTC stayed at 6,111,110. | 113 |
+| Maker liquidation and funded receiver | `a66c3177` | Maker closed 10 of 50 lots using 247,136 CU. The unfunded receiver could not act. Once funded it took 5 lots using 100,524 CU. The trader recovered maintenance at 35 lots. | 155 |
+| Paired fills, cash exit and subsequent default freeze | `655358c3` | 360 of 360 fills finalized. Distinct BTC makers shared no writable account. Same-maker fills shared capital and registration. | 1,203 |
+
+[Measured resources and fees](performance.md#mixed-traffic-on-the-fresh-local-runtime)
+
+The ordinary risk worker at `f7535f93` also submitted the original
+default freeze after a second adverse source update took the 35-lot trader
+below zero. Clearing froze all nine Financial accounts. The freeze used
+136,354 CU and 1,186 bytes. Fresh SQL replay matched 160 events across both
+liquidation stages, receiver unwind and the subsequent freeze.
+
+The fresh launcher with the unified deployment at `db5c2997` and the local browser wallet finalized 14
+successful user actions and recorded 0 finalized refusals. With positions in
+both BTC and ETH, a signed 1,000,000-atom top-up classified both ledgers.
+The browser then placed and cancelled TP/SL, closed both positions, withdrew
+1,000,000 collateral atoms, reloaded the receipts and displayed the four
+indexed fills. An explicit wallet decline created no signed original. The
+compiler reproduced all four SDK-pinned program hashes from archived Git
+sources. The local test supervisor and PostgreSQL stopped after the wallet run.
+This qualifies the stated local program set and workload only. The live
+backstop, policy for an indefinitely frozen book and external reviews remain open.
+
+The initial launcher run exposed a publisher-journal mismatch when a valid
+checkpoint preceded the signed report. Another browser run exposed a check
+that assumed a fixed instruction index for a stale route. Both were corrected.
+A subsequent run stopped on a finalized maker-quote refusal before the signed
+slot expiry. Its cause was unclassified and its original remained recorded.
+The successful 14-action session used independently rebuilt program files and
+had zero signed refusals. Source and maker lifetime checks stayed enabled.
+
+The flow audit also verifies each frozen page's expected row count. It accepted
+all 16 original pages from the finalized 128-member capture and rejected a
+copy with its first page shortened from eight rows to seven. Reproduce the
+mid-sized storage and sparse-book controls with the recovery selector installed
+and `node --import tsx tests/performance/successor-proof-space.ts --compare-verifiers`.
+[D142](../DECISIONS.md#d142--keep-the-qualified-successor-launcher-explicit)
+records why P56 remains the default.
+
+After restoring P56 as the default at `fb7152b4`, a new session explicitly
+selected the rebuilt successor. Both the BTC and ETH publishers finalized a
+report at slot 1,519. For each market, the 29 retained input accounts, digest
+and decoded report were verified in PostgreSQL and its original wire matched
+an independent finalized RPC lookup. The owned services shut down cleanly.
+
+### Frozen-book verifier selection and mid-sized exits
+
+Clearing `79724a5a` is 3,555,384 bytes with SHA-256
+`c8c98fb4906426c3582f9d478da983c0ea43b3ba518a5c145b7e45923bc05828`.
+The installer independently rebuilt this executable and the three pinned
+maker/oracle binaries from Git. The 75-member runs used harness `3e89caf2`.
+The keeper restarted from an original signed before its first broadcast.
+For each settled book, the checks compare every funded cash balance and
+both market movements and claim changes per member, the wallet and vault
+token deltas, and the complete event stream in a fresh PostgreSQL projection.
+
+| Frozen book | Finalized keeper transactions | Wallet withdrawal in collateral atoms | BTC / ETH insurance spent | Replayed events |
+|---|---:|---:|---:|---:|
+| 75 flat accounts with unpaid BTC debt | 193 | 50,399,399 | 200 / 0 | 710 |
+| 75 accounts with one BTC debtor and two opposing makers | 285 | 50,199,819 | 120 / 0 | 689 |
+| 75 accounts with 71 exposed across BTC and ETH | 327 | 986,527 | 3,894 / 1,855 | 1,025 |
+
+The two creditor withdrawals include 50,000,000 atoms each of existing maker
+cash. The respective BTC recoveries were 399,399 and 199,819 atoms.
+The two-pair freeze captured all 75 members. The original histories added
+39 bytes to the 10,171-byte minimum, and the two eligible pairs took the
+search to 10,260 bytes. Deriving these dimensions used 218,467 CU and the
+signed switch to paged verification used 46,551 CU. The all-flat book
+started with pages directly.
+
+The first sparse run on `84c8464f` stopped when binding an untouched
+register. The two-pair run on that build exhausted its compute budget while
+deriving pair budgets. Both failed before any wallet release. The corrected
+build initializes the eligible register and combines claimless cash only
+for the original rate calculation. Two native circulation calculations
+matched the independent rational reference on the three 75-member inputs
+and on the populated 128-member input.
+
+Passing these cases establishes recovery for the recorded books. A representable
+search can still exceed a keeper's schedule budget or require a wider rate
+witness. A book without a verifiable plan stays frozen.
+[Reproduction](local-development.md#run-both-recovery-families-on-the-same-build)
+
+### Default fresh-local wallet
+
+The stock launcher and browser at `4164f7cd` used clearing `79724a5a`, six
+internal maker signers and two restricted publishers. Fourteen of 15 signed
+wallet originals succeeded. One ETH buy finalized with financial-sequence
+error 6122. After a fresh review the ETH buy landed. The user declined a
+separate deposit before signing. The wallet paid 75,000 local lamports across
+all signed originals, including 5,000 for the refusal.
+
+The flow registered cross and isolated accounts, deposited and allocated
+collateral, opened BTC and ETH, topped up with both markets exposed, placed
+and canceled TP/SL, and closed both positions reduce-only. The withdrawal
+added exactly 1,000,000 atoms to the wallet token balance. After reload the UI
+recovered the originals and displayed the four indexed fills. The local supervisor
+and PostgreSQL stopped after acceptance.
+
+Earlier sessions exposed a maker publication expiring at exactly six seconds,
+an expired funding original bound to the successor's 503-byte market, and a
+legacy page-only backing original without a stored revision stamp. The corrected
+executor verified both expired originals from finalized state on the retained
+chain, kept their unknown fees reserved, and a new BTC report landed at slot
+12,156. In a further run the wallet waited a minute for Normal while background
+backing pages occupied both markets for four to six seconds per page. The local
+launcher now targets two-second funding publication and spaces standalone backing
+page submissions by 15 seconds. Earlier operator timings used different worker
+settings. This wallet run measures one completed workflow and supplies no
+continuous availability or worst-case time-to-payment guarantee.
+
+On this clearing binary the nine-member exhaustive run at `959f1348` checked
+2,548 schedules, finalized 126 keeper originals and completed four withdrawals.
+The two-pass insurance case at `3e89caf2` finalized 79 originals and completed
+four withdrawals. Each fresh PostgreSQL replay reproduced 176 events. The
+128-member run at `3e89caf2` recovered its interrupted keeper original and
+finalized 517 originals, compared 128 cash payouts and 256 market movements,
+and withdrew 986,527 atoms. Fresh replay reproduced 1,690 events and the
+331,920,613-atom remaining vault balance reconciled.
+
+### Frozen-book reference checks
+
+At `2d799902`, the native audit and independent Python reference checked the
+original debtor budgets, recoverable amounts, per-member cash, movements and
+insurance against all three retained 75-member inputs from `3e89caf2`.
+
+| Frozen book | Original debtor writeoffs, BTC / ETH atoms | Maximum recovered from open lots, BTC / ETH atoms | Matched BTC / ETH lots |
+|---|---:|---:|---:|
+| Flat | 400,801 / 0 | 0 / 0 | 0 / 0 |
+| Two eligible pairs | 400,481 / 0 | 400,481 / 0 | 22 / 0 |
+| Dense | 4,580,723 / 2,132,634 | 4,580,723 / 2,132,634 | 240 / 231 |
+
+Eight financial reference tests passed, including a mixed book with 20 atoms
+written off and 10 recoverable. The native sparse-budget regression checked
+an equivalent 180-bit witness against the full cohort. The generated account
+encoder measured 6,045 bytes during capture and 10,245 bytes after materializing
+75 members with 50 history bytes and two insurance rounds. The allocation was
+10,240 bytes. The focused selector comparison and TypeScript checks also passed.
+These were host calculations against retained signed inputs.

@@ -34,7 +34,7 @@ export function accountBackingCurrent(snapshot:sdk.AccountSnapshot,registry:sdk.
   return status.current&&status.sourcesCurrent;
 }
 
-export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise<AccountWorkerOutcome> {
+export async function settleAccounts(runtime:AccountRuntime,key:Keypair,allowBackgroundPage=true):Promise<AccountWorkerOutcome> {
   const budget=await runtime.budget('settlement',key);
   if(await runtime.pendingBudget(budget))return {status:'blocked',reason:'original-settlement-intent-pending'};
   const {state}=await runtime.discovery();
@@ -57,6 +57,7 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
       if(accountClaimAmount(snapshot,margin,marketIndex,true)>0n)gains.push({margin,marketIndex});
     }
   }
+  let pageDeferred=false;
   for(const {margin,marketIndex} of gains) {
     const snapshot=await runtime.snapshot([margin]),[certificate,bump]=await sdk.deriveSettlementCertificate(snapshot.venue,marketIndex);
     const response=await runtime.rpc.call('getMultipleAccounts',[[snapshot.registry,certificate],{encoding:'base64',commitment:'confirmed'}]);
@@ -82,19 +83,21 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
         const request=restart?sdk.initialMembershipRequest(registry.financialCount):
           sdk.membershipRequest(proof.membership.checkpoint,proof.count);
         assert(request.kind!=='done','Complete cursor without completed backing');
-        const remaining=await sdk.membershipRequestAccounts(runtime.rpc,snapshot.venue,request,true);
-        const instruction=sdk.getCheckMarketBackingInstruction({...snapshot,certificate,ledger:snapshot.ledgers[marketIndex],
-          revision:proof.revision,restart});
-        const page={...instruction,accounts:[...instruction.accounts,...remaining]};
         const amount=accountClaimAmount(snapshot,margin,marketIndex,true);
         // Traversal closes its ancestor frames after the final root. The final
         // root alone is not a complete-cohort proof.
         const payOnCompletion=!restart&&status.arithmeticReady&&status.sourcesCurrent&&request.kind==='node'&&request.level===14&&proof.next===proof.count&&amount>0n;
         const payment=payOnCompletion?sdk.getPayAccountGainInstruction({...snapshot,actor:key,margin,certificate,marketIndex,amount,
           ...sdk.accountLiabilityMetas(snapshot.ledgers,[snapshot.roots[margin]],1<<marketIndex)}):undefined;
+        if(!payment&&!allowBackgroundPage){pageDeferred=true;continue;}
+        const remaining=await sdk.membershipRequestAccounts(runtime.rpc,snapshot.venue,request,true);
+        const instruction=sdk.getCheckMarketBackingInstruction({...snapshot,certificate,ledger:snapshot.ledgers[marketIndex],
+          revision:proof.revision,restart});
+        const page={...instruction,accounts:[...instruction.accounts,...remaining]};
         await runtime.enqueue(`keeper:proof:${marketIndex}:${proof.backingEpoch}:${registry.membershipEpoch}:${proof.revision}`,
           await settlementInstructions(snapshot,sdk.resolutionComputeBudget(),page,...(payment?[payment]:[])),key,budget,
-          payment?{kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()}:null,true);
+          payment?{kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:snapshot.roots[margin].stateVersion.toString()}:
+            {kind:'backingRevision',venue:snapshot.venue,account:certificate,value:proof.revision.toString()},true);
         return {status:'queued',reason:payment?'atomic-backing-page-and-gain':'complete-market-backing-page'};
       }
       if(!status.payable)continue;
@@ -107,5 +110,6 @@ export async function settleAccounts(runtime:AccountRuntime,key:Keypair):Promise
       return {status:'queued',reason:'certified-market-gain'};
     } catch(error) {if(!(error instanceof Error&&error.message==='Risk action presently unavailable'))throw error;}
   }
+  if(pageDeferred)return {status:'idle',reason:'background-page-interval'};
   return {status:'idle',reason:gains.length?'backing-or-current-source-unavailable':'no-admissible-whole-atom-claim'};
 }

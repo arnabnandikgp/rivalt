@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {address,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
+import {settlementInstructions} from './settlement-checkpoints.js';
 import {automaticLiquidation} from './maker-liquidation-worker.js';
 import {quantityCandidates} from './quantity-candidates.js';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
@@ -51,7 +52,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
     }
   }
   if(selection==='local-successor-candidate'||selection==='integrated-recovery-candidate')return automaticLiquidation(runtime,key,budget,receiver);
-  if(frozenOnly)return {status:'blocked',reason:'candidate-frozen-continuation-only'};
+  if(frozenOnly&&selection!=='unified-recovery-candidate')return {status:'blocked',reason:'candidate-frozen-continuation-only'};
   const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
   const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;
   const common={...snapshot,...continuation,...accountRiskSources(snapshot)};
@@ -78,9 +79,12 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
   for(const target of probes) {
     const instruction=sdk.getFreezeAccountsInstruction({...common,caller:key,target,members:(await sdk.deriveMemberPage(snapshot.venue,BigInt(state.roots[target].id)/64n))[0],safetyEpoch:snapshot.safetyState.epoch,
       resolutionEpoch:header.epoch,emergency:false});
-    if(await submit(`freeze:${header.epoch}:${target}:${snapshot.custodyState.revision}`,instruction))return {status:'queued',reason:'authenticated-net-insolvency'};
+    const financial=snapshot.marginLayout==='ledger-lanes'?
+      (await settlementInstructions(snapshot,sdk.liquidationComputeBudget(),instruction)).slice(1):instruction;
+    if(await submit(`freeze:${header.epoch}:${target}:${snapshot.custodyState.revision}`,financial))return {status:'queued',reason:'authenticated-net-insolvency'};
   }
   if(snapshot.safetyState.paused)return {status:'blocked',reason:'venue-paused-after-default-probes'};
+  if(selection==='unified-recovery-candidate')return automaticLiquidation(runtime,key,budget,receiver,probes);
   if(!receiver)return {status:'blocked',reason:'no-configured-funded-receiver'};
   for(const target of probes) {
     if(target===receiver)continue;

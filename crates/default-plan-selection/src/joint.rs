@@ -74,25 +74,30 @@ pub struct Receipt {
     pub recovered: [(BigInt, BigUint); 2],
 }
 
+pub struct OpenLotBound {
+    pub budgets: Vec<[u64; 2]>,
+    pub ceilings: [BigUint; 2],
+    pub reached: bool,
+}
+
+fn budget_totals(budgets: &[[u64; 2]]) -> [BigUint; 2] {
+    core::array::from_fn(|market| budgets.iter().map(|row| BigUint::from(row[market])).sum())
+}
+
 impl Receipt {
-    /// A bound on net loss removed, independently in each market. A verified
-    /// charge consumes a debtor's original whole-atom budget. The recovery
-    /// score also caps the decline in impairment by the actual charge.
+    /// The original settlement includes debt from both flat and open members.
     pub fn recovery_ceilings(&self) -> [BigUint; 2] {
-        core::array::from_fn(|market| {
-            self.budgets
-                .iter()
-                .map(|row| BigUint::from(row[market]))
-                .sum()
+        budget_totals(&self.budgets)
+    }
+
+    fn reaches(&self, ceilings: &[BigUint; 2]) -> bool {
+        self.recovered.iter().zip(ceilings).all(|((numerator, denominator), ceiling)| {
+            *numerator == BigInt::from(ceiling * denominator)
         })
     }
 
-    /// Equality in both columns proves the first two D120 priorities. Winner
-    /// sharing, lot usage and frozen-episode ordering require separate proofs.
     pub fn reaches_both_recovery_ceilings(&self) -> bool {
-        self.recovered.iter().zip(self.recovery_ceilings()).all(
-            |((numerator, denominator), ceiling)| *numerator == BigInt::from(ceiling * denominator),
-        )
+        self.reaches(&self.recovery_ceilings())
     }
 }
 
@@ -158,6 +163,19 @@ pub struct Edge {
 }
 
 impl FrozenBook<'_> {
+    /// Forced reduction must close an original debtor lot in the charged market.
+    /// A flat member's writeoff remains in the settlement and cannot fund a close.
+    pub fn open_lot_bound(&self, receipt: &Receipt) -> Result<OpenLotBound> {
+        if self.members.len() != receipt.budgets.len() {
+            return Err(Error::Cohort);
+        }
+        let budgets: Vec<_> = self.members.iter().zip(&receipt.budgets).map(|(member, amounts)| {
+            core::array::from_fn(|market| if member.lots[market] == 0 { 0 } else { amounts[market] })
+        }).collect();
+        let ceilings = budget_totals(&budgets);
+        Ok(OpenLotBound { reached: receipt.reaches(&ceilings), budgets, ceilings })
+    }
+
     /// The original greatest settlement rates determine each debtor's usable loss.
     pub fn edge_budgets(&self, original: Witness<'_>) -> Result<Vec<[u64; 2]>> {
         let rows: Vec<_> = self.members.iter().map(|member| member.row).collect();
@@ -172,6 +190,33 @@ impl FrozenBook<'_> {
             &mut arithmetic,
         )?;
         debtor_budgets(&plan, rows.len(), &mut arithmetic)
+    }
+    /// A zero-claim row contributes its retained cash and no market flow to
+    /// the original rate equations. Combine those balances for this rate
+    /// calculation, then return one budget for every original member.
+    pub fn sparse_edge_budgets(&self, original: Witness<'_>) -> Result<Vec<[u64; 2]>> {
+        // Native rate witnesses can use a common factor wider than the on-chain
+        // u64 encoding. Keep the original cohort's arithmetic limits for them.
+        #[cfg(not(target_arch = "bpf"))]
+        if original.rates.iter().any(|proposal| proposal.factor.bits() > 64) {
+            return self.edge_budgets(original);
+        }
+        let mut neutral = self.members.iter().filter(|member| member.row.claims == [0; 2]);
+        if neutral.clone().count() < 2 {
+            return self.edge_budgets(original);
+        }
+        let retained_cash = neutral.try_fold(0u64, |total, member| {
+            total.checked_add(member.row.cash).ok_or(Error::Overflow)
+        })?;
+        let mut rows: Vec<_> = self.members.iter().map(|member| member.row)
+            .filter(|row| row.claims != [0; 2]).collect();
+        rows.push(Row { cash: retained_cash, claims: [0; 2] });
+        let mut arithmetic = Arithmetic::new(required_limbs(rows.len() as u64)?, 128)?;
+        let plan = verify(&rows, self.pools, self.insurance, self.fees, original.rates, &mut arithmetic)?;
+        let mut active = debtor_budgets(&plan, rows.len() - 1, &mut arithmetic)?.into_iter();
+        self.members.iter().map(|member| {
+            if member.row.claims == [0; 2] { Ok([0; 2]) } else { active.next().ok_or(Error::Cohort) }
+        }).collect()
     }
     /// Reconstruct each budget from payment rates and market loss fractions.
     /// The original settled book authenticates those terms once for all rows.
@@ -378,5 +423,37 @@ impl FrozenBook<'_> {
             original_losses: baseline.market_losses().each_ref().map(integer),
             recovered: recovery(&baseline, &plan, charged),
         })
+    }
+}
+
+#[cfg(test)]
+mod budget_tests {
+    use super::*;
+
+    #[test]
+    fn only_claimless_rows_can_be_combined_when_deriving_original_budgets() {
+        let members: Vec<_> = (0..75).map(|id| Member {
+            id,
+            row: match id {
+                3 => Row { cash: 20, claims: [-100 * SCALE, 0] },
+                71 => Row { cash: 0, claims: [100 * SCALE, 0] },
+                _ => Row { cash: id + 1, claims: [0; 2] },
+            },
+            lots: [0; 2],
+            history: [&[], &[]],
+        }).collect();
+        let book = FrozenBook { members: &members, marks: [1; 2], pools: [0; 2], insurance: [0; 2], fees: [0; 2] };
+        let rates = [Proposal { factor: 5u128.into(), rates: [1u128.into(), 5u128.into()] }];
+        let witness = Witness { rates: &rates, orders: [&[], &[]] };
+        let mut expected = alloc::vec![[0; 2]; 75];
+        expected[3] = [80, 0];
+        assert_eq!(book.edge_budgets(witness).unwrap(), expected);
+        assert_eq!(book.sparse_edge_budgets(witness).unwrap(), expected);
+
+        let wide = |coefficient: u64| Number::from_words(alloc::vec![0, 0, coefficient << 49]);
+        let rates = [Proposal { factor: wide(5), rates: [wide(1), wide(5)] }];
+        let witness = Witness { rates: &rates, orders: [&[], &[]] };
+        assert_eq!(book.edge_budgets(witness).unwrap(), expected);
+        assert_eq!(book.sparse_edge_budgets(witness).unwrap(), expected);
     }
 }

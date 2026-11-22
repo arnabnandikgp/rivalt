@@ -5,6 +5,10 @@ import { liquidityFixture, testAddress, emptyState } from '../test-support/liqui
 
 /** Builder-only synthetic snapshot; live account authentication is a separate
  * RPC acceptance requirement, never established by these fixtures. */
+function parseSerial(instruction:NonNullable<Awaited<ReturnType<typeof buildLiquidityRoute>>>['instructions'][number]) {
+  expect(instruction.data.slice(0,8)).toEqual(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
+  return protocol.parseExecuteLiquidityRouteInstruction(instruction as Awaited<ReturnType<typeof protocol.getExecuteLiquidityRouteInstructionAsync>>);
+}
 function fixture() {
   const financial = liquidityFixture(), trader = testAddress(70);
   const venue = financial.root.venue, markets = [financial.makers[0].snapshot.market, testAddress(71)];
@@ -32,7 +36,7 @@ it('signs caller limits and structural epochs without pinning price sequence or 
   financial.makers[0].price.sequence = 99n;
   financial.makers[0].registrationState.buyConsumed = 10n;
   const built = (await buildLiquidityRoute(input, financial.root.owner))!;
-  const parsed = protocol.parseExecuteLiquidityRouteInstruction(built.instructions[0]);
+  const parsed = parseSerial(built.instructions[0]);
   expect(parsed.data).toMatchObject({ allInLimit: 20_000n, maxFee: 10n, lots: 1n,
     legs: [{ lots: 1n, authorityEpoch: 1n, controlEpoch: 1n, shapeEpoch: 1n, depthEpoch: 1n }] });
   expect(Object.keys(parsed.data.legs[0]).sort()).toEqual(['authorityEpoch', 'controlEpoch', 'depthEpoch', 'lots', 'shapeEpoch']);
@@ -48,7 +52,7 @@ it('keeps the selected distinct two-maker allocation and caps expiry by every se
   financial.makers[2].shape = { ...financial.makers[2].shape, asks: [{ endLots: 4096n, offset: 40n, slope: 0n }] };
   financial.makers[1].validUntilSlot = 140n;
   const built = (await buildLiquidityRoute({ ...input, lots: 100n, allInLimit: 2_000_000n, maxFee: 1000n }, financial.root.owner))!;
-  const parsed = protocol.parseExecuteLiquidityRouteInstruction(built.instructions[0]);
+  const parsed = parseSerial(built.instructions[0]);
   expect(parsed.data.legs.map(leg => leg.lots)).toEqual([21n, 79n]);
   expect(parsed.data.expirySlot).toBe(140n);
   expect(parsed.accounts.firstCapital.address).toBe(financial.makers[0].registrationState.capital);
@@ -83,7 +87,8 @@ it('permits a keeper to reduce only a distressed target and rejects each adverse
   financial.root.cash=12_000n;
   expect(await buildMakerLiquidation(snapshot,trader,0,2n,outsider)).toBeNull();
   const fill=await buildMakerLiquidation(snapshot,trader,0,1n,outsider);
-  const parsed=protocol.parseLiquidateLiquidityRouteInstruction(fill!.instructions[0]);
+  expect(fill!.instructions[0].data.slice(0,8)).toEqual(protocol.LIQUIDATE_LIQUIDITY_ROUTE_DISCRIMINATOR);
+  const parsed=protocol.parseLiquidateLiquidityRouteInstruction(fill!.instructions[0] as Awaited<ReturnType<typeof protocol.getLiquidateLiquidityRouteInstructionAsync>>);
   expect(parsed.data).toMatchObject({side:1,reduceOnly:true,generation:{__option:'Some',value:3n},lots:1n,allInLimit:9988n,maxFee:2n});
   expect(parsed.accounts.actor.address).toEqual(outsider);
   await expect(buildLiquidityRoute({...input,side:1,allInLimit:0n},outsider)).rejects.toThrow(/authority/);
@@ -107,4 +112,18 @@ it('covers a short with two one-lot asks and refuses to average in an out-of-bou
   expect(cover?.allocation.grossQuote).toBe(20_020n);
   financial.makers[1].shape={...financial.makers[1].shape,asks:[{endLots:1n,offset:101n,slope:0n}]};
   expect(await buildMakerLiquidation(snapshot,trader,0,2n,keeper)).toBeNull();
+});
+
+it('selects a direct ledger-lane fill only while its held window and maker capacity cover the trade',async()=>{
+  const {financial,input}=fixture();
+  input.snapshot.marginLayout='ledger-lanes';
+  const state=input.snapshot.marketStates[0];
+  const capacity={generation:1n,available:[10n,10n,10n]};
+  Object.assign(state,{capacity});
+  const tag=async()=>(await buildLiquidityRoute(input,financial.root.owner))!.instructions[0].data.slice(0,8);
+  expect(await tag()).toEqual(protocol.EXECUTE_LEDGER_LANE_DISCRIMINATOR);
+  capacity.available.fill(0n);
+  expect(await tag()).toEqual(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
+  capacity.available.fill(10n);state.oracle.heldSlot=input.snapshot.slot;
+  expect(await tag()).toEqual(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
 });
