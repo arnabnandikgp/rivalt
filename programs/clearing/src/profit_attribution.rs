@@ -132,6 +132,28 @@ pub fn frozen_cap(root: &BorshAccount<MarginAccount>, mark:u64, claim:i128) -> R
         .map_err(|_|ClearingError::Resolution.into())
 }
 
+/// The exhaustive verifier copies each canonical history into a 256-byte slot
+/// and trims its trailing zeroes. Measure the same program-owned bytes at freeze.
+#[cfg(feature = "unified-recovery-qualification")]
+pub(crate) fn exhaustive_history_bytes(root: &BorshAccount<MarginAccount>) -> Result<Option<u64>> {
+    let account = root.account();
+    require!(valid_margin_size(account.data_len()), ClearingError::Profile);
+    let data = account.try_borrow()?;
+    let tail = &data[MARGIN_PREFIX..];
+    require!(tail.starts_with(MAGIC), ClearingError::Profile);
+    let end = slots_end(tail);
+    let width = (end - MAGIC.len()) / 2;
+    let mut total = 0;
+    for slot in tail[MAGIC.len()..end].chunks_exact(width) {
+        let length = slot.iter().rposition(|byte| *byte != 0).map_or(0, |last| last + 1);
+        if length > 256 {
+            return Ok(None);
+        }
+        total += length as u64;
+    }
+    Ok(Some(total))
+}
+
 #[cfg(feature="btc-residual-qualification")]
 pub fn btc_reduction(root:&BorshAccount<MarginAccount>, mark:u64, claim:i128, shortfall:u64)
     -> Result<clearing_accounting::attribution::PairedLots> {

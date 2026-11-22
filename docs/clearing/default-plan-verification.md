@@ -1346,3 +1346,24 @@ continuations copy the certified signed claim changes and numerical registers.
 The final copy checks that the canonical rate verifier restores the same result.
 The ordinary conserving graph then determines atom ownership. Vault reconciliation
 and the complete-cohort application still precede wallet exits.
+
+### Choosing a verifier from frozen positions
+
+During valuation the unified candidate measures the bytes of the two canonical
+profit histories on every original member. Flat positions have empty histories.
+An exhaustive search requires 397 header bytes, 130 per member, 24 per verified
+insurance evaluation, the history payload and 25 per eligible pair. If even one
+round cannot fit in 10,240 bytes, or a history exceeds the 256-byte capture slot,
+clearing starts the original-rate page scan. An entirely flat book also starts
+that scan because no member has an open position to reduce.
+
+When the minimum fits, clearing can capture the complete book and verify original
+rates and debtor budgets. A verified pair prefix that exceeds search storage or
+the u128 schedule-count field stamps the sponsor’s search as unrepresentable
+(stage 5). Binding that stage advances only the frozen preparation header to the
+original-denominator pass. A sponsor's search budget, proposed rank or failed
+simulation cannot authorize the switch. Every payout still needs a complete
+verified plan and reconciliation. The populated certificate retains original
+cash and debt attribution. A debtor's charge target in a market where its
+position is flat is zero. The resulting unpaid debt goes through the existing
+residual-loss calculation. P56 remains the normal local launcher.

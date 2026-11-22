@@ -2,7 +2,7 @@ import {excludedRecoveryEnd} from './recovery-coverage.js';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import * as paged from '@rivalt/sdk/paged-recovery';
-import {minimumPagedSearchBytes,nextPagedProofInstruction} from './paged-recovery-proof.js';
+import {minimumPagedSearchBytes,nextPagedProofInstruction,pagedRateWitness} from './paged-recovery-proof.js';
 import {AccountRole,getAddressEncoder,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
@@ -43,8 +43,9 @@ export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,conte
     loaded.set(runtime,cache);
   }
   const {book,outcome}=cache.selection;
-  if('blocked' in outcome)return blocked(outcome.blocked);
-  const {rank,count,edges}=outcome;
+  const redirect='blocked' in outcome && outcome.blocked==='recovery-prove-dimensions';
+  if('blocked' in outcome && !redirect)return blocked(outcome.blocked);
+  const rank='rank' in outcome?outcome.rank:0n;
   const nonce=searchNonce(venue,epoch,revision,rank);
   const [search]=await sdk.findSearchPda({payer:key.address,nonce});
   const args={...context,search,epoch,revision};
@@ -54,11 +55,27 @@ export async function recoveryProofStep(runtime:AccountRuntime,key:Keypair,conte
   assert(response.context.slot>=Number(context.contextSlot),'Recovery checkpoint moved backwards');
   if(pagedProof) {
     const proof=response.value?decodeAccountWorker(response.value,paged.PAGED_RECOVERY_SEARCH_DISCRIMINATOR,paged.getPagedRecoverySearchDecoder()):null;
+    if(redirect) {
+      if(!proof)return ready('open-dimension-check',paged.getOpenSearchInstruction({...args,payer:key,nonce,rank,
+        original:pagedRateWitness(book,[],0n)}));
+      assert(proof.prepared===prepared && proof.epoch===epoch && proof.revision===revision && proof.proposed===rank,'Foreign dimension proof');
+      if(proof.stage===0) {
+        const ordinal=proof.rows.length;
+        assert(ordinal<book.rows.length);
+        return ready('capture-'+ordinal,paged.getCaptureMemberInstruction({...args,ordinal,page:book.pages[Math.floor(ordinal/8)],margin:book.rows[ordinal].member}));
+      }
+      if(proof.stage===1)return {...ready('derive-pairs',paged.getDerivePairsInstruction(args)),computeUnitLimit:1_350_000 as const};
+      assert.equal(proof.stage,5,'Clearing found a representable exhaustive search');
+      return ready('select-paged',paged.getBindRecoverySelectionInstruction(args));
+    }
+    assert('count' in outcome);
     const next=nextPagedProofInstruction(book,outcome,{...args,payer:key,nonce},proof,sdk.CLEARING_PROGRAM_ADDRESS);
     if(next)return {...ready(next.action,next.instruction),computeUnitLimit:next.computeUnitLimit};
     const bind=paged.getBindRecoverySelectionInstruction(args);
     return ready('bind-selection',{...bind,accounts:[...bind.accounts,...book.pages.map(address=>({address,role:AccountRole.WRITABLE}))]});
   }
+  assert('count' in outcome);
+  const {count,edges}=outcome;
   if(!response.value)return ready('open-proof',sdk.getOpenSearchInstruction({...args,payer:key,nonce,rank,original:recoveryRateWitness(book,[],0n)}));
   const proof=decodeAccountWorker(response.value,sdk.RECOVERY_SEARCH_DISCRIMINATOR,sdk.getRecoverySearchDecoder());
   assert(proof.prepared===prepared && proof.epoch===epoch && proof.revision===revision && proof.proposed===rank,'Foreign recovery checkpoint');

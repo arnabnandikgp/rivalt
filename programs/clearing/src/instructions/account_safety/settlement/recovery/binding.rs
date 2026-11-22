@@ -133,10 +133,19 @@ pub fn bind(
             && proof.prepared == *header.address()
             && proof.epoch == epoch
             && proof.revision == revision
-            && proof.stage == 4
+            && proof.rows.len() as u64 == header.count,
+        ClearingError::Resolution
+    );
+    #[cfg(feature = "unified-recovery-qualification")]
+    if proof.stage == search::EXHAUSTIVE_UNREPRESENTABLE {
+        require!(pages.is_empty(), ClearingError::Resolution);
+        header.stage = super::super::ORIGINAL_DENOMINATOR;
+        return Ok(());
+    }
+    require!(
+        proof.stage == 4
             && proof.count != 0
             && proof.cursor == proof.count
-            && proof.rows.len() as u64 == header.count
             && proof.cash.len() == proof.rows.len()
             && proof.movements.len() == proof.rows.len()
             && proof.retained_fees == header.fees,

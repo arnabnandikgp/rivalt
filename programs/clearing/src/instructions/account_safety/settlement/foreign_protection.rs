@@ -139,7 +139,7 @@ pub fn scan(
                     cash: record.cash,
                     claims: record.claims,
                 },
-                record.original_debtor_budgets,
+                record.reducible_budgets(),
             )
             .map_err(|_| ClearingError::Resolution)?;
     }

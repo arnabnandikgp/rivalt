@@ -108,6 +108,15 @@ pub fn value(ctx: &mut Context<ValuePreparedMember>, _epoch: u64, revision: u64)
         &entry,
         &accounts.margin,
     )?;
+    #[cfg(feature = "unified-recovery-qualification")]
+    {
+        // The denominator pass starts only after all frozen rows are accepted.
+        let scratch = &mut accounts.prepared.state.denominator[..8];
+        let previous = u64::from_le_bytes(scratch[..].try_into().unwrap());
+        let count = crate::profit_attribution::exhaustive_history_bytes(&accounts.margin)?
+            .and_then(|bytes| previous.checked_add(bytes)).unwrap_or(u64::MAX);
+        scratch.copy_from_slice(&count.to_le_bytes());
+    }
     #[cfg(feature = "partitioned-recovery-inputs")]
     {
         let index = usize::from(accounts.page.row_count) - 1;

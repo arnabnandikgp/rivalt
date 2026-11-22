@@ -76,6 +76,20 @@ pub struct FrozenMargin {
     #[cfg(feature = "populated-recovery-qualification")]
     pub original_debtor_budgets: [u64; 2],
 }
+#[cfg(feature = "populated-recovery-qualification")]
+impl FrozenMargin {
+    /// Forced reduction needs a position in the indebted market. Keep the full
+    /// debtor budget on the frozen row for original collection and loss accounting.
+    pub(crate) fn reducible_budgets(&self) -> [u64; 2] {
+        core::array::from_fn(|market| {
+            if cfg!(feature = "unified-recovery-qualification") && self.lots[market] == 0 {
+                0
+            } else {
+                self.original_debtor_budgets[market]
+            }
+        })
+    }
+}
 #[cfg(feature = "paged-recovery-qualification")]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, InitSpace, IdlType)]
 pub struct FrozenRecoveryPayout {

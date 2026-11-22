@@ -73,7 +73,8 @@ export function populatedMarketOrder(venue:Address,epoch:bigint,rows:PopulatedRo
     return {id:row.id,capacity,linked:row.claims[market]>0n && row.claims[1-market]< -row.collected*scale,
       priority:frozenMemberRank(venue,epoch,row.id),lotsFor:()=>0n};
   });
-  assert.equal(sum(rows.map(row=>row.originalDebtorBudgets[market])),total);
+  const budgets=rows.map(row=>row.lots[market]===0n ? 0n : row.originalDebtorBudgets[market]);
+  assert.equal(sum(budgets),total,'Frozen position-backed debtor budgets disagree with clearing');
   let charges=allocate(venue,epoch,holders,total);
   if(sum(charges.filter((_,index)=>holders[index].linked))>cap) {
     charges=holders.map(()=>0n);
@@ -91,7 +92,7 @@ export function populatedMarketOrder(venue:Address,epoch:bigint,rows:PopulatedRo
   for(const role of [0,1]) {
     const entries:Entry[]=[];
     for(const ordinal of order) {
-      const row=rows[ordinal],atoms=role===0?charges[ordinal]:row.originalDebtorBudgets[market];
+      const row=rows[ordinal],atoms=role===0?charges[ordinal]:budgets[ordinal];
       if(atoms===0n)continue;
       assert(!locations.has(ordinal),'Conflicting pair roles');
       locations.set(ordinal,{role,slot:BigInt(entries.length)});
@@ -116,14 +117,14 @@ export function populatedMarketOrder(venue:Address,epoch:bigint,rows:PopulatedRo
     });
     openings.push({prior,members});
   }
-  return {cutoffs,charges,openings,pages,root,finalDigest:prefix};
+  return {cutoffs,charges,budgets,openings,pages,root,finalDigest:prefix};
 }
 export function populatedRecoveryProposal(venue:Address,epoch:bigint,rows:PopulatedRow[],caps:bigint[],totals:bigint[],
   pools:bigint[],insurance:bigint[]) {
   assert(rows.length && rows.every((row,index)=>index===0 || rows[index-1].id<row.id),'Invalid ordered frozen membership');
   const markets=[0,1].map(m=>populatedMarketOrder(venue,epoch,rows,m,caps[m],totals[m]));
   const effective=rows.map((row,index)=>{
-    const claims=(market:number)=>row.claims[market]+scale*(row.originalDebtorBudgets[market]-markets[market].charges[index]);
+    const claims=(market:number)=>row.claims[market]+scale*(markets[market].budgets[index]-markets[market].charges[index]);
     return {cash:row.cash,claims:[claims(0),claims(1)] as [bigint,bigint],originalClaims:[row.claims[0],row.claims[1]] as [bigint,bigint]};
   });
   let budgets:[bigint,bigint]=[insurance[0],insurance[1]];

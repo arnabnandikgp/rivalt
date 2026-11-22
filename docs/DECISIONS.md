@@ -1593,3 +1593,14 @@ the authenticated frozen book and preserve the viable sparse path. Verify both
 sparse and dense mid-sized books, restart, wallet exit and reconciliation before
 reconsidering the default. No timer or operator override may release cash.
 [Local lifecycle results](operations/validation.md#fresh-local-successor-lifecycle)
+
+## D143 — qualify frozen-book verifier selection before local promotion
+
+22 November 2026. Keep P56 as the default while clearing selects a verifier
+using authenticated positions, profit histories and certified dimensions.
+The existing loss order applies to every member. Flat debt has no lots
+available for forced reduction and keeps its original debtor cash allocation.
+A storage or rank overflow can start a second verification procedure while
+all withdrawals remain frozen. Local promotion requires independently
+reconciled sparse and dense mid-sized exits and keeper restart.
+[Selection contract](clearing/default-plan-verification.md#choosing-a-verifier-from-frozen-positions)

@@ -35,9 +35,9 @@ function wireWitness(book:Inputs, edges:sdk.SearchEdge[], rank:bigint, format:Pr
   return {rates:first.map(String), additionalRates:remaining.map(round => round.map(String)),
     orders:orders.map(order => Array.from(order))};
 }
-async function native(request:object) {
+async function native(request:object,args:string[]=[]) {
   const output=await new Promise<string>((resolve,reject)=>{
-    const child=execFile(binary,[],{timeout:120_000,maxBuffer:64*1024},(error,stdout)=>error?reject(error):resolve(stdout));
+    const child=execFile(binary,args,{timeout:120_000,maxBuffer:64*1024},(error,stdout)=>error?reject(error):resolve(stdout));
     child.stdin!.on('error',reject);
     child.stdin!.end(JSON.stringify(request));
   });
@@ -47,12 +47,24 @@ async function native(request:object) {
 /** The native engine derives edges from inventory and verified debtor budgets,
  * and independently scores every structurally possible proposal. No payout,
  * candidate rank or exclusion range enters from an external model. */
-export async function selectRecovery(book:Inputs,venue:Address,epoch:bigint,budget:number,format:ProofFormat='one-page'):Promise<Calculator> {
+export async function selectRecovery(book:Inputs,venue:Address,epoch:bigint,budget:number,format:ProofFormat='one-page',checkStorage=false):Promise<Calculator> {
   const request={venue:Array.from(getAddressEncoder().encode(venue)),epoch:String(epoch),budget,
     marks:book.marks.map(String),fees:book.fees.map(String),insurance:book.insurance.map(String),pools:book.pools.map(String),
     rows:book.rows.map(row=>({id:String(row.id),cash:String(row.cash),lots:row.lots.map(String),
       claims:row.claims.map(String),history:row.history.map(bytes=>Array.from(bytes))})),
     original:wireWitness(book,[],0n,format)};
+  if(checkStorage) {
+    const measured=await native(request,['--dimensions']);
+    const pairs=BigInt(measured.edgesByMarket[0])+BigInt(measured.edgesByMarket[1]);
+    let bytes=397n+130n*BigInt(book.rows.length)+25n*pairs+24n*BigInt(1+(request.original.additionalRates?.length??0));
+    for(const row of book.rows)for(const history of row.history) {
+      let length=history.length;
+      while(length>0 && history[length-1]===0)length--;
+      bytes+=BigInt(length);
+    }
+    if(bytes>10_240n || BigInt(measured.schedules)>=(1n<<128n))
+      return {blocked:'recovery-prove-dimensions'};
+  }
   const dimensions=await native(request);
   if(dimensions.blocked==='schedule-budget') return {blocked:'recovery-schedule-budget'};
   const count=BigInt(dimensions.count);
@@ -104,6 +116,6 @@ export async function loadRecoverySelection(rpc:Pick<Rpc,'call'>,venue:Address,
       rows.push({...row,history:histories});
     }
   }
-  const outcome=await selectRecovery({...book,rows},venue,epoch,budget,profile.format);
+  const outcome=await selectRecovery({...book,rows},venue,epoch,budget,profile.format,selection==='unified-recovery-candidate');
   return {book,outcome};
 }

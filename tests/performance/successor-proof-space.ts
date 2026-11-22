@@ -5,7 +5,7 @@ import {address} from '@solana/kit';
 import {getPagedRecoverySearchEncoder} from '@rivalt/sdk/paged-recovery';
 
 import {selectRecovery} from '../../packages/services/src/recovery-selection.js';
-import {populatedMarketOrder,PopulatedRecoveryUnavailable} from '../../packages/services/src/populated-recovery-selection.js';
+import {populatedMarketOrder} from '../../packages/services/src/populated-recovery-selection.js';
 
 const encoder=getPagedRecoverySearchEncoder();
 const ratio={numerator:0n,denominator:1n};
@@ -44,7 +44,8 @@ if(process.argv.includes('--compare-verifiers')) {
   assert.deepEqual(selection,{rank:0n,count:1n,edges:[]});
   const originalRows=flatRows.map((row,i)=>({...row,collected:i===0?20n:0n,
     originalDebtorBudgets:[i===0?80n:0n,0n],recoveryLotRates:[[0n,1n],[0n,1n]]}));
-  assert.throws(()=>populatedMarketOrder(venue,1n,originalRows,0,0n,80n),
-    (error:unknown)=>error instanceof PopulatedRecoveryUnavailable&&error.reason==='insufficient-certified-winner-capacity');
-  console.log('75 flat members: one native exhaustive candidate; populated planner cannot certify the remaining 80 atoms.');
+  const sparse=populatedMarketOrder(venue,1n,originalRows,0,0n,0n);
+  assert(sparse.charges.every(value=>value===0n) && sparse.pages.length===0);
+  assert.equal(originalRows[0].originalDebtorBudgets[0],80n);
+  console.log('75 flat members: both families agree on zero forced charges; 80 atoms remain uncollectible.');
 }
