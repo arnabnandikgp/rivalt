@@ -289,6 +289,9 @@ fn run(input: Input) -> Result<Value, String> {
         result["pairOrderAtFixedTotals"] = json!(certified);
     }
     if input.measure_recovery_bound {
+        let bound = book.open_lot_bound(&receipt).map_err(|err| format!("{err:?}"))?;
+        result["openLotCeilings"] = json!(bound.ceilings.map(|value| value.to_string()));
+        result["openLotCeilingsReached"] = json!(bound.reached);
         result["recoveryCeilings"] =
             json!(receipt.recovery_ceilings().map(|value| value.to_string()));
         result["bothCeilingsReached"] = json!(receipt.reaches_both_recovery_ceilings());

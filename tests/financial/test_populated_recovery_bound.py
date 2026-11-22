@@ -93,6 +93,22 @@ class RecoveryCeilings(unittest.TestCase):
                     results.add(pair)
         self.assertEqual(len(results),2)
 
+    def test_flat_writeoff_is_in_original_settlement_only(self):
+        table = [(20, (-100*SCALE, 0)), (0, (100*SCALE, 0))]
+        _, _, rates, orders = independent_input(table, (0,0), (0,0))
+        rows = [dict(id=str(index), cash=str(cash), claims=list(map(str, claims)),
+                     lots=['0','0'], history=[[],[]]) for index,(cash,claims) in enumerate(table)]
+        case = FrozenCase(dict(rows=rows, marks=['10','10'], pools=['0','0'], insurance=['0','0'],
+                               fees=['0','0'], venue=list(bytes(32)), epoch='1',
+                               original=dict(rates=list(map(str,rates[0])), additionalRates=[], orders=orders)))
+        self.assertEqual(case.original_budgets, [[80,0],[0,0]])
+        self.assertEqual(case.ceilings, [0,0])
+        binary = os.environ.get('RIVALT_JOINT_AUDIT','target/release/examples/joint_reduction_audit')
+        result = case.assess(binary, [], check_pair_order=True)
+        self.assertEqual(result['recovered'], ['0','0'])
+        self.assertTrue(result['bothCeilingsReached'] and result['pairOrderAtFixedTotals']
+                        and result['sharingAtFullRecovery'])
+
     def test_recovery_ceiling_requires_an_admitted_plan_reaching_the_net_loss_bound(self):
         # The debtor can pay four of ten atoms. Each winner has two opposite lots.
         # Entry 5 supplies enough unpaid gain for the whole six-atom shortfall.

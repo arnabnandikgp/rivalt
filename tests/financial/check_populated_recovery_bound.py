@@ -146,8 +146,9 @@ class FrozenCase:
         self.accounts = tuple(Account(cash, tuple(Fraction(claim, SCALE) for claim in claims))
                               for cash, claims in self.table)
         self.original = clear_atom_cohort(self.accounts, *self.inputs)
-        self.budgets = [[int(amount) if lots[m] else 0 for m, amount in enumerate(row)]
-                        for row, lots in zip(self.original.benchmark.debtor_writeoffs, self.lots)]
+        self.original_budgets = [list(map(int, row)) for row in self.original.benchmark.debtor_writeoffs]
+        self.budgets = [[amount if lots[m] else 0 for m, amount in enumerate(row)]
+                        for row, lots in zip(self.original_budgets, self.lots)]
         self.ceilings = [sum(row[m] for row in self.budgets) for m in range(2)]
         self.rates = [[charge_rate(row, m, int(mark)) for m, mark in enumerate(source['marks'])]
                       for row in self.rows]
@@ -304,16 +305,19 @@ class FrozenCase:
             request[key] = self.source[key]
         receipt = json.loads(subprocess.check_output([binary], input=json.dumps(request), text=True))
         assert 'error' not in receipt, receipt
-        assert [list(map(int,row)) for row in receipt['originalPageBudgets']] == self.budgets
+        assert [list(map(int,row)) for row in receipt['originalPageBudgets']] == self.original_budgets
         assert list(map(int,receipt['cash'])) == list(outcome.cash)
         assert [list(map(int,row)) for row in receipt['movements']] == [list(row) for row in outcome.claim_cash_movements]
         assert list(map(int,receipt['insuranceSpent'])) == list(outcome.insurance_spent)
-        assert list(map(int, receipt['recoveryCeilings'])) == self.ceilings
+        original_ceilings = [sum(column) for column in zip(*self.original_budgets)]
+        assert list(map(int, receipt['recoveryCeilings'])) == original_ceilings
+        assert list(map(int, receipt['openLotCeilings'])) == self.ceilings
         gross = [sum(amount for m, _, _, amount in charges if m == market) for market in range(2)]
         loss = lambda plan, market: sum(row[market] for row in plan.benchmark.creditor_impairments)
         recovered = [min(gross[m], loss(self.original,m)-loss(outcome,m)) for m in range(2)]
         assert [Fraction(int(n), int(d)) for n,d in receipt['recovered']] == recovered
-        assert receipt['bothCeilingsReached'] == (recovered == self.ceilings)
+        assert receipt['bothCeilingsReached'] == (recovered == original_ceilings)
+        assert receipt['openLotCeilingsReached'] == (recovered == self.ceilings)
         pair_result = dict(pairOrderAtFixedTotals=receipt['pairOrderAtFixedTotals']) if check_pair_order else {}
         if check_pair_order:
             assert [int(value) for value in receipt['linkedChargeCaps']] == [cap for _,cap in self.linked_share_bounds()]
@@ -321,7 +325,7 @@ class FrozenCase:
                                matchedLotFloors=receipt['matchedLotFloors'], winnerLotFloors=receipt['winnerLotFloors'])
         return dict(**pair_result, pairs=len(charges), gross=list(map(str,gross)), recovered=list(map(str,recovered)),
                     lots=[str(sum(int(fill[1]) for (m,*_),fill in zip(charges,receipt['fills']) if m==market))
-                          for market in range(2)], bothCeilingsReached=receipt['bothCeilingsReached'])
+                          for market in range(2)], bothCeilingsReached=receipt['openLotCeilingsReached'])
 
 
 if __name__ == '__main__':

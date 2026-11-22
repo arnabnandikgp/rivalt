@@ -1357,6 +1357,18 @@ round cannot fit in 10,240 bytes, or a history exceeds the 256-byte capture slot
 clearing starts the original-rate page scan. An entirely flat book also starts
 that scan because no member has an open position to reduce.
 
+The four per-member vectors for payouts, market movements, budgets and weights
+are written after the exact size check. For example, with 75 members, 50 history
+bytes, two rate evaluations and both complete rounding orders, capture occupies
+6,045 bytes. Materializing the four vectors would take 10,245 bytes. Clearing
+can therefore finish capture and switch verifiers before that write.
+
+An original debtor budget measures a member's loss in the frozen settlement.
+Forced reduction can use that budget only in a market where the same member
+has open lots. The independent audit checks every original budget before
+applying that per-market filter. It compares each recovery ceiling and the
+resulting payout against the corresponding Rust calculation.
+
 When the minimum fits, clearing can capture the complete book and verify original
 rates and debtor budgets. A verified pair prefix that exceeds search storage or
 the u128 schedule-count field stamps the sponsor’s search as unrepresentable

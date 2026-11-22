@@ -9,25 +9,37 @@ import {populatedMarketOrder} from '../../packages/services/src/populated-recove
 
 const encoder=getPagedRecoverySearchEncoder();
 const ratio={numerator:0n,denominator:1n};
-function lowerBound(members:number) {
+function encodedSize(members:number, stage:1|2=2, historyBytes=0, rounds=0) {
   const pair=()=>[0n,0n];
   const rows=Array.from({length:members},(_,id)=>({
-    id,cash:0n,claims:pair(),lots:pair(),histories:[new Uint8Array(),new Uint8Array()],
+    id,cash:0n,claims:pair(),lots:pair(),histories:[new Uint8Array(id===0?historyBytes:0),new Uint8Array()],
   }));
   return encoder.encode({
     prepared:address('11111111111111111111111111111111'),epoch:1n,revision:1n,
-    proposed:0n,count:1n,cursor:0n,stage:2,scoreNum:0n,scoreDen:1n,
-    remainingInsurance:pair(),retainedFees:pair(),original:{rates:[],orders:[new Uint8Array(),new Uint8Array()]},
-    rows,edges:[],cash:rows.map(()=>0n),movements:rows.map(pair),budgets:rows.map(pair),weights:rows.map(pair),
+    proposed:0n,count:1n,cursor:0n,stage,scoreNum:0n,scoreDen:1n,
+    remainingInsurance:pair(),retainedFees:pair(),original:{
+      rates:Array.from({length:rounds},()=>[1n,1n,1n]),
+      orders:[new Uint8Array(rounds?members:0),new Uint8Array(rounds?members:0)],
+    },
+    rows,edges:[],cash:stage===2?rows.map(()=>0n):[],movements:stage===2?rows.map(pair):[],
+    budgets:stage===2?rows.map(pair):[],weights:stage===2?rows.map(pair):[],
     priority:{fractions:[ratio,ratio],deviation:[ratio,ratio],costs:[pair(),pair()]},
   }).length;
 }
 const allocated=10_240;
-const empty=lowerBound(0),nine=lowerBound(9),selectedPopulation=lowerBound(128);
+const empty=encodedSize(0),nine=encodedSize(9),selectedPopulation=encodedSize(128);
 assert.equal(nine-empty,9*128);
 assert.equal(selectedPopulation-empty,128*128);
 assert(selectedPopulation>allocated);
 console.log(JSON.stringify({allocated,empty,nine,selectedPopulation}));
+
+// A second insurance-rate round still fits during capture. Per-member financial
+// vectors are materialized only after the program checks the full search size.
+const capture=encodedSize(75,1,50,2), materialized=encodedSize(75,2,50,2);
+assert.equal(capture,6_045);
+assert.equal(materialized,10_245);
+assert(capture<=allocated && materialized>allocated);
+console.log(JSON.stringify({capture,materialized,allocated}));
 
 // Compare candidate selection on a sparse book at the same population as the
 // wire-size boundary. The debtor has 20 atoms against a 100-atom flat debt.

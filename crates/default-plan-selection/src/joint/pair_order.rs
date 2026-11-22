@@ -24,10 +24,11 @@ impl FrozenBook<'_> {
             let id = self.members[index].id;
             (member_priority(venue, epoch, id), id)
         });
-        let mut certified = receipt.reaches_both_recovery_ceilings();
+        let bound = self.open_lot_bound(&receipt)?;
+        let mut certified = bound.reached;
         for market in 0..2 {
             if certified {
-                certified = self.verify_market_pairs(market, &order, charges, &receipt)?;
+                certified = self.verify_market_pairs(market, &order, charges, &receipt, &bound.budgets)?;
             }
         }
         Ok((receipt, certified))
@@ -39,6 +40,7 @@ impl FrozenBook<'_> {
         order: &[usize],
         charges: &[Charge],
         receipt: &Receipt,
+        budgets: &[[u64; 2]],
     ) -> Result<bool> {
         let mut pairs = BTreeMap::new();
         let mut gains = vec![0u64; self.members.len()];
@@ -81,7 +83,7 @@ impl FrozenBook<'_> {
         }
         let mut debtors = Vec::new();
         for &index in order {
-            let atoms = receipt.budgets[index][market];
+            let atoms = budgets[index][market];
             if atoms == 0 {
                 continue;
             }
