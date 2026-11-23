@@ -13,6 +13,26 @@ def read(directory, arm):
     assert counts['signed'] + counts['previewRefused'] == counts['offered']
     assert sum(counts[key] for key in ('filled', 'refused', 'expired', 'unresolved')) == counts['signed']
     assert data['paidMs'] is None or 0 <= data['paidMs'] <= data['payoutObservationMs']
+    def roots(checkpoint):
+        snapshot = json.loads((directory / f'sql-{checkpoint}-snapshot.json').read_text())
+        return {row['id']: row for row in snapshot['state']['roots'].values()}
+    before, after = roots('ready'), roots('drained')
+    claimants = [key for key, row in before.items()
+                 if row['cash'] == '999974' and row['positions'][0]['lots'] == '0'
+                 and row['positions'][0]['virtualScaled'] == '996000000000']
+    assert len(claimants) == 1
+    claimant = claimants[0]
+    funded = int(after[claimant]['cash']) - int(before[claimant]['cash'])
+    unpaid = int(after[claimant]['positions'][0]['virtualScaled'])
+    assert 0 <= funded <= 996 and funded * 1_000_000_000 + unpaid == 996_000_000_000
+    if data['paidMs'] is not None:
+        assert funded == 996
+    data['fundedAtomsAtDrain'] = funded
+    data['unpaidScaledAtDrain'] = unpaid
+    data['startingAccounts'] = {
+        key: [row['cash'], [(leg['lots'], leg['virtualScaled']) for leg in row['positions']]]
+        for key, row in before.items()
+    }
     return data
 
 
@@ -27,12 +47,14 @@ def summarize(data):
     volume = sum(int(row['lots']) for row in data['trace'])
     locks = sorted({(len(row['locks']['read']) + len(row['locks']['write']), len(row['locks']['write'])) for row in wallets})
     return dict(counts=data['counts'], offeredLots=volume, bestPriceCheckedFills=len(successful),
-                fundedClaimAtoms=996, cashCreditObservedMs=data['paidMs'], payoutObservedThroughMs=data['payoutObservationMs'], settlementIntentsDuringOffers=data['during'],
+                initialUnpaidAtoms=996, fundedAtomsAtDrain=data['fundedAtomsAtDrain'],
+                unpaidScaledAtDrain=data['unpaidScaledAtDrain'], cashCreditObservedMs=data['paidMs'], payoutObservedThroughMs=data['payoutObservationMs'], settlementIntentsDuringOffers=data['during'],
                 reasons=dict(reasons), packetBytes=sorted({row['bytes'] for row in wallets}),
                 totalAndWritableKeys=locks, feesLamports=data['fees'], finalizedCU=data['cu'],
                 observedWalletFinalityMs=data['finalizedMs'], generatorLagMs=data['generatorLagMs'],
                 repeatedEconomicOffers=0, queueAttemptCounts=dict(collections.Counter(str(row['attempts']) for row in wallets)),
                 sharedSettlementKeys=sorted({num for work in data['overlaps'] for num in work['conflicts']}),
+                publisherFeeLamportsThroughDrain=sum(int(row['fee']) for row in data['operator']),
                 totalReplayEvents=data['events'])
 
 
@@ -42,7 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('active', type=Path)
     args = parser.parse_args()
     control, active = read(args.offered_only, 'offered-only'), read(args.active, 'active')
-    for key in ('program', 'revision', 'transport', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent'):
+    for key in ('program', 'revision', 'transport', 'startingAccounts', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent'):
         assert control[key] == active[key], f'Unmatched {key}'
     assert control['during'] == 0
     assert active['during'] > 0, 'Worker never queued during measured offers'

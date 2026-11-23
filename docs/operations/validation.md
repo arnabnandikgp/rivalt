@@ -4425,9 +4425,23 @@ with byte-identical trader and maker financial accounts.
 Surfpool RPC receipts and WebSocket confirmations were checked for each order.
 PostgreSQL reconciled to on-chain account bytes and a fresh replay reproduced
 94 events. The run requested 1,400,000 CU and a 128 KiB heap. These measurements
-cover the specified orders. Wallet deployment and matched load are separate.
+cover the specified orders. The [wallet workload](performance.md#execution-time-wallet-orders-with-concurrent-settlement) measures direct single-signer orders separately.
 Reproduce with `ops/build-profit-attribution.sh` using
 `RIVALT_ATTRIBUTION_PROFILE=execution-router-qualification` on the named revision,
 then `ops/scalable-settlement-smoke.sh` with `RIVALT_SETTLEMENT_PROBE=execution-router`,
 `RIVALT_SETTLEMENT_ARTIFACT_DIR` set to its output and `RIVALT_ROUTER_REVISION`
 set to the full build commit.
+
+### Direct wallet and settlement workload
+
+On harness `e50df2c7` and program revision `35fef03e`, four fresh Surfpool /
+WebSocket / PostgreSQL runs covered 180 signed and finalized BTC/ETH wallet
+orders. No full-size fill missed the independent two-atom bid/ask offset or the
+2 bps aggregate taker fee. All four live SQL projections matched account bytes
+and replayed exactly. The 996-atom claimant was fully paid in both six-wallet
+arms and still owed all 996 atoms when observation ended in both sixteen-wallet
+arms. The [paired results](performance.md#execution-time-wallet-orders-with-concurrent-settlement)
+include each denominator, consumed CU, finalized latency, costs and
+observation window. One earlier control correctly refused 18 unsigned previews
+after SQL initialization put the risk oracle into recovery. The final harness
+waits for both markets to reach Normal through real source publications.

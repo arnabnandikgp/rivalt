@@ -1,5 +1,52 @@
 # Performance contract and reproducible measurements
 
+## Execution-time wallet orders with concurrent settlement
+
+Clearing and both makers used `35fef03e`, the matched workload used `e50df2c7`.
+Every arm started with the same economics as its partner, including a flat BTC
+creditor owed 996 atoms and cash already collected in the BTC settlement pool.
+Wallets submitted directly to local Surfpool RPC. Each order was full-size,
+signed by its trader and checked against the known executable book. All buys and
+sells matched the independently expected gross price and aggregate fee. Each
+wallet paid 5,000 test lamports at zero priority fee.
+
+| Funded trading wallets | Worker during offers | Filled / offered | Lots | p95 fill CU | p95 signed-to-finalized | Creditor paid from first offer | Replayed events |
+|---:|---|---:|---:|---:|---:|---|---:|
+| 6 | Off | 18 / 18 | 40 | 512,392 | 1.998 s | 996 atoms at 149.505 s | 928 |
+| 6 | On | 18 / 18 | 40 | 512,392 | 2.028 s | 996 atoms at 147.127 s | 927 |
+| 16 | Off | 72 / 72 | 324 | 468,962 | 2.493 s | 0 at 190.606 s | 1,230 |
+| 16 | On | 72 / 72 | 324 | 468,962 | 2.599 s | 0 at 190.969 s | 1,229 |
+
+The six-wallet trace offered once every 280 ms and the sixteen-wallet trace
+every 100 ms. Both used BTC and ETH. Each arm had zero unsigned refusals, failed
+fills, replacements, expiries and unresolved trader transactions. The signed v1
+wallet packets were 1,234 or 1,434 bytes with 25 or 30 unique accounts (10 or 12
+writable). These sizes include the required checkpoints. All three prospective
+maker capitals and registrations are locked for a same-market order.
+
+| Wallets / worker | Trader fees | Settlement sponsor fees | Source, maker update and funding sponsor fees |
+|---|---:|---:|---:|
+| 6 / off | 90,000 | 295,000 | 1,890,000 |
+| 6 / on | 90,000 | 300,000 | 1,860,000 |
+| 16 / off | 360,000 | 330,000 | 2,040,000 |
+| 16 / on | 360,000 | 330,000 | 2,040,000 |
+
+Fees are test lamports from finalized receipts. The window includes post-offer
+settlement and funding maintenance through drain. In each six-wallet run the
+worker completed 44 ETH backing-page transactions before the BTC creditor's
+payment. In both sixteen-wallet runs the clock stopped with all 996 BTC atoms
+still unpaid. SQL and independently fetched chain accounts agreed. The larger
+run establishes a payout delay beyond the observation window. These local bursts
+do not establish a saturation rate, public-chain priority fees or a payout SLA.
+
+An earlier relay run on the six-wallet trace obtained 18 valid signatures.
+While the worker was still disabled, 7 were finalized, 1 original expired with
+verified nonexecution, 1 was unresolved and 9 were pending at the recorded queue
+inspection. Dispatch holds conflicting accounts across attempts. That diagnostic
+did not complete a matched comparison. The ordinary router wallet saves its
+signed original and submits over RPC. The relay remains an explicit alternative.
+[Reproduction and workload parameters](local-development.md#match-trading-load-with-and-without-profit-settlement)
+
 ## Funding publications on the qualified local clearing build
 
 Clearing `79724a5a`, harness `3e89caf2`, three 75-member runs. Each row measures

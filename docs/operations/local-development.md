@@ -903,3 +903,36 @@ clearing and makers from `35fef03e`. Then run `bash ops/demo.sh start` with a
 fresh `RIVALT_DEMO_ROOT`. The interface reviews the trader's total and fee limits.
 The finalized fill records which makers clearing selected. The default fresh demo
 still selects the previously qualified unified recovery build.
+
+### Match trading load with and without profit settlement
+
+Use the pinned program directory and `RIVALT_ROUTER_REVISION` from the
+[standing-order qualification](validation.md#standing-maker-orders-at-execution).
+Set `RIVALT_SETTLEMENT_PROBE=execution-router-load`. Run
+`bash ops/scalable-settlement-smoke.sh` twice, first with
+`RIVALT_SETTLEMENT_ARM=offered-only` and then with `RIVALT_SETTLEMENT_ARM=active`,
+each with its own new `RIVALT_RUN_DIR`. Run the arms consecutively on the same host.
+The control starts its real settlement worker after wallet outcomes are observed.
+The active arm starts it with the offered trace. Both arms continue observing cash
+for up to 180 seconds after the offers drain. The default wallet transport is RPC.
+Set `RIVALT_LOAD_TRANSPORT=relay` to exercise the durable dispatch queue separately.
+
+| Environment knob | Six-trader run | Sixteen-trader run |
+|---|---:|---:|
+| `RIVALT_LOAD_TRADERS` | 6 | 16 |
+| `RIVALT_LOAD_OFFERS` | 18 | 72 |
+| `RIVALT_LOAD_GAP_MS` | 280 | 100 |
+| `RIVALT_LOAD_BTC_PERCENT` | 75 | 90 |
+| `RIVALT_LOAD_MAX_LOTS` | 3 | 8 |
+| `RIVALT_LOAD_FIRST_MAKER_LOTS` | 2 | 1 |
+| `RIVALT_LOAD_REFRESH_MS` | 2,400 | 2,800 |
+| `RIVALT_LOAD_SEED` | 117 | 117 |
+
+Each market has one shallow and two deep internal makers. During measurement, the bid is two atoms below the fixed index and the ask is
+two atoms above it. This gives an
+independent expected price and fee for every size. The separate signed-reprice
+case covers a changing best price. Run
+`python3 tests/performance/compare-router-load.py <offered-only-dir> <active-dir>`
+to check the same ordered trace, program, starting account economics and final
+creditor cash. The report lists all offers, original outcomes, packet sizes,
+finality, fees and shared keys. Raw receipts and SQL captures stay in the run directories.
