@@ -1,5 +1,105 @@
 # Performance contract and reproducible measurements
 
+## Settlement scheduling and rotating BTC quotes
+
+Clearing and makers used `986b3cd3`. The 16-wallet workload started with a flat
+BTC claimant owed 996 collateral atoms and 996 already in the BTC pool. Before
+any offer or worker action, a signature-verified RPC simulation consumed
+139,726 CU and returned the full credit and empty pool. The real accounts still
+held their original balances.
+
+| 16 wallets, 72 offers per run | Filled | p95 signed-to-finalized | BTC cash received from first offer | ETH-market cash paid by drain | PostgreSQL replay |
+|---|---:|---:|---|---:|---:|
+| Original worker active, `789cde15` | 72 | 2.533 s | 0 of 996 at 191.904 s | 0 of 52 collected | 1,245 |
+| Revised worker after offers, `edc6dd89` | 72 | 2.521 s | 996 at 85.518 s | 52 of 52 collected | 1,354 |
+| Revised worker active, `edc6dd89` | 72 | 2.424 s | 996 at 93.113 s | 52 of 52 collected | 1,369 |
+| Review repeat, revised worker active, `c615ba2f` | 72 | 2.502 s | 996 at 93.041 s | 52 of 52 collected | 1,377 |
+
+In the original run the keeper chose 23 funded loss collections, then three
+BTC payments to other accounts. At 80.784 s it selected ETH certificate
+initialization. It submitted 41 ETH proof pages through 191.052 s while
+the BTC pool still contained 996 atoms. The revised worker lets a ready gain
+on the other market proceed and gives outstanding proof work a subsequent
+turn. Both revised runs used the existing loss priority and within-market
+creditor order. The first ETH payment was observed at 232.427 s in the control,
+238.058 s in the active arm and 238.158 s in the review repeat. The repeat
+matched every one of the 83 settlement originals to a successful receipt.
+Pool reconciliation decoded the actual
+collection and payment instructions, including payments bundled with a page.
+
+### Same-market offer rate
+
+At `1ecc67cd`, 24 independent funded wallets submitted the same 120 BTC buys
+in every run. The two deep makers alternated which one had the best ask every
+2.1 s, with two atoms between their quotes. One deep ask always remained at
+the expected index plus two. The first diagnostic used five atoms of separation
+and produced a crossed funding book. It ended before a complete trace and is
+excluded. The completed runs kept funding and oracle checks active.
+
+| Settlement during offers | Scheduled interval | Filled / offered | Unsigned refusals | Signed refusals | p95 fill latency | Claim paid / owed | Events replayed |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Off | 70 ms | 111 / 120 | 7 | 2 | 2.840 s | 990 / 996 | 1,313 |
+| On | 70 ms | 109 / 120 | 7 | 4 | 2.675 s | 991 / 996 | 1,307 |
+| On | 35 ms | 72 / 120 | 48 | 0 | 2.959 s | 994 / 996 | 1,181 |
+
+All 20 refusals across the 70 ms runs returned clearing code 6105. Both deep
+makers supplied fills. Decoding the maker's return in each refusal identifies
+maker 1 quoting a move from 127–128 short lots to 129–131. Its reconciled account
+had 128 bytes per market for profit history. At 129 lots, the three integer
+magnitudes and their lengths require at least 198 bytes under the recovery rule.
+The maker could quote those trades, but its clearing account could not record
+them. [On-chain write](../../programs/clearing/src/profit_attribution.rs) ·
+[Storage bound](../../crates/clearing-accounting/src/attribution.rs)
+
+At 35 ms, each wallet received a new offer every 840 ms. All 48 refused previews
+had code 6122. For every refusal, a finalized fill from the same wallet at or
+before the simulation slot had consumed the exact signed nonce, state version
+and epochs. All 24 wallets were represented. The two rates had 6 and 30 ms
+p95 offer-generator lateness in the active arms. The 14.3 and 28.6 scheduled
+offers per second describe these local arrivals. They do not measure venue
+capacity on a public validator.
+
+In all three rotating traces the BTC pool reached zero and the unpaid
+remainder reconciled to the flat creditor. A payable BTC claim at the opening
+snapshot does not reserve the pool for that account. This differs from the
+original sixteen-wallet scheduler run, which ended with the full payment still
+in the pool. [Reproduction](local-development.md#match-trading-load-with-and-without-profit-settlement)
+
+### Confirmed wallet orders under the same BTC load
+
+Each arm scheduled the same 120 buys over 4.165 seconds, five per funded wallet.
+Each used clearing and maker binaries from `986b3cd3`. The first two used
+harness `c3a3307c`. The third used `f815483e` to fund extra storage on
+BTC maker 1 before trading. All three started with the same trading balances,
+positions and price schedule. Each landed one successful settlement transaction
+between the first and last trader transaction slots.
+
+| Wallet preparation / maker 1 bytes per market | Filled / offered | Filled lots | Unsigned / signed refusals | p95 wait before preparing | p95 scheduled to any outcome | p95 scheduled to a fill |
+|---|---:|---:|---:|---:|---:|---:|
+| Independent / 128 | 81 / 120 | 159 | 36 / 3 | 0.000 s | 4.154 s | 4.189 s |
+| Confirm previous / 128 | 110 / 120 | 218 | 5 / 5 | 2.391 s | 4.981 s | 4.988 s |
+| Confirm previous / 256 | 119 / 120 | 237 | 0 / 1 | 2.418 s | 5.292 s | 5.317 s |
+
+The independent arm's 39 refusals returned sequence error 6122. All 36 refused
+previews matched a same-wallet fill with the same guard in the same or an earlier
+slot. Waiting within each wallet eliminated sequence refusals in the two confirmed
+runs. With standard storage, all ten remaining refusals quoted maker 1 beyond its
+128-byte recovery capacity. Growing that maker's account cost 1,503,680 local
+lamports in refundable rent principal and a separate 10,000-lamport transaction
+fee. The resize consumed 14,231 CU. Maker 1 ended 146 lots short. The remaining
+signed refusal returned route admission error 6120. The receipt does not distinguish
+the individual admission condition.
+
+Signed-to-finalized p95 on successful trades was 3.152, 3.178 and 3.200 seconds
+respectively. Time from the scheduled offer includes the per-wallet wait.
+Generator lateness at p95 was 17, 13 and 12 ms. Each arm reconciled its original
+996-atom BTC claim, with 994, 992 and 991 atoms paid respectively and zero cash
+left in the pool. Fresh SQL replay matched 1,200, 1,307 and 1,321 events.
+An additional independent run filled 80/120. Its first settlement intent arrived
+23.891 seconds after the first offer, past the trader drain at 10.068 seconds.
+It is excluded from the concurrent comparison. These single-run observations
+measure this local workload. [Reproduction](local-development.md#match-trading-load-with-and-without-profit-settlement)
+
 ## Execution-time wallet orders with concurrent settlement
 
 Clearing and both makers used `35fef03e`, the matched workload used `e50df2c7`.

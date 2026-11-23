@@ -939,3 +939,55 @@ case covers a changing best price. Run
 to check the same ordered trace, program, starting account economics and final
 creditor cash. The report lists all offers, original outcomes, packet sizes,
 finality, fees and shared keys. Raw receipts and SQL captures stay in the run directories.
+
+The settlement scheduling workload also simulates a signed 996-atom BTC payout
+at the opening snapshot, verifies the returned creditor and pool accounts, and
+checks that the real cash has not moved. Set `RIVALT_LOAD_FOLLOW_ETH=1` on
+a mixed-market trace to require a real BTC payment during the normal window
+and an independently fetched ETH payment within a further 300 seconds.
+For a BTC buy-only trace set `RIVALT_LOAD_ROTATE_ASKS=1` and
+`RIVALT_LOAD_BTC_PERCENT=100`. Each refresh alternates which deep maker posts
+two atoms above the other. At least one deep ask stays at the independently
+known best price. The compare command requires matching workload modes.
+
+Run `node --import tsx tests/performance/router-settlement-flows.ts <run-directory>`
+to check each market pool against the collected and paid amounts in the finalized
+wires, including payments bundled with the last backing page.
+
+The mixed-market settlement qualification requires the full BTC payment even
+when ETH follow-up is disabled. A rotating-ask stress run records its actual
+partial or full payout. A partial result requires both a positive credit and
+a zero pool in the same on-chain read. Each run saves the claimant's cash,
+remaining claim and pool before checking these conditions. After any ETH
+follow-up, scheduling stops and the worker gets ten seconds to drain submitted
+originals. The comparison checks every terminal service status against finalized
+receipts. Pass `--active-rate-step <faster-active-directory>` to the compare
+command to check a faster run against the same ordered trades and starting book.
+Verify a guard refusal against earlier finalized trader fills with
+`node --import tsx tests/performance/router-offer-guards.ts <run-directory>`.
+The 24-wallet BTC comparison used 120 buys, three lots maximum, one shallow
+maker lot, 2,100 ms refresh, seed 117 and 70 or 35 ms offer gaps.
+
+For the 35 ms wallet comparison, use the 24-wallet active configuration above
+twice from the same revision. Use a fresh directory per run. Set
+`RIVALT_LOAD_WALLET_ORDER=independent` first and `confirmed` second.
+Both schedule all 120 arrivals at their original times. In the confirmed arm,
+each wallet waits for its preceding signed order to confirm before reading its
+next snapshot. A refused preview creates no signed order. Each run records the
+offer arrival, preparation time, snapshot slot and time of refusal or finality.
+Compare the runs with
+`python3 tests/performance/compare-router-load.py --wallet-order <independent-dir> <confirmed-dir>`.
+The report includes time spent waiting to prepare and time from each scheduled
+offer to its actual outcome, including refusals. Each arm must land at least one
+successful settlement transaction within the trader transaction slot range.
+For a capacity refusal, run
+`node --import tsx tests/performance/router-capacity-refusals.ts <run-directory>`.
+It decodes the maker's quoted inventory and lot count from the returned data and
+compares its minimum required recovery space to the maker's actual slot width.
+To isolate maker storage, repeat the confirmed arm with
+`RIVALT_LOAD_SPONSOR_BTC_MAKER_ONE=1` and pass `--sponsored <directory>` to
+the wallet comparison. The local maker owner funds a 256-byte slot through the
+existing signed resize instruction before the trace. The control retains the
+initial 128 bytes. The comparison reports each harness revision and checks the
+compiled program, starting trading balances, order schedule and repricing knobs
+across all three runs.
