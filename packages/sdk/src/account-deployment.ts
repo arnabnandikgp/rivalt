@@ -70,14 +70,14 @@ export function accountDeployment(selection:AccountDeployment) {
   if (usesExecutionRouter(selection)) {
     const programs: Record<string, {bytes: number; sha256: string}> = {
       clearing: selection === 'bounded-router-candidate' ?
-        {bytes: 3639496, sha256: '9481e463ff3d72eead65075525b13dd8e63830b81eacd3590623e22da3c7c1e4'} : {bytes: 3637536, sha256: 'fa85567e41cde0b9ecb0eb02ae78c4213f1898cd46dbeccc3ab6e4a6c7c35bc4'},
+        {bytes: 3640584, sha256: '4ce13b385b9bab81a83584fbb9f3ae090c96718643cb954f573cefac7b34f36a'} : {bytes: 3637536, sha256: 'fa85567e41cde0b9ecb0eb02ae78c4213f1898cd46dbeccc3ab6e4a6c7c35bc4'},
       'maker-a': selection === 'bounded-router-candidate' ?
         {bytes: 167520, sha256: '49e64c2bef25be6aa35b991205e40d0d15df326fe9fd5c37ec9c14d832f424a8'} : {bytes: 167520, sha256: '38a45a632db54c64a39c2793043ec14bb0b172721761a2950c61d59328ec6ccb'},
       'maker-b': selection === 'bounded-router-candidate' ?
         {bytes: 167520, sha256: '93541f00d200cfb18c5f7770fbce11ee2225c9e03fc528cea30157fe486987f3'} : {bytes: 167520, sha256: '924c94a5a7e1eff35ad0dc28a4ebc3b01b7b5b17d18d8fda531e91daeaf37139'},
     };
     return {artifactSet: selection === 'bounded-router-candidate' ? BOUNDED_ROUTER_ARTIFACT_SET : EXECUTION_ROUTER_ARTIFACT_SET, schema: 10, programProfile: 6,
-      programRevision: selection === 'bounded-router-candidate' ? 'e647592371b2940c739fe7d986461b32978dc37b' : '35fef03e3f58e9cba69b4c38408e39194bddc051',
+      programRevision: selection === 'bounded-router-candidate' ? '6ffabd9b979efd93ef96e6c26338519e3bbd1f58' : '35fef03e3f58e9cba69b4c38408e39194bddc051',
       helperRevision: '79724a5a0182eb8f22f916c6a9f23fd5f1dfcc91',
       artifacts: LIQUIDITY_ARTIFACTS.map(artifact => ({...artifact, ...programs[artifact.name]}))};
   }
