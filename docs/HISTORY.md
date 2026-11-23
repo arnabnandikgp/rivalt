@@ -1,6 +1,6 @@
 # Historical reference
 
-Current behavior belongs in the [component guides](README.md). Use the revision that produced a result when interpreting its program hashes, measurements or client interface.
+Current behavior belongs in the [component guides](README.md), consolidated in [PR #170](https://github.com/arnabnandikgp/rivalt/pull/170) at `cfd2626c`. Use the revision that produced a result when interpreting its program hashes, measurements or client interface.
 
 | Looking for | Pinned source |
 |---|---|

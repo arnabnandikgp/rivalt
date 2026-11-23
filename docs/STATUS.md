@@ -15,9 +15,9 @@ PRs #168 and #169 merged together at [`9c482583`](https://github.com/arnabnandik
 
 ## Limits and next action
 
-Maker inventory is the immediate trading constraint. With the largest supported profit-history slot, a signed local BTC maker carried 256 lots ($15.62 at the test price) and refused lot 257. The price book still offered 2 BTC. A different history can exhaust storage earlier. A separate 1,000-lot routed order exhausted the on-chain search budget. [Measurements and conditions](operations/performance.md)
+The fixed BTC notional baseline is in review. On the same router binary, all three internal makers quoted each request from $100 to $61,000. Clearing rejected all four at the trader's profit-history storage check. One- and three-lot buys filled, closed and paid 3,884 net atoms to the wallet. The earlier 1,000-lot search refusal and order 109's route-health refusal occurred on different books. [Sizes, receipts and limits](operations/performance.md#btc-orders-at-fixed-dollar-sizes)
 
-**Next action.** establish a dollar-denominated BTC baseline that holds the order sequence fixed and records the first failure from quote through fill, payout and wallet exit. Track the remaining route-health error 6120 from order 109 alongside the distinct capacity and search failures. Changes to creditor rights, funding depth or liquidation incentives require a separate economic decision.
+**Next action.** Compare position-history representations against the current exact accounting model using the same four dollar sizes, partial reductions and interleaved payouts. Measure bytes and check trader, maker and creditor entitlements before proposing a change to clearing.
 
 | Open gate | What remains |
 |---|---|
@@ -26,4 +26,4 @@ Maker inventory is the immediate trading constraint. With the largest supported 
 | Independent review and funded-pilot readiness (P16B) | Separate review, risk calibration and authorization. Default/devnet builds keep the current financial paths disabled. |
 | Continuous 24-hour endurance | Deferred. Earlier short runs qualify only their recorded workloads. |
 
-Documentation validation against integrated revision `9c482583` passed for relative links, headings, pinned Git references, shell examples and tracked-evidence policy. The storage and wallet figures were checked against existing records. Program qualification remains tied to the revisions above.
+The current protocol guides merged at `cfd2626c`. Harness `c4800d5e` reproduced all six outcomes and CU measurements from `5c3ac284` on clearing `986b3cd3`. Each signed run reconciled 357 events through fresh PostgreSQL replay.

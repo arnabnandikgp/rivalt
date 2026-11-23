@@ -62,4 +62,14 @@ python3 tests/performance/compare-router-load.py .local/load-control .local/load
 
 The control waits for the trader originals to drain before starting settlement. The active arm overlaps settlement with the scheduled offers. To reproduce the 24-wallet comparison, use 120 offers, 35 ms gaps, 100% BTC, rotating asks, one shallow maker lot, a three-lot order maximum, 2,100 ms refresh and seed 117. Compare independent wallet preparation with confirmed predecessors, then repeat the confirmed arm with maker 1 storage sponsorship. The [harness](../../tests/rpc-contract/router-load-rpc.ts) defines the environment knobs. [Observed results](performance.md) · [Exact comparison commands](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/local-development.md#match-trading-load-with-and-without-profit-settlement)
 
+## Fixed BTC order sizes
+
+Use the two verified artifact directories and router revision from the wallet-load build above. Run the following from a clean tracked checkout with a new output directory. This probe owns its local Surfpool and PostgreSQL instances.
+
+```sh
+RIVALT_SETTLEMENT_PROBE=execution-router-notional RIVALT_RUN_DIR=.local/btc-notional-baseline bash ops/scalable-settlement-smoke.sh
+```
+
+The harness saves each published quote, signed simulation and finalized order in `notional-orders.json`. After checking payout, SPL balances and fresh database replay, it writes `notional-baseline.json` in the same ignored directory. It attempts the same six buys in order, including diagnostic broadcasts of refused simulations. [Conditions and results](performance.md#btc-orders-at-fixed-dollar-sizes)
+
 Use [validation](validation.md) to select smaller checks. Historical proof experiments have separate artifact and helper bindings. Their commands are kept with the [original revisions](../HISTORY.md).
