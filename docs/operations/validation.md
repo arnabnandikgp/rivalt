@@ -4479,3 +4479,18 @@ ETH credit was observed at 238.158 seconds. Two ETH payments distributed all
 matched the fetched transactions. Fresh PostgreSQL replay matched 1,377 events.
 The 24-wallet rotating-quote trials also reconciled each partial credit to the
 remaining claim and empty BTC pool. [Matched comparisons and refusal analysis](performance.md#settlement-scheduling-and-rotating-btc-quotes)
+
+### Confirmed wallet orders and funded maker storage
+
+On `c3a3307c`, 24 wallets offered 120 BTC buys at 35 ms intervals using clearing
+`986b3cd3`. Independent preparation filled 81 orders. Waiting for a confirmed
+same-wallet predecessor filled 110. The comparison checks the predecessor's
+finalized slot against each next snapshot and verifies the nonce advanced after
+a successful fill. On `f815483e`, the owner expanded BTC maker 1's storage
+from 128 to 256 bytes per market. That run filled 119 orders on the same trace. All 39
+sequence refusals in the independent arm disappeared with confirmation. The
+maker quote logs identify its inadequate recovery space on all ten capacity
+refusals in the standard-width confirmed arm. The expanded run recorded one
+signed route-health refusal. The 28, 28 and 29 submitted settlement originals
+all finalized. RPC, WS and fresh PostgreSQL replays reconciled the three arms.
+[Timing, cash outcomes and excluded control](performance.md#confirmed-wallet-orders-under-the-same-btc-load)

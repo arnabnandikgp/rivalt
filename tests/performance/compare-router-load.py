@@ -109,8 +109,14 @@ def compare_wallet_order(directories, sponsored_directory=None):
     report = {}
     for mode, data in zip(modes, paired, strict=True):
         ordered = mode != 'independent'
-        assert data['walletOrder'] == ('confirmed' if ordered else 'independent') and data['during'] > 0
+        assert data['walletOrder'] == ('confirmed' if ordered else 'independent')
+        assert data['during'] > 0, f'{mode}: worker queued no original before the trader drain'
         original = {row['offer']: row for row in data['receipts'] if row['role'] == 'trader'}
+        first_slot = min(row['slot'] for row in original.values())
+        last_slot = max(row['slot'] for row in original.values())
+        concurrent_settlements = sum(row['role'] == 'settlement' and row['error'] is None
+                                     and first_slot <= row['slot'] <= last_slot for row in data['receipts'])
+        assert concurrent_settlements, f'{mode}: no finalized settlement inside the trader slot range'
         last_by_wallet = {}
         waits, outcomes, fills = [], [], []
         for index, (scheduled, offer) in enumerate(zip(data['trace'], data['offers'], strict=True)):
@@ -138,7 +144,8 @@ def compare_wallet_order(directories, sponsored_directory=None):
                     fills.append(end - offer['dueMs'])
             assert end >= offer['prepareMs']
             outcomes.append(end - offer['dueMs'])
-        report[mode] = dict(revision=data['revision'], makerStorage=data.get('makerStorage'), counts=data['counts'], waitBeforePreparationMs=distribution(waits),
+        report[mode] = dict(revision=data['revision'], makerStorage=data.get('makerStorage'), counts=data['counts'],
+                            settlementsInTraderSlotRange=concurrent_settlements, waitBeforePreparationMs=distribution(waits),
                             scheduledToAnyOutcomeMs=distribution(outcomes), scheduledToFillMs=distribution(fills),
                             signedToFillMs=data['finalizedMs'], generatorLagMs=data['generatorLagMs'],
                             reasons=summarize(data)['reasons'], paid=data['fundedAtomsAtDrain'], events=data['events'])

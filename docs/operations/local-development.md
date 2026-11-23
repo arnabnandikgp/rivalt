@@ -978,7 +978,8 @@ offer arrival, preparation time, snapshot slot and time of refusal or finality.
 Compare the runs with
 `python3 tests/performance/compare-router-load.py --wallet-order <independent-dir> <confirmed-dir>`.
 The report includes time spent waiting to prepare and time from each scheduled
-offer to its actual outcome, including refusals.
+offer to its actual outcome, including refusals. Each arm must land at least one
+successful settlement transaction within the trader transaction slot range.
 For a capacity refusal, run
 `node --import tsx tests/performance/router-capacity-refusals.ts <run-directory>`.
 It decodes the maker's quoted inventory and lot count from the returned data and
