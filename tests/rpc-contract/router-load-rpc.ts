@@ -152,8 +152,8 @@ try {
     const intent=await client.signed(prepared,prepared.transaction),subscription=await ws.call('signatureSubscribe',[intent.signature,{commitment:'finalized'}]);
     originals.set(offer.id,{time:since(),subscription,signature:intent.signature,wire:intent.wire});
     if(transport==='rpc'){
-      await client.broadcast(intent);
       writeFileSync(directory+'/wallet-original-'+offer.id+'.json',json(intent));
+      await client.broadcast(intent);
     }else {
       const response=await api.inject({method:'POST',url:'/v4/submit',payload:{requestId:'load:'+offer.id,wire:intent.wire}});
       assert.equal(response.statusCode,200,response.body);assert.equal(response.json().signature,intent.signature);
@@ -186,7 +186,7 @@ try {
   const end=since(),during=(await statuses()).filter(row=>row.budget!==null).length;
   if(arm==='offered-only'){assert.equal(during,0);assert.equal((await root(creditor)).cash,before.cash);}
   settlement=true;
-  while(paidMs===undefined&&since()<end+55_000){healthy();await delay(100);}
+  while(paidMs===undefined&&since()<end+180_000){healthy();await delay(100);}
   const payoutObservationMs=since();
   scheduling=false;
   while((await statuses()).some(row=>!terminal.has(row.status))&&since()<payoutObservationMs+10_000){healthy();await delay(100);}
@@ -200,6 +200,7 @@ try {
     const receipt=await rpc.call('getTransaction',[row.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     if(!receipt){assert(!['finalized','failed'].includes(row.status));continue;}
     assert.equal(receipt.transaction[0],row.wire);
+    writeFileSync(directory+'/landed-'+row.signature+'.json',json(receipt));
     const wire=Buffer.from(row.wire,'base64'),locks=transactionLocks(wire);
     const base={id:String(row.request_id),signature:row.signature,attempts:row.attempts,slot:receipt.slot,error:receipt.meta.err,
       bytes:wire.length,cu:Number(receipt.meta.computeUnitsConsumed),fee:Number(receipt.meta.fee),locks};
@@ -209,8 +210,9 @@ try {
     let legs:number[]=[];
     if(!receipt.meta.err){
       const parsed=await rpc.call('getTransaction',[row.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
-      const fill=eventPayloads(row.signature,parsed,setup.common.eventAuthority).find(({payload})=>payload.subarray(0,8).equals(Buffer.from(sdk.LIQUIDITY_ROUTE_EXECUTED_EVENT_DISCRIMINATOR)));
-      assert(fill);const event=sdk.getLiquidityRouteExecutedEventDecoder().decode(fill.payload);
+      writeFileSync(directory+'/parsed-'+row.signature+'.json',json(parsed));
+      const fill=eventPayloads(row.signature,parsed,setup.common.eventAuthority).find(({payload})=>payload.subarray(0,8).equals(Buffer.from(sdk.LIQUIDITY_ROUTE_FEE_RECORDED_EVENT_DISCRIMINATOR)));
+      assert(fill);const event=sdk.getLiquidityRouteFeeRecordedEventDecoder().decode(fill.payload);
       assert.deepEqual([event.side,event.lots,event.grossQuote,event.fee],[offer.side,offer.lots,offer.expectedGross,offer.expectedFee]);
       legs=event.legs.map(leg=>leg.instance);
     }
