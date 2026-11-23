@@ -911,7 +911,11 @@ Set `RIVALT_SETTLEMENT_PROBE=execution-router-load`. Run
 `bash ops/scalable-settlement-smoke.sh` twice, first with
 `RIVALT_SETTLEMENT_ARM=offered-only` and then with `RIVALT_SETTLEMENT_ARM=active`,
 each with its own new `RIVALT_RUN_DIR`. Run the arms consecutively on the same host.
-The control starts its real settlement worker after wallet outcomes are observed.
+The control starts its real settlement worker only after every signed wallet
+original reaches finality or verified expiry. If the drain times out, the run
+saves its boundary statuses and fails before enabling settlement. Each offered
+order must produce a unique signature. Finalized receipts take precedence over
+earlier pending observations when counting outcomes.
 The active arm starts it with the offered trace. Both arms continue observing cash
 for up to 180 seconds after the offers drain. The default wallet transport is RPC.
 Set `RIVALT_LOAD_TRANSPORT=relay` to exercise the durable dispatch queue separately.

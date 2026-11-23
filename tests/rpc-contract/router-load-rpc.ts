@@ -112,6 +112,7 @@ try {
   const at=async(ms:number)=>{await delay(Math.max(0,ms-since()));};
   let paidMs:number|undefined,pollsUnavailable=0;
   const polls:Record<string,unknown>[]=[],originals=new Map<number,{time:number;subscription:number;signature:string;wire:string}>();
+  const signedOffers=new Map<string,number>();
   background(async()=>{while(running){await indexer!.cycle();await delay(80);}});
   background(async()=>{while(running){await runtime.execute();await delay(45);}});
   background(async()=>{while(running){
@@ -149,7 +150,10 @@ try {
       return {...offer,entered,expectedGross,expectedFee,previewRefusal:error.message};
     }
     await prepared.transaction.sign([actor]);
-    const intent=await client.signed(prepared,prepared.transaction),subscription=await ws.call('signatureSubscribe',[intent.signature,{commitment:'finalized'}]);
+    const intent=await client.signed(prepared,prepared.transaction);
+    assert(!signedOffers.has(intent.signature),`Offers ${signedOffers.get(intent.signature)} and ${offer.id} produced the same signed transaction`);
+    signedOffers.set(intent.signature,offer.id);
+    const subscription=await ws.call('signatureSubscribe',[intent.signature,{commitment:'finalized'}]);
     originals.set(offer.id,{time:since(),subscription,signature:intent.signature,wire:intent.wire});
     if(transport==='rpc'){
       writeFileSync(directory+'/wallet-original-'+offer.id+'.json',json(intent));
@@ -183,8 +187,14 @@ try {
     if(wallets.length===originals.size&&wallets.every(row=>terminal.has(row.status)))break;
     await delay(50);
   }
-  const end=since(),during=(await statuses()).filter(row=>row.budget!==null).length;
-  if(arm==='offered-only'){assert.equal(during,0);assert.equal((await root(creditor)).cash,before.cash);}
+  const boundary=await statuses(),end=since(),during=boundary.filter(row=>row.budget!==null).length;
+  if(arm==='offered-only'){
+    const wallets=boundary.filter(row=>row.request_id.startsWith('load:'));
+    writeFileSync(directory+'/control-boundary.json',json(wallets.map(({request_id,signature,status})=>({request_id,signature,status}))));
+    assert.equal(during,0);assert.equal((await root(creditor)).cash,before.cash);
+    assert.equal(wallets.length,originals.size,'Control is missing a signed original');
+    assert(wallets.every(row=>terminal.has(row.status)),'Control cannot start settlement with unresolved orders');
+  }
   settlement=true;
   while(paidMs===undefined&&since()<end+180_000){healthy();await delay(100);}
   const payoutObservationMs=since();
@@ -199,6 +209,7 @@ try {
   for(const row of rows){
     const receipt=await rpc.call('getTransaction',[row.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     if(!receipt){assert(!['finalized','failed'].includes(row.status));continue;}
+    assert.notEqual(row.status,'expired-unexecuted','Verified expiry conflicts with a finalized receipt');
     assert.equal(receipt.transaction[0],row.wire);
     writeFileSync(directory+'/landed-'+row.signature+'.json',json(receipt));
     const wire=Buffer.from(row.wire,'base64'),locks=transactionLocks(wire);
@@ -216,9 +227,11 @@ try {
       assert.deepEqual([event.side,event.lots,event.grossQuote,event.fee],[offer.side,offer.lots,offer.expectedGross,offer.expectedFee]);
       legs=event.legs.map(leg=>leg.instance);
     }
-    receipts.push({...base,role:'trader',offer:offer.id,lots:offer.lots,legs,ms:finalizedAt.get(row.signature)!-original.time});
+    receipts.push({...base,role:'trader',offer:offer.id,lots:offer.lots,legs,ms:(finalizedAt.get(row.signature)??since())-original.time});
   }
   const successful=receipts.filter(row=>row.role==='trader'&&!row.error);
+  const landedWallets=new Set(receipts.filter(row=>row.role==='trader').map(row=>row.signature));
+  const expiredWallets=new Set(rows.filter(row=>row.request_id.startsWith('load:')&&row.status==='expired-unexecuted').map(row=>row.signature));
   assert(successful.length>0,'No successful market order');
   const operator=[];
   for(const check of checks.filter(row=>String(row.label).includes('six maker publications')||String(row.label).includes('two-market reports'))){
@@ -232,8 +245,8 @@ try {
     trace,offers,arrived,end,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
     counts:{offered:offers.length,signed:originals.size,previewRefused:offers.length-originals.size,
       filled:successful.length,refused:receipts.filter(row=>row.role==='trader'&&row.error).length,
-      expired:rows.filter(row=>row.request_id.startsWith('load:')&&row.status==='expired-unexecuted').length,
-      unresolved:rows.filter(row=>row.request_id.startsWith('load:')&&!terminal.has(row.status)).length,
+      expired:expiredWallets.size,
+      unresolved:[...signedOffers.keys()].filter(signature=>!landedWallets.has(signature)&&!expiredWallets.has(signature)).length,
       fillLots:successful.reduce((sum,row)=>sum+(row.lots??0n),0n)},
     cu:dist(successful.map(row=>row.cu)),finalizedMs:dist(successful.flatMap(row=>row.ms===undefined?[]:[row.ms])),
     generatorLagMs:dist(offers.map(offer=>offer.entered-offer.dueMs)),
