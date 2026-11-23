@@ -79,6 +79,13 @@ export class AccountRuntime extends AccountExecution {
     if(intervalSeconds<2n||intervalSeconds>5n)throw new Error('Local funding cadence must be 2–5 seconds');
     return publishLiquidityFunding(this,marketIndex,key,intervalSeconds);
   }
-  settle(key:Keypair,allowBackgroundPage=true){return settleAccounts(this,key,allowBackgroundPage);}
+  private settlementMaintenanceTurn=false;
+  async settle(key:Keypair,allowBackgroundPage=true){
+    const result=await settleAccounts(this,key,allowBackgroundPage,this.settlementMaintenanceTurn);
+    if(result.status==='queued' && result.reason!=='funded-account-loss'){
+      this.settlementMaintenanceTurn=result.reason==='certified-market-gain';
+    }
+    return result;
+  }
   riskWork(key:Keypair,receiver?:Address){return accountRiskWork(this,key,receiver);}
 }
