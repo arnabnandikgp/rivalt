@@ -54,6 +54,7 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     if(prepared.review)break;
     assert.deepEqual(new Set((await receipts()).map(item=>item.signature)),before,'Refused preparation must not sign');
     const sourceRefusal=prepared.alerts.length===1&&(prepared.alerts[0]==='Required liquidity market source unavailable.'
+      || sdk.usesExecutionRouter(config.deployment) && prepared.alerts[0].includes('('+sdk.CLEARING_ERROR__ORACLE_POLICY+')')
       ||/^Quote unavailable: (BTC|ETH) source is (Degraded|NoCredibleBounds)\.$/.test(prepared.alerts[0]));
     assert(name==='Review atomic trade'&&sourceRefusal&&attempt<3,`${name}: ${prepared.alerts}`);
     await button('Refresh').click();
@@ -69,6 +70,12 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     status:receipt.status,error:history.meta.err,reviewAttempt});
   writeFileSync(`${directory}/wallet-transactions.json`,JSON.stringify(outcomes,null,2));
   writeFileSync(`${directory}/wallet-finalized-${outcomes.length}.json`,JSON.stringify(history,null,2));
+  if(sdk.usesExecutionRouter(config.deployment) && name==='Review atomic trade'){
+    const message=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64')).message;
+    const order=message.compiledInstructions.at(-1)!;
+    assert.equal(message.staticAccountKeys[order.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
+    assert.equal(sdk.hex(order.data.slice(0,8)),sdk.hex(sdk.EXECUTE_BEST_ROUTE_DISCRIMINATOR));
+  }
   if(receipt.status==='failed'){
     // Live workers can advance an account or source policy between review and
     // send. Model a new user review only AFTER independent finalized failure
@@ -84,9 +91,13 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     assert.equal(message.staticAccountKeys[instruction.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);
     const tag=sdk.hex(instruction.data.slice(0,8));
     const direct=tag===sdk.hex(sdk.EXECUTE_LEDGER_LANE_DISCRIMINATOR);
-    assert(direct||tag===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR),'Expected signed route');
+    const standing=tag===sdk.hex(sdk.EXECUTE_BEST_ROUTE_DISCRIMINATOR);
+    assert(direct||standing||tag===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR),'Expected signed route');
     assert(code===6122||code===6117||code===6115||code===sdk.CLEARING_ERROR__ORACLE_POLICY,JSON.stringify(history.meta.err));
-    if(code===6117||code===6115){
+    if(standing && (code===6117||code===6115)){
+      const {expirySlot}=sdk.getExecuteBestRouteInstructionDataDecoder().decode(instruction.data);
+      assert(code===sdk.CLEARING_ERROR__ROUTE_INTENT && BigInt(history.slot)>=expirySlot,'Unexplained standing-order refusal');
+    }else if(code===6117||code===6115){
       const decode=direct?sdk.parseExecuteLedgerLaneInstruction:sdk.parseExecuteLiquidityRouteInstruction;
       const accounts=Array.from(instruction.accountKeyIndexes,index=>({
         address:message.staticAccountKeys[index].address,
@@ -133,7 +144,7 @@ try{
   await select('Margin account','0');await select('Market','0');await action('Review atomic trade',cross);
   await select('Market','1');await action('Review atomic trade',cross);
   const opened=(await client.snapshot([cross])).roots[cross];assert.deepEqual(opened.positions.map(position=>position.lots),[5n,5n]);
-  if(config.deployment==='unified-recovery-candidate'){
+  if(sdk.usesUnifiedRecovery(config.deployment)){
     // The cross account now owes both market ledgers. Adding collateral must
     // classify the same two ledgers in the signed wallet transaction.
     const token=address(await page.getByLabel('Wallet collateral account',{exact:true}).inputValue());

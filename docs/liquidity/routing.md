@@ -7,6 +7,57 @@ eligible risk. Ordinary route authority still belongs to the owner or delegate.
 
 ## Implementation boundary
 
+### Execution-time selection
+
+D145 defines the ordinary market order for the fresh local demo. The SDK
+previews an allocation and clearing selects it again from current state when
+the order executes. Explicit signed-leg instructions still bind the submitted
+maker IDs and quantities. The two paths have different lock sets.
+
+| Deliverable | Acceptance |
+|---|---|
+| Clearing selects the fill | A trader signs their limits once. Changed depth or prices can change the chosen makers and split at landing. Authenticate the complete three-maker registry. Compare all eligible singletons and pairs. On an incomplete search, fail atomically. Verify winner selection against independent exhaustive cases, including disconnected financial feasibility and a sell fee-rounding tie. |
+| Wallet and execution | Use the new entry point from the ordinary wallet path. Fetch signed one- and two-maker fills and refusals over RPC. Reconcile actual maker consumption, margin, fees and fills with PostgreSQL. Measure packet bytes, loaded keys, write locks and CU on the emitted transaction. |
+| Matched load | Replay the same seed, order arrivals, maker schedule and starting book with and without a real outstanding-profit settlement worker. Vary funded traders, market skew, offered rate, size, maker availability and reprice cadence. Count every original offer, retry, refusal, expiry and unresolved transaction separately. Report filled lots, execution quality against the landed book, latency percentiles, costs by payer, shared writes and time to an actual payout. Reconcile both arms before reporting a comparison. |
+
+Solana locks all declared writable accounts for execution. A writer can land
+between two fills in the same slot. A lock alone gives neither FIFO ordering nor
+a guarantee that a submitted fill lands in that slot. Qualification must exercise
+both transaction orders. The approved [standing quote](quoting.md#standing-execution-quotes)
+uses the price at execution and survives its age alone. A reprice, disable or
+depth consumption is visible immediately. The existing SDK signed-leg allocator
+continues to use expiring publications.
+
+### Clearing instruction and SDK builder
+
+The local `execution-router-qualification` build exposes `execute_best_route`.
+Its three maker bundles are mandatory in registry order. Each includes writable
+capital and registration and read-only pricing program, ProgramData, shape and
+price. The trader signs every structural epoch and their limits. Clearing journals
+unused makers as reads and advances only the selected makers' financial state.
+`buildBestRoute` prepends the required market and ledger checkpoints to the same
+transaction. On the default fresh local `bounded-router-candidate` deployment,
+the trader UI signs maximum spend or minimum proceeds, maximum fee, size and
+expiry. The wallet saves the signed original and submits it directly over RPC.
+Applications can opt into the authenticated relay, which queues conflicting
+originals. Both transports preserve the signed bytes and trader state guard.
+The wallet requests 800,000 CU, 128 KiB heap and zero priority fee.
+The host selector visits at most 65,536 intervals and evaluates at most 131,072
+gross quotes, counting repeats. Clearing additionally limits an order to 24 pair
+intervals, 512 gross evaluations and four full financial admissions. Exceeding
+any limit returns `RouteSearchLimit` (6133) and discards the incumbent. These
+are work limits, independent of order size. Transaction-wide compute exhaustion
+is still possible, including during account authentication or final settlement.
+One position can accumulate fills from different makers across orders. Each
+exact-size order must fit a single maker or a pair. For example, if each of
+the three makers offers three lots, a nine-lot order cannot fill. The program
+already receives writable capital and registration for all three candidates.
+Adding a third fill leg would require three-way allocation and corresponding
+atomic admission, fee and state updates. Adding a fourth candidate would also
+change the account list and signed registry epochs. [Qualification](../STATUS.md)
+
+### Signed-leg preview and execution
+
 `readAccountTradeSnapshot` discovers the selected market's three sealed
 registrations, then reads immutable root identities. One final `getMultipleAccounts`
 batch contains custody, vault/mint, safety, both markets/ledgers, Clock, the selected

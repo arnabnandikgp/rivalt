@@ -2,11 +2,11 @@
 
 **A Solana perpetual futures venue with common clearing and competing margined maker programs.**
 
-Rivalt separates pricing from clearing. Makers publish configurable liquidity
-curves and fund their own inventory; an off-chain router selects the best bounded
-allocation, and clearing executes up to two maker legs atomically. Traders share
-one account and settlement system across makers, so a position can open against
-one maker and close against another.
+Makers publish liquidity curves and fund their own inventory. For a market
+order in the fresh local demo, the trader signs a size, price limit and fee
+ceiling. At execution, clearing reads all three registered maker books and
+selects the best eligible fill using one or two makers. The trader holds one
+position per market in their margin account and can close it against another maker.
 
 The current implementation is a qualified **local engineering prototype** for
 BTC and ETH with one test collateral mint, isolated and cross-margin accounts,
@@ -36,8 +36,8 @@ it does not route trades to other perpetual exchanges.
 ## Run locally
 
 Install the [pinned toolchain and dependencies](docs/operations/local-development.md#pinned-toolchain)
-in the checkout you will run. Fresh local venues use the clearing program with
-parallel maker fills and verified whole-cohort recovery.
+in the checkout you will run. Fresh local venues use execution-time routing
+and verified whole-cohort recovery.
 The installer builds from pinned Git revisions and checks all four program hashes.
 The verified environment is macOS arm64 with native Surfpool and Apple Containers
 for PostgreSQL.

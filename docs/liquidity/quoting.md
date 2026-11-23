@@ -1,10 +1,23 @@
 # Maker quoting contract
 
+## Standing execution quotes
+
+The D145 ordinary router uses request version 5 on the existing read-only maker
+quote interface. It prices current inventory and unconsumed depth at the maker's
+last authorized anchor. A reprice is visible to the very next instruction.
+This request has no age expiry. Its two expiry fields carry the maximum values
+of their wire types. It still rejects unpublished prices, future publications,
+revoked control, disabled shapes and insufficient capacity. Both admitted maker
+programs must support this request before the new path can be used.
+
+Version 4 retains expiry for funding and the existing signed-leg path. A funding
+publisher cannot use version 5 to extend a market's held window.
+
 ## Identity, deployment and authority
 
 - Fresh local venue/domain with `Venue.schema_version=10`, immutable
   `profile_version=6`; clearing accounts use schema 10 with scoped revisions.
-  Maker-owned accounts use schema 5; quote ABI retains version 4. P56 supplies the account-scale local binding. No in-place profile-3 upgrade or account rewrite.
+  Maker-owned accounts use schema 5. Expiring requests use version 4 and standing execution requests use version 5 on supporting maker builds. P56 supplies the account-scale local binding. No in-place profile-3 upgrade or account rewrite.
   The default/devnet build rejects profile-6 financial activation. An explicit local qualification build gates execution.
 - Exactly three registry slots per market, IDs 0,1,2. All must be provisioned and
   registry sealed before funding or trading. At least two instances share a maker

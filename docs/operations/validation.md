@@ -4404,3 +4404,66 @@ encoder measured 6,045 bytes during capture and 10,245 bytes after materializing
 75 members with 50 history bytes and two insurance rounds. The allocation was
 10,240 bytes. The focused selector comparison and TypeScript checks also passed.
 These were host calculations against retained signed inputs.
+
+## Standing maker orders at execution
+
+On local clearing and maker revision `35fef03e`, the trader signed a two-lot BTC
+buy before maker 2 lowered its ask. The signed message contained all three
+registrations. Makers 0 and 2 each filled one lot, costing 119,994 atoms before
+the single 24-atom fee. The original top pair was 0 and 1. A second buy filled
+one lot from maker 1 six seconds after its last publication. The legacy snapshot
+classified that quote as stale. The independent market risk checks admitted
+both transactions. A third signed order exceeded its price limit and reverted
+with byte-identical trader and maker financial accounts.
+
+| Finalized BTC order with market and ledger checkpoints | Transaction CU | Signed v1 bytes |
+|---|---:|---:|
+| Two-maker buy after signature and reprice | 535,327 | 1,330 |
+| Single-maker buy using a standing price | 402,481 | 1,330 |
+| Price-limit refusal | 292,000 | 1,330 |
+
+Surfpool RPC receipts and WebSocket confirmations were checked for each order.
+PostgreSQL reconciled to on-chain account bytes and a fresh replay reproduced
+94 events. The run requested 1,400,000 CU and a 128 KiB heap. These measurements
+cover the specified orders. The [wallet workload](performance.md#execution-time-wallet-orders-with-concurrent-settlement) measures direct single-signer orders separately.
+Reproduce with `ops/build-profit-attribution.sh` using
+`RIVALT_ATTRIBUTION_PROFILE=execution-router-qualification` on the named revision,
+then `ops/scalable-settlement-smoke.sh` with `RIVALT_SETTLEMENT_PROBE=execution-router`,
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` set to its output and `RIVALT_ROUTER_REVISION`
+set to the full build commit.
+
+### Direct wallet and settlement workload
+
+On harness `e50df2c7` and program revision `35fef03e`, four fresh Surfpool /
+WebSocket / PostgreSQL runs covered 180 signed and finalized BTC/ETH wallet
+orders. No full-size fill missed the independent two-atom bid/ask offset or the
+2 bps aggregate taker fee. All four live SQL projections matched account bytes
+and replayed exactly. The 996-atom claimant was fully paid in both six-wallet
+arms and still owed all 996 atoms when observation ended in both sixteen-wallet
+arms. The [paired results](performance.md#execution-time-wallet-orders-with-concurrent-settlement)
+include each denominator, consumed CU, finalized latency, costs and
+observation window. One earlier control correctly refused 18 unsigned previews
+after SQL initialization put the risk oracle into recovery. The final harness
+waits for both markets to reach Normal through real source publications.
+
+At `1188a468`, the default fresh local browser wallet finalized all 14 signed
+originals with no unsigned source refusals. The four market orders carried the
+`execute_best_route` discriminator in their fetched wires. BTC buy, ETH buy,
+ETH reduce-only sell and BTC reduce-only sell consumed 487,818, 535,060,
+528,886 and 528,980 CU respectively. Both positions closed, the wallet token
+balance increased by 1,000,000 atoms on withdrawal and the four indexed fills
+were visible after reload. This run used an internal wallet and test collateral.
+An earlier trial at the same revision stopped at the disk-space guard before
+the BTC exit. The repeat used a fresh venue.
+
+### Bounded execution-time search
+
+Clearing and makers at `986b3cd3`, selected by `725b580a`, landed a repriced
+pair (535,611 CU) and a standing singleton (402,633 CU). The trader limit
+refused at 292,140 CU. A 1,000-lot order exceeded the financial admission budget
+and returned custom error 6133 at 510,423 CU. Both refusals preserved the
+trader, three maker capital accounts and three registrations byte-for-byte.
+Fresh PostgreSQL replay matched 94 events. Six native selector tests passed,
+including exhaustion after an admitted singleton and the four-admission boundary.
+A discarded build could not deploy the remaining-compute syscall on the pinned
+runtime. The qualified implementation counts work directly.

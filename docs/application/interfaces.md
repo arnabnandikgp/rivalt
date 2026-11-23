@@ -124,14 +124,23 @@ simulation determines admission. Never label unpaid marked P&L as cash.
 
 ## Quotes and signed ingress
 
+On an execution-router venue, the ordinary wallet uses `AccountUserClient.marketOrder`
+and signs one order against the complete three-maker registry. The review shows
+size, maximum spend or minimum proceeds, fee ceiling and expiry. The signed
+original is saved before direct RPC broadcast. Clearing selects up to two makers
+at landing. Price age alone does not expire that execution quote. Risk source,
+funding, maker control, consumption and trader limits still apply. The wallet can
+reconcile an ambiguous submission by its original signature. An integration using
+`/v4/submit` can relay the same bytes through the durable queue.
+
 `/v4/quote` exposes selected maker instances, gross/all-in values, expiry, source
 freshness and classified unavailability. Quote validity is provisional; an HTTP
 response is not instruction authority. Rebuild and authenticate instructions in
 the SDK with user size, side, limits, fee cap and exact account bindings. Current
 price may improve/change within signed bounds; structural-epoch changes reject.
-The wallet displays the route's signed slot deadline. Clearing also checks each
-maker publication at execution. A six-second-old price can expire while the
-route still has slots remaining. A fresh review is required to sign again.
+On the legacy signed-leg path the wallet displays the route's signed slot
+deadline. Its maker price can expire after six seconds while the order still has
+slots remaining. A fresh review is required to sign again.
 
 An unfinished exact route search reports `liquidity-search-budget-exhausted` with
 bounded search metrics, distinct from insufficient depth or failed account health.

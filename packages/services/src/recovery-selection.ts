@@ -112,6 +112,6 @@ export async function loadRecoverySelection(rpc:Pick<Rpc,'call'>,venue:Address,
       rows.push({...row,history:histories});
     }
   }
-  const outcome=await selectRecovery({...book,rows},venue,epoch,budget,profile.format,selection==='unified-recovery-candidate');
+  const outcome=await selectRecovery({...book,rows},venue,epoch,budget,profile.format,sdk.usesUnifiedRecovery(selection));
   return {book,outcome};
 }

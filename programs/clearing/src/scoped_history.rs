@@ -81,6 +81,7 @@ struct Entry {
 }
 
 pub(crate) struct Scope {
+    selected_makers: Option<[bool; 3]>,
     #[cfg(feature = "read-only-route-market")]
     venue_mode: Option<u8>,
     entries: Vec<Entry>,
@@ -93,8 +94,16 @@ impl Scope {
     }
 
     fn with_limit(limit: usize) -> Self {
-        Self { entries: Vec::with_capacity(limit), limit, cursor: None,
+        Self { entries: Vec::with_capacity(limit), limit, cursor: None, selected_makers: None,
             #[cfg(feature = "read-only-route-market")] venue_mode: None }
+    }
+
+    pub(crate) fn maker_access(&self, instance: usize) -> Result<Access> {
+        match self.selected_makers.and_then(|selected| selected.get(instance).copied()) {
+            Some(true) => Ok(Access::Write),
+            Some(false) => Ok(Access::Read),
+            None => Err(ClearingError::Profile.into()),
+        }
     }
 
     #[cfg(feature = "book-inventory-qualification")]
@@ -634,6 +643,7 @@ pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
 
 #[derive(Clone, Copy)]
 enum Remaining {
+    SelectedMakers([bool; 3]),
     #[cfg(feature = "checked-funding-prefix")]
     FundingRegistrations,
     FrozenPlanPages,
@@ -645,6 +655,10 @@ enum Remaining {
 impl Remaining {
     fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
         match self {
+            Self::SelectedMakers(_) => {
+                require!(accounts.is_empty(), ClearingError::Profile);
+                Ok(())
+            }
             Self::MembershipScan(root_write) => {
                 require!(accounts.len() <= 2, ClearingError::Resolution);
                 for account in accounts {
@@ -703,6 +717,9 @@ fn run_with_remaining<'context, T: ScopedContext>(
     };
     #[cfg(not(feature = "book-inventory-qualification"))]
     let mut scope = Scope::new();
+    if let Remaining::SelectedMakers(selected) = access {
+        scope.selected_makers = Some(selected);
+    }
     context.accounts.visit(&mut scope)?;
     access.visit(&mut scope, &mut remaining)?;
     let mut payloads = event_cpi::Payloads::default();
@@ -743,6 +760,15 @@ fn run_with_remaining<'context, T: ScopedContext>(
     event_cpi::emit_borrowed::<AccountTransition, _>(&event, context.accounts.event_authority())?;
     profile_cu!("scope-exit");
     Ok(())
+}
+
+pub(crate) fn run_selected_route<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>,
+    instruction: [u8; 8],
+    quantities: [u64; 3],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::SelectedMakers(quantities.map(|quantity| quantity != 0)), handler)
 }
 
 #[cfg(test)]

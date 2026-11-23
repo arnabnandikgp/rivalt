@@ -6,7 +6,9 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
-if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-partitioned-population || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-populated-rates || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-original-budgets || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-foreign-caps || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-winner-allocations || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-pair-schedule || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-joint-settlement ]]; then
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router* ]]; then
+  node --import tsx --input-type=module -e 'import {routerBuild} from "./tests/rpc-contract/execution-router-build.ts"; routerBuild()'
+elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-partitioned-population || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-populated-rates || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-original-budgets || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-foreign-caps || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-winner-allocations || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-pair-schedule || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-joint-settlement ]]; then
   node --import tsx --input-type=module -e 'import {verifyPartitionedBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyPartitionedBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,process.env.RIVALT_SETTLEMENT_PROBE);'
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-successor-* ]]; then
   node --import tsx --input-type=module -e 'import {verifyProfitBuild} from "./tests/rpc-contract/profit-attribution-build.ts";verifyProfitBuild(process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR,false,false,false,false,"successor");'
@@ -115,9 +117,11 @@ for component in clearing maker_a maker_b oracle_fixture; do
     --program-id ".local/keys/$key_name.json" --keypair .local/keys/payer.json --url "$RIVALT_RPC_URL" \
     --use-rpc --max-sign-attempts 20 --output json > "$RIVALT_RUN_DIR/$component-deployment.json"
 done
-if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution* || "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk || "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation || "${RIVALT_SETTLEMENT_PROBE:-default}" == freeze-cutoff || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router* || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution* || "${RIVALT_SETTLEMENT_APPLY:-0}" == 1 || "${RIVALT_SETTLEMENT_PROBE:-default}" == maintained-backing* || "${RIVALT_SETTLEMENT_PROBE:-default}" == whole-account-risk || "${RIVALT_SETTLEMENT_PROBE:-default}" == maker-liquidation || "${RIVALT_SETTLEMENT_PROBE:-default}" == freeze-cutoff || "${RIVALT_SETTLEMENT_PROBE:-default}" == backing-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == default-worker || "${RIVALT_SETTLEMENT_PROBE:-default}" == account-clients ]]; then source ops/postgres.sh; fi
 if [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && ( "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-owned-* && "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-successor-recovery || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-meter || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-coverage ) ]]; then bash ops/deploy-frozen-plan-probe.sh; fi
 case "${RIVALT_SETTLEMENT_PROBE:-default}" in
+  execution-router-load) node --import tsx tests/rpc-contract/router-load-rpc.ts ;;
+  execution-router) node --import tsx tests/rpc-contract/execution-router-rpc.ts ;;
   default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
   maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;
   backing-worker) node --import tsx tests/rpc-contract/maintained-backing-worker-rpc.ts ;;

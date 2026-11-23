@@ -15,17 +15,22 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 
 The common recovery keeper, verifier selection and default fresh-local launcher
 merged into `main` at `f0302d8d`. The merge tree matches the reviewed tip
-`a61b5dd9`. Fresh sessions use clearing `79724a5a`. Both nine-member cases, three
+`a61b5dd9`. That release selected clearing `79724a5a`. Both nine-member cases, three
 75-member cases and the 128-member case completed wallet exits. The stock demo
 at `4164f7cd` completed 14 wallet actions and recorded one finalized refusal.
 [Wallet qualification](operations/validation.md#default-fresh-local-wallet) ·
 [Six deliverables](clearing/roadmap.md#pr-tracker)
 
-**Next action.** Define the next polishing deliverables and their acceptance criteria.
+**Next action.** Trace the sixteen-wallet worker receipts to identify the first
+step delaying the already-backed 996-atom BTC payout.
 P15B and P16B remain open external gates. The 24-hour run is deferred.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| Bounded on-chain search | Review, [PR #167](https://github.com/arnabnandikgp/rivalt/pull/167) | Clearing `986b3cd3`, deployed by harness `725b580a`. A 1,000-lot search returned 6133 at 510,423 CU and preserved all seven observed financial accounts. A repriced pair and standing singleton filled. Six native route tests and a 94-event fresh SQL replay passed. |
+| Wallet, clearing and matched settlement load | Review, [PR #166](https://github.com/arnabnandikgp/rivalt/pull/166) | The fresh local wallet on `1188a468` finalized 14/14 originals, including both market closes and a 1,000,000-atom token exit. On `e50df2c7` with SBF `35fef03e`, four matched runs finalized 180/180 orders. Both six-wallet arms paid the 996-atom claim. Both sixteen-wallet arms ended with all 996 atoms outstanding after more than 190 seconds. [Browser](operations/validation.md#direct-wallet-and-settlement-workload) · [Load measurements](operations/performance.md#execution-time-wallet-orders-with-concurrent-settlement). |
+| Clearing route and standing maker quotes | Review, [PR #165](https://github.com/arnabnandikgp/rivalt/pull/165) | At `35fef03e`, maker 2 repriced after signature and won a leg. A six-second-old quote filled a separate order. The signed price-limit refusal preserved all financial accounts. RPC, WS and 94-event PostgreSQL replay matched. [Transactions](operations/validation.md#standing-maker-orders-at-execution) · [Selection tests, PR #163](https://github.com/arnabnandikgp/rivalt/pull/163). |
+| Funding cost and routing contract | Review, [PR #162](https://github.com/arnabnandikgp/rivalt/pull/162) | D145 retains index-derived risk and the attested funding report. Re-reading 66 signed transactions differentiated the current report and checkpoint costs. [Funding measurements](operations/performance.md#funding-publications-on-the-qualified-local-clearing-build). |
 | Verifier review findings | Closed, [PR #160](https://github.com/arnabnandikgp/rivalt/pull/160) | At `2d799902`, eight independent financial tests and the native wide-factor regression passed. Original budgets, eligible recovery and settled cash matched on all three retained 75-member books. The generated account encoder reproduced 6,045 bytes before materialization and 10,245 after it. [Validation](operations/validation.md#frozen-book-reference-checks). |
 | Fresh-session default | Closed, [PR #159](https://github.com/arnabnandikgp/rivalt/pull/159) | Browser `4164f7cd` verified both account modes, a two-market top-up, TP/SL, both closes, a 1,000,000-atom withdrawal and the indexed fills after reload. One stale financial sequence required a fresh ETH review. Earlier sessions identified expired original recovery and funding contention during backing scans. [Results and limits](operations/validation.md#default-fresh-local-wallet). |
 | Frozen-book verifier selection | Closed, [PR #158](https://github.com/arnabnandikgp/rivalt/pull/158) | Clearing `79724a5a`, harness `3e89caf2`. All three 75-member books settled after keeper restart. The flat creditor received 399,399 atoms, the two-pair case certified storage overflow before payout, and the dense trader withdrew 986,527 atoms. Fresh replay matched 710, 689 and 1,025 events respectively. [Qualification](operations/validation.md#frozen-book-verifier-selection-and-mid-sized-exits). |

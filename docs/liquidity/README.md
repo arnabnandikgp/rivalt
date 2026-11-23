@@ -9,10 +9,11 @@ A maker owns its curve shape, inventory caps and permissions. A narrowly delegat
 updater changes its price anchor. Clearing owns consumed depth. Repricing never
 restores depth: replenishment is a separate owner-authorized transition.
 
-The router reads a coherent authenticated snapshot and chooses the best financially
-admissible single/pair within that snapshot. Clearing recomputes current prices,
-checks signed bounds, and admits every trader/maker account atomically. A preview
-is not a reservation or guarantee of landing.
+The SDK previews the best financially admissible single maker or pair. For
+ordinary market orders on the fresh local demo, clearing repeats the search
+using the books at execution. A reprice can change which maker fills the order.
+Clearing checks the signed limits and commits the trader and maker balances
+atomically. An explicit signed-leg order binds its maker IDs and quantities.
 
 The funding publisher reads the complete configured published book and computes
 impact prices off chain. It deliberately omits hypothetical maker margin checks.

@@ -9,6 +9,8 @@ use crate::instructions::{OrderExecution, RouteIntent, RouteLeg};
 use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
 mod contract;
+mod market_order;
+pub use market_order::{execute_best, BestRouteIntent, MakerEpochs};
 mod liquidation;
 use contract::*;
 pub use contract::{LiquidityOrderExecution, LiquidityRouteIntent, LiquidityRouteLeg};
@@ -253,10 +255,10 @@ fn execute_core(
         views.push(pricing::View {
             capital: accounts.second_capital.as_deref().unwrap(),
             registration: accounts.second_registration.as_deref().unwrap(),
-            program: accounts.second_program.as_ref().unwrap(),
-            data: accounts.second_program_data.as_deref().unwrap(),
-            config: accounts.second_config.as_ref().unwrap(),
-            price: accounts.second_price.as_ref().unwrap(),
+            program: accounts.second_program.unwrap(),
+            data: accounts.second_program_data.unwrap(),
+            config: accounts.second_config.unwrap(),
+            price: accounts.second_price.unwrap(),
         });
     }
     let mut cache = pricing::CodeApprovalCache::default();

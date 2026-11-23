@@ -25,6 +25,7 @@ export * from './liquidity-allocation.js';
 export {LiquiditySearchLimitError,LIQUIDITY_SEARCH_BUDGET} from './quantity-search.js';
 export * from './quantity-limits.js';
 export * from './liquidity-route.js';
+export * from './market-order.js';
 export * from './funding-publisher.js';
 export * from './funding-impact.js';
 export * from './liquidity-artifacts.js';

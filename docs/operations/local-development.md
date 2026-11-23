@@ -34,11 +34,11 @@ Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
 For a fresh local demo, install the host dependencies below, then run
-`bash ops/build-demo-programs.sh`. The installer extracts the clearing source at
-`79724a5a` and maker/oracle source at `ed46603` from Git, builds the locked
+`bash ops/build-demo-programs.sh`. The installer extracts the clearing and maker source at
+`35fef03e` and oracle fixture at `ed46603` from Git, builds the locked
 programs with platform tools v1.52 and compares every binary against the SDK's
 fixed length and SHA-256. It installs into
-`.local/demo-programs/unified-recovery-79724a5a/`, prepares the matching
+`.local/demo-programs/bounded-maker-routing/`, prepares the matching
 settlement helper and builds the native recovery selector. Subsequent invocations
 verify the installed directory. Set `RIVALT_DEMO_PROGRAMS` consistently for a
 different installation directory. The install command creates missing local
@@ -894,3 +894,48 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-3acd4a4db4f3cdf6b
 RIVALT_RUN_DIR=.local/profit-attribution/joint-wallet-reproduction \
 bash ops/scalable-settlement-smoke.sh
 ```
+
+### Run the ordinary execution-time order locally
+
+Run `bash ops/build-demo-programs.sh` to install and verify the qualified local
+clearing and makers from `35fef03e`. Then run `bash ops/demo.sh start` with a
+fresh `RIVALT_DEMO_ROOT`. The interface reviews the trader's total and fee limits.
+The finalized fill records which makers clearing selected. Set `RIVALT_DEMO_DEPLOYMENT=unified-recovery-candidate` in both the installer
+and launcher shells to select the prior fresh-demo build.
+
+### Match trading load with and without profit settlement
+
+Use the pinned program directory and `RIVALT_ROUTER_REVISION` from the
+[standing-order qualification](validation.md#standing-maker-orders-at-execution).
+Set `RIVALT_SETTLEMENT_PROBE=execution-router-load`. Run
+`bash ops/scalable-settlement-smoke.sh` twice, first with
+`RIVALT_SETTLEMENT_ARM=offered-only` and then with `RIVALT_SETTLEMENT_ARM=active`,
+each with its own new `RIVALT_RUN_DIR`. Run the arms consecutively on the same host.
+The control starts its real settlement worker only after every signed wallet
+original reaches finality or verified expiry. If the drain times out, the run
+saves its boundary statuses and fails before enabling settlement. Each offered
+order must produce a unique signature. Finalized receipts take precedence over
+earlier pending observations when counting outcomes.
+The active arm starts it with the offered trace. Both arms continue observing cash
+for up to 180 seconds after the offers drain. The default wallet transport is RPC.
+Set `RIVALT_LOAD_TRANSPORT=relay` to exercise the durable dispatch queue separately.
+
+| Environment knob | Six-trader run | Sixteen-trader run |
+|---|---:|---:|
+| `RIVALT_LOAD_TRADERS` | 6 | 16 |
+| `RIVALT_LOAD_OFFERS` | 18 | 72 |
+| `RIVALT_LOAD_GAP_MS` | 280 | 100 |
+| `RIVALT_LOAD_BTC_PERCENT` | 75 | 90 |
+| `RIVALT_LOAD_MAX_LOTS` | 3 | 8 |
+| `RIVALT_LOAD_FIRST_MAKER_LOTS` | 2 | 1 |
+| `RIVALT_LOAD_REFRESH_MS` | 2,400 | 2,800 |
+| `RIVALT_LOAD_SEED` | 117 | 117 |
+
+Each market has one shallow and two deep internal makers. During measurement, the bid is two atoms below the fixed index and the ask is
+two atoms above it. This gives an
+independent expected price and fee for every size. The separate signed-reprice
+case covers a changing best price. Run
+`python3 tests/performance/compare-router-load.py <offered-only-dir> <active-dir>`
+to check the same ordered trace, program, starting account economics and final
+creditor cash. The report lists all offers, original outcomes, packet sizes,
+finality, fees and shared keys. Raw receipts and SQL captures stay in the run directories.

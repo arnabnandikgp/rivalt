@@ -22,6 +22,7 @@ export * from "./liquidityRegistryPayload.js";
 export * from "./liquidityRouteIntent.js";
 export * from "./liquidityRouteLeg.js";
 export * from "./liquidityShape.js";
+export * from "./makerEpochs.js";
 export * from "./makerRegistrationPayload.js";
 export * from "./marginAccountSnapshot.js";
 export * from "./marketLedgerSnapshot.js";

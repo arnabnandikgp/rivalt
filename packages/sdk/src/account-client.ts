@@ -6,7 +6,7 @@ import {testRpcUrl} from './test-deployment.js';
 import {ACCOUNT_PROFILE,readMembershipRegistry,readMarginMembership} from './account-membership.js';
 import {deriveMemberPage,deriveMemberIndex,deriveStorageFunding} from './account-addresses.js';
 import {ArtifactVerifier} from './artifacts.js';
-import {accountDeployment,type AccountDeployment} from './account-deployment.js';
+import {accountDeployment,usesExecutionRouter,usesUnifiedRecovery,type AccountDeployment} from './account-deployment.js';
 import {readOwnerAccounts} from './account-owner-discovery.js';
 import {marketCheckpointsFor,venueMarketCheckpoints,walletEconomicActions,type MarketCheckpoint} from './market-checkpoints.js';
 import {decodeMembershipAccount} from './account-membership.js';
@@ -20,11 +20,12 @@ import {readAccountSnapshot,readAccountTradeSnapshot,accountGuard,type AccountSn
 import {accountBalanceView} from './account-balance.js';
 import {accountMarketMetas,accountLiabilityMetas} from './account-markets.js';
 import type {LiquidityRouteInput} from './liquidity-route.js';
+import {BEST_ROUTE_HEAP_BYTES,buildBestRoute} from './market-order.js';
 
 export type AccountUserConfig={version:4;accountSchema:10;deployment:AccountDeployment;chain:'solana:localnet';profile:'liquidity-execution-qualification';rpcUrl:string;wsUrl:string;
   genesis:string;anchor:string;anchorHash:string;venue:Address;mint:Address;domain:string};
 export function accountUserConfig(value:AccountUserConfig):AccountUserConfig {
-  requireValue(value?.version===4&&value.accountSchema===10&&(value.deployment==='selected'||value.deployment==='account-scale-candidate'||value.deployment==='unified-recovery-candidate')&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
+  requireValue(value?.version===4&&value.accountSchema===10&&(value.deployment==='selected'||value.deployment==='account-scale-candidate'||usesUnifiedRecovery(value.deployment))&&value.chain==='solana:localnet'&&value.profile==='liquidity-execution-qualification','Explicit qualified local liquidity deployment required.');
   return validateAccountConfig(value);
 }
 function validateAccountConfig<Config extends AccountUserConfig>(value:Config):Config {
@@ -41,7 +42,8 @@ export function accountWalletInstructions(instructions:Instruction[],checkpoints
   if(economic.length===2){validateActivationDeposit(economic);return walletComputeBudget(instructions,400_000);}
   requireValue(economic.length===1&&economic[0].programAddress===protocol.CLEARING_PROGRAM_ADDRESS,'Unsupported account wallet envelope.');
   const discriminator=hex(economic[0].data?.slice(0,8)??[]);
-  const route=discriminator===hex(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)||checkpoints!==undefined&&discriminator===hex(protocol.EXECUTE_LEDGER_LANE_DISCRIMINATOR);
+  const route=discriminator===hex(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)||checkpoints!==undefined&&
+    [protocol.EXECUTE_LEDGER_LANE_DISCRIMINATOR,protocol.EXECUTE_BEST_ROUTE_DISCRIMINATOR].some(tag=>discriminator===hex(tag));
   const supported=[protocol.CREATE_PORTFOLIO_DISCRIMINATOR,protocol.REGISTER_MARGIN_DISCRIMINATOR,protocol.DEPOSIT_ACCOUNT_DISCRIMINATOR,
     protocol.WITHDRAW_ACCOUNT_CUSTODY_DISCRIMINATOR,protocol.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,protocol.TRANSFER_ACCOUNT_CUSTODY_DISCRIMINATOR,
     protocol.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR,protocol.MANAGE_ACCOUNT_ORDER_DISCRIMINATOR,protocol.SET_ACCOUNT_DELEGATE_DISCRIMINATOR,
@@ -84,8 +86,10 @@ export class AccountUserClient extends WalletClient {
     const economic=instructions.filter(instruction=>instruction.programAddress!=='ComputeBudget111111111111111111111111111111');
     const [budget]=accountWalletInstructions(instructions,this.checkpoints);
     const units=new DataView(Uint8Array.from(budget.data!).buffer).getUint32(1,true);
+    const standing = economic.some(ix=>hex(ix.data?.slice(0,8)??[])===hex(protocol.EXECUTE_BEST_ROUTE_DISCRIMINATOR));
+    if (standing) requireValue(usesExecutionRouter(this.config.deployment), 'Deployment does not support execution-time routing.');
     return compileCanonicalTransaction({payerKey:new PublicKey(owner),recentBlockhash},economic,
-      {computeUnitLimit:units,loadedAccountsDataSizeLimit:8*1024*1024}).transaction;
+      {computeUnitLimit:units,loadedAccountsDataSizeLimit:8*1024*1024,...(standing?{heapSize:BEST_ROUTE_HEAP_BYTES}:{})}).transaction;
   }
   protected override walletInstructions(instructions:Instruction[]){return accountWalletInstructions(instructions,this.checkpoints);}
   async environment() {
@@ -103,7 +107,7 @@ export class AccountUserClient extends WalletClient {
     requireValue(venue.schemaVersion===10&&venue.profileVersion===ACCOUNT_PROFILE&&hex(venue.domain)===this.config.domain&&venue.quoteMint===this.config.mint,'Venue deployment identity mismatch.');
     await this.artifacts.verify(venue.authority);
   }
-  private get marginLayout(){return this.config.deployment==='unified-recovery-candidate'?'ledger-lanes' as const:undefined;}
+  private get marginLayout(){return usesUnifiedRecovery(this.config.deployment)?'ledger-lanes' as const:undefined;}
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
     await this.environment();return readAccountSnapshot(this.rpc,{...this.config,marginLayout:this.marginLayout},margins,commitment);
   }
@@ -116,6 +120,11 @@ export class AccountUserClient extends WalletClient {
   }
   async route(input:LiquidityRouteInput,actor:Address):Promise<Awaited<ReturnType<typeof buildLiquidityRoute>>> {
     this.bound(input.snapshot);return await buildLiquidityRoute(input,actor);
+  }
+  async marketOrder(input:LiquidityRouteInput,actor:Address) {
+    this.bound(input.snapshot);
+    requireValue(usesExecutionRouter(this.config.deployment), 'Deployment does not support execution-time routing.');
+    return buildBestRoute(input,actor);
   }
   async common() {
     const [eventAuthority]=await getProgramDerivedAddress({programAddress:protocol.CLEARING_PROGRAM_ADDRESS,seeds:[new TextEncoder().encode('__event_authority')]});

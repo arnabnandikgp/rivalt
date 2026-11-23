@@ -72,6 +72,8 @@ pub enum ClearingError {
     FundingReport,
     #[msg("A current funding and gross checkpoint is required for each market")]
     MarketCheckpoint,
+    #[msg("Route selection exceeded its search budget")]
+    RouteSearchLimit,
     // The successor's original 7100–7107 codes are part of its signed wire contract.
     #[cfg(feature = "recovery-search-qualification")]
     #[msg("Invalid frozen recovery source")]

@@ -920,6 +920,9 @@ pub mod clearing {
             |ctx, events| maker_liquidity::routes::execute_order(ctx, events, args),
         )
     }
+    pub fn execute_best_route(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) -> Result<()> {
+        maker_liquidity::routes::execute_best(ctx, args)
+    }
     pub fn execute_liquidity_route(
         ctx: &mut Context<ExecuteLiquidityRoute>,
         args: LiquidityRouteIntent,

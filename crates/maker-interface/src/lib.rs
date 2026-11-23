@@ -1,5 +1,6 @@
 //! Bounded, read-only maker quote contract. Quotes confer no clearing authority.
 pub mod canonical;
+pub mod routing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QuoteError {
@@ -10,5 +11,6 @@ pub enum QuoteError {
     Arithmetic,
     Producer,
     Response,
+    SearchLimit,
 }
 type QuoteResult<T> = core::result::Result<T, QuoteError>;

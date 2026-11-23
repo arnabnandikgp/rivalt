@@ -88,9 +88,9 @@ export class AccountExecution {
   private walletCheckpoints?:readonly sdk.MarketCheckpoint[];
   async submit(requestId:string,wire:string) {
     const binding=await this.environment(),id=publicRequestId(requestId);
-    if(this.deploymentSelection==='unified-recovery-candidate')
+    if(sdk.usesUnifiedRecovery(this.deploymentSelection))
       this.walletCheckpoints??=await sdk.venueMarketCheckpoints(address(binding.venue));
-    return this.queue.put(id,wire,accountUserAuthority(wire,binding.venue,this.profile,this.walletCheckpoints));
+    return this.queue.put(id,wire,accountUserAuthority(wire,binding.venue,this.profile,this.walletCheckpoints,this.deploymentSelection));
   }
   async budget(role:OperatorRole,payer:Keypair,marketIndex?:number,makerId?:number) {
     const budget=accountBudget(role,marketIndex,makerId,this.profile);await this.queue.budget(budget.name,payer.address,budget.cap);return budget.name;

@@ -1617,3 +1617,51 @@ journals retain their original deployment identities. The historical P56
 profile remains selectable explicitly. Wider deployment and live
 freeze-resolution policy remain separate decisions.
 [Mid-sized qualification](operations/validation.md#frozen-book-verifier-selection-and-mid-sized-exits)
+
+## D145 — Select ordinary trader routes at execution
+
+23 November 2026. Implement current-state selection in clearing for a trader's
+market order. The signed intent authorizes a side, exact size, time window,
+all-in limit and fee ceiling. Supply all three sealed maker registrations and
+their authenticated dependencies. Choose the best financially admissible singleton
+or pair. Preserve the existing tie order, fee rounding, maker isolation and full
+atomic financial admission. This supersedes the SDK's authority to fix the
+winning maker IDs and quantities for this entry point. The SDK can still preview
+a route. The existing instruction continues to honor its signed leg assignments.
+
+All prospective maker capitals and fill counters must be declared writable up
+front. Two all-maker orders in the same market therefore conflict even if they
+ultimately fill against different makers. The expanded workload must measure
+this explicitly, together with quote changes and profit settlement under load.
+Risk stays index-derived and funding retains its attested off-chain calculation.
+[Routing delivery](liquidity/routing.md#execution-time-selection)
+
+### Maker quotes stand until changed or consumed
+
+For the new ordinary router, use the current quote at execution regardless of
+the elapsed time since the maker published it. Repricing takes effect immediately
+in transaction order, including between fills in a slot. Consumed depth stays
+consumed until an authorized replenishment. Disabling or quarantining the maker,
+invalidating its control epoch, and its capital and user limits still constrain
+execution. An absent or future publication supplies no quote. The maker bears
+the risk of leaving an old executable price outstanding.
+
+The request version distinguishes standing trade quotes from the existing
+expiring funding and signed-leg requests. Independent risk-oracle checks and
+funding report freshness still apply whenever clearing requires them. A standing
+maker quote alone cannot make a market eligible for a new position.
+
+## D146 — use execution-time routing for the fresh local wallet
+
+23 November 2026. Fresh local demos select clearing and makers built at
+`35fef03e`, superseding D144's default artifact. The new build includes the
+qualified recovery implementation. Existing sessions retain their deployment
+identity. The previous recovery build can be selected explicitly.
+
+The ordinary wallet persists the signed order and sends those exact bytes
+directly over RPC. This avoids waiting behind other users in the optional
+service relay's dispatch queue. Clearing continues to enforce the signed price,
+fee ceiling, trader guard, maker epochs and financial admission at execution.
+The three-candidate search can consume one or two maker capitals. This local
+selection does not change funding publication, risk valuation or payout priority.
+[Wallet and settlement measurements](operations/validation.md#direct-wallet-and-settlement-workload)

@@ -1,5 +1,72 @@
 # Performance contract and reproducible measurements
 
+## Execution-time wallet orders with concurrent settlement
+
+Clearing and both makers used `35fef03e`, the matched workload used `e50df2c7`.
+Every arm started with the same economics as its partner, including a flat BTC
+creditor owed 996 atoms and cash already collected in the BTC settlement pool.
+Wallets submitted directly to local Surfpool RPC. Each order was full-size,
+signed by its trader and checked against the known executable book. All buys and
+sells matched the independently expected gross price and aggregate fee. Each
+wallet paid 5,000 test lamports at zero priority fee.
+
+| Funded trading wallets | Worker during offers | Filled / offered | Lots | p95 fill CU | p95 signed-to-finalized | Creditor paid from first offer | Replayed events |
+|---:|---|---:|---:|---:|---:|---|---:|
+| 6 | Off | 18 / 18 | 40 | 512,392 | 1.998 s | 996 atoms at 149.505 s | 928 |
+| 6 | On | 18 / 18 | 40 | 512,392 | 2.028 s | 996 atoms at 147.127 s | 927 |
+| 16 | Off | 72 / 72 | 324 | 468,962 | 2.493 s | 0 at 190.606 s | 1,230 |
+| 16 | On | 72 / 72 | 324 | 468,962 | 2.599 s | 0 at 190.969 s | 1,229 |
+
+The six-wallet trace offered once every 280 ms and the sixteen-wallet trace
+every 100 ms. Both used BTC and ETH. Each arm had zero unsigned refusals, failed
+fills, replacements, expiries and unresolved trader transactions. The signed v1
+wallet packets were 1,234 or 1,434 bytes with 25 or 30 unique accounts (10 or 12
+writable). These sizes include the required checkpoints. All three prospective
+maker capitals and registrations are locked for a same-market order.
+
+| Wallets / worker | Trader fees | Settlement sponsor fees | Source, maker update and funding sponsor fees |
+|---|---:|---:|---:|
+| 6 / off | 90,000 | 295,000 | 1,890,000 |
+| 6 / on | 90,000 | 300,000 | 1,860,000 |
+| 16 / off | 360,000 | 330,000 | 2,040,000 |
+| 16 / on | 360,000 | 330,000 | 2,040,000 |
+
+Fees are test lamports from finalized receipts. The window includes post-offer
+settlement and funding maintenance through drain. In each six-wallet run the
+worker completed 44 ETH backing-page transactions before the BTC creditor's
+payment. In both sixteen-wallet runs the clock stopped with all 996 BTC atoms
+still unpaid. SQL and independently fetched chain accounts agreed. The larger
+run establishes a payout delay beyond the observation window. These local bursts
+do not establish a saturation rate, public-chain priority fees or a payout SLA.
+
+An earlier relay run on the six-wallet trace obtained 18 valid signatures.
+While the worker was still disabled, 7 were finalized, 1 original expired with
+verified nonexecution, 1 was unresolved and 9 were pending at the recorded queue
+inspection. Dispatch holds conflicting accounts across attempts. That diagnostic
+did not complete a matched comparison. The ordinary router wallet saves its
+signed original and submits over RPC. The relay remains an explicit alternative.
+[Reproduction and workload parameters](local-development.md#match-trading-load-with-and-without-profit-settlement)
+
+## Funding publications on the qualified local clearing build
+
+Clearing `79724a5a`, harness `3e89caf2`, three 75-member runs. Each row measures
+the **whole successful transaction** across BTC and ETH. The operator computed
+the impact bid and ask off chain. The transaction contained no trader fill.
+
+| Top-level clearing instructions, in execution order | Transactions | Minimum CU | Maximum CU |
+|---|---:|---:|---:|
+| Publish BTC, publish ETH | 12 | 48,940 | 49,110 |
+| Checkpoint BTC, publish BTC, checkpoint ETH, publish ETH | 54 | 89,682 | 99,550 |
+
+Reproduce with `python3 tests/performance/funding-receipts.py <run-directory>`
+on each of `frozen-book-{sparse,pairs,dense}-3e89caf2`. The reader matches signed wires to RPC receipts
+and groups them by program and instruction discriminator. Each market checkpoint
+materializes prior activity before publication. A single-market CU figure cannot
+be inferred by dividing these transaction totals. The earlier on-chain depth
+search was retired before this build. [Funding contract](../liquidity/funding.md)
+
+## Reading the historical baselines
+
 P39–P44 are integrated at `6b14e8a` within their bounded engineering scope. This
 document owns the audit, comparison methodology and recorded delivery gates;
 the clearing/liquidity/application documents own current financial rules and
@@ -657,7 +724,9 @@ standard RPC/WS plus isolated Anchor conformance. It has independent literal
 fee/cash/claim checks. It does not launch PostgreSQL because it does not test
 services/indexing; P40/P44 must run their actual database acceptance separately.
 
-## Current results
+<a id="current-results"></a>
+
+## P39 baseline results
 
 P43’s [fresh scoped comparison](validation.md#targeted-cu-acceptance-p43) records
 small arithmetic savings (669–1,230 CU per tested route), unchanged observed fees
@@ -735,7 +804,9 @@ separates maker costs from venue costs, requested-CU v0 bids from explicit v1 bi
 and retained protocol revenue from insurance. Inputs are assumptions; use measured
 receipts to choose a base case. It does not forecast landing, hedge cost or revenue.
 
-## Current instruction cost reference (RC2 C0)
+<a id="current-instruction-cost-reference-rc2-c0"></a>
+
+## Historical instruction cost reference (RC2 C0)
 
 The immutable [pre-migration B inventory](../../tests/performance/baselines/p44-pre-v2.json)
 remains available separately. This table uses the 61-entrypoint
@@ -963,7 +1034,7 @@ end RSS is 526,991,360 bytes. Child Surfpool, PostgreSQL and browser resources a
 outside that process measurement. Full-system utilization is not inferred.
 
 
-### Current indexer and classified-original measurement
+### Pre-migration indexer and classified-original measurement
 
 Clean `8b8c33f`, `p44-load-final/`, repeats the same declared ramps after bounded
 parallel history reads. This run has no concurrent Rivalt service qualification.

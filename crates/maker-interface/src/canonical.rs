@@ -5,6 +5,9 @@ use anchor_lang::prelude::*;
 use financial_core::{MAX_LOTS, MAX_PRICE};
 
 pub const VERSION: u16 = 4;
+/// Quote request by the ordinary execution-time router. The existing expiring
+/// request remains mandatory for funding and previously signed route contracts.
+pub const STANDING_TRADE_VERSION: u16 = 5;
 /// Maker-owned account schema; independent of the quote protocol version.
 pub const ACCOUNT_SCHEMA: u16 = 5;
 pub const CAPABILITY: u16 = 1;
@@ -484,6 +487,64 @@ fn quote_validated_amount(
     ))
 }
 
+/// Immutable pricing input for repeated execution-time comparisons. The caller
+/// binds the registration, publication, side and current inventory in clearing.
+/// Capacity includes published depth, inventory limits and reduce-only mode.
+#[derive(Clone, Copy)]
+pub struct ExecutionCurve<'shape> {
+    shape: &'shape LiquidityShape,
+    anchor: u64,
+    side: u8,
+    inventory: i64,
+    consumed: u64,
+}
+
+impl<'shape> ExecutionCurve<'shape> {
+    pub fn new(
+        shape: &'shape LiquidityShape,
+        anchor: u64,
+        side: u8,
+        inventory: i64,
+        consumed: u64,
+    ) -> QuoteResult<Self> {
+        shape.validate()?;
+        if side > 1 || !(1..=MAX_PRICE).contains(&anchor) {
+            return Err(QuoteError::Bounds);
+        }
+        available(shape, side, inventory, consumed)?;
+        Ok(Self {
+            shape,
+            anchor,
+            side,
+            inventory,
+            consumed,
+        })
+    }
+
+    pub(crate) fn side(self) -> u8 {
+        self.side
+    }
+
+    pub(crate) fn capacity(self) -> QuoteResult<u64> {
+        if self.shape.mode == 0 {
+            return Ok(0);
+        }
+        available(self.shape, self.side, self.inventory, self.consumed)
+    }
+
+    pub(crate) fn gross(self, lots: u64) -> QuoteResult<u64> {
+        quote_validated_amount(
+            self.shape,
+            self.anchor,
+            self.side,
+            lots,
+            self.inventory,
+            self.consumed,
+        )
+        .map(|(gross, _)| gross)
+    }
+}
+
 /// Validate a required publication without inventing a positive-size trade.
 /// Complete funding coverage includes valid zero-capacity/one-sided makers.
 pub fn validate_publication(
@@ -493,6 +554,30 @@ pub fn validate_publication(
     slot: u64,
     now: i64,
 ) -> QuoteResult<(u64, i64)> {
+    validate_standing_publication(config_key, config, price, slot, now)?;
+    let valid_until_slot = price
+        .updated_slot
+        .checked_add(u64::from(config.shape.ttl_slots))
+        .ok_or(QuoteError::Arithmetic)?;
+    let valid_until_time = price
+        .updated_time
+        .checked_add(TTL_SECONDS)
+        .ok_or(QuoteError::Arithmetic)?;
+    if slot >= valid_until_slot || now >= valid_until_time {
+        return Err(QuoteError::Lifetime);
+    }
+    Ok((valid_until_slot, valid_until_time))
+}
+
+/// A standing publication may be old. It still needs a real, already-published
+/// price under the current control epoch, an enabled curve and bounded capacity.
+pub fn validate_standing_publication(
+    config_key: Address,
+    config: &CurveState,
+    price: &PriceState,
+    slot: u64,
+    now: i64,
+) -> QuoteResult<()> {
     if config.schema_version != ACCOUNT_SCHEMA
         || price.schema_version != ACCOUNT_SCHEMA
         || config.capability != CAPABILITY
@@ -508,24 +593,14 @@ pub fn validate_publication(
     if config.shape.mode == 0 || !(1..=MAX_PRICE).contains(&price.anchor) {
         return Err(QuoteError::Bounds);
     }
-    let valid_until_slot = price
-        .updated_slot
-        .checked_add(u64::from(config.shape.ttl_slots))
-        .ok_or(QuoteError::Arithmetic)?;
-    let valid_until_time = price
-        .updated_time
-        .checked_add(TTL_SECONDS)
-        .ok_or(QuoteError::Arithmetic)?;
     if price.sequence == 0
         || price.updated_time < 0
         || slot < price.updated_slot
         || now < price.updated_time
-        || slot >= valid_until_slot
-        || now >= valid_until_time
     {
         return Err(QuoteError::Lifetime);
     }
-    Ok((valid_until_slot, valid_until_time))
+    Ok(())
 }
 
 pub fn quote(
@@ -536,7 +611,7 @@ pub fn quote(
     slot: u64,
     now: i64,
 ) -> QuoteResult<MakerQuoteResponse> {
-    if request.version != VERSION
+    if !matches!(request.version, VERSION | STANDING_TRADE_VERSION)
         || request.instance != config.instance
         || config.domain != request.domain
         || config.market != request.market
@@ -548,8 +623,12 @@ pub fn quote(
     {
         return Err(QuoteError::Binding);
     }
-    let (valid_until_slot, valid_until_time) =
-        validate_publication(config_key, config, price, slot, now)?;
+    let (valid_until_slot, valid_until_time) = if request.version == STANDING_TRADE_VERSION {
+        validate_standing_publication(config_key, config, price, slot, now)?;
+        (u64::MAX, i64::MAX)
+    } else {
+        validate_publication(config_key, config, price, slot, now)?
+    };
     let (gross, remaining) = quote_validated_amount(
         &config.shape,
         price.anchor,
@@ -752,6 +831,61 @@ mod tests {
             consumed: 0,
         };
         (key, config, price, request)
+    }
+
+    #[test]
+    fn standing_trade_uses_landed_price_and_depth_while_funding_still_expires() {
+        let (key, mut config, mut price, mut request) = fixture();
+        let (slot, now) = (50_000, 90_000);
+        assert_eq!(
+            quote(key, &config, &price, &request, slot, now),
+            Err(QuoteError::Lifetime)
+        );
+        request.version = STANDING_TRADE_VERSION;
+        let before = quote(key, &config, &price, &request, slot, now).unwrap();
+        assert_eq!(
+            (before.valid_until_slot, before.valid_until_time),
+            (u64::MAX, i64::MAX)
+        );
+        price = reprice(
+            key,
+            &config,
+            &price,
+            config.owner,
+            config.control_epoch,
+            price.sequence,
+            price.anchor + 7,
+            slot,
+            now,
+        )
+        .unwrap();
+        let after = quote(key, &config, &price, &request, slot, now).unwrap();
+        assert_eq!(
+            (after.price_sequence, after.gross),
+            (before.price_sequence + 1, before.gross + 7 * request.lots)
+        );
+        request.consumed = MAX_DEPTH;
+        assert_eq!(
+            quote(key, &config, &price, &request, slot, now),
+            Err(QuoteError::Capacity)
+        );
+        request.consumed = 0;
+        assert_eq!(
+            quote(key, &config, &price, &request, slot - 1, now),
+            Err(QuoteError::Lifetime)
+        );
+        config.shape.mode = 0;
+        assert_eq!(
+            quote(key, &config, &price, &request, slot, now),
+            Err(QuoteError::Bounds)
+        );
+        config.shape.mode = 1;
+        config.control_epoch += 1;
+        request.control_epoch = config.control_epoch;
+        assert_eq!(
+            quote(key, &config, &price, &request, slot, now),
+            Err(QuoteError::Binding)
+        );
     }
 
     #[test]
