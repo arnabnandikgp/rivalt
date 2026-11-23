@@ -4,6 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import * as sdk from '@rivalt/sdk';
+import {Connection} from '@solana/web3.js';
 import {eventPayloads,json} from '../../packages/indexer/src/events.js';
 import {LiquidityIndexer} from '../../packages/indexer/src/liquidity-indexer.js';
 import {accountServiceApi} from '../../packages/services/src/account-service-api.js';
@@ -106,6 +107,20 @@ try {
   await setup.qualify();
   const ready=await client.snapshot([creditor],'confirmed');
   assert.deepEqual(ready.marketStates.map(market=>sdk.accountSourceMode(ready.safetyState,market,ready.now,ready.slot)),['Normal','Normal']);
+  // Ask clearing itself if the already-funded BTC claim can be paid, before
+  // offering any trade or starting either worker. Simulation cannot credit cash.
+  const payment=sdk.getPayAccountGainInstruction({...common,actor:setup.payer,margin:creditor,certificate,marketIndex:0,amount:996n});
+  const {transaction}=await sdk.signCanonicalInstructions(new Connection(url),setup.payer,await withCheckpoints(payment),
+    {computeUnitLimit:800_000,loadedAccountsDataSizeLimit:8*1024*1024});
+  const wire=Buffer.from(transaction.serialize()).toString('base64');
+  const payable=await rpc.call('simulateTransaction',[wire,{encoding:'base64',sigVerify:true,commitment:'confirmed',
+    accounts:{encoding:'base64',addresses:[creditor,setup.ledgers[0]]}}]);
+  writeFileSync(directory+'/opening-claim-simulation.json',json({wire,result:payable}));
+  assert.equal(payable.value.err,null,'Clearing must admit the actual BTC payout at workload start');
+  const simulatedRoot=sdk.getMarginAccountDecoder().decode(Buffer.from(payable.value.accounts[0].data[0],'base64'));
+  const simulatedLedger=sdk.getMarketLedgerDecoder().decode(Buffer.from(payable.value.accounts[1].data[0],'base64'));
+  assert.deepEqual([simulatedRoot.cash-before.cash,simulatedRoot.positions[0].virtualScaled,simulatedLedger.settlement],[996n,0n,0n]);
+  assert.equal((await root(creditor)).cash,before.cash,'A simulation must not pay the real claimant');
   const startSlot=await setup.slot();
   const start=clock(),since=()=>Math.round(clock()-start);
   const finalizedAt=new Map<string,number>();
