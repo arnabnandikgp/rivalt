@@ -21,12 +21,13 @@ at `4164f7cd` completed 14 wallet actions and recorded one finalized refusal.
 [Wallet qualification](operations/validation.md#default-fresh-local-wallet) ·
 [Six deliverables](clearing/roadmap.md#pr-tracker)
 
-**Next action.** Bind the complete maker registry to the Rust selector in the
-ordinary clearing instruction and qualify a signed reroute after a reprice.
+**Next action.** Re-run the signed router including the aged publication and
+the PostgreSQL replay against the explicit router layout.
 P15B and P16B remain open external gates. The 24-hour run is deferred.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| Execution-time clearing qualification | In progress | Clearing `cd96bfb1` settled a two-lot BTC buy after maker 2 repriced. Makers 0 and 2 each filled one lot at 119,994 atoms gross with a single 24-atom fee. The transaction used 540,668 CU and 1,330 wire bytes including both checkpoints. A signed limit refusal preserved all three capital and registration records. PostgreSQL initially rejected the unregistered deployment identity. |
 | Standing maker quotes and route selection | In progress | At `53b535d5` all 17 maker-interface tests passed, including 1,024 exhaustive allocation comparisons and an isolated maker margin/reservation boundary. Both pricing programs linked with the pinned SBF compiler. The clearing entry point and SDK builder are in qualification. Signed clearing execution, wallet promotion and the paired settlement load remain open. |
 | Execution-time routing and matched load | In progress, D145 | The released instruction commits at most two signed legs. The [delivery criteria](liquidity/routing.md#execution-time-selection) cover clearing, wallet execution and paired settlement load. Re-reading 66 retained signed transactions from clearing `79724a5a` distinguished report-only and checkpoint-plus-report costs. [Funding measurements](operations/performance.md#funding-publications-on-the-qualified-local-clearing-build). |
 | Verifier review findings | Closed, [PR #160](https://github.com/arnabnandikgp/rivalt/pull/160) | At `2d799902`, eight independent financial tests and the native wide-factor regression passed. Original budgets, eligible recovery and settled cash matched on all three retained 75-member books. The generated account encoder reproduced 6,045 bytes before materialization and 10,245 after it. [Validation](operations/validation.md#frozen-book-reference-checks). |

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {verifyTestBuild} from './backing-artifacts.js';
+import {EXECUTION_ROUTER_ARTIFACT_SET} from '@rivalt/sdk';
 
 /** Explicit local binary identity shared by the launcher and finalized journal. */
 export function routerBuild() {
@@ -13,5 +14,5 @@ export function routerBuild() {
     return [name, {bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')}];
   }));
   verifyTestBuild(directory, revision, artifacts, 'execution-router-qualification');
-  return {artifactSet: `execution-router-${revision}`, artifacts};
+  return {artifactSet: EXECUTION_ROUTER_ARTIFACT_SET, artifacts};
 }

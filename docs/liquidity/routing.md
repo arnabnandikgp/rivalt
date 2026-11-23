@@ -27,7 +27,7 @@ uses the price at execution and survives its age alone. A reprice, disable or
 depth consumption is visible immediately. The existing SDK signed-leg allocator
 continues to use expiring publications.
 
-### Released SDK selection
+### Clearing instruction and SDK builder
 
 The local `execution-router-qualification` build exposes `execute_best_route`.
 Its three maker bundles are mandatory in registry order. Each includes writable

@@ -67,6 +67,13 @@ struct Winner {
     quotes: Vec<canonical::MakerQuoteResponse>,
 }
 
+struct SelectionError(ProgramError);
+impl From<maker_interface::QuoteError> for SelectionError {
+    fn from(_: maker_interface::QuoteError) -> Self {
+        Self(ClearingError::MakerQuote.into())
+    }
+}
+
 pub fn execute_best(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) -> Result<()> {
     require!(
         cfg!(feature = "execution-router-qualification") && ctx.remaining_accounts()?.is_empty(),
@@ -140,11 +147,11 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
                         && other.capital.id != view.capital.id),
             ClearingError::MakerBinding
         );
-        view.bind(&identity.venue, &identity.market, &accounts.registry)?;
         environment.validate(view.capital)?;
         book::validate(view.capital)?;
         account::model(view.capital)?;
         if view.registration.quarantined {
+            view.bind(&identity.venue, &identity.market, &accounts.registry)?;
             states.push(None);
             continue;
         }
@@ -225,12 +232,15 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
                 admitted = Some(next);
                 Ok(true)
             }
-            // This is a pure call after the input account validation above.
-            // A rejected composition cannot be committed by the ordinary engine.
-            Err(_) => Ok(false),
+            // The shared financial engine maps out-of-domain position/fee
+            // arithmetic to Arithmetic and failed post-fill margin to RouteHealth.
+            // Authority, binding, invariant and unexpected errors abort the order.
+            Err(error) if [ClearingError::RouteHealth, ClearingError::RouteLimit, ClearingError::Arithmetic]
+                .into_iter().any(|reason| ProgramError::from(reason) == error) => Ok(false),
+            Err(error) => Err(SelectionError(error)),
         }
     })
-    .map_err(|_: maker_interface::QuoteError| ClearingError::MakerQuote)?
+    .map_err(|error| error.0)?
     .ok_or(ClearingError::RouteHealth)?;
     let next = admitted.ok_or(ClearingError::RouteHealth)?;
     require!(

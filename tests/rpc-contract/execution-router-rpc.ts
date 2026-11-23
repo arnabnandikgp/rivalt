@@ -41,6 +41,15 @@ try {
   assert.equal(decoded.roots[trader].positions[0].virtualScaled, -119_994n * 1_000_000_000n);
   assert.equal(decoded.roots[trader].cash, 999_976n);
   await setup.sample();
+  const publication = makers[1].module.getMakerPriceDecoder().decode((await h.read(makers[1].price))!).state;
+  await setup.waitUntil(publication.updatedTime + 6n);
+  const oldQuote = await setup.snapshot(trader, 0);
+  assert.equal(oldQuote.liquidity!.adapters[1].unavailable, 'stale-publication');
+  const standing = await sdk.buildBestRoute({snapshot: oldQuote, trader, marketIndex: 0, side: 0,
+    lots: 1n, allInLimit: 60_100n, maxFee: 15n}, actor.address);
+  await h.send('landed router fills standing one-lot ask', standing.instructions, [actor]);
+  assert.equal((await makers[1].registrationState()).buyConsumed, before[1].buyConsumed + 1n);
+  await setup.sample();
   const refusal = await buildOrder(1n, 1n);
   const states = () => Promise.all([trader, ...makers.flatMap(maker => [maker.capital, maker.registration])].map(key => h.read(key)));
   const preRefusal = await states();
@@ -51,7 +60,7 @@ try {
   await journal.checkpoint('execution-time-route', true);
   const replay = await journal.finish();
   writeFileSync(`${directory}/execution-router.json`, json({revision:process.env.RIVALT_ROUTER_REVISION,
-    results: checks.filter(check => check.label.startsWith('landed router')), replay: replay.events}));
+    results: checks.filter(check => String(check.label).startsWith('landed router')), replay: replay.events}));
 } finally {
   await journal?.close();
   try { await flush(); } finally { ws.close(); }
