@@ -180,6 +180,7 @@ import {
   getDeactivateMarginInstructionAsync,
   getDepositAccountInstructionAsync,
   getDerivePairsInstruction,
+  getExecuteBestRouteInstructionAsync,
   getExecuteLedgerLaneInstructionAsync,
   getExecuteLiquidityOrderInstructionAsync,
   getExecuteLiquidityRouteInstructionAsync,
@@ -298,6 +299,7 @@ import {
   parseDeactivateMarginInstruction,
   parseDepositAccountInstruction,
   parseDerivePairsInstruction,
+  parseExecuteBestRouteInstruction,
   parseExecuteLedgerLaneInstruction,
   parseExecuteLiquidityOrderInstruction,
   parseExecuteLiquidityRouteInstruction,
@@ -416,6 +418,7 @@ import {
   type DeactivateMarginAsyncInput,
   type DepositAccountAsyncInput,
   type DerivePairsInput,
+  type ExecuteBestRouteAsyncInput,
   type ExecuteLedgerLaneAsyncInput,
   type ExecuteLiquidityOrderAsyncInput,
   type ExecuteLiquidityRouteAsyncInput,
@@ -496,6 +499,7 @@ import {
   type ParsedDeactivateMarginInstruction,
   type ParsedDepositAccountInstruction,
   type ParsedDerivePairsInstruction,
+  type ParsedExecuteBestRouteInstruction,
   type ParsedExecuteLedgerLaneInstruction,
   type ParsedExecuteLiquidityOrderInstruction,
   type ParsedExecuteLiquidityRouteInstruction,
@@ -1674,6 +1678,7 @@ export enum ClearingInstruction {
   DeactivateMargin,
   DepositAccount,
   DerivePairs,
+  ExecuteBestRoute,
   ExecuteLedgerLane,
   ExecuteLiquidityOrder,
   ExecuteLiquidityRoute,
@@ -2257,6 +2262,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.DerivePairs;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([142, 199, 100, 123, 91, 206, 46, 151]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteBestRoute;
   }
   if (
     containsBytes(
@@ -3198,6 +3214,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.DerivePairs;
     } & ParsedDerivePairsInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ExecuteBestRoute;
+    } & ParsedExecuteBestRouteInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ExecuteLedgerLane;
     } & ParsedExecuteLedgerLaneInstruction<TProgram>)
   | ({
@@ -3739,6 +3758,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.DerivePairs,
         ...parseDerivePairsInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteBestRoute: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteBestRoute,
+        ...parseExecuteBestRouteInstruction(instruction),
       };
     }
     case ClearingInstruction.ExecuteLedgerLane: {
@@ -4557,6 +4583,11 @@ export type ClearingPluginInstructions = {
     input: DerivePairsInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getDerivePairsInstruction> & SelfPlanAndSendFunctions;
+  executeBestRoute: (
+    input: ExecuteBestRouteAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteBestRouteInstructionAsync> &
+    SelfPlanAndSendFunctions;
   executeLedgerLane: (
     input: ExecuteLedgerLaneAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5433,6 +5464,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getDerivePairsInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeBestRoute: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteBestRouteInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

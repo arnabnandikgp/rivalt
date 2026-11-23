@@ -29,6 +29,16 @@ continues to use expiring publications.
 
 ### Released SDK selection
 
+The local `execution-router-qualification` build exposes `execute_best_route`.
+Its three maker bundles are mandatory in registry order. Each includes writable
+capital and registration and read-only pricing program, ProgramData, shape and
+price. The trader signs every structural epoch and their limits. Clearing journals
+unused makers as reads and advances only the selected makers' financial state.
+`buildBestRoute` prepends the required market and ledger checkpoints to the same
+transaction. Qualification and wallet promotion are tracked in [STATUS](../STATUS.md).
+
+### Signed-leg preview and execution
+
 `readAccountTradeSnapshot` discovers the selected market's three sealed
 registrations, then reads immutable root identities. One final `getMultipleAccounts`
 batch contains custody, vault/mint, safety, both markets/ledgers, Clock, the selected

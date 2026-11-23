@@ -50,9 +50,9 @@ pub struct $name {
                     first_capital: &mut self.first_capital, first_registration: &mut self.first_registration,
                     first_program: &self.first_program, first_program_data: &self.first_program_data,
                     first_config: &self.first_config, first_price: &self.first_price,
-                    second_capital: &mut self.second_capital, second_registration: &mut self.second_registration,
-                    second_program: &self.second_program, second_program_data: &self.second_program_data,
-                    second_config: &self.second_config, second_price: &self.second_price,
+                    second_capital: self.second_capital.as_deref_mut(), second_registration: self.second_registration.as_deref_mut(),
+                    second_program: self.second_program.as_ref(), second_program_data: self.second_program_data.as_deref(),
+                    second_config: self.second_config.as_ref(), second_price: self.second_price.as_ref(),
                     event_authority: self.event_authority.account().clone(),
                 }
             }
@@ -63,6 +63,94 @@ route_context!(ExecuteLiquidityRoute, AccountRouteIdentity);
 route_context!(ExecuteMarketLane, ReadOnlyMarketIdentity);
 route_context!(ExecuteLedgerLane, ReadOnlyLedgerIdentity);
 
+// Anchor flattens nested account names in its public IDL. Give each bundle
+// distinct wire labels while sharing one implementation of the binding.
+pub(super) struct MakerAccounts<'a> {
+    capital: &'a mut BorshAccount<MarginAccount>,
+    registration: &'a mut BorshAccount<MakerRegistration>,
+    program: &'a UncheckedAccount,
+    data: &'a BorshAccount<ProgramData>,
+    config: &'a UncheckedAccount,
+    price: &'a UncheckedAccount,
+}
+macro_rules! maker_bundle {
+    ($name:ident, $capital:ident, $registration:ident, $program:ident, $data:ident, $config:ident, $price:ident) => {
+        #[derive(Accounts)]
+        pub struct $name {
+            #[account(mut)]
+            pub $capital: Box<BorshAccount<MarginAccount>>,
+            #[account(mut)]
+            pub $registration: Box<BorshAccount<MakerRegistration>>,
+            /// CHECK: the sealed registration binds the executable and its approved code.
+            #[account(executable)]
+            pub $program: UncheckedAccount,
+            pub $data: Box<BorshAccount<ProgramData>>,
+            /// CHECK: clearing authenticates the maker-owned curve, price and current authority.
+            pub $config: UncheckedAccount,
+            /// CHECK: a fixed read-only maker PDA bound to the curve.
+            pub $price: UncheckedAccount,
+        }
+        impl $name {
+            pub(super) fn pricing(&self) -> pricing::View<'_> {
+                pricing::View { capital: &self.$capital, registration: &self.$registration,
+                    program: &self.$program, data: &self.$data, config: &self.$config, price: &self.$price }
+            }
+            fn bundle(&mut self) -> MakerAccounts<'_> {
+                MakerAccounts {capital: &mut self.$capital, registration: &mut self.$registration,
+                    program: &self.$program, data: &self.$data, config: &self.$config, price: &self.$price}
+            }
+            pub(crate) fn visit_maker(&mut self, scope: &mut crate::scoped_history::Scope, index: usize) -> Result<()> {
+                let access = scope.maker_access(index)?;
+                scope.account(&mut self.$capital, access)?;
+                scope.account(&mut self.$registration, access)
+            }
+        }
+    };
+}
+maker_bundle!(RouteMakerZero, zero_capital, zero_registration, zero_program, zero_program_data, zero_config, zero_price);
+maker_bundle!(RouteMakerOne, one_capital, one_registration, one_program, one_program_data, one_config, one_price);
+maker_bundle!(RouteMakerTwo, two_capital, two_registration, two_program, two_program_data, two_config, two_price);
+
+#[event_cpi]
+#[derive(Accounts)]
+pub struct ExecuteBestRoute {
+    pub identity: Nested<AccountRouteIdentity>,
+    #[account(seeds = [b"liquidity-v4", identity.market.address().as_ref()], bump = registry.bump,
+        constraint = registry.venue == *identity.venue.address() && registry.market == *identity.market.address() @ ClearingError::MakerBinding)]
+    pub registry: Box<BorshAccount<LiquidityRegistry>>,
+    pub candidate_zero: Nested<RouteMakerZero>,
+    pub candidate_one: Nested<RouteMakerOne>,
+    pub candidate_two: Nested<RouteMakerTwo>,
+}
+
+impl ExecuteBestRoute {
+    pub(super) fn selected(&mut self, lots: [u64; 3]) -> Result<RouteAccounts<'_>> {
+        let mut makers = [self.candidate_zero.bundle(), self.candidate_one.bundle(), self.candidate_two.bundle()]
+            .into_iter().zip(lots).filter_map(|(maker, quantity)| (quantity != 0).then_some(maker));
+        let first = makers.next().ok_or(ClearingError::RouteIntent)?;
+        let second = makers.next();
+        require!(makers.next().is_none(), ClearingError::RouteIntent);
+        let mut accounts = RouteAccounts {
+            identity: self.identity.view(), registry: &self.registry,
+            first_capital: first.capital, first_registration: first.registration,
+            first_program: first.program, first_program_data: first.data,
+            first_config: first.config, first_price: first.price,
+            second_capital: None, second_registration: None, second_program: None,
+            second_program_data: None, second_config: None, second_price: None,
+            event_authority: self.event_authority.account().clone(),
+        };
+        if let Some(maker) = second {
+            accounts.second_capital = Some(maker.capital);
+            accounts.second_registration = Some(maker.registration);
+            accounts.second_program = Some(maker.program);
+            accounts.second_program_data = Some(maker.data);
+            accounts.second_config = Some(maker.config);
+            accounts.second_price = Some(maker.price);
+        }
+        Ok(accounts)
+    }
+}
+
 pub(super) struct RouteAccounts<'a> {
     pub identity: RouteIdentityView<'a>,
     pub registry: &'a BorshAccount<LiquidityRegistry>,
@@ -72,11 +160,11 @@ pub(super) struct RouteAccounts<'a> {
     pub first_program_data: &'a BorshAccount<ProgramData>,
     pub first_config: &'a UncheckedAccount,
     pub first_price: &'a UncheckedAccount,
-    pub second_capital: &'a mut Option<Box<BorshAccount<MarginAccount>>>,
-    pub second_registration: &'a mut Option<Box<BorshAccount<MakerRegistration>>>,
-    pub second_program: &'a Option<UncheckedAccount>,
-    pub second_program_data: &'a Option<Box<BorshAccount<ProgramData>>>,
-    pub second_config: &'a Option<UncheckedAccount>,
-    pub second_price: &'a Option<UncheckedAccount>,
+    pub second_capital: Option<&'a mut BorshAccount<MarginAccount>>,
+    pub second_registration: Option<&'a mut BorshAccount<MakerRegistration>>,
+    pub second_program: Option<&'a UncheckedAccount>,
+    pub second_program_data: Option<&'a BorshAccount<ProgramData>>,
+    pub second_config: Option<&'a UncheckedAccount>,
+    pub second_price: Option<&'a UncheckedAccount>,
     pub event_authority: AccountView,
 }

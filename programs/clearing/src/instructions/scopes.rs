@@ -5,6 +5,27 @@ use super::*;
 use crate::scoped_history::{Access, Scope, ScopedContext};
 use anchor_lang::prelude::*;
 
+// The transaction locks all three makers. Only actual fill legs advance their
+// financial history. The precomputed selection is held across both scope visits.
+impl ScopedContext for ExecuteBestRoute {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.identity.venue, Access::Read)?;
+        scope.account(&mut self.identity.safety, Access::Read)?;
+        scope.account(&mut self.identity.market, Access::Write)?;
+        scope.account(&mut self.identity.ledger, Access::Write)?;
+        scope.account(&mut self.identity.trader, Access::Write)?;
+        if let Some(market) = self.identity.other_market.as_deref_mut() { scope.account(market, Access::Write)?; }
+        if let Some(ledger) = self.identity.other_ledger.as_deref_mut() { scope.account(ledger, Access::Write)?; }
+        scope.account(&mut self.registry, Access::Read)?;
+        self.candidate_zero.visit_maker(scope, 0)?;
+        self.candidate_one.visit_maker(scope, 1)?;
+        self.candidate_two.visit_maker(scope, 2)?;
+        Ok(())
+    }
+    fn venue(&self) -> (Address, [u8; 32]) { (*self.identity.venue.address(), self.identity.venue.domain) }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}
+
 macro_rules! context {
     ($context:ident, $($venue:ident).+, $($authority:ident).+;
         [$($($field:ident).+ : $access:ident),* $(,)?];

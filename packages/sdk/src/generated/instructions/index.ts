@@ -52,6 +52,7 @@ export * from "./createPortfolio.js";
 export * from "./deactivateMargin.js";
 export * from "./depositAccount.js";
 export * from "./derivePairs.js";
+export * from "./executeBestRoute.js";
 export * from "./executeLedgerLane.js";
 export * from "./executeLiquidityOrder.js";
 export * from "./executeLiquidityRoute.js";
