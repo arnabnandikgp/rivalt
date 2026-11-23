@@ -96,7 +96,7 @@ impl SearchWork {
     }
 
     fn compute_available() -> QuoteResult<()> {
-        #[cfg(target_arch = "bpf")]
+        #[cfg(target_os = "solana")]
         // The Pinocchio syscall takes no arguments and reads the runtime meter.
         if unsafe { anchor_lang::pinocchio::syscalls::sol_remaining_compute_units() } < 110_000 {
             return Err(QuoteError::SearchLimit);

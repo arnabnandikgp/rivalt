@@ -2,8 +2,9 @@
 
 ## Supported boundary
 
-Fresh local sessions select `execution-router-candidate` with artifact set
-`standing-maker-routing`. Use `RIVALT_DEMO_DEPLOYMENT=unified-recovery-candidate`
+Fresh local sessions select `bounded-router-candidate` with artifact set
+`bounded-maker-routing`. The earlier `execution-router-candidate` still resolves
+to its original `standing-maker-routing` binaries. Use `RIVALT_DEMO_DEPLOYMENT=unified-recovery-candidate`
 for clearing `79724a5a`, or `selected` for P56. The
 public config carries the selection, genesis and anchor. The launcher supplies
 the same selection to its executor, native helper and workers. P56 journals

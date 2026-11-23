@@ -38,7 +38,7 @@ For a fresh local demo, install the host dependencies below, then run
 `35fef03e` and oracle fixture at `ed46603` from Git, builds the locked
 programs with platform tools v1.52 and compares every binary against the SDK's
 fixed length and SHA-256. It installs into
-`.local/demo-programs/standing-maker-routing/`, prepares the matching
+`.local/demo-programs/bounded-maker-routing/`, prepares the matching
 settlement helper and builds the native recovery selector. Subsequent invocations
 verify the installed directory. Set `RIVALT_DEMO_PROGRAMS` consistently for a
 different installation directory. The install command creates missing local
