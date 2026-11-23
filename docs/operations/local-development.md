@@ -953,3 +953,13 @@ known best price. The compare command requires matching workload modes.
 Run `node --import tsx tests/performance/router-settlement-flows.ts <run-directory>`
 to check each market pool against the collected and paid amounts in the finalized
 wires, including payments bundled with the last backing page.
+
+The mixed-market settlement qualification requires the full BTC payment even
+when ETH follow-up is disabled. A rotating-ask stress run records its actual
+partial or full payout. A partial result requires both a positive credit and
+a zero pool in the same on-chain read. Each run saves the claimant's cash,
+remaining claim and pool before checking these conditions. After any ETH
+follow-up, scheduling stops and the worker gets ten seconds to drain submitted
+originals. The comparison checks every terminal service status against finalized
+receipts. Pass `--active-rate-step <faster-active-directory>` to the compare
+command to check a faster run against the same ordered trades and starting book.

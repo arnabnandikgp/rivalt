@@ -56,6 +56,7 @@ const build=routerBuild();
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(url,wsUrl,directory,{deferFinality:true});
 const runtime=new AccountRuntime(database,runId,url,4,selection),api=accountServiceApi(runtime);
 let journal:Awaited<ReturnType<typeof openSettlementJournal>>|undefined,indexer:LiquidityIndexer|undefined;
+let settling=false;
 let running=true,settlement=arm==='active',scheduling=true;
 const loops:Promise<void>[]=[],errors:unknown[]=[];
 function background(task:()=>Promise<void>){loops.push(task().catch(error=>{errors.push(error);running=false;}));}
@@ -156,8 +157,10 @@ try {
   }});
   background(async()=>{while(running){
     if(settlement&&scheduling){
+      settling=true;
       try{polls.push({ms:since(),...await runtime.settle(setup.payer)});}
       catch(error){if(!(error instanceof Error && error.message==='Reconciled projection unavailable'))throw error;pollsUnavailable++;}
+      finally{settling=false;}
     }
     if(paidMs===undefined){const state=await root(creditor);
       if(state.cash===before.cash+996n && state.positions[0].virtualScaled===0n)paidMs=since();}
@@ -229,10 +232,18 @@ try {
   }
   settlement=true;
   while(paidMs===undefined&&since()<end+180_000){healthy();await delay(100);}
+  const sampled=await rpc.call('getMultipleAccounts',[[creditor,setup.ledgers[0]],{encoding:'base64',commitment:'confirmed'}]);
   const payoutObservationMs=since();
+  const observedCreditor=sdk.getMarginAccountDecoder().decode(Buffer.from(sampled.value[0].data[0],'base64'));
+  const fundedAtoms=observedCreditor.cash-before.cash;
+  const outstanding=observedCreditor.positions[0].virtualScaled;
+  assert(fundedAtoms>=0n && fundedAtoms<=996n && fundedAtoms*1_000_000_000n+outstanding===996_000_000_000n);
+  const pool=sdk.getMarketLedgerDecoder().decode(Buffer.from(sampled.value[1].data[0],'base64')).settlement;
+  if(paidMs===undefined && fundedAtoms===996n)paidMs=payoutObservationMs;
+  const payout={slot:sampled.context.slot,status:fundedAtoms===996n?'full':fundedAtoms>0n?'partial':'unpaid',fundedAtoms,outstanding,pool};
+  writeFileSync(directory+'/btc-payment-at-boundary.json',json(payout));
   let ethPayment: {signature:string;ms:number;amount:bigint}|undefined;
-  if(followEth){
-    assert(paidMs!==undefined,'The ready BTC creditor must receive its full payment');
+  if(followEth && fundedAtoms===996n){
     const checked=new Set<string>();
     while(!ethPayment && since()<payoutObservationMs+300_000){
       healthy();
@@ -251,10 +262,15 @@ try {
       if(!ethPayment)await delay(500);
     }
     writeFileSync(directory+'/eth-payment-followup.json',json({ethPayment,observedThroughMs:since()}));
-    assert(ethPayment,'The ETH claimant did not receive cash within the follow-up window');
   }
   scheduling=false;
-  while((await statuses()).some(row=>!terminal.has(row.status))&&since()<payoutObservationMs+10_000){healthy();await delay(100);}
+  // An already-started poll can still publish its original after scheduling is turned off.
+  while(settling){healthy();await delay(50);}
+  const drainDeadline=clock()+10_000;
+  const serviceRows=async()=>(await statuses()).filter(row=>!row.request_id.startsWith('load:'));
+  while((await serviceRows()).some(row=>!terminal.has(row.status))&&clock()<drainDeadline){healthy();await delay(100);}
+  const finalService=await serviceRows();
+  writeFileSync(directory+'/service-drain.json',json(finalService.map(({request_id,signature,status})=>({request_id,signature,status}))));
   running=false;await Promise.all(loops);healthy();await flush();
   await indexer.close();indexer=undefined;
   const rows=await statuses();
@@ -297,7 +313,7 @@ try {
     conflicts:receipts.filter(row=>row.role==='trader').map(trader=>conflicts(trader.locks,worker.locks).length)}));
   await journal.checkpoint('drained',true);const replay=await journal.finish();
   const result={revision,program:sdk.accountDeployment(selection).programRevision,arm,transport,seed,traders,gap,refresh,thinDepth,maxLots,btcPercent,
-    trace,offers,arrived,end,rotatingAsks,followEth,ethPayment:ethPayment??null,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
+    trace,offers,arrived,end,rotatingAsks,followEth,ethPayment:ethPayment??null,payout,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
     counts:{offered:offers.length,signed:originals.size,previewRefused:offers.length-originals.size,
       filled:successful.length,refused:receipts.filter(row=>row.role==='trader'&&row.error).length,
       expired:expiredWallets.size,
@@ -308,6 +324,15 @@ try {
     fees:{trader:receipts.filter(row=>row.role==='trader').reduce((sum,row)=>sum+row.fee,0),
       settlement:receipts.filter(row=>row.role==='settlement').reduce((sum,row)=>sum+row.fee,0)}};
   writeFileSync(directory+'/router-load.json',json(result));console.log(json(result.counts));
+  assert(finalService.every(row=>terminal.has(row.status)),'Settlement drain ended with non-terminal service originals');
+  if(followEth)assert(ethPayment,'The ETH claimant did not receive cash within the follow-up window');
+  // The prespecified mixed-market case qualifies only with a real full payment.
+  // A pressure measurement may record a partial payment when other claims consumed the pool.
+  if(rotatingAsks){
+    assert(fundedAtoms>0n && (fundedAtoms===996n || pool===0n),'Missing BTC payment with available pool cash');
+  }else{
+    assert.equal(fundedAtoms,996n,'Mixed-market qualification requires the real BTC cash credit');
+  }
 }finally{
   running=false;await Promise.allSettled(loops);await api.close();await indexer?.close();await runtime.close();await journal?.close();
   try{await flush();}finally{ws.close();}

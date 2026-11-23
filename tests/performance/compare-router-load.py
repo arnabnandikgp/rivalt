@@ -29,6 +29,24 @@ def read(directory, arm):
     assert 0 <= funded <= 996 and funded * 1_000_000_000 + unpaid == 996_000_000_000
     if data['paidMs'] is not None:
         assert funded == 996
+    if 'payout' in data:
+        observed = data['payout']
+        paid = int(observed['fundedAtoms'])
+        assert 0 <= paid <= funded <= 996
+        assert int(observed['outstanding']) + paid * 1_000_000_000 == 996_000_000_000
+        assert observed['status'] == ('full' if paid == 996 else 'partial' if paid else 'unpaid')
+        if data['rotatingAsks']:
+            assert paid > 0 and (paid == 996 or int(observed['pool']) == 0)
+        else:
+            assert paid == 996
+        final_service = json.loads((directory / 'service-drain.json').read_text())
+        assert all(row['status'] in ('finalized', 'failed', 'expired-unexecuted') for row in final_service)
+        landed = {r['signature']: r for r in data['receipts'] if r['role'] == 'settlement'}
+        expected = {r['signature'] for r in final_service if r['status'] != 'expired-unexecuted'}
+        assert expected == set(landed)
+        for row in final_service:
+            if row['signature'] in landed:
+                assert (row['status'] == 'failed') == (landed[row['signature']]['error'] is not None)
     data['fundedAtomsAtDrain'] = funded
     data['unpaidScaledAtDrain'] = unpaid
     data['startingAccounts'] = {
@@ -48,7 +66,7 @@ def summarize(data):
     reasons.update(row['previewRefusal'] for row in data['offers'] if row['previewRefusal'])
     volume = sum(int(row['lots']) for row in data['trace'])
     locks = sorted({(len(row['locks']['read']) + len(row['locks']['write']), len(row['locks']['write'])) for row in wallets})
-    return dict(counts=data['counts'], offeredLots=volume, bestPriceCheckedFills=len(successful),
+    return dict(counts=data['counts'], scheduledGapMs=data['gap'], offeredLots=volume, bestPriceCheckedFills=len(successful),
                 initialUnpaidAtoms=996, fundedAtomsAtDrain=data['fundedAtomsAtDrain'],
                 unpaidScaledAtDrain=data['unpaidScaledAtDrain'], cashCreditObservedMs=data['paidMs'], payoutObservedThroughMs=data['payoutObservationMs'], settlementIntentsDuringOffers=data['during'],
                 reasons=dict(reasons), packetBytes=sorted({row['bytes'] for row in wallets}),
@@ -65,10 +83,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('offered_only', type=Path)
     parser.add_argument('active', type=Path)
+    parser.add_argument('--active-rate-step', type=Path, help='Same active trace and starting economics at a different gap')
     args = parser.parse_args()
     control, active = read(args.offered_only, 'offered-only'), read(args.active, 'active')
     for key in ('program', 'revision', 'transport', 'startingAccounts', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent', 'rotatingAsks', 'followEth'):
         assert control[key] == active[key], f'Unmatched {key}'
     assert control['during'] == 0
     assert active['during'] > 0, 'Worker never queued during measured offers'
-    print(json.dumps({row['arm']: summarize(row) for row in [control, active]}, indent=2))
+    report = {row['arm']: summarize(row) for row in [control, active]}
+    if args.active_rate_step:
+        faster = read(args.active_rate_step, 'active')
+        for key in ('program', 'revision', 'transport', 'startingAccounts', 'seed', 'traders', 'refresh', 'thinDepth', 'maxLots', 'btcPercent', 'rotatingAsks', 'followEth'):
+            assert faster[key] == active[key], f'Unmatched rate-step {key}'
+        assert 0 < faster['gap'] < active['gap'] and faster['during'] > 0
+        def scheduled_orders(run):
+            assert all(row['dueMs'] == index * run['gap'] for index, row in enumerate(run['trace']))
+            return [{key: value for key, value in row.items() if key != 'dueMs'} for row in run['trace']]
+        assert scheduled_orders(faster) == scheduled_orders(active), 'Different economic orders at higher rate'
+        report['activeRateStep'] = summarize(faster)
+    print(json.dumps(report, indent=2))
