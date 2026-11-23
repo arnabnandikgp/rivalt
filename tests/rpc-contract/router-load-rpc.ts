@@ -72,7 +72,7 @@ try {
   let cheaperDeepMaker=0;
   const setup=await liquidityExecutionSetup(h,rpc,{independentTraders:true,traderCount:traders+1,
     marketCheckpoints:true,marginLayout:'ledger-lanes',shape,verifyRejections:false,
-    anchorOffset:instance=>cheaperDeepMaker && (instance===1||instance===2) && instance!==cheaperDeepMaker?5n:0n});
+    anchorOffset:instance=>cheaperDeepMaker && (instance===1||instance===2) && instance!==cheaperDeepMaker?2n:0n});
   const {root,route,withCheckpoints}=executionTestHelpers(h,setup),creditor=setup.roots[0],owner=setup.traderOwners[0];
   const [certificate]=await sdk.deriveSettlementCertificate(setup.venue,0);
   const common={...setup.common,btc:setup.markets[0],eth:setup.markets[1]};

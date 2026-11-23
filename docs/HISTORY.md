@@ -289,3 +289,11 @@ The merge introduces no funded deployment or framework migration. Existing live
 indexing/throughput limits remain measured limitations; P15B/P16B stay Open and
 24-hour endurance stays Deferred. Unrelated research and all raw evidence remain
 untouched.
+
+## Execution-time routing and search bounds
+
+23 November 2026. PRs #162, #163, #165, #166 and #167 merged atomically into
+`main` at `4c02ffa6573a8c76ceb1ddfdcb145b226c6e9a37`. The merged tree
+matches reviewed tip `df59d46b`. The fresh local wallet uses the bounded
+on-chain singleton/pair selector. The four original load-harness and selector
+review threads were resolved. [Signed acceptance](operations/validation.md#bounded-execution-time-search)

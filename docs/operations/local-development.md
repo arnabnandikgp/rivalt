@@ -947,5 +947,9 @@ a mixed-market trace to require a real BTC payment during the normal window
 and an independently fetched ETH payment within a further 300 seconds.
 For a BTC buy-only trace set `RIVALT_LOAD_ROTATE_ASKS=1` and
 `RIVALT_LOAD_BTC_PERCENT=100`. Each refresh alternates which deep maker posts
-five atoms above the other. At least one deep ask stays at the independently
+two atoms above the other. At least one deep ask stays at the independently
 known best price. The compare command requires matching workload modes.
+
+Run `node --import tsx tests/performance/router-settlement-flows.ts <run-directory>`
+to check each market pool against the collected and paid amounts in the finalized
+wires, including payments bundled with the last backing page.
