@@ -150,7 +150,10 @@ try {
   while((await statuses()).some(row=>!terminal.has(row.status))&&since()<end+145_000){healthy();await delay(100);}
   running=false;await Promise.all(loops);healthy();await flush();
   await indexer.close();indexer=undefined;
-  const rows=await statuses(),receipts=[];
+  const rows=await statuses();
+  type Receipt={id:string;signature:string;attempts:number;slot:number;error:unknown;bytes:number;cu:number;
+    fee:number;locks:ReturnType<typeof transactionLocks>;role:'trader'|'settlement';offer?:number;lots?:bigint;legs?:number[];ms?:number};
+  const receipts:Receipt[]=[];
   for(const row of rows){
     const receipt=await rpc.call('getTransaction',[row.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     if(!receipt){assert(!['finalized','failed'].includes(row.status));continue;}
@@ -183,8 +186,8 @@ try {
       filled:successful.length,refused:receipts.filter(row=>row.role==='trader'&&row.error).length,
       expired:rows.filter(row=>row.request_id.startsWith('load:')&&row.status==='expired-unexecuted').length,
       unresolved:rows.filter(row=>row.request_id.startsWith('load:')&&!terminal.has(row.status)).length,
-      fillLots:successful.reduce((sum,row)=>sum+('lots'in row?row.lots:0n),0n)},
-    cu:dist(successful.map(row=>row.cu)),finalizedMs:dist(successful.flatMap(row=>'ms'in row?[row.ms]:[])),
+      fillLots:successful.reduce((sum,row)=>sum+(row.lots??0n),0n)},
+    cu:dist(successful.map(row=>row.cu)),finalizedMs:dist(successful.flatMap(row=>row.ms===undefined?[]:[row.ms])),
     generatorLagMs:dist(offers.map(offer=>offer.entered-offer.dueMs)),
     fees:{trader:receipts.filter(row=>row.role==='trader').reduce((sum,row)=>sum+row.fee,0),
       settlement:receipts.filter(row=>row.role==='settlement').reduce((sum,row)=>sum+row.fee,0)}};
