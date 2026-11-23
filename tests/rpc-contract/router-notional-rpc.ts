@@ -93,6 +93,10 @@ try {
     assert.equal(consumed.reduce((total, maker) => total + maker.buyConsumed, 0n), admittedLots);
     orders.push({label, lots, referenceAtoms: openingIndex * lots, published, receipt});
     writeFileSync(directory + '/notional-orders.json', json(orders));
+    // This probe pins the router binary and book. A different first failure is a changed result.
+    const expected = lots <= 3n ? null : {InstructionError: [order.instructions.length - 1, {Custom: sdk.CLEARING_ERROR__CAPACITY}]};
+    assert.deepEqual(receipt.simulationError, expected, buyLabel + ' simulation');
+    assert.deepEqual(receipt.error, expected, buyLabel + ' finalized execution');
   }
   assert(admittedLots > 0n, 'No admitted inventory for settlement control');
   setup.sourcePrices.btc = closingIndex * 1_000_000n;
