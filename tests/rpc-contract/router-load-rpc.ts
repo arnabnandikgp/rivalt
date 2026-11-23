@@ -99,14 +99,29 @@ try {
     return value;
   };
   await client.environment();
-  await setup.sample();
-  const operatorStart=checks.length;
+  // SQL replay and artifact verification can outlast the oracle's held window.
+  // Both arms must actually reach Normal before starting the offered trace.
+  await setup.qualify();
+  const ready=await client.snapshot([creditor],'confirmed');
+  assert.deepEqual(ready.marketStates.map(market=>sdk.accountSourceMode(ready.safetyState,market,ready.now,ready.slot)),['Normal','Normal']);
+  const startSlot=await setup.slot();
   const start=clock(),since=()=>Math.round(clock()-start);
+  const finalizedAt=new Map<string,number>();
   const at=async(ms:number)=>{await delay(Math.max(0,ms-since()));};
   let paidMs:number|undefined,pollsUnavailable=0;
   const polls:Record<string,unknown>[]=[],originals=new Map<number,{time:number;subscription:number;signature:string;wire:string}>();
   background(async()=>{while(running){await indexer!.cycle();await delay(80);}});
   background(async()=>{while(running){await runtime.execute();await delay(45);}});
+  background(async()=>{while(running){
+    const outstanding=[...originals.values()].map(original=>original.signature).filter(signature=>!finalizedAt.has(signature));
+    if(outstanding.length){
+      const statuses=await rpc.call('getSignatureStatuses',[outstanding,{searchTransactionHistory:true}]);
+      statuses.value.forEach((status:{confirmationStatus:string}|null,index:number)=>{
+        if(status?.confirmationStatus==='finalized')finalizedAt.set(outstanding[index],since());
+      });
+    }
+    await delay(50);
+  }});
   background(async()=>{while(running){
     if(settlement&&scheduling){
       try{polls.push({ms:since(),...await runtime.settle(setup.payer)});}
@@ -144,10 +159,10 @@ try {
   const statuses=async()=>(await runtime.store.pool.query(
     'SELECT request_id,signature,status,attempts,wire,budget FROM service_intents WHERE run_id=$1 ORDER BY request_id',[runId])).rows;
   const terminal=new Set(['finalized','failed','expired-unexecuted']);
-  const deadline=clock()+90_000,finalizedAt=new Map<string,number>();
+  const deadline=clock()+90_000;
   while(clock()<deadline){
     healthy();const wallets=(await statuses()).filter(row=>row.request_id.startsWith('load:'));
-    for(const row of wallets)if(terminal.has(row.status)&&!finalizedAt.has(row.signature))finalizedAt.set(row.signature,since());
+    for(const row of wallets)if(['failed','finalized'].includes(row.status)&&!finalizedAt.has(row.signature))finalizedAt.set(row.signature,since());
     if(wallets.length===originals.size&&wallets.every(row=>terminal.has(row.status)))break;
     await delay(50);
   }
@@ -186,7 +201,11 @@ try {
   }
   const successful=receipts.filter(row=>row.role==='trader'&&!row.error);
   assert(successful.length>0,'No successful market order');
-  const operator=checks.slice(operatorStart).map(check=>({label:check.label,fee:check.feeLamports,signature:check.signature}));
+  const operator=[];
+  for(const check of checks.filter(row=>String(row.label).includes('six maker publications')||String(row.label).includes('two-market reports'))){
+    const tx=await rpc.call('getTransaction',[check.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+    if(BigInt(tx.slot)>startSlot)operator.push({label:check.label,fee:tx.meta.fee,slot:tx.slot,signature:check.signature});
+  }
   const overlaps=receipts.filter(row=>row.role==='settlement').map(worker=>({id:worker.id,
     conflicts:receipts.filter(row=>row.role==='trader').map(trader=>conflicts(trader.locks,worker.locks).length)}));
   await journal.checkpoint('drained',true);const replay=await journal.finish();
