@@ -6,7 +6,7 @@ import {accountDeployment} from '@rivalt/sdk';
 export function routerBuild() {
   const directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!;
   const revision = process.env.RIVALT_ROUTER_REVISION!;
-  const deployment = accountDeployment('execution-router-candidate');
+  const deployment = accountDeployment('bounded-router-candidate');
   assert.equal(revision, deployment.programRevision);
   const artifacts = Object.fromEntries(deployment.artifacts
     .filter(artifact => artifact.name !== 'oracle-fixture')

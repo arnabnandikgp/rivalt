@@ -3,10 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-export RIVALT_DEMO_DEPLOYMENT="${RIVALT_DEMO_DEPLOYMENT:-execution-router-candidate}"
+export RIVALT_DEMO_DEPLOYMENT="${RIVALT_DEMO_DEPLOYMENT:-bounded-router-candidate}"
 case "$RIVALT_DEMO_DEPLOYMENT" in
   unified-recovery-candidate) feature=unified-recovery-qualification ;;
-  execution-router-candidate) feature=execution-router-qualification ;;
+  bounded-router-candidate|execution-router-candidate) feature=execution-router-qualification ;;
   *) echo 'Unsupported local build selection' >&2; exit 1 ;;
 esac
 read -r revision artifact_set baseline_revision < <(node --import tsx --input-type=module -e '

@@ -3,7 +3,7 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
+export type AccountDeployment='bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
@@ -29,12 +29,15 @@ export const FOREIGN_PROTECTION_ARTIFACT_SET='foreign-protection-7df9585e';
 export const WINNER_ALLOCATION_ARTIFACT_SET='winner-allocation-486d5818';
 export const JOINT_PAYMENT_ARTIFACT_SET='joint-payment-3acd4a4d';
 export const PAIR_SCHEDULE_ARTIFACT_SET='pair-schedule-34359552';
-export const usesUnifiedRecovery = (selection?: AccountDeployment) => selection === 'unified-recovery-candidate' || selection === 'execution-router-candidate';
+export const usesExecutionRouter = (selection?: string): selection is 'execution-router-candidate'|'bounded-router-candidate' =>
+  selection === 'execution-router-candidate' || selection === 'bounded-router-candidate';
+export const usesUnifiedRecovery = (selection?: AccountDeployment) => selection === 'unified-recovery-candidate' || usesExecutionRouter(selection);
 export const UNIFIED_RECOVERY_ARTIFACT_SET='unified-recovery-79724a5a';
 // The local runner binds this layout to its program hashes before indexing.
 // The new instruction uses unified recovery account and event layouts.
 export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
-export const hasJointPayment=(set?:string)=>set===JOINT_PAYMENT_ARTIFACT_SET||set===UNIFIED_RECOVERY_ARTIFACT_SET||set===EXECUTION_ROUTER_ARTIFACT_SET;
+export const BOUNDED_ROUTER_ARTIFACT_SET='bounded-maker-routing';
+export const hasJointPayment=(set?:string)=>set===JOINT_PAYMENT_ARTIFACT_SET||set===UNIFIED_RECOVERY_ARTIFACT_SET||set===EXECUTION_ROUTER_ARTIFACT_SET||set===BOUNDED_ROUTER_ARTIFACT_SET;
 export const hasPartitionedInputs=(set?:string)=>set===PARTITIONED_INPUTS_ARTIFACT_SET||set===POPULATED_RATES_ARTIFACT_SET||set===ORIGINAL_BUDGETS_ARTIFACT_SET||set===FOREIGN_PROTECTION_ARTIFACT_SET||set===WINNER_ALLOCATION_ARTIFACT_SET||set===PAIR_SCHEDULE_ARTIFACT_SET||hasJointPayment(set);
 const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set)
   ||set===DOMAIN_BASELINE_ARTIFACT_SET||set===DOMAIN_EXTRACTED_ARTIFACT_SET;
@@ -52,7 +55,7 @@ export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY
 export const PAGED_RECOVERY_ARTIFACT_SET='paged-recovery-37672622';
 export const RECOVERY_SEARCH_ARTIFACT_SET='recovery-search-efbaa02';
 export const hasPagedRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set);
-export type RecoveryDeployment='execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
+export type RecoveryDeployment='bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
 export const usesRecoverySearch=(selection?:AccountDeployment):selection is RecoveryDeployment=>
   usesUnifiedRecovery(selection)||selection==='local-successor-candidate'||selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate';
 export const hasJointRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===RECOVERY_SEARCH_ARTIFACT_SET||integratedLayout(set);
@@ -64,14 +67,17 @@ export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
-  if (selection === 'execution-router-candidate') {
+  if (usesExecutionRouter(selection)) {
     const programs: Record<string, {bytes: number; sha256: string}> = {
-      clearing: {bytes: 3637536, sha256: 'fa85567e41cde0b9ecb0eb02ae78c4213f1898cd46dbeccc3ab6e4a6c7c35bc4'},
-      'maker-a': {bytes: 167520, sha256: '38a45a632db54c64a39c2793043ec14bb0b172721761a2950c61d59328ec6ccb'},
-      'maker-b': {bytes: 167520, sha256: '924c94a5a7e1eff35ad0dc28a4ebc3b01b7b5b17d18d8fda531e91daeaf37139'},
+      clearing: selection === 'bounded-router-candidate' ?
+        {bytes: 3639496, sha256: '9481e463ff3d72eead65075525b13dd8e63830b81eacd3590623e22da3c7c1e4'} : {bytes: 3637536, sha256: 'fa85567e41cde0b9ecb0eb02ae78c4213f1898cd46dbeccc3ab6e4a6c7c35bc4'},
+      'maker-a': selection === 'bounded-router-candidate' ?
+        {bytes: 167520, sha256: '49e64c2bef25be6aa35b991205e40d0d15df326fe9fd5c37ec9c14d832f424a8'} : {bytes: 167520, sha256: '38a45a632db54c64a39c2793043ec14bb0b172721761a2950c61d59328ec6ccb'},
+      'maker-b': selection === 'bounded-router-candidate' ?
+        {bytes: 167520, sha256: '93541f00d200cfb18c5f7770fbce11ee2225c9e03fc528cea30157fe486987f3'} : {bytes: 167520, sha256: '924c94a5a7e1eff35ad0dc28a4ebc3b01b7b5b17d18d8fda531e91daeaf37139'},
     };
-    return {artifactSet: EXECUTION_ROUTER_ARTIFACT_SET, schema: 10, programProfile: 6,
-      programRevision: '35fef03e3f58e9cba69b4c38408e39194bddc051',
+    return {artifactSet: selection === 'bounded-router-candidate' ? BOUNDED_ROUTER_ARTIFACT_SET : EXECUTION_ROUTER_ARTIFACT_SET, schema: 10, programProfile: 6,
+      programRevision: selection === 'bounded-router-candidate' ? 'e647592371b2940c739fe7d986461b32978dc37b' : '35fef03e3f58e9cba69b4c38408e39194bddc051',
       helperRevision: '79724a5a0182eb8f22f916c6a9f23fd5f1dfcc91',
       artifacts: LIQUIDITY_ARTIFACTS.map(artifact => ({...artifact, ...programs[artifact.name]}))};
   }

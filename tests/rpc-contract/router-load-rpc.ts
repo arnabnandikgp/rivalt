@@ -35,7 +35,7 @@ let random=seed;
 const next=()=>{random=(Math.imul(1664525,random)+1013904223)>>>0;return random;};
 const trace=Array.from({length:count},(_,id)=>({id,dueMs:id*gap,trader:1+id%traders,
   market:(next()%100<btcPercent?0:1) as 0|1,side:(next()>>>31) as 0|1,lots:1n+BigInt(next()%maxLots)}));
-const selection='execution-router-candidate',directory=process.env.RIVALT_RUN_DIR!,url=process.env.RIVALT_RPC_URL!;
+const selection='bounded-router-candidate',directory=process.env.RIVALT_RUN_DIR!,url=process.env.RIVALT_RPC_URL!;
 const wsUrl=process.env.RIVALT_WS_URL!,database=process.env.RIVALT_DATABASE_URL!,runId='p55b2-application';
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');

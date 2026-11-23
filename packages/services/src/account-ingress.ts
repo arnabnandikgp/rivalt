@@ -60,7 +60,7 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4,checkp
     }
   }
   const economic=sdk.walletEconomicActions(message,checkpoints) as ParsedInput[];
-  const supported=checkpoints?[...actions,lane,...(deployment==='execution-router-candidate'?[standingOrder]:[])]:actions;
+  const supported=checkpoints?[...actions,lane,...(sdk.usesExecutionRouter(deployment)?[standingOrder]:[])]:actions;
   if(!economic.length||economic.length>2||tx.message.version===0&&(!limit||!price||!loaded))throw new Error('Missing explicit account action/budget/zero price');
   if(economic.length===2)sdk.validateActivationDeposit(economic);
   const first=economic[0];

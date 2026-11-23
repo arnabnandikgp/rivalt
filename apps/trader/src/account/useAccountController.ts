@@ -195,7 +195,7 @@ export function useAccountController(config: AccountTraderConfig) {
       currentRoot(state, owner);
       const lots = parseQuantity(quantity, marketIndex);
       const pricing=await venue.client.tradeSnapshot(margin!,marketIndex);
-      if (config.version === 4 && config.deployment === 'execution-router-candidate') {
+      if (config.version === 4 && sdk.usesExecutionRouter(config.deployment)) {
         const signedLimit = units(allIn, 6, 'All-in limit');
         const feeLimit = units(fee, 6, 'Maximum venue fee');
         const order = await venue.client.marketOrder({snapshot: pricing, trader: margin!, marketIndex,

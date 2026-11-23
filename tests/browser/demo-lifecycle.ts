@@ -54,7 +54,7 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     if(prepared.review)break;
     assert.deepEqual(new Set((await receipts()).map(item=>item.signature)),before,'Refused preparation must not sign');
     const sourceRefusal=prepared.alerts.length===1&&(prepared.alerts[0]==='Required liquidity market source unavailable.'
-      || config.deployment==='execution-router-candidate' && prepared.alerts[0].includes('('+sdk.CLEARING_ERROR__ORACLE_POLICY+')')
+      || sdk.usesExecutionRouter(config.deployment) && prepared.alerts[0].includes('('+sdk.CLEARING_ERROR__ORACLE_POLICY+')')
       ||/^Quote unavailable: (BTC|ETH) source is (Degraded|NoCredibleBounds)\.$/.test(prepared.alerts[0]));
     assert(name==='Review atomic trade'&&sourceRefusal&&attempt<3,`${name}: ${prepared.alerts}`);
     await button('Refresh').click();
@@ -70,7 +70,7 @@ async function action(name:string,sourceMargin?:Address,reviewAttempt=1):Promise
     status:receipt.status,error:history.meta.err,reviewAttempt});
   writeFileSync(`${directory}/wallet-transactions.json`,JSON.stringify(outcomes,null,2));
   writeFileSync(`${directory}/wallet-finalized-${outcomes.length}.json`,JSON.stringify(history,null,2));
-  if(config.deployment==='execution-router-candidate' && name==='Review atomic trade'){
+  if(sdk.usesExecutionRouter(config.deployment) && name==='Review atomic trade'){
     const message=VersionedTransaction.deserialize(Buffer.from(receipt.wire,'base64')).message;
     const order=message.compiledInstructions.at(-1)!;
     assert.equal(message.staticAccountKeys[order.programIdIndex].address,sdk.CLEARING_PROGRAM_ADDRESS);

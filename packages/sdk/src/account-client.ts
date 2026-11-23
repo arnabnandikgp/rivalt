@@ -6,7 +6,7 @@ import {testRpcUrl} from './test-deployment.js';
 import {ACCOUNT_PROFILE,readMembershipRegistry,readMarginMembership} from './account-membership.js';
 import {deriveMemberPage,deriveMemberIndex,deriveStorageFunding} from './account-addresses.js';
 import {ArtifactVerifier} from './artifacts.js';
-import {accountDeployment,usesUnifiedRecovery,type AccountDeployment} from './account-deployment.js';
+import {accountDeployment,usesExecutionRouter,usesUnifiedRecovery,type AccountDeployment} from './account-deployment.js';
 import {readOwnerAccounts} from './account-owner-discovery.js';
 import {marketCheckpointsFor,venueMarketCheckpoints,walletEconomicActions,type MarketCheckpoint} from './market-checkpoints.js';
 import {decodeMembershipAccount} from './account-membership.js';
@@ -87,7 +87,7 @@ export class AccountUserClient extends WalletClient {
     const [budget]=accountWalletInstructions(instructions,this.checkpoints);
     const units=new DataView(Uint8Array.from(budget.data!).buffer).getUint32(1,true);
     const standing = economic.some(ix=>hex(ix.data?.slice(0,8)??[])===hex(protocol.EXECUTE_BEST_ROUTE_DISCRIMINATOR));
-    if (standing) requireValue(this.config.deployment === 'execution-router-candidate', 'Deployment does not support execution-time routing.');
+    if (standing) requireValue(usesExecutionRouter(this.config.deployment), 'Deployment does not support execution-time routing.');
     return compileCanonicalTransaction({payerKey:new PublicKey(owner),recentBlockhash},economic,
       {computeUnitLimit:units,loadedAccountsDataSizeLimit:8*1024*1024,...(standing?{heapSize:BEST_ROUTE_HEAP_BYTES}:{})}).transaction;
   }
@@ -123,7 +123,7 @@ export class AccountUserClient extends WalletClient {
   }
   async marketOrder(input:LiquidityRouteInput,actor:Address) {
     this.bound(input.snapshot);
-    requireValue(this.config.deployment === 'execution-router-candidate', 'Deployment does not support execution-time routing.');
+    requireValue(usesExecutionRouter(this.config.deployment), 'Deployment does not support execution-time routing.');
     return buildBestRoute(input,actor);
   }
   async common() {
