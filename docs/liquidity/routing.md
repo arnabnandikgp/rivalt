@@ -9,9 +9,10 @@ eligible risk. Ordinary route authority still belongs to the owner or delegate.
 
 ### Execution-time selection
 
-D145 authorizes a new ordinary market-order entry point. The code described
-below is the released, signed-leg path. The following are delivery criteria for
-its execution-time successor.
+D145 defines the ordinary market order for the fresh local demo. The SDK
+previews an allocation and clearing selects it again from current state when
+the order executes. Explicit signed-leg instructions still bind the submitted
+maker IDs and quantities. The two paths have different lock sets.
 
 | Deliverable | Acceptance |
 |---|---|
@@ -35,13 +36,19 @@ capital and registration and read-only pricing program, ProgramData, shape and
 price. The trader signs every structural epoch and their limits. Clearing journals
 unused makers as reads and advances only the selected makers' financial state.
 `buildBestRoute` prepends the required market and ledger checkpoints to the same
-transaction. On the explicit fresh local `execution-router-candidate` deployment,
+transaction. On the default fresh local `execution-router-candidate` deployment,
 the trader UI signs maximum spend or minimum proceeds, maximum fee, size and
 expiry. The wallet saves the signed original and submits it directly over RPC.
 Applications can opt into the authenticated relay, which queues conflicting
 originals. Both transports preserve the signed bytes and trader state guard.
 The wallet requests 800,000 CU, 128 KiB heap and zero priority fee.
-Qualification and wallet promotion are tracked in [STATUS](../STATUS.md).
+One position can accumulate fills from different makers across orders. Each
+exact-size order must fit a single maker or a pair. For example, if each of
+the three makers offers three lots, a nine-lot order cannot fill. The program
+already receives writable capital and registration for all three candidates.
+Adding a third fill leg would require three-way allocation and corresponding
+atomic admission, fee and state updates. Adding a fourth candidate would also
+change the account list and signed registry epochs. [Qualification](../STATUS.md)
 
 ### Signed-leg preview and execution
 

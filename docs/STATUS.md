@@ -21,13 +21,13 @@ at `4164f7cd` completed 14 wallet actions and recorded one finalized refusal.
 [Wallet qualification](operations/validation.md#default-fresh-local-wallet) ·
 [Six deliverables](clearing/roadmap.md#pr-tracker)
 
-**Next action.** Qualify the fresh demo wallet against the router with BTC and ETH positions,
-reduce-only closes and a funded exit.
+**Next action.** Trace the sixteen-wallet worker receipts to identify the first
+step delaying the already-backed 996-atom BTC payout.
 P15B and P16B remain open external gates. The 24-hour run is deferred.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
-| Wallet, clearing and matched settlement load | Review, [PR #166](https://github.com/arnabnandikgp/rivalt/pull/166) | On `e50df2c7` with SBF `35fef03e`, four matched RPC/WS/PostgreSQL runs finalized 180/180 orders. Both six-wallet arms paid the independent 996-atom claim. Both sixteen-wallet arms ended with the full claim unpaid after more than 190 seconds. [Measured limits](operations/performance.md#execution-time-wallet-orders-with-concurrent-settlement). |
+| Wallet, clearing and matched settlement load | Review, [PR #166](https://github.com/arnabnandikgp/rivalt/pull/166) | The fresh local wallet on `1188a468` finalized 14/14 originals, including both market closes and a 1,000,000-atom token exit. On `e50df2c7` with SBF `35fef03e`, four matched runs finalized 180/180 orders. Both six-wallet arms paid the 996-atom claim. Both sixteen-wallet arms ended with all 996 atoms outstanding after more than 190 seconds. [Browser](operations/validation.md#direct-wallet-and-settlement-workload) · [Load measurements](operations/performance.md#execution-time-wallet-orders-with-concurrent-settlement). |
 | Clearing route and standing maker quotes | Review, [PR #165](https://github.com/arnabnandikgp/rivalt/pull/165) | At `35fef03e`, maker 2 repriced after signature and won a leg. A six-second-old quote filled a separate order. The signed price-limit refusal preserved all financial accounts. RPC, WS and 94-event PostgreSQL replay matched. [Transactions](operations/validation.md#standing-maker-orders-at-execution) · [Selection tests, PR #163](https://github.com/arnabnandikgp/rivalt/pull/163). |
 | Funding cost and routing contract | Review, [PR #162](https://github.com/arnabnandikgp/rivalt/pull/162) | D145 retains index-derived risk and the attested funding report. Re-reading 66 signed transactions differentiated the current report and checkpoint costs. [Funding measurements](operations/performance.md#funding-publications-on-the-qualified-local-clearing-build). |
 | Verifier review findings | Closed, [PR #160](https://github.com/arnabnandikgp/rivalt/pull/160) | At `2d799902`, eight independent financial tests and the native wide-factor regression passed. Original budgets, eligible recovery and settled cash matched on all three retained 75-member books. The generated account encoder reproduced 6,045 bytes before materialization and 10,245 after it. [Validation](operations/validation.md#frozen-book-reference-checks). |

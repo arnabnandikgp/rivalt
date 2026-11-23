@@ -1650,3 +1650,18 @@ The request version distinguishes standing trade quotes from the existing
 expiring funding and signed-leg requests. Independent risk-oracle checks and
 funding report freshness still apply whenever clearing requires them. A standing
 maker quote alone cannot make a market eligible for a new position.
+
+## D146 — use execution-time routing for the fresh local wallet
+
+23 November 2026. Fresh local demos select clearing and makers built at
+`35fef03e`, superseding D144's default artifact. The new build includes the
+qualified recovery implementation. Existing sessions retain their deployment
+identity. The previous recovery build can be selected explicitly.
+
+The ordinary wallet persists the signed order and sends those exact bytes
+directly over RPC. This avoids waiting behind other users in the optional
+service relay's dispatch queue. Clearing continues to enforce the signed price,
+fee ceiling, trader guard, maker epochs and financial admission at execution.
+The three-candidate search can consume one or two maker capitals. This local
+selection does not change funding publication, risk valuation or payout priority.
+[Wallet and settlement measurements](operations/validation.md#direct-wallet-and-settlement-workload)

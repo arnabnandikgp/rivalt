@@ -4445,3 +4445,13 @@ include each denominator, consumed CU, finalized latency, costs and
 observation window. One earlier control correctly refused 18 unsigned previews
 after SQL initialization put the risk oracle into recovery. The final harness
 waits for both markets to reach Normal through real source publications.
+
+At `1188a468`, the default fresh local browser wallet finalized all 14 signed
+originals with no unsigned source refusals. The four market orders carried the
+`execute_best_route` discriminator in their fetched wires. BTC buy, ETH buy,
+ETH reduce-only sell and BTC reduce-only sell consumed 487,818, 535,060,
+528,886 and 528,980 CU respectively. Both positions closed, the wallet token
+balance increased by 1,000,000 atoms on withdrawal and the four indexed fills
+were visible after reload. This run used an internal wallet and test collateral.
+An earlier trial at the same revision stopped at the disk-space guard before
+the BTC exit. The repeat used a fresh venue.
