@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-export RIVALT_DEMO_DEPLOYMENT="${RIVALT_DEMO_DEPLOYMENT:-unified-recovery-candidate}"
+export RIVALT_DEMO_DEPLOYMENT="${RIVALT_DEMO_DEPLOYMENT:-execution-router-candidate}"
 case "$RIVALT_DEMO_DEPLOYMENT" in
   unified-recovery-candidate) feature=unified-recovery-qualification ;;
   execution-router-candidate) feature=execution-router-qualification ;;

@@ -15,7 +15,7 @@ the accepted tip `869d542ba2b6d3a01ff2483d625ff6579dce0bb3` exactly.
 
 The common recovery keeper, verifier selection and default fresh-local launcher
 merged into `main` at `f0302d8d`. The merge tree matches the reviewed tip
-`a61b5dd9`. Fresh sessions use clearing `79724a5a`. Both nine-member cases, three
+`a61b5dd9`. That release selected clearing `79724a5a`. Both nine-member cases, three
 75-member cases and the 128-member case completed wallet exits. The stock demo
 at `4164f7cd` completed 14 wallet actions and recorded one finalized refusal.
 [Wallet qualification](operations/validation.md#default-fresh-local-wallet) ·

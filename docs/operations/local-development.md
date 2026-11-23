@@ -34,11 +34,11 @@ Legacy Anchor/web3.js 1.x lives only in `tests/anchor-conformance`; no runtime
 imports or workspace overrides make it appear compatible with the modern client.
 
 For a fresh local demo, install the host dependencies below, then run
-`bash ops/build-demo-programs.sh`. The installer extracts the clearing source at
-`79724a5a` and maker/oracle source at `ed46603` from Git, builds the locked
+`bash ops/build-demo-programs.sh`. The installer extracts the clearing and maker source at
+`35fef03e` and oracle fixture at `ed46603` from Git, builds the locked
 programs with platform tools v1.52 and compares every binary against the SDK's
 fixed length and SHA-256. It installs into
-`.local/demo-programs/unified-recovery-79724a5a/`, prepares the matching
+`.local/demo-programs/standing-maker-routing/`, prepares the matching
 settlement helper and builds the native recovery selector. Subsequent invocations
 verify the installed directory. Set `RIVALT_DEMO_PROGRAMS` consistently for a
 different installation directory. The install command creates missing local
@@ -897,12 +897,11 @@ bash ops/scalable-settlement-smoke.sh
 
 ### Run the ordinary execution-time order locally
 
-Set `RIVALT_DEMO_DEPLOYMENT=execution-router-candidate` in the launcher shell.
 Run `bash ops/build-demo-programs.sh` to install and verify the qualified local
 clearing and makers from `35fef03e`. Then run `bash ops/demo.sh start` with a
 fresh `RIVALT_DEMO_ROOT`. The interface reviews the trader's total and fee limits.
-The finalized fill records which makers clearing selected. The default fresh demo
-still selects the previously qualified unified recovery build.
+The finalized fill records which makers clearing selected. Set `RIVALT_DEMO_DEPLOYMENT=unified-recovery-candidate` in both the installer
+and launcher shells to select the prior fresh-demo build.
 
 ### Match trading load with and without profit settlement
 

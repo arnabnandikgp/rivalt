@@ -2,9 +2,9 @@
 
 ## Supported boundary
 
-The local demo selects `unified-recovery-candidate` for a fresh session,
-with artifact set `unified-recovery-79724a5a`. Operators can explicitly
-select P56 with `RIVALT_DEMO_DEPLOYMENT=selected`. The
+Fresh local sessions select `execution-router-candidate` with artifact set
+`standing-maker-routing`. Use `RIVALT_DEMO_DEPLOYMENT=unified-recovery-candidate`
+for clearing `79724a5a`, or `selected` for P56. The
 public config carries the selection, genesis and anchor. The launcher supplies
 the same selection to its executor, native helper and workers. P56 journals
 retain the distinct `p56-window-ed46603` identity. Follow the
