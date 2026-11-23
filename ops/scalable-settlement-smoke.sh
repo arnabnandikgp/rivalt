@@ -121,6 +121,7 @@ if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router* || "${RIVALT_SE
 if [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && ( "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-owned-* && "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-successor-recovery || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-meter || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-coverage ) ]]; then bash ops/deploy-frozen-plan-probe.sh; fi
 case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   execution-router-load) node --import tsx tests/rpc-contract/router-load-rpc.ts ;;
+  execution-router-notional) node --import tsx tests/rpc-contract/router-notional-rpc.ts ;;
   execution-router) node --import tsx tests/rpc-contract/execution-router-rpc.ts ;;
   default) node --import tsx tests/rpc-contract/scalable-settlement-rpc.ts ;;
   maintained-backing) node --import tsx tests/rpc-contract/maintained-backing-rpc.ts ;;
