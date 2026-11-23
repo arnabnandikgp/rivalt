@@ -4404,3 +4404,30 @@ encoder measured 6,045 bytes during capture and 10,245 bytes after materializing
 75 members with 50 history bytes and two insurance rounds. The allocation was
 10,240 bytes. The focused selector comparison and TypeScript checks also passed.
 These were host calculations against retained signed inputs.
+
+## Standing maker orders at execution
+
+On local clearing and maker revision `35fef03e`, the trader signed a two-lot BTC
+buy before maker 2 lowered its ask. The signed message contained all three
+registrations. Makers 0 and 2 each filled one lot, costing 119,994 atoms before
+the single 24-atom fee. The original top pair was 0 and 1. A second buy filled
+one lot from maker 1 six seconds after its last publication. The legacy snapshot
+classified that quote as stale. The independent market risk checks admitted
+both transactions. A third signed order exceeded its price limit and reverted
+with byte-identical trader and maker financial accounts.
+
+| Finalized BTC order with market and ledger checkpoints | Transaction CU | Signed v1 bytes |
+|---|---:|---:|
+| Two-maker buy after signature and reprice | 535,327 | 1,330 |
+| Single-maker buy using a standing price | 402,481 | 1,330 |
+| Price-limit refusal | 292,000 | 1,330 |
+
+Surfpool RPC receipts and WebSocket confirmations were checked for each order.
+PostgreSQL reconciled to on-chain account bytes and a fresh replay reproduced
+94 events. The run requested 1,400,000 CU and a 128 KiB heap. These measurements
+cover the specified orders. Wallet deployment and matched load are separate.
+Reproduce with `ops/build-profit-attribution.sh` using
+`RIVALT_ATTRIBUTION_PROFILE=execution-router-qualification` on the named revision,
+then `ops/scalable-settlement-smoke.sh` with `RIVALT_SETTLEMENT_PROBE=execution-router`,
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` set to its output and `RIVALT_ROUTER_REVISION`
+set to the full build commit.

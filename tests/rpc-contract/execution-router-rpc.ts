@@ -10,11 +10,19 @@ import {routerBuild} from './execution-router-build.js';
 
 const directory = process.env.RIVALT_RUN_DIR!;
 const build = routerBuild();
+let afterOrderSignature: (() => Promise<void>) | undefined;
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
   process.env.RIVALT_WS_URL!, directory, {
     deferFinality: true,
     computeUnitLimit: label => label.startsWith('landed router') ? 1_400_000 : undefined,
     heapSize: label => label.startsWith('landed router') ? 128 * 1024 : undefined,
+    beforeBroadcast: async label => {
+      if (label === 'landed router selects repriced pair') {
+        assert(afterOrderSignature);
+        await afterOrderSignature();
+        afterOrderSignature = undefined;
+      }
+    },
   });
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
 try {
@@ -32,7 +40,7 @@ try {
   const makers = setup.instances.slice(0, 3);
   const before = await Promise.all(makers.map(maker => maker.registrationState()));
   // Original best is [0,1] at 120004. After this reprice [0,2] costs 119994.
-  await makers[2].publish(setup.updater, 59_990n);
+  afterOrderSignature = () => makers[2].publish(setup.updater, 59_990n);
   await h.send('landed router selects repriced pair', order.instructions, [actor]);
   const after = await Promise.all(makers.map(maker => maker.registrationState()));
   assert.deepEqual(after.map((row,index) => row.buyConsumed-before[index].buyConsumed), [1n,0n,1n]);

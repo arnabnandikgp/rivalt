@@ -158,6 +158,26 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    router = unique('execute_best_route')
+    assert router['discriminator'] == list(hashlib.sha256(b'global:execute_best_route').digest()[:8])
+    assert router['args'] == [{'name': 'args', 'type': {'defined': {'name': 'BestRouteIntent'}}}]
+    previous = unique('execute_liquidity_route')
+    def flags(meta):
+        return (meta['name'], *(bool(meta.get(key)) for key in ('writable', 'signer', 'optional')))
+    bundles = [(f'{ordinal}_{name}', name in ('capital', 'registration'), False, False)
+               for ordinal in ('zero', 'one', 'two')
+               for name in ('capital', 'registration', 'program', 'program_data', 'config', 'price')]
+    assert list(map(flags, router['accounts'])) == [
+        *map(flags, previous['accounts'][:9]), *bundles, *map(flags, previous['accounts'][-2:])]
+    types = {entry['name']: entry for entry in actual['types']}
+    def fields(name):
+        return types[name]['type']['fields']
+    assert fields('MakerEpochs') == [{'name': name, 'type': 'u64'} for name in ('authority', 'control', 'shape', 'depth')]
+    assert fields('BestRouteIntent') == [*fields('LiquidityRouteIntent')[:-1],
+        {'name': 'maker_epochs', 'type': {'array': [{'defined': {'name': 'MakerEpochs'}}, 3]}}]
+    actual['instructions'].remove(router)
+    for name in ('BestRouteIntent', 'MakerEpochs'):
+        actual['types'].remove(types[name])
     # All financial inputs are read-only during search. Only the final binding
     # can write the prepared settlement, under the original frozen dependencies.
     work = {
