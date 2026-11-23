@@ -939,3 +939,13 @@ case covers a changing best price. Run
 to check the same ordered trace, program, starting account economics and final
 creditor cash. The report lists all offers, original outcomes, packet sizes,
 finality, fees and shared keys. Raw receipts and SQL captures stay in the run directories.
+
+The settlement scheduling workload also simulates a signed 996-atom BTC payout
+at the opening snapshot, verifies the returned creditor and pool accounts, and
+checks that the real cash has not moved. Set `RIVALT_LOAD_FOLLOW_ETH=1` on
+a mixed-market trace to require a real BTC payment during the normal window
+and an independently fetched ETH payment within a further 300 seconds.
+For a BTC buy-only trace set `RIVALT_LOAD_ROTATE_ASKS=1` and
+`RIVALT_LOAD_BTC_PERCENT=100`. Each refresh alternates which deep maker posts
+five atoms above the other. At least one deep ask stays at the independently
+known best price. The compare command requires matching workload modes.

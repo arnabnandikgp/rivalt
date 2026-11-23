@@ -7,6 +7,8 @@ from pathlib import Path
 
 def read(directory, arm):
     data = json.loads((directory / 'router-load.json').read_text())
+    data.setdefault('rotatingAsks', False)
+    data.setdefault('followEth', False)
     assert data['arm'] == arm and data['events'] > 0
     counts = data['counts']
     assert counts['offered'] == len(data['trace']) == len(data['offers'])
@@ -55,7 +57,8 @@ def summarize(data):
                 repeatedEconomicOffers=0, queueAttemptCounts=dict(collections.Counter(str(row['attempts']) for row in wallets)),
                 sharedSettlementKeys=sorted({num for work in data['overlaps'] for num in work['conflicts']}),
                 publisherFeeLamportsThroughDrain=sum(int(row['fee']) for row in data['operator']),
-                totalReplayEvents=data['events'])
+                ethPayment=data.get('ethPayment'), makerLegs=dict(collections.Counter(
+                    str(instance) for row in successful for instance in row['legs'])), totalReplayEvents=data['events'])
 
 
 if __name__ == '__main__':
@@ -64,7 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('active', type=Path)
     args = parser.parse_args()
     control, active = read(args.offered_only, 'offered-only'), read(args.active, 'active')
-    for key in ('program', 'revision', 'transport', 'startingAccounts', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent'):
+    for key in ('program', 'revision', 'transport', 'startingAccounts', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent', 'rotatingAsks', 'followEth'):
         assert control[key] == active[key], f'Unmatched {key}'
     assert control['during'] == 0
     assert active['during'] > 0, 'Worker never queued during measured offers'

@@ -4,7 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import * as sdk from '@rivalt/sdk';
-import {Connection} from '@solana/web3.js';
+import {Connection,VersionedTransaction} from '@solana/web3.js';
 import {eventPayloads,json} from '../../packages/indexer/src/events.js';
 import {LiquidityIndexer} from '../../packages/indexer/src/liquidity-indexer.js';
 import {accountServiceApi} from '../../packages/services/src/account-service-api.js';
@@ -24,6 +24,15 @@ function knob(name:string, fallback:number, min:number, max:number) {
   assert(Number.isSafeInteger(value)&&value>=min&&value<=max,'Invalid '+name);
   return value;
 }
+function marketPayments(wire:string) {
+  const message=VersionedTransaction.deserialize(Buffer.from(wire,'base64')).message;
+  return message.compiledInstructions.flatMap(instruction=>{
+    if(message.staticAccountKeys[instruction.programIdIndex].address!==sdk.CLEARING_PROGRAM_ADDRESS ||
+      !Buffer.from(instruction.data.subarray(0,8)).equals(Buffer.from(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR)))return [];
+    const payment=sdk.getPayAccountGainInstructionDataDecoder().decode(instruction.data);
+    return [{marketIndex:payment.marketIndex,amount:payment.amount}];
+  });
+}
 const transport=process.env.RIVALT_LOAD_TRANSPORT??'rpc';
 assert(transport==='rpc'||transport==='relay','Choose rpc or relay');
 const arm=process.env.RIVALT_SETTLEMENT_ARM;
@@ -31,11 +40,14 @@ assert(arm==='active'||arm==='offered-only','Choose active or offered-only');
 const traders=knob('RIVALT_LOAD_TRADERS',6,2,32),count=knob('RIVALT_LOAD_OFFERS',18,2,200);
 const gap=knob('RIVALT_LOAD_GAP_MS',280,30,2000),seed=knob('RIVALT_LOAD_SEED',117,1,100000);
 const refresh=knob('RIVALT_LOAD_REFRESH_MS',2400,2100,5000),btcPercent=knob('RIVALT_LOAD_BTC_PERCENT',75,0,100);
+const followEth=knob('RIVALT_LOAD_FOLLOW_ETH',0,0,1)===1;
+const rotatingAsks=knob('RIVALT_LOAD_ROTATE_ASKS',0,0,1)===1;
+assert(!rotatingAsks || (btcPercent===100 && !followEth),'Rotating asks requires a BTC buy-only trace');
 const maxLots=knob('RIVALT_LOAD_MAX_LOTS',3,1,32),thinDepth=knob('RIVALT_LOAD_FIRST_MAKER_LOTS',2,1,4096);
 let random=seed;
 const next=()=>{random=(Math.imul(1664525,random)+1013904223)>>>0;return random;};
 const trace=Array.from({length:count},(_,id)=>({id,dueMs:id*gap,trader:1+id%traders,
-  market:(next()%100<btcPercent?0:1) as 0|1,side:(next()>>>31) as 0|1,lots:1n+BigInt(next()%maxLots)}));
+  market:(next()%100<btcPercent?0:1) as 0|1,side:(rotatingAsks?0:(next()>>>31)) as 0|1,lots:1n+BigInt(next()%maxLots)}));
 const selection='bounded-router-candidate',directory=process.env.RIVALT_RUN_DIR!,url=process.env.RIVALT_RPC_URL!;
 const wsUrl=process.env.RIVALT_WS_URL!,database=process.env.RIVALT_DATABASE_URL!,runId='p55b2-application';
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
@@ -57,8 +69,10 @@ try {
     const regions=symmetricPayoutShape.asks.map((region,index)=>index===0?{...region,endLots:BigInt(thinDepth)}:region);
     return {...symmetricPayoutShape,asks:regions,bids:regions,shortCap:BigInt(thinDepth),longCap:BigInt(thinDepth)};
   };
+  let cheaperDeepMaker=0;
   const setup=await liquidityExecutionSetup(h,rpc,{independentTraders:true,traderCount:traders+1,
-    marketCheckpoints:true,marginLayout:'ledger-lanes',shape,verifyRejections:false});
+    marketCheckpoints:true,marginLayout:'ledger-lanes',shape,verifyRejections:false,
+    anchorOffset:instance=>cheaperDeepMaker && (instance===1||instance===2) && instance!==cheaperDeepMaker?5n:0n});
   const {root,route,withCheckpoints}=executionTestHelpers(h,setup),creditor=setup.roots[0],owner=setup.traderOwners[0];
   const [certificate]=await sdk.deriveSettlementCertificate(setup.venue,0);
   const common={...setup.common,btc:setup.markets[0],eth:setup.markets[1]};
@@ -149,7 +163,10 @@ try {
       if(state.cash===before.cash+996n && state.positions[0].virtualScaled===0n)paidMs=since();}
     await delay(80);
   }});
-  background(async()=>{for(let round=1;running;round++){await at(round*refresh);if(running)await setup.sample();}});
+  background(async()=>{for(let round=1;running;round++){await at(round*refresh);if(running){
+    if(rotatingAsks)cheaperDeepMaker=round%2+1;
+    await setup.sample();
+  }}});
   const offers=await Promise.all(trace.map(async offer=>{
     await at(offer.dueMs);healthy();
     const entered=since(),actor=setup.traderOwners[offer.trader],trader=setup.roots[offer.trader];
@@ -213,6 +230,29 @@ try {
   settlement=true;
   while(paidMs===undefined&&since()<end+180_000){healthy();await delay(100);}
   const payoutObservationMs=since();
+  let ethPayment: {signature:string;ms:number;amount:bigint}|undefined;
+  if(followEth){
+    assert(paidMs!==undefined,'The ready BTC creditor must receive its full payment');
+    const checked=new Set<string>();
+    while(!ethPayment && since()<payoutObservationMs+300_000){
+      healthy();
+      const finalized=(await runtime.store.pool.query(
+        "SELECT signature,wire FROM service_intents WHERE run_id=$1 AND status='finalized' AND (request_id LIKE 'keeper:gain:%:1:%' OR request_id LIKE 'keeper:proof:1:%')",[runId])).rows;
+      for(const row of finalized){
+        if(checked.has(row.signature))continue;
+        checked.add(row.signature);
+        const payment=marketPayments(row.wire).find(entry=>entry.marketIndex===1 && entry.amount>0n);
+        if(payment){
+          const receipt=await rpc.call('getTransaction',[row.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+          assert(receipt && receipt.meta.err===null && receipt.transaction[0]===row.wire);
+          ethPayment={signature:row.signature,amount:payment.amount,ms:since()};break;
+        }
+      }
+      if(!ethPayment)await delay(500);
+    }
+    writeFileSync(directory+'/eth-payment-followup.json',json({ethPayment,observedThroughMs:since()}));
+    assert(ethPayment,'The ETH claimant did not receive cash within the follow-up window');
+  }
   scheduling=false;
   while((await statuses()).some(row=>!terminal.has(row.status))&&since()<payoutObservationMs+10_000){healthy();await delay(100);}
   running=false;await Promise.all(loops);healthy();await flush();
@@ -257,7 +297,7 @@ try {
     conflicts:receipts.filter(row=>row.role==='trader').map(trader=>conflicts(trader.locks,worker.locks).length)}));
   await journal.checkpoint('drained',true);const replay=await journal.finish();
   const result={revision,program:sdk.accountDeployment(selection).programRevision,arm,transport,seed,traders,gap,refresh,thinDepth,maxLots,btcPercent,
-    trace,offers,arrived,end,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
+    trace,offers,arrived,end,rotatingAsks,followEth,ethPayment:ethPayment??null,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
     counts:{offered:offers.length,signed:originals.size,previewRefused:offers.length-originals.size,
       filled:successful.length,refused:receipts.filter(row=>row.role==='trader'&&row.error).length,
       expired:expiredWallets.size,

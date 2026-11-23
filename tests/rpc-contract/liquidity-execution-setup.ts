@@ -16,7 +16,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
+  options: { marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
   const traderCount=options.traderCount??2;
   if(options.traderDeposits)assert(options.traderDeposits.length===traderCount && options.traderDeposits.every(amount=>amount>0n));
   const deposit=(index:number)=>options.traderDeposits?.[index]??options.traderCash??1_000_000n;
@@ -111,7 +111,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       const config = await maker.state(), price = maker.module.getMakerPriceDecoder().decode((await h.read(maker.price))!).state;
       return maker.module.getRepriceInstruction({ ...maker.makerCommon, actor: fixture.updater,
         expectedControl: config.controlEpoch, expectedSequence: price.sequence,
-        anchor: index < 3 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n });
+        anchor: (index < 3 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n) + (options.anchorOffset?.(index)??0n) });
     }));
     await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
   }

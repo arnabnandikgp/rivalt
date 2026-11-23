@@ -803,3 +803,14 @@ successor, `RIVALT_BACKING_PAGE_INTERVAL_MS=15000` spaces standalone backing
 page submissions. The worker continues to check collections and payable gains
 during that interval, including a payment bundled with the final page. Service
 workers default to zero added delay.
+
+### Scheduling payable gains across markets
+
+The worker collects eligible funded losses first and keeps one unresolved
+settlement original at a time. It examines creditor accounts in discovery
+order within each market. A cash payment that clearing can already certify
+can proceed while the other market still needs a certificate or standalone
+backing pages. After submitting a certified gain, the worker offers one turn
+to eligible maintenance before resuming payment selection. The interactive
+page interval still applies. Restart resets the scheduling preference and
+resumes any persisted original. No scheduling hint authorizes a transfer.
