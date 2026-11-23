@@ -83,6 +83,8 @@ export const CLEARING_ERROR__RESOLUTION = 0x17f2; // 6130
 export const CLEARING_ERROR__FUNDING_REPORT = 0x17f3; // 6131
 /** MarketCheckpoint: A current funding and gross checkpoint is required for each market */
 export const CLEARING_ERROR__MARKET_CHECKPOINT = 0x17f4; // 6132
+/** RouteSearchLimit: Route selection exceeded its search budget */
+export const CLEARING_ERROR__ROUTE_SEARCH_LIMIT = 0x17f5; // 6133
 
 export type ClearingError =
   | typeof CLEARING_ERROR__ALIAS
@@ -118,7 +120,8 @@ export type ClearingError =
   | typeof CLEARING_ERROR__RISK_OBSERVATION
   | typeof CLEARING_ERROR__ROUTE_HEALTH
   | typeof CLEARING_ERROR__ROUTE_INTENT
-  | typeof CLEARING_ERROR__ROUTE_LIMIT;
+  | typeof CLEARING_ERROR__ROUTE_LIMIT
+  | typeof CLEARING_ERROR__ROUTE_SEARCH_LIMIT;
 
 let clearingErrorMessages: Record<ClearingError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
@@ -157,6 +160,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [CLEARING_ERROR__ROUTE_HEALTH]: `Post-fee health or exposure capacity fails`,
     [CLEARING_ERROR__ROUTE_INTENT]: `Route authority, quantity, lifetime, nonce or generation mismatch`,
     [CLEARING_ERROR__ROUTE_LIMIT]: `Route exceeds all-in, fee or execution bounds`,
+    [CLEARING_ERROR__ROUTE_SEARCH_LIMIT]: `Route selection exceeded its search budget`,
   };
 }
 

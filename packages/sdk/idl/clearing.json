@@ -28201,6 +28201,11 @@
       "code": 6132,
       "name": "MarketCheckpoint",
       "msg": "A current funding and gross checkpoint is required for each market"
+    },
+    {
+      "code": 6133,
+      "name": "RouteSearchLimit",
+      "msg": "Route selection exceeded its search budget"
     }
   ],
   "types": [

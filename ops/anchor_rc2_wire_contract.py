@@ -264,6 +264,8 @@ def undo_liquidation_delta(actual, program):
     assert next(meta for meta in expected_metas if meta['name'] == 'ledger').pop('writable')
     assert ledger_lane['accounts'] == expected_metas
     actual['instructions'].remove(ledger_lane)
+    actual['errors'].remove(dict(code=6133, name='RouteSearchLimit',
+        msg='Route selection exceeded its search budget'))
     actual['errors'].remove(dict(code=6132, name='MarketCheckpoint',
         msg='A current funding and gross checkpoint is required for each market'))
     view = unique('read_market_gross')

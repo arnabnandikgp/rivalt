@@ -69,7 +69,10 @@ struct Winner {
 
 struct SelectionError(ProgramError);
 impl From<maker_interface::QuoteError> for SelectionError {
-    fn from(_: maker_interface::QuoteError) -> Self {
+    fn from(error: maker_interface::QuoteError) -> Self {
+        if error == maker_interface::QuoteError::SearchLimit {
+            return Self(ClearingError::RouteSearchLimit.into());
+        }
         Self(ClearingError::MakerQuote.into())
     }
 }

@@ -42,6 +42,12 @@ expiry. The wallet saves the signed original and submits it directly over RPC.
 Applications can opt into the authenticated relay, which queues conflicting
 originals. Both transports preserve the signed bytes and trader state guard.
 The wallet requests 800,000 CU, 128 KiB heap and zero priority fee.
+The bounded selector visits at most 65,536 pair intervals and evaluates at most
+131,072 gross quotes per order, counting repeated evaluations too. On SBF it
+checks the remaining compute before evaluating a quote or admitting a candidate.
+Below 110,000 remaining CU it returns `RouteSearchLimit` (6133). An incomplete
+search always discards its best candidate. A transaction can also exhaust compute
+outside selection, including during account authentication or final settlement.
 One position can accumulate fills from different makers across orders. Each
 exact-size order must fit a single maker or a pair. For example, if each of
 the three makers offers three lots, a nine-lot order cannot fill. The program

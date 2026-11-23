@@ -14,7 +14,8 @@ let afterOrderSignature: (() => Promise<void>) | undefined;
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
   process.env.RIVALT_WS_URL!, directory, {
     deferFinality: true,
-    computeUnitLimit: label => label.startsWith('landed router') ? 1_400_000 : undefined,
+    computeUnitLimit: label => label === 'landed router search budget' ? 350_000 :
+      label.startsWith('landed router') ? 1_400_000 : undefined,
     heapSize: label => label.startsWith('landed router') ? 128 * 1024 : undefined,
     beforeBroadcast: async label => {
       if (label === 'landed router selects repriced pair') {
@@ -62,6 +63,9 @@ try {
   const states = () => Promise.all([trader, ...makers.flatMap(maker => [maker.capital, maker.registration])].map(key => h.read(key)));
   const preRefusal = await states();
   await h.send('landed router refuses trader limit', refusal.instructions, [actor], sdk.CLEARING_ERROR__ROUTE_HEALTH);
+  assert.deepEqual(await states(), preRefusal);
+  const affordable = await buildOrder(1n, 61_000n);
+  await h.send('landed router search budget', affordable.instructions, [actor], sdk.CLEARING_ERROR__ROUTE_SEARCH_LIMIT);
   assert.deepEqual(await states(), preRefusal);
   await flush();
   journal = await openSettlementJournal(rpc, setup, checks.map(check => String(check.signature)), build);

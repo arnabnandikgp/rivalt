@@ -11,5 +11,6 @@ pub enum QuoteError {
     Arithmetic,
     Producer,
     Response,
+    SearchLimit,
 }
 type QuoteResult<T> = core::result::Result<T, QuoteError>;

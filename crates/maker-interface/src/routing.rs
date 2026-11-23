@@ -77,6 +77,40 @@ impl Order {
     }
 }
 
+/// Bounds count actual evaluations, including revisits. The on-chain search
+/// also yields a typed refusal before starting work with little compute left.
+struct SearchWork {
+    intervals: u32,
+    quotes: u32,
+}
+
+impl SearchWork {
+    const DEFAULT: Self = Self {
+        intervals: 65_536,
+        quotes: 131_072,
+    };
+
+    fn spend(counter: &mut u32) -> QuoteResult<()> {
+        *counter = counter.checked_sub(1).ok_or(QuoteError::SearchLimit)?;
+        Ok(())
+    }
+
+    fn compute_available() -> QuoteResult<()> {
+        #[cfg(target_arch = "bpf")]
+        // The Pinocchio syscall takes no arguments and reads the runtime meter.
+        if unsafe { anchor_lang::pinocchio::syscalls::sol_remaining_compute_units() } < 110_000 {
+            return Err(QuoteError::SearchLimit);
+        }
+        Ok(())
+    }
+
+    fn gross(&mut self, curve: ExecutionCurve, quantity: u64) -> QuoteResult<u64> {
+        Self::spend(&mut self.quotes)?;
+        Self::compute_available()?;
+        curve.gross(quantity)
+    }
+}
+
 /// First true in an ascending predicate, or end+1 if none. Quantities are
 /// already bounded by MAX_DEPTH, including all one-past-end sentinels.
 fn first_true(
@@ -106,19 +140,23 @@ fn first_true(
 /// Marginal prices are monotone. Valid endpoint prices form a prefix and the
 /// intersection of the two average-price bands is one interval. Neither
 /// property is assumed for maker margin, trader margin or gross-lot headroom.
-fn price_domain(curve: ExecutionCurve, order: Order) -> QuoteResult<(u64, u64)> {
+fn price_domain(
+    work: &mut SearchWork,
+    curve: ExecutionCurve,
+    order: Order,
+) -> QuoteResult<(u64, u64)> {
     if curve.side() != order.side {
         return Err(QuoteError::Binding);
     }
     let available = curve.capacity()?.min(order.lots);
-    let upper = first_true(1, available, |quantity| match curve.gross(quantity) {
+    let upper = first_true(1, available, |quantity| match work.gross(curve, quantity) {
         Ok(_) => Ok(false),
         Err(QuoteError::Bounds) => Ok(true),
         Err(error) => Err(error),
     })? - 1;
-    let relative = |quantity, multiplier| -> QuoteResult<std::cmp::Ordering> {
-        let gross =
-            u128::from(curve.gross(quantity)?) * u128::from(price_policy::EXECUTION_DENOMINATOR);
+    let mut relative = |quantity, multiplier| -> QuoteResult<std::cmp::Ordering> {
+        let gross = u128::from(work.gross(curve, quantity)?)
+            * u128::from(price_policy::EXECUTION_DENOMINATOR);
         let boundary = u128::from(order.reference) * u128::from(quantity) * u128::from(multiplier);
         Ok(gross.cmp(&boundary))
     };
@@ -151,7 +189,16 @@ fn price_domain(curve: ExecutionCurve, order: Order) -> QuoteResult<(u64, u64)> 
 pub fn select<E: From<QuoteError>>(
     order: Order,
     books: [Option<ExecutionCurve>; 3],
+    admit: impl FnMut(&Allocation) -> Result<bool, E>,
+) -> Result<Option<Allocation>, E> {
+    select_with_budget(order, books, admit, SearchWork::DEFAULT)
+}
+
+fn select_with_budget<E: From<QuoteError>>(
+    order: Order,
+    books: [Option<ExecutionCurve>; 3],
     mut admit: impl FnMut(&Allocation) -> Result<bool, E>,
+    mut work: SearchWork,
 ) -> Result<Option<Allocation>, E> {
     if order.side > 1
         || !(1..=MAX_DEPTH).contains(&order.lots)
@@ -171,12 +218,12 @@ pub fn select<E: From<QuoteError>>(
         {
             return Ok(true); // Even the optimistic candidate cannot improve the result.
         }
-        if candidate.gross >= MIN_ORDER_ATOMS
-            && candidate.fee <= order.max_fee
-            && admit(&candidate)?
-        {
-            *best = Some(candidate);
-            return Ok(true);
+        if candidate.gross >= MIN_ORDER_ATOMS && candidate.fee <= order.max_fee {
+            SearchWork::compute_available()?;
+            if admit(&candidate)? {
+                *best = Some(candidate);
+                return Ok(true);
+            }
         }
         Ok(false)
     };
@@ -184,13 +231,13 @@ pub fn select<E: From<QuoteError>>(
         let Some(curve) = curve else {
             continue;
         };
-        let (lower, upper) = price_domain(*curve, order)?;
+        let (lower, upper) = price_domain(&mut work, *curve, order)?;
         domains[instance] = (lower, upper);
         if (lower..=upper).contains(&order.lots) {
             let mut lots = [0; 3];
             let mut amounts = [0; 3];
             lots[instance] = order.lots;
-            amounts[instance] = curve.gross(order.lots)?;
+            amounts[instance] = work.gross(*curve, order.lots)?;
             consider(
                 Allocation::new(order.side, lots, amounts)?,
                 &mut best,
@@ -218,17 +265,18 @@ pub fn select<E: From<QuoteError>>(
             if lower > upper {
                 continue;
             }
-            let allocation = |quantity| {
-                let mut lots = [0; 3];
-                let mut amounts = [0; 3];
-                lots[first] = quantity;
-                lots[second] = order.lots - quantity;
-                amounts[first] = left.gross(lots[first])?;
-                amounts[second] = right.gross(lots[second])?;
-                Allocation::new(order.side, lots, amounts)
-            };
             pending.push((lower, upper));
             while let Some((lower, upper)) = pending.pop() {
+                SearchWork::spend(&mut work.intervals)?;
+                let mut allocation = |quantity| {
+                    let mut lots = [0; 3];
+                    let mut amounts = [0; 3];
+                    lots[first] = quantity;
+                    lots[second] = order.lots - quantity;
+                    amounts[first] = work.gross(left, lots[first])?;
+                    amounts[second] = work.gross(right, lots[second])?;
+                    Allocation::new(order.side, lots, amounts)
+                };
                 // Find the rightmost best gross in this interval, then include
                 // any adjacent sell-price tie created by aggregate fee rounding.
                 let optimum = first_true(lower, upper - 1, |quantity| {

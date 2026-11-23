@@ -210,3 +210,34 @@ fn only_flattening_the_first_maker_releases_enough_margin() {
         assert_eq!(selected.lots, expected);
     }
 }
+
+#[test]
+fn incomplete_search_discards_an_admitted_singleton() {
+    let flat = shape(100, 0);
+    let curve = |anchor| ExecutionCurve::new(&flat, anchor, 0, 0, 0).unwrap();
+    let books = [Some(curve(5001)), Some(curve(5000)), Some(curve(5000))];
+    for budget in [
+        SearchWork {
+            intervals: 1,
+            quotes: 2000,
+        },
+        SearchWork {
+            intervals: 1000,
+            quotes: 50,
+        },
+    ] {
+        let mut accepted = false;
+        let result = select_with_budget(
+            order(0, 100, 5000),
+            books,
+            |route| {
+                let admit = route.lots[0] == 100;
+                accepted |= admit;
+                Ok::<_, QuoteError>(admit)
+            },
+            budget,
+        );
+        assert!(accepted);
+        assert_eq!(result, Err(QuoteError::SearchLimit));
+    }
+}
