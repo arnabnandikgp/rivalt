@@ -17,7 +17,7 @@ publisher cannot use version 5 to extend a market's held window.
 
 - Fresh local venue/domain with `Venue.schema_version=10`, immutable
   `profile_version=6`; clearing accounts use schema 10 with scoped revisions.
-  Maker-owned accounts use schema 5. Expiring requests use version 4 and standing execution requests use version 5 on supporting maker builds. P56 supplies the account-scale local binding. No in-place profile-3 upgrade or account rewrite.
+  Maker-owned accounts use schema 5. Expiring requests use version 4 and standing execution requests use version 5 on supporting maker builds. The SDK binds these formats to the deployed program hashes.
   The default/devnet build rejects profile-6 financial activation. An explicit local qualification build gates execution.
 - Exactly three registry slots per market, IDs 0,1,2. All must be provisioned and
   registry sealed before funding or trading. At least two instances share a maker
@@ -157,7 +157,7 @@ Repeated controls account only for the time since the preceding observation; the
 next sample retains the two-second interval rule. A failed new sample preserves
 the old valid interval's materialized index. Recovery cannot bridge a gap beyond
 the old publication's held time/slot endpoint. Existing slot-expiry and catchup
-limits still prohibit adding expired, unmaterialized funding. V1–V3 are unchanged.
+limits still prohibit adding expired, unmaterialized funding.
 
 If a fill lands before another signed route, the latter uses current inventory and
 consumption; it must still fit capacity and user limits. If a reprice lands first,
@@ -167,113 +167,12 @@ Expiry, source degradation, insufficient margin, exhausted depth or a failed sec
 leg reject the entire route without fee, counter, root, order or vault changes.
 
 
-## Wire contract and bounded dependencies
+## Quote ABI and CPI authority
 
-Borsh, little endian, no padding; bool one byte, public keys 32, signed values two's
-complement. Anchor discriminators are first 8 SHA256 of `account:<Type>`,
-`global:<snake_case_instruction>` or `event:<Type>` respectively. Untrusted maker
-config/publication accounts and quote return data require exact lengths; reject
-trailing bytes there, unsupported version/capability, noncanonical bools, unused
-region bytes or unexpected accounts. `LAYOUTS` in the reference pins field
-order/width/offsets.
+A maker returns a 204-byte response echoing the 156-byte request and reporting price sequence, anchor, gross quote, remaining capacity and validity endpoints. Clearing authenticates the executable, approved ProgramData and producer of the return data. It checks the canonical request/response and supplied read-only pricing accounts. The maker never receives the vault signer or unrelated writable clearing accounts. The clearing-owned registration tracks consumed depth.
 
-R095 corrects the earlier blanket trailing-data claim: Anchor 1.2.1's instruction
-dispatcher decodes the declared arguments and permits an unused suffix. Generated
-clients emit the canonical encoding without a suffix. This release retains that
-dispatcher behavior; it does not use instruction bytes as a unique economic-intent
-identifier. Signatures still bind the complete wire, while account nonces, stored
-order versions, publication sequences and authority epochs enforce replay rules.
-The exact 204-byte quote response and fixed maker account lengths remain mandatory.
-See [the self-review evidence](https://github.com/arnabnandikgp/rivalt/blob/84c46d4d26b23f25d6f3a7ae4bcbec591fa31503/docs/evidence/R095-SELF-REVIEW.md).
+Exact account spans depend on the deployment and its clearing-owned registration extensions. Use the [maker wire types](../../crates/maker-interface/src/canonical.rs), [clearing state](../../programs/clearing/src/state/liquidity.rs) and [generated IDLs](../../packages/sdk/idl/) when building an integration. Numeric protocol versions and historical seed bytes remain part of the wire contract.
 
-| Account / owner / seeds | Bytes including discriminator | Ordered payload fields |
-|---|---:|---|
-| `LiquidityRegistry` / clearing / `liquidity-v4,market` | 181 | schema:u16=10; revision:u64; venue,market:keys; count:u8; sealed:bool; registrations:[key;3]; bump:u8 |
-| `MakerRegistration` / clearing / `maker-v4,market,instance:u8` | 341 | schema:u16=10; revision:u64; venue,market,capital,owner,pricing_program,program_data,config,price:keys; approved_hash:[u8;32]; instance:u8; authority_epoch,depth_epoch,buy_consumed,sell_consumed:u64; quarantined:bool; bump:u8 |
-| `MakerCurve` / maker / `curve-v4,capital` | 691 | schema:u16; venue,market,capital,controller,owner,updater:keys; updater_expiry_slot,control_epoch,shape_epoch:u64; domain:[u8;32]; instance:u8; capability:u16; mode:u8; ttl_slots:u16; target:i64; skew_step,skew_tick,long_cap,short_cap:u64; bid_count,ask_count:u8; bids,asks:[Region;8]; bump:u8 |
-| `MakerPrice` / maker / `price-v4,config` | 83 | schema:u16; config:key; control_epoch,sequence,anchor,updated_slot:u64; updated_time:i64; bump:u8 |
+## Events and economics
 
-Config immutable fields are schema, venue, market, capital, controller, owner,
-domain, instance, capability and bump. Fixed owner transfers require a fresh
-deployment in this release. `LiquidityShape` is mode,ttl,target,step,tick,long/short cap,
-counts,region arrays in config order (429 bytes). Region is three u64s (24 bytes).
-All maker mutable dependencies are exactly config and price. No dynamic read list,
-external feed CPI, taker identity, router identity or funding-purpose flag.
-
-**Quote ABI:** `MakerQuoteRequest` (156 bytes) is version:u16, domain:[u8;32],
-market:key, capital:key, instance:u8, authority/control/shape/depth epochs:u64,
-side:u8 (0 buy/1 sell), lots:u64, inventory:i64, consumed:u64. `MakerQuoteResponse`
-echoes that request followed by price_sequence, anchor, gross, remaining,
-valid_until_slot:u64 and valid_until_time:i64 (204 bytes). Remaining means available
-capacity **after** this quantity, before financial admission. CPI producer must
-equal the admitted executable program; require exact length and byte-equivalent
-canonical recomputation. Clock supplies expiry checks. A direct maker quote is a
-mathematical quote over supplied inventory/consumption, not proof those inputs are
-the clearing state; clearing/SDK must authenticate them. Only clearing consumes.
-
-**Maker instructions:** `initialize_curve_v4(LiquidityShape, updater:key, expiry:u64,
-instance:u8)` binds existing venue/market/capital/domain/controller, initializing
-config/price; `reprice_v4(expected_control:u64, expected_sequence:u64, anchor:u64)`;
-`control_curve_v4(expected_control:u64, expected_shape:u64, action:u8, payload)`;
-`quote_v4(MakerQuoteRequest)`. Control actions: 0 shape(429 bytes), 1 updater(key,u64),
-2 mode(u8), 3 invalidate publication(no payload). These form Borsh enum
-`CurveControl` with discriminants0…3 and no vector-length prefix. Shape replacement
-must retain the current mode; re-enabling must use the mode transition and invalidate
-the old price. Only clearing controller signs
-control; action3 is the approval/revocation gateway hook. Reprice accounts in order:
-actor signer, config read-only, price writable, event authority, maker program.
-Quote accounts: config, price, both read-only and no signer. Initialize accounts:
-owner payer/signer, venue, market, capital read-only, config/price writable,
-system program, event authority, maker program. Controller derives from capital;
-no external mutable financial dependency is passed to maker initialization.
-
-**Clearing instructions:** `initialize_liquidity_venue_v4(domain,fee_authority,
-reserve_authority,reserve_destination_owner)` reuses the V3 initializer account/arg
-layout to create immutable profile4, gated by the explicit local build feature.
-`initialize_liquidity_v4()` creates registry in custody
-mode (venue authority); `register_liquidity_v4(instance:u8)` jointly admits the
-owner's capital/program/config/price/hash and unique binding; `seal_liquidity_v4()`
-requires all 3, then immutable membership. `control_liquidity_v4(expected_authority:u64,
-expected_control:u64, expected_shape:u64, action:u8, payload)` invokes maker control
-after materialization; `replenish_liquidity_v4(expected_authority:u64,
-expected_depth:u64, sides:u8)` uses mask1 buy,2 sell,3 both. Quarantine/reapproval
-are `quarantine_liquidity_v4(expected_authority:u64)` and
-`approve_liquidity_v4(expected_authority:u64)`. Initial registration/approval require
-the venue authority and owner; no caller-supplied hash is trusted.
-
-Gateway common ordered accounts: owner/actor signer, venue, custody writable,
-safety, market writable, registration writable, capital read-only, config writable,
-price read-only, maker program, ProgramData, controller, maker event authority, optional co-signer,
-clearing event authority, clearing. Joint approval requires the venue-authority
-co-signer; owner-only operations require no co-signer (Anchor placeholder convention).
-Quarantine uses its own authority,venue,custody,safety,market,registration,capital,
-event-authority,clearing context and invokes/loads no maker dependencies; it remains
-possible while paused or after a maker closes/corrupts its own accounts. Capital is never sent to maker CPI.
-Registry initialization: authority payer/signer, venue, custody writable, market, safety, registry
-writable, system, event authority, clearing. Registration: owner payer/signer,
-venue authority signer, venue, custody writable, safety, market, registry writable,
-capital, registration writable, capital binding writable, config, price, maker
-program, ProgramData, system, event authority, clearing (≤18 keys with compute).
-Seal: authority signer, venue, custody writable, market, safety, registry writable, the three
-registrations in ID order, event authority, clearing. No optional
-financial authority can be inferred from a missing signer. Resource envelopes
-below cover these lists; exact generated-IDL parity is required.
-
-
-## Events and economic separation
-
-Maker price/shape events retain the actual config, control/sequence, anchor,
-Clock and complete shape state. Clearing registry/control events retain venue,
-affected market snapshot and exact registration state, followed by the authenticated
-scoped revision footer; there is no global custody discovery counter.
-Execution events include changed roots/ledgers, gross fee and I/T/carry, selected
-registrations and actual price sequence/consumption before/after for each leg.
-See [event definitions](../../programs/clearing/src/events.rs) and maker source for
-ordered payloads. Emit large financial snapshots using bounded borrowed streaming;
-do not duplicate full account buffers onto the SBF stack/heap.
-
-Only independently fetched successful finalized effects enter financial history.
-A maker event is not a fabricated clearing fill; failed CPI rolls back both.
-Quotes return gross notional, never collateral transfers or a risk valuation.
-Current source names are canonical; numeric schemas and persisted journal tags
-retain explicit wire identity. Compatibility details remain explicit in [accounts](../clearing/accounts.md).
+Only committed financial effects enter the finalized journal. Compare actual inventory, consumed depth, fees, funding, funded cash and unpaid claims for each maker. The local maker kit computes its report from finalized events and labels any assumed hedge cost. [Operator runbook](../operations/deployment.md#reconciliation-economics-and-exit)

@@ -1,189 +1,6 @@
-# Cash, claims and ordinary settlement
+# Cash, claims and withdrawals
 
-## Incremental backing candidate (P51B)
-
-The schema-10/profile-6 local runtime uses D102's maintained backing proof.
-It updates proof contributions as financial state changes while separating an
-arithmetic validity region from actual source freshness. It requires no coordinated
-pause and gives no positive unpaid-profit margin credit. Payment still requires
-complete backing, current source/held-funding checks and actual pool cash.
-The older restart-on-observation certificate is historical rationale only.
-
-For each market, a certificate epoch specifies a conservative rectangular range of
-price and funding endpoints for **both** markets. The range includes the currently
-admitted source/held-funding possibilities. For each root use checkpoint-adjusted
-`z_m = v_m + q_m*F_checkpoint,m`, so `U_m = q_m*(M_m*S-F_m)+z_m`.
-Moving a consumed funding checkpoint preserves z exactly; a new price does not
-rewrite the root. At each corner compute own total negative claims, counting cash
-once and no positive claims/reserves. An entry is bad for market m if it can owe m
-anywhere in the region and its cash cannot cover the maximum gross debt in that
-region. This sufficient condition may withhold a payout; it cannot excuse a losing
-other-market claim. Claim conservation can be checked symbolically:
-`sum(q_m)=0` and `sum(z_m)=P_m*S`, without restarting for every in-region observation.
-
-Paged scans mark each entry's contribution processed for this certificate epoch.
-Every later economic mutation of a processed entry atomically removes its old
-contribution and installs the new one, in the **same clearing invocation** as cash/
-q/v/claim changes. An unprocessed entry remains owed by the scan. Do not reject an
-otherwise valid trade merely to keep its proof green: a newly unbacked entry sets
-bad and blocks payment instead. The selected MarketLedger tracks processed count,
-bad count and exact q/z sums; each root stores its two processed epochs. A payment
-cannot sum a private subset of convenient pages. The complete financial index authenticates coverage.
-
-This gives monotone scan progress within a fixed region despite changes to already
-processed roots. It does not promise completion under infinitely fast new financial
-membership or arbitrary oracle jumps. Financial membership changes invalidate the membership-bound certificate; the
-next market epoch makes every root explicitly unprocessed. Empty registration and
-retirement do not invalidate it. No old processed marker certifies a new cohort. Safety/terms or region changes start a new proof epoch. The
-old epoch cannot silently certify an out-of-region source or funding endpoint.
-
-At payment, still require current credible/fresh required sources, the actual
-current/held funding endpoints **inside** the certified region, complete coverage,
-zero bad entries, exact symbolic conservation, available P and recipient final
-whole-account health/reservations. Fresh new observations inside the region need
-not destroy an unchanged arithmetic proof. They must independently satisfy all
-existing age, confidence, divergence and recovery rules. A region is not a way to
-renew an old source timestamp or ignore unconsumed funding. If current points leave
-the region, withhold payment and start a new region proof; funded-cash exits retain
-their own local checks and never wait for that certificate.
-
-P55B must specify the versioned certificate/summary layouts and authenticate every
-mutation path: deposit, withdrawal, transfer, direct/stored fills, loss/gain, flat
-netting, liquidation, entry/retirement, fee-driven cash changes and resolution/
-recovery. Orders/delegation alone do not change economic proof contributions.
-Pool changes update the selected symbolic identity; terminal changes invalidate
-ordinary proof epochs. Every SDK/event/indexer path must carry the added declared
-writes. This can add page/aggregate write contention; measure it against P40–P44
-rather than assume an arithmetic improvement improves throughput.
-
-The [executable summary model](../../tests/financial/incremental_backing_candidate.py)
-checks already-admitted root mutations; its independent test enumerates all 16
-two-market price/funding corners. It models neither authorization nor Solana
-rollback, membership page authentication, source freshness validation or whole-
-account trading admission. It cannot qualify P55B. Required signed acceptance is
-continuous relevant sampling/trading with real RPC/WS/PG, interrupted scan/restart,
-membership churn, newly bad/then repaired roots, mixed funding corners, exact
-generation/revision checks and final-page/payment rollback. A fixed-region scan
-must finish without resetting its cursor under bounded admitted mutation load.
-Out-of-region movement and genuine insolvency must remain classified refusals.
-
-Do not install a compulsory market pause, reserve positive profit as cash or accept
-a stale proof to meet that test. If safe progress needs a coordinated window after
-all, G3 requires a concrete scope/duration/exit-effects proposal and explicit user
-approval. The current candidate makes no such departure.
-
-### Checked maintained-backing kernel (P55B1)
-
-`crates/financial-core/src/backing.rs` implements the arithmetic candidate; it is
-called by the schema-10 candidate's scan/mutation/payment paths; it is not activated
-in the selected schema-8 runtime. `Region` contains two inclusive
-price/funding rectangles within the existing numeric domains. `contribution`
-validates an actual `margin::Margin`, then returns selected q, checkpoint-adjusted
-z, a bad-debtor flag and the market source-dependency mask. Cash is counted once;
-positive claims and reservations supply no additional backing. A q=0 fractional
-claim remains exact. The selected exposed market requires its source; a potentially
-negative selected claim also requires every exposed sibling market's source.
-
-`Summary` maintains processed count, bad count, selected q and separate positive/
-negative z totals, plus per-market dependency counts. Removal/replacement returns
-a checked candidate; failures do not publish partial counters. A complete summary
-checks `sum(q)=0` and `positive(z)=negative(z)+pool*S`. It is not a membership proof,
-source attestation or payment instruction. Its 104-byte native checkpoint has an
-explicit `RVBACK01` domain and rejects malformed lengths, counters and aggregate
-bounds. This is a kernel checkpoint, not a new Anchor account/discriminator.
-
-The aggregate bound follows the existing per-root contract:
-`abs(z) <= MAX_SCALED + MAX_LOTS*MAX_FUNDING = 100100000000000000000000000`.
-That is below 2^87; multiplying by at most u64::MAX Financial roots remains below
-2^151. Reuse the three-word `ClaimTotal` representation, with checked subtraction
-and count multiplication. Do not squeeze a population sum into i128 or truncate
-opposite signs to fit. q totals fit i128 under the same u64 count / 100m lot domain.
-These are representational proofs, not economic capacity or deployment acceptance.
-
-The independent `test_maintained_backing.py` enumerates all 16 two-market corners
-using the direct unpaid formula, checks literal financial transitions and compares
-real Rust summaries/restored prefixes. Native diagnostic counts and actual tested
-revision belong to validation/STATUS. P55B2 must separately qualify actual source
-freshness, complete membership, mutation hooks, writable accounts and concurrency.
-
-### Economic mutation coverage required before P55B activation
-
-The inventory below is based on P55A2's actual source. No instruction may obtain
-payment authority merely by updating a hash/count or calling this arithmetic.
-For a processed root, remove its authenticated **before** contribution and install
-its **after** contribution in the same instruction; for an unprocessed root, leave
-it owed by the authenticated scan. q/z/cash must come from root bytes, never caller
-assertions. Updates which make a debtor bad must remain valid financial actions
-when their existing admission passes; they block payout rather than being rejected
-to preserve an optimistic certificate.
-
-| Actual mutation owner | Required maintained-proof behavior |
-|---|---|
-| `account_custody::cash`: active deposit | Include cash-only repairs of both selected-market debtor contributions; the old identical-position invalidation call is insufficient to calculate a delta without pre-deposit cash |
-| `account_cash::cash::{withdraw,transfer}` through `account_cash::commit` | Update each donor/recipient from before/after cash and both q/z; preserve full funding, reservations, held corners and token-CPI rollback |
-| `maker_liquidity::routes::commit::apply` for direct and stored routes | Update trader and both selected maker roots, including aggregate fee debit; complete the whole route atomically; no maker may write the summaries via CPI |
-| `account_cash::claims::change` | Loss collection changes cash/z/pool; gain payment changes all three oppositely. Certify before payment, maintain the exact after identity, never invalidate an otherwise sound region solely for the pool change |
-| `account_cash::claims::net` | Flat-only funded source/destination z and pools change together; cash stays unchanged; maintain both market summaries and keep owner/reservation rules |
-| `account_safety::risk::liquidate` | Target and receiver update cash, inventory and z including the funded fee; preserve consent, IM, held funding and strict progress after fees |
-| `account_trading::authority::{manage,delegate}` and `engine::markets::commit_model` | Order/reservation/delegate changes alone preserve economic contribution. Consumed funding changes v/checkpoint but exactly preserves z. Assert this equality on no-economic-write paths so future mutations cannot bypass maintenance |
-| `account_membership::handlers::change` | Entry/exit must account for changed complete coverage and generation. Any invalidated proof must mark its entire old coverage unusable; no count-only reuse. Reentry cannot inherit old processed authority |
-| Empty registration, permanent retirement and rent funding/refund | Preserve Financial membership semantics; no trader cash/claim contribution is manufactured from rent, empty identities or a tombstone |
-| `account_safety::resolution::freeze`, `settlement::plan::lifecycle` Apply/reconcile, recovery/retirement | Frozen/terminal safety prevents ordinary payment; safety/epoch transition invalidates all old ordinary proofs before root/bucket changes can be reused. Recovery requires a fresh complete ordinary epoch |
-| `account_custody::{cash,transfer}` in custody and `account_cash::cash::terminal_exit` | Zero obligations and non-active mode are explicit boundaries, not bypasses for a live debtor. Re-entering active safety cannot reuse a pre-transition proof |
-| Oracle sampling, funding publication/materialization and terms/config changes | In-region fresh samples and pure checkpoint consumption preserve arithmetic. At use, recheck current sources, all relevant held endpoints and epoch/terms. Out-of-region or incompatible terms require a fresh proof, never timestamp renewal |
-| Insurance seed/fee allocation/retained-fee withdrawal, liquidity updater/control | These do not directly change root cash/q/z or settlement pools; retain their existing authority/bucket and route fences. No insurance, retained fee or published maker quote becomes backing credit |
-
-### On-chain maintained proof (P55B2 candidate)
-
-D102 places the 248-byte `BackingState` in each existing MarketLedger: epoch,
-safety/membership/terms epochs, two config epochs, a 96-byte region and the exact
-104-byte `RVBACK01` summary. The ledger is 373 bytes including discriminator.
-MarginAccount is 1,011 bytes with two processed u64 epochs before its bump.
-The 621-byte SettlementCertificate holds identity, backing epoch, count/next,
-completion and the authenticated 544-byte membership cursor. Schema 10/profile 6
-uses fresh domains/databases; no earlier account is reinterpreted or resized.
-
-`account_cash/maintained.rs` owns ordinary contribution replacement. It uses actual
-before/after cash, quantities and adjusted claims in the same atomic invocation.
-A root with q=z=0 before and after contributes no selected debt or source dependency,
-so an irrelevant ledger may remain absent. Processed epochs survive normal commits;
-exceptional default Apply clears them after the safety epoch has already fenced old
-proofs. Orders/delegation must explicitly preserve cash/q/z even when consuming
-funding or changing reservations. Maker CPI receives no proof-write authority.
-
-`account_cash/certificate.rs` writes the selected ledger, cursor and one authenticated
-root marker per member step. It authenticates the fixed Financial index on every
-bounded continuation; final closure checks exact q/z/pool conservation even if a
-bad debtor prevents payment. A current complete proof cannot be reset solely for
-source staleness. A partial scan can restart when an as-yet-unseen market leaves its
-region; completed proofs consult only their actual dependency mask. Actual current
-sources and every held funding endpoint are checked at payment.
-
-The deterministic region extends each current price interval by its width (minimum
-one atom) and each funding interval by one hour of the existing capped premium at
-the region's upper price, clamped to numeric bounds. This supplies conservative
-arithmetic bounds only; it does not extend source validity or accrue extra funding.
-Admitted mutations may make a summary bad. The worker finishes coverage without an
-atomic payment in that case, preventing endless rollback of the final scan step;
-subsequent cash repair can make the same completed proof payable.
-
-No ordinary trade gains a new global registry/page write. Backing scans now contend
-with writes to their selected ledger and scanned root. CU, wire size, exact locks,
-concurrent progress, hostile rollback and PostgreSQL replay remain required signed
-acceptance; native tests or source layout sizes are not those measurements.
-
-## Cash, claims and normal transitions
-
-The current program records a gain payment against the account's aggregate
-market claim. The successor attributes that payment closed-first under
-[D113](../DECISIONS.md#d113--closed-first-payment-attribution).
-
-Use the existing 10^9 claim/funding scale, i128 normal claims/checkpoints, exact
-participant fractions, BTC/ETH lot sizes, quantity/price/cash bounds and 10%/5%
-synthetic IM/MM. Existing source, six-second recovery, causal funding, held-window,
-order/TP-SL, two-maker FOK and post-fee liquidation parameters are retained.
-
-At a common fully accrued snapshot:
+Collateral has six decimals. BTC uses 1,000,000 lots per BTC and ETH uses 100,000 lots per ETH. The internal claim and funding scale S is 10⁹. At a common price and fully accrued snapshot, C is funded cash, U is the signed market claim in scaled atoms, q is signed lots, and P, I and T are a market’s settlement, insurance and retained-fee balances.
 
 ```text
 allocated V = sum(C_a) + sum_m(P_m + I_m + T_m)
@@ -221,12 +38,12 @@ insurance are accounted for. No new perpetual inter-market IOU or claim-purchase
 facility is introduced. Ordinary fractions remain with the account, including flat
 close/reopen; only terminal resolution applies explicit rational rounding.
 
-The funded-exit proof and held-corner checks below apply to withdrawals and transfers.
+Withdrawals and donor-side transfers use the funded-exit checks.
 Materialize each consumed relevant funding prefix in its market in the same
 transaction. Signed funding indices may decrease with a new valid negative premium;
 a consumed historical interval must never disappear or reverse on hold expiry.
 
-### Ordinary payment certificate
+## Ordinary payment certificate
 
 A certificate belongs to **one market**, and scans the complete stable registry.
 For every negative claim to that market, require its account's own C to cover all
@@ -258,40 +75,11 @@ so paying the entire gain leaves the trader 970 atoms ahead of their deposit.
 A keeper can collect A's loss while A is still short. Collection moves A's funded
 cash into the market settlement pool. A separate, backed payment moves cash from
 that pool to the trader and reduces their unpaid claim by the same amount. For
-example, a 300-atom payment leaves a 696-atom claim. Only funded cash can leave
-the vault through withdrawal. The [local demonstration](../operations/local-development.md#ordinary-payout-demonstration)
-follows these balances through a restarted keeper and a token-account exit.
+example, a 300-atom payment leaves a 696-atom claim. Only funded cash can leave the vault on withdrawal.
 
-## Funded-exit proof and checks
+Clearing applies a payment closed-first and tracks the already-paid price profit on surviving lots. [Attribution](default-plan-verification.md)
 
-At one authenticated on-chain snapshot, express claims in collateral atoms
-(exact fractional values, dividing scaled storage by S), and let:
-
-- `C` be this account's whole-atom funded cash, counted once;
-- `U_m` be its fully accrued common claim in market m;
-- `L_m <= U_m` be its conservative risk claim at the same funding endpoint;
-- `B = sum(max(-L_m, 0))` be its conservative total negative obligations;
-- `H = IM + R` be nonnegative initial margin plus refreshed remaining reservations;
-- `w` be the requested whole-atom cash withdrawal after applicable cash costs.
-
-Require `0 < w <= C` and `C - w >= B + H`. Then the account still has at least
-enough cash to cover every negative common claim in full, since
-`sum(max(-U_m,0)) <= B <= C-w`. Its current gross and account-net cash shortfall
-are both zero. Other accounts' cash/claims and settlement/insurance/fee pools do
-not change. Under `V = sum(C_a) + P + I + T`, changing this C and V by the same
-`-w` preserves the identity. The same cash argument works with explicitly separate
-settlement pools, provided their claim/ownership identities are maintained.
-
-Consequently this operation does not take settlement backing from unpaid creditors
-or change another account's existing shortfall. This is a current-snapshot result,
-not protection against a subsequent price gap, token depeg, dishonest upgrade or
-missing on-chain dependency. It does not prove a gain payment safe: payment changes
-both settlement backing and the remaining unpaid creditor population.
-
-For an internal cash transfer, first admit the donor under the same inequality,
-then add the amount to the recipient without duplicating it. The vault and total
-cash are unchanged. Receiving cash does not by itself grant trading permission.
-Owner, domain, freeze and recipient-binding checks still apply.
+## Funded exits
 
 ### Held-funding safeguards
 
@@ -312,135 +100,8 @@ already-applied debit. Materialize every consumed relevant market prefix in the
 same transaction. New valid negative premiums can legitimately lower the index.
 The reference checks both the rollback counterexample and signed fractional accrual.
 
-### Required program preconditions
+The owner can withdraw available funded cash when the result passes whole-account admission. A payout from the market settlement pool requires a valid backing certificate. Exposure in either market may require fresh funding and index inputs.
 
-1. Derive the complete market dependency set from canonical positions, nonzero
-   claims, active orders/protections and the requested operation. Never let a caller
-   omit a losing market. Account mode/role/market identities remain immutable.
-2. Authenticate source bounds and include every pending funding debit at one Clock
-   snapshot. Materialize consumed funding prefixes where necessary: a later sampler
-   expiry/config change must not reverse funding already applied to an account.
-   Check post-withdrawal held-funding corners as well as current admission.
-3. Recompute all remaining reservations, fee budgets and protection generations.
-   Cached UI/worker equity is not authority; deposited cash is not counted twice.
-4. Serialize account/custody changes with Solana write locks; apply checks, state
-   changes and the actual SPL token transfer in one transaction. A failed transfer
-   or second instruction rolls back the financial effects.
-5. Require owner-authorized destination, canonical token/mint/vault binding,
-   available actual vault balance and maintained allocated-custody accounting.
-   Observe the selected safety/freeze state. No exit during frozen default unless
-   the final contract explicitly qualifies such a separate path.
-6. Do not bind ordinary funded withdrawal to a historical all-member solvency
-   certificate or unrelated event sequence. Relevant current health/freeze changes
-   can still reject it. Reconstruct the exact event/custody effect independently.
+## Market totals
 
-
-## Units and causal accrual
-
-Collateral has six decimals; one token is 1,000,000 atoms. BTC uses 1,000,000
-lots/unit and ETH 100,000. Normal funding/claims use scale S=1,000,000,000,
-checked i128 arithmetic and exact participant-owned fractions. Quantity magnitude
-is bounded at 100,000,000 lots; virtual scaled claim magnitude at 10^26; funding
-index magnitude at 10^15; funded cash at 10^15 atoms. Check the actual
-[financial bounds](../../crates/financial-core/src/lib.rs) before changing arithmetic.
-
-For signed quantity q, virtual claim v and checkpoint F_i, accrued scaled claim
-is `q*M*S + v - q*(F-F_i)`. Accrue before changing quantity or evaluating cash
-rights. A flat close/reopen retains its fraction; new entrants acquire no old
-fraction. Persist consumed relevant market prefixes in the same transaction. Accrual validates
-the complete input and output plus each changed position; admission evaluates
-per-market rounded IM and negative claims in one traversal. Reusing those checks
-never credits positive claims or omits an isolated-slot/bound check.
-Reconciliation uses checkpoint-adjusted claims, not the sum of stored v alone.
-
-The held index uses `base + trunc(premiumScaled * elapsed / 3600)` with elapsed
-bounded by the original valid hold. Repeated partial materialization uses that
-same prefix, avoiding compounded rounding. The index can decrease under a valid
-negative premium; already materialized history cannot disappear on expiry.
-[Funding](../liquidity/funding.md) owns the report/source/cadence contract.
-
-## Fee and insurance ownership
-
-The cumulative taker fee is `ceil(total executed gross / 5000)`. A stored-order
-subfill charges the difference from its existing cumulative prefix; replacement
-preserves that prefix. A two-leg route assesses one fee on aggregate gross, not
-one fee per leg. Aggressive maker trades also pay taker fees. Provider-side fee
-is zero; there is no quote/cancel tariff or automatic rebate.
-
-The originating market receives one quarter of each collected fee using its
-persisted modulo-four carry. Carry is a rounding counter, not collateral or an
-insurance claim. Seeding I and explicit T-to-I allocations do not alter carry.
-Freeze/recovery preserves it. Insurance is actual dedicated cash, finite and
-market-attributed: ordinary profit payment cannot spend I, and a healthy market's
-reserve is not silently swept into another. No active reserve redemption exists;
-terminal reserve withdrawal requires irrevocable retirement and separate authority.
-Donations while frozen stay unclassified and cannot alter snapshotted resolution.
-
-## Ordinary payment refinements
-
-A complete backing scan processes at most two read-only canonical roots per call.
-Its selected liability version changes for root cash/claim mutations with selected
-exposure or claims, including cash effects caused by another market. Unrelated
-ETH-only activity does not become a BTC payment dependency. Required source and
-held-funding stamps are checked again on consumption.
-
-The 234-byte certificate's cash accumulator is cash in selected-exposed/claim roots,
-not a common fungible backing pool. Its lots contain both sampled sums; only the
-selected sum is certified. Each debtor independently covers all gross debt.
-Missing/reordered/duplicate roots or changed required stamps restart/reject. The
-worker submits the final page and gain payment in one atomic original. Earlier
-pages still need a stable required-observation/liability window: P42 measured three
-deliberately observation-interleaved failures and one coordinated-window completion,
-not a normal-traffic availability estimate. The scan only reads roots even when
-the later payment promotes its beneficiary writable in the complete message.
-Payment remains limited by actual selected P; an unpaid-profit certificate may
-need coordination with concurrent relevant activity. Funded withdrawal needs none.
-
-Netting requires no live orders/protections; terminal unused records do not retain
-execution rights. Deposit, transfer, withdrawal, collection and gain payment all
-retain exact negative/fractional claims and any required reservations. Recovered
-Custody/Resolved/Retired cash exits need flat/no-claim/no-live-order state, not
-virgin nonces/generations or invented fresh prices. Frozen partial resolution
-permits no ordinary cash mutation.
-
-## Aggregate market fee prototype
-
-The local D137 candidate collects the full charged fee into market escrow. The
-first maker registration on a route records that fee in a lifetime u128 counter.
-Those counters certify collection. They confer no right to withdraw the funds.
-The ledger prefix field `fees` includes escrow. Only `fees − pending` is earned
-treasury cash. The ledger extension stores a u128 classified lifetime total and
-a u64 pending balance. Existing market insurance, voluntary deposits and prior
-spending stay separately accounted.
-
-`ClassifyMarketFees` reads the three canonical registrations in instance order.
-Let T be their sum and P the last classified lifetime total. Clearing requires
-T − P to equal pending. Of this difference it credits insurance
-`floor((pending + carry) / 4)`, retains the rest, saves the remainder modulo four
-and clears pending. Repeating a completed checkpoint credits zero. Treasury,
-default freeze and retirement require clean ledgers. A caller can classify both
-markets and freeze atomically. Subsequent default settlement spends the verified
-snapshot while trading is frozen. The lifetime counters never reset on a payout.
-This account layout is bound to a separate local artifact and fresh venue.
-
-## Reserved gross capacity
-
-On the D138 local candidate, gross is the sum of the absolute position lots of
-all margin accounts in one market. The exact read subtracts unused capacity of
-the three makers from the common 200,000,000-lot cap. A new generation divides
-the free capacity equally, assigning the indivisible remainder in increasing
-maker-instance order. A registration from an earlier generation inherits its
-share of this starting distribution. A newer-than-market generation is invalid.
-
-Each fill consumes the increase in absolute lots across the trader and every
-distinct maker. A reduction returns its decrease to the first maker's lane.
-For a two-maker route the first lane accounts for the entire delta once. The
-trader can exit against a different maker and leave gross open among the makers.
-
-The candidate also maintains the serial gross in the market prefix for existing
-financial consumers and as an independent comparison. If the first maker lacks
-the required capacity, the serialized route checks the whole market cap and
-starts a new generation at the resulting gross. A consenting receiver transfer
-and each default member application also rebase at their exact resulting gross.
-A fill still writes the market and ledger. Only the capacity view is read-only.
-[Account layout](accounts.md#bounded-market-gross-on-the-local-candidate).
+The originating market owns its insurance and protocol-fee share. Local lane fills record the full fee and changes in exposure at the designated registration. Consumers that need materialized totals checkpoint all required lanes first. Classifying fees respects the 25% split and the exact carry across fills. A capacity generation binds the reserved lot capacity per lane. Account-local guards still cover both counterparties, inventory, signed terms and aggregate solvency. [Fee accounting](../../crates/financial-core/src/fee_lanes.rs) · [Routing](../liquidity/routing.md)

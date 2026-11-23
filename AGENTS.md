@@ -63,8 +63,9 @@ branches and `gh stack submit --auto --open`; never draft PRs. A verified exact
 parent in Review is a development dependency; do not wait for its merge to continue
 routine authorized work. Keep dependent PRs open until instructed to merge.
 If publication is unavailable, leave reviewable local commits and record it honestly.
-The completed [consolidation plan](docs/REPOSITORY-CONSOLIDATION.md) records the
-retirement boundaries; [STATUS](docs/STATUS.md) owns any newly authorized work.
+[STATUS](docs/STATUS.md) owns current limits and the next action. Put detailed run
+results in the PR. Keep component guides focused on the current deployment and
+use a pinned link in [HISTORY](docs/HISTORY.md) for retired designs.
 
 ## Verify and hand off
 

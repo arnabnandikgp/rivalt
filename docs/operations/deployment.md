@@ -11,72 +11,9 @@ the same selection to its executor, native helper and workers. P56 journals
 retain the distinct `p56-window-ed46603` identity. Follow the
 [local installation instructions](local-development.md#pinned-toolchain).
 
-The account-scale RC2 profile is explicit local `liquidity-execution-qualification`.
-Pin actual clearing/maker A/maker B/oracle-fixture binaries, IDLs, domain/mint/venue,
-registry, genesis, initialization signature/hash and resource settings in an explicit
-manifest. Public configuration cannot replace the SDK's executable allowlist.
-Qualify fresh build hashes before promoting them; preserve previous deployment
-manifests and unresolved original transactions.
+Fresh demo sessions bind schema 10/profile 6, exact program hashes, genesis, venue, mint, initialization signature and SQL journal format 3. Keep keys in ignored configuration. Use a fresh domain and database for each new deployment. Earlier accounts, feature selections and unresolved originals retain their own client and executor.
 
-The retained P42–P44 deployment selected clearing account schema 7 and projection binding 7 with SQL journal
-format 2 under a fresh local domain/genesis. Its scoped rebuilt acceptance is
-recorded in validation; P44 owns full resource qualification. Public configuration
-for that historical deployment must specify `accountSchema: 7`. P41 schema-6 and P40B schema-5 deployments remain
-on their historical clients. Canonical
-account/event discriminators and scoped revisions intentionally differ from P40A;
-use historical clients for retained old deployments and databases. There is no
-in-place account/journal conversion or automatic recovery of their signed originals
-through the new decoder. Maker-owned curve/price schemas remain 4.
-
-Earlier custody-only, successor, account-trading/cash/safety and devnet
-profiles use their original clients at the historical baseline, not this active
-source tree. Never combine local and
-devnet features. The latest profile cannot be enabled on devnet by pointing a local
-launcher at a different URL. Previously tested Pyth sponsored Core accounts and
-Phantom registration belong to the older devnet implementation, not current parity.
-No production, funded or new cluster deployment follows from repository cleanup.
-
-Source renaming preserves current account/argument/meta/discriminator/seed/error
-contracts unless an explicitly reviewed migration says otherwise. It changes code
-hashes even if financial bytes are identical. Existing deployments stay untouched.
-Old-to-new migration requires actual admissible withdrawal/deposit; open positions,
-unpaid claims/fractions, orders, fees/reserves and signed originals never migrate
-by relabeling database rows. Keep any needed compatibility reader explicitly scoped.
-
-P46 introduces, and P47 qualifies, a separate RC2 deployment with clearing/binding schema 8,
-maker account schema 5 and, at that qualification, SQL journal format 2. It requires new
-instruction/maker discriminators, genesis, domain, mint and empty database. Existing
-schema-7 originals and journals stay with the previous executor. The P56 build and baseline probes select `.local/anchor-rc2/current`. Its
-allowlist selects D108 SBF `ed46603` (artifact set `p56-window-ed46603`), account
-schema 10/profile 6, and helper transport version 2. Its price policy remains the
-P53B-approved numeric policy 2. This is a fresh-domain replacement with an empty
-database, not an in-place account, deployment or journal edit. Keep retained
-P44/P47/P53B files and unresolved originals with their original executors; never
-copy pending intents into the new journal.
-
-P52 uses SQL journal format **3** with separate covered and reconciled frontiers;
-P52 itself changed no program hash or account schema. P56 combines that journal
-with its new explicit account-scale program binding. Start a
-fresh local database and replay actual initialization history. Preserve format-2
-databases and unresolved originals with their original executor; do not relabel,
-delete or copy pending financial intents into a new journal. Mixed-format startup
-rejects explicitly. P52 qualification needs no new program build.
-
-### Account-scale deployment (P55–P56)
-
-D100/D101 introduced schema 9/profile 5; D102 advances to schema 10/profile 6.
-It uses u64 identities, u32 namespace seeds, paged membership, pre-funded reusable
-recovery storage, permanent tombstones and maintained per-market backing.
-Financial entry requires authenticated membership and complete capacity. The
-normal local setup provisions **128 Financial roots** separately from registration
-pages, with an explicit SOL payer. Larger workloads need their own qualification;
-there is no renewed protocol constant limiting registration to 128.
-
-Promotion requires complete populated default/recovery/resource acceptance and a
-fresh normal wallet/runtime check. STATUS records whether those checks are done.
-Select the same exact binary/helper binding throughout the worker, executor, SDK
-and indexer. Never reuse an old database, namespace or unresolved original across
-this boundary. Default/devnet financial gates remain disabled.
+The local launcher provisions storage for 128 Financial roots. Registration identities and funded recovery capacity are separate. Current financial activation is local-only. Historical devnet Pyth and wallet registration checks used different artifacts.
 
 ## Running an operator against an explicit deployment
 

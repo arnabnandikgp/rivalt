@@ -1,6 +1,6 @@
 # Published-depth funding
 
-## Selected boundary
+## Source of the funding price
 
 ```mermaid
 flowchart LR
@@ -12,45 +12,12 @@ flowchart LR
 
 The backend gathers a coherent snapshot of the complete configured maker set,
 authenticates bindings/publications/code, and calculates published bid/ask totals
-for the protocol reference quantity with the existing one/two-maker allocation,
-depth/inventory/reduce-only caps, price bands and tie rules. D74's decision to omit
-hypothetical financial admission remains in force. The independent oracle sets
-the risk bounds used for margin and liquidation. Changing where trader routes
-are selected does not change who computes the funding report.
-[Measured two-market publication costs](../operations/performance.md#funding-publications-on-the-qualified-local-clearing-build)
+for the reference quantity using the published depth, inventory caps, price bands and routing ties. The publisher omits hypothetical margin admission. Independent oracle prices govern margin and liquidation.
+[Measured two-market publication costs](../operations/performance.md#funding-costs-and-comparisons)
 
-The program authorizes the report publisher and validates a bounded report rather
-than loading all maker accounts, hashing maker programs, invoking their quotes
-and searching quantities on each sample. A report identifies its deployment/market,
-configuration version, sequence, observation time/slot, expiry, Q and aggregate
-bid/ask totals. Retain input provenance for independently reproducible audits;
-a snapshot digest or publisher signature is not proof of correct aggregation.
+## Publisher authority and signed reports
 
-The publisher must attest complete coverage and fresh valid maker inputs. Those
-claims move to the publisher trust boundary; they are not described as fully
-verified on-chain. A valid signed report can still be dishonest within accepted
-price bounds. Limits bound the permitted effect; replay monitoring can detect
-errors, but does not cryptographically prevent them.
-
-On-chain authority remains narrowly scoped: the report cannot directly set an
-arbitrary cumulative funding index, withdraw cash, change risk prices, bypass
-trade margin checks or change fees/insurance. Clearing derives the bounded premium
-and elapsed-time accrual using the independent index and authoritative Clock.
-It materializes the preceding valid interval before installing a new prospective
-observation. Reports cannot backdate funding or renew a cached input's freshness.
-
-Observe account changes or slots in the backend, but initially publish on the
-existing two-second cadence. Preserve six-second maximum hold, shorter input
-expiry, recovery and outage behavior. Publication frequency is not a guarantee
-of exact landing time. Keep financial admission at actual execution, independent
-risk valuation, all-or-nothing routes and funded cash versus unpaid claims.
-
-
-## Frozen publisher contract — D76
-
-This is the implemented D76 report/authority contract.
-The current account-scale binding is schema 10/profile 6; the report format
-and authority/economic rules below remain unchanged.
+The published report binds a single market, deployment and authority epoch.
 
 - `FundingPublisher` PDA: `["funding-publisher-v4", market]`, clearing-owned,
   148 bytes including the discriminator. Borsh field order: schema_version u16=10; revision u64;
@@ -82,8 +49,7 @@ and authority/economic rules below remain unchanged.
   active modes it changes only publisher authority/fences and custody event
   sequence, not market/default financial state. Enabling outside custody/active
   modes or while paused is rejected. No publisher can rotate its own authority.
-- Publish requires an enabled matching publisher transaction signer, no extra
-  accounts, the profile gate and unpaused custody/active mode. Require exact venue
+- Publication requires the enabled publisher signer, the profile gate, unpaused custody/active mode and the required funding checkpoint accounts. Clearing authenticates the registration set before consuming a held funding prefix. Require exact venue
   domain/market, authority epoch, next report sequence (`last_sequence+1`), current
   market observation/config/terms epochs. Observed slot must be strictly newer than
   the config fence and no later than Clock; time must be nondecreasing, not future,
@@ -102,34 +68,6 @@ and authority/economic rules below remain unchanged.
   state. Invalid reports revert every effect. Authority/control changes invalidate
   prepared reports through epoch/observation CAS; pure repricing retains the
   bounded snapshot-lag trust assumption and does not rewrite already-held funding.
-- The historical D76 publisher qualification submitted updates with 200,000 CU and required measured maximum
-  <=160,000 CU (20% headroom), <=20 unique loaded keys, default32KiB heap and existing
-  measured v0/v1 packet bounds. Initialize/rotate/revoke use the same 200k/160k gate.
-  These were ceilings for the original instruction workload. The measured
-  transaction compositions on the successor build are linked above.
-
-The backend must authenticate complete current maker coverage, preserve all
-publication/depth/capacity rules, select exact best published one/two-maker totals
-and use the earliest actual publication expiry. It must reject mixed/old snapshots,
-record source inputs and never re-date cached observations. Default/devnet handlers
-remain gated. New artifacts require fresh affected acceptance; historical results do not qualify a rebuild.
-
-Price/range literals come from the [shared policy](../clearing/risk-and-resolution.md#versioned-price-policy-p53a),
-with generated SDK constants. P53B policy 2 retains the six-token notional and
-uses the approved reference domain below. The canonical funding search uses
-monotone marginal-price bounds to find each valid quantity interval and a binary
-search for each pair's exact convex optimum. Stable ties choose one leg, then
-ascending instance IDs, then the largest first quantity. Work is O(m² log Q × R),
-with m=3 and R<=8; it never allocates a Q-sized price table. Q<=3,000,000 gives
-at most 22 iterations per binary search: three domain/band searches plus the
-first quote per maker, and at most four quote reads per pair-minimum iteration.
-Including singleton/final candidates, a conservative bound is 474 distinct quote
-evaluations per side. The measured 18-scenario diagnostic peaks at 329; see
-[validation](../operations/validation.md#numeric-bound-price-policy-p53b). Inputs are canonical
-shape/anchor/inventory/consumption, not arbitrary quote callbacks. Only authenticated
-complete snapshots reach this search; disconnected financial feasibility belongs
-to the separate trading allocator. P58A still owns impact-notional calibration.
-
 ## Calculation and causal time
 
 The backend requires all three sealed authenticated makers, even when a valid
@@ -174,37 +112,6 @@ effect but does not prove coverage or optimality. Financially unexecutable publi
 depth can influence funding. Failure-based automatic maker exclusion remains
 deferred; quarantine invalidates complete coverage rather than creating a new set.
 
-## Market funding consumed by another market
+## Consumed funding checkpoints
 
-A BTC execution can materialize the ETH index for a cross account. Once the
-held observation expires, rebuilding ETH from only the fills that traded ETH can
-understate what the trader already paid. For a single observation, the candidate
-fold uses the latest valid chain slot among all actions that materialized the
-target market. Its timestamp, the original premium and the observation's base
-determine the exact index. The slot orders touches even when the premium is
-negative or wall-clock time decreases. Equal-slot touches must agree on time.
-A new observation or configuration makes earlier touches ineligible.
-[Signed funding-gap comparison](../operations/validation.md#cross-market-funding-after-a-publication-gap).
-
-The explicit `funding-prefix-candidate` stores a 32-byte checkpoint on the first
-executing maker's registration. A fill that also consumes funding on a sibling
-market stores the sibling checkpoint on that market. Other materializing actions
-use the market checkpoint. Each record stores config epoch, observation sequence,
-chain slot and signed Unix time as four little-endian 64-bit integers. An all-zero
-record is empty. Market, registration and ledger sizes are 503, 405 and 397 bytes.
-
-Each candidate funding report appends the target market's three canonical
-registrations in instance order as read-only accounts. Clearing authenticates all
-three on every report. When safety is active and a funding window exists,
-clearing derives the prior earned index from the registrations and market
-checkpoint and checks the serial index and timestamp. The SDK
-derives these three addresses even when quote discovery reports unavailable depth.
-Existing funded cash, index-derived risk and the six-second hold still govern
-every fill. The tested route writes the selected market and ledger.
-
-The subsequent `read-only-market-candidate` uses the same checkpoint layout.
-A single-market fill can leave the market PDA unchanged. An active publisher
-first folds the last earned funding and gross into the market using
-`checkpoint_market` in the same transaction. Publication independently verifies
-all three registrations before advancing the observation. This separates the
-cost of frequent trades from the bounded cost at publication.
+A fill in one market may consume held funding from the trader's other market. Clearing authenticates the canonical registration checkpoints and the previous observation before installing a new report, so publication cannot discard an already-earned interval. Workers derive those accounts even when quoting is unavailable. [Publisher implementation](../../programs/clearing/src/instructions/maker_liquidity/publisher/) · [SDK impact calculation](../../packages/sdk/src/funding-impact.ts)
