@@ -4455,3 +4455,15 @@ balance increased by 1,000,000 atoms on withdrawal and the four indexed fills
 were visible after reload. This run used an internal wallet and test collateral.
 An earlier trial at the same revision stopped at the disk-space guard before
 the BTC exit. The repeat used a fresh venue.
+
+### Bounded execution-time search
+
+Clearing and makers at `986b3cd3`, selected by `725b580a`, landed a repriced
+pair (535,611 CU) and a standing singleton (402,633 CU). The trader limit
+refused at 292,140 CU. A 1,000-lot order exceeded the financial admission budget
+and returned custom error 6133 at 510,423 CU. Both refusals preserved the
+trader, three maker capital accounts and three registrations byte-for-byte.
+Fresh PostgreSQL replay matched 94 events. Six native selector tests passed,
+including exhaustion after an admitted singleton and the four-admission boundary.
+A discarded build could not deploy the remaining-compute syscall on the pinned
+runtime. The qualified implementation counts work directly.
