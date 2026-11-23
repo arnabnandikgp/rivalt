@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {DEMO_DEPLOYMENT} from './config.js';
 import {accountDeployment,type AccountDeployment} from '../../sdk/src/account-deployment.js';
 
 export function verifyDemoPrograms(directory:string,selection:AccountDeployment) {
@@ -16,10 +17,10 @@ export function verifyDemoPrograms(directory:string,selection:AccountDeployment)
     assert.equal(digest,artifact.sha256,`Unqualified ${filename} hash`);
     binaries[filename]=digest;
   }
-  return {revision:deployment.helperRevision,artifactSet:deployment.artifactSet,binaries};
+  return {revision:deployment.programRevision??deployment.helperRevision,artifactSet:deployment.artifactSet,binaries};
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   assert.equal(process.argv.length,3);
-  console.log(JSON.stringify(verifyDemoPrograms(process.argv[2],'unified-recovery-candidate'),null,2));
+  console.log(JSON.stringify(verifyDemoPrograms(process.argv[2],DEMO_DEPLOYMENT),null,2));
 }

@@ -112,7 +112,7 @@ async function startService(name:string,script:string,environment:NodeJS.Process
 }
 try {
   verifyDemoPrograms(ARTIFACT_DIRECTORY,DEMO_DEPLOYMENT);
-  if(DEMO_DEPLOYMENT==='unified-recovery-candidate'){
+  if(sdk.usesUnifiedRecovery(DEMO_DEPLOYMENT)){
     requireRecoverySelector();
     recoveryBudget(process.env.RIVALT_RECOVERY_SCHEDULE_BUDGET??'3000');
   }
@@ -142,7 +142,7 @@ try {
   // Do not mistake the image's temporary socket-only init server for readiness.
   await until(async()=>{try{execFileSync('container',['exec',CONTAINER,'pg_isready','-h','127.0.0.1','-U','rivalt','-d','rivalt'],{stdio:'pipe',timeout:2000});return true;}catch{return false;}},Boolean,'PostgreSQL');
   const databaseUrl=`postgresql://rivalt:${password}@127.0.0.1:15443/rivalt`;
-  const lanes=DEMO_DEPLOYMENT==='unified-recovery-candidate';
+  const lanes=sdk.usesUnifiedRecovery(DEMO_DEPLOYMENT);
   stage='signed venue provisioning';setup=await liquidityExecutionSetup(transport.h,transport.rpc,{
     verifyRejections:false,makerCash:500_000_000n,marketCheckpoints:lanes,marginLayout:lanes?'ledger-lanes':undefined});
   const checkpoints=lanes?await sdk.venueMarketCheckpoints(setup.venue):[];

@@ -3,7 +3,7 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='unified-recovery-candidate'|'local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
+export type AccountDeployment='execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
@@ -29,6 +29,7 @@ export const FOREIGN_PROTECTION_ARTIFACT_SET='foreign-protection-7df9585e';
 export const WINNER_ALLOCATION_ARTIFACT_SET='winner-allocation-486d5818';
 export const JOINT_PAYMENT_ARTIFACT_SET='joint-payment-3acd4a4d';
 export const PAIR_SCHEDULE_ARTIFACT_SET='pair-schedule-34359552';
+export const usesUnifiedRecovery = (selection?: AccountDeployment) => selection === 'unified-recovery-candidate' || selection === 'execution-router-candidate';
 export const UNIFIED_RECOVERY_ARTIFACT_SET='unified-recovery-79724a5a';
 // The local runner binds this layout to its program hashes before indexing.
 // The new instruction uses unified recovery account and event layouts.
@@ -44,16 +45,16 @@ export const hasMarketCapacity=(set?:string)=>set===BOUNDED_MARKET_ARTIFACT_SET|
 export const hasAggregateFees=(set?:string)=>set===AGGREGATE_FEE_ARTIFACT_SET||hasMarketCapacity(set);
 export const isMultiLotArtifact=(set?:string)=>set===MULTI_LOT_ARTIFACT_SET||hasAggregateFees(set);
 export const isBookInventoryArtifact=(set?:string)=>set===BOOK_INVENTORY_ARTIFACT_SET||set===BOOK_CAPACITY_ARTIFACT_SET||isMultiLotArtifact(set);
-export const isMultiLotDeployment=(selection?:AccountDeployment)=>selection==='unified-recovery-candidate'||selection==='local-successor-candidate'||selection==='integrated-recovery-candidate'||selection==='multi-lot-book-candidate'||selection==='aggregate-fee-candidate'||selection==='bounded-market-candidate';
+export const isMultiLotDeployment=(selection?:AccountDeployment)=>usesUnifiedRecovery(selection)||selection==='local-successor-candidate'||selection==='integrated-recovery-candidate'||selection==='multi-lot-book-candidate'||selection==='aggregate-fee-candidate'||selection==='bounded-market-candidate';
 export const isBookInventoryDeployment=(selection:AccountDeployment)=>selection==='book-inventory-candidate'||selection==='book-capacity-candidate'||isMultiLotDeployment(selection);
 export const PARTIAL_INVENTORY_ARTIFACT_SET='partial-inventory-2256c51';
 export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY_ARTIFACT_SET || value===PARTIAL_INVENTORY_ARTIFACT_SET;
 export const PAGED_RECOVERY_ARTIFACT_SET='paged-recovery-37672622';
 export const RECOVERY_SEARCH_ARTIFACT_SET='recovery-search-efbaa02';
 export const hasPagedRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set);
-export type RecoveryDeployment='unified-recovery-candidate'|'local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
+export type RecoveryDeployment='execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
 export const usesRecoverySearch=(selection?:AccountDeployment):selection is RecoveryDeployment=>
-  selection==='unified-recovery-candidate'||selection==='local-successor-candidate'||selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate';
+  usesUnifiedRecovery(selection)||selection==='local-successor-candidate'||selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate';
 export const hasJointRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===RECOVERY_SEARCH_ARTIFACT_SET||integratedLayout(set);
 export const FOREIGN_CREDITOR_ARTIFACT_SET='foreign-creditor-d177cc5';
 export const LINKED_ALLOCATION_ARTIFACT_SET='linked-allocation-d0ae474';
@@ -63,6 +64,17 @@ export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
 export function accountDeployment(selection:AccountDeployment) {
+  if (selection === 'execution-router-candidate') {
+    const programs: Record<string, {bytes: number; sha256: string}> = {
+      clearing: {bytes: 3637536, sha256: 'fa85567e41cde0b9ecb0eb02ae78c4213f1898cd46dbeccc3ab6e4a6c7c35bc4'},
+      'maker-a': {bytes: 167520, sha256: '38a45a632db54c64a39c2793043ec14bb0b172721761a2950c61d59328ec6ccb'},
+      'maker-b': {bytes: 167520, sha256: '924c94a5a7e1eff35ad0dc28a4ebc3b01b7b5b17d18d8fda531e91daeaf37139'},
+    };
+    return {artifactSet: EXECUTION_ROUTER_ARTIFACT_SET, schema: 10, programProfile: 6,
+      programRevision: '35fef03e3f58e9cba69b4c38408e39194bddc051',
+      helperRevision: '79724a5a0182eb8f22f916c6a9f23fd5f1dfcc91',
+      artifacts: LIQUIDITY_ARTIFACTS.map(artifact => ({...artifact, ...programs[artifact.name]}))};
+  }
   if(selection==='unified-recovery-candidate')return {
     artifactSet:UNIFIED_RECOVERY_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'79724a5a0182eb8f22f916c6a9f23fd5f1dfcc91',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,

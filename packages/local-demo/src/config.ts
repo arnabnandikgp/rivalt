@@ -1,13 +1,13 @@
 import {resolve} from 'node:path';
-import {UNIFIED_RECOVERY_ARTIFACT_SET} from '../../sdk/src/account-deployment.js';
+import {accountDeployment} from '../../sdk/src/account-deployment.js';
 export const DEMO_ROOT=resolve(process.env.RIVALT_DEMO_ROOT??'.local/interactive-demo');
 export const RUNTIME=resolve(DEMO_ROOT,'runtime');
 const requested=process.env.RIVALT_DEMO_DEPLOYMENT??'unified-recovery-candidate';
-if(requested!=='selected'&&requested!=='unified-recovery-candidate')throw new Error('Unknown local demo deployment');
-export const DEMO_DEPLOYMENT:'selected'|'unified-recovery-candidate'=requested;
+if(requested!=='selected'&&requested!=='unified-recovery-candidate'&&requested!=='execution-router-candidate')throw new Error('Unknown local demo deployment');
+export const DEMO_DEPLOYMENT:'selected'|'unified-recovery-candidate'|'execution-router-candidate'=requested;
 export const ARTIFACT_DIRECTORY=DEMO_DEPLOYMENT==='selected'?
   resolve(process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/current'):
-  resolve(process.env.RIVALT_DEMO_PROGRAMS??`.local/demo-programs/${UNIFIED_RECOVERY_ARTIFACT_SET}`);
+  resolve(process.env.RIVALT_DEMO_PROGRAMS??`.local/demo-programs/${accountDeployment(DEMO_DEPLOYMENT).artifactSet}`);
 export const demoArtifact=(program:string)=>resolve(ARTIFACT_DIRECTORY,program+'.so');
 export const CONTROL='http://127.0.0.1:18094';
 export const UI='http://127.0.0.1:18083';

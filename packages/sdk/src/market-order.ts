@@ -7,6 +7,8 @@ import {marketCheckpointsFor, venueMarketCheckpoints} from './market-checkpoints
 import {MAX_ACTION_LOTS} from './quantity-limits.js';
 import {requireValue} from './wallet-client.js';
 
+export const BEST_ROUTE_HEAP_BYTES = 128 * 1024;
+
 /** Ordinary market order against the complete landed registry. A snapshot
  * supplies identities and structural epochs. The signer does not pick legs. */
 export async function buildBestRoute(input: LiquidityRouteInput, actor: Address) {

@@ -1,3 +1,4 @@
+import {usesUnifiedRecovery} from './account-deployment.js';
 // Candidate frozen pages append either a BTC charge or a BTC/ETH pair to each row.
 // Only a completed allocation certificate activates the recorded amounts.
 import {
@@ -35,7 +36,7 @@ export function inventoryBookHeap(selection:AccountDeployment|undefined,instruct
     ix.programAddress===CLEARING_PROGRAM_ADDRESS && [OPEN_SEARCH_DISCRIMINATOR,CAPTURE_MEMBER_DISCRIMINATOR,DERIVE_PAIRS_DISCRIMINATOR,
       VERIFY_INCUMBENT_DISCRIMINATOR,COVER_PLAN_DISCRIMINATOR,COVER_RANGE_DISCRIMINATOR,SEAL_SEARCH_DISCRIMINATOR,BIND_RECOVERY_SELECTION_DISCRIMINATOR]
       .some(tag=>tag.every((byte,index)=>ix.data?.[index]===byte))))return 256*1024;
-  if(selection==='unified-recovery-candidate' && instructions.some(ix=>ix.programAddress===CLEARING_PROGRAM_ADDRESS &&
+  if(usesUnifiedRecovery(selection) && instructions.some(ix=>ix.programAddress===CLEARING_PROGRAM_ADDRESS &&
     [OPEN_JOINT_PAYMENT_DISCRIMINATOR,CAPTURE_JOINT_PAYMENT_DISCRIMINATOR,ADVANCE_JOINT_PAYMENT_DISCRIMINATOR,
       BIND_JOINT_PAYMENT_DISCRIMINATOR,COPY_JOINT_REGISTER_DISCRIMINATOR,COPY_JOINT_CLAIMS_DISCRIMINATOR,
       CONTINUE_SETTLEMENT_PLAN_WINDOW_DISCRIMINATOR,CONTINUE_SETTLEMENT_PLAN_DISCRIMINATOR,APPLY_SETTLEMENT_MARGIN_DISCRIMINATOR]

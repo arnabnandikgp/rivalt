@@ -21,12 +21,13 @@ at `4164f7cd` completed 14 wallet actions and recorded one finalized refusal.
 [Wallet qualification](operations/validation.md#default-fresh-local-wallet) ·
 [Six deliverables](clearing/roadmap.md#pr-tracker)
 
-**Next action.** Connect the ordinary wallet order to the qualified router build
-and exercise the same signed order flow under concurrent settlement.
+**Next action.** Run matched wallet order flow on the explicit router deployment with and
+without a sponsored settlement worker.
 P15B and P16B remain open external gates. The 24-hour run is deferred.
 
 | Work | Status | Deliverable / next acceptance |
 |---|---|---|
+| Wallet/API execution-time order | In progress | The opt-in local launcher, review screen, signer and relay select the pinned clearing artifact from #165. Wallet RPC and matched settlement load are pending. |
 | Clearing route and standing maker quotes | Verified locally, pending integration | At `35fef03e`, maker 2 repriced after signature and won a leg. A six-second-old quote filled a separate order. The signed price-limit refusal preserved all financial accounts. RPC, WS and 94-event PostgreSQL replay matched. [Transactions and CU](operations/validation.md#standing-maker-orders-at-execution). [Selection tests, PR #163](https://github.com/arnabnandikgp/rivalt/pull/163). |
 | Execution-time routing and matched load | In progress, D145 | The released instruction commits at most two signed legs. The [delivery criteria](liquidity/routing.md#execution-time-selection) cover clearing, wallet execution and paired settlement load. Re-reading 66 retained signed transactions from clearing `79724a5a` distinguished report-only and checkpoint-plus-report costs. [Funding measurements](operations/performance.md#funding-publications-on-the-qualified-local-clearing-build). |
 | Verifier review findings | Closed, [PR #160](https://github.com/arnabnandikgp/rivalt/pull/160) | At `2d799902`, eight independent financial tests and the native wide-factor regression passed. Original budgets, eligible recovery and settled cash matched on all three retained 75-member books. The generated account encoder reproduced 6,045 bytes before materialization and 10,245 after it. [Validation](operations/validation.md#frozen-book-reference-checks). |

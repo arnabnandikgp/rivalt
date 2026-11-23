@@ -894,3 +894,12 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/profit-attribution/build-3acd4a4db4f3cdf6b
 RIVALT_RUN_DIR=.local/profit-attribution/joint-wallet-reproduction \
 bash ops/scalable-settlement-smoke.sh
 ```
+
+### Run the ordinary execution-time order locally
+
+Set `RIVALT_DEMO_DEPLOYMENT=execution-router-candidate` in the launcher shell.
+Run `bash ops/build-demo-programs.sh` to install and verify the qualified local
+clearing and makers from `35fef03e`. Then run `bash ops/demo.sh start` with a
+fresh `RIVALT_DEMO_ROOT`. The interface reviews the trader's total and fee limits.
+The finalized fill records which makers clearing selected. The default fresh demo
+still selects the previously qualified unified recovery build.

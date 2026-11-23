@@ -52,7 +52,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
     }
   }
   if(selection==='local-successor-candidate'||selection==='integrated-recovery-candidate')return automaticLiquidation(runtime,key,budget,receiver);
-  if(frozenOnly&&selection!=='unified-recovery-candidate')return {status:'blocked',reason:'candidate-frozen-continuation-only'};
+  if(frozenOnly&&!sdk.usesUnifiedRecovery(selection))return {status:'blocked',reason:'candidate-frozen-continuation-only'};
   const {state}=await runtime.discovery(),snapshot=await runtime.snapshot();
   const continuation=await readAccountResolution(runtime.rpc,snapshot.venue),{header}=continuation;
   const common={...snapshot,...continuation,...accountRiskSources(snapshot)};
@@ -84,7 +84,7 @@ export async function accountRiskWork(runtime:AccountRuntime,key:Keypair,receive
     if(await submit(`freeze:${header.epoch}:${target}:${snapshot.custodyState.revision}`,financial))return {status:'queued',reason:'authenticated-net-insolvency'};
   }
   if(snapshot.safetyState.paused)return {status:'blocked',reason:'venue-paused-after-default-probes'};
-  if(selection==='unified-recovery-candidate')return automaticLiquidation(runtime,key,budget,receiver,probes);
+  if(sdk.usesUnifiedRecovery(selection))return automaticLiquidation(runtime,key,budget,receiver,probes);
   if(!receiver)return {status:'blocked',reason:'no-configured-funded-receiver'};
   for(const target of probes) {
     if(target===receiver)continue;

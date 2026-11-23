@@ -8,7 +8,8 @@ export function accountExecutionProfile(value=process.env.RIVALT_ACCOUNT_PROFILE
 export function accountDeploymentSelection(value=process.env.RIVALT_ACCOUNT_DEPLOYMENT,consumer?:string):import('./account-deployment.js').AccountDeployment {
   if(value===undefined||value==='selected')return 'selected';
   if(value==='account-scale-candidate')return value;
+  if(value==='execution-router-candidate'&&consumer==='wallet-api')return value;
   if(value==='integrated-recovery-candidate'&&['risk','settlement','executor'].includes(consumer??''))return value;
-  if(value==='unified-recovery-candidate'&&['risk','settlement','executor','maker','funding','orders'].includes(consumer??''))return value;
+  if((value==='unified-recovery-candidate'||value==='execution-router-candidate')&&['risk','settlement','executor','maker','funding','orders'].includes(consumer??''))return value;
   throw new Error('Unsupported account deployment selection');
 }

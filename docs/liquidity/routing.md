@@ -35,7 +35,11 @@ capital and registration and read-only pricing program, ProgramData, shape and
 price. The trader signs every structural epoch and their limits. Clearing journals
 unused makers as reads and advances only the selected makers' financial state.
 `buildBestRoute` prepends the required market and ledger checkpoints to the same
-transaction. Qualification and wallet promotion are tracked in [STATUS](../STATUS.md).
+transaction. On the explicit fresh local `execution-router-candidate` deployment,
+the trader UI signs maximum spend or minimum proceeds, maximum fee, size and
+expiry. Its API preserves the original wallet bytes and its trader state guard.
+The wallet requests 800,000 CU, 128 KiB heap and zero priority fee.
+Qualification and wallet promotion are tracked in [STATUS](../STATUS.md).
 
 ### Signed-leg preview and execution
 
