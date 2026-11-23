@@ -41,6 +41,8 @@ const traders=knob('RIVALT_LOAD_TRADERS',6,2,32),count=knob('RIVALT_LOAD_OFFERS'
 const gap=knob('RIVALT_LOAD_GAP_MS',280,30,2000),seed=knob('RIVALT_LOAD_SEED',117,1,100000);
 const refresh=knob('RIVALT_LOAD_REFRESH_MS',2400,2100,5000),btcPercent=knob('RIVALT_LOAD_BTC_PERCENT',75,0,100);
 const followEth=knob('RIVALT_LOAD_FOLLOW_ETH',0,0,1)===1;
+const walletOrder = process.env.RIVALT_LOAD_WALLET_ORDER ?? 'independent';
+assert(walletOrder === 'independent' || walletOrder === 'confirmed', 'Choose independent or confirmed wallet preparation');
 const rotatingAsks=knob('RIVALT_LOAD_ROTATE_ASKS',0,0,1)===1;
 assert(!rotatingAsks || (btcPercent===100 && !followEth),'Rotating asks requires a BTC buy-only trace');
 const maxLots=knob('RIVALT_LOAD_MAX_LOTS',3,1,32),thinDepth=knob('RIVALT_LOAD_FIRST_MAKER_LOTS',2,1,4096);
@@ -139,6 +141,7 @@ try {
   const startSlot=await setup.slot();
   const start=clock(),since=()=>Math.round(clock()-start);
   const finalizedAt=new Map<string,number>();
+  const confirmations = new Map<string, { slot: number; succeeded: boolean }>();
   const at=async(ms:number)=>{await delay(Math.max(0,ms-since()));};
   let paidMs:number|undefined,pollsUnavailable=0;
   const polls:Record<string,unknown>[]=[],originals=new Map<number,{time:number;subscription:number;signature:string;wire:string}>();
@@ -149,7 +152,10 @@ try {
     const outstanding=[...originals.values()].map(original=>original.signature).filter(signature=>!finalizedAt.has(signature));
     if(outstanding.length){
       const statuses=await rpc.call('getSignatureStatuses',[outstanding,{searchTransactionHistory:true}]);
-      statuses.value.forEach((status:{confirmationStatus:string}|null,index:number)=>{
+      statuses.value.forEach((status:{confirmationStatus:string;slot:number;err:unknown}|null,index:number)=>{
+        if (status && (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized')) {
+          confirmations.set(outstanding[index], { slot: status.slot, succeeded: status.err === null });
+        }
         if(status?.confirmationStatus==='finalized')finalizedAt.set(outstanding[index],since());
       });
     }
@@ -170,19 +176,41 @@ try {
     if(rotatingAsks)cheaperDeepMaker=round%2+1;
     await setup.sample();
   }}});
-  const offers=await Promise.all(trace.map(async offer=>{
-    await at(offer.dueMs);healthy();
-    const entered=since(),actor=setup.traderOwners[offer.trader],trader=setup.roots[offer.trader];
+  // Schedule every arrival before waiting on the previous original for that wallet.
+  const queues = new Map<number, Promise<unknown>>();
+  const lastOriginal = new Map<number, { id: number; signature: string; nonce: bigint }>();
+  async function prepareOffer(offer: typeof trace[number], arrival: Promise<number>, prior?: Promise<unknown>) {
+    const entered = await arrival;
+    await prior;
+    healthy();
+    const previous = walletOrder === 'confirmed' ? lastOriginal.get(offer.trader) : undefined;
+    const deadline = clock() + 30_000;
+    while (previous && !confirmations.has(previous.signature)) {
+      healthy();
+      assert(clock() < deadline, 'Previous wallet original did not confirm before the workload deadline');
+      await delay(10);
+    }
+    const confirmation = previous && confirmations.get(previous.signature);
+    const prepareMs = since();
+    const actor = setup.traderOwners[offer.trader], trader = setup.roots[offer.trader];
+    const snapshot = await client.tradeSnapshot(trader, offer.market);
+    const nonce = snapshot.roots[trader].nonce;
+    if (previous && confirmation) {
+      assert(snapshot.contextSlot >= BigInt(confirmation.slot), 'Snapshot predates the confirmed original');
+      if (confirmation.succeeded) assert(nonce > previous.nonce, 'Snapshot reused the previous fill nonce');
+    }
+    const timing = { entered, prepareMs, previousId: previous?.id ?? null,
+      previousSlot: confirmation?.slot ?? null, snapshotSlot: snapshot.contextSlot, nonce };
     const expectedGross=offer.lots*((offer.market===0?61_000n:30_000n)+(offer.side===0?2n:-2n));
     const expectedFee=(expectedGross+4999n)/5000n;
-    const order=await client.marketOrder({snapshot:await client.tradeSnapshot(trader,offer.market),trader,
+    const order=await client.marketOrder({snapshot,trader,
       marketIndex:offer.market,side:offer.side,lots:offer.lots,reduceOnly:false,maxFee:expectedFee,
       allInLimit:offer.side===0?expectedGross+expectedFee:expectedGross-expectedFee},actor.address);
     let prepared;
     try{prepared=await client.prepare('Load offer '+offer.id,actor.address,order.instructions);}
     catch(error){
       if(!(error instanceof Error && error.message.startsWith('Preview rejected:')))throw error;
-      return {...offer,entered,expectedGross,expectedFee,previewRefusal:error.message};
+      return {...offer,...timing,expectedGross,expectedFee,previewRefusal:error.message,previewRefusedMs:since()};
     }
     await prepared.transaction.sign([actor]);
     const intent=await client.signed(prepared,prepared.transaction);
@@ -197,7 +225,14 @@ try {
       const response=await api.inject({method:'POST',url:'/v4/submit',payload:{requestId:'load:'+offer.id,wire:intent.wire}});
       assert.equal(response.statusCode,200,response.body);assert.equal(response.json().signature,intent.signature);
     }
-    return {...offer,entered,expectedGross,expectedFee,previewRefusal:null};
+    if (walletOrder === 'confirmed') lastOriginal.set(offer.trader, { id: offer.id, signature: intent.signature, nonce });
+    return {...offer,...timing,expectedGross,expectedFee,previewRefusal:null,previewRefusedMs:null};
+  }
+  const offers = await Promise.all(trace.map(offer => {
+    const arrival = at(offer.dueMs).then(since);
+    const task = prepareOffer(offer, arrival, queues.get(offer.trader));
+    if (walletOrder === 'confirmed') queues.set(offer.trader, task);
+    return task;
   }));
   writeFileSync(directory+'/offers.json',json(offers));
   assert(originals.size>0,'No wallet preview admitted; see offers and wallet-preview records');
@@ -275,7 +310,7 @@ try {
   await indexer.close();indexer=undefined;
   const rows=await statuses();
   type Receipt={id:string;signature:string;attempts:number;slot:number;error:unknown;bytes:number;cu:number;
-    fee:number;locks:ReturnType<typeof transactionLocks>;role:'trader'|'settlement';offer?:number;lots?:bigint;legs?:number[];ms?:number};
+    fee:number;locks:ReturnType<typeof transactionLocks>;role:'trader'|'settlement';offer?:number;observedFinalMs?:number;lots?:bigint;legs?:number[];ms?:number};
   const receipts:Receipt[]=[];
   for(const row of rows){
     const receipt=await rpc.call('getTransaction',[row.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
@@ -298,7 +333,7 @@ try {
       assert.deepEqual([event.side,event.lots,event.grossQuote,event.fee],[offer.side,offer.lots,offer.expectedGross,offer.expectedFee]);
       legs=event.legs.map(leg=>leg.instance);
     }
-    receipts.push({...base,role:'trader',offer:offer.id,lots:offer.lots,legs,ms:(finalizedAt.get(row.signature)??since())-original.time});
+    receipts.push({...base,role:'trader',offer:offer.id,observedFinalMs:finalizedAt.get(row.signature),lots:offer.lots,legs,ms:(finalizedAt.get(row.signature)??since())-original.time});
   }
   const successful=receipts.filter(row=>row.role==='trader'&&!row.error);
   const landedWallets=new Set(receipts.filter(row=>row.role==='trader').map(row=>row.signature));
@@ -313,7 +348,7 @@ try {
     conflicts:receipts.filter(row=>row.role==='trader').map(trader=>conflicts(trader.locks,worker.locks).length)}));
   await journal.checkpoint('drained',true);const replay=await journal.finish();
   const result={revision,program:sdk.accountDeployment(selection).programRevision,arm,transport,seed,traders,gap,refresh,thinDepth,maxLots,btcPercent,
-    trace,offers,arrived,end,rotatingAsks,followEth,ethPayment:ethPayment??null,payout,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
+    trace,offers,arrived,end,rotatingAsks,followEth,walletOrder,ethPayment:ethPayment??null,payout,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
     counts:{offered:offers.length,signed:originals.size,previewRefused:offers.length-originals.size,
       filled:successful.length,refused:receipts.filter(row=>row.role==='trader'&&row.error).length,
       expired:expiredWallets.size,

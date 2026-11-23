@@ -967,3 +967,15 @@ Verify a guard refusal against earlier finalized trader fills with
 `node --import tsx tests/performance/router-offer-guards.ts <run-directory>`.
 The 24-wallet BTC comparison used 120 buys, three lots maximum, one shallow
 maker lot, 2,100 ms refresh, seed 117 and 70 or 35 ms offer gaps.
+
+For the 35 ms wallet comparison, use the 24-wallet active configuration above
+twice from the same revision. Use a fresh directory per run. Set
+`RIVALT_LOAD_WALLET_ORDER=independent` first and `confirmed` second.
+Both schedule all 120 arrivals at their original times. In the confirmed arm,
+each wallet waits for its preceding signed order to confirm before reading its
+next snapshot. A refused preview creates no signed order. Each run records the
+offer arrival, preparation time, snapshot slot and time of refusal or finality.
+Compare the runs with
+`python3 tests/performance/compare-router-load.py --wallet-order <independent-dir> <confirmed-dir>`.
+The report includes time spent waiting to prepare and time from each scheduled
+offer to its actual outcome, including refusals.

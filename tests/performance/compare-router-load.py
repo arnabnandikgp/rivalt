@@ -2,6 +2,7 @@
 import argparse
 import collections
 import json
+from math import ceil
 from pathlib import Path
 
 
@@ -9,6 +10,7 @@ def read(directory, arm):
     data = json.loads((directory / 'router-load.json').read_text())
     data.setdefault('rotatingAsks', False)
     data.setdefault('followEth', False)
+    data.setdefault('walletOrder', 'independent')
     assert data['arm'] == arm and data['events'] > 0
     counts = data['counts']
     assert counts['offered'] == len(data['trace']) == len(data['offers'])
@@ -79,21 +81,80 @@ def summarize(data):
                     str(instance) for row in successful for instance in row['legs'])), totalReplayEvents=data['events'])
 
 
+def compare_wallet_order(directories):
+    """Compare every scheduled arrival, including unsigned refusals, in two active runs."""
+    paired = [read(directory, 'active') for directory in directories]
+    independent, confirmed = paired
+    for key in ('revision', 'program', 'transport', 'startingAccounts', 'trace', 'seed', 'traders',
+                'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent', 'rotatingAsks', 'followEth'):
+        assert independent[key] == confirmed[key], f'Unmatched wallet-order {key}'
+
+    def distribution(values):
+        ordered = sorted(values)
+        if not ordered:
+            return None
+        return dict(n=len(ordered), p50=ordered[ceil(len(ordered) * .50) - 1],
+                    p95=ordered[ceil(len(ordered) * .95) - 1], maximum=ordered[-1])
+
+    report = {}
+    for mode, data in zip(('independent', 'confirmed'), paired):
+        assert data['walletOrder'] == mode and data['during'] > 0
+        original = {row['offer']: row for row in data['receipts'] if row['role'] == 'trader'}
+        last_by_wallet = {}
+        waits, outcomes, fills = [], [], []
+        for index, (scheduled, offer) in enumerate(zip(data['trace'], data['offers'], strict=True)):
+            assert all(scheduled[key] == offer[key] for key in scheduled)
+            assert index == offer['id'] and offer['prepareMs'] >= offer['entered']
+            previous = last_by_wallet.get(offer['trader']) if mode == 'confirmed' else None
+            assert offer['previousId'] == previous
+            if previous is None:
+                assert offer['previousSlot'] is None
+            else:
+                prior = original[previous]
+                assert offer['previousSlot'] == prior['slot'] <= int(offer['snapshotSlot'])
+                if prior['error'] is None:
+                    assert int(offer['nonce']) > int(data['offers'][previous]['nonce'])
+            waits.append(offer['prepareMs'] - offer['entered'])
+            if offer['previewRefusal']:
+                assert index not in original
+                end = offer['previewRefusedMs']
+            else:
+                receipt = original[index]
+                assert offer['previewRefusedMs'] is None
+                end = receipt['observedFinalMs']
+                last_by_wallet[offer['trader']] = index
+                if receipt['error'] is None:
+                    fills.append(end - offer['dueMs'])
+            assert end >= offer['prepareMs']
+            outcomes.append(end - offer['dueMs'])
+        report[mode] = dict(counts=data['counts'], waitBeforePreparationMs=distribution(waits),
+                            scheduledToAnyOutcomeMs=distribution(outcomes), scheduledToFillMs=distribution(fills),
+                            signedToFillMs=data['finalizedMs'], generatorLagMs=data['generatorLagMs'],
+                            reasons=summarize(data)['reasons'], paid=data['fundedAtomsAtDrain'], events=data['events'])
+    return report
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('offered_only', type=Path)
+    parser.add_argument('first', type=Path, help='Offered-only arm, or active independent arm with --wallet-order')
     parser.add_argument('active', type=Path)
     parser.add_argument('--active-rate-step', type=Path, help='Same active trace and starting economics at a different gap')
+    parser.add_argument('--wallet-order', action='store_true', help='Compare two active arms with independent and confirmed wallet preparation')
     args = parser.parse_args()
-    control, active = read(args.offered_only, 'offered-only'), read(args.active, 'active')
-    for key in ('program', 'revision', 'transport', 'startingAccounts', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent', 'rotatingAsks', 'followEth'):
+    if args.wallet_order:
+        if args.active_rate_step:
+            parser.error('--wallet-order cannot be combined with --active-rate-step')
+        print(json.dumps(compare_wallet_order([args.first, args.active]), indent=2))
+        raise SystemExit(0)
+    control, active = read(args.first, 'offered-only'), read(args.active, 'active')
+    for key in ('program', 'revision', 'transport', 'startingAccounts', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent', 'rotatingAsks', 'followEth', 'walletOrder'):
         assert control[key] == active[key], f'Unmatched {key}'
     assert control['during'] == 0
     assert active['during'] > 0, 'Worker never queued during measured offers'
     report = {row['arm']: summarize(row) for row in [control, active]}
     if args.active_rate_step:
         faster = read(args.active_rate_step, 'active')
-        for key in ('program', 'revision', 'transport', 'startingAccounts', 'seed', 'traders', 'refresh', 'thinDepth', 'maxLots', 'btcPercent', 'rotatingAsks', 'followEth'):
+        for key in ('program', 'revision', 'transport', 'startingAccounts', 'seed', 'traders', 'refresh', 'thinDepth', 'maxLots', 'btcPercent', 'rotatingAsks', 'followEth', 'walletOrder'):
             assert faster[key] == active[key], f'Unmatched rate-step {key}'
         assert 0 < faster['gap'] < active['gap'] and faster['during'] > 0
         def scheduled_orders(run):
