@@ -11,8 +11,9 @@ position per market in their margin account and can close it against another mak
 The current implementation is a qualified **local engineering prototype** for
 BTC and ETH with one test collateral mint, isolated and cross-margin accounts,
 and three internal maker instances per market. Current trading remains disabled
-in default/devnet builds. Independent maker validation, independent review and
-funded-pilot readiness remain open; 24-hour endurance is deferred.
+in default/devnet builds. At the $61,000 BTC test price, one funded maker carried $15.62 of inventory before
+the next lot hit its profit-history storage limit. [Operating limits](docs/operations/performance.md)
+records the tested sizes and outcomes. Independent maker validation and funded-pilot review remain open.
 
 ## Design
 

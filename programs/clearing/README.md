@@ -34,10 +34,7 @@ every trader/maker account retains complete admission. For cash exits, read
 `account_cash::cash`; for claims, read its `claims` and `certificate` modules.
 Resolution is market-attributed and complete-cohort under `account_safety`.
 
-Only the explicit local `liquidity-execution-qualification` feature activates the
-current profile. Default/devnet remain gated. Historical runtimes are recoverable
-at the immutable baseline in [HISTORY](../../docs/HISTORY.md); this source removal
-is not an account migration or deployed-program upgrade.
+Fresh sessions select the qualified `execution-router-qualification` build and its pinned maker programs. Default/devnet builds keep these financial paths gated. The [deployment binding](../../packages/sdk/src/account-deployment.ts) identifies each supported artifact set.
 
 Discriminators, ordered fields, numeric schemas, seeds, metas and error codes remain
 wire contracts. Generate IDL/SDK outputs from source and compare the retained

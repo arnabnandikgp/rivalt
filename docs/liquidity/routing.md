@@ -1,24 +1,10 @@
-# Authenticated routing and atomic execution
+# Routing and atomic execution
 
-The [maker liquidation candidate](../clearing/risk-and-resolution.md#maker-liquidation-candidate)
-uses the same authenticated quote and fee rules with additional on-chain price
-and whole-account constraints. Its separate instruction allows a keeper to reduce
-eligible risk. Ordinary route authority still belongs to the owner or delegate.
-
-## Implementation boundary
-
-### Execution-time selection
+## Execution-time selection
 
 D145 defines the ordinary market order for the fresh local demo. The SDK
 previews an allocation and clearing selects it again from current state when
-the order executes. Explicit signed-leg instructions still bind the submitted
-maker IDs and quantities. The two paths have different lock sets.
-
-| Deliverable | Acceptance |
-|---|---|
-| Clearing selects the fill | A trader signs their limits once. Changed depth or prices can change the chosen makers and split at landing. Authenticate the complete three-maker registry. Compare all eligible singletons and pairs. On an incomplete search, fail atomically. Verify winner selection against independent exhaustive cases, including disconnected financial feasibility and a sell fee-rounding tie. |
-| Wallet and execution | Use the new entry point from the ordinary wallet path. Fetch signed one- and two-maker fills and refusals over RPC. Reconcile actual maker consumption, margin, fees and fills with PostgreSQL. Measure packet bytes, loaded keys, write locks and CU on the emitted transaction. |
-| Matched load | Replay the same seed, order arrivals, maker schedule and starting book with and without a real outstanding-profit settlement worker. Vary funded traders, market skew, offered rate, size, maker availability and reprice cadence. Count every original offer, retry, refusal, expiry and unresolved transaction separately. Report filled lots, execution quality against the landed book, latency percentiles, costs by payer, shared writes and time to an actual payout. Reconcile both arms before reporting a comparison. |
+the order executes. Explicit signed-leg instructions bind the submitted maker IDs and quantities.
 
 Solana locks all declared writable accounts for execution. A writer can land
 between two fills in the same slot. A lock alone gives neither FIFO ordering nor
@@ -56,178 +42,12 @@ Adding a third fill leg would require three-way allocation and corresponding
 atomic admission, fee and state updates. Adding a fourth candidate would also
 change the account list and signed registry epochs. [Qualification](../STATUS.md)
 
-### Signed-leg preview and execution
+## Quote and settlement
 
-`readAccountTradeSnapshot` discovers the selected market's three sealed
-registrations, then reads immutable root identities. One final `getMultipleAccounts`
-batch contains custody, vault/mint, safety, both markets/ledgers, Clock, the selected
-root, all three isolated maker capitals and their portfolios, unique capital
-bindings, registry/registrations, curves/prices and both executable/ProgramData
-accounts. Context slots cannot go backwards. Discovery supplies keys only; final
-bytes supply all quoted financial and pricing values.
+The SDK reads a coherent snapshot and previews maker prices and account admission. The owner or scoped delegate signs exact size, side, all-in limits, maximum fee, expiry and structural epochs. Standing maker prices can change until execution. Each selected maker receives only its bounded read-only pricing dependencies. Clearing authenticates the response, checks all participants, applies position, fee and depth changes, and commits the whole route atomically.
 
-The final discovery read has a hard ceiling of 48 distinct RPC keys. This includes
-unselected candidates and code authentication and is **not** an increase to G22's
-32 loaded-account ceiling for a submitted transaction. Historical readers stay at their original revisions; the current reader requires
-schema 10/profile 6. Snapshot construction itself grants no execution authority.
+Signed-leg instructions bind explicit maker identities and quantities and use expiring publications. Stored-order subfills and permissionless maker liquidation have additional authority and position guards. [Maker quoting](quoting.md) · [Liquidation](../clearing/risk-and-resolution.md#liquidation)
 
-`authenticateLiquidityMarket` checks exact owners/layouts, canonical PDAs, sealed
-membership, one capital per instance, isolated-market ownership, controller/domain
-and authority bindings, admitted capability and full approved ProgramData hashes.
-Two instances may use the same pricing program; instance identity is independent
-of A/B program identity. Unsupported capabilities or malformed bindings reject the
-snapshot. Quarantined, unapproved, disabled and stale/invalid publications remain
-visible as classified candidates. Returned pricing and capital objects are frozen;
-requests get independent domain bytes.
+## Transport and measurements
 
-The canonical adapter exposes exact gross quotes, depth hints and fully bound pure
-quote requests. Depth hints describe price capacity, not financial feasibility.
-`allocateLiquidityRoute` covers all singletons and every unordered pair with
-positive integer quantities summing to the full requested size. Each leg is at
-most 100,000,000 lots and the request at most 100,000,000. It never executes three capitals,
-partially fills the request or prunes maker health as a monotone prefix. Zero
-mathematical capacity is classified separately from no feasible financial quote.
-
-`prepareLiquidityMargin` uses the existing whole-account balance/reservation
-engine. Both positions accrue funding, all negative claims and relevant sources
-count, positive unpaid claims get zero margin credit, and active order reserves
-refresh after the proposed fill. Stored prefixes and shared TP/SL allowance are
-updated in the candidate only. A below-IM trader reduction must strictly improve
-the whole-account maintenance deficit after fees; makers still require IM.
-
-The objective is minimum buy cost or maximum sell proceeds after the **single**
-2 bps aggregate/prefix-difference fee. Ties prefer fewer legs, lexicographically
-smaller ordered instance IDs, then more quantity on the first instance. A candidate
-dominated by an already feasible result needs no repeated trader health calculation.
-Every potentially superior candidate still receives full trader admission. This
-guarantees the best admissible result only within the authenticated candidate set
-and snapshot. Actual landing may differ; clearing revalidates it on chain.
-
-`previewLiquidityRoute` binds the pure allocator to the coherent profile-6 reader
-and authenticated source/funding policy. `buildLiquidityRoute` constructs the
-bounded route intent; the wallet or durable worker signs the resulting transaction.
-The 2 bps/zero-provider fee, insurance share, loss ownership and V1–V3 economics
-are unchanged. P15B/P16B remain Open; continuous 24-hour endurance remains Deferred.
-
-
-## Signed execution contract
-
-**Execution:** `execute_liquidity_route` uses existing V3 intent order except
-each leg is `(lots,authority_epoch,control_epoch,shape_epoch,depth_epoch):[u64;5]`.
-Retain AccountGuard, domain, terms/config epochs, validity, side, total lots,
-all-in limit, max fee, reduce-only and optional generation. It does not sign a
-price sequence or consumption prefix. Vec length exactly1/2, sum exact, identities
-bound by signed transaction account keys. Max serialized args incl discriminator223
-bytes. `execute_liquidity_order` retains V3 stored-order execution authority/id/
-version/filled/start/expiry/lots with these legs (≤172 bytes). Existing transaction
-signatures cover exact account identities; no substitution or resplit on landing.
-Accounts retain V3 identity order, add registry, and per leg capital writable,
-registration writable, program/ProgramData/config/price read-only, then event CPI
-accounts. No arbitrary remaining accounts; singleton optional accounts use the
-generated Anchor convention and may not alias real capital/config dependencies.
-
-
-## Canonical execution and safety contract
-
-The immediate/stored-order handlers use the exact one/two-leg wire contract above.
-They authenticate current maker code and fixed read-only dependencies, verify the
-canonical CPI result and run the existing whole-account financial candidate before
-committing any root, consumption, fee or order change. The event adds actual price
-sequences and consumption prefixes; signed intents bind structural epochs instead.
-The SDK preserves caller-supplied limits and returns an explicit 800k CU budget for
-the existing measured-size v0/v1 compiler. Current measured resource results are recorded in validation.
-
-Safety integration uses schema-10 account financial instructions/layouts for
-profile6 only under `liquidity-execution-qualification`. Order authority, cash,
-liquidation, complete-cohort resolution, recovery and terminal exits share their
-existing implementation. Earlier runtime APIs are retired in source and remain
-reproducible at their historical revisions. Default/devnet artifacts cannot
-activate profile6 or execute its financial operations.
-
-`activate_liquidity()` uses the existing `ActivateAccounts` account layout:
-venue-authorized qualification identity plus resolution header, no extra accounts.
-It requires the explicit local qualification feature, immutable profile6, unpaused
-custody mode, an unlocked, completely funded recovery workspace covering Financial membership, a fresh zero-epoch resolution header,
-zero market gross/funding and settlement/collected fees/carry, reconciled collateral
-and both markets' existing fresh Normal qualification. Only D76 reports can produce
-that profile's qualification; publisher initialization required sealed three-maker
-registries, which cannot subsequently change membership. Activation clears held
-observations and increments safety/custody versions, so fresh reports are needed
-before trading. It neither bypasses the six-second recovery rule nor resets earned
-funding after a default. Shared post-default recovery/reactivation retains its
-complete-cohort and separate source/qualification requirements. Activation permits only this explicitly qualified local profile; it is not public enablement.
-
-
-## Transport and resource boundaries
-
-Measure the complete signed transaction before broadcast. Use v0 at <=1,232 bytes,
-v1 above that up to 4,096; no lookup table is required. V1 compute and loaded-account
-limits live in its header, not substitute compute-budget instructions. Keep explicit
-zero priority price and current 8 MiB loaded-data policy. Preserve original bytes
-and signature on ambiguous retries; fetch/decode RPC results supporting version 1.
-Wallet admission requires both formats; actual external-wallet compatibility is a
-separate check from instrumented local signing.
-
-A route submits <=800,000 CU with measured maximum <=640,000, <=32 loaded keys,
-and default 32 KiB heap. P49 expands total quantity and maker depth to the existing
-100,000,000-lot numeric domain; its fresh program/resource acceptance is tracked in
-validation. Eight regions per side and complete four-order/two-protection books
-remain the bound. Earlier CU observations retain their original quantity workload. The RPC
-snapshot's 48-key ceiling is not a transaction loaded-key allowance. Combined
-transfer/control operations require their own measured packet/compute fit.
-
-P48 replaces exhaustive quantity enumeration with exact interval search. Its
-work budget is 65,536 visited intervals and 131,072 distinct quantity quotes per
-request, independent of the numeric quantity domain. Exceeding either throws
-`LiquiditySearchLimitError`; the quote service reports
-`liquidity-search-budget-exhausted`, with no allocation or signed transaction.
-It must not report insufficient liquidity or return an uncertified incumbent.
-This is a computational availability bound, not permission to relax financial
-admission. P48 retains the old program limits; P49 applies the existing numeric
-domain to maker depth, action/order and liquidation quantities. This equals at most
-100 BTC or 1,000 ETH per action, before inventory, collateral, gross exposure and
-available depth impose tighter limits. Price/region work does not grow per lot.
-
-For canonical capability 1, buy gross is integer convex and sell gross is integer
-concave: region offsets have ordered marginal increments and the inventory
-potential is convex. Valid marginal prices form a prefix; the independent VWAP
-band forms an interval. These price facts do not imply monotone account health.
-Within each singleton/pair domain, binary search finds the gross optimum. Net
-sell proceeds can tie across a fee step; a separate search finds the rightmost
-net optimum for the existing deterministic tie order. This gives an optimistic
-bound for every integer split in that interval. A feasible optimum certifies the
-interval; a bound dominated by an already feasible route excludes it. Otherwise
-balanced subdivision preserves both halves, including nonprefix health islands.
-
-Financial enclosures exclude only provably impossible intervals. For an isolated
-maker, risk claim is convex on each side of flat; maximum equity is attained at an
-endpoint or flat. Initial margin has its minimum nearest flat. Remaining maker
-reservations are monotone in absolute exposure between generation changes;
-endpoints and flat neighbours bound their minimum. Combining independent maxima
-and minima overestimates admissibility. Trader quantity is fixed; bound cash with
-the minimum fee and claims with the most favourable gross, independently, and
-bound remaining reservations from gross endpoints. This handles sell equity
-peaking at zero claim, where cash fees continue to increase. An uncertain bound
-never excludes a range. Every accepted allocation still runs exact full-account
-admission, numeric bounds, gross exposure, fee prefixes and signed limits.
-
-Tie order is part of the API. Snapshot optimality does not prove global exchange
-best execution, future-state optimality or validator throughput. [Validation](../operations/validation.md)
-records actual latency/resource limits and contention caveats.
-
-### Routes with a read-only market
-
-On `read-only-market-candidate`, a signed immediate route can select
-`execute_market_lane` when the trader and both selected maker capitals have
-only the target market as a financial dependency. The active funding observation
-must cover the fill's Clock, and the first registration must have enough reserved
-market capacity for the change in gross absolute lots. Clearing runs the common
-route admission and maker CPIs, collects the aggregate fee and updates the
-actual margin accounts. Trades through different makers still share the
-target ledger for fee escrow and payment backing.
-
-A client can select the ordinary route with atomic market checkpoints for a
-cross-market liability, exhausted local capacity or a trade outside the short
-funding window. The ordinary route applies its own oracle and margin rules.
-Stored orders and forced liquidations use the ordinary route. A failed submission
-requires a fresh state and intent check before retry.
+Construct and measure the complete signed transaction, including checkpoints, signers and account locks. The qualified local stack uses v0 when it fits and supports v1 for larger messages. Simulator acceptance, wallet signing, landed execution and economically complete fills are separate outcomes. [SDK](../../packages/sdk/src/liquidity-route.ts) · [Signed workload measurements](../operations/performance.md)
