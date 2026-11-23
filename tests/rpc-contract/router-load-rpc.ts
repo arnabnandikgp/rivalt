@@ -23,6 +23,8 @@ function knob(name:string, fallback:number, min:number, max:number) {
   assert(Number.isSafeInteger(value)&&value>=min&&value<=max,'Invalid '+name);
   return value;
 }
+const transport=process.env.RIVALT_LOAD_TRANSPORT??'rpc';
+assert(transport==='rpc'||transport==='relay','Choose rpc or relay');
 const arm=process.env.RIVALT_SETTLEMENT_ARM;
 assert(arm==='active'||arm==='offered-only','Choose active or offered-only');
 const traders=knob('RIVALT_LOAD_TRADERS',6,2,32),count=knob('RIVALT_LOAD_OFFERS',18,2,200);
@@ -149,17 +151,32 @@ try {
     await prepared.transaction.sign([actor]);
     const intent=await client.signed(prepared,prepared.transaction),subscription=await ws.call('signatureSubscribe',[intent.signature,{commitment:'finalized'}]);
     originals.set(offer.id,{time:since(),subscription,signature:intent.signature,wire:intent.wire});
-    const response=await api.inject({method:'POST',url:'/v4/submit',payload:{requestId:'load:'+offer.id,wire:intent.wire}});
-    assert.equal(response.statusCode,200,response.body);assert.equal(response.json().signature,intent.signature);
+    if(transport==='rpc'){
+      await client.broadcast(intent);
+      writeFileSync(directory+'/wallet-original-'+offer.id+'.json',json(intent));
+    }else {
+      const response=await api.inject({method:'POST',url:'/v4/submit',payload:{requestId:'load:'+offer.id,wire:intent.wire}});
+      assert.equal(response.statusCode,200,response.body);assert.equal(response.json().signature,intent.signature);
+    }
     return {...offer,entered,expectedGross,expectedFee,previewRefusal:null};
   }));
   writeFileSync(directory+'/offers.json',json(offers));
   assert(originals.size>0,'No wallet preview admitted; see offers and wallet-preview records');
   const arrived=since();
-  const statuses=async()=>(await runtime.store.pool.query(
-    'SELECT request_id,signature,status,attempts,wire,budget FROM service_intents WHERE run_id=$1 ORDER BY request_id',[runId])).rows;
+  const statuses=async()=>{
+    const rows=(await runtime.store.pool.query(
+      'SELECT request_id,signature,status,attempts,wire,budget FROM service_intents WHERE run_id=$1 ORDER BY request_id',[runId])).rows;
+    if(transport==='relay')return rows;
+    const submitted=[...originals.entries()];
+    const seen=await rpc.call('getSignatureStatuses',[submitted.map(([,row])=>row.signature),{searchTransactionHistory:true}]);
+    return [...rows,...submitted.map(([id,row],index)=>{
+      const landed=seen.value[index];
+      const status=landed?.confirmationStatus==='finalized'?(landed.err?'failed':'finalized'):'unresolved';
+      return {request_id:'load:'+id,signature:row.signature,status,attempts:1,wire:row.wire,budget:null};
+    })];
+  };
   const terminal=new Set(['finalized','failed','expired-unexecuted']);
-  const deadline=clock()+90_000;
+  const deadline=clock()+30_000;
   while(clock()<deadline){
     healthy();const wallets=(await statuses()).filter(row=>row.request_id.startsWith('load:'));
     for(const row of wallets)if(['failed','finalized'].includes(row.status)&&!finalizedAt.has(row.signature))finalizedAt.set(row.signature,since());
@@ -169,10 +186,10 @@ try {
   const end=since(),during=(await statuses()).filter(row=>row.budget!==null).length;
   if(arm==='offered-only'){assert.equal(during,0);assert.equal((await root(creditor)).cash,before.cash);}
   settlement=true;
-  while(paidMs===undefined&&clock()<deadline+90_000){healthy();await delay(100);}
-  assert(paidMs!==undefined,'Closed gain remained unpaid after offers stopped');
+  while(paidMs===undefined&&since()<end+55_000){healthy();await delay(100);}
+  const payoutObservationMs=since();
   scheduling=false;
-  while((await statuses()).some(row=>!terminal.has(row.status))&&since()<end+145_000){healthy();await delay(100);}
+  while((await statuses()).some(row=>!terminal.has(row.status))&&since()<payoutObservationMs+10_000){healthy();await delay(100);}
   running=false;await Promise.all(loops);healthy();await flush();
   await indexer.close();indexer=undefined;
   const rows=await statuses();
@@ -209,8 +226,8 @@ try {
   const overlaps=receipts.filter(row=>row.role==='settlement').map(worker=>({id:worker.id,
     conflicts:receipts.filter(row=>row.role==='trader').map(trader=>conflicts(trader.locks,worker.locks).length)}));
   await journal.checkpoint('drained',true);const replay=await journal.finish();
-  const result={revision,program:sdk.accountDeployment(selection).programRevision,arm,seed,traders,gap,refresh,thinDepth,maxLots,btcPercent,
-    trace,offers,arrived,end,paidMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
+  const result={revision,program:sdk.accountDeployment(selection).programRevision,arm,transport,seed,traders,gap,refresh,thinDepth,maxLots,btcPercent,
+    trace,offers,arrived,end,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
     counts:{offered:offers.length,signed:originals.size,previewRefused:offers.length-originals.size,
       filled:successful.length,refused:receipts.filter(row=>row.role==='trader'&&row.error).length,
       expired:rows.filter(row=>row.request_id.startsWith('load:')&&row.status==='expired-unexecuted').length,

@@ -37,7 +37,9 @@ unused makers as reads and advances only the selected makers' financial state.
 `buildBestRoute` prepends the required market and ledger checkpoints to the same
 transaction. On the explicit fresh local `execution-router-candidate` deployment,
 the trader UI signs maximum spend or minimum proceeds, maximum fee, size and
-expiry. Its API preserves the original wallet bytes and its trader state guard.
+expiry. The wallet saves the signed original and submits it directly over RPC.
+Applications can opt into the authenticated relay, which queues conflicting
+originals. Both transports preserve the signed bytes and trader state guard.
 The wallet requests 800,000 CU, 128 KiB heap and zero priority fee.
 Qualification and wallet promotion are tracked in [STATUS](../STATUS.md).
 

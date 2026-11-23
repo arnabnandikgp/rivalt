@@ -200,7 +200,7 @@ export function useAccountController(config: AccountTraderConfig) {
         const feeLimit = units(fee, 6, 'Maximum venue fee');
         const order = await venue.client.marketOrder({snapshot: pricing, trader: margin!, marketIndex,
           side, lots, maxFee: feeLimit, allInLimit: signedLimit, reduceOnly}, owner);
-        return {instructions: order.instructions, via: 'api', details: [
+        return {instructions: order.instructions, via: 'rpc', details: [
           `${side===0?'Buy':'Sell'} ${fixed(lots, selectedMarket.decimals)} ${selectedMarket.name}${reduceOnly?' · reduce only':''}.`,
           `${side===0?'Maximum spend':'Minimum proceeds'} ${fixed(signedLimit)} test USD including fees. Maximum fee ${fixed(feeLimit)} test USD.`,
           `Clearing compares all three makers when the order lands and fills the full size against one or two. Expires at slot ${order.expirySlot}.`,

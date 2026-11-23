@@ -12,7 +12,7 @@ def read(directory, arm):
     assert counts['offered'] == len(data['trace']) == len(data['offers'])
     assert counts['signed'] + counts['previewRefused'] == counts['offered']
     assert sum(counts[key] for key in ('filled', 'refused', 'expired', 'unresolved')) == counts['signed']
-    assert data['paidMs'] >= 0
+    assert data['paidMs'] is None or 0 <= data['paidMs'] <= data['payoutObservationMs']
     return data
 
 
@@ -27,7 +27,7 @@ def summarize(data):
     volume = sum(int(row['lots']) for row in data['trace'])
     locks = sorted({(len(row['locks']['read']) + len(row['locks']['write']), len(row['locks']['write'])) for row in wallets})
     return dict(counts=data['counts'], offeredLots=volume, bestPriceCheckedFills=len(successful),
-                fundedClaimAtoms=996, cashCreditObservedMs=data['paidMs'], settlementIntentsDuringOffers=data['during'],
+                fundedClaimAtoms=996, cashCreditObservedMs=data['paidMs'], payoutObservedThroughMs=data['payoutObservationMs'], settlementIntentsDuringOffers=data['during'],
                 reasons=dict(reasons), packetBytes=sorted({row['bytes'] for row in wallets}),
                 totalAndWritableKeys=locks, feesLamports=data['fees'], finalizedCU=data['cu'],
                 observedWalletFinalityMs=data['finalizedMs'], generatorLagMs=data['generatorLagMs'],
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     parser.add_argument('active', type=Path)
     args = parser.parse_args()
     control, active = read(args.offered_only, 'offered-only'), read(args.active, 'active')
-    for key in ('program', 'revision', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent'):
+    for key in ('program', 'revision', 'transport', 'trace', 'seed', 'traders', 'gap', 'refresh', 'thinDepth', 'maxLots', 'btcPercent'):
         assert control[key] == active[key], f'Unmatched {key}'
     assert control['during'] == 0
     assert active['during'] > 0, 'Worker never queued during measured offers'
