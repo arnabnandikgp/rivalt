@@ -11,6 +11,3 @@ idl-build = ["anchor-lang/idl-build"]
 [dependencies]
 anchor-lang = { workspace = true }
 financial-core = { path = "../financial-core" }
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

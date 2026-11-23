@@ -77,17 +77,19 @@ impl Order {
     }
 }
 
-/// Bounds count actual evaluations, including revisits. The on-chain search
-/// also yields a typed refusal before starting work with little compute left.
+/// Count actual work, including repeated quotes. Financial admissions invoke
+/// the full clearing engine and have a separate transaction-sized budget.
 struct SearchWork {
     intervals: u32,
     quotes: u32,
+    admissions: u32,
 }
 
 impl SearchWork {
     const DEFAULT: Self = Self {
         intervals: 65_536,
         quotes: 131_072,
+        admissions: 131_072,
     };
 
     fn spend(counter: &mut u32) -> QuoteResult<()> {
@@ -95,18 +97,8 @@ impl SearchWork {
         Ok(())
     }
 
-    fn compute_available() -> QuoteResult<()> {
-        #[cfg(target_os = "solana")]
-        // The Pinocchio syscall takes no arguments and reads the runtime meter.
-        if unsafe { anchor_lang::pinocchio::syscalls::sol_remaining_compute_units() } < 110_000 {
-            return Err(QuoteError::SearchLimit);
-        }
-        Ok(())
-    }
-
-    fn gross(&mut self, curve: ExecutionCurve, quantity: u64) -> QuoteResult<u64> {
-        Self::spend(&mut self.quotes)?;
-        Self::compute_available()?;
+    fn gross(quotes: &mut u32, curve: ExecutionCurve, quantity: u64) -> QuoteResult<u64> {
+        Self::spend(quotes)?;
         curve.gross(quantity)
     }
 }
@@ -149,13 +141,15 @@ fn price_domain(
         return Err(QuoteError::Binding);
     }
     let available = curve.capacity()?.min(order.lots);
-    let upper = first_true(1, available, |quantity| match work.gross(curve, quantity) {
-        Ok(_) => Ok(false),
-        Err(QuoteError::Bounds) => Ok(true),
-        Err(error) => Err(error),
+    let upper = first_true(1, available, |quantity| {
+        match SearchWork::gross(&mut work.quotes, curve, quantity) {
+            Ok(_) => Ok(false),
+            Err(QuoteError::Bounds) => Ok(true),
+            Err(error) => Err(error),
+        }
     })? - 1;
     let mut relative = |quantity, multiplier| -> QuoteResult<std::cmp::Ordering> {
-        let gross = u128::from(work.gross(curve, quantity)?)
+        let gross = u128::from(SearchWork::gross(&mut work.quotes, curve, quantity)?)
             * u128::from(price_policy::EXECUTION_DENOMINATOR);
         let boundary = u128::from(order.reference) * u128::from(quantity) * u128::from(multiplier);
         Ok(gross.cmp(&boundary))
@@ -194,6 +188,25 @@ pub fn select<E: From<QuoteError>>(
     select_with_budget(order, books, admit, SearchWork::DEFAULT)
 }
 
+/// Per-order bounds for the SBF entrypoint. Reaching a bound aborts the whole
+/// search, even if an earlier singleton was eligible.
+pub fn select_for_clearing<E: From<QuoteError>>(
+    order: Order,
+    books: [Option<ExecutionCurve>; 3],
+    admit: impl FnMut(&Allocation) -> Result<bool, E>,
+) -> Result<Option<Allocation>, E> {
+    select_with_budget(
+        order,
+        books,
+        admit,
+        SearchWork {
+            intervals: 24,
+            quotes: 512,
+            admissions: 4,
+        },
+    )
+}
+
 fn select_with_budget<E: From<QuoteError>>(
     order: Order,
     books: [Option<ExecutionCurve>; 3],
@@ -210,6 +223,7 @@ fn select_with_budget<E: From<QuoteError>>(
     let mut domains = [(1, 0); 3];
     let mut best = None;
     let consider = |candidate: Allocation,
+                    admissions: &mut u32,
                     best: &mut Option<Allocation>,
                     admit: &mut dyn FnMut(&Allocation) -> Result<bool, E>|
      -> Result<bool, E> {
@@ -219,7 +233,7 @@ fn select_with_budget<E: From<QuoteError>>(
             return Ok(true); // Even the optimistic candidate cannot improve the result.
         }
         if candidate.gross >= MIN_ORDER_ATOMS && candidate.fee <= order.max_fee {
-            SearchWork::compute_available()?;
+            SearchWork::spend(admissions)?;
             if admit(&candidate)? {
                 *best = Some(candidate);
                 return Ok(true);
@@ -237,9 +251,10 @@ fn select_with_budget<E: From<QuoteError>>(
             let mut lots = [0; 3];
             let mut amounts = [0; 3];
             lots[instance] = order.lots;
-            amounts[instance] = work.gross(*curve, order.lots)?;
+            amounts[instance] = SearchWork::gross(&mut work.quotes, *curve, order.lots)?;
             consider(
                 Allocation::new(order.side, lots, amounts)?,
+                &mut work.admissions,
                 &mut best,
                 &mut admit,
             )?;
@@ -273,8 +288,8 @@ fn select_with_budget<E: From<QuoteError>>(
                     let mut amounts = [0; 3];
                     lots[first] = quantity;
                     lots[second] = order.lots - quantity;
-                    amounts[first] = work.gross(left, lots[first])?;
-                    amounts[second] = work.gross(right, lots[second])?;
+                    amounts[first] = SearchWork::gross(&mut work.quotes, left, lots[first])?;
+                    amounts[second] = SearchWork::gross(&mut work.quotes, right, lots[second])?;
                     Allocation::new(order.side, lots, amounts)
                 };
                 // Find the rightmost best gross in this interval, then include
@@ -297,7 +312,9 @@ fn select_with_budget<E: From<QuoteError>>(
                         candidate = allocation(tied)?;
                     }
                 }
-                if consider(candidate, &mut best, &mut admit)? || lower == upper {
+                if consider(candidate, &mut work.admissions, &mut best, &mut admit)?
+                    || lower == upper
+                {
                     continue;
                 }
                 // Opposite extrema of a convex cost / concave revenue curve

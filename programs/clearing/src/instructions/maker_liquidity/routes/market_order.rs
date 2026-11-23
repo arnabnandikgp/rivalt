@@ -220,7 +220,7 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
         all_in_limit: args.all_in_limit,
     };
     let mut admitted = None;
-    let allocation = routing::select(order, curves, |candidate| {
+    let allocation = routing::select_for_clearing(order, curves, |candidate| {
         let next = financial_candidate(
             accounts,
             args,

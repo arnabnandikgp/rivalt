@@ -218,12 +218,19 @@ fn incomplete_search_discards_an_admitted_singleton() {
     let books = [Some(curve(5001)), Some(curve(5000)), Some(curve(5000))];
     for budget in [
         SearchWork {
+            intervals: 1000,
+            quotes: 2000,
+            admissions: 1,
+        },
+        SearchWork {
             intervals: 1,
             quotes: 2000,
+            admissions: 1000,
         },
         SearchWork {
             intervals: 1000,
             quotes: 50,
+            admissions: 1000,
         },
     ] {
         let mut accepted = false;
@@ -240,4 +247,17 @@ fn incomplete_search_discards_an_admitted_singleton() {
         assert!(accepted);
         assert_eq!(result, Err(QuoteError::SearchLimit));
     }
+}
+
+#[test]
+fn clearing_search_stops_before_a_fifth_financial_admission() {
+    let flat = shape(4096, 0);
+    let curve = ExecutionCurve::new(&flat, 60_000, 0, 0, 0).unwrap();
+    let mut admissions = 0;
+    let result = select_for_clearing(order(0, 400, 60_000), [Some(curve); 3], |_| {
+        admissions += 1;
+        Ok::<_, QuoteError>(false)
+    });
+    assert_eq!(result, Err(QuoteError::SearchLimit));
+    assert_eq!(admissions, 4);
 }
