@@ -42,12 +42,14 @@ excluded. The completed runs kept funding and oracle checks active.
 | On | 70 ms | 109 / 120 | 7 | 4 | 2.675 s | 991 / 996 | 1,307 |
 | On | 35 ms | 72 / 120 | 48 | 0 | 2.959 s | 994 / 996 | 1,181 |
 
-All 20 refusals across the 70 ms runs had clearing code 6105 on the market
-order. Both maker IDs supplied fills in both runs. After the quote CPI,
-the selected route's profit-attribution write checks the funded slot width on
-the trader and maker roots. The IDL's generic registry-capacity message also
-covers this write. The wire does not identify which root needed more space.
-[On-chain check](../../programs/clearing/src/profit_attribution.rs)
+All 20 refusals across the 70 ms runs returned clearing code 6105. Both deep
+makers supplied fills. Decoding the maker's return in each refusal identifies
+maker 1 quoting a move from 127–128 short lots to 129–131. Its reconciled account
+had 128 bytes per market for profit history. At 129 lots, the three integer
+magnitudes and their lengths require at least 198 bytes under the recovery rule.
+The maker could quote those trades, but its clearing account could not record
+them. [On-chain write](../../programs/clearing/src/profit_attribution.rs) ·
+[Storage bound](../../crates/clearing-accounting/src/attribution.rs)
 
 At 35 ms, each wallet received a new offer every 840 ms. All 48 refused previews
 had code 6122. For every refusal, a finalized fill from the same wallet at or

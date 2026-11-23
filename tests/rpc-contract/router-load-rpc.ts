@@ -45,6 +45,9 @@ const walletOrder = process.env.RIVALT_LOAD_WALLET_ORDER ?? 'independent';
 assert(walletOrder === 'independent' || walletOrder === 'confirmed', 'Choose independent or confirmed wallet preparation');
 const rotatingAsks=knob('RIVALT_LOAD_ROTATE_ASKS',0,0,1)===1;
 assert(!rotatingAsks || (btcPercent===100 && !followEth),'Rotating asks requires a BTC buy-only trace');
+const sponsorMaker = knob('RIVALT_LOAD_SPONSOR_BTC_MAKER_ONE', 0, 0, 1) === 1;
+assert(!sponsorMaker || (rotatingAsks && walletOrder === 'confirmed' && arm === 'active'),
+  'Maker storage comparison requires the confirmed-wallet active BTC workload');
 const maxLots=knob('RIVALT_LOAD_MAX_LOTS',3,1,32),thinDepth=knob('RIVALT_LOAD_FIRST_MAKER_LOTS',2,1,4096);
 let random=seed;
 const next=()=>{random=(Math.imul(1664525,random)+1013904223)>>>0;return random;};
@@ -77,6 +80,33 @@ try {
     marketCheckpoints:true,marginLayout:'ledger-lanes',shape,verifyRejections:false,
     anchorOffset:instance=>cheaperDeepMaker && (instance===1||instance===2) && instance!==cheaperDeepMaker?2n:0n});
   const {root,route,withCheckpoints}=executionTestHelpers(h,setup),creditor=setup.roots[0],owner=setup.traderOwners[0];
+  let makerStorage;
+  if (sponsorMaker) {
+    const capital = setup.instances[1].capital;
+    const beforeBytes = (await h.read(capital))!;
+    const original = sdk.decodeProfitAttribution(beforeBytes, true);
+    assert.equal(original.width, 128);
+    assert.equal(original.credit, null);
+    const slotBytes = 256;
+    const newSize = beforeBytes.length + 2 * (slotBytes - original.width) + 40;
+    const existingLamports = BigInt((await rpc.call('getBalance', [capital, {commitment:'confirmed'}])).value);
+    const rent = await h.rent(newSize) - existingLamports;
+    assert(rent > 0n);
+    const registration = await setup.instances[1].registrationState();
+    assert.equal(registration.instance, 1);
+    assert.equal(registration.market, setup.markets[0]);
+    assert.equal(registration.capital, capital);
+    await h.send('maker funds BTC quote capacity', [await sdk.getManageProfitCapacityInstructionAsync({
+      ...setup.common, margin:capital, actor:setup.owner, payer:setup.owner, previousContributor:setup.owner.address,
+      slotBytes, revision:original.root.revision, maxPayment:rent
+    })], [setup.owner]);
+    const grown = sdk.decodeProfitAttribution((await h.read(capital))!, true);
+    assert.equal(grown.width, slotBytes);
+    assert.deepEqual(grown.credit, {contributor:setup.owner.address, lamports:rent});
+    assert.deepEqual(grown.root.positions, original.root.positions);
+    assert.equal(grown.root.cash, original.root.cash);
+    makerStorage = { capital, width:grown.width, rent, contributor:setup.owner.address };
+  }
   const [certificate]=await sdk.deriveSettlementCertificate(setup.venue,0);
   const common={...setup.common,btc:setup.markets[0],eth:setup.markets[1]};
   await setup.sample();
@@ -348,7 +378,7 @@ try {
     conflicts:receipts.filter(row=>row.role==='trader').map(trader=>conflicts(trader.locks,worker.locks).length)}));
   await journal.checkpoint('drained',true);const replay=await journal.finish();
   const result={revision,program:sdk.accountDeployment(selection).programRevision,arm,transport,seed,traders,gap,refresh,thinDepth,maxLots,btcPercent,
-    trace,offers,arrived,end,rotatingAsks,followEth,walletOrder,ethPayment:ethPayment??null,payout,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
+    trace,offers,arrived,end,rotatingAsks,followEth,walletOrder,makerStorage:makerStorage??null,ethPayment:ethPayment??null,payout,paidMs:paidMs??null,payoutObservationMs,during,pollsUnavailable,polls,receipts,operator,overlaps,events:replay.events,
     counts:{offered:offers.length,signed:originals.size,previewRefused:offers.length-originals.size,
       filled:successful.length,refused:receipts.filter(row=>row.role==='trader'&&row.error).length,
       expired:expiredWallets.size,

@@ -979,3 +979,14 @@ Compare the runs with
 `python3 tests/performance/compare-router-load.py --wallet-order <independent-dir> <confirmed-dir>`.
 The report includes time spent waiting to prepare and time from each scheduled
 offer to its actual outcome, including refusals.
+For a capacity refusal, run
+`node --import tsx tests/performance/router-capacity-refusals.ts <run-directory>`.
+It decodes the maker's quoted inventory and lot count from the returned data and
+compares its minimum required recovery space to the maker's actual slot width.
+To isolate maker storage, repeat the confirmed arm with
+`RIVALT_LOAD_SPONSOR_BTC_MAKER_ONE=1` and pass `--sponsored <directory>` to
+the wallet comparison. The local maker owner funds a 256-byte slot through the
+existing signed resize instruction before the trace. The control retains the
+initial 128 bytes. The comparison reports each harness revision and checks the
+compiled program, starting trading balances, order schedule and repricing knobs
+across all three runs.
