@@ -4467,3 +4467,15 @@ Fresh PostgreSQL replay matched 94 events. Six native selector tests passed,
 including exhaustion after an admitted singleton and the four-admission boundary.
 A discarded build could not deploy the remaining-compute syscall on the pinned
 runtime. The qualified implementation counts work directly.
+
+### Ready profit payments during trading
+
+At `c615ba2f` on clearing `986b3cd3`, all 72 mixed-market offers from 16
+wallets filled for 324 lots. The flat BTC creditor received all 996 collateral
+atoms 93.041 seconds after the first offer. The worker collected 598 more BTC-market
+atoms and paid 1,594 in total, including the 996 held at the start. The first
+ETH credit was observed at 238.158 seconds. Two ETH payments distributed all
+52 collected atoms. All 83 settlement originals finalized successfully and
+matched the fetched transactions. Fresh PostgreSQL replay matched 1,377 events.
+The 24-wallet rotating-quote trials also reconciled each partial credit to the
+remaining claim and empty BTC pool. [Matched comparisons and refusal analysis](performance.md#settlement-scheduling-and-rotating-btc-quotes)

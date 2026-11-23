@@ -963,3 +963,7 @@ follow-up, scheduling stops and the worker gets ten seconds to drain submitted
 originals. The comparison checks every terminal service status against finalized
 receipts. Pass `--active-rate-step <faster-active-directory>` to the compare
 command to check a faster run against the same ordered trades and starting book.
+Verify a guard refusal against earlier finalized trader fills with
+`node --import tsx tests/performance/router-offer-guards.ts <run-directory>`.
+The 24-wallet BTC comparison used 120 buys, three lots maximum, one shallow
+maker lot, 2,100 ms refresh, seed 117 and 70 or 35 ms offer gaps.
