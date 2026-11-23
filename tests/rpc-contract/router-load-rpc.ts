@@ -90,6 +90,14 @@ try {
   const client=new sdk.AccountUserClient({version:4,accountSchema:10,deployment:selection,chain:'solana:localnet',
     profile:'liquidity-execution-qualification',rpcUrl:url,wsUrl,genesis:binding.genesis,venue:setup.venue,mint:setup.mint.address,
     anchor:binding.anchor,anchorHash:binding.anchorHash,domain:binding.domain});
+  const walletRpc=client.rpc.call.bind(client.rpc);
+  let previewIndex=0;
+  client.rpc.call=async(method,params=[])=>{
+    const value=await walletRpc(method,params);
+    if(method==='simulateTransaction')writeFileSync(directory+'/wallet-preview-'+(previewIndex++)+'.json',
+      json({wire:params[0],slot:value.context.slot,error:value.value.err,cu:value.value.unitsConsumed,logs:value.value.logs}));
+    return value;
+  };
   await client.environment();
   await setup.sample();
   const operatorStart=checks.length;
@@ -130,6 +138,8 @@ try {
     assert.equal(response.statusCode,200,response.body);assert.equal(response.json().signature,intent.signature);
     return {...offer,entered,expectedGross,expectedFee,previewRefusal:null};
   }));
+  writeFileSync(directory+'/offers.json',json(offers));
+  assert(originals.size>0,'No wallet preview admitted; see offers and wallet-preview records');
   const arrived=since();
   const statuses=async()=>(await runtime.store.pool.query(
     'SELECT request_id,signature,status,attempts,wire,budget FROM service_intents WHERE run_id=$1 ORDER BY request_id',[runId])).rows;

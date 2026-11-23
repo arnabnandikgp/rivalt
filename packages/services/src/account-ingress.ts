@@ -66,6 +66,8 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4,checkp
   const first=economic[0];
   const entry=supported.find(entry=>sdk.hex(entry.discriminator)===sdk.hex(first.data.slice(0,8)));
   if(!entry)throw new Error('Unsupported account wallet action');
+  if(entry===standingOrder && (message.length===1||economic.length!==1))
+    throw new Error('Missing standing order checkpoint prefix');
   const canonicalRoute=sdk.hex(entry.discriminator)===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)||entry===lane||entry===standingOrder;
   if(entry.root==='trader'&&!canonicalRoute)throw new Error('Foreign account route profile');
   const units=entry.root==='trader'?800_000:400_000;

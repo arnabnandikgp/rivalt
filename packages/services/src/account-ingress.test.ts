@@ -133,3 +133,30 @@ it('accepts only the venue-derived checkpoint set for the signed action on a lan
   // A resolved cash exit uses the guarded consumer by itself.
   expect(accountUserAuthority(await wire(envelope(action)),venue,4,checkpoints)).toMatchObject({account:margin});
 });
+
+it('accepts standing wallet orders only with the qualified deployment, checkpoints and exact heap',async()=>{
+  const checkpoints=await sdk.venueMarketCheckpoints(venue);
+  const makerProgram=sdk.makerA.MAKER_A_PROGRAM_ADDRESS;
+  const instruction=await sdk.getExecuteBestRouteInstructionAsync({...common,actor:payer,trader:margin,registry:placeholder,
+    market:btc,ledger:btcLedger,zeroCapital:donor,zeroRegistration:placeholder,zeroProgram:makerProgram,
+    zeroProgramData:placeholder,zeroConfig:placeholder,zeroPrice:placeholder,oneCapital:donor,oneRegistration:placeholder,
+    oneProgram:makerProgram,oneProgramData:placeholder,oneConfig:placeholder,onePrice:placeholder,twoCapital:donor,
+    twoRegistration:placeholder,twoProgram:makerProgram,twoProgramData:placeholder,twoConfig:placeholder,twoPrice:placeholder,
+    domain:new Uint8Array(32).fill(37),guard,termsEpoch:1n,configEpoch:1n,startSlot:1n,expirySlot:100n,
+    side:0,lots:1n,allInLimit:60_015n,maxFee:13n,reduceOnly:false,generation:0n,
+    makerEpochs:Array(3).fill({authority:1n,control:1n,shape:1n,depth:1n})});
+  const prefix=sdk.marketCheckpointsFor(checkpoints,instruction);
+  const encode=async(instructions:Instruction[],heapSize?:number)=>{
+    const {transaction}=await sdk.signCanonicalInstructions(connection,payer,instructions,
+      {computeUnitLimit:800_000,loadedAccountsDataSizeLimit:8*1024*1024,heapSize});
+    return Buffer.from(transaction.serialize()).toString('base64');
+  };
+  const check=(wire:string)=>accountUserAuthority(wire,venue,4,checkpoints,'execution-router-candidate');
+  const signed=await encode([...prefix,instruction],sdk.BEST_ROUTE_HEAP_BYTES);
+  expect(check(signed)).toMatchObject({kind:'accountStateVersion',account:margin,value:'11'});
+  expect(()=>accountUserAuthority(signed,venue,4,checkpoints,'unified-recovery-candidate')).toThrow();
+  const missingPrefix=await encode([instruction],sdk.BEST_ROUTE_HEAP_BYTES);
+  expect(()=>check(missingPrefix)).toThrow(/prefix/);
+  const noHeap=await encode([...prefix,instruction]);
+  expect(()=>check(noHeap)).toThrow(/heap|budget/);
+});

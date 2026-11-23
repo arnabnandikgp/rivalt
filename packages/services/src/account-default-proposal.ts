@@ -1,6 +1,5 @@
-import {usesUnifiedRecovery} from '@rivalt/sdk';
 import assert from 'node:assert/strict';
-import {isMultiLotDeployment,isBookInventoryDeployment} from '@rivalt/sdk';
+import {isMultiLotDeployment,isBookInventoryDeployment,usesUnifiedRecovery} from '@rivalt/sdk';
 import {createHash} from 'node:crypto';
 import type {AccountRuntime} from './account-runtime.js';
 import {readAccountRateProposal} from './account-frozen-proposal.js';
