@@ -138,6 +138,9 @@ def check_domains():
     # D121 episode ordering is used only by the research selector at this revision.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
                                             | {r'Rivalt/frozen-member-order/v1\0', r'Rivalt/winner-targets/v1\0'})
+    # Native-only exact replay uses separate digest domains for fills and checkpoints.
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
+        r'Rivalt/entry-replay/fill/v1\0', r'Rivalt/entry-replay/checkpoint/v1\0'})
     # Format marker for the separately qualified margin extension.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPROF02', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01', 'RVJALLOC', 'RVCHAIN1', 'RVLOTS01', 'RVLOTS02', 'RVBOOK01', 'Rivalt/inventory-book/v1', 'RVMULT01', 'Rivalt/multi-lot-book/v1'})
     # Private native continuation domains bind the frozen source and proposed charge vector.
