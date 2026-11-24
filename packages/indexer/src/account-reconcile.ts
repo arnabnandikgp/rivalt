@@ -128,7 +128,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         const feeLane=sdk.hasAggregateFees(binding.artifactSet) && (entity.kind===7||entity.kind===15);
         assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped discriminator ${key}`);
         if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
-          sdk.decodeProfitAttribution(bytes,sponsored);
+          assert.equal(sdk.decodeProfitAttribution(bytes,sponsored).closedQuantity,
+            binding.artifactSet===sdk.CLOSED_QUANTITY_ARTIFACT_SET,`Payout rule mismatch ${key}`);
         } else if(capacity && entity.kind===6) {
           sdk.decodeCapacityAnchor(bytes,checkedFunding);
         } else if(feeLane) {

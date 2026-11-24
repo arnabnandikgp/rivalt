@@ -6,11 +6,12 @@ import {accountDeployment} from '@rivalt/sdk';
 export function routerBuild() {
   const directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!;
   const revision = process.env.RIVALT_ROUTER_REVISION!;
-  const deployment = accountDeployment('bounded-router-candidate');
+  const closed = process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-closed-quantity';
+  const deployment = accountDeployment(closed?'closed-quantity':'bounded-router-candidate');
   assert.equal(revision, deployment.programRevision);
   const artifacts = Object.fromEntries(deployment.artifacts
     .filter(artifact => artifact.name !== 'oracle-fixture')
     .map(({name, bytes, sha256}) => [name, {bytes, sha256}]));
-  verifyTestBuild(directory, revision, artifacts, 'execution-router-qualification');
+  verifyTestBuild(directory, revision, artifacts, closed?'closed-quantity-settlement':'execution-router-qualification');
   return {artifactSet: deployment.artifactSet, artifacts};
 }

@@ -21,7 +21,9 @@ export function accountClaimAmount(snapshot:sdk.AccountSnapshot,margin:Address,m
     const debt=claims.reduce((total,value)=>total+(value<0n?-value:0n),0n);
     return root.cash*SCALE>=debt&&claim<=-SCALE?-claim/SCALE:0n;
   }
-  const amount=minimum(claim/SCALE,snapshot.ledgerStates[marketIndex].settlement,1_000_000_000_000_000n-root.cash);
+  const eligible=sdk.ordinaryGainAtoms(claim,root.positions[marketIndex].lots,snapshot.marketStates[marketIndex].referencePrice,
+    snapshot.closedEntries[margin]?.[marketIndex]);
+  const amount=minimum(eligible,snapshot.ledgerStates[marketIndex].settlement,1_000_000_000_000_000n-root.cash);
   if(amount<=0n)return 0n;
   const candidate=structuredClone(root);candidate.cash+=amount;candidate.positions[marketIndex].virtualScaled-=amount*SCALE;
   const after=sdk.accountBalanceView(candidate,snapshot.safetyState,snapshot.marketStates,snapshot.now,snapshot.slot);

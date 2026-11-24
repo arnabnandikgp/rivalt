@@ -8,7 +8,18 @@ export const PROFIT_ATTRIBUTION_ARTIFACT_SET='profit-attribution-33361d9';
 export const SPONSORED_PROFIT_ARTIFACT_SET='sponsored-profit-1763dc7';
 export type PerLotProfit={entryScaled:bigint;paidScaled:bigint;denominator:bigint};
 const marker=new TextEncoder().encode('RVPROF01');
+const closedMarker=new TextEncoder().encode('RVPROF02');
 const slotBytes=128;
+
+/** Whole collateral atoms eligible before pool, backing and recipient admission. */
+export function ordinaryGainAtoms(claimScaled:bigint, lots:bigint, mark:bigint, entry?:PerLotProfit) {
+  const scale=1_000_000_000n;
+  if(!entry || lots===0n) return claimScaled>0n?claimScaled/scale:0n;
+  requireValue(entry.paidScaled===0n && entry.denominator>0n && mark>0n,'Invalid closed-quantity basis.');
+  const open=lots*(mark*scale*entry.denominator-entry.entryScaled);
+  const eligible=claimScaled*entry.denominator-(open>0n?open:0n);
+  return eligible>0n?eligible/(entry.denominator*scale):0n;
+}
 
 function slot(bytes:Uint8Array,lots:bigint):PerLotProfit {
   if(lots===0n) {
@@ -36,9 +47,10 @@ export function decodeProfitAttribution(bytes:Uint8Array,allowSponsored=false) {
   const minimum=prefix+marker.length+2*slotBytes;
   const expanded=bytes.length!==minimum;
   const width=expanded?(bytes.length-prefix-marker.length-40)/2:slotBytes;
+  const closedQuantity=closedMarker.every((byte,index)=>bytes[prefix+index]===byte);
   requireValue((!expanded||(allowSponsored&&Number.isInteger(width)&&width>slotBytes&&width<=256))&&
     MARGIN_ACCOUNT_DISCRIMINATOR.every((byte,index)=>bytes[index]===byte)&&
-    marker.every((byte,index)=>bytes[prefix+index]===byte),'Invalid candidate margin layout.');
+    (closedQuantity||marker.every((byte,index)=>bytes[prefix+index]===byte)),'Invalid candidate margin layout.');
   const root=getMarginAccountDecoder().decode(bytes.subarray(0,prefix));
   requireValue(root.schemaVersion===10,'Invalid candidate margin schema.');
   const histories=root.positions.map((_,index)=>{
@@ -50,7 +62,8 @@ export function decodeProfitAttribution(bytes:Uint8Array,allowSponsored=false) {
     contributor:getAddressDecoder().decode(bytes.subarray(bytes.length-40,bytes.length-8)),
     lamports:new DataView(bytes.buffer,bytes.byteOffset+bytes.length-8,8).getBigUint64(0,true),
   }:null;
-  return {root,positions,histories,width,credit};
+  requireValue(!closedQuantity||positions.every(entry=>entry.paidScaled===0n),'Open price payment in a closed-quantity account.');
+  return {root,positions,histories,width,credit,closedQuantity};
 }
 
 export type MarginLayout='profit-attribution'|'sponsored-profit'|'aggregate-fees'|'bounded-market'|'checked-funding'|'market-lanes'|'ledger-lanes'|'selected';

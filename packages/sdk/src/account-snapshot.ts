@@ -1,7 +1,7 @@
 import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
 import {ledgerFromExecutionLanes} from './ledger-lanes.js';
 import {decodeFeeLedger} from './market-fees.js';
-import {hasCapacityLayout,hasFundingLayout,hasFeeLayout,decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
+import {hasCapacityLayout,hasFundingLayout,hasFeeLayout,decodeMarginForLayout,decodeProfitAttribution,type PerLotProfit,type MarginLayout} from './profit-attribution.js';
 import {address,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
 import {getMintDecoder,getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
@@ -9,7 +9,7 @@ import {deriveAccountVenue,deriveAccountPortfolio,deriveVenueComponent,deriveAcc
 import {authenticateLiquidityMarket,discoverLiquidityAccounts} from './liquidity-adapter.js';
 import {fromBase64,hex,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
-export type AccountIdentity={venue:Address;mint:Address;domain:string;marginLayout?:MarginLayout};
+export type AccountIdentity={venue:Address;mint:Address;domain:string;closedQuantity?:boolean;marginLayout?:MarginLayout};
 export const ACCOUNT_CLOCK=address('SysvarC1ock11111111111111111111111111111111');
 
 /** Funded balances/exits read only selected roots and their complete market dependencies. */
@@ -107,8 +107,14 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
     const [canonical,bump]=await deriveAccountPortfolio(venue,value.owner,value.index);
     requireValue(value.schemaVersion===10&&value.venue===venue&&key===canonical&&value.bump===bump,'Portfolio identity mismatch.');portfolios[key]=value;
   }
+  const closedEntries:Record<string,PerLotProfit[]>={};
   for(const [index,key] of margins.entries()) {
-    const value=decodeMarginForLayout(raw(accounts.get(key)),identity.marginLayout);
+    const bytes=raw(accounts.get(key));
+    const attribution=ledgerLanes?decodeProfitAttribution(bytes,true):undefined;
+    if(identity.closedQuantity!==undefined)
+      requireValue(Boolean(attribution?.closedQuantity)===identity.closedQuantity,'Payout rule differs from deployment.');
+    if(attribution?.closedQuantity) closedEntries[key]=attribution.positions;
+    const value=attribution?.root??decodeMarginForLayout(bytes,identity.marginLayout);
     const [canonical,bump]=await deriveMarginAccount(value.portfolio,value.subaccountIndex),portfolio=portfolios[value.portfolio];
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.lifecycle===2&&value.activationGeneration>0n&&value.portfolio===discovered[index].portfolio&&key===canonical&&value.bump===bump&&
       portfolio?.owner===value.owner&&portfolio.activeChildren>0&&[0,1,2].includes(value.role)&&
@@ -127,7 +133,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,marginLayout:identity.marginLayout,
     market:markets[liquidityMarketIndex],marketIndex:liquidityMarketIndex,domain:venueState.domain,slot,now,contextSlot},accounts);
   return {marginLayout:identity.marginLayout,commitment,venue,custody,safety,vault,markets,btc:markets[0],eth:markets[1],ledgers,btcLedger:ledgers[0],ethLedger:ledgers[1],
-    venueState,custodyState,safetyState,marketStates,ledgerStates,feeEscrow,roots,portfolios,actualVault:token.amount,liquidity,
+    venueState,custodyState,safetyState,marketStates,ledgerStates,feeEscrow,roots,closedEntries,portfolios,actualVault:token.amount,liquidity,
     slot,now,contextSlot};
 }
 export type AccountSnapshot=Awaited<ReturnType<typeof readAccountSnapshot>>;

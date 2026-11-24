@@ -3,9 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ops/env.sh
-export RIVALT_DEMO_DEPLOYMENT="${RIVALT_DEMO_DEPLOYMENT:-bounded-router-candidate}"
+export RIVALT_DEMO_DEPLOYMENT="${RIVALT_DEMO_DEPLOYMENT:-closed-quantity}"
 case "$RIVALT_DEMO_DEPLOYMENT" in
   unified-recovery-candidate) feature=unified-recovery-qualification ;;
+  closed-quantity) feature=closed-quantity-settlement ;;
   bounded-router-candidate|execution-router-candidate) feature=execution-router-qualification ;;
   *) echo 'Unsupported local build selection' >&2; exit 1 ;;
 esac
@@ -42,7 +43,7 @@ else
     cp "$source_dir/binaries/$program.so" "$stage/"
   }
   maker_revision="$baseline_revision"
-  if [[ "$feature" == execution-router-qualification ]]; then maker_revision="$revision"; fi
+  if [[ "$feature" == execution-router-qualification || "$feature" == closed-quantity-settlement ]]; then maker_revision="$revision"; fi
   build_program "$revision" programs/clearing/Cargo.toml clearing --features "$feature"
   for component in maker-a maker-b; do
     build_program "$maker_revision" "programs/$component/Cargo.toml" "${component//-/_}" --features maker-liquidity-qualification

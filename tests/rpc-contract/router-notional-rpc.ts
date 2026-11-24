@@ -11,12 +11,14 @@ import {fixtureKey} from './harness.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {backingStep} from './membership-scan-helper.js';
+import {accountClaimAmount} from '../../packages/services/src/account-settlement-worker.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const directory = process.env.RIVALT_RUN_DIR!;
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
 assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], {encoding: 'utf8'}).trim(), '');
 const build = routerBuild();
+const closedQuantity = build.artifactSet === sdk.CLOSED_QUANTITY_ARTIFACT_SET;
 const openingIndex = 61_000n, closingIndex = 62_000n, scale = 1_000_000_000n;
 const cash = 80_000_000_000n, depth = 2_000_000n;
 const fee = (gross: bigint) => (gross + 4_999n) / 5_000n;
@@ -25,7 +27,7 @@ const requests = [100n, 1_000n, 10_000n, 61_000n].map(dollars => ({
   label: 'USD ' + dollars, lots: (dollars * 1_000_000n + openingIndex - 1n) / openingIndex,
 })).concat([{label: 'three-lot control', lots: 3n}, {label: 'one-lot control', lots: 1n}]);
 const wallet = await fixtureKey('p32-trader');
-const isRoute = (label: string) => label.startsWith('buy ') || label === 'close admitted inventory';
+const isRoute = (label: string) => label.startsWith('buy ') || label.startsWith('sell ');
 const {h, rpc, ws, checks, flush} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
   process.env.RIVALT_WS_URL!, directory, {deferFinality: true, observeOutcomes: label => label.startsWith('buy '),
     payerFor: label => isRoute(label) || label === 'withdraw net gain' ? wallet : undefined,
@@ -49,6 +51,8 @@ try {
     const bytes = (await h.read(margin))!, prior = sdk.decodeProfitAttribution(bytes, true);
     assert.equal(prior.width, 128);
     assert.equal(prior.credit, null);
+    assert.equal(prior.closedQuantity, closedQuantity);
+    if (closedQuantity) continue; // Exercise fresh 128-byte slots on every participant.
     const slotBytes = 256, newSize = bytes.length + 2 * (slotBytes - prior.width) + 40;
     const balance = await rpc.call('getBalance', [margin, {commitment: 'confirmed'}]);
     const rent = await h.rent(newSize) - BigInt(balance.value);
@@ -94,24 +98,25 @@ try {
     orders.push({label, lots, referenceAtoms: openingIndex * lots, published, receipt});
     writeFileSync(directory + '/notional-orders.json', json(orders));
     // This probe pins the router binary and book. A different first failure is a changed result.
-    const expected = lots <= 3n ? null : {InstructionError: [order.instructions.length - 1, {Custom: sdk.CLEARING_ERROR__CAPACITY}]};
+    const expected = closedQuantity || lots <= 3n ? null : {InstructionError: [order.instructions.length - 1, {Custom: sdk.CLEARING_ERROR__CAPACITY}]};
     assert.deepEqual(receipt.simulationError, expected, buyLabel + ' simulation');
     assert.deepEqual(receipt.error, expected, buyLabel + ' finalized execution');
   }
   assert(admittedLots > 0n, 'No admitted inventory for settlement control');
   setup.sourcePrices.btc = closingIndex * 1_000_000n;
   await setup.qualify();
-  const snapshot = await setup.snapshot(trader, 0);
-  const closeGross = (closingIndex - 2n) * admittedLots, closeFee = fee(closeGross);
-  const close = await sdk.buildBestRoute({snapshot, trader, marketIndex: 0, side: 1, lots: admittedLots,
-    allInLimit: closeGross - closeFee, maxFee: closeFee, reduceOnly: true}, owner.address);
-  await h.send('close admitted inventory', close.instructions, [owner]);
-  const gain = closeGross - (openingIndex + 2n) * admittedLots;
-  const net = gain - openingFees - closeFee;
-  const closed = await root(trader);
-  assert.deepEqual([closed.positions[0].lots, closed.positions[0].virtualScaled, closed.cash],
-    [0n, gain * scale, cash - openingFees - closeFee]);
-  assert.equal(await tokenBalance(setup.traderToken.address), startingWallet);
+  const gainPerLot = (closingIndex - 2n) - (openingIndex + 2n);
+  const gain = admittedLots * gainPerLot;
+  let closeFees = 0n, paidGain = 0n;
+  async function sell(lots:bigint, label:string) {
+    const snapshot = await setup.snapshot(trader, 0);
+    const gross = (closingIndex - 2n) * lots, maxFee = fee(gross);
+    const close = await sdk.buildBestRoute({snapshot, trader, marketIndex: 0, side: 1, lots,
+      allInLimit: gross - maxFee, maxFee, reduceOnly: true}, owner.address);
+    await h.send('sell ' + label, close.instructions, [owner]);
+    closeFees += maxFee;
+  }
+  if (!closedQuantity) await sell(admittedLots,'all admitted inventory');
   for (const maker of makers) {
     const position = (await root(maker.capital)).positions[0];
     const debt = -(position.virtualScaled / scale + position.lots * closingIndex);
@@ -131,8 +136,40 @@ try {
     await h.send('certify backing ' + step, await withCheckpoints(next.instruction));
   }
   await setup.sample();
-  await h.send('pay closed gain', await withCheckpoints(sdk.getPayAccountGainInstruction({
-    ...common, actor: setup.payer, margin: trader, amount: gain, marketIndex: 0, certificate})));
+  async function payment(label:string, amount:bigint, rejected=false) {
+    const before = await economicState();
+    await h.send(label, await withCheckpoints(sdk.getPayAccountGainInstruction({
+      ...common, actor: setup.payer, margin: trader, amount, marketIndex: 0, certificate})), [],
+      rejected ? sdk.CLEARING_ERROR__AMOUNT : undefined);
+    if (rejected) assert.deepEqual(await economicState(), before, label + ' economic rollback');
+    else paidGain += amount;
+  }
+  async function keeperAmount() {
+    const snapshot=await sdk.readAccountSnapshot(rpc,setup.identity,[trader],'confirmed');
+    return accountClaimAmount(snapshot,trader,0,true);
+  }
+  if (closedQuantity) {
+    assert.equal(await keeperAmount(),0n);
+    await payment('reject open price profit with funded pool',1n,true);
+    const partial = admittedLots / 2n;
+    await sell(partial,'first half');
+    assert.equal((await root(trader)).positions[0].lots,admittedLots-partial);
+    const realized = partial*gainPerLot;
+    assert.equal(await keeperAmount(),realized);
+    await payment('reject one atom above realized gain',realized+1n,true);
+    await payment('pay partial close while inventory remains',realized);
+    assert.equal(await keeperAmount(),0n);
+    assert.equal((await root(trader)).cash,cash-openingFees-closeFees+realized);
+    await setup.sample();
+    await sell(admittedLots-partial,'remaining inventory');
+  }
+  const closed = await root(trader);
+  assert.deepEqual([closed.positions[0].lots, closed.positions[0].virtualScaled, closed.cash],
+    [0n, (gain-paidGain)*scale, cash-openingFees-closeFees+paidGain]);
+  assert.equal(await tokenBalance(setup.traderToken.address), startingWallet);
+  assert.equal(await keeperAmount(),gain-paidGain);
+  await payment('pay closed gain',gain-paidGain);
+  const net = gain - openingFees - closeFees;
   const paid = await root(trader);
   assert.deepEqual([paid.positions[0].virtualScaled, paid.cash, await settlementPool()], [0n, cash + net, 0n]);
   await h.send('withdraw net gain', await withCheckpoints(sdk.getWithdrawFundedAccountInstruction({
@@ -145,8 +182,8 @@ try {
   await journal.checkpoint('notional-wallet-exit', true);
   const replay = await journal.finish();
   writeFileSync(directory + '/notional-baseline.json', json({revision, program: process.env.RIVALT_ROUTER_REVISION,
-    orders, admittedLots, openingFees, closeFee, gain, net, events: replay.events,
-    lifecycle: checks.filter(check => ['close admitted inventory', 'pay closed gain', 'withdraw net gain'].includes(String(check.label)))}));
+    orders, admittedLots, openingFees, closeFee:closeFees, gain, net, events: replay.events,
+    lifecycle: checks.filter(check => /^(sell |reject |pay |withdraw net gain)/.test(String(check.label)))}));
   console.log('Replayed', replay.events, 'events and withdrew', net.toString(), 'collateral atoms');
 } finally {
   await journal?.close();

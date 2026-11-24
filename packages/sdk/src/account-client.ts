@@ -109,10 +109,10 @@ export class AccountUserClient extends WalletClient {
   }
   private get marginLayout(){return usesUnifiedRecovery(this.config.deployment)?'ledger-lanes' as const:undefined;}
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
-    await this.environment();return readAccountSnapshot(this.rpc,{...this.config,marginLayout:this.marginLayout},margins,commitment);
+    await this.environment();return readAccountSnapshot(this.rpc,{...this.config,closedQuantity:this.config.deployment==='closed-quantity',marginLayout:this.marginLayout},margins,commitment);
   }
   async tradeSnapshot(trader:Address,marketIndex:0|1) {
-    await this.environment();return readAccountTradeSnapshot(this.rpc,{...this.config,marginLayout:this.marginLayout},trader,marketIndex,'confirmed');
+    await this.environment();return readAccountTradeSnapshot(this.rpc,{...this.config,closedQuantity:this.config.deployment==='closed-quantity',marginLayout:this.marginLayout},trader,marketIndex,'confirmed');
   }
   balance(snapshot:AccountSnapshot,margin:Address) {
     this.bound(snapshot);requireValue(snapshot.roots[margin],'Margin absent from snapshot.');
