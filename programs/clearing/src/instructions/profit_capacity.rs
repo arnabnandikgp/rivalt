@@ -21,12 +21,12 @@ pub struct ManageProfitCapacity {
     pub system_program: Program<System>,
 }
 
-#[cfg(not(feature = "profit-attribution-qualification"))]
+#[cfg(any(not(feature = "profit-attribution-qualification"), feature = "bounded-entry-settlement"))]
 pub fn manage(_: &mut Context<ManageProfitCapacity>, _: u16, _: u64, _: u64) -> Result<()> {
     Err(ClearingError::Profile.into())
 }
 
-#[cfg(feature = "profit-attribution-qualification")]
+#[cfg(all(feature = "profit-attribution-qualification", not(feature = "bounded-entry-settlement")))]
 pub fn manage(
     ctx: &mut Context<ManageProfitCapacity>,
     requested: u16,

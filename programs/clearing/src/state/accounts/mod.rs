@@ -27,7 +27,9 @@ pub use settlement_rates::*;
 
 /// The candidate adds an authenticated tail after the fixed Borsh prefix.
 pub const MARGIN_PREFIX: usize = 8 + MarginAccount::INIT_SPACE;
-#[cfg(feature = "profit-attribution-qualification")]
+#[cfg(feature = "bounded-entry-settlement")]
+pub const INITIAL_ATTRIBUTION_BYTES: usize = clearing_accounting::entry_cost::EntryCost::BYTES;
+#[cfg(all(feature = "profit-attribution-qualification", not(feature = "bounded-entry-settlement")))]
 pub const INITIAL_ATTRIBUTION_BYTES: usize = 128;
 pub const MARGIN_ALLOCATION: usize = MARGIN_PREFIX + {
     #[cfg(feature = "profit-attribution-qualification")]
@@ -44,7 +46,7 @@ pub const RENT_CREDIT_BYTES: usize = 32 + 8;
 
 pub fn valid_margin_size(size: usize) -> bool {
     if size == MARGIN_ALLOCATION { return true; }
-    #[cfg(feature = "profit-attribution-qualification")]
+    #[cfg(all(feature = "profit-attribution-qualification", not(feature = "bounded-entry-settlement")))]
     if let Some(extra) = size.checked_sub(MARGIN_ALLOCATION + RENT_CREDIT_BYTES) {
         return extra > 0 && extra % 2 == 0 &&
             extra / 2 <= MAX_ATTRIBUTION_SLOT - INITIAL_ATTRIBUTION_BYTES;
