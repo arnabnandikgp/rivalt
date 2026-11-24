@@ -18,13 +18,21 @@ const directory = process.env.RIVALT_RUN_DIR!;
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding:'utf8'}).trim();
 assert.equal(execFileSync('git', ['status','--porcelain','--untracked-files=no'], {encoding:'utf8'}).trim(), '');
 const build = routerBuild('closed-quantity');
+const budget = process.env.RIVALT_MAKER_STORAGE_BUDGET ?? 'wallet';
+assert(budget==='wallet'||budget==='diagnostic','Expected a wallet or diagnostic compute budget');
+const routeUnits = budget==='wallet'?800_000:1_400_000;
+const observed = (label:string) => budget==='wallet' && label.startsWith('cycle increase ');
+const originals = new Map<string,string>();
 const scale = 1_000_000_000n, cash = 10_000_000_000n, depth = 2_000_000n;
 const high = 16_383n, seedLots = 4n, seedAsk = 60_001n, ask = 60_002n, bid = 59_998n;
 const seedOwner = await fixtureKey('p32-trader'), cyclingOwner = await fixtureKey('p32-scale-trader-1');
 const isFill = (label:string) => label.startsWith('seed ') || label.startsWith('cycle ');
 const {h,rpc,ws,checks,flush} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
   deferFinality:true, payerFor:label => label.startsWith('seed ')?seedOwner:label.startsWith('cycle ')?cyclingOwner:undefined,
-  computeUnitLimit:label => isFill(label)?1_400_000:undefined, heapSize:label => isFill(label)?sdk.BEST_ROUTE_HEAP_BYTES:undefined,
+  computeUnitLimit:label => isFill(label)?routeUnits:undefined,
+  observeOutcomes:observed, measureComputeBoundary:label => budget==='wallet' && isFill(label),
+  signedOriginal:(label,signature) => {if(observed(label)) originals.set(label,signature);},
+  heapSize:label => isFill(label)?sdk.BEST_ROUTE_HEAP_BYTES:undefined,
 });
 
 // A maker retains r lots before each increase to H. The new fraction of the original
@@ -65,11 +73,30 @@ try {
     const snapshot=await setup.snapshot(trader,0);
     const order=await sdk.buildBestRoute({snapshot,trader,marketIndex:0,side,lots,maxFee:fee,
       allInLimit:side===0?gross+fee:gross-fee,reduceOnly:side===1},owner.address);
-    const before=capacityRefusal?await economicState():undefined;
     const label=(actor===0?'seed ':'cycle ')+detail;
+    const before=capacityRefusal||observed(label)?await economicState():undefined;
     await h.send(label,order.instructions,[owner],capacityRefusal?sdk.CLEARING_ERROR__CAPACITY:undefined);
-    if(before) assert.deepEqual(await economicState(),before,label+' byte-exact rollback');
+    if(observed(label)) {
+      const signature=originals.get(label)!;
+      const status=await rpc.call('getSignatureStatuses',[[signature],{searchTransactionHistory:true}]);
+      assert(status.value[0],label);
+      if(status.value[0].err) {
+        await flush();
+        const receipt=checks.find(check=>check.signature===signature)!;
+        const tx=await rpc.call('getTransaction',[signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+        assert.deepEqual(receipt.simulationError,receipt.error);
+        assert.deepEqual(tx.meta.err,status.value[0].err);
+        const [index,reason]=tx.meta.err.InstructionError;
+        assert.equal(index,tx.transaction.message.instructions.length-1);
+        assert(reason==='ComputationalBudgetExceeded'||(reason==='ProgramFailedToComplete' &&
+          tx.meta.logMessages.some((line:string)=>/exceeded CUs meter|computational budget exceeded/i.test(line))),label+' unexpected failure '+reason);
+        assert.deepEqual(await economicState(),before,label+' compute rollback');
+        return false;
+      }
+    }
+    if(capacityRefusal) assert.deepEqual(await economicState(),before,label+' storage rollback');
     else takerFees[actor]+=fee;
+    return !capacityRefusal;
   }
 
   await maker.publish(setup.updater,59_999n);
@@ -89,17 +116,17 @@ try {
     while(true) {
       if((rounds-start)%2===0) await setup.sample();
       const needed=basis(gapWeight*retained,divisor*high).bytes;
-      if(needed>width) {
+      assert(rounds<100,'Mixed-entry vector exceeded its predicted boundary');
+      const storageFull=needed>width;
+      const accepted=await trade(1,0,size,ask,storageFull?'refuse increase at '+width+' bytes':'increase '+(rounds+1),storageFull);
+      if(!accepted) {
         const prior=await verifyMaker(retained), flat=await history(cycling);
         assert.deepEqual([prior.width,flat.width,flat.used,flat.lots],[width,128,0,0n]);
-        await trade(1,0,size,ask,'refuse increase at '+width+' bytes',true);
-        boundaries.push({width,rounds:rounds-start,totalRounds:rounds,liveLots:retained,
-          makerBytes:prior.used,nextMakerBytes:needed,makerAccountBytes:prior.accountBytes,cyclingTraderBytes:flat.used,
-          nextCyclingTraderBytes:13,seedTraderBytes:(await history(seed)).used,cyclingTraderAccountBytes:flat.accountBytes});
+        boundaries.push({width,reason:storageFull?'storage':'compute',rounds:rounds-start,totalRounds:rounds,
+          liveLots:retained,makerBytes:prior.used,nextMakerBytes:needed,makerAccountBytes:prior.accountBytes,
+          cyclingTraderBytes:flat.used,nextCyclingTraderBytes:13,seedTraderBytes:(await history(seed)).used,cyclingTraderAccountBytes:flat.accountBytes});
         break;
       }
-      assert(rounds<100,'Mixed-entry vector exceeded its predicted boundary');
-      await trade(1,0,size,ask,'increase '+(rounds+1));
       gapWeight*=retained; divisor*=high;
       const open=await history(cycling), increased=await verifyMaker(high);
       assert.deepEqual([open.lots,open.used,open.entry],[size,13,{entryScaled:ask*scale,paidScaled:0n,denominator:1n}]);
@@ -122,7 +149,11 @@ try {
       assert.equal((await verifyMaker(2n)).width,256);
     } else await trade(0,1,1n,bid,'close remaining lot');
   }
-  assert.deepEqual(boundaries.map(row=>[row.width,row.totalRounds,row.makerBytes,row.nextMakerBytes]),[[128,33,128,132],[256,69,254,258]]);
+  const [initial,expanded]=boundaries;
+  assert.deepEqual([initial.reason,initial.width,initial.totalRounds,initial.makerBytes,initial.nextMakerBytes],['storage',128,33,128,132]);
+  assert.equal(expanded.width,256);
+  if(budget==='diagnostic') assert.deepEqual([expanded.reason,expanded.totalRounds,expanded.makerBytes,expanded.nextMakerBytes],['storage',69,254,258]);
+  else assert(expanded.reason==='compute' && expanded.nextMakerBytes<=expanded.width && expanded.totalRounds>initial.totalRounds);
   const debts=[seedLots*(seedAsk-bid),cycledLots*(ask-bid)], gain=debts[0]+debts[1];
   const makerFlat=await history(maker.capital);
   assert.deepEqual([makerFlat.lots,makerFlat.used,makerFlat.claimAtFlat,makerFlat.cash],[0n,0,gain*scale,cash]);
@@ -162,7 +193,9 @@ try {
   await journal.checkpoint('mixed-storage-maker-exit',true);
   const replay=await journal.finish();
   const routes=checks.filter(check=>isFill(String(check.label)));
-  const result={revision,program:build.revision,boundaries,fills,cycledLots,takerFees,debts,gain,exit,events:replay.events,routes};
+  for(const receipt of routes) assert.deepEqual(receipt.simulationError,receipt.error,String(receipt.label));
+  assert.equal(routes.filter(receipt=>receipt.error!==null).length,2);
+  const result={revision,program:build.revision,budget,routeUnits,boundaries,fills,cycledLots,takerFees,debts,gain,exit,events:replay.events,routes};
   writeFileSync(directory+'/mixed-maker-storage.json',json(result));
   console.log(json({boundaries,rounds,gain,exit,events:replay.events}));
 } finally {

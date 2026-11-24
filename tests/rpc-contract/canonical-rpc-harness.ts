@@ -14,6 +14,8 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
     heapSize?: (label:string)=>number|undefined;
     maxLoadedAccounts?: (label: string) => number | undefined;
     observeOutcomes?: (label: string) => boolean;
+    /** Resource-boundary probes record actual headroom, including a fully exhausted signed budget. */
+    measureComputeBoundary?: (label: string) => boolean;
     beforeBroadcast?: (label: string) => Promise<void>;
     signedOriginal?: (label: string, signature: string) => void;
     payerFor?: (label: string) => Keypair | undefined;
@@ -104,7 +106,8 @@ const h: CanonicalHarness = {
     if (observeOutcome) { /* Acceptance separately audits successes and atomic failures. */ }
     else if (expectedError === undefined) assert.equal(history.meta.err, null, label);
     else assertInstructionError(history.meta.err?.InstructionError?.[1], expectedError, label);
-    assert(history.meta.computeUnitsConsumed <= computeUnitLimit * 0.8, `${label}: 20% CU headroom`);
+    if (options.measureComputeBoundary?.(label)) assert(history.meta.computeUnitsConsumed <= computeUnitLimit, label);
+    else assert(history.meta.computeUnitsConsumed <= computeUnitLimit * 0.8, `${label}: 20% CU headroom`);
     const binary = await rpc.call('getTransaction', [signature, { encoding: 'base64', commitment: 'finalized', maxSupportedTransactionVersion: 1 }]);
     const fetched = Buffer.from(binary.transaction[0], 'base64');
     assert.deepEqual(fetched, Buffer.from(wire));
