@@ -2,6 +2,7 @@
 import json
 import sys
 from collections import Counter
+from decimal import Decimal
 from pathlib import Path
 
 
@@ -16,6 +17,8 @@ def load(path, arm):
 
 def summarize(rows):
     filled = [row for row in rows if row["fill"] is not None]
+    requested = sum(int(row["requestedIndexAtoms"]) for row in rows)
+    executed = sum(int(row["requestedIndexAtoms"]) for row in filled)
     failures = Counter()
     for row in rows:
         receipt = row["receipt"]
@@ -28,13 +31,61 @@ def summarize(rows):
         "offered": len(rows), "filled": len(filled),
         "single": sum(len(row["fill"]["legs"]) == 1 for row in filled),
         "split": sum(len(row["fill"]["legs"]) == 2 for row in filled),
-        "requestedIndexAtoms": sum(int(row["requestedIndexAtoms"]) for row in rows),
-        "filledIndexAtoms": sum(int(row["requestedIndexAtoms"]) for row in filled),
+        "requestedIndexAtoms": requested, "filledIndexAtoms": executed,
+        "indexNotionalFillPercent": format(Decimal(executed) * 100 / requested, ".2f") if requested else None,
         "grossExecutionAtoms": sum(int(row["fill"]["gross"]) for row in filled),
         "takerFeeAtoms": sum(int(row["fill"]["fee"]) for row in filled),
         "signedNetworkLamports": sum(int(row["receipt"]["feeLamports"]) for row in rows),
         "refusals": [{"reason": reason, "instructionError": json.loads(error), "count": count}
                      for (reason, error), count in failures.items()],
+    }
+
+
+def dollar_outcome(row):
+    """Price the whole-lot perp exposure in test USD at collateral parity."""
+    def usd(atoms):
+        return format(Decimal(atoms).scaleb(-6), ".6f")
+
+    lots = int(row["lots"])
+    index_value = int(row["requestedIndexAtoms"])
+    index_per_lot, remainder = divmod(index_value, lots)
+    assert remainder == 0 and row["side"] in (0, 1) and row["marketIndex"] in (0, 1)
+    buy = row["side"] == 0
+    limit = int(row["allInLimit"])
+    quoted = row["publishedBest"]
+    reference = row["best"]  # Maker-capital control excludes the flat, one-atom maker.
+    fill = row["fill"]
+    executed = None
+    if fill is not None:
+        gross, fee = int(fill["gross"]), int(fill["fee"])
+        legs = fill["legs"]
+        assert sum(int(leg["lots"]) for leg in legs) == lots
+        assert sum(int(leg["gross"]) for leg in legs) == gross
+        assert fee == (gross + 4999) // 5000 and fee <= int(row["maxFee"])
+        all_in = gross + fee if buy else gross - fee
+        headroom = limit - all_in if buy else all_in - limit
+        assert headroom >= 0 and all_in == int(reference["allIn"])
+        price_cost = gross - index_value if buy else index_value - gross
+        lots_per_asset = (1_000_000, 100_000)[row["marketIndex"]]
+        executed = {
+            "makerIds": [leg["id"] for leg in legs], "grossUsd": usd(gross),
+            "averageFillPriceUsdPerAsset": format(Decimal(usd(gross)) * lots_per_asset / lots, ".6f"),
+            "priceCostVsIndexUsd": usd(price_cost), "takerFeeUsd": usd(fee),
+            "allInUsd": usd(all_in), "totalCostVsIndexUsd": usd(price_cost + fee),
+            "insideSignedLimitUsd": usd(headroom),
+        }
+    return {
+        "book": row["book"], "case": row["control"], "market": ("BTC", "ETH")[row["marketIndex"]],
+        "side": "buy" if buy else "sell", "targetUsd": str(row["dollars"]),
+        "requestedIndexUsd": usd(index_value), "filledIndexUsd": usd(index_value if fill else 0),
+        "publishedDepthIndexUsd": usd(int(row["published"]) * index_per_lot),
+        "largestPublishedPairIndexUsd": usd(int(row["maxPairDepth"]) * index_per_lot),
+        "bestPublishedPairAllInUsd": usd(int(quoted["allIn"])) if quoted else None,
+        "bestPairAfterMakerCapitalAllInUsd": usd(int(reference["allIn"])) if reference else None,
+        "signedAllInLimitUsd": usd(limit), "execution": executed,
+        "refusal": None if fill else row["expectedRefusal"] or "quote fits; execution refused",
+        "instructionError": row["receipt"]["error"], "networkFeeLamports": str(row["receipt"]["feeLamports"]),
+        "signature": row["receipt"]["signature"],
     }
 
 
@@ -87,7 +138,9 @@ if __name__ == "__main__":
         result[run["arm"]] = {
             "revision": run["revision"], "program": run["build"]["revision"], "events": run["events"],
             "withdrawalAtoms": run["withdrawal"], "unpaidScaled": run["unpaid"],
-            "all": summarize(rows), "ordinaryBooks": {name: summarize(group) for name, group in groups.items()},
+            "ordinaryBtc": summarize([row for row in rows if row["control"] == "ordinary" and row["marketIndex"] == 0]),
+            "ordinaryBooks": {name: summarize(group) for name, group in groups.items()},
+            "dollarOrders": [dollar_outcome(row) for row in rows], "all": summarize(rows),
             "matchedSuccessfulSimulations": costs,
         }
     print(json.dumps(result, indent=2))

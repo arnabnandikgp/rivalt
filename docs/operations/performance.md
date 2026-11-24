@@ -2,17 +2,41 @@
 
 Read the order size, artifact, starting book and outcome together. These are local measurements with synthetic prices and internal makers. The examples use 1,000,000 BTC lots per BTC and a six-decimal test collateral token at parity.
 
-## Cost of selecting and filling the same order
+## Dollar-sized orders and executable depth
 
 On clearing `b7e4458b` and harness `6ddfcaee`, each run submitted 30 ordinary BTC orders and six diagnostic orders. The five BTC sizes were $100, $1,000, $5,000, $10,000 and $61,000 in both directions. Each maker published one flat region per side, with spreads of two, four and six atoms per lot from the synthetic $61,000 index. The benchmark used one repeat trader, an additional one-atom account and three internal makers per market. Books retained consumed depth between their orders.
 
-| BTC book | Buy fills / offers | Sell fills / offers | Two-maker fills | Filled / requested index notional |
-|---|---:|---:|---:|---:|
-| Deep, four BTC per maker per side | 5/5 | 5/5 | 0 | $154,200.314 / $154,200.314 |
-| Fragmented, 65,000 lots per maker per side | 3/5 | 3/5 | 2 | $12,200.244 / $154,200.314 |
-| One-sided, 1,200 ask lots and four BTC of bids per maker | 1/5 | 5/5 | 1 | $77,200.197 / $154,200.314 |
+The wallet filled **22 of 30 ordinary BTC orders** and **$243,600.755 of $462,600.942** requested at the index (52.66%). All 22 orders for which the independent reference found a feasible pair filled at its best fee-inclusive value. Each request was exact-size. A refusal contributed zero filled dollars.
 
-On the fragmented book the $10,000 request needed 163,935 lots. All three makers together quoted 195,000, and the largest permitted pair could supply 130,000. The $5,000 buy and sell both filled with 65,000 lots from maker 0 and 16,968 from maker 1. The independent calculation matched the maker IDs, quantities, gross amounts and aggregate fee on every successful original. Failed trades left the trader, maker capitals, registrations, markets and fee ledgers byte-identical.
+| BTC book | Buy fills / offers | Sell fills / offers | Two-maker fills | Filled / requested index notional | Share of dollars filled |
+|---|---:|---:|---:|---:|---:|
+| Deep, four BTC per maker per side | 5/5 | 5/5 | 0 | $154,200.314 / $154,200.314 | 100% |
+| Fragmented, 65,000 lots per maker per side | 3/5 | 3/5 | 2 | $12,200.244 / $154,200.314 | 7.91% |
+| One-sided, 1,200 ask lots and four BTC of bids per maker | 1/5 | 5/5 | 1 | $77,200.197 / $154,200.314 | 50.06% |
+
+### What each dollar order received
+
+Each cell shows **buy / sell** for the same requested BTC exposure. The buy value is gross execution notional plus the taker fee. The sell value is gross execution notional less the taker fee. These figures value the exposure at test collateral parity. The trader posts margin to open the perp. Order sizes round up to whole lots, and table values round to four decimals. Network fees are separate.
+
+| Target at the index | Deep book | Fragmented book | One-sided book |
+|---:|---:|---:|---:|
+| $100 | $100.0633 / $100.0167 | $100.0666 / $100.0134 | $100.0642 / $100.0167 |
+| $1,000 | $1,000.2668 / $999.8012 | $1,000.2996 / $999.7684 | refused / $999.8012 |
+| $5,000 | $5,001.2120 / $4,998.8841 | $5,001.2459 / $4,998.8502 | refused / $4,998.8841 |
+| $10,000 | $10,002.3629 / $9,997.7072 | refused / refused | refused / $9,997.7072 |
+| $61,000 | $61,014.2004 / $60,985.8004 | refused / refused | refused / $60,985.8004 |
+
+For example, the $5,000 fragmented buy requested 81,968 lots worth $5,000.048 at the index. The average fill price was $61,002.414015 per BTC. The fills added $0.197872 over the index and the 2 bps taker fee added $1.000050, for an **execution cost of $1.197922**. Its $5,001.245922 all-in value met the trader's signed maximum exactly. The reference and signed limits covered the same whole-lot quantity on each side. The report includes these unrounded dollar amounts and signed-limit comparisons for each order. [Run the report](local-development.md#matched-btc-fill-benchmark)
+
+On the fragmented book the $10,000 request needed 163,935 lots. At the index, the three makers advertised $11,895 of depth (195,000 lots). The largest permitted pair could supply only $7,930 (130,000 lots). The $5,000 buy and sell both filled with 65,000 lots from maker 0 and 16,968 from maker 1. The independent calculation matched the maker IDs, quantities, gross amounts and aggregate fee on every successful original. Failed trades left the trader, maker capitals, registrations, markets and fee ledgers byte-identical.
+
+**An executable $100 ETH buy the router missed.** The lowest published offer for 3,334 lots was $100.046674 including fees. That maker had one collateral atom and could not margin even one lot. The trader signed a $100.053343 maximum, enough for the next maker, but the ordinary route refused the whole order. An explicit order against that maker finalized at exactly $100.053343, including a $0.020007 taker fee. The same pair of signed transactions also produced these different outcomes when simulated on the same bank. Clearing returned its internal search-limit error (6133). The receipt does not identify which search counter exhausted.
+
+Including the six controls, the router filled 23/36 signed requests and the explicit control filled 24/36. Where no pair could supply the requested quantity, both venues submitted the routed original to obtain a finalized refusal. Each run requested $463,201.142 at the index. The routed run filled $243,700.795 at the index, exchanged 243,698.277846 gross test collateral and charged 48.739666 in aggregate taker fees. The control filled $243,800.815 at the index, exchanged 243,798.311182 gross and charged 48.759673. Each wallet spent 180,000 local lamports on its 36 measured originals, including refusals. Exit transactions and operator provisioning are outside those totals.
+
+After both books were restored, the trader flattened, paid its whole-atom losses and withdrew 499,925.224841 test collateral on the routed venue and 499,925.164827 on the control venue. Both SPL wallet increases matched the vault decreases. Each trader retained one funded atom against 0.546810565 atoms of outstanding BTC debt. These traders lost the spread. This workload measured return of available collateral and included no profitable trader payout. The PostgreSQL replays reconciled 422 and 463 events respectively. This sequential test has synthetic prices, one independent maker reprice before signing, and zero priority fees. It supplies no concurrent arrival or production latency distribution. [Reproduction and report](local-development.md#matched-btc-fill-benchmark)
+
+## Cost of selecting and filling the same order
 
 Both full transactions were signed and simulated on the same confirmed bank with identical economic terms and checkpoint instructions. The table uses the routed run’s starting state for each row. Each arm also broadcast its designated originals on its own fresh venue. The explicit instruction still authenticates its selected makers, asks their programs for binding prices and runs financial admission and settlement. The difference includes the extra candidate accounts, validation, search and any wire-format overhead. The maker quote column sums only the nested maker program invocations on the routed path.
 
@@ -25,11 +49,7 @@ Both full transactions were signed and simulated on the same confirmed bank with
 
 Across the 20 matched one-maker successes on the routed venue, specifying the leg saved 194,179–294,632 transaction CU. Across three matched splits it saved 269,690–277,699 CU. These ranges describe the measured books. Neither path has a constant fill cost.
 
-**An executable order the router missed.** On ETH, maker 0 published the cheapest ask after its owner withdrew all but one collateral atom. It could not margin a single 30,000-atom lot. For a 3,334-lot buy whose limit allowed maker 1, clearing returned `RouteSearchLimit` (6133) at 595,329 transaction CU, before any maker quote CPI. An explicit order to maker 1 succeeded on the same bank at 250,667 CU and also finalized in the control run. The receipt establishes the selector's internal work limit; it does not distinguish the interval, quote-evaluation and financial-admission counters. Clearing retained its 800,000 CU wallet limit and all risk checks. The two runs had different ETH exposure from this point on, so subsequent cross-run CU differences do not isolate selection cost.
-
-Including the six controls, the router filled 23/36 signed requests and the explicit control filled 24/36. Where no pair could supply the requested quantity, both venues submitted the routed original to obtain a finalized refusal. Each run requested $463,201.142 at the index. The routed run filled $243,700.795 at the index, exchanged 243,698.277846 gross test collateral and charged 48.739666 in aggregate taker fees. The control filled $243,800.815 at the index, exchanged 243,798.311182 gross and charged 48.759673. Each wallet spent 180,000 local lamports on its 36 measured originals, including refusals. Exit transactions and operator provisioning are outside those totals.
-
-After both books were restored, the trader flattened, paid its whole-atom losses and withdrew 499,925.224841 test collateral on the routed venue and 499,925.164827 on the control venue. Both SPL wallet increases matched the vault decreases. Each trader retained one funded atom against 0.546810565 atoms of outstanding BTC debt. These traders lost the spread. This workload measured return of available collateral and included no profitable trader payout. The PostgreSQL replays reconciled 422 and 463 events respectively. This sequential test has synthetic prices, one independent maker reprice before signing, and zero priority fees. It supplies no concurrent arrival or production latency distribution. [Reproduction and report](local-development.md#matched-btc-fill-benchmark)
+The successful explicit ETH fallback changed later portfolio exposure in that run. All CU differences in this comparison use the two simulations on the same bank.
 
 ## Fixed-width maker entry
 
