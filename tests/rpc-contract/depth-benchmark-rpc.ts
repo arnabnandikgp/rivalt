@@ -193,9 +193,9 @@ try {
     }
   }
   // Settle the benchmark trader's spread losses and measure funded collateral returned to its SPL account.
-  await h.send('restore ETH maker capital', [await sdk.getDepositAccountInstructionAsync({...setup.common,
+  await h.send('restore ETH maker capital', await withCheckpoints(await sdk.getDepositAccountInstructionAsync({...setup.common,
     owner:setup.owner,margin:setup.instances[3].capital,quoteMint:setup.mint.address,userToken:setup.token.address,
-    amount:capital-1n})],[setup.owner]);
+    amount:capital-1n})),[setup.owner]);
   await replaceBook('deep');
   const trader = setup.roots[0];
   peer = undefined;
