@@ -33,3 +33,7 @@ required-features = ["closed-quantity-model"]
 [[example]]
 name = "funding_prefix_replay"
 required-features = ["parallel-market-prototype"]
+
+[[example]]
+name = "bounded_entry_comparison"
+required-features = ["closed-quantity-model"]
