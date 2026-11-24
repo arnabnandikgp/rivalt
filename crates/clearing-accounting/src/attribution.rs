@@ -78,6 +78,31 @@ impl Attribution {
         (BigInt::from(marked) - BigInt::from(self.entry.clone())) * lots
     }
 
+    /// Native candidate for fresh positions with no earlier open-price payments.
+    /// The accrued claim includes funding and prior settlement. Exclude positive
+    /// price P&L on surviving lots, then floor once at the whole-atom boundary.
+    /// The caller still supplies backing, available pool and whole-account admission.
+    #[cfg(feature = "closed-quantity-model")]
+    pub fn closed_quantity_payment_cap(
+        &self,
+        lots: i64,
+        mark: u64,
+        claim_scaled: i128,
+    ) -> Result<u64> {
+        if !self.paid.is_zero() || self.entry.is_zero() != (lots == 0) {
+            return Err(Error::Invariant);
+        }
+        if mark == 0 || mark > MAX_PRICE || lots.unsigned_abs() > MAX_LOTS as u64 {
+            return Err(Error::Bounds);
+        }
+        let denominator = BigInt::from(self.denominator.clone());
+        let open_gain = self.price_profit(lots, mark).max(BigInt::zero());
+        let eligible = (BigInt::from(claim_scaled) * &denominator - open_gain).max(BigInt::zero());
+        (eligible / (denominator * SCALE))
+            .to_u64()
+            .ok_or(Error::Overflow)
+    }
+
     /// Apply an already admitted backed payment at the same mark and fully accrued
     /// claim as clearing. Negative fixed P&L never enlarges the available payment.
     pub fn payment(&self, lots: i64, mark: u64, claim_scaled: i128, amount: u64) -> Result<Self> {

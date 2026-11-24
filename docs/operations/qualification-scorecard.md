@@ -41,6 +41,23 @@ node --import tsx tests/performance/trader-flow-report.ts "$RIVALT_RUN_DIR"
 
 Set `RIVALT_RUN_DIR` to the directory containing `router-load.json` and its retained receipts. [Generating a wallet workload](local-development.md#wallet-load-comparison)
 
+### Closed-quantity payout comparison
+
+The native test runs the actual route, margin, fee, backing, settlement and profit-attribution arithmetic with the [candidate payment ceiling](../clearing/accounting.md#candidate-for-ordinary-payouts-on-closed-quantity). It checks whether the exact entry fits at trade time. An admitted partial close or payment carries no additional entry-storage requirement. The pool is funded by collection from a losing account. With adequate cash, the following long results use entry 61,002 and exit 61,998 collateral atoms per lot. The first sale closes half the lots, rounded up. Amounts below are six-decimal test collateral, before trader fees unless labelled otherwise.
+
+| Requested size | Paid after the first sale | Gross gain paid by final close | Trader's cash gain after all fees |
+|---|---:|---:|---:|
+| $100 | 0.816720 | 1.633440 | 1.593095 |
+| $1,000 | 8.164212 | 16.328424 | 15.925130 |
+| $10,000 | 81.640128 | 163.279260 | 159.246457 |
+| One BTC ($61,000) | 498.000000 | 996.000000 | 971.400000 |
+
+All four sizes and both small controls completed for longs and shorts. With the pool already funded, price appreciation alone authorized zero payment. On replay of the 220 prime-quantity requests at each size, sales at entry produced zero realized gain and all 880 payout attempts were refused. In a separate profitable-sale sequence, all 880 one-atom payments succeeded. Single-price entry occupied 13 bytes at all four sizes. This counts the attribution record for one market inside one margin account.
+
+**Remaining storage limit.** Open one lot at 60,001, then repeatedly buy one at 60,002 and sell one at 60,002. After `n` round trips, exact average entry is `60,002 − 1/2ⁿ`. The model completed 984 round trips within 256 bytes. Increase 985 required 257 bytes and rolled back. The owner could still close the remaining lot and collect the exact three atoms due at 60,004. Quantity and payout count alone cannot bound exact entry size for an active maker.
+
+Run `cargo test --locked --offline -p financial-core --features closed-quantity-model --test closed_quantity_payout`. These are native arithmetic and storage checks. Signed fills, custody, keeper selection of eligible amounts, end-to-end default, CU and SQL replay remain deployment qualification gates. [Executable cases](../../crates/financial-core/tests/closed_quantity_payout.rs)
+
 ## Work order
 
 1. **Compare and qualify position storage.** Use the [fixed BTC sequence](performance.md#btc-orders-at-fixed-dollar-sizes) of $100, $1,000, $10,000 and $61,000 plus the one- and three-lot controls. Compare the existing exact implementation to alternative representations on both sides of the trade. Check single-price and mixed entries, aggregate versus split maker legs, repeated partial closes, payments between closes, flips and final close. Check funded cash, unpaid claims, eligible forced-close amounts and creditor receipts against an independent oracle, including rounding boundaries. Measure encoded bytes, reserved bytes, rent, CU and wire impact. Require a signed deep-book repeat, rollback checks, SPL wallet exit and fresh PostgreSQL reconciliation before declaring the storage limit addressed. Escalate any proposal that changes who receives a collateral atom.

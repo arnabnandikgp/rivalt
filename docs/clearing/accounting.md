@@ -79,6 +79,14 @@ example, a 300-atom payment leaves a 696-atom claim. Only funded cash can leave 
 
 Clearing applies a payment closed-first and tracks the already-paid price profit on surviving lots. [Attribution](default-plan-verification.md)
 
+### Candidate for ordinary payouts on closed quantity
+
+In the native model, selling part of a long or buying back part of a short makes the price profit on that quantity eligible. The remaining lots keep their exact average entry. For example, buying 1,640 lots at 61,002 atoms and selling 820 at 61,998 realizes 816,720 atoms (0.816720 test collateral). A backed payment of that amount leaves 820 lots open. The same rule applies to maker inventory.
+
+At the same fully accrued market snapshot, let `U` be the signed unpaid claim, `G` the signed price gain on the surviving lots at their exact basis, and express both in scaled atoms. The candidate's whole-atom ceiling is `floor(max(0, U − max(0, G)) / S)`. This keeps an open loss in the net entitlement. Positive and negative accrued funding, previously collected cash and earlier payments stay in the fixed component. For example, if clearing collected 20 atoms during a price decline and the price recovers, the account can recover those 20 subject to backing. An additional 10 atoms of open price gain still require a reduction. Available market cash, the backing certificate and recipient health further limit every payment.
+
+This rule is under native qualification for fresh accounts. It changes the timing of cash availability for a maker carrying profitable inventory. Existing deployment identities use the ordinary payment contract above. Accounts with prior open payouts need their original interpretation. [Executable comparison and qualification boundary](../operations/qualification-scorecard.md#closed-quantity-payout-comparison)
+
 ## Funded exits
 
 ### Held-funding safeguards

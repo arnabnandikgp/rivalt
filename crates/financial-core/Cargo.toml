@@ -18,12 +18,17 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"
 
 [features]
 parallel-market-prototype = []
+closed-quantity-model = ["clearing-accounting/closed-quantity-model"]
 # Explicitly meter the vector-backed reference on a local diagnostic SBF only.
 sbf-settlement-measurement = []
 
 [[example]]
 name = "gross_capacity_replay"
 required-features = ["parallel-market-prototype"]
+
+[[test]]
+name = "closed_quantity_payout"
+required-features = ["closed-quantity-model"]
 
 [[example]]
 name = "funding_prefix_replay"
