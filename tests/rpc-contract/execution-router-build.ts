@@ -4,7 +4,7 @@ import {accountDeployment} from '@rivalt/sdk';
 
 /** Explicit local binary identity shared by the launcher and finalized journal. */
 export function routerBuild(selection:'closed-quantity'|'bounded-router-candidate' =
-  process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-closed-quantity' ? 'closed-quantity' : 'bounded-router-candidate',
+  ['execution-router-closed-quantity','execution-router-mixed-storage'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'closed-quantity' : 'bounded-router-candidate',
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const deployment = accountDeployment(selection);
