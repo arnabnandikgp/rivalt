@@ -68,7 +68,22 @@ The native experiment on `2477ddc4` keeps one 16-byte total entry cost per posit
 | Can splitting a close change when a trader can collect? | Yes. With six lots open, closing three together made five atoms payable in both models. Three one-lot closes made five payable under exact accounting and four under the candidate. With backing, the final close brought both cumulative payouts to ten. |
 | Can rounding change a default? | Yes. With all surviving maker lots available for a hypothetical forced reduction, the charge ceiling rose on 127 of 134 and 135 of 142 maker observations. The largest increase was 16,383 atoms. In a separate three-member frozen book, selecting each model’s maximum charge on one eligible lot moved one of eight funded atoms from one creditor to another. Insurance spending was zero in both cases. |
 
-The fixed-width candidate remains native-only. The last row measures a ceiling on the signed histories and an actual native settlement on the separate frozen book. Candidate CU, account rent and on-chain execution remain unmeasured. The next comparison will test whether bounds around the exact cost can certify the original whole-atom payout and forced-charge decisions, and report when the bounds leave a decision ambiguous.
+The fixed-width candidate remains native-only. The last row measures a ceiling on the signed histories and an actual native settlement on the separate frozen book. Candidate CU, account rent and on-chain execution remain unmeasured.
+
+### Can two entry-cost bounds certify the exact payment?
+
+Native revision `0bf61818` stores two 16-byte bounds on the surviving position’s total entry cost. Each holds an integer in billionths of an atom and a bit indicating whether the true cost can equal that endpoint. Adding inventory adds its gross cost to both bounds. Reducing inventory scales both by the surviving proportion and rounds each outward. A full close resets both to zero; a flip derives the new basis from its share of the execution gross. Only the entry-cost field is 32 bytes. [Native implementation](../../crates/financial-core/examples/bounded_entry_comparison/interval.rs)
+
+For fixed lots, mark, unpaid claim and matched quantity, each whole-atom ceiling varies monotonically with cost and changes only at integer scaled costs. Clearing arithmetic can therefore give a definitive answer whenever the two endpoint evaluations agree. The experiment tests the interior side of each excluded endpoint. It reports ordinary and frozen ceilings independently, returning an explicit unknown for a ceiling that crosses a threshold. An exact rational reference checks containment and each certified decision. [Tests and fill histories](../../tests/financial/test_entry_bounds.py)
+
+| Native comparison | Result |
+|---|---|
+| Same two signed BTC histories, replayed at index 60,000 | All **552/552 ordinary ceilings** and **552/552 hypothetical forced-charge ceilings** certified at the exact amounts. Treating both endpoints as inclusive left 262 maker charge ceilings ambiguous. No default occurred on these runs. |
+| Three-member frozen case from the single-cost comparison | The strict bounds certified the original one-atom maximum charge. The compiled settlement engine returned **8/0** to the creditors with zero insurance use. |
+| Close three lots together or one at a time | Both methods of selling have an exact ordinary ceiling of five atoms. The bounds certify five for the single sale, report unknown after the three partial sales, and certify ten at final close. This holds for both long and short positions. |
+| Two distinct BTC fill histories with identical stored bounds | Each ends long four lots with the same mark and a 36-atom unpaid claim. One allows **27 atoms ordinary / 8 forced**, the other **28 ordinary / 4 forced**. Both amounts remain ambiguous from the 32-byte state even with the endpoint bits. |
+
+These results cover local native accounting. The two BTC runs overlap in their early fills. Neither their success rate nor the constructed cases estimate the frequency of ambiguous decisions in general trading. A deployable design preserving these rules still needs enough authenticated information to distinguish the last two histories and finish payout or recovery when the bounds alone cannot decide.
 
 ## Work order
 

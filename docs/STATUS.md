@@ -27,7 +27,9 @@ The [venue qualification scorecard](operations/qualification-scorecard.md) conti
 
 On `2477ddc4`, the native 16-byte entry-cost candidate matched all 552 ordinary payout observations on the two retained signed BTC books. Splitting a close delayed one payable atom on a separate book, and a frozen settlement moved one funded atom between creditors. The candidate stays native-only. Its on-chain compute cost is unmeasured. [Comparison and limits](operations/qualification-scorecard.md#fixed-width-entry-cost-comparison)
 
-**Next action.** Test whether fixed-width lower and upper bounds on surviving entry cost certify the exact ordinary payout and forced-charge amounts. Count ambiguous decisions on the same fills and frozen cases before proposing any change to creditor entitlements.
+On `0bf61818`, two 16-byte entry-cost bounds certified all 552 ordinary ceilings and all 552 hypothetical forced-charge ceilings in native replay of the same two BTC runs. They reproduced the 8/0 frozen payout. A split close still had an ambiguous ordinary ceiling, and two constructed histories with identical bounds required different ordinary and default amounts. This representation alone cannot preserve current economics for every position. [Results and limits](operations/qualification-scorecard.md#can-two-entry-cost-bounds-certify-the-exact-payment)
+
+**Next action.** Test an exact fallback on the two indistinguishable histories using an authenticated starting position and subsequent fills. Measure the required history and verification work, including whether a frozen account can finish recovery within a fixed work budget.
 
 | Open gate | What remains |
 |---|---|

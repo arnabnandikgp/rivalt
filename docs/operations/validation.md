@@ -28,4 +28,6 @@ Use the smallest check that exercises the changed behavior. For a financial tran
 
 The [closed-quantity payout comparison](qualification-scorecard.md#closed-quantity-payout-comparison) on `afc45179` ran eight native cases against the financial crates. It establishes the payout and storage results for those histories. The longer native mixed-price history remains a separate storage limit.
 
+The [entry-cost bounds comparison](qualification-scorecard.md#can-two-entry-cost-bounds-certify-the-exact-payment) on `0bf61818` verified the 32-byte representation against exact attribution on retained fill histories and rounding boundaries. Two histories with the same stored bounds require different payments. This is native evidence only.
+
 Retain raw evidence at its ignored local path. Record new results against exact program and harness revisions, with the denominator, failed attempts, economic outcome and remaining limitation. Detailed runs and reproduction notes belong in the PR.
