@@ -34,6 +34,7 @@ python3 tests/financial/test_scalable_settlement.py
 python3 tests/financial/test_settlement_liquidation_model.py
 python3 tests/financial/test_adl_eligibility.py
 cargo test --locked -p clearing-accounting --features surviving-profit attribution
+cargo test --locked -p clearing-accounting --features surviving-profit --test position_history_storage
 cargo test --locked -p financial-core --features closed-quantity-model --test closed_quantity_payout
 cargo build --locked -p financial-core --features closed-quantity-model --example bounded_entry_comparison --example authenticated_entry_replay --example entry_cost_decisions
 python3 tests/financial/test_bounded_entry.py

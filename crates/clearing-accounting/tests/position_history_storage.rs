@@ -97,6 +97,14 @@ fn exact_history_after_partial_closes_and_payments_at_dollar_sizes() {
                 state.charge_cap(previous, mark, i128::from(unpaid_atoms) * SCALE, matched),
                 Ok(matched_gain.min(unpaid_atoms))
             );
+            // An aggregate claim of 37.5 atoms can fund only 37 whole atoms,
+            // even when the matched lots have a larger unpaid gain.
+            assert!(matched_gain > 37);
+            assert_eq!(
+                state.charge_cap(previous, mark, 37 * SCALE + SCALE / 2, matched),
+                Ok(37)
+            );
+            assert_eq!(state.charge_cap(previous, mark, 0, matched), Ok(0));
             assert_eq!(
                 state.fill(previous, 0, quantity * entry).unwrap(),
                 Attribution::default()
