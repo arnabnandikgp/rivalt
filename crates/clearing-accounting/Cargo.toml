@@ -6,7 +6,6 @@ publish = false
 
 [features]
 surviving-profit = ["dep:num-bigint", "dep:num-integer", "dep:num-traits"]
-closed-quantity-model = ["surviving-profit"]
 
 [dependencies]
 num-bigint = { version = "=0.4.6", default-features = false, optional = true }

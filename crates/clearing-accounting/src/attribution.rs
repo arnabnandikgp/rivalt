@@ -78,11 +78,10 @@ impl Attribution {
         (BigInt::from(marked) - BigInt::from(self.entry.clone())) * lots
     }
 
-    /// Native candidate for fresh positions with no earlier open-price payments.
+    /// Ordinary price-profit ceiling for fresh positions with no earlier open-price payments.
     /// The accrued claim includes funding and prior settlement. Exclude positive
     /// price P&L on surviving lots, then floor once at the whole-atom boundary.
     /// The caller still supplies backing, available pool and whole-account admission.
-    #[cfg(feature = "closed-quantity-model")]
     pub fn closed_quantity_payment_cap(
         &self,
         lots: i64,

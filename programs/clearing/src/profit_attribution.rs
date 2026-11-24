@@ -7,7 +7,10 @@ use crate::{
 use anchor_lang::prelude::*;
 use clearing_accounting::attribution::Attribution;
 
+#[cfg(not(feature = "closed-quantity-settlement"))]
 pub(crate) const MAGIC: &[u8; 8] = b"RVPROF01";
+#[cfg(feature = "closed-quantity-settlement")]
+pub(crate) const MAGIC: &[u8; 8] = b"RVPROF02";
 
 fn tail(
     root: &mut BorshAccount<MarginAccount>,
@@ -70,6 +73,7 @@ pub fn fill(
         let new = old
             .fill(before, after, gross)
             .map_err(|_| ClearingError::Arithmetic)?;
+        #[cfg(not(feature = "closed-quantity-settlement"))]
         require!(
             new.recovery_bytes(after)
                 .is_ok_and(|needed| needed <= slot.len()),
@@ -90,11 +94,19 @@ pub fn payment(
     tail(root, |bytes| {
         let slot = market_slot(bytes, market)?;
         let old = Attribution::read(slot, lots).map_err(|_| ClearingError::Reconciliation)?;
-        let new = old
-            .payment(lots, mark, claim, amount)
-            .map_err(|_| ClearingError::Arithmetic)?;
-        new.write(slot)
-            .map_err(|_| ClearingError::Reconciliation.into())
+        #[cfg(feature = "closed-quantity-settlement")]
+        {
+            let cap = old.closed_quantity_payment_cap(lots, mark, claim)
+                .map_err(|_| ClearingError::Reconciliation)?;
+            require!(amount <= cap, ClearingError::Amount);
+            Ok(())
+        }
+        #[cfg(not(feature = "closed-quantity-settlement"))]
+        {
+            let new = old.payment(lots, mark, claim, amount)
+                .map_err(|_| ClearingError::Arithmetic)?;
+            new.write(slot).map_err(|_| ClearingError::Reconciliation.into())
+        }
     })
 }
 
