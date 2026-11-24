@@ -120,3 +120,17 @@ RIVALT_SETTLEMENT_PROBE=execution-router-notional RIVALT_RUN_DIR=.local/btc-noti
 The harness saves each published quote, signed simulation and finalized order in `notional-orders.json`. After checking payout, SPL balances and fresh database replay, it writes `notional-baseline.json` in the same ignored directory. It attempts the same six buys in order, including diagnostic broadcasts of refused simulations. [Conditions and results](performance.md#btc-orders-at-fixed-dollar-sizes)
 
 Use [validation](validation.md) to select smaller checks. Historical proof experiments have separate artifact and helper bindings. Their commands are kept with the [original revisions](../HISTORY.md).
+
+## Matched BTC fill benchmark
+
+From a clean tracked checkout, set the pinned artifact directory and run each arm in a fresh local venue. The smoke wrapper creates a unique run directory automatically. Run the commands sequentially to reuse the default ports.
+
+```sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/bounded-entry/build-b7e4458b
+export RIVALT_ROUTER_REVISION=b7e4458b57a3a9bbb0906929a936094c78393b47
+export RIVALT_SETTLEMENT_PROBE=execution-router-bounded-entry-benchmark
+RIVALT_BENCH_ARM=routed bash ops/scalable-settlement-smoke.sh
+RIVALT_BENCH_ARM=explicit bash ops/scalable-settlement-smoke.sh
+```
+
+Each run retains its signed originals, simulations, finalized RPC and WS records, PostgreSQL reconciliation and `depth-benchmark.json` locally. The latter records each offer, the independent optimal allocation for the fixture’s flat price regions, the signed limit, and the actual outcome. When a pair of makers can supply the size, both transaction alternatives are signed and simulated at the same confirmed slot before broadcasting the designated one. When the size exceeds every pair, both runs submit the wallet’s routed original so the refusal has a receipt.
