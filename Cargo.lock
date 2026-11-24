@@ -471,6 +471,9 @@ version = "0.1.0"
 dependencies = [
  "clearing-accounting",
  "risk-engine",
+ "serde",
+ "serde_json",
+ "solana-sha256-hasher",
 ]
 
 [[package]]

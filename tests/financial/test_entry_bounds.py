@@ -62,13 +62,13 @@ def ambiguous_counts(rows, column):
     return tuple(sum(decision[index] is None for decision in decisions) for index in (0, 1))
 
 
-def opposite_histories(offset):
+def opposite_histories(offset, rounds=30):
     # Two histories converge towards MARK from opposite sides. The compensating
     # first sale gives them equal total virtual quote. At five lots their cost
     # falls inside the same interval; a later increase puts a tick inside it.
     mark = MARK + 2
     actions = [fill(1, MARK + offset, mark)]
-    for round_index in range(30):
+    for round_index in range(rounds):
         premium = offset if round_index == 0 else 0
         actions.extend([fill(1, MARK, mark), fill(-1, MARK + 1 + premium, mark)])
     actions.extend([(8, 8*MARK + 3, mark, 0), fill(-4, MARK, mark),
