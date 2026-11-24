@@ -16,7 +16,7 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
     observeOutcomes?: (label: string) => boolean;
     /** Resource-boundary probes record actual headroom, including a fully exhausted signed budget. */
     measureComputeBoundary?: (label: string) => boolean;
-    beforeBroadcast?: (label: string) => Promise<void>;
+    beforeBroadcast?: (label: string, wireBase64: string) => Promise<void>;
     signedOriginal?: (label: string, signature: string) => void;
     payerFor?: (label: string) => Keypair | undefined;
     /** Deliberately malformed metas have no equivalent generated IDL builder.
@@ -72,7 +72,7 @@ const h: CanonicalHarness = {
     const signatureSubscription = await ws.call('signatureSubscribe', [expectedSignature,
       { commitment: 'finalized', enableReceivedNotification: false }]);
     const notificationOffset = ws.notifications.length;
-    await options.beforeBroadcast?.(label);
+    await options.beforeBroadcast?.(label, wireBase64);
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature, expectedSignature);
     const verify = async () => {
