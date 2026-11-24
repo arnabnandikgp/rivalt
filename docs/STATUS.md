@@ -29,7 +29,9 @@ On `2477ddc4`, the native 16-byte entry-cost candidate matched all 552 ordinary 
 
 On `0bf61818`, two 16-byte entry-cost bounds certified all 552 ordinary ceilings and all 552 hypothetical forced-charge ceilings in native replay of the same two BTC runs. They reproduced the 8/0 frozen payout. A split close still had an ambiguous ordinary ceiling, and two constructed histories with identical bounds required different ordinary and default amounts. This representation alone cannot preserve current economics for every position. [Results and limits](operations/qualification-scorecard.md#can-two-entry-cost-bounds-certify-the-exact-payment)
 
-**Next action.** Test an exact fallback on the two indistinguishable histories using an authenticated starting position and subsequent fills. Measure the required history and verification work, including whether a frozen account can finish recovery within a fixed work budget.
+Native exact replay on `3c0e35b4` distinguished both 65-fill histories and reproduced their creditor payouts. A verified checkpoint at fill 64 reduced each remaining witness to 51 bytes. A synthetic 4,101-fill frozen case still needed a 524-byte exact record even with checkpoints every 64 fills. A 256-byte allowance first refused fill 1,970. This fallback depends on available fill history and variable-width exact state. [Replay results and limits](operations/qualification-scorecard.md#exact-replay-from-a-verified-checkpoint)
+
+**Next action.** Specify a bounded average-entry accounting rule that states who receives a rounding atom on partial closes and in default. Compare its payouts against the two verified histories for an explicit economic decision before changing clearing or building on-chain history retention.
 
 | Open gate | What remains |
 |---|---|

@@ -30,4 +30,6 @@ The [closed-quantity payout comparison](qualification-scorecard.md#closed-quanti
 
 The [entry-cost bounds comparison](qualification-scorecard.md#can-two-entry-cost-bounds-certify-the-exact-payment) on `0bf61818` verified the 32-byte representation against exact attribution on retained fill histories and rounding boundaries. Two histories with the same stored bounds require different payments. This is native evidence only.
 
+The [exact replay experiment](qualification-scorecard.md#exact-replay-from-a-verified-checkpoint) on `3c0e35b4` recovered both entitlements with authenticated fill data and measured the first exact-record overflow on a longer frozen history. The commitments and checkpoint rotations were modeled locally. The fresh deployment still uses exact margin-account entry records.
+
 Retain raw evidence at its ignored local path. Record new results against exact program and harness revisions, with the denominator, failed attempts, economic outcome and remaining limitation. Detailed runs and reproduction notes belong in the PR.
