@@ -1,70 +1,23 @@
 //! Native differential driver. Both bases see the same real position and market claim.
 //! No deployment feature references this candidate.
+#[path = "bounded_entry_comparison/interval.rs"]
+mod interval;
+
 use clearing_accounting::attribution::Attribution;
-use financial_core::{Error, Participant, Result, MAX_PRICE, SCALE};
+use financial_core::Participant;
+use interval::{ceilings, EntryBounds};
 use std::io::{self, BufRead};
-
-/// Scaled quote atoms attributable to the entire surviving position.
-#[derive(Default)]
-struct OpenCost(i128);
-
-impl OpenCost {
-    fn fill(&self, before: i64, after: i64, gross: u64) -> Result<Self> {
-        let gross_scaled = i128::from(gross)
-            .checked_mul(SCALE)
-            .ok_or(Error::Overflow)?;
-        let old_qty = i128::from(before.unsigned_abs());
-        let left = i128::from(after.unsigned_abs());
-        if left == 0 {
-            return Ok(Self(0));
-        }
-        if before.signum() == after.signum() && left > old_qty {
-            return self
-                .0
-                .checked_add(gross_scaled)
-                .map(Self)
-                .ok_or(Error::Overflow);
-        }
-        // A flip assigns a share of the execution gross to the new side. A reduction
-        // assigns a share of the previous total to the lots still open.
-        let (total, quantity) = if before.signum() == after.signum() {
-            (self.0, old_qty)
-        } else {
-            (gross_scaled, i128::from(before.abs_diff(after)))
-        };
-        let numerator = total.checked_mul(left).ok_or(Error::Overflow)?;
-        let quotient = numerator / quantity;
-        let round_up = after < 0 && numerator % quantity != 0;
-        Ok(Self(quotient + i128::from(round_up)))
-    }
-
-    fn ceilings(&self, lots: i64, mark: u64, claim: i128, available: u64) -> (i128, i128) {
-        // The production reference validates the same lot, price and available-lot
-        // domains before this comparison. Products are at most 10^23 scaled atoms.
-        let open_gain = (i128::from(lots) * i128::from(mark) * SCALE
-            - i128::from(lots.signum()) * self.0)
-            .max(0);
-        let ordinary = (claim - open_gain).max(0) / SCALE;
-        let forced = if lots == 0 || claim <= 0 {
-            0
-        } else {
-            let ticks = open_gain / (i128::from(lots.unsigned_abs()) * SCALE);
-            let room = if lots > 0 { mark - 1 } else { MAX_PRICE - mark };
-            (ticks.min(i128::from(room)) * i128::from(available)).min(claim / SCALE)
-        };
-        (ordinary, forced)
-    }
-}
 
 #[derive(Default)]
 struct Comparison {
     account: Participant,
     exact: Attribution,
-    bounded: OpenCost,
+    bounded: EntryBounds,
 }
 
 fn main() {
-    assert_eq!(std::mem::size_of::<OpenCost>(), 16);
+    assert_eq!(std::mem::size_of::<EntryBounds>(), 32);
+    let show_bounds = std::env::args().nth(1).as_deref() == Some("--bounds");
     let mut comparison = Comparison::default();
     for input in io::stdin().lock().lines() {
         let input = input.unwrap();
@@ -97,11 +50,29 @@ fn main() {
             .exact
             .charge_cap(lots, mark, claim, available)
             .unwrap();
-        let (bounded_pay, bounded_charge) =
-            comparison.bounded.ceilings(lots, mark, claim, available);
-        println!(
-            "{lots} {claim} {} {pay} {bounded_pay} {charge} {bounded_charge}",
-            comparison.bounded.0
-        );
+        let (lower, lower_strict, upper, upper_strict) = comparison.bounded.scaled_endpoints();
+        // The original single-cost experiment rounded long costs down and short costs up.
+        let single_cost = if lots < 0 { upper } else { lower };
+        let (bounded_pay, bounded_charge) = ceilings(2 * single_cost, lots, mark, claim, available);
+        print!("{lots} {claim} {single_cost} {pay} {bounded_pay} {charge} {bounded_charge}");
+        if show_bounds {
+            print!(
+                " {lower} {} {upper} {}",
+                u8::from(lower_strict),
+                u8::from(upper_strict)
+            );
+            for use_strict in [false, true] {
+                let decision = comparison
+                    .bounded
+                    .certify(lots, mark, claim, available, use_strict);
+                for amount in [decision.ordinary, decision.forced] {
+                    match amount {
+                        Some(value) => print!(" {value}"),
+                        None => print!(" ?"),
+                    }
+                }
+            }
+        }
+        println!();
     }
 }

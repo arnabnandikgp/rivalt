@@ -37,6 +37,7 @@ cargo test --locked -p clearing-accounting --features surviving-profit attributi
 cargo test --locked -p financial-core --features closed-quantity-model --test closed_quantity_payout
 cargo build --locked -p financial-core --features closed-quantity-model --example bounded_entry_comparison
 python3 tests/financial/test_bounded_entry.py
+python3 tests/financial/test_entry_bounds.py
 python3 tests/financial/test_payment_attribution.py
 python3 tests/financial/test_freeze_cutoff.py
 python3 tests/financial/test_cross_market_adl.py

@@ -27,7 +27,7 @@ def fill(delta, price, mark=MARK, funding=0):
     return delta, abs(delta) * price, mark, funding
 
 
-def compare(actions, available=None):
+def reference_and_native(actions, available=None, *, intervals=False):
     """Independently value each fill in exact rational atoms and verify the compiled reference."""
     lots, entry, virtual, checkpoint = 0, Fraction(), Fraction(), 0
     expected, commands = [], []
@@ -51,22 +51,27 @@ def compare(actions, available=None):
         room = mark-1 if lots>0 else 1_000_000-mark
         ticks = min(int(open_gain / abs(lots)), room) if lots else 0
         charge = min(int(max(0, claim)), matched*ticks)
-        expected.append((lots, claim*SCALE, payable, charge, entry*abs(lots)*SCALE))
+        expected.append((lots, claim*SCALE, payable, charge, entry*abs(lots)*SCALE, mark, matched))
         commands.append(f"{delta} {gross} {mark} {funding} {matched}")
-    lines = subprocess.run([DRIVER], input="\n".join(commands)+"\n", text=True,
+    driver = [DRIVER, "--bounds"] if intervals else [DRIVER]
+    lines = subprocess.run(driver, input="\n".join(commands)+"\n", text=True,
                            capture_output=True, check=True).stdout.splitlines()
     assert len(lines) == len(expected)
-    results = []
-    for line, (lots, claim, pay, charge, cost) in zip(lines, expected):
-        quantity, actual_claim, bounded_cost, exact_pay, bounded_pay, exact_charge, bounded_charge = map(int, line.split())
+    for line, (lots, claim, pay, charge, cost, mark, matched) in zip(lines, expected):
+        fields = line.split()
+        quantity, actual_claim, bounded_cost, exact_pay, bounded_pay, exact_charge, bounded_charge = map(int, fields[:7])
         assert (quantity, actual_claim, exact_pay, exact_charge) == (lots, claim, pay, charge)
         if lots >= 0:
             assert bounded_cost <= cost
         else:
             assert bounded_cost >= cost
         assert bounded_pay <= exact_pay and bounded_charge >= exact_charge
-        results.append(Ceilings(bounded_cost, exact_pay, bounded_pay, exact_charge, bounded_charge))
-    return results
+        ceilings = Ceilings(bounded_cost, exact_pay, bounded_pay, exact_charge, bounded_charge)
+        yield ceilings, fields[7:], lots, claim, cost, mark, matched
+
+
+def compare(actions, available=None):
+    return [row[0] for row in reference_and_native(actions, available)]
 
 
 def signed_book(rounds):
@@ -82,22 +87,28 @@ def signed_book(rounds):
     return [(actor, delta, abs(delta)*price, (abs(delta)*price+4999)//5000) for actor, delta, price in trades]
 
 
+def signed_member_actions(rounds, key):
+    trades = signed_book(rounds)
+    if path := os.environ.get("RIVALT_ENTRY_" + key + "_FILLS"):
+        decoded = [tuple(map(int, row.split())) for row in Path(path).read_text().splitlines()]
+        if decoded != trades:
+            raise AssertionError("Generated history differs from finalized receipts")
+        trades = decoded
+    members = [[], [], []]
+    for actor, delta, gross, _fee in trades:
+        members[actor].append((delta, gross, MARK, 0))
+        members[2].append((-delta, gross, MARK, 0))
+    return members
+
+
 class BoundedEntry(unittest.TestCase):
     def test_retained_maker_and_both_traders(self):
         for rounds, key, net, count, changed in [
             (65, "WALLET", 4_258_808, 134, 127),
             (69, "DIAGNOSTIC", 4_520_904, 142, 135),
         ]:
-            trades = signed_book(rounds)
-            if path := os.environ.get("RIVALT_ENTRY_"+key+"_FILLS"):
-                decoded = [tuple(map(int, row.split())) for row in Path(path).read_text().splitlines()]
-                self.assertEqual(decoded, trades)
-                trades = decoded
-            self.assertEqual(len(trades), count)
-            members = [[], [], []]
-            for actor, delta, gross, _fee in trades:
-                members[actor].append((delta, gross, MARK, 0))
-                members[2].append((-delta, gross, MARK, 0))
+            members = signed_member_actions(rounds, key)
+            self.assertEqual(len(members[2]), count)
             series = [compare(actions) for actions in members]
             self.assertEqual(series[2][-1], (0, net, net, 0, 0))
             self.assertEqual([results[-1] for results in series[:2]], [(0, 0, 0, 0, 0)]*2)
