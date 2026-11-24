@@ -2,7 +2,7 @@
 
 ## Supported boundary
 
-Fresh local sessions select `closed-quantity` with artifact set `closed-quantity-settlement`. A new genesis, initialization and journal bind the RVPROF02 margin accounts. Existing sessions retain their original selection, binary and payout semantics. The prior `bounded-router-candidate` selects `bounded-maker-routing`. The earlier `execution-router-candidate` still resolves
+Fresh local sessions select `bounded-entry` with artifact set `bounded-entry-settlement`. A new genesis, initialization and journal bind the RVPROF03 margin accounts. The previous `closed-quantity` deployment retains its exact RVPROF02 records for replay. Existing sessions retain their original selection, binary and payout semantics. The prior `bounded-router-candidate` selects `bounded-maker-routing`. The earlier `execution-router-candidate` still resolves
 to its original `standing-maker-routing` binaries. Earlier artifact selections are available for historical replay. The interactive launcher creates fresh venues with closed-quantity settlement. The
 public config carries the selection, genesis and anchor. The launcher supplies
 the same selection to its executor, native helper and workers. P56 journals

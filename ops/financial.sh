@@ -35,9 +35,10 @@ python3 tests/financial/test_settlement_liquidation_model.py
 python3 tests/financial/test_adl_eligibility.py
 cargo test --locked -p clearing-accounting --features surviving-profit attribution
 cargo test --locked -p financial-core --features closed-quantity-model --test closed_quantity_payout
-cargo build --locked -p financial-core --features closed-quantity-model --example bounded_entry_comparison --example authenticated_entry_replay
+cargo build --locked -p financial-core --features closed-quantity-model --example bounded_entry_comparison --example authenticated_entry_replay --example entry_cost_decisions
 python3 tests/financial/test_bounded_entry.py
 python3 tests/financial/test_entry_bounds.py
+python3 tests/financial/test_fixed_entry.py
 python3 tests/financial/test_authenticated_entry_replay.py
 python3 tests/financial/test_payment_attribution.py
 python3 tests/financial/test_freeze_cutoff.py

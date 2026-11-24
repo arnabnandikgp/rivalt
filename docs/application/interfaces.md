@@ -1,6 +1,6 @@
 # SDK, API and wallet contracts
 
-The fresh-local wallet selects `closed-quantity`. Clients bind the exact deployment, program hashes, genesis, initialization signature and domain. Transport version 4, clearing schema 10/profile 6 and SQL journal format 3 are separate identifiers. `selected` is an explicit earlier P56 deployment. Existing signed originals remain bound to their original executor. [SDK deployment table](../../packages/sdk/src/account-deployment.ts)
+The fresh-local wallet selects `bounded-entry`. Clients bind the exact deployment, program hashes, genesis, initialization signature and domain. Transport version 4, clearing schema 10/profile 6 and SQL journal format 3 are separate identifiers. `selected` is an explicit earlier P56 deployment. Existing signed originals remain bound to their original executor. [SDK deployment table](../../packages/sdk/src/account-deployment.ts)
 
 ## Account discovery
 

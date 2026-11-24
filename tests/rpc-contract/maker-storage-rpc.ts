@@ -139,49 +139,49 @@ try {
     assert.deepEqual((await verifyMaker(2n)).bounds,before.bounds);
     assert(await trade(0,1,2n,bid,'close remaining two'));
   } else {
-  for(const [width,retained] of [[128,4n],[256,2n]] as const) {
-    const size=high-retained, start=rounds;
-    while(true) {
-      if((rounds-start)%2===0) await setup.sample();
-      const needed=basis(gapWeight*retained,divisor*high).bytes;
-      assert(rounds<100,'Mixed-entry vector exceeded its predicted boundary');
-      const storageFull=needed>width;
-      const accepted=await trade(1,0,size,ask,storageFull?'refuse increase at '+width+' bytes':'increase '+(rounds+1),storageFull);
-      if(!accepted) {
-        const prior=await verifyMaker(retained), flat=await history(cycling);
-        assert.deepEqual([prior.width,flat.width,flat.used,flat.lots],[width,128,0,0n]);
-        boundaries.push({width,reason:storageFull?'storage':'compute',rounds:rounds-start,totalRounds:rounds,
-          liveLots:retained,makerBytes:prior.used,nextMakerBytes:needed,makerAccountBytes:prior.accountBytes,
-          cyclingTraderBytes:flat.used,nextCyclingTraderBytes:13,seedTraderBytes:(await history(seed)).used,cyclingTraderAccountBytes:flat.accountBytes});
-        break;
+    for(const [width,retained] of [[128,4n],[256,2n]] as const) {
+      const size=high-retained, start=rounds;
+      while(true) {
+        if((rounds-start)%2===0) await setup.sample();
+        const needed=basis(gapWeight*retained,divisor*high).bytes;
+        assert(rounds<100,'Mixed-entry vector exceeded its predicted boundary');
+        const storageFull=needed>width;
+        const accepted=await trade(1,0,size,ask,storageFull?'refuse increase at '+width+' bytes':'increase '+(rounds+1),storageFull);
+        if(!accepted) {
+          const prior=await verifyMaker(retained), flat=await history(cycling);
+          assert.deepEqual([prior.width,flat.width,flat.used,flat.lots],[width,128,0,0n]);
+          boundaries.push({width,reason:storageFull?'storage':'compute',rounds:rounds-start,totalRounds:rounds,
+            liveLots:retained,makerBytes:prior.used,nextMakerBytes:needed,makerAccountBytes:prior.accountBytes,
+            cyclingTraderBytes:flat.used,nextCyclingTraderBytes:13,seedTraderBytes:(await history(seed)).used,cyclingTraderAccountBytes:flat.accountBytes});
+          break;
+        }
+        gapWeight*=retained; divisor*=high;
+        const open=await history(cycling), increased=await verifyMaker(high);
+        assert.deepEqual([open.lots,open.used,open.entry],[size,13,{entryScaled:ask*scale,paidScaled:0n,denominator:1n}]);
+        await trade(1,1,size,bid,'reduce '+(rounds+1));
+        await verifyMaker(retained);
+        const flat=await history(cycling);
+        assert.deepEqual([flat.used,flat.lots],[0,0n]);
+        rounds++; cycledLots+=size;
+        fills.push({round:rounds,lots:size,makerBytes:increased.used,traderOpenBytes:open.used,traderFlatBytes:flat.used});
       }
-      gapWeight*=retained; divisor*=high;
-      const open=await history(cycling), increased=await verifyMaker(high);
-      assert.deepEqual([open.lots,open.used,open.entry],[size,13,{entryScaled:ask*scale,paidScaled:0n,denominator:1n}]);
-      await trade(1,1,size,bid,'reduce '+(rounds+1));
-      await verifyMaker(retained);
-      const flat=await history(cycling);
-      assert.deepEqual([flat.used,flat.lots],[0,0n]);
-      rounds++; cycledLots+=size;
-      fills.push({round:rounds,lots:size,makerBytes:increased.used,traderOpenBytes:open.used,traderFlatBytes:flat.used});
+      await trade(0,1,retained/2n,bid,'partial close after '+width+' refusal');
+      const remaining=await verifyMaker(retained/2n);
+      if(width===128) {
+        const newLength=remaining.accountBytes+2*(256-width)+40;
+        const balance=await rpc.call('getBalance',[maker.capital,{commitment:'confirmed'}]);
+        const rent=await h.rent(newLength)-BigInt(balance.value);
+        await h.send('maker owner funds second slot size',[await sdk.getManageProfitCapacityInstructionAsync({...setup.common,
+          margin:maker.capital,actor:setup.owner,payer:setup.owner,previousContributor:setup.owner.address,
+          slotBytes:256,revision:remaining.revision,maxPayment:rent})],[setup.owner]);
+        assert.equal((await verifyMaker(2n)).width,256);
+      } else await trade(0,1,1n,bid,'close remaining lot');
     }
-    await trade(0,1,retained/2n,bid,'partial close after '+width+' refusal');
-    const remaining=await verifyMaker(retained/2n);
-    if(width===128) {
-      const newLength=remaining.accountBytes+2*(256-width)+40;
-      const balance=await rpc.call('getBalance',[maker.capital,{commitment:'confirmed'}]);
-      const rent=await h.rent(newLength)-BigInt(balance.value);
-      await h.send('maker owner funds second slot size',[await sdk.getManageProfitCapacityInstructionAsync({...setup.common,
-        margin:maker.capital,actor:setup.owner,payer:setup.owner,previousContributor:setup.owner.address,
-        slotBytes:256,revision:remaining.revision,maxPayment:rent})],[setup.owner]);
-      assert.equal((await verifyMaker(2n)).width,256);
-    } else await trade(0,1,1n,bid,'close remaining lot');
-  }
-  const [initial,expanded]=boundaries;
-  assert.deepEqual([initial.reason,initial.width,initial.totalRounds,initial.makerBytes,initial.nextMakerBytes],['storage',128,33,128,132]);
-  assert.equal(expanded.width,256);
-  if(budget==='diagnostic') assert.deepEqual([expanded.reason,expanded.totalRounds,expanded.makerBytes,expanded.nextMakerBytes],['storage',69,254,258]);
-  else assert(expanded.reason==='compute' && expanded.nextMakerBytes<=expanded.width && expanded.totalRounds>initial.totalRounds);
+    const [initial,expanded]=boundaries;
+    assert.deepEqual([initial.reason,initial.width,initial.totalRounds,initial.makerBytes,initial.nextMakerBytes],['storage',128,33,128,132]);
+    assert.equal(expanded.width,256);
+    if(budget==='diagnostic') assert.deepEqual([expanded.reason,expanded.totalRounds,expanded.makerBytes,expanded.nextMakerBytes],['storage',69,254,258]);
+    else assert(expanded.reason==='compute' && expanded.nextMakerBytes<=expanded.width && expanded.totalRounds>initial.totalRounds);
   }
   const debts=[seedLots*(seedAsk-bid),cycledLots*(ask-bid)], gain=debts[0]+debts[1];
   const makerFlat=await history(maker.capital);

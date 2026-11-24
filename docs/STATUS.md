@@ -1,6 +1,6 @@
 # Project status
 
-Updated 24 November 2026. Rivalt is a local, test-collateral BTC/ETH perpetual venue. The wallet uses on-chain execution-time routing across three internal makers per market. A fill selects up to two maker capitals. The same clearing engine handles isolated and cross accounts.
+Updated 25 November 2026. Rivalt is a local, test-collateral BTC/ETH perpetual venue. The wallet uses on-chain execution-time routing across three internal makers per market. A fill selects up to two maker capitals. The same clearing engine handles isolated and cross accounts.
 
 ## Integrated
 
@@ -15,23 +15,13 @@ PRs #168 and #169 merged together at [`9c482583`](https://github.com/arnabnandik
 
 ## Limits and next action
 
-Fresh local venues use `closed-quantity`. Ordinary price profit becomes eligible when the trader reduces or closes the position. A payment still needs funded backing. Existing venue journals retain their original deployment identity. [Settlement contract](clearing/accounting.md#ordinary-payouts-on-closed-quantity)
+Fresh local venues on this branch use `bounded-entry`. Each position has a fixed 40-byte entry record. Ordinary price profit becomes eligible when the trader reduces or closes exposure and clearing has verified backing. Legacy journals retain their original binary and payout rule. [Settlement contract](clearing/accounting.md#ordinary-payouts-on-closed-quantity)
 
-On clearing `ec6f1ffa` with harness `ed60fc6c`, all four BTC buys from $100 through $61,000 and both control buys filled on the initial 128-byte slots. With the pool already funded, clearing refused payment on the open position. After a partial close it paid 588.622056 test collateral and refused one atom more. After the final close the wallet withdrew 1,148.168568 net. Fresh PostgreSQL replay matched all 381 events. On the previous binary the four larger buys failed storage admission. [Signed results](operations/performance.md#closed-quantity-settlement)
+On clearing `b7e4458b` and harness `d175285e`, 163/163 signed wallet fills completed with a mixed-price maker, including 80 inventory increases. The maker withdrew its entire funded balance and PostgreSQL replay reconciled 951 events. A separate six-buy book rejected open profit and one atom above the partial-close ceiling, settled the remaining profit and withdrew 1,148.168568 net. Replay reconciled 381 events. [Measured CU, storage and workload](operations/performance.md#fixed-width-maker-entry)
 
-On that same clearing binary with harness `4718f365`, the nine-member BTC/ETH default verified both markets, applied the joint plan and reached the trader and three maker wallet withdrawals. Fresh PostgreSQL replay matched 176 events. [Recovery qualification](operations/validation.md#evidence-by-deployment)
+The independent exact-fraction model exercised 4,101 fills without growing a record. In two constructed histories the new rule permits 27 ordinary atoms and four forced atoms on both books. Exact history would permit 27/eight and 28/four respectively. On the eight-atom frozen book this gives the two creditors eight and zero. The conservative defaults and their consequences are intentional. [Decision](DECISIONS.md) · [Prior experiments](operations/qualification-scorecard.md#exact-replay-from-a-verified-checkpoint)
 
-Mixed-price maker storage qualification is in review on the same clearing binary. The 128-byte BTC slot admitted 33 round trips of about $983 per leg. The next increase needed 132 bytes and rolled back. After growing the maker to 256 bytes, the ordinary wallet budget stopped increase 66 at 800,000 CU with room still available. The diagnostic budget reached the next storage refusal on increase 70. Both runs reduced, paid and withdrew all maker cash. Harnesses `24af1d2d` and `aca1e51c` reconciled 840 and 872 events respectively. Both trader entry records stayed at or below 13 bytes. [Results and limits](operations/performance.md#mixed-price-maker-storage)
-
-The [venue qualification scorecard](operations/qualification-scorecard.md) continues to track nine findings. Exact entry growth remains open for sustained inventory. The representative trader workload remains a separate priority. The combined market-shock and recovery exercise is deferred.
-
-On `2477ddc4`, the native 16-byte entry-cost candidate matched all 552 ordinary payout observations on the two retained signed BTC books. Splitting a close delayed one payable atom on a separate book, and a frozen settlement moved one funded atom between creditors. The candidate stays native-only. Its on-chain compute cost is unmeasured. [Comparison and limits](operations/qualification-scorecard.md#fixed-width-entry-cost-comparison)
-
-On `0bf61818`, two 16-byte entry-cost bounds certified all 552 ordinary ceilings and all 552 hypothetical forced-charge ceilings in native replay of the same two BTC runs. They reproduced the 8/0 frozen payout. A split close still had an ambiguous ordinary ceiling, and two constructed histories with identical bounds required different ordinary and default amounts. This representation alone cannot preserve current economics for every position. [Results and limits](operations/qualification-scorecard.md#can-two-entry-cost-bounds-certify-the-exact-payment)
-
-Native exact replay on `3c0e35b4` distinguished both 65-fill histories and reproduced their creditor payouts. A verified checkpoint at fill 64 reduced each remaining witness to 51 bytes. A synthetic 4,101-fill frozen case still needed a 524-byte exact record even with checkpoints every 64 fills. A 256-byte allowance first refused fill 1,970. This fallback depends on available fill history and variable-width exact state. [Replay results and limits](operations/qualification-scorecard.md#exact-replay-from-a-verified-checkpoint)
-
-**Next action.** Specify a bounded average-entry accounting rule that states who receives a rounding atom on partial closes and in default. Compare its payouts against the two verified histories for an explicit economic decision before changing clearing or building on-chain history retention.
+**Next action.** Review and integrate the fixed-width entry change, then qualify representative wallet traffic across deep, fragmented and one-sided maker books. The combined market-shock and recovery exercise remains deferred.
 
 | Open gate | What remains |
 |---|---|

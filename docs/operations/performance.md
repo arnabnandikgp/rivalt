@@ -2,6 +2,20 @@
 
 Read the order size, artifact, starting book and outcome together. These are local measurements with synthetic prices and internal makers. The examples use 1,000,000 BTC lots per BTC and a six-decimal test collateral token at parity.
 
+## Fixed-width maker entry
+
+On clearing `b7e4458b` and harness `d175285e`, one internal BTC maker carried four short lots between 80 round trips. A second wallet bought and sold 16,379 lots each time. The maker's exact average changed on every increase. Its 40-byte BTC record enclosed the independently reconstructed cost after every increase and reduction. Its margin account stayed at 1,099 bytes, including the separate ETH record. The prior exact representation needed owner-funded growth at round 34 and exhausted the wallet compute budget on increase 66. The workloads have the same opening pattern. The prior workload reduced the retained inventory to two lots after its first storage refusal.
+
+| Finalized signed routes | Count | Transaction CU range |
+|---|---:|---:|
+| Seed wallet opens and closes in two parts | 3 | 397,114–475,476 |
+| Cycling wallet buys | 80 | 491,536–491,607 |
+| Cycling wallet sells | 80 | 486,474–490,597 |
+
+All 163 routes landed with the ordinary 800,000 CU wallet request. The maker earned 5.241292 test collateral and withdrew 10,005.241292 after both traders paid their losses and clearing verified backing. PostgreSQL replay reconciled 951 events. This is one steadily quoted book with two trader wallets. It measures sustained inventory at these sizes and does not establish venue throughput.
+
+On the separate deep-book lifecycle, the $100, $1,000, $10,000 and $61,000 buys used 475,953, 493,175, 493,176 and 493,173 CU respectively. Clearing refused an open-profit payment on a funded book, paid 588.622056 after a partial close, refused one atom above the ceiling and finalized a net wallet withdrawal of 1,148.168568. PostgreSQL replay matched 381 events. [Reproduction](local-development.md#fixed-width-entry-qualification)
+
 ## Closed-quantity settlement
 
 On clearing `ec6f1ffa` and harness `ed60fc6c`, one funded trader submitted the same six sequential buys on the three-maker deep BTC book. All six filled with the fresh 128-byte position slots on both trader and maker accounts. Gross index notionals and filled transaction CU were:

@@ -11,7 +11,7 @@ position per market in their margin account and can close it against another mak
 The current implementation is a qualified **local engineering prototype** for
 BTC and ETH with one test collateral mint, isolated and cross-margin accounts,
 and three internal maker instances per market. Current trading remains disabled
-in default/devnet builds. On a deep local BTC book, signed orders from $100 through one BTC ($61,000) filled using the initial account storage. A sustained mixed-price maker workload reached both a storage limit and the wallet compute limit. [Operating limits](docs/operations/performance.md)
+in default/devnet builds. On a deep local BTC book, signed orders from $100 through one BTC ($61,000) filled using the initial account storage. A maker retained mixed-price inventory through 80 signed round trips using 40 bytes per market, then settled and withdrew its funded balance. [Operating limits](docs/operations/performance.md)
 records the tested sizes and outcomes. Independent maker validation and funded-pilot review remain open.
 
 ## Design

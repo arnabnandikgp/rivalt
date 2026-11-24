@@ -52,7 +52,7 @@ try {
     assert.equal(prior.width, build.artifactSet===sdk.BOUNDED_ENTRY_ARTIFACT_SET?40:128);
     assert.equal(prior.credit, null);
     assert.equal(prior.closedQuantity, closedQuantity);
-    if (closedQuantity) continue; // Exercise fresh 128-byte slots on every participant.
+    if (closedQuantity) continue; // Exercise the deployment’s initial slots on every participant.
     const slotBytes = 256, newSize = bytes.length + 2 * (slotBytes - prior.width) + 40;
     const balance = await rpc.call('getBalance', [margin, {commitment: 'confirmed'}]);
     const rent = await h.rent(newSize) - BigInt(balance.value);

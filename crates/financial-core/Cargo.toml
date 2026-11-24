@@ -46,3 +46,7 @@ required-features = ["closed-quantity-model"]
 [[example]]
 name = "authenticated_entry_replay"
 required-features = ["closed-quantity-model"]
+
+[[example]]
+name = "entry_cost_decisions"
+required-features = ["closed-quantity-model"]

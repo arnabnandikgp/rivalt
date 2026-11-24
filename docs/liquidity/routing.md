@@ -22,7 +22,7 @@ capital and registration and read-only pricing program, ProgramData, shape and
 price. The trader signs every structural epoch and their limits. Clearing journals
 unused makers as reads and advances only the selected makers' financial state.
 `buildBestRoute` prepends the required market and ledger checkpoints to the same
-transaction. On the fresh local `closed-quantity` deployment,
+transaction. On the fresh local `bounded-entry` deployment,
 the trader UI signs maximum spend or minimum proceeds, maximum fee, size and
 expiry. The wallet saves the signed original and submits it directly over RPC.
 Applications can opt into the authenticated relay, which queues conflicting
