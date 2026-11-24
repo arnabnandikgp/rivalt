@@ -25,7 +25,7 @@ Immediate requests, stored order totals and maker side depth share the existing
 100,000,000-lot financial domain; signed positions and aggregate gross exposure
 retain their separate existing checks. `/v4/quote` accepts canonical positive
 decimal strings through that bound. The UI converts BTC/ETH exactly and rejects
-larger quantities before requesting a quote. The owner or an authorized, unexpired delegate signs the fee budget. A request within this numerical range still needs executable depth, margin, storage and a complete route search. [Measured bounds](../operations/performance.md)
+larger quantities before requesting a quote. The owner or an authorized, unexpired delegate signs the fee budget. A request within this numerical range still needs executable depth, margin and a complete route search. [Measured bounds](../operations/performance.md)
 
 Order and liquidation workers first try the remaining quantity, then halve on
 size-dependent unavailability, for at most 27 probes across the numeric domain.
