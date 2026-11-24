@@ -3,6 +3,8 @@
 
 #[cfg(feature = "surviving-profit")]
 pub mod attribution;
+#[cfg(feature = "surviving-profit")]
+pub mod entry_cost;
 pub mod price_policy;
 pub use price_policy::MAX_PRICE;
 

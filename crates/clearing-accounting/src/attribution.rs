@@ -27,6 +27,10 @@ impl Default for Attribution {
 }
 
 impl Attribution {
+    pub(crate) fn from_scaled_basis(total: u128, quantity: u64) -> Self {
+        Self::reduced(total.into(), BigUint::zero(), quantity.into())
+    }
+
     fn reduced(entry: BigUint, paid: BigUint, denominator: BigUint) -> Self {
         let divisor = entry.gcd(&denominator).gcd(&paid);
         if divisor.is_one() {

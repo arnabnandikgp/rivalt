@@ -25,6 +25,7 @@ multi-lot-book-qualification = ["book-inventory-qualification", "default-plan-se
 book-inventory-qualification = ["partial-inventory-qualification"]
 unified-recovery-qualification = ["populated-recovery-qualification"]
 execution-router-qualification = ["unified-recovery-qualification"]
+bounded-entry-settlement = ["closed-quantity-settlement"]
 closed-quantity-settlement = ["execution-router-qualification"]
 populated-recovery-qualification = ["partitioned-recovery-inputs"]
 partitioned-recovery-inputs = ["local-successor-qualification"]
