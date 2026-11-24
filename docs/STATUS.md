@@ -19,6 +19,8 @@ The fixed BTC notional baseline is in review. On the same router binary, all thr
 
 The [venue qualification scorecard](operations/qualification-scorecard.md) tracks nine findings and their closure criteria. Position storage and the trader benchmark are the active priorities. The combined market-shock and recovery exercise is deferred.
 
+On `6c8795f6`, the native accounting case measured 805 bytes after 220 interleaved open-profit payments on the $100 position. Re-reading finalized receipts from the existing 24-wallet burst verified 14.457474 tokens of filled notional and zero split fills. These are a storage comparison and a historical workload measurement. The on-chain storage fix and broader benchmark remain open.
+
 **Next action.** Evaluate an exact position-history layout with additional storage for fractions that outgrow the inline slot. Establish how increases fund that storage and how reductions and payments can finish when the owner is offline. Compare it against the four fixed sizes and the 220-payment histories before changing clearing.
 
 | Open gate | What remains |
