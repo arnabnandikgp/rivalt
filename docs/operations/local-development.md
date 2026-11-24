@@ -123,7 +123,7 @@ Use [validation](validation.md) to select smaller checks. Historical proof exper
 
 ## Matched BTC fill benchmark
 
-From a clean tracked checkout, set the pinned artifact directory and run each arm in a fresh local venue. The smoke wrapper creates a unique run directory automatically. Run the commands sequentially to reuse the default ports.
+From a clean tracked checkout, set the pinned artifact directory and run each arm in a fresh local venue. Use the fixed-width artifact build described under [fixed-width entry qualification](#fixed-width-entry-qualification). The smoke wrapper creates a unique run directory automatically. Run the commands sequentially to reuse the default ports.
 
 ```sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/bounded-entry/build-b7e4458b
@@ -134,3 +134,5 @@ RIVALT_BENCH_ARM=explicit bash ops/scalable-settlement-smoke.sh
 ```
 
 Each run retains its signed originals, simulations, finalized RPC and WS records, PostgreSQL reconciliation and `depth-benchmark.json` locally. The latter records each offer, the independent optimal allocation for the fixture’s flat price regions, the signed limit, and the actual outcome. When a pair of makers can supply the size, both transaction alternatives are signed and simulated at the same confirmed slot before broadcasting the designated one. When the size exceeds every pair, both runs submit the wallet’s routed original so the refusal has a receipt.
+
+Run `python3 tests/performance/depth-benchmark-report.py ROUTED_RUN EXPLICIT_RUN` to summarize both completed directories. Each CU difference comes from two successful simulations on the same bank. The report includes the execution instruction and nested maker-call cost as separate columns. `source ops/env.sh && node --import tsx tests/rpc-contract/depth-benchmark-reference-check.ts` checks the independent reference against exhaustive allocation on 216 small books and orders.
