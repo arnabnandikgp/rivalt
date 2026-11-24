@@ -27,11 +27,12 @@ const linkedBuilds = {
 export function successorSelection() {
   const profile=process.env.RIVALT_SUCCESSOR_BUILD;
   if(profile===undefined || profile==='local-successor-candidate')return 'local-successor-candidate' as const;
-  if(profile==='unified-recovery-candidate'||profile==='closed-quantity')return profile;
+  if(profile==='unified-recovery-candidate'||profile==='closed-quantity'||profile==='bounded-entry')return profile;
   throw new Error('Unknown successor build');
 }
 
 export function verifyProfitBuild(directory:string,sponsored=false,paired=false,residual=false,allocation=false,linked:Linked=false) {
+  if(linked==='successor' && successorSelection()==='bounded-entry')return routerBuild('bounded-entry',directory);
   if(linked==='successor' && successorSelection()==='closed-quantity')return routerBuild('closed-quantity',directory);
   const comparison=process.env.RIVALT_DOMAIN_COMPARISON;
   if(comparison){

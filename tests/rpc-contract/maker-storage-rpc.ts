@@ -17,7 +17,8 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 const directory = process.env.RIVALT_RUN_DIR!;
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding:'utf8'}).trim();
 assert.equal(execFileSync('git', ['status','--porcelain','--untracked-files=no'], {encoding:'utf8'}).trim(), '');
-const build = routerBuild('closed-quantity');
+const bounded = process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-bounded-entry-inventory';
+const build = routerBuild(bounded?'bounded-entry':'closed-quantity');
 const budget = process.env.RIVALT_MAKER_STORAGE_BUDGET ?? 'wallet';
 assert(budget==='wallet'||budget==='diagnostic','Expected a wallet or diagnostic compute budget');
 const routeUnits = budget==='wallet'?800_000:1_400_000;
@@ -60,8 +61,8 @@ try {
     const bytes=(await h.read(margin))!, data=sdk.decodeProfitAttribution(bytes,true);
     assert(data.closedQuantity);
     const raw=Buffer.from(data.histories[0]), lots=data.root.positions[0].lots;
-    const used=lots===0n?0:6+raw.readUInt16LE(0)+raw.readUInt16LE(2)+raw.readUInt16LE(4);
-    return {entry:data.positions[0], lots, cash:data.root.cash, claimAtFlat:data.root.positions[0].virtualScaled,
+    const used=lots===0n?0:bounded?40:6+raw.readUInt16LE(0)+raw.readUInt16LE(2)+raw.readUInt16LE(4);
+    return {entry:data.positions[0], bounds:data.entryBounds?.[0], lots, cash:data.root.cash, claimAtFlat:data.root.positions[0].virtualScaled,
       used, width:data.width, accountBytes:bytes.length, revision:data.root.revision};
   };
   const token = async (key:Address) => getTokenDecoder().decode((await h.read(key))!).amount;
@@ -107,10 +108,37 @@ try {
   async function verifyMaker(lots:bigint) {
     const actual=await history(maker.capital);
     const {bytes,...entry}=basis(gapWeight,divisor);
-    assert.deepEqual([actual.entry,actual.lots,actual.used],[entry,-lots,bytes]);
+    if(bounded) {
+      const {lower,upper,referenceLots}=actual.bounds!;
+      assert(lower*divisor<=entry.entryScaled*referenceLots && entry.entryScaled*referenceLots<=upper*divisor,
+        'Fixed record must enclose the independently computed exact maker basis');
+      assert(upper-lower<=2n*referenceLots);
+      assert.deepEqual([actual.width,actual.lots,actual.accountBytes],[40,-lots,sdk.getMarginAccountSize()+88]);
+    } else assert.deepEqual([actual.entry,actual.lots,actual.used],[entry,-lots,bytes]);
     return actual;
   }
   await verifyMaker(seedLots);
+  if(bounded) {
+    const size=high-seedLots;
+    for(let cycle=1;cycle<=80;cycle++) {
+      if(cycle%2===1) await setup.sample();
+      assert(await trade(1,0,size,ask,'increase '+cycle));
+      gapWeight*=seedLots; divisor*=high;
+      const makerOpen=await verifyMaker(high), traderOpen=await history(cycling);
+      assert.deepEqual([traderOpen.lots,traderOpen.used,traderOpen.entry],
+        [size,40,{entryScaled:ask*scale,paidScaled:0n,denominator:1n}]);
+      assert(await trade(1,1,size,bid,'reduce '+cycle));
+      await verifyMaker(seedLots);
+      const traderFlat=await history(cycling);
+      assert.deepEqual([traderFlat.lots,traderFlat.used,traderFlat.bounds],[0n,0,{lower:0n,upper:0n,referenceLots:0n}]);
+      rounds++; cycledLots+=size;
+      fills.push({round:cycle,lots:size,makerBytes:makerOpen.used,traderOpenBytes:traderOpen.used,traderFlatBytes:traderFlat.used});
+    }
+    const before=await verifyMaker(seedLots);
+    assert(await trade(0,1,2n,bid,'partial close two'));
+    assert.deepEqual((await verifyMaker(2n)).bounds,before.bounds);
+    assert(await trade(0,1,2n,bid,'close remaining two'));
+  } else {
   for(const [width,retained] of [[128,4n],[256,2n]] as const) {
     const size=high-retained, start=rounds;
     while(true) {
@@ -154,6 +182,7 @@ try {
   assert.equal(expanded.width,256);
   if(budget==='diagnostic') assert.deepEqual([expanded.reason,expanded.totalRounds,expanded.makerBytes,expanded.nextMakerBytes],['storage',69,254,258]);
   else assert(expanded.reason==='compute' && expanded.nextMakerBytes<=expanded.width && expanded.totalRounds>initial.totalRounds);
+  }
   const debts=[seedLots*(seedAsk-bid),cycledLots*(ask-bid)], gain=debts[0]+debts[1];
   const makerFlat=await history(maker.capital);
   assert.deepEqual([makerFlat.lots,makerFlat.used,makerFlat.claimAtFlat,makerFlat.cash],[0n,0,gain*scale,cash]);
@@ -194,7 +223,7 @@ try {
   const replay=await journal.finish();
   const routes=checks.filter(check=>isFill(String(check.label)));
   for(const receipt of routes) assert.deepEqual(receipt.simulationError,receipt.error,String(receipt.label));
-  assert.equal(routes.filter(receipt=>receipt.error!==null).length,2);
+  assert.equal(routes.filter(receipt=>receipt.error!==null).length,bounded?0:2);
   const result={revision,program:build.revision,budget,routeUnits,boundaries,fills,cycledLots,takerFees,debts,gain,exit,events:replay.events,routes};
   writeFileSync(directory+'/mixed-maker-storage.json',json(result));
   console.log(json({boundaries,rounds,gain,exit,events:replay.events}));

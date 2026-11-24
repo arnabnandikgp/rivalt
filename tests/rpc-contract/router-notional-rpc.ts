@@ -18,7 +18,7 @@ const directory = process.env.RIVALT_RUN_DIR!;
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
 assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], {encoding: 'utf8'}).trim(), '');
 const build = routerBuild();
-const closedQuantity = build.artifactSet === sdk.CLOSED_QUANTITY_ARTIFACT_SET;
+const closedQuantity = sdk.hasClosedQuantity(build.artifactSet);
 const openingIndex = 61_000n, closingIndex = 62_000n, scale = 1_000_000_000n;
 const cash = 80_000_000_000n, depth = 2_000_000n;
 const fee = (gross: bigint) => (gross + 4_999n) / 5_000n;
@@ -49,7 +49,7 @@ try {
   const settlementPool = async () => sdk.decodeFeeLedger((await h.read(setup.ledgers[0]))!).state.settlement;
   for (const [margin, actor] of [[trader, owner] as const, ...makers.map(maker => [maker.capital, setup.owner] as const)]) {
     const bytes = (await h.read(margin))!, prior = sdk.decodeProfitAttribution(bytes, true);
-    assert.equal(prior.width, 128);
+    assert.equal(prior.width, build.artifactSet===sdk.BOUNDED_ENTRY_ARTIFACT_SET?40:128);
     assert.equal(prior.credit, null);
     assert.equal(prior.closedQuantity, closedQuantity);
     if (closedQuantity) continue; // Exercise fresh 128-byte slots on every participant.

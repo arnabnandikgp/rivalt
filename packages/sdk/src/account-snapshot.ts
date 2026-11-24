@@ -9,7 +9,7 @@ import {deriveAccountVenue,deriveAccountPortfolio,deriveVenueComponent,deriveAcc
 import {authenticateLiquidityMarket,discoverLiquidityAccounts} from './liquidity-adapter.js';
 import {fromBase64,hex,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
-export type AccountIdentity={venue:Address;mint:Address;domain:string;closedQuantity?:boolean;marginLayout?:MarginLayout};
+export type AccountIdentity={venue:Address;mint:Address;domain:string;closedQuantity?:boolean;boundedEntry?:boolean;marginLayout?:MarginLayout};
 export const ACCOUNT_CLOCK=address('SysvarC1ock11111111111111111111111111111111');
 
 /** Funded balances/exits read only selected roots and their complete market dependencies. */
@@ -113,7 +113,9 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
     const attribution=ledgerLanes?decodeProfitAttribution(bytes,true):undefined;
     if(identity.closedQuantity!==undefined)
       requireValue(Boolean(attribution?.closedQuantity)===identity.closedQuantity,'Payout rule differs from deployment.');
-    if(attribution?.closedQuantity) closedEntries[key]=attribution.positions;
+    if(identity.boundedEntry!==undefined)
+      requireValue(Boolean(attribution?.entryBounds)===identity.boundedEntry,'Entry format differs from deployment.');
+    if(attribution?.closedQuantity) closedEntries[key]=attribution.ordinaryPositions;
     const value=attribution?.root??decodeMarginForLayout(bytes,identity.marginLayout);
     const [canonical,bump]=await deriveMarginAccount(value.portfolio,value.subaccountIndex),portfolio=portfolios[value.portfolio];
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.lifecycle===2&&value.activationGeneration>0n&&value.portfolio===discovered[index].portfolio&&key===canonical&&value.bump===bump&&

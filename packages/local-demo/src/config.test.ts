@@ -7,6 +7,7 @@ it('does not expose the faucet to cross-origin pages or ambiguous hosts',()=>{
 });
 
 it('creates fresh venues only with closed-quantity settlement',()=>{
-  expect(()=>requireFreshDemoDeployment('closed-quantity')).not.toThrow();
+  expect(()=>requireFreshDemoDeployment('bounded-entry')).not.toThrow();
+  expect(()=>requireFreshDemoDeployment('closed-quantity')).toThrow(/Fresh demo venues/);
   expect(()=>requireFreshDemoDeployment('bounded-router-candidate')).toThrow(/Fresh demo venues/);
 });
