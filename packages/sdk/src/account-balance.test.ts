@@ -83,3 +83,57 @@ it('describes ordinary settlement from the flat claim and the shared pool in who
   for(const claim of [null,'0','-1'])expect(sdk.closedGainStatus({...position,unpaidClaimScaled:claim},0n,normal)).toBeNull();
   expect(sdk.closedGainStatus({...position,lots:'1'},0n,normal)).toBeNull();
 });
+
+it('separates eligible fixed claims from open price gain on both sides',()=>{
+  const scale=1_000_000_000n;
+  const long={entryScaled:301n*scale,paidScaled:0n,denominator:3n};
+  // Long basis 100 1/3, two surviving lots at 102. Five total atoms include 3 1/3 open.
+  expect(sdk.ordinaryGainAtoms(5n*scale,2n,102n,long)).toBe(1n);
+  expect(sdk.ordinaryGainAtoms(5n*scale,-2n,99n,long)).toBe(2n);
+  expect(sdk.ordinaryGainAtoms(scale,-2n,102n,long)).toBe(1n);
+  expect(sdk.ordinaryGainAtoms(-scale,2n,99n,long)).toBe(0n);
+  expect(sdk.closedGainStatus({lots:'2',unpaidClaimScaled:'5000000000',ordinaryPayableAtoms:'1'},1n,
+    {mode:1,paused:false})).toBe('Awaiting verified payment');
+});
+
+it('binds fresh margin history to its payout rule and rejects previously paid open gain',async()=>{
+  const {root}=await fixture();
+  const prefix=Buffer.from(sdk.getMarginAccountEncoder().encode(root));
+  const margin=(tag:string)=>Buffer.concat([prefix,Buffer.from(tag),Buffer.alloc(256)]);
+  expect(sdk.decodeProfitAttribution(margin('RVPROF01')).closedQuantity).toBe(false);
+  expect(sdk.decodeProfitAttribution(margin('RVPROF02')).closedQuantity).toBe(true);
+  expect(()=>sdk.decodeProfitAttribution(margin('RVPROF03'))).toThrow();
+  root.positions[0].lots=1n;
+  const entryWithPriorPayment=Buffer.alloc(256);
+  entryWithPriorPayment.set([1,0,1,0,1,0,10,2,1]); // entry=10, paid=2, denominator=1
+  const encoded=Buffer.from(sdk.getMarginAccountEncoder().encode(root));
+  expect(()=>sdk.decodeProfitAttribution(Buffer.concat([encoded,Buffer.from('RVPROF02'),entryWithPriorPayment]))).toThrow(/Open price payment/);
+});
+
+it('decodes opposite conservative endpoints from each fixed-width market record', async()=>{
+  const {root}=await fixture();
+  const scale=1_000_000_000n;
+  root.positions[0].lots=4n;
+  root.positions[1].lots=-4n;
+  const base=Buffer.from(sdk.getMarginAccountEncoder().encode(root));
+  const records=Buffer.alloc(80),center=400n*scale;
+  for(const offset of [0,40]) {
+    records.writeBigUInt64LE(center-1n,offset);
+    records.writeBigUInt64LE(center+1n,offset+16);
+    records.writeBigUInt64LE(4n,offset+32);
+  }
+  const margin=()=>Buffer.concat([base,Buffer.from('RVPROF03'),records]);
+  const decoded=sdk.decodeProfitAttribution(margin());
+  expect(decoded.width).toBe(40);
+  expect(decoded.credit).toBeNull();
+  expect(decoded.entryBounds?.[0]).toEqual({lower:center-1n,upper:center+1n,referenceLots:4n});
+  expect(decoded.ordinaryPositions.map(entry=>entry.entryScaled)).toEqual([center-1n,center+1n]);
+  expect(decoded.positions.map(entry=>entry.entryScaled)).toEqual([center+1n,center-1n]);
+  expect(sdk.ordinaryGainAtoms(36n*scale,4n,102n,decoded.ordinaryPositions[0])).toBe(27n);
+  records.writeBigUInt64LE(1n,32);
+  expect(()=>sdk.decodeProfitAttribution(margin())).toThrow(/Invalid bounded entry/);
+  records.writeBigUInt64LE(4n,32);
+  records.writeBigUInt64LE(center+8n,16);
+  expect(()=>sdk.decodeProfitAttribution(margin())).toThrow(/Invalid bounded entry/);
+  expect(()=>sdk.decodeProfitAttribution(margin().subarray(0,-1))).toThrow();
+});

@@ -1,6 +1,6 @@
 # SDK, API and wallet contracts
 
-The fresh-local wallet selects `bounded-router-candidate`. Clients bind the exact deployment, program hashes, genesis, initialization signature and domain. Transport version 4, clearing schema 10/profile 6 and SQL journal format 3 are separate identifiers. `selected` is an explicit earlier P56 deployment. Existing signed originals remain bound to their original executor. [SDK deployment table](../../packages/sdk/src/account-deployment.ts)
+The fresh-local wallet selects `bounded-entry`. Clients bind the exact deployment, program hashes, genesis, initialization signature and domain. Transport version 4, clearing schema 10/profile 6 and SQL journal format 3 are separate identifiers. `selected` is an explicit earlier P56 deployment. Existing signed originals remain bound to their original executor. [SDK deployment table](../../packages/sdk/src/account-deployment.ts)
 
 ## Account discovery
 
@@ -25,7 +25,7 @@ Immediate requests, stored order totals and maker side depth share the existing
 100,000,000-lot financial domain; signed positions and aggregate gross exposure
 retain their separate existing checks. `/v4/quote` accepts canonical positive
 decimal strings through that bound. The UI converts BTC/ETH exactly and rejects
-larger quantities before requesting a quote. The owner or an authorized, unexpired delegate signs the fee budget. A request within this numerical range still needs executable depth, margin, storage and a complete route search. [Measured bounds](../operations/performance.md)
+larger quantities before requesting a quote. The owner or an authorized, unexpired delegate signs the fee budget. A request within this numerical range still needs executable depth, margin and a complete route search. [Measured bounds](../operations/performance.md)
 
 Order and liquidation workers first try the remaining quantity, then halve on
 size-dependent unavailability, for at most 27 probes across the numeric domain.
@@ -104,7 +104,7 @@ positions/orders → close → eligible settlement/withdrawal. Portfolio and sub
 IDs refer to real PDAs; portfolio metadata itself has no funds. Account mode and
 isolated market cannot change after registration.
 
-For a flat position with a positive claim, the Positions panel uses
+For a fresh closed-quantity account, the Positions panel shows the whole atoms eligible before pool availability and backing, including after a partial close. For a flat position with a positive claim, the panel uses
 `closedGainStatus` from the SDK. It shows whether ordinary payment is suspended,
 the balance is below one payable atom, the settlement pool is empty, the pool
 covers part of the claim, or the claim awaits verified payment. Pool cash is

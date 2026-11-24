@@ -7,7 +7,7 @@ import type {openSettlementJournal} from './scalable-settlement-journal.js';
 import {eventually,type WireRpc,type WireSubscriptions} from './wire.js';
 
 export async function openLiquidationDriver(rpc:WireRpc,ws:WireSubscriptions,
-  journal:Awaited<ReturnType<typeof openSettlementJournal>>,finalizeFixture:()=>Promise<void>,refresh:()=>Promise<void>,signer:Keypair,receiver:Address,selection:'unified-recovery-candidate'|'local-successor-candidate'|'integrated-recovery-candidate') {
+  journal:Awaited<ReturnType<typeof openSettlementJournal>>,finalizeFixture:()=>Promise<void>,refresh:()=>Promise<void>,signer:Keypair,receiver:Address,selection:'bounded-entry'|'closed-quantity'|'unified-recovery-candidate'|'local-successor-candidate'|'integrated-recovery-candidate') {
   const runtime=new AccountRuntime(process.env.RIVALT_DATABASE_URL!,'p55b2-application',
     process.env.RIVALT_RPC_URL!,4,selection);
   await journal.checkpoint('initialize-risk-worker',true);

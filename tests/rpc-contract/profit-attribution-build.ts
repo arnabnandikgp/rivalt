@@ -1,3 +1,4 @@
+import {routerBuild} from './execution-router-build.js';
 import {JOINT_PAYMENT_ARTIFACT_SET,PAIR_SCHEDULE_ARTIFACT_SET,WINNER_ALLOCATION_ARTIFACT_SET,FOREIGN_PROTECTION_ARTIFACT_SET,ORIGINAL_BUDGETS_ARTIFACT_SET,POPULATED_RATES_ARTIFACT_SET,PARTITIONED_INPUTS_ARTIFACT_SET,accountDeployment,DOMAIN_BASELINE_ARTIFACT_SET,DOMAIN_EXTRACTED_ARTIFACT_SET,type AccountDeployment} from '@rivalt/sdk';
 import {BACKING_ARTIFACTS,verifyTestBuild} from './backing-artifacts.js';
 
@@ -26,11 +27,13 @@ const linkedBuilds = {
 export function successorSelection() {
   const profile=process.env.RIVALT_SUCCESSOR_BUILD;
   if(profile===undefined || profile==='local-successor-candidate')return 'local-successor-candidate' as const;
-  if(profile==='unified-recovery-candidate')return profile;
+  if(profile==='unified-recovery-candidate'||profile==='closed-quantity'||profile==='bounded-entry')return profile;
   throw new Error('Unknown successor build');
 }
 
 export function verifyProfitBuild(directory:string,sponsored=false,paired=false,residual=false,allocation=false,linked:Linked=false) {
+  if(linked==='successor' && successorSelection()==='bounded-entry')return routerBuild('bounded-entry',directory);
+  if(linked==='successor' && successorSelection()==='closed-quantity')return routerBuild('closed-quantity',directory);
   const comparison=process.env.RIVALT_DOMAIN_COMPARISON;
   if(comparison){
     if(linked!=='integrated'||!['baseline','extracted'].includes(comparison)

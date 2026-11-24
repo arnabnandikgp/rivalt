@@ -22,9 +22,10 @@ import {DemoFaucet,FaucetUnavailable} from './faucet.js';
 import {requireRecoverySelector,recoveryBudget} from '../../services/src/recovery-selection.js';
 import {verifyDemoPrograms} from './artifacts.js';
 import {SettlementPages} from '../../services/src/settlement-pages.js';
-import {CONTAINER,IMAGE,RUNTIME,DEMO_ROOT,UI,json,publicRequest,DEMO_DEPLOYMENT,ARTIFACT_DIRECTORY,demoArtifact} from './config.js';
+import {CONTAINER,IMAGE,RUNTIME,DEMO_ROOT,UI,json,publicRequest,DEMO_DEPLOYMENT,ARTIFACT_DIRECTORY,demoArtifact,requireFreshDemoDeployment} from './config.js';
 
 process.umask(0o077);
+requireFreshDemoDeployment();
 const session=new Date().toISOString().replaceAll(/[^0-9]/g,'')+'-'+randomBytes(4).toString('hex');
 const token=randomBytes(32).toString('hex'),password=randomBytes(24).toString('hex');
 const logs=`${DEMO_ROOT}/sessions/${session}`;

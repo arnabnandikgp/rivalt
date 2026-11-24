@@ -1,3 +1,4 @@
+import {ordinaryGainAtoms,type PerLotProfit} from './profit-attribution.js';
 import type {MarginAccount,Market as MarketAccount,VenueSafety} from './generated/index.js';
 import {effectiveFunding,oracleMode} from './oracle-policy.js';
 import {marginBalanceView,marginOrderRemaining,type MarginPreview} from './margin-balance.js';
@@ -27,7 +28,7 @@ export function accountFundingBounds(safety:Safety,market:Market,now:bigint,slot
 
 /** Current whole-account valuation. Headroom is indicative, not a payout promise:
  * the atomic instruction recomputes sources, funding, reservations and solvency. */
-export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:bigint,slot:bigint) {
+export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:bigint,slot:bigint,closedEntries?:readonly PerLotProfit[]) {
   if(root.schemaVersion!==10||root.lifecycle!==2||BigInt(root.activationGeneration)===0n||root.venue!==safety.venue||markets.some((market,index)=>
     market.schemaVersion!==10||market.venue!==root.venue||market.index!==index))throw new Error('Invalid account preview dependencies');
   const sources=markets.map(market=>accountSourceMode(safety,market,now,slot));
@@ -51,21 +52,25 @@ export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:
     const heldCash=heldRiskEquityScaled>0n?heldRiskEquityScaled/1_000_000_000n:0n;
     const currentCash=BigInt(view.localCashHeadroom);indicativeCashHeadroom=(currentCash<heldCash?currentCash:heldCash).toString();
   }
-  return {...view,heldFundingBoundsScaled:bounds.map(values=>values.map(value=>value.toString())),
+  if(closedEntries && closedEntries.length!==root.positions.length)throw new Error('Incomplete position entry history.');
+  const positions=view.positions.map((position,index)=>({...position,
+    ordinaryPayableAtoms:closedEntries && position.unpaidClaimScaled!==null ?
+      ordinaryGainAtoms(BigInt(position.unpaidClaimScaled),BigInt(position.lots),BigInt(markets[index].referencePrice),closedEntries[index]).toString():null}));
+  return {...view,positions,heldFundingBoundsScaled:bounds.map(values=>values.map(value=>value.toString())),
     heldRiskEquityScaled:heldRiskEquityScaled?.toString()??null,indicativeCashHeadroom,
     withdrawableCash:null,withdrawalStatus:status,paused:safety.paused};
 }
 
-/** Explains a flat market position's gain while its owner awaits a funded payment.
+/** Explains when a realized gain on a partly or fully closed position can be paid.
  * The shared pool is observed liquidity, never a reservation for this account. */
-export function closedGainStatus(position:{lots:string;unpaidClaimScaled:string|null}, settlement:bigint,
+export function closedGainStatus(position:{lots:string;unpaidClaimScaled:string|null;ordinaryPayableAtoms?:string|null}, settlement:bigint,
   safety:{mode:number;paused:boolean}) {
-  if (position.lots !== '0' || position.unpaidClaimScaled === null) return null;
+  if (position.unpaidClaimScaled === null || (position.lots !== '0' && position.ordinaryPayableAtoms == null)) return null;
   const claim = BigInt(position.unpaidClaimScaled);
   if (claim <= 0n) return null;
   if (safety.paused || safety.mode !== 1) return 'Ordinary settlement suspended';
-  const wholeAtoms = claim / 1_000_000_000n;
-  if (wholeAtoms === 0n) return 'Below one payable atom';
+  const wholeAtoms = position.ordinaryPayableAtoms == null ? claim / 1_000_000_000n : BigInt(position.ordinaryPayableAtoms);
+  if (wholeAtoms === 0n) return position.lots === '0' ? 'Below one payable atom' : 'No whole atoms eligible for payment';
   if (settlement === 0n) return 'Awaiting loss collection';
   if (settlement < wholeAtoms) return 'Market pool covers part of this claim';
   return 'Awaiting verified payment';

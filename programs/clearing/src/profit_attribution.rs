@@ -7,7 +7,14 @@ use crate::{
 use anchor_lang::prelude::*;
 use clearing_accounting::attribution::Attribution;
 
+#[cfg(not(feature = "closed-quantity-settlement"))]
 pub(crate) const MAGIC: &[u8; 8] = b"RVPROF01";
+#[cfg(feature = "bounded-entry-settlement")]
+use clearing_accounting::entry_cost::EntryCost;
+#[cfg(feature = "bounded-entry-settlement")]
+pub(crate) const MAGIC: &[u8; 8] = b"RVPROF03";
+#[cfg(all(feature = "closed-quantity-settlement", not(feature = "bounded-entry-settlement")))]
+pub(crate) const MAGIC: &[u8; 8] = b"RVPROF02";
 
 fn tail(
     root: &mut BorshAccount<MarginAccount>,
@@ -57,6 +64,14 @@ pub fn fill(
     let before = root.positions[market].lots;
     tail(root, |bytes| {
         let slot = market_slot(bytes, market)?;
+        #[cfg(feature = "bounded-entry-settlement")]
+        {
+            let prior = EntryCost::read(slot, before).map_err(|_| ClearingError::Reconciliation)?;
+            prior.fill(before, after, gross).and_then(|next| next.write(slot))
+                .map_err(|_| ClearingError::Arithmetic.into())
+        }
+        #[cfg(not(feature = "bounded-entry-settlement"))]
+        {
         if before.signum() == after.signum() && after.unsigned_abs() < before.unsigned_abs() {
             // Per-lot values are invariant under a same-side reduction. No
             // big integer allocation, reserialization, funding or resize here.
@@ -70,12 +85,14 @@ pub fn fill(
         let new = old
             .fill(before, after, gross)
             .map_err(|_| ClearingError::Arithmetic)?;
+        #[cfg(not(feature = "closed-quantity-settlement"))]
         require!(
             new.recovery_bytes(after)
                 .is_ok_and(|needed| needed <= slot.len()),
             ClearingError::Capacity
         );
         new.write(slot).map_err(|_| ClearingError::Capacity.into())
+        }
     })
 }
 
@@ -89,12 +106,28 @@ pub fn payment(
     let lots = root.positions[market].lots;
     tail(root, |bytes| {
         let slot = market_slot(bytes, market)?;
+        #[cfg(feature = "bounded-entry-settlement")]
+        {
+            let cap = EntryCost::read(slot, lots).and_then(|basis| basis.ordinary_cap(lots, mark, claim))
+                .map_err(|_| ClearingError::Reconciliation)?;
+            require!(amount <= cap, ClearingError::Amount);
+            return Ok(());
+        }
+        #[cfg(not(feature = "bounded-entry-settlement"))]
         let old = Attribution::read(slot, lots).map_err(|_| ClearingError::Reconciliation)?;
-        let new = old
-            .payment(lots, mark, claim, amount)
-            .map_err(|_| ClearingError::Arithmetic)?;
-        new.write(slot)
-            .map_err(|_| ClearingError::Reconciliation.into())
+        #[cfg(all(feature = "closed-quantity-settlement", not(feature = "bounded-entry-settlement")))]
+        {
+            let cap = old.closed_quantity_payment_cap(lots, mark, claim)
+                .map_err(|_| ClearingError::Reconciliation)?;
+            require!(amount <= cap, ClearingError::Amount);
+            Ok(())
+        }
+        #[cfg(not(feature = "closed-quantity-settlement"))]
+        {
+            let new = old.payment(lots, mark, claim, amount)
+                .map_err(|_| ClearingError::Arithmetic)?;
+            new.write(slot).map_err(|_| ClearingError::Reconciliation.into())
+        }
     })
 }
 
@@ -122,6 +155,11 @@ pub fn frozen_history(root:&BorshAccount<MarginAccount>, market:usize) -> Result
     require!(bytes.starts_with(MAGIC),ClearingError::Profile);
     let width=(slots_end(bytes)-8)/2;
     let start=8+width*market;
+    #[cfg(feature = "bounded-entry-settlement")]
+    return EntryCost::read(&bytes[start..start+width], root.positions[market].lots)
+        .and_then(|entry| entry.frozen_basis(root.positions[market].lots))
+        .map_err(|_| ClearingError::Resolution.into());
+    #[cfg(not(feature = "bounded-entry-settlement"))]
     Attribution::read(&bytes[start..start+width],root.positions[market].lots)
         .map_err(|_| ClearingError::Resolution.into())
 }
@@ -136,6 +174,18 @@ pub fn frozen_cap(root: &BorshAccount<MarginAccount>, mark:u64, claim:i128) -> R
 /// and trims its trailing zeroes. Measure the same program-owned bytes at freeze.
 #[cfg(feature = "unified-recovery-qualification")]
 pub(crate) fn exhaustive_history_bytes(root: &BorshAccount<MarginAccount>) -> Result<Option<u64>> {
+    #[cfg(feature = "bounded-entry-settlement")]
+    {
+        let mut total = 0;
+        for market in 0..2 {
+            let mut buffer = [0; 40];
+            frozen_history(root, market)?.write(&mut buffer).map_err(|_| ClearingError::Resolution)?;
+            total += buffer.iter().rposition(|b| *b != 0).map_or(0, |n| n as u64 + 1);
+        }
+        Ok(Some(total))
+    }
+    #[cfg(not(feature = "bounded-entry-settlement"))]
+    {
     let account = root.account();
     require!(valid_margin_size(account.data_len()), ClearingError::Profile);
     let data = account.try_borrow()?;
@@ -152,6 +202,7 @@ pub(crate) fn exhaustive_history_bytes(root: &BorshAccount<MarginAccount>) -> Re
         total += length as u64;
     }
     Ok(Some(total))
+    }
 }
 
 #[cfg(feature="btc-residual-qualification")]

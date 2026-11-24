@@ -1,14 +1,14 @@
 # Profit attribution and default verification
 
-When a profitable position receives cash, clearing needs to know how much unpaid profit remains on the lots that survive. A later forced close may charge only eligible gains. A second market can have a claim on the same debtor's funded cash.
+Clearing keeps two bounds on the average entry of each open position. Exceptional resolution can charge only eligible unpaid open gains. A second market can have a claim on the same debtor's funded cash.
 
 ## Entry, payment and partial close
 
-Clearing stores average entry and previously paid open profit per surviving lot as two numerators with a shared denominator. Increasing a position weights old and new inventory. A same-side reduction preserves both per-lot values. Closing clears this record, while any remaining aggregate market claim stays on the root. Flipping starts a new basis for the residual side. A trader sees the aggregate route price and each maker sees its own leg.
+Increasing exposure weights old and new inventory at their execution prices. A partial reduction retains average entry for the surviving lots. A close clears entry, and a flip starts the residual position at the execution basis. The trader receives the aggregate route price and each maker receives its own leg price. Any unpaid fixed claim stays with the account.
 
-Let `q` be absolute lots, `g` signed per-lot price gain, `p` previously paid per lot, `C` accrued claim and `A` the backed payment, using scaled units. The fixed component is `F = C − q × (g − p)`. The payment adds `max(0, A − max(0, F)) / q` to paid open profit per lot. Closed gains therefore get paid first. [Attribution implementation](../../crates/clearing-accounting/src/attribution.rs)
+Ordinary payments draw only on the fixed component and are capped by the total positive market claim. An ordinary payment leaves the surviving lots' entry intact. All fresh margin slots are 40 bytes per market, including after repeated mixed-price increases. For frozen selection, clearing uses the highest possible entry for a long or the lowest for a short. It converts that endpoint to a canonical per-lot fraction on chain. The keeper proposes against the same fraction. This bounds the winner charge even when qualified exact histories would give different whole-atom outcomes. [Ordinary payout arithmetic](accounting.md#ordinary-payouts-on-closed-quantity) · [On-chain storage admission](../../programs/clearing/src/profit_attribution.rs)
 
-A new or increased position must leave enough room for later partial closes interleaved with gain payments. Clearing uses a conservative bound on numerator and denominator growth. The position can occupy very few bytes at entry and still fail this reserve check. [On-chain admission](../../programs/clearing/src/profit_attribution.rs) · [Storage-bound derivation](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/clearing/default-plan-verification.md#storage-reserved-at-trade-admission)
+The earlier RVPROF01 deployment permitted open-price payments after fixed claims. It reserved space to distribute those payments across the surviving lots. Its historical frozen records retain that interpretation. [Earlier attribution and storage bound](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/clearing/default-plan-verification.md#storage-reserved-at-trade-admission)
 
 ## What clearing verifies
 

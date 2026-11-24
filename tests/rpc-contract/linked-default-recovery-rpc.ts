@@ -237,7 +237,7 @@ try {
         const rows=[];
         for(let index=0n;index<prepared.count;index+=8n) {
           const [key]=await sdk.deriveFrozenMarginPage(setup.venue,index/8n);
-          const page=(selection==='unified-recovery-candidate'?sdk.getOriginalBudgetPageDecoder():successor?sdk.getLocalSuccessorPageDecoder():paged.getFrozenMarginPageDecoder()).decode((await h.read(key))!);
+          const page=(sdk.usesUnifiedRecovery(selection)?sdk.getOriginalBudgetPageDecoder():successor?sdk.getLocalSuccessorPageDecoder():paged.getFrozenMarginPageDecoder()).decode((await h.read(key))!);
           assert.equal(page.epoch,frozen.epoch);assert.equal(page.pageIndex,index/8n);
           rows.push(...page.rows.slice(0,page.rowCount));
         }

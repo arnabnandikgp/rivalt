@@ -25,7 +25,7 @@ all root cash and market pools against allocated and actual tokens.
 | Fill | Paired q/notional-v deltas and complete final trader/maker health; preserve read-only bounded maker CPI and current routing/fee prefixes |
 | Collected ordinary taker fee f | C−f; originating market I+=floor((carry+f)/4); T+=f−I_credit; carry=(carry+f)%4. No extra charge; failed route rolls back everything |
 | Ordinary loss collection x | Whole x<=floor(−U_m/S), and the debtor's C*S covers **all gross negative common claims** after full accrual; C−x/v_m+x*S/P_m+x. Underfunded shared debtor goes to complete resolution, not caller-selected collection |
-| Ordinary gain payment x | Whole x<=floor(U_m/S), x<=P_m, valid complete market payment certificate and recipient final health: P_m−x/v_m−x*S/C+x. No I/T use, rounding up or borrowing |
+| Ordinary gain payment x | Whole x within the closed-quantity ceiling below, x<=P_m, valid complete market payment certificate and recipient final health: P_m−x/v_m−x*S/C+x. No I/T use, rounding up or borrowing |
 | Explicit flat netting x | Owner only, cross, both q=0, no live orders/protections, source payment certificate; x whole <=min(floor(U_source/S), floor(−U_destination/S), P_source). P_source−x/P_destination+x; v_source−x*S/v_destination+x*S; C unchanged |
 | Reserve seed / extra allocation | Actual authorized donor transfer V/I_m +z, or fee authority T_m−z/I_m+z. Direct donations remain unclassified until explicit classification |
 | Retained fee withdrawal | Fee authority, active/custody/resolved/retired and not paused/frozen, correct mint/destination and z<=T_m: T/V−z. Fees are excluded from creditor backing |
@@ -77,7 +77,19 @@ cash into the market settlement pool. A separate, backed payment moves cash from
 that pool to the trader and reduces their unpaid claim by the same amount. For
 example, a 300-atom payment leaves a 696-atom claim. Only funded cash can leave the vault on withdrawal.
 
-Clearing applies a payment closed-first and tracks the already-paid price profit on surviving lots. [Attribution](default-plan-verification.md)
+### Ordinary payouts on closed quantity
+
+Selling part of a long or buying back part of a short makes the price profit on that quantity eligible. The remaining lots retain the same entry-cost bounds. For example, buying 1,640 lots at 61,002 atoms and selling 820 at 61,998 realizes 816,720 atoms (0.816720 test collateral). A backed payment of that amount leaves 820 lots open. The same rule applies to maker inventory.
+
+A fresh margin account stores lower and upper bounds `L,H` on the total scaled entry cost of a reference quantity `Q`. One atom is one millionth of a collateral token and `S = 10⁹` scaled units per atom. An opening fill sets both bounds to its exact gross times `S` and records its quantity. Selling part of a long or covering part of a short leaves all three fields untouched. When adding inventory to `q` surviving lots with new gross `g` and size `n`, write `floor(L*q/Q) + g*S`, `ceil(H*q/Q) + g*S` and `Q = q+n`. A flip uses the full crossing execution's gross and quantity as the new reference. A full close clears the record.
+
+The interval always encloses the exact weighted entry. Its width starts at zero. At an increase the new width is at most the old width times `q/Q` plus two scaled units, hence at most `2(q+n)` if the old width was at most `2Q`. Reductions preserve that invariant. Within the 100-million-lot domain the uncertainty in the remaining total cost is at most 0.2 of one collateral atom.
+
+At the same fully accrued market snapshot, let `U` be the signed unpaid claim and `G` the greatest signed price gain consistent with the surviving entry bounds, in scaled atoms. Use `L/Q` per lot for a long and `H/Q` for a short. The whole-atom ceiling is `floor(max(0, U − max(0, G)) / S)`. This keeps an open loss in the net entitlement. Positive and negative accrued funding, previously collected cash and earlier payments stay in the fixed component. For example, if clearing collected 20 atoms during a price decline and the price recovers, the account can recover those 20 subject to backing. An additional 10 atoms of open price gain still require a reduction. Available market cash, the backing certificate and recipient health further limit every payment.
+
+At the same snapshot, the conservative ordinary ceiling can delay one atom compared with exact fractions. Successive reductions with the same fills, gross and funding snapshot produce the same final ceiling whether submitted together or separately. At flat the actual claim sets the ceiling. In default use the opposite endpoint for the least seizable gain. At an integer price boundary this can reduce recovery by up to one atom per matched lot relative to exact arithmetic, further capped by the claim and shortfall. The ordinary bound is per observation and the forced bound is per matched position, not a lifetime venue-wide loss bound.
+
+Fresh local accounts use the closed-quantity contract. It applies to ordinary trader and maker payments. Collection of losses, funded withdrawals and complete frozen resolution each retain their own admission rules. Historical RVPROF01 accounts use their original deployment. [Signed payouts and wallet exit](../operations/performance.md#closed-quantity-settlement)
 
 ## Funded exits
 

@@ -27,6 +27,10 @@ impl Default for Attribution {
 }
 
 impl Attribution {
+    pub(crate) fn from_scaled_basis(total: u128, quantity: u64) -> Self {
+        Self::reduced(total.into(), BigUint::zero(), quantity.into())
+    }
+
     fn reduced(entry: BigUint, paid: BigUint, denominator: BigUint) -> Self {
         let divisor = entry.gcd(&denominator).gcd(&paid);
         if divisor.is_one() {
@@ -76,6 +80,30 @@ impl Attribution {
     fn price_profit(&self, lots: i64, mark: u64) -> BigInt {
         let marked = BigUint::from(u128::from(mark) * SCALE as u128) * &self.denominator;
         (BigInt::from(marked) - BigInt::from(self.entry.clone())) * lots
+    }
+
+    /// Ordinary price-profit ceiling for fresh positions with no earlier open-price payments.
+    /// The accrued claim includes funding and prior settlement. Exclude positive
+    /// price P&L on surviving lots, then floor once at the whole-atom boundary.
+    /// The caller still supplies backing, available pool and whole-account admission.
+    pub fn closed_quantity_payment_cap(
+        &self,
+        lots: i64,
+        mark: u64,
+        claim_scaled: i128,
+    ) -> Result<u64> {
+        if !self.paid.is_zero() || self.entry.is_zero() != (lots == 0) {
+            return Err(Error::Invariant);
+        }
+        if mark == 0 || mark > MAX_PRICE || lots.unsigned_abs() > MAX_LOTS as u64 {
+            return Err(Error::Bounds);
+        }
+        let denominator = BigInt::from(self.denominator.clone());
+        let open_gain = self.price_profit(lots, mark).max(BigInt::zero());
+        let eligible = (BigInt::from(claim_scaled) * &denominator - open_gain).max(BigInt::zero());
+        (eligible / (denominator * SCALE))
+            .to_u64()
+            .ok_or(Error::Overflow)
     }
 
     /// Apply an already admitted backed payment at the same mark and fully accrued

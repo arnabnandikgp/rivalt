@@ -32,6 +32,8 @@ export function Positions({ controller }: { controller: Pick<AccountController, 
                 </td>
                 <td>
                   {fixed(position.unpaidClaimScaled, 15)}
+                  {position.ordinaryPayableAtoms != null && BigInt(position.ordinaryPayableAtoms) > 0n &&
+                    <div className="caption">Eligible for payment: {fixed(position.ordinaryPayableAtoms, 6)} test USD</div>}
                   {snapshot && <div className="caption">{closedGainStatus(position,
                     snapshot.ledgerStates[index].settlement, snapshot.safetyState)}</div>}
                 </td>

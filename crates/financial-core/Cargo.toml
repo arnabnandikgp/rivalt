@@ -11,6 +11,11 @@ risk-engine = { path = "../risk-engine" }
 [lib]
 path = "src/lib.rs"
 
+[dev-dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
+
 [lints.rust]
 # Solana platform-tools adds this target OS to its patched Rust compiler.
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
@@ -18,6 +23,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"
 
 [features]
 parallel-market-prototype = []
+closed-quantity-model = ["clearing-accounting/surviving-profit"]
 # Explicitly meter the vector-backed reference on a local diagnostic SBF only.
 sbf-settlement-measurement = []
 
@@ -25,6 +31,22 @@ sbf-settlement-measurement = []
 name = "gross_capacity_replay"
 required-features = ["parallel-market-prototype"]
 
+[[test]]
+name = "closed_quantity_payout"
+required-features = ["closed-quantity-model"]
+
 [[example]]
 name = "funding_prefix_replay"
 required-features = ["parallel-market-prototype"]
+
+[[example]]
+name = "bounded_entry_comparison"
+required-features = ["closed-quantity-model"]
+
+[[example]]
+name = "authenticated_entry_replay"
+required-features = ["closed-quantity-model"]
+
+[[example]]
+name = "entry_cost_decisions"
+required-features = ["closed-quantity-model"]

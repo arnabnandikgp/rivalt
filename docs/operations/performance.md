@@ -2,6 +2,53 @@
 
 Read the order size, artifact, starting book and outcome together. These are local measurements with synthetic prices and internal makers. The examples use 1,000,000 BTC lots per BTC and a six-decimal test collateral token at parity.
 
+## Fixed-width maker entry
+
+On clearing `b7e4458b` and harness `d175285e`, one internal BTC maker carried four short lots between 80 round trips. A second wallet bought and sold 16,379 lots each time. The maker's exact average changed on every increase. Its 40-byte BTC record enclosed the independently reconstructed cost after every increase and reduction. Its margin account stayed at 1,099 bytes, including the separate ETH record. The prior exact representation needed owner-funded growth at round 34 and exhausted the wallet compute budget on increase 66. The workloads have the same opening pattern. The prior workload reduced the retained inventory to two lots after its first storage refusal.
+
+| Finalized signed routes | Count | Transaction CU range |
+|---|---:|---:|
+| Seed wallet opens and closes in two parts | 3 | 397,114–475,476 |
+| Cycling wallet buys | 80 | 491,536–491,607 |
+| Cycling wallet sells | 80 | 486,474–490,597 |
+
+All 163 routes landed with the ordinary 800,000 CU wallet request. The maker earned 5.241292 test collateral and withdrew 10,005.241292 after both traders paid their losses and clearing verified backing. PostgreSQL replay reconciled 951 events. This is one steadily quoted book with two trader wallets. It measures sustained inventory at these sizes and does not establish venue throughput.
+
+On the separate deep-book lifecycle, the $100, $1,000, $10,000 and $61,000 buys used 475,953, 493,175, 493,176 and 493,173 CU respectively. Clearing refused an open-profit payment on a funded book, paid 588.622056 after a partial close, refused one atom above the ceiling and finalized a net wallet withdrawal of 1,148.168568. PostgreSQL replay matched 381 events. [Reproduction](local-development.md#fixed-width-entry-qualification)
+
+## Closed-quantity settlement
+
+On clearing `ec6f1ffa` and harness `ed60fc6c`, one funded trader submitted the same six sequential buys on the three-maker deep BTC book. All six filled with the fresh 128-byte position slots on both trader and maker accounts. Gross index notionals and filled transaction CU were:
+
+| Requested buy | Filled lots | Index notional in test USD | Transaction CU |
+|---|---:|---:|---:|
+| $100 | 1,640 | 100.040 | 488,977 |
+| $1,000 | 16,394 | 1,000.034 | 515,127 |
+| $10,000 | 163,935 | 10,000.035 | 515,016 |
+| One BTC | 1,000,000 | 61,000 | 515,203 |
+| Three-lot control | 3 | 0.183 | 470,531 |
+| One-lot control | 1 | 0.061 | 381,973 |
+
+The buys used 1,234-byte v1 transactions. After a price rise and loss collection, the market pool held 1,177.245108 test collateral. Clearing rejected a one-atom payment of open price gain. Selling 590,986 lots made 588.622056 eligible while 590,987 lots remained open. An attempt to collect one extra atom rolled back. The exact payment used 146,060 CU. The second sale and payment discharged the claim. Fees totaled 29.076540 test collateral and the SPL wallet received 1,148.168568 net. Fresh PostgreSQL replay matched 381 events. This covers one deterministic book. Exact mixed-entry growth remains a separate bound. [Signed harness](../../tests/rpc-contract/router-notional-rpc.ts) · [Storage qualification](qualification-scorecard.md#closed-quantity-payout-comparison)
+
+## Mixed-price maker storage
+
+Two independent trader wallets traded against one internal BTC maker. One wallet held four lots open. The other bought about $983 of BTC exposure and sold the entire position back on each round trip. That trader needed 13 bytes at entry and zero when flat. The maker carried a small position between rounds. The maker's first sale was one atom below its subsequent ask, so each increase changed its exact average entry, even with a stationary quote thereafter.
+
+Every addition brings maker inventory to 16,383 lots. With `r` lots retained between rounds, each addition multiplies the weight of the original entry by `r / 16,383`. This gives an independent exact price for every round. The test compares it with the signed account bytes after both fills. After the first storage refusal a trader closes two lots, leaving two, and the maker owner pays 1,503,680 lamports to grow the margin account from 1,275 to 1,571 bytes. The BTC and ETH slots each grow from 128 to 256 bytes. Each trader account stays at 1,275 bytes.
+
+Both runs used clearing `ec6f1ffa`, the ordinary three-maker router and one executable maker within the signed price limit. The orders went directly through signed RPC. The diagnostic budget separates the storage check from the wallet compute limit.
+
+| BTC slot and signed route budget | Completed round trips since opening | Maker bytes before → required on next increase | First refusal |
+|---|---:|---:|---|
+| 128 bytes, both runs | 33 | 128 → 132 | Clearing capacity error 6105 |
+| 256 bytes, 800,000 CU wallet budget | 65 | 240 → 244 | Increase 66 consumed all 800,000 CU |
+| 256 bytes, 1,400,000 CU diagnostic budget | 69 | 254 → 258 | Clearing capacity error 6105 |
+
+The diagnostic execution of increase 66 used 800,572 CU. Its most expensive successful increase used 809,216 CU. At each refusal the compared economic accounts rolled back byte for byte. Each run then reduced the existing maker inventory with ordinary trader orders. The fully closed maker claim was funded by collecting both traders’ losses. [Signed workload and independent entry calculation](../../tests/rpc-contract/maker-storage-rpc.ts)
+
+In the wallet-budget run (`24af1d2d`), 134 of 136 signed route attempts filled. After the compute refusal, the two final one-lot reductions used 353,789 and 350,442 CU. The maker withdrew its entire 10,000-token deposit plus 4.258808 test collateral in trading profit. Fresh PostgreSQL replay matched 840 events. The diagnostic run (`aca1e51c`) filled 142 of 144 signed attempts, withdrew the deposit plus 4.520904 and replayed 872 events. Provider fees were zero. These counts apply to one sequential BTC position with a stationary index and one best-priced maker. The bound depends on the price and quantity history. [Reproduction](local-development.md#mixed-price-maker-storage)
+
 ## Maker inventory and route search
 
 On clearing `986b3cd3`, one maker quoted 2 BTC and both sides had 80,000 test collateral tokens. At a $61,000 BTC reference the signed single-maker path admitted 128 lots with an ordinary 128-byte market slot. After growing the maker to 256 bytes, it carried 256 lots ($15.62). Adding one more lot failed with capacity error 6105. Attempts targeting 0.001, 0.01, 0.1 and 1 BTC also rolled back. The harness checkout was `38f2d09b`. The diagnostic and receipts were retained locally. [Fill admission](../../programs/clearing/src/profit_attribution.rs) · [Storage formula](../../crates/clearing-accounting/src/attribution.rs)
@@ -18,6 +65,23 @@ These are per-position measurements for this sequence. Partial payments and weig
 
 A separate **on-chain search** on the same program returned error 6133 at 510,423 CU for a 1,000-lot order. A repriced pair filled at 535,611 CU and a standing singleton at 402,633 CU. The router locks all three candidate capitals and registrations for a same-market order. Each order can fill against at most two. [Router limits](../liquidity/routing.md) · [Signed qualification](https://github.com/arnabnandikgp/rivalt/pull/167)
 
+## BTC orders at fixed dollar sizes
+
+At a synthetic BTC index of $61,000, each of three internal makers quoted 2 BTC on each side, two collateral atoms per lot away from the index. The trader and each maker started with 80,000 test collateral tokens and a 256-byte profit-history slot per market. One wallet signed the buys below in order, against the same book, with the exact published ask plus the 2 bps taker fee as its maximum spend. Each dollar request rounds up to a whole lot.
+
+| Requested buy | Lots | Reference notional | Signed RPC simulation | Finalized execution | Transaction CU |
+|---|---:|---:|---|---|---:|
+| $100 | 1,640 | $100.040 | Capacity 6105 | Rolled back | 460,091 |
+| $1,000 | 16,394 | $1,000.034 | Capacity 6105 | Rolled back | 460,091 |
+| $10,000 | 163,935 | $10,000.035 | Capacity 6105 | Rolled back | 460,000 |
+| $61,000 | 1,000,000 | $61,000 | Capacity 6105 | Rolled back | 460,169 |
+| Three-lot control | 3 | $0.183 | Passed | Filled | 449,119 |
+| One-lot control | 1 | $0.061 | Passed | Filled | 384,275 |
+
+All three published curves priced every order. Each dollar order reached maker quote CPI, then clearing checked whether the **trader's** position could store future partial payouts and reductions. This check runs before the maker's corresponding check. For the $100 opening trade the historical formula on clearing `986b3cd3` required 1,554 bytes on the trader alone. Fresh local positions use [fixed 40-byte records](#fixed-width-maker-entry). Splitting those lots between makers would still give the trader a 1,640-lot position. Every refusal left the trader, three maker capitals, three registrations and both market/fee-ledger pairs byte-identical. The diagnostic deliberately broadcast failed simulations on loopback. Each signed attempt cost the payer 5,000 local lamports. [Commit order](../../programs/clearing/src/instructions/maker_liquidity/routes/commit.rs) · [Recovery-space formula](../../crates/clearing-accounting/src/attribution.rs)
+
+The controls opened four lots in total. After the index moved to $62,000, the reduce-only sale left a flat trader with 3,984 unpaid collateral atoms. Collection from the losing maker and the backing scan enabled payment. The trader withdrew the 3,884-atom net gain after 100 atoms of trading fees. The token wallet gained and the vault lost exactly that amount. Fresh PostgreSQL replay matched 357 events. The four refused orders produced no claim or payout to measure. This was a sequential flat-book test with scripted settlement, one wallet and synthetic prices. [Signed harness](../../tests/rpc-contract/router-notional-rpc.ts) · [Run instructions](local-development.md#fixed-btc-order-sizes)
+
 ## Wallet traffic and settlement
 
 Three local runs scheduled the same 120 BTC buys from 24 wallets over 4.165 seconds. Orders were one to three lots. One deep maker always quoted the best test ask. All runs used the bounded router, synthetic sources and a real settlement worker. The timing column includes time spent waiting to prepare the order.
@@ -29,6 +93,8 @@ Three local runs scheduled the same 120 BTC buys from 24 wallets over 4.165 seco
 | Wait for same-wallet confirmation | 256 bytes | 119 / 120 | 5.317 s |
 
 Same-wallet sequencing accounted for 39 refusals in the independent arm. Ten storage refusals remained in the confirmed 128-byte arm. The enlarged arm ended with one signed route-health refusal (6120) and 991 of the original 996 claim atoms paid, with an empty pool. Its fresh SQL replay matched 1,321 events. These outcomes bound this workload only. [Comparison and refusal methodology](https://github.com/arnabnandikgp/rivalt/pull/169)
+
+For the remaining refusal, wallet 14's three-lot order 109 simulated successfully at slot 3,384 and landed at 3,391. The same message used 431,103 CU in preview and 346,613 CU on failure. Seven other buys landed in that slot. Maker 0 had already used its shallow ask, maker 2's ask exceeded the signed limit, and maker 1 went from 129 to 146 short lots during the slot. Its last reprice was at slot 3,359. The failed transaction reached route selection and returned 6120 before maker quote CPI. Competing fills consuming maker 1's margin fit the observations. The receipt gives no candidate-specific reason or intermediate maker balance at the failed instruction, so the exact rejection remains open. [Selector](../../programs/clearing/src/instructions/maker_liquidity/routes/market_order.rs)
 
 In the separate 16-wallet mixed-market workload the BTC creditor started flat with all 996 atoms already in the pool. The original worker left the claim unpaid for more than 191 seconds while servicing other work. The revised worker paid all 996 after 93.041 seconds on harness `c615ba2f`, with 72/72 trader fills and 83 successful settlement originals. The first ETH payment was observed at 238.158 seconds. A reconciled projection and a trader fill are distinct from a cash payout. [Worker comparison](https://github.com/arnabnandikgp/rivalt/pull/168)
 

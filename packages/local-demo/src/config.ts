@@ -2,9 +2,12 @@ import {resolve} from 'node:path';
 import {accountDeployment,usesExecutionRouter} from '../../sdk/src/account-deployment.js';
 export const DEMO_ROOT=resolve(process.env.RIVALT_DEMO_ROOT??'.local/interactive-demo');
 export const RUNTIME=resolve(DEMO_ROOT,'runtime');
-const requested=process.env.RIVALT_DEMO_DEPLOYMENT??'bounded-router-candidate';
+const requested=process.env.RIVALT_DEMO_DEPLOYMENT??'bounded-entry';
 if(requested!=='selected'&&requested!=='unified-recovery-candidate'&&!usesExecutionRouter(requested))throw new Error('Unknown local demo deployment');
-export const DEMO_DEPLOYMENT:'selected'|'unified-recovery-candidate'|'execution-router-candidate'|'bounded-router-candidate'=requested;
+export const DEMO_DEPLOYMENT:'selected'|'unified-recovery-candidate'|'execution-router-candidate'|'bounded-router-candidate'|'closed-quantity'|'bounded-entry'=requested;
+export function requireFreshDemoDeployment(selection:string=DEMO_DEPLOYMENT) {
+  if(selection!=='bounded-entry')throw new Error('Fresh demo venues require fixed-width closed-quantity settlement. Historical artifacts are available for replay.');
+}
 export const ARTIFACT_DIRECTORY=DEMO_DEPLOYMENT==='selected'?
   resolve(process.env.RIVALT_ARTIFACT_DIR??'.local/anchor-rc2/current'):
   resolve(process.env.RIVALT_DEMO_PROGRAMS??`.local/demo-programs/${accountDeployment(DEMO_DEPLOYMENT).artifactSet}`);

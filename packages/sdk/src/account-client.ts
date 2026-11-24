@@ -6,7 +6,7 @@ import {testRpcUrl} from './test-deployment.js';
 import {ACCOUNT_PROFILE,readMembershipRegistry,readMarginMembership} from './account-membership.js';
 import {deriveMemberPage,deriveMemberIndex,deriveStorageFunding} from './account-addresses.js';
 import {ArtifactVerifier} from './artifacts.js';
-import {accountDeployment,usesExecutionRouter,usesUnifiedRecovery,type AccountDeployment} from './account-deployment.js';
+import {accountDeployment,usesClosedQuantity,usesExecutionRouter,usesUnifiedRecovery,type AccountDeployment} from './account-deployment.js';
 import {readOwnerAccounts} from './account-owner-discovery.js';
 import {marketCheckpointsFor,venueMarketCheckpoints,walletEconomicActions,type MarketCheckpoint} from './market-checkpoints.js';
 import {decodeMembershipAccount} from './account-membership.js';
@@ -109,14 +109,14 @@ export class AccountUserClient extends WalletClient {
   }
   private get marginLayout(){return usesUnifiedRecovery(this.config.deployment)?'ledger-lanes' as const:undefined;}
   async snapshot(margins:Address[],commitment:'confirmed'|'finalized'='finalized') {
-    await this.environment();return readAccountSnapshot(this.rpc,{...this.config,marginLayout:this.marginLayout},margins,commitment);
+    await this.environment();return readAccountSnapshot(this.rpc,{...this.config,boundedEntry:this.config.deployment==='bounded-entry',closedQuantity:usesClosedQuantity(this.config.deployment),marginLayout:this.marginLayout},margins,commitment);
   }
   async tradeSnapshot(trader:Address,marketIndex:0|1) {
-    await this.environment();return readAccountTradeSnapshot(this.rpc,{...this.config,marginLayout:this.marginLayout},trader,marketIndex,'confirmed');
+    await this.environment();return readAccountTradeSnapshot(this.rpc,{...this.config,boundedEntry:this.config.deployment==='bounded-entry',closedQuantity:usesClosedQuantity(this.config.deployment),marginLayout:this.marginLayout},trader,marketIndex,'confirmed');
   }
   balance(snapshot:AccountSnapshot,margin:Address) {
     this.bound(snapshot);requireValue(snapshot.roots[margin],'Margin absent from snapshot.');
-    return accountBalanceView(snapshot.roots[margin],snapshot.safetyState,snapshot.marketStates,snapshot.now,snapshot.slot);
+    return accountBalanceView(snapshot.roots[margin],snapshot.safetyState,snapshot.marketStates,snapshot.now,snapshot.slot,snapshot.closedEntries[margin]);
   }
   async route(input:LiquidityRouteInput,actor:Address):Promise<Awaited<ReturnType<typeof buildLiquidityRoute>>> {
     this.bound(input.snapshot);return await buildLiquidityRoute(input,actor);

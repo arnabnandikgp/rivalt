@@ -3,7 +3,7 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
+export type AccountDeployment='bounded-entry'|'closed-quantity'|'bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
@@ -29,15 +29,19 @@ export const FOREIGN_PROTECTION_ARTIFACT_SET='foreign-protection-7df9585e';
 export const WINNER_ALLOCATION_ARTIFACT_SET='winner-allocation-486d5818';
 export const JOINT_PAYMENT_ARTIFACT_SET='joint-payment-3acd4a4d';
 export const PAIR_SCHEDULE_ARTIFACT_SET='pair-schedule-34359552';
-export const usesExecutionRouter = (selection?: string): selection is 'execution-router-candidate'|'bounded-router-candidate' =>
-  selection === 'execution-router-candidate' || selection === 'bounded-router-candidate';
+export const usesExecutionRouter = (selection?: string): selection is 'bounded-entry'|'execution-router-candidate'|'bounded-router-candidate'|'closed-quantity' =>
+  selection === 'bounded-entry' || selection === 'execution-router-candidate' || selection === 'bounded-router-candidate' || selection === 'closed-quantity';
 export const usesUnifiedRecovery = (selection?: AccountDeployment) => selection === 'unified-recovery-candidate' || usesExecutionRouter(selection);
 export const UNIFIED_RECOVERY_ARTIFACT_SET='unified-recovery-79724a5a';
 // The local runner binds this layout to its program hashes before indexing.
 // The new instruction uses unified recovery account and event layouts.
 export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
+export const BOUNDED_ENTRY_ARTIFACT_SET='bounded-entry-settlement';
+export const usesClosedQuantity=(selection?:string)=>selection==='bounded-entry'||selection==='closed-quantity';
+export const hasClosedQuantity=(set?:string)=>set===BOUNDED_ENTRY_ARTIFACT_SET||set===CLOSED_QUANTITY_ARTIFACT_SET;
+export const CLOSED_QUANTITY_ARTIFACT_SET='closed-quantity-settlement';
 export const BOUNDED_ROUTER_ARTIFACT_SET='bounded-maker-routing';
-export const hasJointPayment=(set?:string)=>set===JOINT_PAYMENT_ARTIFACT_SET||set===UNIFIED_RECOVERY_ARTIFACT_SET||set===EXECUTION_ROUTER_ARTIFACT_SET||set===BOUNDED_ROUTER_ARTIFACT_SET;
+export const hasJointPayment=(set?:string)=>set===JOINT_PAYMENT_ARTIFACT_SET||set===UNIFIED_RECOVERY_ARTIFACT_SET||set===EXECUTION_ROUTER_ARTIFACT_SET||set===BOUNDED_ROUTER_ARTIFACT_SET||hasClosedQuantity(set);
 export const hasPartitionedInputs=(set?:string)=>set===PARTITIONED_INPUTS_ARTIFACT_SET||set===POPULATED_RATES_ARTIFACT_SET||set===ORIGINAL_BUDGETS_ARTIFACT_SET||set===FOREIGN_PROTECTION_ARTIFACT_SET||set===WINNER_ALLOCATION_ARTIFACT_SET||set===PAIR_SCHEDULE_ARTIFACT_SET||hasJointPayment(set);
 const integratedLayout=(set?:string)=>set===INTEGRATED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set)
   ||set===DOMAIN_BASELINE_ARTIFACT_SET||set===DOMAIN_EXTRACTED_ARTIFACT_SET;
@@ -55,7 +59,7 @@ export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY
 export const PAGED_RECOVERY_ARTIFACT_SET='paged-recovery-37672622';
 export const RECOVERY_SEARCH_ARTIFACT_SET='recovery-search-efbaa02';
 export const hasPagedRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set);
-export type RecoveryDeployment='bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
+export type RecoveryDeployment='bounded-entry'|'closed-quantity'|'bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
 export const usesRecoverySearch=(selection?:AccountDeployment):selection is RecoveryDeployment=>
   usesUnifiedRecovery(selection)||selection==='local-successor-candidate'||selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate';
 export const hasJointRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===RECOVERY_SEARCH_ARTIFACT_SET||integratedLayout(set);
@@ -66,7 +70,25 @@ export const LINKED_PAIR_ARTIFACT_SET='linked-pair-0e027fc';
 export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
-export function accountDeployment(selection:AccountDeployment) {
+type DeploymentBinding = {
+  artifactSet:string; schema:number; programProfile:number; programRevision?:string;
+  helperRevision:string; artifacts:typeof LIQUIDITY_ARTIFACTS;
+};
+export function accountDeployment(selection:AccountDeployment):DeploymentBinding {
+  if (selection === 'bounded-entry') {
+    const previous = accountDeployment('closed-quantity');
+    return {...previous, artifactSet: BOUNDED_ENTRY_ARTIFACT_SET,
+      programRevision: 'b7e4458b57a3a9bbb0906929a936094c78393b47',
+      artifacts: previous.artifacts.map(artifact => artifact.name === 'clearing' ? {...artifact,
+        bytes: 3630808, sha256: 'b013759bd9378771713d10ea95afec3e56785aa6b3c9b3f5f341be716665239e'} : artifact)};
+  }
+  if (selection === 'closed-quantity') {
+    const router = accountDeployment('bounded-router-candidate');
+    return {...router, artifactSet: CLOSED_QUANTITY_ARTIFACT_SET,
+      programRevision: 'ec6f1ffa4b6a3a37b322a3411e934f474b88f997',
+      artifacts: router.artifacts.map(artifact => artifact.name === 'clearing' ? {...artifact,
+        bytes: 3634128, sha256: '0895875314c723fde1ba8cef1c623d5df9700de4655c7fefef154b90d0f86c83'} : artifact)};
+  }
   if (usesExecutionRouter(selection)) {
     const programs: Record<string, {bytes: number; sha256: string}> = {
       clearing: selection === 'bounded-router-candidate' ?

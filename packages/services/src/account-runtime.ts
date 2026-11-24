@@ -22,7 +22,7 @@ export class AccountRuntime extends AccountExecution {
     const binding=await this.environment(),{state}=await this.store.published();
     if(!state.venue||state.members.length===0)throw new Error('Account discovery unavailable');
     const marginLayout=sdk.hasLedgerLanes(binding.artifactSet)?'ledger-lanes' as const:undefined;
-    return {binding,state,identity:{venue:address(binding.venue),mint:address(state.venue.quoteMint),domain:binding.domain,marginLayout}};
+    return {binding,state,identity:{venue:address(binding.venue),mint:address(state.venue.quoteMint),domain:binding.domain,boundedEntry:binding.artifactSet===sdk.BOUNDED_ENTRY_ARTIFACT_SET,closedQuantity:sdk.hasClosedQuantity(binding.artifactSet),marginLayout}};
   }
   async snapshot(margins?:Address[],marketIndex?:0|1) {
     const discovery=await this.discovery(),selected=margins??[address(discovery.state.members[0])];
