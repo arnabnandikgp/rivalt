@@ -21,7 +21,9 @@ The [venue qualification scorecard](operations/qualification-scorecard.md) track
 
 On `6c8795f6`, the native accounting case measured 805 bytes after 220 interleaved open-profit payments on the $100 position. Re-reading finalized receipts from the existing 24-wallet burst verified 14.457474 tokens of filled notional and zero split fills. These are a storage comparison and a historical workload measurement. The on-chain storage fix and broader benchmark remain open.
 
-**Next action.** Evaluate an exact position-history layout with additional storage for fractions that outgrow the inline slot. Establish how increases fund that storage and how reductions and payments can finish when the owner is offline. Compare it against the four fixed sizes and the 220-payment histories before changing clearing.
+On `afc45179`, eight native cases exercised ordinary price-profit payments on closed quantity. All four dollar sizes opened, reduced and paid for longs and shorts. At one entry price the attribution record occupied 13 bytes. An alternating one-/two-lot position reached 257 bytes on its 985th increase. That increase failed and the remaining position closed and paid. The model retains accrued funding and repayments of previously collected losses as fixed claims. Signed execution, wallet exit and recovery under the candidate rule remain open. [Results and method](operations/qualification-scorecard.md#closed-quantity-payout-comparison)
+
+**Next action.** Wire the candidate ceiling and exact-entry storage check into a separately identified fresh local deployment and its settlement worker. Repeat the fixed BTC sequence through signed fills, partial payments, wallet exit and fresh PostgreSQL replay. Preserve the mixed-entry refusal and permissionless reduction as regression cases.
 
 | Open gate | What remains |
 |---|---|

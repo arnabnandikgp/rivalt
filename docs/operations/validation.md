@@ -23,4 +23,6 @@ Use the smallest check that exercises the changed behavior. For a financial tran
 | Default on populated books | On `3acd4a4d`, all 128 members reconciled and one wallet withdrew 986,527 atoms. One payout calculation took 471 continuations. On `79724a5a`, three 75-member books completed after keeper restart using 193, 285 and 327 finalized keeper transactions. | [128-member qualification](https://github.com/arnabnandikgp/rivalt/pull/152) · [75-member qualification](https://github.com/arnabnandikgp/rivalt/pull/158). Costs depend on frozen positions, claims and proof eligibility. |
 | Earlier devnet and external gates | Historical devnet oracle and external wallet registration used previous programs. Current trading is local. | [Historical record](../HISTORY.md) · [Open gates](../STATUS.md). |
 
+The [closed-quantity payout comparison](qualification-scorecard.md#closed-quantity-payout-comparison) on `afc45179` ran eight native cases against the financial crates. It establishes the payout and storage results for those histories. The signed router measurements above use the deployed closed-first rule.
+
 Retain raw evidence at its ignored local path. Record new results against exact program and harness revisions, with the denominator, failed attempts, economic outcome and remaining limitation. Detailed runs and reproduction notes belong in the PR.
