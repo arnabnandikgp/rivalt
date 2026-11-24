@@ -17,7 +17,9 @@ PRs #168 and #169 merged together at [`9c482583`](https://github.com/arnabnandik
 
 The fixed BTC notional baseline is in review. On the same router binary, all three internal makers quoted each request from $100 to $61,000. Clearing rejected all four at the trader's profit-history storage check. One- and three-lot buys filled, closed and paid 3,884 net atoms to the wallet. The earlier 1,000-lot search refusal and order 109's route-health refusal occurred on different books. [Sizes, receipts and limits](operations/performance.md#btc-orders-at-fixed-dollar-sizes)
 
-**Next action.** Compare position-history representations against the current exact accounting model using the same four dollar sizes, partial reductions and interleaved payouts. Measure bytes and check trader, maker and creditor entitlements before proposing a change to clearing.
+The [venue qualification scorecard](operations/qualification-scorecard.md) tracks nine findings and their closure criteria. Position storage and the trader benchmark are the active priorities. The combined market-shock and recovery exercise is deferred.
+
+**Next action.** Evaluate an exact position-history layout with additional storage for fractions that outgrow the inline slot. Establish how increases fund that storage and how reductions and payments can finish when the owner is offline. Compare it against the four fixed sizes and the 220-payment histories before changing clearing.
 
 | Open gate | What remains |
 |---|---|

@@ -9,6 +9,7 @@ Rivalt clears perpetual futures on Solana. Independent maker programs set prices
 | Publish quotes, follow a fill or understand funding | [Maker liquidity](liquidity/README.md) |
 | Build a client, operate workers or follow money through PostgreSQL | [Application and services](application/README.md) |
 | Operate an instance, choose tests or find measured limits | [Operations](operations/README.md) |
+| Review test biases, open bottlenecks and the evidence needed to close them | [Venue qualification scorecard](operations/qualification-scorecard.md) |
 | See what shipped, what can fail and what comes next | [Project status](STATUS.md) |
 
 [Decisions](DECISIONS.md) records the rationale behind current contracts. [History](HISTORY.md) locates earlier designs, measurements and reproduction instructions by immutable revision.
