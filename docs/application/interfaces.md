@@ -1,6 +1,6 @@
 # SDK, API and wallet contracts
 
-The fresh-local wallet selects `bounded-router-candidate`. Clients bind the exact deployment, program hashes, genesis, initialization signature and domain. Transport version 4, clearing schema 10/profile 6 and SQL journal format 3 are separate identifiers. `selected` is an explicit earlier P56 deployment. Existing signed originals remain bound to their original executor. [SDK deployment table](../../packages/sdk/src/account-deployment.ts)
+The fresh-local wallet selects `closed-quantity`. Clients bind the exact deployment, program hashes, genesis, initialization signature and domain. Transport version 4, clearing schema 10/profile 6 and SQL journal format 3 are separate identifiers. `selected` is an explicit earlier P56 deployment. Existing signed originals remain bound to their original executor. [SDK deployment table](../../packages/sdk/src/account-deployment.ts)
 
 ## Account discovery
 
@@ -104,7 +104,7 @@ positions/orders → close → eligible settlement/withdrawal. Portfolio and sub
 IDs refer to real PDAs; portfolio metadata itself has no funds. Account mode and
 isolated market cannot change after registration.
 
-For a flat position with a positive claim, the Positions panel uses
+For a fresh closed-quantity account, the Positions panel shows the whole atoms eligible before pool availability and backing, including after a partial close. For a flat position with a positive claim, the panel uses
 `closedGainStatus` from the SDK. It shows whether ordinary payment is suspended,
 the balance is below one payable atom, the settlement pool is empty, the pool
 covers part of the claim, or the claim awaits verified payment. Pool cash is

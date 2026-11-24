@@ -6,7 +6,7 @@ Updated 24 November 2026. Rivalt is a local, test-collateral BTC/ETH perpetual v
 
 | Area | Last verified scope |
 |---|---|
-| Execution and wallet | Fresh sessions use `bounded-router-candidate`, program revision `986b3cd3`. An execution-time reprice changed the winning makers. Search-budget and trader-limit refusals rolled back the trade. [Routing](liquidity/routing.md) |
+| Execution and wallet | The previously integrated `bounded-router-candidate` ran at program revision `986b3cd3`. An execution-time reprice changed the winning makers. Search-budget and trader-limit refusals rolled back the trade. [Routing](liquidity/routing.md) |
 | Ordinary settlement | The worker can pay a ready creditor while another market builds its backing proof. A 16-wallet BTC payout completed in 93.041 seconds in the review repeat. [Settlement PR #168](https://github.com/arnabnandikgp/rivalt/pull/168) |
 | Wallet load and maker capacity | In a 24-wallet burst, waiting for the previous wallet order to confirm and resizing one maker improved fills to 119 of 120. One signed route still failed admission after preview. [Workload PR #169](https://github.com/arnabnandikgp/rivalt/pull/169) |
 | Recovery | Earlier pinned recovery runs verified all 128 payouts on one populated book and completed wallet exits after keeper restart on three 75-member books. The verifier and book determine the work. [Validation](operations/validation.md) |
@@ -15,15 +15,15 @@ PRs #168 and #169 merged together at [`9c482583`](https://github.com/arnabnandik
 
 ## Limits and next action
 
-The fixed BTC notional baseline is in review. On the same router binary, all three internal makers quoted each request from $100 to $61,000. Clearing rejected all four at the trader's profit-history storage check. One- and three-lot buys filled, closed and paid 3,884 net atoms to the wallet. The earlier 1,000-lot search refusal and order 109's route-health refusal occurred on different books. [Sizes, receipts and limits](operations/performance.md#btc-orders-at-fixed-dollar-sizes)
+Fresh local venues use `closed-quantity`. Ordinary price profit becomes eligible when the trader reduces or closes the position. A payment still needs funded backing. Existing venue journals retain their original deployment identity. [Settlement contract](clearing/accounting.md#ordinary-payouts-on-closed-quantity)
 
-The [venue qualification scorecard](operations/qualification-scorecard.md) tracks nine findings and their closure criteria. Position storage and the trader benchmark are the active priorities. The combined market-shock and recovery exercise is deferred.
+On clearing `ec6f1ffa` with harness `ed60fc6c`, all four BTC buys from $100 through $61,000 and both control buys filled on the initial 128-byte slots. With the pool already funded, clearing refused payment on the open position. After a partial close it paid 588.622056 test collateral and refused one atom more. After the final close the wallet withdrew 1,148.168568 net. Fresh PostgreSQL replay matched all 381 events. On the previous binary the four larger buys failed storage admission. [Signed results](operations/performance.md#closed-quantity-settlement)
 
-On `6c8795f6`, the native accounting case measured 805 bytes after 220 interleaved open-profit payments on the $100 position. Re-reading finalized receipts from the existing 24-wallet burst verified 14.457474 tokens of filled notional and zero split fills. These are a storage comparison and a historical workload measurement. The on-chain storage fix and broader benchmark remain open.
+On that same clearing binary with harness `4718f365`, the nine-member BTC/ETH default verified both markets, applied the joint plan and reached the trader and three maker wallet withdrawals. Fresh PostgreSQL replay matched 176 events. [Recovery qualification](operations/validation.md#evidence-by-deployment)
 
-On `afc45179`, eight native cases exercised ordinary price-profit payments on closed quantity. All four dollar sizes opened, reduced and paid for longs and shorts. At one entry price the attribution record occupied 13 bytes. An alternating one-/two-lot position reached 257 bytes on its 985th increase. That increase failed and the remaining position closed and paid. The model retains accrued funding and repayments of previously collected losses as fixed claims. Signed execution, wallet exit and recovery under the candidate rule remain open. [Results and method](operations/qualification-scorecard.md#closed-quantity-payout-comparison)
+The [venue qualification scorecard](operations/qualification-scorecard.md) tracks nine findings. Position storage and representative trader workloads remain the first two priorities. A native mixed-price history completed 984 round trips within a 256-byte slot, then required 257 bytes for the next increase. The surviving position could still close and collect its claim. The combined market-shock and recovery exercise is deferred.
 
-**Next action.** Wire the candidate ceiling and exact-entry storage check into a separately identified fresh local deployment and its settlement worker. Repeat the fixed BTC sequence through signed fills, partial payments, wallet exit and fresh PostgreSQL replay. Preserve the mixed-entry refusal and permissionless reduction as regression cases.
+**Next action.** Exercise sustained mixed-price maker inventory on the signed local deployment through storage saturation, refused increase, partial reduction and wallet exit. Record trader and maker bytes separately and reconcile the receipts before expanding the workload.
 
 | Open gate | What remains |
 |---|---|

@@ -52,6 +52,7 @@ export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:
     const heldCash=heldRiskEquityScaled>0n?heldRiskEquityScaled/1_000_000_000n:0n;
     const currentCash=BigInt(view.localCashHeadroom);indicativeCashHeadroom=(currentCash<heldCash?currentCash:heldCash).toString();
   }
+  if(closedEntries && closedEntries.length!==root.positions.length)throw new Error('Incomplete position entry history.');
   const positions=view.positions.map((position,index)=>({...position,
     ordinaryPayableAtoms:closedEntries && position.unpaidClaimScaled!==null ?
       ordinaryGainAtoms(BigInt(position.unpaidClaimScaled),BigInt(position.lots),BigInt(markets[index].referencePrice),closedEntries[index]).toString():null}));
@@ -60,7 +61,7 @@ export function accountBalanceView(root:Root,safety:Safety,markets:Market[],now:
     withdrawableCash:null,withdrawalStatus:status,paused:safety.paused};
 }
 
-/** Explains a flat market position's gain while its owner awaits a funded payment.
+/** Explains when a realized gain on a partly or fully closed position can be paid.
  * The shared pool is observed liquidity, never a reservation for this account. */
 export function closedGainStatus(position:{lots:string;unpaidClaimScaled:string|null;ordinaryPayableAtoms?:string|null}, settlement:bigint,
   safety:{mode:number;paused:boolean}) {

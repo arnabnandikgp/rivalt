@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {spawn,execFileSync} from 'node:child_process';
 import {existsSync,mkdirSync,readFileSync,openSync,closeSync,rmSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
-import {CONTROL,DEMO_ROOT,RUNTIME,CONTAINER,PORTS,demoArtifact} from './config.js';
+import {CONTROL,DEMO_ROOT,RUNTIME,CONTAINER,PORTS,demoArtifact,requireFreshDemoDeployment} from './config.js';
 import {watchSupervisor} from './processes.js';
 
 const action=process.argv[2]??'status';
@@ -46,6 +46,7 @@ async function stop(){
 if(action==='status')console.log(await status()??{state:'stopped',next:'bash ops/demo.sh start (or reset for an ended session)'});
 else if(action==='stop')await stop();
 else if(action==='start'||action==='reset'){
+  requireFreshDemoDeployment();
   if(action==='reset'){
     await stop();
     execFileSync('python3',['ops/check-ports.py',...PORTS.map(String)],{stdio:'inherit'});

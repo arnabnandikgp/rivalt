@@ -34,7 +34,7 @@ every trader/maker account retains complete admission. For cash exits, read
 `account_cash::cash`; for claims, read its `claims` and `certificate` modules.
 Resolution is market-attributed and complete-cohort under `account_safety`.
 
-Fresh sessions select the qualified `execution-router-qualification` build and its pinned maker programs. Default/devnet builds keep these financial paths gated. The [deployment binding](../../packages/sdk/src/account-deployment.ts) identifies each supported artifact set.
+Fresh sessions select the `closed-quantity-settlement` build and its pinned maker programs. Default/devnet builds keep these financial paths gated. The [deployment binding](../../packages/sdk/src/account-deployment.ts) identifies each supported artifact set.
 
 Discriminators, ordered fields, numeric schemas, seeds, metas and error codes remain
 wire contracts. Generate IDL/SDK outputs from source and compare the retained

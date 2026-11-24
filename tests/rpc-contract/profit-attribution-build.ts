@@ -32,7 +32,7 @@ export function successorSelection() {
 }
 
 export function verifyProfitBuild(directory:string,sponsored=false,paired=false,residual=false,allocation=false,linked:Linked=false) {
-  if(linked==='successor' && successorSelection()==='closed-quantity')return routerBuild('closed-quantity');
+  if(linked==='successor' && successorSelection()==='closed-quantity')return routerBuild('closed-quantity',directory);
   const comparison=process.env.RIVALT_DOMAIN_COMPARISON;
   if(comparison){
     if(linked!=='integrated'||!['baseline','extracted'].includes(comparison)

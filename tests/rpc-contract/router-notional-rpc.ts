@@ -27,7 +27,7 @@ const requests = [100n, 1_000n, 10_000n, 61_000n].map(dollars => ({
   label: 'USD ' + dollars, lots: (dollars * 1_000_000n + openingIndex - 1n) / openingIndex,
 })).concat([{label: 'three-lot control', lots: 3n}, {label: 'one-lot control', lots: 1n}]);
 const wallet = await fixtureKey('p32-trader');
-const isRoute = (label: string) => label.startsWith('buy ') || label.startsWith('sell ');
+const isRoute = (label: string) => label.startsWith('buy ') || label.startsWith('sell ') || label==='close admitted inventory';
 const {h, rpc, ws, checks, flush} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
   process.env.RIVALT_WS_URL!, directory, {deferFinality: true, observeOutcomes: label => label.startsWith('buy '),
     payerFor: label => isRoute(label) || label === 'withdraw net gain' ? wallet : undefined,
@@ -113,7 +113,7 @@ try {
     const gross = (closingIndex - 2n) * lots, maxFee = fee(gross);
     const close = await sdk.buildBestRoute({snapshot, trader, marketIndex: 0, side: 1, lots,
       allInLimit: gross - maxFee, maxFee, reduceOnly: true}, owner.address);
-    await h.send('sell ' + label, close.instructions, [owner]);
+    await h.send(closedQuantity?'sell ' + label:'close admitted inventory', close.instructions, [owner]);
     closeFees += maxFee;
   }
   if (!closedQuantity) await sell(admittedLots,'all admitted inventory');
@@ -183,7 +183,7 @@ try {
   const replay = await journal.finish();
   writeFileSync(directory + '/notional-baseline.json', json({revision, program: process.env.RIVALT_ROUTER_REVISION,
     orders, admittedLots, openingFees, closeFee:closeFees, gain, net, events: replay.events,
-    lifecycle: checks.filter(check => /^(sell |reject |pay |withdraw net gain)/.test(String(check.label)))}));
+    lifecycle: checks.filter(check => /^(sell |close admitted inventory|reject |pay |withdraw net gain)/.test(String(check.label)))}));
   console.log('Replayed', replay.events, 'events and withdrew', net.toString(), 'collateral atoms');
 } finally {
   await journal?.close();

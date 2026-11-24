@@ -11,8 +11,7 @@ position per market in their margin account and can close it against another mak
 The current implementation is a qualified **local engineering prototype** for
 BTC and ETH with one test collateral mint, isolated and cross-margin accounts,
 and three internal maker instances per market. Current trading remains disabled
-in default/devnet builds. At the $61,000 BTC test price, one funded maker carried $15.62 of inventory before
-the next lot hit its profit-history storage limit. [Operating limits](docs/operations/performance.md)
+in default/devnet builds. On a deep local BTC book, signed orders from $100 through one BTC ($61,000) filled using the initial account storage. Repeated mixed-price entries can still fill a maker’s storage. [Operating limits](docs/operations/performance.md)
 records the tested sizes and outcomes. Independent maker validation and funded-pilot review remain open.
 
 ## Design
@@ -22,7 +21,7 @@ records the tested sizes and outcomes. Independent maker validation and funded-p
 - **Competing makers:** separate pricing programs, configurable depth, restricted
   price updaters and isolated capital per market. Every trade checks financial
   admission, signed limits and current maker authority.
-- **Explicit accounting:** funded cash is separate from unpaid profit. Positive
+- **Explicit accounting:** closing quantity makes its price profit eligible for a backed payment. Funded cash is separate from unpaid profit. Positive
   unpaid claims supply no margin credit. Taker fees are 2 bps; provider fees are
   zero. A quarter of collected fees funds the originating market's insurance.
 - **Independent risk:** index-derived valuations govern risk; a restricted

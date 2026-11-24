@@ -73,13 +73,26 @@ type DeploymentBinding = {
 };
 export function accountDeployment(selection:AccountDeployment):DeploymentBinding {
   if (selection === 'closed-quantity') {
-    const router = accountDeploymentRouter('bounded-router-candidate');
+    const router = accountDeployment('bounded-router-candidate');
     return {...router, artifactSet: CLOSED_QUANTITY_ARTIFACT_SET,
       programRevision: 'ec6f1ffa4b6a3a37b322a3411e934f474b88f997',
       artifacts: router.artifacts.map(artifact => artifact.name === 'clearing' ? {...artifact,
         bytes: 3634128, sha256: '0895875314c723fde1ba8cef1c623d5df9700de4655c7fefef154b90d0f86c83'} : artifact)};
   }
-  if (usesExecutionRouter(selection)) return accountDeploymentRouter(selection);
+  if (usesExecutionRouter(selection)) {
+    const programs: Record<string, {bytes: number; sha256: string}> = {
+      clearing: selection === 'bounded-router-candidate' ?
+        {bytes: 3639616, sha256: '94acdff582390aa1805c1e0d82879073227ce31af8ede48715f73a90e0cea726'} : {bytes: 3637536, sha256: 'fa85567e41cde0b9ecb0eb02ae78c4213f1898cd46dbeccc3ab6e4a6c7c35bc4'},
+      'maker-a': selection === 'bounded-router-candidate' ?
+        {bytes: 167520, sha256: '49e64c2bef25be6aa35b991205e40d0d15df326fe9fd5c37ec9c14d832f424a8'} : {bytes: 167520, sha256: '38a45a632db54c64a39c2793043ec14bb0b172721761a2950c61d59328ec6ccb'},
+      'maker-b': selection === 'bounded-router-candidate' ?
+        {bytes: 167520, sha256: '93541f00d200cfb18c5f7770fbce11ee2225c9e03fc528cea30157fe486987f3'} : {bytes: 167520, sha256: '924c94a5a7e1eff35ad0dc28a4ebc3b01b7b5b17d18d8fda531e91daeaf37139'},
+    };
+    return {artifactSet: selection === 'bounded-router-candidate' ? BOUNDED_ROUTER_ARTIFACT_SET : EXECUTION_ROUTER_ARTIFACT_SET, schema: 10, programProfile: 6,
+      programRevision: selection === 'bounded-router-candidate' ? '986b3cd3287ff0e99ae777a98c192792f8a91883' : '35fef03e3f58e9cba69b4c38408e39194bddc051',
+      helperRevision: '79724a5a0182eb8f22f916c6a9f23fd5f1dfcc91',
+      artifacts: LIQUIDITY_ARTIFACTS.map(artifact => ({...artifact, ...programs[artifact.name]}))};
+  }
   if(selection==='unified-recovery-candidate')return {
     artifactSet:UNIFIED_RECOVERY_ARTIFACT_SET,schema:10,programProfile:6,helperRevision:'79724a5a0182eb8f22f916c6a9f23fd5f1dfcc91',
     artifacts:LIQUIDITY_ARTIFACTS.map(artifact=>artifact.name==='clearing'?{...artifact,
@@ -202,19 +215,4 @@ export function accountDeployment(selection:AccountDeployment):DeploymentBinding
   };
   if(selection!=='selected'&&selection!=='account-scale-candidate')throw new Error('Unsupported account deployment');
   return {artifactSet:LIQUIDITY_ARTIFACT_SET,schema:10,programProfile:6,artifacts:LIQUIDITY_ARTIFACTS,helperRevision:SETTLEMENT_HELPER_REVISION};
-}
-
-function accountDeploymentRouter(selection: 'bounded-router-candidate' | 'execution-router-candidate') {
-  const programs: Record<string, {bytes: number; sha256: string}> = {
-    clearing: selection === 'bounded-router-candidate' ?
-      {bytes: 3639616, sha256: '94acdff582390aa1805c1e0d82879073227ce31af8ede48715f73a90e0cea726'} : {bytes: 3637536, sha256: 'fa85567e41cde0b9ecb0eb02ae78c4213f1898cd46dbeccc3ab6e4a6c7c35bc4'},
-    'maker-a': selection === 'bounded-router-candidate' ?
-      {bytes: 167520, sha256: '49e64c2bef25be6aa35b991205e40d0d15df326fe9fd5c37ec9c14d832f424a8'} : {bytes: 167520, sha256: '38a45a632db54c64a39c2793043ec14bb0b172721761a2950c61d59328ec6ccb'},
-    'maker-b': selection === 'bounded-router-candidate' ?
-      {bytes: 167520, sha256: '93541f00d200cfb18c5f7770fbce11ee2225c9e03fc528cea30157fe486987f3'} : {bytes: 167520, sha256: '924c94a5a7e1eff35ad0dc28a4ebc3b01b7b5b17d18d8fda531e91daeaf37139'},
-  };
-  return {artifactSet: selection === 'bounded-router-candidate' ? BOUNDED_ROUTER_ARTIFACT_SET : EXECUTION_ROUTER_ARTIFACT_SET, schema: 10, programProfile: 6,
-    programRevision: selection === 'bounded-router-candidate' ? '986b3cd3287ff0e99ae777a98c192792f8a91883' : '35fef03e3f58e9cba69b4c38408e39194bddc051',
-    helperRevision: '79724a5a0182eb8f22f916c6a9f23fd5f1dfcc91',
-    artifacts: LIQUIDITY_ARTIFACTS.map(artifact => ({...artifact, ...programs[artifact.name]}))};
 }

@@ -95,3 +95,17 @@ it('separates eligible fixed claims from open price gain on both sides',()=>{
   expect(sdk.closedGainStatus({lots:'2',unpaidClaimScaled:'5000000000',ordinaryPayableAtoms:'1'},1n,
     {mode:1,paused:false})).toBe('Awaiting verified payment');
 });
+
+it('binds fresh margin history to its payout rule and rejects previously paid open gain',async()=>{
+  const {root}=await fixture();
+  const prefix=Buffer.from(sdk.getMarginAccountEncoder().encode(root));
+  const margin=(tag:string)=>Buffer.concat([prefix,Buffer.from(tag),Buffer.alloc(256)]);
+  expect(sdk.decodeProfitAttribution(margin('RVPROF01')).closedQuantity).toBe(false);
+  expect(sdk.decodeProfitAttribution(margin('RVPROF02')).closedQuantity).toBe(true);
+  expect(()=>sdk.decodeProfitAttribution(margin('RVPROF03'))).toThrow();
+  root.positions[0].lots=1n;
+  const entryWithPriorPayment=Buffer.alloc(256);
+  entryWithPriorPayment.set([1,0,1,0,1,0,10,2,1]); // entry=10, paid=2, denominator=1
+  const encoded=Buffer.from(sdk.getMarginAccountEncoder().encode(root));
+  expect(()=>sdk.decodeProfitAttribution(Buffer.concat([encoded,Buffer.from('RVPROF02'),entryWithPriorPayment]))).toThrow(/Open price payment/);
+});

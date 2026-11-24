@@ -36,7 +36,7 @@ bash ops/demo.sh start
 
 Open **http://127.0.0.1:18083**, select **Rivalt Local Demo**, and get test funds. Create a portfolio and margin account, deposit, review and sign a BTC or ETH trade. The receipt identifies the selected makers. The tab-scoped test wallet survives reload and loses its key when the tab closes.
 
-Use the same `RIVALT_DEMO_ROOT` for `bash ops/demo.sh status` and `bash ops/demo.sh stop`. A fresh session selects `bounded-router-candidate` and installs its programs at `.local/demo-programs/bounded-maker-routing/`. The current clearing and maker revision is `986b3cd3`. The oracle fixture has its own pin. Alternative artifact directories must pass the same byte-length and hash checks.
+Use the same `RIVALT_DEMO_ROOT` for `bash ops/demo.sh status` and `bash ops/demo.sh stop`. A fresh session selects `closed-quantity` and installs its programs at `.local/demo-programs/closed-quantity-settlement/`. Clearing and the two identical-to-prior maker binaries build from `ec6f1ffa`. The oracle fixture has its own pin. Alternative artifact directories must pass the same byte-length and hash checks.
 
 Only one interactive demo can use the fixed ports. The supervisor limits a session to 60 minutes and stops on low disk. After stopping, `bash ops/demo.sh reset` stops the owned supervisor, removes that workspace’s disposable runtime and starts a fresh test venue. Choose a new root to preserve the previous runtime. Keep keys, logs, receipts and existing demo workspaces at their ignored paths. The qualification wrappers use separately owned PostgreSQL instances.
 
@@ -61,6 +61,24 @@ python3 tests/performance/compare-router-load.py .local/load-control .local/load
 ```
 
 The control waits for the trader originals to drain before starting settlement. The active arm overlaps settlement with the scheduled offers. To reproduce the 24-wallet comparison, use 120 offers, 35 ms gaps, 100% BTC, rotating asks, one shallow maker lot, a three-lot order maximum, 2,100 ms refresh and seed 117. Compare independent wallet preparation with confirmed predecessors, then repeat the confirmed arm with maker 1 storage sponsorship. The [harness](../../tests/rpc-contract/router-load-rpc.ts) defines the environment knobs. [Observed results](performance.md) · [Exact comparison commands](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/local-development.md#match-trading-load-with-and-without-profit-settlement)
+
+## Closed-quantity payout qualification
+
+Build the test artifacts in a clean checkout at `ec6f1ffa4b6a3a37b322a3411e934f474b88f997` using the P56 baseline artifacts described above. Set `RIVALT_ATTRIBUTION_PROFILE=closed-quantity-settlement` and `RIVALT_ATTRIBUTION_DIR` to a new output directory when running `bash ops/build-profit-attribution.sh`. From the workload checkout, set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that output and `RIVALT_ROUTER_REVISION` to the full program revision. Choose a fresh run directory.
+
+```sh
+RIVALT_SETTLEMENT_PROBE=execution-router-closed-quantity RIVALT_RUN_DIR=.local/closed-quantity-lifecycle bash ops/scalable-settlement-smoke.sh
+```
+
+The probe leaves the ordinary 128-byte slots in place, checks open and excessive payments on a funded book, pays partial and final closes, withdraws tokens and replays the finalized transactions. [Measured results](performance.md#closed-quantity-settlement)
+
+For the frozen nine-member BTC/ETH regression, use the same verified artifacts and a separate empty run directory.
+
+```bash
+RIVALT_SUCCESSOR_BUILD=closed-quantity RIVALT_SETTLEMENT_PROBE=profit-attribution-successor-recovery \
+  RIVALT_FROZEN_PLAN_PROOF=1 RIVALT_FROZEN_PLAN_CASE=paged-wallet RIVALT_RECOVERY_SCHEDULE_BUDGET=65536 \
+  RIVALT_RUN_DIR=.local/closed-quantity-recovery bash ops/scalable-settlement-smoke.sh
+```
 
 ## Fixed BTC order sizes
 
