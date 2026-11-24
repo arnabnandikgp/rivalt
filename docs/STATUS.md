@@ -25,7 +25,9 @@ Mixed-price maker storage qualification is in review on the same clearing binary
 
 The [venue qualification scorecard](operations/qualification-scorecard.md) continues to track nine findings. Exact entry growth remains open for sustained inventory. The representative trader workload remains a separate priority. The combined market-shock and recovery exercise is deferred.
 
-**Next action.** Compare a bounded average-entry representation with the exact reference on this signed fill history. Account for every fractional remainder through partial closes and final payment, and identify any changes in who receives an atom before adopting a different settlement rule.
+On `2477ddc4`, the native 16-byte entry-cost candidate matched all 552 ordinary payout observations on the two retained signed BTC books. Splitting a close delayed one payable atom on a separate book, and a frozen settlement moved one funded atom between creditors. The candidate stays native-only. Its on-chain compute cost is unmeasured. [Comparison and limits](operations/qualification-scorecard.md#fixed-width-entry-cost-comparison)
+
+**Next action.** Test whether fixed-width lower and upper bounds on surviving entry cost certify the exact ordinary payout and forced-charge amounts. Count ambiguous decisions on the same fills and frozen cases before proposing any change to creditor entitlements.
 
 | Open gate | What remains |
 |---|---|

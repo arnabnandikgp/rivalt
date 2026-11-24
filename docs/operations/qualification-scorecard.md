@@ -58,6 +58,18 @@ All four sizes and both small controls completed for longs and shorts. With the 
 
 Run `cargo test --locked --offline -p financial-core --features closed-quantity-model --test closed_quantity_payout`. These are native arithmetic and storage checks. The [signed deep-book run](performance.md#closed-quantity-settlement) now covers these sizes, payment refusals, keeper amount calculation, an SPL withdrawal, CU and SQL replay. The [signed mixed-price inventory runs](performance.md#mixed-price-maker-storage) exercise both storage limits. Adverse flow remains open. [Executable cases](../../crates/financial-core/tests/closed_quantity_payout.rs)
 
+### Fixed-width entry cost comparison
+
+The native experiment on `2477ddc4` keeps one 16-byte total entry cost per position, in billionths of a collateral atom. An increase adds its execution cost. A partial reduction keeps the surviving share of cost, rounding down for a long and up for a short. This protects the ordinary payment ceiling from rounding upward. Four tests compare both directions with the exact Rust attribution and independent rational arithmetic. [Comparison driver](../../crates/financial-core/examples/bounded_entry_comparison.rs) · [Financial cases](../../tests/financial/test_bounded_entry.py)
+
+| Question | Result |
+|---|---|
+| Does the same signed trade history produce the same ordinary ceiling? | Yes on both retained BTC books at the 60,000 reference. All 552 maker and trader observations agreed across 134 and 142 successful routes. The final maker gains were 4.258808 and 4.520904 test collateral. |
+| Can splitting a close change when a trader can collect? | Yes. With six lots open, closing three together made five atoms payable in both models. Three one-lot closes made five payable under exact accounting and four under the candidate. With backing, the final close brought both cumulative payouts to ten. |
+| Can rounding change a default? | Yes. With all surviving maker lots available for a hypothetical forced reduction, the charge ceiling rose on 127 of 134 and 135 of 142 maker observations. The largest increase was 16,383 atoms. In a separate three-member frozen book, selecting each model’s maximum charge on one eligible lot moved one of eight funded atoms from one creditor to another. Insurance spending was zero in both cases. |
+
+The fixed-width candidate remains native-only. The last row measures a ceiling on the signed histories and an actual native settlement on the separate frozen book. Candidate CU, account rent and on-chain execution remain unmeasured. The next comparison will test whether bounds around the exact cost can certify the original whole-atom payout and forced-charge decisions, and report when the bounds leave a decision ambiguous.
+
 ## Work order
 
 1. **Compare and qualify position storage.** Use the [fixed BTC sequence](performance.md#btc-orders-at-fixed-dollar-sizes) of $100, $1,000, $10,000 and $61,000 plus the one- and three-lot controls. Compare the existing exact implementation to alternative representations on both sides of the trade. Check single-price and mixed entries, aggregate versus split maker legs, repeated partial closes, payments between closes, flips and final close. Check funded cash, unpaid claims, eligible forced-close amounts and creditor receipts against an independent oracle, including rounding boundaries. Measure encoded bytes, reserved bytes, rent, CU and wire impact. Require a signed deep-book repeat, rollback checks, SPL wallet exit and fresh PostgreSQL reconciliation before declaring the storage limit addressed. Escalate any proposal that changes who receives a collateral atom.
