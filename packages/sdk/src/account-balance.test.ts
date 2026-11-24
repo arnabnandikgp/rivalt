@@ -83,3 +83,15 @@ it('describes ordinary settlement from the flat claim and the shared pool in who
   for(const claim of [null,'0','-1'])expect(sdk.closedGainStatus({...position,unpaidClaimScaled:claim},0n,normal)).toBeNull();
   expect(sdk.closedGainStatus({...position,lots:'1'},0n,normal)).toBeNull();
 });
+
+it('separates eligible fixed claims from open price gain on both sides',()=>{
+  const scale=1_000_000_000n;
+  const long={entryScaled:301n*scale,paidScaled:0n,denominator:3n};
+  // Long basis 100 1/3, two surviving lots at 102. Five total atoms include 3 1/3 open.
+  expect(sdk.ordinaryGainAtoms(5n*scale,2n,102n,long)).toBe(1n);
+  expect(sdk.ordinaryGainAtoms(5n*scale,-2n,99n,long)).toBe(2n);
+  expect(sdk.ordinaryGainAtoms(scale,-2n,102n,long)).toBe(1n);
+  expect(sdk.ordinaryGainAtoms(-scale,2n,99n,long)).toBe(0n);
+  expect(sdk.closedGainStatus({lots:'2',unpaidClaimScaled:'5000000000',ordinaryPayableAtoms:'1'},1n,
+    {mode:1,paused:false})).toBe('Awaiting verified payment');
+});

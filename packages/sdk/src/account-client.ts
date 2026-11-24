@@ -116,7 +116,7 @@ export class AccountUserClient extends WalletClient {
   }
   balance(snapshot:AccountSnapshot,margin:Address) {
     this.bound(snapshot);requireValue(snapshot.roots[margin],'Margin absent from snapshot.');
-    return accountBalanceView(snapshot.roots[margin],snapshot.safetyState,snapshot.marketStates,snapshot.now,snapshot.slot);
+    return accountBalanceView(snapshot.roots[margin],snapshot.safetyState,snapshot.marketStates,snapshot.now,snapshot.slot,snapshot.closedEntries[margin]);
   }
   async route(input:LiquidityRouteInput,actor:Address):Promise<Awaited<ReturnType<typeof buildLiquidityRoute>>> {
     this.bound(input.snapshot);return await buildLiquidityRoute(input,actor);

@@ -67,7 +67,11 @@ export const LINKED_PAIR_ARTIFACT_SET='linked-pair-0e027fc';
 export const BTC_ALLOCATION_ARTIFACT_SET='btc-allocation-9e2cc00';
 export const BTC_RESIDUAL_ARTIFACT_SET='btc-residual-8024a37';
 export const ACCOUNT_SCALE_ARTIFACT_SET=LIQUIDITY_ARTIFACT_SET;
-export function accountDeployment(selection:AccountDeployment) {
+type DeploymentBinding = {
+  artifactSet:string; schema:number; programProfile:number; programRevision?:string;
+  helperRevision:string; artifacts:typeof LIQUIDITY_ARTIFACTS;
+};
+export function accountDeployment(selection:AccountDeployment):DeploymentBinding {
   if (selection === 'closed-quantity') {
     const router = accountDeploymentRouter('bounded-router-candidate');
     return {...router, artifactSet: CLOSED_QUANTITY_ARTIFACT_SET,
