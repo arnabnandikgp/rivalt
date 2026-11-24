@@ -21,9 +21,11 @@ On clearing `ec6f1ffa` with harness `ed60fc6c`, all four BTC buys from $100 thro
 
 On that same clearing binary with harness `4718f365`, the nine-member BTC/ETH default verified both markets, applied the joint plan and reached the trader and three maker wallet withdrawals. Fresh PostgreSQL replay matched 176 events. [Recovery qualification](operations/validation.md#evidence-by-deployment)
 
-The [venue qualification scorecard](operations/qualification-scorecard.md) tracks nine findings. Position storage and representative trader workloads remain the first two priorities. A native mixed-price history completed 984 round trips within a 256-byte slot, then required 257 bytes for the next increase. The surviving position could still close and collect its claim. The combined market-shock and recovery exercise is deferred.
+Mixed-price maker storage qualification is in review on the same clearing binary. The 128-byte BTC slot admitted 33 round trips of about $983 per leg. The next increase needed 132 bytes and rolled back. After growing the maker to 256 bytes, the ordinary wallet budget stopped increase 66 at 800,000 CU with room still available. The diagnostic budget reached the next storage refusal on increase 70. Both runs reduced, paid and withdrew all maker cash. Harnesses `24af1d2d` and `aca1e51c` reconciled 840 and 872 events respectively. Both trader entry records stayed at or below 13 bytes. [Results and limits](operations/performance.md#mixed-price-maker-storage)
 
-**Next action.** Exercise sustained mixed-price maker inventory on the signed local deployment through storage saturation, refused increase, partial reduction and wallet exit. Record trader and maker bytes separately and reconcile the receipts before expanding the workload.
+The [venue qualification scorecard](operations/qualification-scorecard.md) continues to track nine findings. Exact entry growth remains open for sustained inventory. The representative trader workload remains a separate priority. The combined market-shock and recovery exercise is deferred.
+
+**Next action.** Compare a bounded average-entry representation with the exact reference on this signed fill history. Account for every fractional remainder through partial closes and final payment, and identify any changes in who receives an atom before adopting a different settlement rule.
 
 | Open gate | What remains |
 |---|---|

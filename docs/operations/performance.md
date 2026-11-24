@@ -17,6 +17,24 @@ On clearing `ec6f1ffa` and harness `ed60fc6c`, one funded trader submitted the s
 
 The buys used 1,234-byte v1 transactions. After a price rise and loss collection, the market pool held 1,177.245108 test collateral. Clearing rejected a one-atom payment of open price gain. Selling 590,986 lots made 588.622056 eligible while 590,987 lots remained open. An attempt to collect one extra atom rolled back. The exact payment used 146,060 CU. The second sale and payment discharged the claim. Fees totaled 29.076540 test collateral and the SPL wallet received 1,148.168568 net. Fresh PostgreSQL replay matched 381 events. This covers one deterministic book. Exact mixed-entry growth remains a separate bound. [Signed harness](../../tests/rpc-contract/router-notional-rpc.ts) · [Storage qualification](qualification-scorecard.md#closed-quantity-payout-comparison)
 
+## Mixed-price maker storage
+
+Two independent trader wallets traded against one internal BTC maker. One wallet held four lots open. The other bought about $983 of BTC exposure and sold the entire position back on each round trip. That trader needed 13 bytes at entry and zero when flat. The maker carried a small position between rounds. The maker's first sale was one atom below its subsequent ask, so each increase changed its exact average entry, even with a stationary quote thereafter.
+
+Every addition brings maker inventory to 16,383 lots. With `r` lots retained between rounds, each addition multiplies the weight of the original entry by `r / 16,383`. This gives an independent exact price for every round. The test compares it with the signed account bytes after both fills. After the first storage refusal a trader closes two lots, leaving two, and the maker owner pays 1,503,680 lamports to grow the margin account from 1,275 to 1,571 bytes. The BTC and ETH slots each grow from 128 to 256 bytes. Each trader account stays at 1,275 bytes.
+
+Both runs used clearing `ec6f1ffa`, the ordinary three-maker router and one executable maker within the signed price limit. The orders went directly through signed RPC. The diagnostic budget separates the storage check from the wallet compute limit.
+
+| BTC slot and signed route budget | Completed round trips since opening | Maker bytes before → required on next increase | First refusal |
+|---|---:|---:|---|
+| 128 bytes, both runs | 33 | 128 → 132 | Clearing capacity error 6105 |
+| 256 bytes, 800,000 CU wallet budget | 65 | 240 → 244 | Increase 66 consumed all 800,000 CU |
+| 256 bytes, 1,400,000 CU diagnostic budget | 69 | 254 → 258 | Clearing capacity error 6105 |
+
+The diagnostic execution of increase 66 used 800,572 CU. Its most expensive successful increase used 809,216 CU. At each refusal the compared economic accounts rolled back byte for byte. Each run then reduced the existing maker inventory with ordinary trader orders. The fully closed maker claim was funded by collecting both traders’ losses. [Signed workload and independent entry calculation](../../tests/rpc-contract/maker-storage-rpc.ts)
+
+In the wallet-budget run (`24af1d2d`), 134 of 136 signed route attempts filled. After the compute refusal, the two final one-lot reductions used 353,789 and 350,442 CU. The maker withdrew its entire 10,000-token deposit plus 4.258808 test collateral in trading profit. Fresh PostgreSQL replay matched 840 events. The diagnostic run (`aca1e51c`) filled 142 of 144 signed attempts, withdrew the deposit plus 4.520904 and replayed 872 events. Provider fees were zero. These counts apply to one sequential BTC position with a stationary index and one best-priced maker. The bound depends on the price and quantity history. [Reproduction](local-development.md#mixed-price-maker-storage)
+
 ## Maker inventory and route search
 
 On clearing `986b3cd3`, one maker quoted 2 BTC and both sides had 80,000 test collateral tokens. At a $61,000 BTC reference the signed single-maker path admitted 128 lots with an ordinary 128-byte market slot. After growing the maker to 256 bytes, it carried 256 lots ($15.62). Adding one more lot failed with capacity error 6105. Attempts targeting 0.001, 0.01, 0.1 and 1 BTC also rolled back. The harness checkout was `38f2d09b`. The diagnostic and receipts were retained locally. [Fill admission](../../programs/clearing/src/profit_attribution.rs) · [Storage formula](../../crates/clearing-accounting/src/attribution.rs)

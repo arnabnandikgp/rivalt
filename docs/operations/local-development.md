@@ -80,6 +80,19 @@ RIVALT_SUCCESSOR_BUILD=closed-quantity RIVALT_SETTLEMENT_PROBE=profit-attributio
   RIVALT_RUN_DIR=.local/closed-quantity-recovery bash ops/scalable-settlement-smoke.sh
 ```
 
+## Mixed-price maker storage
+
+Use the verified clearing artifacts and full `RIVALT_ROUTER_REVISION` from [closed-quantity qualification](#closed-quantity-payout-qualification). Run the same BTC book twice, using a fresh directory for each. The first run uses the ordinary wallet compute limit. The second requests extra compute to isolate the storage boundary.
+
+```bash
+RIVALT_SETTLEMENT_PROBE=execution-router-mixed-storage RIVALT_MAKER_STORAGE_BUDGET=wallet \
+  RIVALT_RUN_DIR=.local/maker-storage-wallet bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=execution-router-mixed-storage RIVALT_MAKER_STORAGE_BUDGET=diagnostic \
+  RIVALT_RUN_DIR=.local/maker-storage-diagnostic bash ops/scalable-settlement-smoke.sh
+```
+
+Each run provisions two trader wallets and real maker capital, checks exact basis against an independent formula, and measures both sides of each signed round trip. Rejections must roll back economic accounts. After the last refusal the traders reduce the maker to flat, clearing collects the trader losses, and the owner withdraws the maker's principal and profit. The harness writes `mixed-maker-storage.json` after finalized RPC and fresh PostgreSQL replay agree. [Measured limits](performance.md#mixed-price-maker-storage)
+
 ## Fixed BTC order sizes
 
 Use the two verified artifact directories and router revision from the wallet-load build above. Run the following from a clean tracked checkout with a new output directory. This probe owns its local Surfpool and PostgreSQL instances.
