@@ -261,3 +261,55 @@ fn clearing_search_stops_before_a_fifth_financial_admission() {
     assert_eq!(result, Err(QuoteError::SearchLimit));
     assert_eq!(admissions, 4);
 }
+
+#[test]
+fn funded_depth_preserves_every_quantity_that_can_meet_initial_margin() {
+    let book = shape(20, 0);
+    for side in [0, 1] {
+        for inventory in -5..=5 {
+            let curve = ExecutionCurve::new(&book, 30_001, side, inventory, 0).unwrap();
+            for cash in [0, 1, 3_000, 3_001, 6_000, 6_001, financial_core::MAX_CASH] {
+                let bounded = curve.with_funded_cash(cash, 30_001).unwrap();
+                for quantity in 1..=curve.capacity() {
+                    let after = inventory
+                        + if side == 0 {
+                            -(quantity as i64)
+                        } else {
+                            quantity as i64
+                        };
+                    // Independent ten-percent IM, rounded up to the collateral atom.
+                    let required = (after.unsigned_abs() * 30_001).div_ceil(10);
+                    if required <= cash {
+                        assert!(quantity <= bounded.capacity());
+                    }
+                }
+                assert!(bounded.capacity() <= curve.capacity());
+            }
+        }
+    }
+}
+
+#[test]
+fn eth_funded_singleton_wins_inside_the_original_clearing_budget() {
+    let book = shape(10_000, 0);
+    let books = std::array::from_fn(|index| {
+        let curve = ExecutionCurve::new(&book, 30_002 + 2 * index as u64, 0, 0, 0).unwrap();
+        Some(
+            curve
+                .with_funded_cash(if index == 0 { 1 } else { 500_000_000_000 }, 30_001)
+                .unwrap(),
+        )
+    });
+    for (limit, expected) in [(100_053_343, Some([0, 3334, 0])), (100_046_674, None)] {
+        let request = Order {
+            all_in_limit: limit,
+            ..order(0, 3334, 30_000)
+        };
+        let result = select_for_clearing(request, books, |candidate| {
+            assert_eq!(candidate.lots[0], 0);
+            Ok::<_, QuoteError>(true)
+        })
+        .unwrap();
+        assert_eq!(result.map(|allocation| allocation.lots), expected);
+    }
+}

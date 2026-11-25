@@ -497,6 +497,7 @@ pub struct ExecutionCurve<'shape> {
     side: u8,
     inventory: i64,
     consumed: u64,
+    capacity: u64,
 }
 
 impl<'shape> ExecutionCurve<'shape> {
@@ -511,13 +512,14 @@ impl<'shape> ExecutionCurve<'shape> {
         if side > 1 || !(1..=MAX_PRICE).contains(&anchor) {
             return Err(QuoteError::Bounds);
         }
-        available(shape, side, inventory, consumed)?;
+        let published = available(shape, side, inventory, consumed)?;
         Ok(Self {
             shape,
             anchor,
             side,
             inventory,
             consumed,
+            capacity: if shape.mode == 0 { 0 } else { published },
         })
     }
 
@@ -525,11 +527,19 @@ impl<'shape> ExecutionCurve<'shape> {
         self.side
     }
 
-    pub(crate) fn capacity(self) -> QuoteResult<u64> {
-        if self.shape.mode == 0 {
-            return Ok(0);
-        }
-        available(self.shape, self.side, self.inventory, self.consumed)
+    /// Ordinary execution only. A trader buy decreases maker inventory, so an
+    /// existing long can be sold down before any cash is needed for a short.
+    /// Full admission still checks the actual post-fill claim and reservations.
+    pub fn with_funded_cash(mut self, cash: u64, risk_upper: u64) -> QuoteResult<Self> {
+        let limit = financial_core::funded_position_limit(cash, risk_upper)
+            .map_err(|_| QuoteError::Bounds)?;
+        let reducing_inventory = if self.side == 0 { self.inventory } else { -self.inventory };
+        self.capacity = self.capacity.min((limit + reducing_inventory).max(0) as u64);
+        Ok(self)
+    }
+
+    pub(crate) fn capacity(self) -> u64 {
+        self.capacity
     }
 
     pub(crate) fn gross(self, lots: u64) -> QuoteResult<u64> {

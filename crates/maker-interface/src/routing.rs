@@ -140,7 +140,7 @@ fn price_domain(
     if curve.side() != order.side {
         return Err(QuoteError::Binding);
     }
-    let available = curve.capacity()?.min(order.lots);
+    let available = curve.capacity().min(order.lots);
     let upper = first_true(1, available, |quantity| {
         match SearchWork::gross(&mut work.quotes, curve, quantity) {
             Ok(_) => Ok(false),

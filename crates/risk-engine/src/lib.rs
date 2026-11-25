@@ -37,6 +37,16 @@ pub fn margin_atoms(lots: i64, upper: u64, bps: u64) -> Result<u64> {
     u64::try_from(numerator.div_ceil(10_000)).map_err(|_| Error::Overflow)
 }
 
+/// Largest absolute position that funded cash alone could margin after a fill.
+/// Ignoring reservations and negative claims makes this an upper bound.
+pub fn funded_position_limit(cash: u64, upper: u64) -> Result<i64> {
+    if cash > MAX_CASH || !(1..=MAX_PRICE).contains(&upper) {
+        return Err(Error::Bounds);
+    }
+    let numerator = cash.checked_mul(10_000).ok_or(Error::Overflow)?;
+    Ok((numerator / (upper * IM_BPS)).min(MAX_LOTS as u64) as i64)
+}
+
 /// Borrowed account input. The program adapter supplies all positions of the
 /// same margin account and authenticates each bound before requesting admission.
 #[derive(Clone, Copy)]

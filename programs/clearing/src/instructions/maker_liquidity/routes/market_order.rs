@@ -208,6 +208,9 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
                     request.inventory,
                     request.consumed,
                 )
+                .and_then(|curve| {
+                    curve.with_funded_cash(view.capital.cash, identity.market.upper.max(1))
+                })
                 .map_err(|_| ClearingError::MakerQuote)?,
             );
         }
@@ -238,8 +241,17 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
             // The shared financial engine maps out-of-domain position/fee
             // arithmetic to Arithmetic and failed post-fill margin to RouteHealth.
             // Authority, binding, invariant and unexpected errors abort the order.
-            Err(error) if [ClearingError::RouteHealth, ClearingError::RouteLimit, ClearingError::Arithmetic]
-                .into_iter().any(|reason| ProgramError::from(reason) == error) => Ok(false),
+            Err(error)
+                if [
+                    ClearingError::RouteHealth,
+                    ClearingError::RouteLimit,
+                    ClearingError::Arithmetic,
+                ]
+                .into_iter()
+                .any(|reason| ProgramError::from(reason) == error) =>
+            {
+                Ok(false)
+            }
             Err(error) => Err(SelectionError(error)),
         }
     })
