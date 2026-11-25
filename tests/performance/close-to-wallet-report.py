@@ -43,17 +43,34 @@ def report(directory):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        sys.exit("Usage: close-to-wallet-report.py TRADER_RUN WORKER_RUN")
-    trader, worker = map(report, sys.argv[1:])
-    assert [trader[0]["arm"], worker[0]["arm"]] == ["trader", "worker"]
-    for key in ("revision", "program", "openingPool", "backingReadyBeforeClose"):
-        assert trader[0][key] == worker[0][key]
+    workers_only = sys.argv[1:2] == ["--workers"]
+    runs = sys.argv[2:] if workers_only else sys.argv[1:]
+    if len(runs) != 2:
+        sys.exit("Usage: close-to-wallet-report.py TRADER_RUN WORKER_RUN | --workers BEFORE_RUN AFTER_RUN")
+    before, after = map(report, runs)
+    assert [before[0]["arm"], after[0]["arm"]] == (["worker", "worker"] if workers_only else ["trader", "worker"])
+    for key in ("program", "openingPool", "backingReadyBeforeClose"):
+        assert before[0][key] == after[0][key]
+    if workers_only:
+        for result, _, _ in (before, after):
+            assert result["traffic"]["filled"] == result["traffic"]["offered"] == 48
+            assert result["exitsObserved"] == 2
+            assert [int(flow["collected"]) for flow in result["workerFlows"]] == [502_480, 480]
+            assert list(map(int, result["remainingLossAtoms"])) == [0, 0]
+    else:
+        assert before[0]["revision"] == after[0]["revision"]
     for key in ("offered", "gapMs"):
-        assert trader[0]["traffic"][key] == worker[0]["traffic"][key]
-    assert trader[0]["traffic"].get("dueMs") == worker[0]["traffic"].get("dueMs")
-    for result, cutoffs, overlap in (trader, worker):
-        print(json.dumps(dict(arm=result["arm"], traffic=result["traffic"], creditors=len(result["rows"]),
-                              cutoffs=cutoffs, otherFillsStrictlyBetweenCloseAndExit=overlap, relativeToConfirmedCloseMs=[
-                                  {k: row[k] for k in ("firstCreditMs", "fullCreditMs", "withdrawalMs")}
-                                  for row in result["rows"]]), indent=2))
+        assert before[0]["traffic"][key] == after[0]["traffic"][key]
+    assert before[0]["traffic"].get("dueMs") == after[0]["traffic"].get("dueMs")
+    for result, cutoffs, overlap in (before, after):
+        summary = dict(arm=result["arm"], revision=result["revision"], traffic=result["traffic"],
+                       creditors=len(result["rows"]), cutoffs=cutoffs, otherFillsStrictlyBetweenCloseAndExit=overlap,
+                       relativeToConfirmedCloseMs=[
+                           {k: row[k] for k in ("firstCreditMs", "fullCreditMs", "withdrawalMs")} for row in result["rows"]])
+        if workers_only:
+            # Collections exclude the sampled slot: the receipt cannot order an observation within it.
+            summary.update(workerFlows=result["workerFlows"], remainingLossAtoms=result["remainingLossAtoms"], marketsAtCutoffs=[
+                dict(margin=row["margin"], progress=[
+                    {k: point[k] for k in ("ms", "pool", "ethPool", "outstandingLossAtoms", "workerCollectedBeforeSlot")}
+                    for point in row["checkpoints"]]) for row in result["rows"]])
+        print(json.dumps(summary, indent=2))
