@@ -28,6 +28,8 @@ def summarize(run):
     filled = [row for row in rows if row["actual"]]
     details = []
     missed = Counter()
+    shortlist_gap = 0
+    cap_gap = 0
     for row in rows:
         actual = row["actual"]
         if actual:
@@ -35,7 +37,13 @@ def summarize(run):
             assert int(actual["allIn"]) == int(row["shortlisted"]["allIn"])
             assert fee == (gross + 4999) // 5000
             assert sum(int(leg["lots"]) for leg in actual["legs"]) == int(row["requestedLots"])
-            assert 0 <= int(row["missedAcrossDirectoryAtoms"])
+            sign = -1 if row["side"] else 1
+            extra_for_cap = sign * (int(row["bounded"]["allIn"]) - int(row["unrestricted"]["allIn"]))
+            extra_for_shortlist = sign * (int(actual["allIn"]) - int(row["bounded"]["allIn"]))
+            assert min(extra_for_cap, extra_for_shortlist) >= 0
+            assert extra_for_cap + extra_for_shortlist == int(row["missedAcrossDirectoryAtoms"])
+            cap_gap += extra_for_cap
+            shortlist_gap += extra_for_shortlist
         else:
             missed[row["classification"]] += 1
         details.append(dict(order=row["name"], side="sell" if row["side"] else "buy",
@@ -55,6 +63,7 @@ def summarize(run):
                 requested=money(sum(int(row["requestedIndexAtoms"]) for row in rows)),
                 filledIndex=money(sum(int(row["requestedIndexAtoms"]) for row in filled)),
                 takerFees=money(sum(int(row["actual"]["fee"]) for row in filled)),
+                extraForLegLimit=money(cap_gap), extraForShortlist=money(shortlist_gap),
                 gapOnFills=money(sum(int(row["missedAcrossDirectoryAtoms"]) for row in filled)),
                 txFeeLamports=sum(int(row["feeLamports"]) for row in rows), refusals=dict(missed),
                 signedConfirmedP50ms=round(percentile(latency, .50), 1),
@@ -70,7 +79,25 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directories", type=Path, nargs=6)
     args = parser.parse_args()
-    runs = [json.loads((directory / "comparison.json").read_text()) for directory in args.directories]
+    runs = []
+    for directory in args.directories:
+        run = json.loads((directory / "comparison.json").read_text())
+        by_label = {"compare " + row["name"]: row for row in run["entries"]}
+        seen = set()
+        for wire_path in directory.glob("wire-*.json"):
+            wire = json.loads(wire_path.read_text())
+            if wire["label"] not in by_label:
+                continue
+            row = by_label[wire["label"]]
+            receipt = json.loads(wire_path.with_name(wire_path.name.replace("wire-", "transaction-")).read_text())
+            assert receipt["transaction"]["signatures"] == [row["signature"]] == [wire["signature"]]
+            assert receipt["meta"]["err"] == row["error"]
+            assert int(receipt["meta"]["fee"]) == int(row["feeLamports"])
+            assert bool(row["actual"]) == (row["error"] is None)
+            assert wire["label"] not in seen
+            seen.add(wire["label"])
+        assert seen == {label for label, row in by_label.items() if row["signature"]}
+        runs.append(run)
     assert len({run["revision"] for run in runs}) == 1
     assert {(run["count"], run["width"]) for run in runs} == {(n, k) for n in (16, 32) for k in (2, 4, 8)}
     schedules = [sorted((row["name"], row["side"], row["requestedLots"]) for row in run["entries"]) for run in runs]
