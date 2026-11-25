@@ -35,7 +35,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 **Wallet shortlist improvement in review.** On the same clearing binary `f0b8a599`, SDK and harness `0edb3064` filled the previously refused 163,935-lot sell on both eight-leg books. The trader received 9,995.037152 test dollars with 16 registered makers and 9,992.798640 with 32. Both matched the previously computed eight-leg optimum. Across the six matched venues, 38/60 requests filled, ten signed requests exceeded the leg cap and twelve stopped at the source guard before signing. PostgreSQL replay reconciled 1,910 events. [Signed results](operations/performance.md#wallet-selection-by-order-size)
 
-**Next action.** Qualify shortlist price quality on sloped books and makers close to their margin limits, using an independent feasible-allocation reference at the signed leg cap.
+**Finding 2 remains open.** On clearing `f0b8a599` and harness `b61ade13`, a signed alternative saved $1.720650 on the same $9,836.10 BTC buy. A wallet ETH sale failed admission even though two shortlisted makers could fill it for $3,012.866858 net. The cheapest calculated BTC allocation exhausted the 800,000-CU wallet budget. [Signed comparison and scope](operations/performance.md#curved-quotes-and-binding-maker-margin)
+
+**Next action.** Make ordinary multi-maker routing fill the 100,000-lot ETH regression with the financially admissible maker split and full existing risk checks.
 
 | Open gate | What remains |
 |---|---|

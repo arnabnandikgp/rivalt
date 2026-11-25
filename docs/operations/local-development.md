@@ -182,3 +182,22 @@ python3 tests/performance/matched-maker-report.py "$comparison_dir"/{16,32}-{2,4
 The report checks each signed signature, fee and outcome against its retained finalized transaction. It also counts requests the wallet refused before signing. For each request it gives the same-bank full-directory price, the full-directory price at the leg cap, and the signed shortlist price. Each is fee-inclusive and requires the entire requested quantity. The constant-price reference independently enumerates maker subsets and measures quoted depth under each constraint. Clearing checks funding and margin when a signed order executes. A null reference means the requested size exceeded that book's capacity.
 
 The trace uses a fixed $61,000 test BTC index, 65,000-lot asks and 6,000- or 40,000-lot bids per maker before the deep-book replacement. It also reprices a maker outside the already signed shortlist, installs a one-million-lot book, replenishes two consumed books, and offers two independent wallet orders concurrently. Each later order encounters the inventory and consumed depth left by its own cell's earlier fills. Confirmed latency includes simulation, WS subscription and local RPC. The two-wallet rate covers a single batch. The indexer replays the finalized venue into a fresh PostgreSQL database.
+
+### Curved books and binding maker margin
+
+Use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a` with the `wide-atomic-routes` artifact directory described above. Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that directory. Each arm needs a fresh run directory and its own local database. These commands run the two arms sequentially on the default local ports.
+
+```bash
+source ops/env.sh
+export RIVALT_ROUTER_REVISION=f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a
+export RIVALT_SETTLEMENT_PROBE=execution-router-feasible-books
+comparison_dir=".local/feasible-books-$(date -u +%Y%m%dT%H%M%SZ)"
+for arm in wallet control; do
+  RIVALT_FEASIBLE_ARM="$arm" RIVALT_RUN_DIR="$comparison_dir/$arm" \
+    bash ops/scalable-settlement-smoke.sh || exit 1
+done
+python3 tests/performance/feasible-book-report.py "$comparison_dir/wallet" "$comparison_dir/control"
+pnpm exec vitest run tests/rpc-contract/feasible-book-reference.test.ts
+```
+
+The report checks that the two venues offered identical books, funded balances, risk bounds and signed economic limits. For each order it compares the ordinary wallet fill, the calculated best allocation within four legs and the best control that actually landed. All three include the taker fee. A missing fill has no execution price. The control uses the same wallet compute limit and either supplies four candidate bundles for on-chain selection or signs an explicit two-leg split.

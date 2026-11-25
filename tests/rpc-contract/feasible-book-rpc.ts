@@ -101,7 +101,7 @@ try {
       maxFee: (lots * market.referencePrice * 11n + 49999n) / 50000n };
     const reference = feasibleBook(books, order), best = reference.best;
     assert(best);
-    const input = { trader, snapshot, marketIndex: index, side, lots, allInLimit: order.limit, maxFee: order.maxFee, reduceOnly: false };
+    const input: sdk.LiquidityRouteInput = { trader, snapshot, marketIndex: index, side, lots, allInLimit: order.limit, maxFee: order.maxFee, reduceOnly: false };
     const normal = await sdk.buildMultiMakerRoute(input, owner.address, width);
     const scoped = feasibleBook(books.filter(book => normal.candidateInstances.includes(book.id)), order);
     assert(scoped.best);
