@@ -103,6 +103,7 @@ fn execute_selected(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent, 
     let named = [ctx.accounts.candidate_zero.pricing(),ctx.accounts.candidate_one.pricing(),ctx.accounts.candidate_two.pricing()];
     let mut writable=vec![*ctx.accounts.identity.trader.address()];
     for maker in &named {writable.extend([*maker.capital.address(),*maker.registration.address()]);}
+    let named_writable=writable.len();
     let mut additional=Vec::with_capacity(epochs.len());
     for bundle in bundles.chunks_exact(6) {additional.push(ExtraMaker::load(bundle,&mut writable)?);}
     let winner = choose(&ctx.accounts, &args, &clock, multi, &additional, epochs)?;
@@ -134,7 +135,14 @@ fn execute_selected(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent, 
     for (slot,lots) in filled.iter_mut().zip(&quantities) { *slot = *lots > 0; }
     let plan = crate::scoped_history::MakerAccess {filled, extras:epochs.len(), lane_slot, external_lane};
     let instruction = if multi { [228, 99, 109, 42, 17, 74, 96, 121] } else { [142, 199, 100, 123, 91, 206, 46, 151] };
+    // The raw journal captures and advances the additional accounts itself.
+    // Release Anchor's decoded account borrows before both raw journal visits.
+    drop(additional);
+    writable.truncate(named_writable);
     crate::scoped_history::run_selected_route(ctx, instruction, plan, |ctx, events| {
+        let mut additional=Vec::with_capacity(epochs.len());
+        for bundle in bundles.chunks_exact(6) {additional.push(ExtraMaker::load(bundle,&mut writable)?);}
+
         // SAFETY: only a missing canonical registration can enter external_view;
         // it is writable and distinct from every named maker and other extra.
         let mut external = external_view.map(|view| unsafe { BorshAccount::<MakerRegistration>::load_mut(view) }).transpose()?;
