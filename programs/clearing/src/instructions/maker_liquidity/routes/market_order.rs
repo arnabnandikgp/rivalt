@@ -3,7 +3,7 @@
 use super::*;
 use crate::engine::{account, book};
 use crate::instructions::account_trading::authority::AccountGuard;
-use maker_interface::routing::{self, Allocation};
+use maker_interface::routing::{self, marginal::MultiAllocation};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
 pub struct MakerEpochs {
@@ -30,11 +30,17 @@ pub struct BestRouteIntent {
     pub maker_epochs: [MakerEpochs; 3],
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
+pub struct MultiRouteIntent {
+    pub order: BestRouteIntent,
+    pub extra_epochs: Vec<MakerEpochs>,
+}
+
 impl BestRouteIntent {
-    fn terms(&self, market: &Market, lots: [u64; 3]) -> RouteIntent {
+    fn terms(&self, market: &Market, lots: &[u64], extra_epochs: &[MakerEpochs]) -> RouteIntent {
         let legs = lots
-            .into_iter()
-            .zip(&self.maker_epochs)
+            .iter().copied()
+            .zip(self.maker_epochs.iter().chain(extra_epochs))
             .filter(|(quantity, _)| *quantity > 0)
             .map(|(lots, epoch)| RouteLeg {
                 lots,
@@ -62,7 +68,7 @@ impl BestRouteIntent {
 }
 
 struct Winner {
-    allocation: Allocation,
+    allocation: MultiAllocation,
     next: candidates::Candidate,
     quotes: Vec<canonical::MakerQuoteResponse>,
 }
@@ -78,35 +84,86 @@ impl From<maker_interface::QuoteError> for SelectionError {
 }
 
 pub fn execute_best(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) -> Result<()> {
-    require!(
-        cfg!(feature = "execution-router-qualification") && ctx.remaining_accounts()?.is_empty(),
-        ClearingError::Profile
-    );
-    let clock = Clock::get()?;
-    let winner = choose(&ctx.accounts, &args, &clock)?;
-    let quantities = winner.allocation.lots;
-    let intent = args.terms(&ctx.accounts.identity.market, quantities);
-    crate::scoped_history::run_selected_route(
-        ctx,
-        [142, 199, 100, 123, 91, 206, 46, 151],
-        quantities,
-        |ctx, events| {
-            commit::apply(
-                &mut ctx.accounts.selected(quantities)?,
-                events,
-                &intent,
-                None,
-                &clock,
-                &winner.next,
-                &winner.quotes,
-                RoutePath::Serial,
-            )
-        },
-    )
+    execute_selected(ctx, args, false, &[])
+}
+
+pub fn execute_multi(ctx: &mut Context<ExecuteBestRoute>, args: MultiRouteIntent) -> Result<()> {
+    require!(cfg!(feature = "wide-atomic-routes") && args.extra_epochs.len() <= 5, ClearingError::Profile);
+    execute_selected(ctx, args.order, true, &args.extra_epochs)
 }
 
 #[inline(never)]
-fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) -> Result<Winner> {
+fn execute_selected(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent, multi: bool, epochs:&[MakerEpochs]) -> Result<()> {
+    require!(cfg!(feature = "execution-router-qualification"), ClearingError::Profile);
+    let clock = Clock::get()?;
+    let remaining = ctx.remaining_accounts()?;
+    let boundary = epochs.len().checked_mul(6).ok_or(ClearingError::Profile)?;
+    require!(remaining.len()>=boundary && remaining.len()<=boundary+3, ClearingError::MakerBinding);
+    let (bundles,lanes)=remaining.split_at(boundary);
+    let named = [ctx.accounts.candidate_zero.pricing(),ctx.accounts.candidate_one.pricing(),ctx.accounts.candidate_two.pricing()];
+    let mut writable=vec![*ctx.accounts.identity.trader.address()];
+    for maker in &named {writable.extend([*maker.capital.address(),*maker.registration.address()]);}
+    let named_writable=writable.len();
+    let mut additional=Vec::with_capacity(epochs.len());
+    for bundle in bundles.chunks_exact(6) {additional.push(ExtraMaker::load(bundle,&mut writable)?);}
+    let winner = choose(&ctx.accounts, &args, &clock, multi, &additional, epochs)?;
+    let quantities = winner.allocation.lots;
+    let intent = args.terms(&ctx.accounts.identity.market, &quantities, epochs);
+    let mut instances = vec![
+        ctx.accounts.candidate_zero.zero_registration.instance,
+        ctx.accounts.candidate_one.one_registration.instance,
+        ctx.accounts.candidate_two.two_registration.instance,
+    ];
+    instances.extend(additional.iter().map(|maker| maker.pricing().registration.instance));
+    let first = quantities.iter().position(|lots| *lots > 0).ok_or(ClearingError::RouteIntent)?;
+    let lane_id = instances[first] % 3;
+    let lane_key = ctx.accounts.registry.registrations[usize::from(lane_id)];
+    let lane_slot = (instances[first] >= 3).then(|| instances.iter().position(|id| *id == lane_id)).flatten();
+    let external_lane = (instances[first] >= 3 && lane_slot.is_none()).then_some(lane_key);
+    let mut extra = lanes.iter();
+    for id in 0u8..3 {
+        if !instances.contains(&id) && instances.iter().any(|instance| instance % 3 == id) {
+            let account = extra.next().ok_or(ClearingError::MakerBinding)?;
+            require!(account.address() == &ctx.accounts.registry.registrations[usize::from(id)]
+                && account.is_writable() && !account.is_signer() && !account.executable()
+                && account.owner() == &crate::ID, ClearingError::MakerBinding);
+        }
+    }
+    require!(extra.next().is_none(), ClearingError::MakerBinding);
+    let external_view = external_lane.and_then(|key| lanes.iter().find(|account| *account.address() == key).cloned());
+    let mut filled = [false;8];
+    for (slot,lots) in filled.iter_mut().zip(&quantities) { *slot = *lots > 0; }
+    let plan = crate::scoped_history::MakerAccess {filled, extras:epochs.len(), lane_slot, external_lane};
+    let instruction = if multi { [228, 99, 109, 42, 17, 74, 96, 121] } else { [142, 199, 100, 123, 91, 206, 46, 151] };
+    // The raw journal captures and advances the additional accounts itself.
+    // Release Anchor's decoded account borrows before both raw journal visits.
+    drop(additional);
+    writable.truncate(named_writable);
+    crate::scoped_history::run_selected_route(ctx, instruction, plan, |ctx, events| {
+        let mut additional=Vec::with_capacity(epochs.len());
+        for bundle in bundles.chunks_exact(6) {additional.push(ExtraMaker::load(bundle,&mut writable)?);}
+
+        // SAFETY: only a missing canonical registration can enter external_view;
+        // it is writable and distinct from every named maker and other extra.
+        let mut external = external_view.map(|view| unsafe { BorshAccount::<MakerRegistration>::load_mut(view) }).transpose()?;
+        let (mut accounts, included_lane) = ctx.accounts.selected(&mut additional,&quantities, lane_slot)?;
+        let lane = included_lane.or(external.as_mut());
+        if instances[first] >= 3 {
+            let supplied = lane.as_deref().ok_or(ClearingError::MakerBinding)?;
+            require!(supplied.address() == &lane_key && supplied.instance == lane_id
+                && supplied.market == *accounts.identity.market.address() && supplied.venue == *accounts.identity.venue.address()
+                && supplied.schema_version == SCHEMA_VERSION, ClearingError::MakerBinding);
+        }
+        commit::apply(&mut accounts, events, &intent, None, &clock, &winner.next, &winner.quotes, RoutePath::Serial, lane)?;
+        drop(accounts);
+        for (maker,lots) in additional.iter_mut().zip(&quantities[3..]) { if *lots>0 {maker.persist()?;} }
+        if let Some(mut raw) = external { raw.exit()?; }
+        Ok(())
+    })
+}
+
+#[inline(never)]
+fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock, multi: bool, additional:&[ExtraMaker], epochs:&[MakerEpochs]) -> Result<Winner> {
     let identity = &accounts.identity;
     execution_profile(&identity.venue, &identity.safety, &identity.market)?;
     require!(identity.safety.mode == ACTIVE, ClearingError::Profile);
@@ -134,16 +191,18 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
     let environment = optional_environment(markets, market_index, clock)?;
     environment.validate(&identity.trader)?;
     environment.admit_sources(&identity.trader, clock, !args.reduce_only)?;
-    let views = [
+    let mut views = vec![
         accounts.candidate_zero.pricing(),
         accounts.candidate_one.pricing(),
         accounts.candidate_two.pricing(),
     ];
+    views.extend(additional.iter().map(ExtraMaker::pricing));
     let mut states = Vec::with_capacity(views.len());
     let mut cache = pricing::CodeApprovalCache::default();
     for (instance, view) in views.iter().enumerate() {
         require!(
-            usize::from(view.registration.instance) == instance
+            view.registration.instance < accounts.registry.count
+                && (instance == 0 || views[instance - 1].registration.instance < view.registration.instance)
                 && views[..instance]
                     .iter()
                     .all(|other| other.capital.address() != view.capital.address()
@@ -171,7 +230,7 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
             }
             Err(error) => return Err(error),
         };
-        let epoch = &args.maker_epochs[instance];
+        let epoch = if instance<3 { &args.maker_epochs[instance] } else { &epochs[instance-3] };
         require!(
             epoch.authority == view.registration.authority_epoch
                 && epoch.depth == view.registration.depth_epoch
@@ -195,7 +254,7 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
             states.push(Some(state));
         }
     }
-    let mut curves = [None; 3];
+    let mut curves = vec![None; views.len()];
     for (instance, state) in states.iter().enumerate() {
         if let Some(state) = state {
             let view = &views[instance];
@@ -208,6 +267,14 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
                     request.inventory,
                     request.consumed,
                 )
+                .and_then(|curve| {
+                    let position = &view.capital.positions[market_index];
+                    if multi && position.lots == 0 && position.virtual_scaled == 0 {
+                        curve.with_opening_cash(view.capital.cash, identity.market.lower, identity.market.upper, args.lots)
+                    } else {
+                        curve.with_funded_cash(view.capital.cash, identity.market.upper.max(1))
+                    }
+                })
                 .map_err(|_| ClearingError::MakerQuote)?,
             );
         }
@@ -219,33 +286,51 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
         max_fee: args.max_fee,
         all_in_limit: args.all_in_limit,
     };
-    let mut admitted = None;
-    let allocation = routing::select_for_clearing(order, curves, |candidate| {
-        let next = financial_candidate(
-            accounts,
-            args,
-            &views,
-            &states,
-            candidate,
-            &environment,
-            clock,
-        );
-        match next {
-            Ok(next) => {
-                admitted = Some(next);
-                Ok(true)
+    let (allocation,next) = if multi {
+        let ideal = routing::marginal::best_marginals(order, &curves)
+            .map_err(|error| SelectionError::from(error).0)?.ok_or(ClearingError::RouteHealth)?;
+        let allocation=ideal;
+        let next = financial_candidate(accounts,args,&views,&states,&allocation.lots,&allocation.amounts,epochs,&environment,clock)?;
+        (allocation,next)
+    } else {
+        let mut admitted = None;
+        let allocation = routing::select_for_clearing(order, curves.as_slice().try_into().map_err(|_| ClearingError::RouteIntent)?, |candidate| {
+            let next = financial_candidate(
+                accounts,
+                args,
+                &views,
+                &states,
+                &candidate.lots, &candidate.amounts, epochs,
+                &environment,
+                clock,
+            );
+            match next {
+                Ok(next) => {
+                    admitted = Some(next);
+                    Ok(true)
+                }
+                // The shared financial engine maps out-of-domain position/fee
+                // arithmetic to Arithmetic and failed post-fill margin to RouteHealth.
+                // Authority, binding, invariant and unexpected errors abort the order.
+                Err(error)
+                    if [
+                        ClearingError::RouteHealth,
+                        ClearingError::RouteLimit,
+                        ClearingError::Arithmetic,
+                    ]
+                    .into_iter()
+                    .any(|reason| ProgramError::from(reason) == error) =>
+                {
+                    Ok(false)
+                }
+                Err(error) => Err(SelectionError(error)),
             }
-            // The shared financial engine maps out-of-domain position/fee
-            // arithmetic to Arithmetic and failed post-fill margin to RouteHealth.
-            // Authority, binding, invariant and unexpected errors abort the order.
-            Err(error) if [ClearingError::RouteHealth, ClearingError::RouteLimit, ClearingError::Arithmetic]
-                .into_iter().any(|reason| ProgramError::from(reason) == error) => Ok(false),
-            Err(error) => Err(SelectionError(error)),
-        }
-    })
-    .map_err(|error| error.0)?
-    .ok_or(ClearingError::RouteHealth)?;
-    let next = admitted.ok_or(ClearingError::RouteHealth)?;
+        })
+        .map_err(|error| error.0)?
+        .ok_or(ClearingError::RouteHealth)?;
+        let next = admitted.ok_or(ClearingError::RouteHealth)?;
+        (MultiAllocation {lots:allocation.lots.to_vec(),amounts:allocation.amounts.to_vec(),gross:allocation.gross,fee:allocation.fee,all_in:allocation.all_in},next)
+    };
     require!(
         next.gross == allocation.gross && next.fee == allocation.fee,
         ClearingError::Reconciliation
@@ -253,7 +338,7 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
     let mut quotes = Vec::with_capacity(next.makers.len());
     for (instance, lots) in allocation
         .lots
-        .into_iter()
+        .iter().copied()
         .enumerate()
         .filter(|(_, lots)| *lots != 0)
     {
@@ -281,19 +366,18 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
 fn financial_candidate(
     accounts: &ExecuteBestRoute,
     args: &BestRouteIntent,
-    views: &[pricing::View; 3],
+    views: &[pricing::View],
     states: &[Option<pricing::AuthenticatedCurve>],
-    allocation: &Allocation,
+    lots_by_maker: &[u64], amounts:&[u64], epochs:&[MakerEpochs],
     environment: &book::Environment,
     clock: &Clock,
 ) -> Result<candidates::Candidate> {
     let identity = &accounts.identity;
-    let intent = args.terms(&identity.market, allocation.lots);
+    let intent = args.terms(&identity.market, lots_by_maker,epochs);
     let mut roots = Vec::with_capacity(intent.legs.len());
     let mut quotes = Vec::with_capacity(intent.legs.len());
-    for (instance, lots) in allocation
-        .lots
-        .into_iter()
+    for (instance, lots) in lots_by_maker
+        .iter().copied()
         .enumerate()
         .filter(|(_, lots)| *lots != 0)
     {
@@ -313,7 +397,7 @@ fn financial_candidate(
         )
         .map_err(|_| ClearingError::MakerQuote)?;
         require!(
-            quote.gross == allocation.amounts[instance],
+            quote.gross == amounts[instance],
             ClearingError::MakerResponse
         );
         quotes.push(financial_quote(&quote, &identity.market, clock));

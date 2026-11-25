@@ -37,6 +37,24 @@ pub fn margin_atoms(lots: i64, upper: u64, bps: u64) -> Result<u64> {
     u64::try_from(numerator.div_ceil(10_000)).map_err(|_| Error::Overflow)
 }
 
+/// Largest absolute position that funded cash alone could margin after a fill.
+/// Ignoring reservations and negative claims makes this an upper bound.
+pub fn funded_position_limit(cash: u64, upper: u64) -> Result<i64> {
+    funded_opening_limit(cash, upper, 0)
+}
+
+/// A flat account must cover IM and any adverse claim from funded cash.
+/// `loss_per_lot` is a lower bound on the loss, in whole collateral atoms.
+pub fn funded_opening_limit(cash: u64, upper: u64, loss_per_lot: u64) -> Result<i64> {
+    if cash > MAX_CASH || !(1..=MAX_PRICE).contains(&upper) || loss_per_lot > MAX_PRICE {
+        return Err(Error::Bounds);
+    }
+    let numerator = cash.checked_mul(10_000).ok_or(Error::Overflow)?;
+    // MAX_PRICE bounds both terms. Integer division here is equivalent to rounding IM up.
+    let per_lot = upper * IM_BPS + loss_per_lot * 10_000;
+    Ok((numerator / per_lot).min(MAX_LOTS as u64) as i64)
+}
+
 /// Borrowed account input. The program adapter supplies all positions of the
 /// same margin account and authenticates each bound before requesting admission.
 #[derive(Clone, Copy)]

@@ -1,4 +1,4 @@
-import { createNoopSigner, getProgramDerivedAddress, type Address } from '@solana/kit';
+import { AccountRole, createNoopSigner, getProgramDerivedAddress, type Address } from '@solana/kit';
 import type { MarginRouteIntent } from './route-intent.js';
 import type { readAccountTradeSnapshot } from './account-snapshot.js';
 import { accountSourceMode,effectiveAccountFunding } from './account-balance.js';
@@ -15,11 +15,12 @@ export type LiquidityRouteInput = MarginRouteIntent & {
 };
 
 /** Exact preview is available before activation; no transaction authority is implied. */
-export function previewLiquidityRoute(input: LiquidityRouteInput) {
-  return previewRoute(input, false);
+export function previewLiquidityRoute(input: LiquidityRouteInput, standing = false, baselineCandidates?: ReadonlySet<number>) {
+  if (baselineCandidates) requireValue(standing && baselineCandidates.size >= 3 && baselineCandidates.size <= 8, 'Invalid multi-maker preview width.');
+  return previewRoute(input, false, standing, baselineCandidates);
 }
 
-function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean) {
+function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean, standing = false, baselineCandidates?: ReadonlySet<number>) {
   const { snapshot,trader,marketIndex } = input;
   const root = snapshot.roots[trader];
   requireValue(snapshot.venueState.profileVersion === 6 && snapshot.liquidity && root?.schemaVersion === 10
@@ -31,7 +32,7 @@ function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean) {
   const financialRoot = makerLiquidation ? { ...root, book: { ...root.book,
     orders: root.book.orders.map(entry => [1,2].includes(entry.order.state) && !entry.order.reduceOnly
       ? { ...entry, order: { ...entry.order, state: 6, reserve: 0n } } : entry) } } : root;
-  return allocateLiquidityRoute({ ...input, makerLiquidation, root: financialRoot, makers: snapshot.liquidity.adapters,markets: snapshot.marketStates,
+  return allocateLiquidityRoute({ ...input, makerLiquidation, standing, baselineCandidates, root: financialRoot, makers: snapshot.liquidity.adapters,markets: snapshot.marketStates,
     slot: snapshot.slot,now: snapshot.now,
     sources: snapshot.marketStates.map(market => accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)),
     funding: snapshot.marketStates.map(market => effectiveAccountFunding(snapshot.safetyState,market,snapshot.now,snapshot.slot)),
@@ -97,7 +98,7 @@ async function buildRoute(input: LiquidityRouteInput, actor: Address, makerLiqui
     const before=snapshot.roots[maker.registrationState.capital].positions[marketIndex].lots;
     return change+absolute(before-direction*allocation.legs[index].lots)-absolute(before);
   },absolute(root.positions[marketIndex].lots+direction*input.lots)-absolute(root.positions[marketIndex].lots));
-  const headroom=laneCapacity?.available[first.registrationState.instance];
+  const headroom=laneCapacity?.available[first.registrationState.instance % 3];
   const direct=laneCapacity!==undefined&&laneCapacity.generation>0n&&headroom!==undefined&&headroom>=delta&&
     headroom-delta<=MARKET_GROSS_CAP&&snapshot.marginLayout==='ledger-lanes' && !makerLiquidation && required===(1<<marketIndex) &&
     liabilityRequired===(1<<marketIndex) && held.heldEpoch===market.configEpoch && held.heldUntil>held.sampledAt &&
@@ -110,7 +111,12 @@ async function buildRoute(input: LiquidityRouteInput, actor: Address, makerLiqui
       termsEpoch: market.termsEpoch, configEpoch: market.configEpoch, side: input.side,
       allInLimit: makerLiquidation ? allocation.allIn : input.allInLimit,
       maxFee: makerLiquidation ? allocation.fee : input.maxFee, reduceOnly, generation: position.generation });
+  const remaining = first.registrationState.instance < 3 ? [] : [{
+    address:snapshot.liquidity!.registryState.registrations[first.registrationState.instance % 3],
+    role:AccountRole.WRITABLE,
+  }];
+  const signedInstruction = {...instruction,accounts:[...instruction.accounts,...remaining]};
   return { snapshotCommitment: snapshot.commitment, snapshotSlot: snapshot.slot, trader, marketIndex,
     guard: common.guard, expirySlot, allocation, metrics: preview.metrics, excluded: preview.excluded,
-    instructions: [instruction], resourceBudget: { computeUnitLimit: 800_000, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 } };
+    instructions: [signedInstruction], resourceBudget: { computeUnitLimit: 800_000, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 } };
 }

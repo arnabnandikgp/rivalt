@@ -197,7 +197,7 @@ pub(crate) use maker_liquidity::routes::{__client_accounts_executemarketlane,__c
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::routes::{__cpi_accounts_executemarketlane,__cpi_accounts_executeledgerlane};
 pub use maker_liquidity::routes::{LiquidityOrderExecution, LiquidityRouteIntent};
-pub use maker_liquidity::routes::{BestRouteIntent, ExecuteBestRoute};
+pub use maker_liquidity::routes::{BestRouteIntent, MultiRouteIntent, ExecuteBestRoute};
 pub(crate) use maker_liquidity::routes::__client_accounts_executebestroute;
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::routes::__cpi_accounts_executebestroute;

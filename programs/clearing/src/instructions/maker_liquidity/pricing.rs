@@ -52,7 +52,7 @@ pub(crate) fn sealed_registry(
             && registry.venue == venue
             && registry.market == market
             && registry.sealed
-            && registry.count == 3
+            && (3..=canonical::REGISTRATION_LIMIT).contains(&registry.count)
             && registry
                 .registrations
                 .iter()
@@ -109,9 +109,9 @@ impl<'account> View<'account> {
             registration.schema_version == crate::state::accounts::SCHEMA_VERSION
                 && registration.venue == venue.address().to_owned()
                 && registration.market == market.address().to_owned()
-                && registration.instance < 3
-                && registry.registrations[usize::from(registration.instance)]
-                    == registration.address().to_owned()
+                && registration.instance < registry.count
+                && registry.registrations.get(usize::from(registration.instance))
+                    .is_none_or(|stored| stored == registration.address())
                 && registration.capital == self.capital.address().to_owned()
                 && registration.owner == self.capital.owner
                 && registration.pricing_program == self.program.address().to_owned()

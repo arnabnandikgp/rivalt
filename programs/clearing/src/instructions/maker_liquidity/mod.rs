@@ -115,7 +115,7 @@ fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<(
     require!(
         accounts.registry.schema_version == crate::state::accounts::SCHEMA_VERSION
             && !accounts.registry.sealed
-            && instance < 3
+            && instance < canonical::REGISTRATION_LIMIT
             && instance == accounts.registry.count,
         ClearingError::MakerBinding
     );
@@ -178,8 +178,11 @@ pub fn register(
         capital: accounts.capital.address().to_owned(),
         registration: accounts.registration.address().to_owned(),
     };
-    accounts.registry.registrations[usize::from(instance)] =
-        accounts.registration.address().to_owned();
+    // The three stored addresses are also the market's accounting lanes.
+    // Further members are uniquely derived from (market, instance) and count.
+    if let Some(key) = accounts.registry.registrations.get_mut(usize::from(instance)) {
+        *key = *accounts.registration.address();
+    }
     accounts.registry.count = accounts
         .registry
         .count
@@ -213,7 +216,7 @@ pub fn seal(
     custody_only(&accounts.venue, &accounts.safety, &accounts.market)?;
     require!(
         accounts.registry.schema_version == crate::state::accounts::SCHEMA_VERSION
-            && accounts.registry.count == 3
+            && (3..=canonical::REGISTRATION_LIMIT).contains(&accounts.registry.count)
             && !accounts.registry.sealed,
         ClearingError::MakerBinding
     );

@@ -121,6 +121,14 @@ if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router* || "${RIVALT_SE
 if [[ "${RIVALT_FROZEN_PLAN_PROOF:-0}" == 1 && ( "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-owned-* && "$RIVALT_SETTLEMENT_PROBE" != profit-attribution-successor-recovery || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-meter || "${RIVALT_FROZEN_PLAN_CASE:-}" == paged-coverage ) ]]; then bash ops/deploy-frozen-plan-probe.sh; fi
 case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   execution-router-bounded-entry-inventory|execution-router-mixed-storage) node --import tsx tests/rpc-contract/maker-storage-rpc.ts ;;
+  execution-router-feasible-books) node --import tsx tests/rpc-contract/feasible-book-rpc.ts ;;
+  execution-router-matched-makers) node --import tsx tests/rpc-contract/comparison-rpc.ts ;;
+  execution-router-multi-price-limits) node --import tsx tests/rpc-contract/multi-price-limits-rpc.ts ;;
+  execution-router-multi-width) node --import tsx tests/rpc-contract/multi-width-rpc.ts ;;
+  execution-router-multi-fills) node --import tsx tests/rpc-contract/multi-maker-rpc.ts ;;
+  execution-router-wide-fills) node --import tsx tests/rpc-contract/wide-fills-rpc.ts ;;
+  execution-router-wide-directory) node --import tsx tests/rpc-contract/wide-directory-rpc.ts ;;
+  execution-router-bounded-entry-benchmark|execution-router-funded-benchmark) node --import tsx tests/rpc-contract/depth-benchmark-rpc.ts ;;
   execution-router-load) node --import tsx tests/rpc-contract/router-load-rpc.ts ;;
   execution-router-bounded-entry|execution-router-notional|execution-router-closed-quantity) node --import tsx tests/rpc-contract/router-notional-rpc.ts ;;
   execution-router) node --import tsx tests/rpc-contract/execution-router-rpc.ts ;;

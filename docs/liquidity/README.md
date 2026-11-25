@@ -2,8 +2,7 @@
 
 Makers supply executable prices against isolated capital in Rivalt clearing.
 The two maker programs share configurable curve math; an instance ID identifies a
-capital/configuration, not a hard-coded strategy. There are three sealed instances
-per market, and a trade selects at most two distinct capitals.
+capital/configuration, not a hard-coded strategy. The baseline demo uses three instances per market and fills one or two. The opt-in local multi-maker deployment supports discovery across up to 32 registrations and atomic fills across up to eight signed candidates.
 
 A maker owns its curve shape, inventory caps and permissions. A narrowly delegated
 updater changes its price anchor. Clearing owns consumed depth. Repricing never

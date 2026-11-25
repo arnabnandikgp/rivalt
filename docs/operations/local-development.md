@@ -120,3 +120,90 @@ RIVALT_SETTLEMENT_PROBE=execution-router-notional RIVALT_RUN_DIR=.local/btc-noti
 The harness saves each published quote, signed simulation and finalized order in `notional-orders.json`. After checking payout, SPL balances and fresh database replay, it writes `notional-baseline.json` in the same ignored directory. It attempts the same six buys in order, including diagnostic broadcasts of refused simulations. [Conditions and results](performance.md#btc-orders-at-fixed-dollar-sizes)
 
 Use [validation](validation.md) to select smaller checks. Historical proof experiments have separate artifact and helper bindings. Their commands are kept with the [original revisions](../HISTORY.md).
+
+## Matched BTC fill benchmark
+
+From a clean tracked checkout, set the pinned artifact directory and run each arm in a fresh local venue. Use the fixed-width artifact build described under [fixed-width entry qualification](#fixed-width-entry-qualification). The smoke wrapper creates a unique run directory automatically. Run the commands sequentially to reuse the default ports.
+
+```sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/bounded-entry/build-b7e4458b
+export RIVALT_ROUTER_REVISION=b7e4458b57a3a9bbb0906929a936094c78393b47
+export RIVALT_SETTLEMENT_PROBE=execution-router-bounded-entry-benchmark
+RIVALT_BENCH_ARM=routed bash ops/scalable-settlement-smoke.sh
+RIVALT_BENCH_ARM=explicit bash ops/scalable-settlement-smoke.sh
+```
+
+Each run retains its signed originals, simulations, finalized RPC and WS records, PostgreSQL reconciliation and `depth-benchmark.json` locally. The latter records each offer, the independent optimal allocation for the fixture’s flat price regions, the signed limit, and the actual outcome. When a pair of makers can supply the size, both transaction alternatives are signed and simulated at the same confirmed slot before broadcasting the designated one. When the size exceeds every pair, both runs submit the wallet’s routed original so the refusal has a receipt.
+
+To repeat against the funded-routing candidate, build program revision
+`e02e72a06a16c36cd2b843ca373895e3fbd23927` with the same
+`bounded-entry-settlement` Cargo feature. Point `RIVALT_SETTLEMENT_ARTIFACT_DIR`
+at that build, set `RIVALT_ROUTER_REVISION` to its full revision and use
+`RIVALT_SETTLEMENT_PROBE=execution-router-funded-benchmark`. The routed run
+checks every signed outcome against the independent reference, including both
+ETH limits while maker zero has one collateral atom.
+
+Run `python3 tests/performance/depth-benchmark-report.py ROUTED_RUN EXPLICIT_RUN` to summarize both completed directories. Read `ordinaryBtc` for requested and filled dollars at the index (atom totals use six decimals) and `dollarOrders` for each signed limit, average fill price, dollar cost versus the index, taker fee and refusal. An order with no fill has zero executed notional and a null execution price. The supplementary CU differences use two successful simulations on the same bank. `source ops/env.sh && node --import tsx tests/rpc-contract/depth-benchmark-reference-check.ts` checks the independent reference against exhaustive allocation on 216 small books and orders.
+
+## Wide maker discovery and fills
+
+Build clearing revision `5e32c124f078902535c6e40a02419f797550e89a` with
+`RIVALT_ATTRIBUTION_PROFILE=wide-maker-discovery` and an empty
+`RIVALT_ATTRIBUTION_DIR` using `bash ops/build-profit-attribution.sh`.
+At harness revision `951adeea` or its compatible stack head, set
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` to that directory, `RIVALT_ROUTER_REVISION`
+to the full program revision, and `RIVALT_SETTLEMENT_PROBE=execution-router-wide-fills`.
+Run `bash ops/scalable-settlement-smoke.sh` with the standard local oracle
+artifacts and Apple container PostgreSQL available. The run retains its signed
+originals and `wide-fills.json` under the ignored run directory.
+
+For wider atomic fills use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a`, build profile `wide-atomic-routes` and harness `c5d51f9c` or its compatible stack head. Run the same supervisor with probes `execution-router-multi-fills` and `execution-router-multi-width` in separate fresh directories. The first checks the fragmented fill, final-maker rollback and insurance allocation. The second checks four and eight real maker fills and journal replay.
+
+For the price-collar and aggregate-fee regressions, build `wide-atomic-routes` at `b0e1a43f22699bb67335011ef7acfb2edf48b0d2`. Set `RIVALT_ROUTER_REVISION` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that revision and its build directory. Run the supervisor once with `RIVALT_SETTLEMENT_PROBE=execution-router-multi-price-limits` and once with `execution-router-multi-width`, each in a fresh run directory. The first verifies signed fills and one-atom refusals. The second requires both widths to fill and replay.
+
+### Matched dollar comparison
+
+Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.
+
+```bash
+source ops/env.sh
+export RIVALT_ROUTER_REVISION=f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a
+export RIVALT_SETTLEMENT_PROBE=execution-router-matched-makers
+comparison_dir=.local/matched-makers-depth-aware
+for makers in 16 32; do
+  for legs in 2 4 8; do
+    RIVALT_COMPARISON_MAKERS="$makers" RIVALT_COMPARISON_LEGS="$legs" \
+      RIVALT_RUN_DIR="$comparison_dir/$makers-$legs" \
+      bash ops/scalable-settlement-smoke.sh || exit 1
+  done
+done
+node --import tsx tests/rpc-contract/comparison-reference-check.ts
+python3 tests/performance/matched-maker-report.py "$comparison_dir"/{16,32}-{2,4,8}
+```
+
+The report checks each signed signature, fee and outcome against its retained finalized transaction. It also counts requests the wallet refused before signing. For each request it gives the same-bank full-directory price, the full-directory price at the leg cap, and the signed shortlist price. Each is fee-inclusive and requires the entire requested quantity. The constant-price reference independently enumerates maker subsets and measures quoted depth under each constraint. Clearing checks funding and margin when a signed order executes. A null reference means the requested size exceeded that book's capacity.
+
+The trace uses a fixed $61,000 test BTC index, 65,000-lot asks and 6,000- or 40,000-lot bids per maker before the deep-book replacement. It also reprices a maker outside the already signed shortlist, installs a one-million-lot book, replenishes two consumed books, and offers two independent wallet orders concurrently. Each later order encounters the inventory and consumed depth left by its own cell's earlier fills. Confirmed latency includes simulation, WS subscription and local RPC. The two-wallet rate covers a single batch. The indexer replays the finalized venue into a fresh PostgreSQL database.
+
+### Curved books and binding maker margin
+
+Use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a` with the `wide-atomic-routes` artifact directory described above. Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that directory. Each arm needs a fresh run directory and its own local database. These commands run the two arms sequentially on the default local ports.
+
+```bash
+source ops/env.sh
+export RIVALT_ROUTER_REVISION=f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a
+export RIVALT_SETTLEMENT_PROBE=execution-router-feasible-books
+comparison_dir=".local/feasible-books-$(date -u +%Y%m%dT%H%M%SZ)"
+for arm in wallet control; do
+  RIVALT_FEASIBLE_ARM="$arm" RIVALT_RUN_DIR="$comparison_dir/$arm" \
+    bash ops/scalable-settlement-smoke.sh || exit 1
+done
+python3 tests/performance/feasible-book-report.py "$comparison_dir/wallet" "$comparison_dir/control"
+pnpm exec vitest run tests/rpc-contract/feasible-book-reference.test.ts
+```
+
+The report checks that the two venues offered identical books, funded balances, risk bounds and signed economic limits. For each order it compares the ordinary wallet fill, the calculated best allocation within four legs and the best control that actually landed. All three include the taker fee. A missing fill has no execution price. The control uses the same wallet compute limit and either supplies four candidate bundles for on-chain selection or signs an explicit two-leg split.
+
+For the funded multi-maker comparison, build the same `wide-atomic-routes` profile at clearing revision `50bd8836352e3a138142a4ae377ec6dc9d75bcc8` and set `RIVALT_ROUTER_REVISION` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that revision and its matching directory. Use fresh directories for both arms. The new wallet run also signs a sale whose minimum proceeds exceed the best available fill by one collateral atom and checks rollback.
+
+For price-aware wallet selection, use SDK/harness `7353f463` or its compatible stack head with the funded multi-maker binary. The same two-arm command checks the ordinary fills against each independent allocation and signed control. Set `RIVALT_SETTLEMENT_PROBE=execution-router-matched-makers`, `RIVALT_COMPARISON_LEGS=8` and `RIVALT_COMPARISON_MAKERS=16` or `32` to reproduce the wide-directory compatibility traces at harness `7353f463`.

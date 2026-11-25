@@ -8,6 +8,7 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['MakerFillContinuation',sdk.MAKER_FILL_CONTINUATION_EVENT_DISCRIMINATOR,sdk.getMakerFillContinuationEventDecoder()],
   ['JointClaimsCopied',sdk.JOINT_CLAIMS_COPIED_EVENT_DISCRIMINATOR,sdk.getJointClaimsCopiedEventDecoder()],
   ['PagedRecoverySelectionBound',paged.PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,paged.getPagedRecoverySelectionBoundEventDecoder()],
   ['RecoverySelectionBound',sdk.RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,sdk.getRecoverySelectionBoundEventDecoder()],
@@ -89,6 +90,25 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
       return {signature,outer:invocation.outer,inner,ordinal,slot:transaction.slot,
         blockTime:transaction.blockTime===null?null:integer(transaction.blockTime),type,data,bytes};
     });
+    const continuations=events.filter(event=>event.type==='MakerFillContinuation');
+    if(continuations.length) {
+      const first=events[0], trade=first.data;
+      if(invocation.instruction!==sdk.hex(sdk.EXECUTE_MULTI_ROUTE_DISCRIMINATOR) ||
+        first.type!=='LiquidityRouteFeeRecorded' || events.length!==1+continuations.length || continuations.length>2 ||
+        trade.legs.length!==2 || trade.rootStates.length!==3 || trade.makerStates.length!==2)
+        throw new Error('Invalid multi-maker receipt header');
+      for(const [index,continuation] of continuations.entries()) {
+        const part=continuation.data;
+        if(continuation.ordinal!==index+1 || part.nonce!==trade.nonce || part.market!==trade.market ||
+          part.firstLeg!==trade.legs.length || part.legs.length<1 || part.legs.length>3 ||
+          index+1<continuations.length && part.legs.length!==3 ||
+          part.rootStates.length!==part.legs.length || part.makerStates.length!==part.legs.length)
+          throw new Error('Discontinuous multi-maker receipt');
+        trade.legs.push(...part.legs);
+        trade.rootStates.push(...part.rootStates);
+        trade.makerStates.push(...part.makerStates);
+      }
+    }
     const retirements:ScopedRetirement[]=[];
     for(const write of invocation.writes) {
       if(write.kind===26) {

@@ -89,7 +89,7 @@ export class AccountExecution {
   async submit(requestId:string,wire:string) {
     const binding=await this.environment(),id=publicRequestId(requestId);
     if(sdk.usesUnifiedRecovery(this.deploymentSelection))
-      this.walletCheckpoints??=await sdk.venueMarketCheckpoints(address(binding.venue));
+      this.walletCheckpoints??=await sdk.venueMarketCheckpoints(address(binding.venue),sdk.hasMultiMaker(binding.artifactSet));
     return this.queue.put(id,wire,accountUserAuthority(wire,binding.venue,this.profile,this.walletCheckpoints,this.deploymentSelection));
   }
   async budget(role:OperatorRole,payer:Keypair,marketIndex?:number,makerId?:number) {

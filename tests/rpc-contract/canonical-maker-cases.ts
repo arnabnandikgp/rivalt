@@ -27,7 +27,7 @@ export const symmetricPayoutShape={...goldenShape,skewTick:0n,longCap:4096n,shor
 
 export async function provisionCanonicalMakers(h: CanonicalHarness,
   shape: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs) = goldenShape,
-  makerMarkets: readonly (0|1)[] = [0,1], initialCash = 1_000_000n, recoveryCapacity=64n) {
+  makerMarkets: readonly (0|1)[] = [0,1], initialCash = 1_000_000n, recoveryCapacity=64n, makerCounts: readonly [number,number] = [3,3]) {
   const payer = await payerKey(), owner = await fixtureKey('p30-owner'), updater = await fixtureKey('p30-updater');
   const mint = await fixtureKey('p30-mint'), token = await fixtureKey('p30-token');
   const deployment = await addresses();
@@ -66,6 +66,22 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
       market: markets[marketIndex], ledger: ledgers[marketIndex] })]);
   }
   const storage=await provisionRecoveryWorkspace(h,common,payer,recoveryCapacity);
+  assert(makerCounts.every(count => Number.isInteger(count) && count >= 3 && count <= 32));
+  const independent = makerCounts.some(count => count > 3);
+  const operators = [{owner, token}];
+  if (independent) {
+    for (let instance = 1; instance < Math.max(...makerCounts); instance++) {
+      const operator = await fixtureKey('wide-owner-' + instance);
+      const collateral = await fixtureKey('wide-token-' + instance);
+      await h.send('provision independent local operator ' + instance, [
+        getTransferSolInstruction({source:payer,destination:operator.address,amount:1_000_000_000n}),
+        getCreateAccountInstruction({payer,newAccount:collateral,lamports:await h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
+        getInitializeAccount3Instruction({account:collateral.address,mint:mint.address,owner:operator.address}),
+        getMintToInstruction({mint:mint.address,token:collateral.address,mintAuthority:payer,amount:initialCash*2n}),
+      ],[collateral]);
+      operators.push({owner:operator,token:collateral});
+    }
+  }
   const instances = [];
   for (const marketIndex of makerMarkets) {
     const market = markets[marketIndex];
@@ -73,13 +89,17 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
     const liquidityCommon = { ...common, market, registry: liquidityRegistry, authority: payer };
     await h.send(`initialize maker registry ${marketIndex}`, [await sdk.getInitializeLiquidityInstructionAsync(liquidityCommon)]);
     tracked.push(liquidityRegistry);
-    const portfolio = await accountPda('portfolio-v3', keyBytes.encode(venue), keyBytes.encode(owner.address), sdk.namespaceIndexBytes(marketIndex));
-    await h.send(`create operator portfolio ${marketIndex}`, [await sdk.getCreatePortfolioInstructionAsync({ ...common, owner, portfolio, index: marketIndex })], [owner]);
-    tracked.push(portfolio);
     const marketInstances = [];
-    for (const instance of [0, 1, 2]) {
-      const capital = await accountPda('margin-v3', keyBytes.encode(portfolio), sdk.namespaceIndexBytes(instance + 1));
-      await registerFinancialTestMargin(h,common,payer,{owner,portfolio,margin:capital,subaccountIndex:instance+1,
+    for (let instance = 0; instance < makerCounts[marketIndex]; instance++) {
+      const {owner,token} = operators[independent ? instance : 0];
+      const portfolio = await accountPda('portfolio-v3', keyBytes.encode(venue), keyBytes.encode(owner.address), sdk.namespaceIndexBytes(marketIndex));
+      if (independent || instance === 0) {
+        await h.send(`create operator portfolio ${marketIndex}/${instance}`, [await sdk.getCreatePortfolioInstructionAsync({ ...common, owner, portfolio, index: marketIndex })], [owner]);
+        tracked.push(portfolio);
+      }
+      const subaccountIndex = independent ? 1 : instance + 1;
+      const capital = await accountPda('margin-v3', keyBytes.encode(portfolio), sdk.namespaceIndexBytes(subaccountIndex));
+      await registerFinancialTestMargin(h,common,payer,{owner,portfolio,margin:capital,subaccountIndex,
         mode:1,isolatedMarketIndex:marketIndex,role:1});
       await h.send(`fund isolated capital ${marketIndex}/${instance}`, [await sdk.getDepositAccountInstructionAsync({ ...common, owner,
         margin: capital, quoteMint: mint.address, userToken: token.address, amount: initialCash })], [owner]);
@@ -115,11 +135,11 @@ export async function provisionCanonicalMakers(h: CanonicalHarness,
           authorityEpoch: registered.authorityEpoch, controlEpoch: current.controlEpoch, shapeEpoch: current.shapeEpoch,
           depthEpoch: registered.depthEpoch, side, lots, inventory, consumed } });
       };
-      const item = { module, pricingProgram, capital, config, price, registration, liquidityRegistry, market, makerCommon,
+      const item = { owner, token, module, pricingProgram, capital, config, price, registration, liquidityRegistry, market, makerCommon,
         controlCommon, publish, request, state, registrationState };
       instances.push(item); marketInstances.push(item);
     }
-    await h.send(`seal complete three-maker registry ${marketIndex}`, [sdk.getSealLiquidityInstruction({ ...liquidityCommon,
+    await h.send(`seal complete maker registry ${marketIndex}`, [sdk.getSealLiquidityInstruction({ ...liquidityCommon,
       first: marketInstances[0].registration, second: marketInstances[1].registration, third: marketInstances[2].registration })]);
     assert.equal(sdk.getLiquidityRegistryDecoder().decode((await h.read(liquidityRegistry))!).sealed, true);
   }

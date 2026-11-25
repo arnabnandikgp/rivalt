@@ -12,6 +12,8 @@ pub const STANDING_TRADE_VERSION: u16 = 5;
 pub const ACCOUNT_SCHEMA: u16 = 5;
 pub const CAPABILITY: u16 = 1;
 pub const MAX_REGIONS: usize = 8;
+/// Consecutive registration PDAs per market in the explicitly selected build.
+pub const REGISTRATION_LIMIT: u8 = if cfg!(feature = "wide-maker-discovery") { 32 } else { 3 };
 /// Declared side depth shares the checked quantity domain, not a small test book.
 pub const MAX_DEPTH: u64 = MAX_LOTS as u64;
 pub const MAX_TTL_SLOTS: u16 = 150;
@@ -497,6 +499,7 @@ pub struct ExecutionCurve<'shape> {
     side: u8,
     inventory: i64,
     consumed: u64,
+    capacity: u64,
 }
 
 impl<'shape> ExecutionCurve<'shape> {
@@ -511,13 +514,14 @@ impl<'shape> ExecutionCurve<'shape> {
         if side > 1 || !(1..=MAX_PRICE).contains(&anchor) {
             return Err(QuoteError::Bounds);
         }
-        available(shape, side, inventory, consumed)?;
+        let published = available(shape, side, inventory, consumed)?;
         Ok(Self {
             shape,
             anchor,
             side,
             inventory,
             consumed,
+            capacity: if shape.mode == 0 { 0 } else { published },
         })
     }
 
@@ -525,11 +529,81 @@ impl<'shape> ExecutionCurve<'shape> {
         self.side
     }
 
-    pub(crate) fn capacity(self) -> QuoteResult<u64> {
-        if self.shape.mode == 0 {
-            return Ok(0);
+    /// Ordinary execution only. A trader buy decreases maker inventory, so an
+    /// existing long can be sold down before any cash is needed for a short.
+    /// Full admission still checks the actual post-fill claim and reservations.
+    pub fn with_funded_cash(mut self, cash: u64, risk_upper: u64) -> QuoteResult<Self> {
+        let limit = financial_core::funded_position_limit(cash, risk_upper)
+            .map_err(|_| QuoteError::Bounds)?;
+        let reducing_inventory = if self.side == 0 { self.inventory } else { -self.inventory };
+        self.capacity = self.capacity.min((limit + reducing_inventory).max(0) as u64);
+        Ok(self)
+    }
+
+    /// Opening from zero inventory and zero carried claim only. Maker prices
+    /// improve with each additional lot, so the endpoint is at least as good
+    /// for the maker as any feasible average inside this order. Counting only
+    /// this unavoidable loss preserves even disconnected affordable quantities.
+    pub fn with_opening_cash(mut self, cash: u64, lower: u64, upper: u64, order_lots: u64) -> QuoteResult<Self> {
+        if self.inventory != 0 || lower == 0 || lower > upper || upper > MAX_PRICE {
+            return Err(QuoteError::Bounds);
         }
-        available(self.shape, self.side, self.inventory, self.consumed)
+        self.capacity = self.capacity.min(order_lots);
+        if self.capacity == 0 { return Ok(self); }
+        let cost = self.marginal_cost(self.capacity)?;
+        let price = (if self.side == 0 { cost } else { -cost }).clamp(1, MAX_PRICE as i64) as u64;
+        let loss = if self.side == 0 { upper.saturating_sub(price) } else { price.saturating_sub(lower) };
+        let bound = financial_core::funded_opening_limit(cash, upper, loss).map_err(|_| QuoteError::Bounds)?;
+        self.capacity = self.capacity.min(bound as u64);
+        Ok(self)
+    }
+
+    /// Invert each linear price region when inventory skew is disabled. The
+    /// alternative for skewed quotes remains the exact marginal binary search.
+    pub(crate) fn unskewed_prefix(self, capacity: u64, threshold: i64) -> QuoteResult<Option<u64>> {
+        if self.shape.skew_tick != 0 { return Ok(None); }
+        let base = if self.side == 0 { self.anchor as i64 } else { -(self.anchor as i64) };
+        let Some(max_offset) = u64::try_from(threshold - base).ok() else { return Ok(Some(0)); };
+        let end = self.consumed + capacity; // Bounded by the validated published depth.
+        let mut start = 0;
+        let mut supplied = 0;
+        for region in self.shape.side_regions(self.side)? {
+            let first = self.consumed.max(start);
+            let stop = end.min(region.end_lots);
+            if first < stop {
+                if max_offset < region.offset { break; }
+                let through = if region.slope == 0 { stop } else {
+                    stop.min(start + (max_offset - region.offset) / region.slope + 1)
+                };
+                supplied += through.saturating_sub(first);
+                if through < stop { break; }
+            }
+            start = region.end_lots;
+            if start >= end { break; }
+        }
+        Ok(Some(supplied))
+    }
+
+    pub(crate) fn limited_to(mut self, lots: u64) -> Self {
+        self.capacity = self.capacity.min(lots);
+        self
+    }
+
+    pub(crate) fn capacity(self) -> u64 {
+        self.capacity
+    }
+
+    /// Cost of just the nth lot, in minimization order for either side. Raw
+    /// marginal prices can exceed the valid domain near a curve's endpoint.
+    pub(crate) fn marginal_cost(self, lots: u64) -> QuoteResult<i64> {
+        if lots == 0 || lots > self.capacity { return Err(QuoteError::Capacity); }
+        let index = lots - 1;
+        let direction = if self.side == 0 { -1 } else { 1 };
+        let before = i128::from(self.inventory) + direction * i128::from(index);
+        let spread = offset_marginal(self.shape.side_regions(self.side)?, self.consumed + index)?;
+        let change = potential_marginal(self.shape, before, direction)?;
+        i64::try_from(spread + change - direction * i128::from(self.anchor))
+            .map_err(|_| QuoteError::Arithmetic)
     }
 
     pub(crate) fn gross(self, lots: u64) -> QuoteResult<u64> {
@@ -581,7 +655,7 @@ pub fn validate_standing_publication(
     if config.schema_version != ACCOUNT_SCHEMA
         || price.schema_version != ACCOUNT_SCHEMA
         || config.capability != CAPABILITY
-        || config.instance > 2
+        || config.instance >= REGISTRATION_LIMIT
         || price.config != config_key
         || config.control_epoch == 0
         || config.shape_epoch == 0

@@ -1,5 +1,6 @@
 import {AccountRole,address,type AccountMeta,type Decoder,type Instruction,type InstructionWithAccounts,type InstructionWithData,type ReadonlyUint8Array} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
+import {validateRoutingDependencies} from './routing-dependencies.js';
 import {signedWire} from './queue.js';
 import type {AccountAuthority} from './account-authority.js';
 
@@ -9,6 +10,7 @@ const action=(discriminator:ReadonlyUint8Array,parse:Parser,decoder:Decoder<unkn
   ({discriminator,parse,decoder,wallet,root,remaining});
 const lane=action(sdk.EXECUTE_LEDGER_LANE_DISCRIMINATOR,sdk.parseExecuteLedgerLaneInstruction,sdk.getExecuteLedgerLaneInstructionDataDecoder(),'actor','trader');
 const standingOrder=action(sdk.EXECUTE_BEST_ROUTE_DISCRIMINATOR,sdk.parseExecuteBestRouteInstruction,sdk.getExecuteBestRouteInstructionDataDecoder(),'actor','trader');
+const multiOrder=action(sdk.EXECUTE_MULTI_ROUTE_DISCRIMINATOR,sdk.parseExecuteMultiRouteInstruction,sdk.getExecuteMultiRouteInstructionDataDecoder(),'actor','trader');
 const actions=[
   action(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR,sdk.parseExecuteLiquidityRouteInstruction,sdk.getExecuteLiquidityRouteInstructionDataDecoder(),'actor','trader'),
   action(sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,sdk.parseWithdrawFundedAccountInstruction,sdk.getWithdrawFundedAccountInstructionDataDecoder(),'owner','margin'),
@@ -60,36 +62,42 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4,checkp
     }
   }
   const economic=sdk.walletEconomicActions(message,checkpoints) as ParsedInput[];
-  const supported=checkpoints?[...actions,lane,...(sdk.usesExecutionRouter(deployment)?[standingOrder]:[])]:actions;
+  const supported=checkpoints?[...actions,lane,...(sdk.usesExecutionRouter(deployment)?[standingOrder]:[]),...(sdk.usesMultiMaker(deployment)?[multiOrder]:[])]:actions;
   if(!economic.length||economic.length>2||tx.message.version===0&&(!limit||!price||!loaded))throw new Error('Missing explicit account action/budget/zero price');
   if(economic.length===2)sdk.validateActivationDeposit(economic);
   const first=economic[0];
   const entry=supported.find(entry=>sdk.hex(entry.discriminator)===sdk.hex(first.data.slice(0,8)));
   if(!entry)throw new Error('Unsupported account wallet action');
-  if(entry===standingOrder && (message.length===1||economic.length!==1))
+  const standing=entry===standingOrder||entry===multiOrder;
+  if(standing && (message.length===1||economic.length!==1))
     throw new Error('Missing standing order checkpoint prefix');
-  const canonicalRoute=sdk.hex(entry.discriminator)===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)||entry===lane||entry===standingOrder;
+  const canonicalRoute=sdk.hex(entry.discriminator)===sdk.hex(sdk.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR)||entry===lane||standing;
   if(entry.root==='trader'&&!canonicalRoute)throw new Error('Foreign account route profile');
   const units=entry.root==='trader'?800_000:400_000;
   if(tx.message.version===1) {
     const config=tx.message.transactionConfig;
     const allowedKeys=['computeUnitLimit','loadedAccountsDataSizeLimit','priorityFeeLamports'];
-    if(entry===standingOrder)allowedKeys.push('heapSize');
+    if(standing)allowedKeys.push('heapSize');
     if(!config||Object.keys(config).some(key=>!allowedKeys.includes(key))
-      ||config.heapSize!==(entry===standingOrder?sdk.BEST_ROUTE_HEAP_BYTES:undefined)
+      ||config.heapSize!==(standing?sdk.BEST_ROUTE_HEAP_BYTES:undefined)
       ||config.computeUnitLimit!==units||config.loadedAccountsDataSizeLimit!==8*1024*1024||config.priorityFeeLamports!==0n)
       throw new Error('Incorrect canonical header budget/priority fee');
   } else if(!limit||limit.readUInt32LE(1)!==units)throw new Error('Incorrect account action budget');
-  if(tx.message.version===0 && heap!==(entry===standingOrder))throw new Error('Incorrect account heap budget');
+  if(tx.message.version===0 && heap!==standing)throw new Error('Incorrect account heap budget');
   const parsedActions=economic.map(instruction=>{
     const allowed=supported.find(action=>sdk.hex(action.discriminator)===sdk.hex(instruction.data.slice(0,8)));
     if(!allowed)throw new Error('Unsupported account wallet action');
     const [,end]=allowed.decoder.read(instruction.data,0);if(end!==instruction.data.length)throw new Error('Trailing account instruction bytes');
     const parsed=allowed.parse(instruction),fixed=Object.keys(parsed.accounts).length;
-    if(fixed+allowed.remaining!==instruction.accounts.length)throw new Error('Unexpected account instruction dependencies');
     const nodes=instruction.accounts.slice(fixed);
-    if(nodes.some(node=>node.role!==AccountRole.WRITABLE)||new Set(nodes.map(node=>node.address)).size!==nodes.length)
-      throw new Error('Invalid membership path privileges');
+    if(sdk.usesMultiMaker(deployment) && allowed.root==='trader'){
+      const extra=allowed===multiOrder?(parsed.data as sdk.ExecuteMultiRouteInstructionData).extraEpochs.length:0;
+      validateRoutingDependencies(parsed.accounts,nodes,extra,standing,checkpoints??[]);
+    }else{
+      if(nodes.length!==allowed.remaining)throw new Error('Unexpected account instruction dependencies');
+      if(nodes.some(node=>node.role!==AccountRole.WRITABLE)||new Set(nodes.map(node=>node.address)).size!==nodes.length)
+        throw new Error('Invalid membership path privileges');
+    }
     if(parsed.accounts.venue?.address!==venue||parsed.accounts[allowed.wallet]?.address!==keys[0])throw new Error('Wallet/venue binding mismatch');
     return parsed;
   });
@@ -99,7 +107,7 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4,checkp
     return {kind:'accountRevision',venue,account:parsed.accounts.margin!.address,value:revision.toString()};
   }
   if(!entry.root)return null; // No signed pre-state stamp: missing history cannot license a replacement.
-  const guard=(parsed.data as {guard:sdk.AccountGuard}).guard,root=parsed.accounts[entry.root];
+  const guard=entry===multiOrder?(parsed.data as sdk.ExecuteMultiRouteInstructionData).order.guard:(parsed.data as {guard:sdk.AccountGuard}).guard,root=parsed.accounts[entry.root];
   if(!guard||!root)throw new Error('Missing account intent guard');
   return {kind:'accountStateVersion',venue,account:root.address,value:guard.stateVersion.toString()};
 }

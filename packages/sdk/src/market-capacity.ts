@@ -5,6 +5,7 @@ import {BASIS_POINTS,FUNDING_CAP_BPS,MAX_REFERENCE_PRICE} from './price-policy.j
 import {decodeMakerFeeLane} from './market-fees.js';
 import {fromBase64,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
+export const MAX_REGISTERED_MAKERS = 32;
 export const MARKET_GROSS_CAP=200_000_000n;
 
 export function decodeCapacityAnchor(bytes:Uint8Array,checkedFunding:boolean|'ledger-lanes'=false){
@@ -41,7 +42,12 @@ export function grossFromCapacity(marketKey:Address,marketBytes:Uint8Array,regis
 }
 
 export function makerRegistrationPdas(market:Address){
-  return Promise.all([0,1,2].map(instance=>getProgramDerivedAddress({programAddress:CLEARING_PROGRAM_ADDRESS,
+  return registeredMakerPdas(market, 3);
+}
+
+export function registeredMakerPdas(market: Address, count: number) {
+  requireValue(Number.isInteger(count) && count >= 3 && count <= MAX_REGISTERED_MAKERS, 'Invalid sealed maker count.');
+  return Promise.all(Array.from({length:count},(_,instance)=>getProgramDerivedAddress({programAddress:CLEARING_PROGRAM_ADDRESS,
     seeds:[new TextEncoder().encode('maker-v4'),getAddressEncoder().encode(market),Uint8Array.of(instance)]})));
 }
 

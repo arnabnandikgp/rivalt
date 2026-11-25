@@ -19,7 +19,7 @@ publisher cannot use version 5 to extend a market's held window.
   `profile_version=6`; clearing accounts use schema 10 with scoped revisions.
   Maker-owned accounts use schema 5. Expiring requests use version 4 and standing execution requests use version 5 on supporting maker builds. The SDK binds these formats to the deployed program hashes.
   The default/devnet build rejects profile-6 financial activation. An explicit local qualification build gates execution.
-- Exactly three registry slots per market, IDs 0,1,2. All must be provisioned and
+- The fresh demo has three registry slots per market, IDs 0,1,2. The wide local qualification accepts consecutive IDs from 0 through at most 31. All must be provisioned and
   registry sealed before funding or trading. At least two instances share a maker
   implementation; the existing A/B programs remain the two admitted deployments.
   Programs do not choose a pricing strategy from the instance ID.

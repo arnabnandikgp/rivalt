@@ -25,6 +25,7 @@ const fields = (value:any,names:string[]) => names.map(name=>value[name]);
 export function projectLiquidity(state:AccountState,event:AccountEvent,financial:FinancialProjection,artifactSet?:string) {
   const liquidity=present(state.liquidity,'liquidity profile'),venue=present(state.venue,'venue');
   check(venue.profileVersion===6,'liquidity profile');
+  const makerLimit = sdk.hasWideDirectory(artifactSet) ? sdk.MAX_REGISTERED_MAKERS : 3;
   const change=event.data;
   const marketIndex=venue.markets.indexOf(change.market??change.state?.market);
   check(marketIndex>=0&&marketIndex<venue.marketCount,'liquidity market');
@@ -36,7 +37,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
   const previousLedger=()=>present(Object.values(state.ledgers).find(ledger=>ledger.market===change.market),'fee ledger');
   const maker=(value:any,key?:string) => {
     check(value.schemaVersion===10&&value.venue===change.venue&&value.market===venue.markets[marketIndex]
-      &&Number.isInteger(value.instance)&&value.instance>=0&&value.instance<3,'canonical maker identity');
+      &&Number.isInteger(value.instance)&&value.instance>=0&&value.instance<makerLimit,'canonical maker identity');
     const capital=present(state.roots[value.capital],'canonical maker capital');
     check(capital.role===1&&capital.mode===1&&capital.isolatedMarketIndex===marketIndex&&capital.owner===value.owner,'isolated canonical capital');
     const canonical=key??Object.keys(liquidity.makers).find(key=>liquidity.makers[key].capital===value.capital);
@@ -50,8 +51,8 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
   switch(event.type) {
     case 'LiquidityRegistryChangedV4': {
       const value=change.state;
-      check(value.schemaVersion===10&&value.venue===change.venue&&Number.isInteger(value.count)&&value.count>=0&&value.count<=3
-        &&(!value.sealed||value.count===3),'canonical registry shape');
+      check(value.schemaVersion===10&&value.venue===change.venue&&Number.isInteger(value.count)&&value.count>=0&&value.count<=makerLimit
+        &&(!value.sealed||value.count>=3),'canonical registry shape');
       const previous=liquidity.registries[change.registry];
       if(previous) {
         check(!previous.sealed&&value.count>=previous.count,'sealed/monotone registry');
@@ -119,12 +120,20 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
     case 'MarketLaneFilled':
     case 'LiquidityRouteFeeRecorded':
     case 'LiquidityRouteExecutedV4': {
-      check([1,2].includes(change.legs.length)&&change.makerStates.length===change.legs.length&&change.rootStates.length===change.legs.length+1
+      const maximumLegs = sdk.hasMultiMaker(artifactSet) ? 8 : 2;
+      check(change.legs.length >= 1 && change.legs.length <= maximumLegs && change.makerStates.length===change.legs.length&&change.rootStates.length===change.legs.length+1
         &&new Set(change.rootStates.map((value:any)=>value.id)).size===change.rootStates.length
         &&new Set(change.legs.map((leg:any)=>leg.registration)).size===change.legs.length,'canonical route shape');
       let ledgerAfter=change.ledger;
       if(event.type!=='LiquidityRouteExecutedV4') {
-        const accounting=feesForMarket(), prior=previousLedger(), lane=change.legs[0].registration;
+        const accounting=feesForMarket(), prior=previousLedger();
+        const instance=change.legs[0].instance;
+        let lane = change.legs[0].registration;
+        if(instance >= 3) {
+          const directory=present(Object.values(liquidity.registries).find(value=>value.market===change.market),'fee directory');
+          check(directory.sealed && instance < directory.count,'fee lane membership');
+          lane=directory.registrations[instance % 3];
+        }
         const amount=BigInt(change.fee), collected=BigInt(accounting.lanes[lane]??'0')+amount;
         const pending=BigInt(accounting.pending)+amount;
         if(event.type==='LedgerLaneFilled'){

@@ -12043,6 +12043,246 @@
       ]
     },
     {
+      "name": "execute_multi_route",
+      "discriminator": [
+        228,
+        99,
+        109,
+        42,
+        17,
+        74,
+        96,
+        121
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "market",
+            "other_market",
+            "ledger",
+            "other_ledger",
+            "trader"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "relations": [
+            "ledger"
+          ]
+        },
+        {
+          "name": "other_market",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "other_ledger",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "trader",
+          "writable": true
+        },
+        {
+          "name": "registry"
+        },
+        {
+          "name": "zero_capital",
+          "writable": true
+        },
+        {
+          "name": "zero_registration",
+          "writable": true
+        },
+        {
+          "name": "zero_program",
+          "docs": [
+            "CHECK: the sealed registration binds the executable and its approved code."
+          ]
+        },
+        {
+          "name": "zero_program_data"
+        },
+        {
+          "name": "zero_config",
+          "docs": [
+            "CHECK: clearing authenticates the maker-owned curve, price and current authority."
+          ]
+        },
+        {
+          "name": "zero_price",
+          "docs": [
+            "CHECK: a fixed read-only maker PDA bound to the curve."
+          ]
+        },
+        {
+          "name": "one_capital",
+          "writable": true
+        },
+        {
+          "name": "one_registration",
+          "writable": true
+        },
+        {
+          "name": "one_program",
+          "docs": [
+            "CHECK: the sealed registration binds the executable and its approved code."
+          ]
+        },
+        {
+          "name": "one_program_data"
+        },
+        {
+          "name": "one_config",
+          "docs": [
+            "CHECK: clearing authenticates the maker-owned curve, price and current authority."
+          ]
+        },
+        {
+          "name": "one_price",
+          "docs": [
+            "CHECK: a fixed read-only maker PDA bound to the curve."
+          ]
+        },
+        {
+          "name": "two_capital",
+          "writable": true
+        },
+        {
+          "name": "two_registration",
+          "writable": true
+        },
+        {
+          "name": "two_program",
+          "docs": [
+            "CHECK: the sealed registration binds the executable and its approved code."
+          ]
+        },
+        {
+          "name": "two_program_data"
+        },
+        {
+          "name": "two_config",
+          "docs": [
+            "CHECK: clearing authenticates the maker-owned curve, price and current authority."
+          ]
+        },
+        {
+          "name": "two_price",
+          "docs": [
+            "CHECK: a fixed read-only maker PDA bound to the curve."
+          ]
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MultiRouteIntent"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "freeze_accounts",
       "discriminator": [
         87,
@@ -27888,6 +28128,19 @@
       ]
     },
     {
+      "name": "MakerFillContinuation",
+      "discriminator": [
+        89,
+        242,
+        181,
+        243,
+        143,
+        228,
+        128,
+        230
+      ]
+    },
+    {
       "name": "MarginMembershipChanged",
       "discriminator": [
         11,
@@ -32117,6 +32370,69 @@
       }
     },
     {
+      "name": "MakerFillContinuation",
+      "docs": [
+        "Additional full maker snapshots from the same atomic route and trader nonce.",
+        "The first receipt includes the aggregate FILLED lots, gross and fee and its",
+        "first two maker entries. Each continuation repeats its zero-based offset."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "first_leg",
+            "type": "u8"
+          },
+          {
+            "name": "root_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "maker_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MakerRegistrationPayload"
+                }
+              }
+            }
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ExecutedLeg"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MakerRegistration",
       "type": {
         "kind": "struct",
@@ -33380,6 +33696,32 @@
                   "u64",
                   6
                 ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultiRouteIntent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order",
+            "type": {
+              "defined": {
+                "name": "BestRouteIntent"
+              }
+            }
+          },
+          {
+            "name": "extra_epochs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MakerEpochs"
+                }
               }
             }
           }

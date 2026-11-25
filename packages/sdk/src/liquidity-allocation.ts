@@ -1,3 +1,7 @@
+import { MAX_POSITION_LOTS } from './quantity-limits.js';
+import { directoryAllocation } from './directory-allocation.js';
+import {MAX_REGISTERED_MAKERS} from './market-capacity.js';
+import {quoteCanonical} from './canonical-quote.js';
 import { EXECUTION_DENOMINATOR, EXECUTION_LOWER_NUMERATOR, EXECUTION_UPPER_NUMERATOR } from './price-policy.js';
 import type { Address } from '@solana/kit';
 import type { LiquidityAdapter } from './liquidity-adapter.js';
@@ -8,7 +12,7 @@ import { convexMinimum, firstTrue, lastTrue, LIQUIDITY_SEARCH_BUDGET, LiquidityS
 const MAX_CASH = 1_000_000_000_000_000n;
 const abs = (value: bigint) => value < 0n ? -value : value;
 const feeFor = (notional: bigint) => (notional+4999n)/5000n;
-export type LiquidityAllocationInput = LiquidityMarginInput & { makers: readonly LiquidityAdapter[] };
+export type LiquidityAllocationInput = LiquidityMarginInput & { makers: readonly LiquidityAdapter[]; standing?: boolean; baselineCandidates?: ReadonlySet<number> };
 export type LiquidityAllocationLeg = Readonly<{
   instance: number; registration: Address; capital: Address; lots: bigint; grossQuote: bigint;
   authorityEpoch: bigint; controlEpoch: bigint; shapeEpoch: bigint; depthEpoch: bigint;
@@ -34,10 +38,10 @@ function better(candidate: LiquidityAllocation, previous: LiquidityAllocation | 
  * An unfinished search throws rather than returning an uncertified incumbent.
  * Clearing repeats admission against the actual landed state.
  */
-export function allocateLiquidityRoute(input: LiquidityAllocationInput): { allocation: LiquidityAllocation | null; metrics: LiquiditySearchMetrics;
+export function allocateLiquidityRoute(input: LiquidityAllocationInput): { allocation: LiquidityAllocation | null; metrics: LiquiditySearchMetrics; candidateInstances?: readonly number[];
   excluded: { instance: number; reason: string }[] } {
   const margin = prepareLiquidityMargin(input), { side, lots, slot, now, marketIndex } = input;
-  requireValue(input.makers.length === 3, 'Discovery must supply all three sealed maker records.');
+  requireValue(input.makers.length >= 3 && input.makers.length <= MAX_REGISTERED_MAKERS, 'Invalid maker discovery count.');
   const makers = [...input.makers].sort((left,right) => left.config.instance-right.config.instance);
   const anchor = makers[0].snapshot;
   requireValue(makers.every((maker,index) => maker.capability === 1 && maker.config.instance === index
@@ -45,9 +49,9 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     && maker.snapshot.marketIndex === marketIndex && maker.snapshot.market === anchor.market
     && maker.snapshot.venue === anchor.venue && maker.snapshot.contextSlot === anchor.contextSlot
     && hex(maker.snapshot.domain) === hex(anchor.domain)), 'Mixed/unsupported liquidity snapshot.');
-  requireValue(new Set(makers.map(maker => maker.registration)).size === 3
-    && new Set(makers.map(maker => maker.registrationState.capital)).size === 3
-    && new Set(makers.map(maker => maker.capital.id)).size === 3, 'Duplicate maker identity/capital.');
+  requireValue(new Set(makers.map(maker => maker.registration)).size === makers.length
+    && new Set(makers.map(maker => maker.registrationState.capital)).size === makers.length
+    && new Set(makers.map(maker => maker.capital.id)).size === makers.length, 'Duplicate maker identity/capital.');
   const metrics: LiquiditySearchMetrics = { compositions: 0, intervals: 0, quantityQuotes: 0, makerAdmissionChecks: 0, traderAdmissionChecks: 0 };
   const excluded: { instance: number; reason: string }[] = [];
   const minimum = (...values: bigint[]) => values.reduce((left,right) => left < right ? left : right);
@@ -57,9 +61,10 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
       throw new LiquiditySearchLimitError({ intervals: metrics.intervals,quantityQuotes: metrics.quantityQuotes });
   }
   const table = makers.map(maker => {
-    const status = maker.unavailable ?? (maker.capital.id === input.root.id || maker.capital.owner === input.root.owner ? 'self-capital' : null);
+    const standing = input.standing === true && maker.unavailable === 'stale-publication';
+    const status = (standing ? null : maker.unavailable) ?? (maker.capital.id === input.root.id || maker.capital.owner === input.root.owner ? 'self-capital' : null);
     if (status) { excluded.push({ instance: maker.config.instance, reason: status }); return null; }
-    requireValue(slot < maker.validUntilSlot && now < maker.validUntilTime, 'Expired liquidity snapshot.');
+    requireValue(standing || slot < maker.validUntilSlot && now < maker.validUntilTime, 'Expired liquidity snapshot.');
     const inventory = maker.capital.positions[marketIndex].lots;
     const remainingDepth = maker.depthHints(side).at(-1) ?? 0n;
     const inventoryHeadroom = side === 0 ? inventory+maker.shape.shortCap : maker.shape.longCap-inventory;
@@ -71,7 +76,8 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     function read(quantity: bigint): bigint|null {
       if (!cache.has(quantity)) {
         metrics.quantityQuotes++;budget();
-        try { cache.set(quantity,maker.quote(side,quantity).gross); }
+        try { cache.set(quantity,standing ? quoteCanonical(maker.shape,maker.price.anchor,side,quantity,inventory,
+          side === 0 ? maker.registrationState.buyConsumed : maker.registrationState.sellConsumed).gross : maker.quote(side,quantity).gross); }
         catch { cache.set(quantity,null); }
       }
       return cache.get(quantity)!;
@@ -83,6 +89,22 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     if (read(1n) === null) { excluded.push({instance: maker.config.instance,reason:'invalid-quote-prices'});return null; }
     upper = lastTrue(1n,upper,quantity => read(quantity) !== null);
     const quote = (quantity: bigint) => { const gross = read(quantity);requireValue(gross !== null,'Invalid bounded quote');return gross; };
+    if (input.baselineCandidates) {
+      const market = input.markets[marketIndex];
+      const position = maker.capital.positions[marketIndex];
+      if (inventory === 0n && position.virtualScaled === 0n) {
+        const price = quote(upper) - (upper === 1n ? 0n : quote(upper - 1n));
+        const loss = maximum(0n, side === 0 ? market.upper - price : price - market.lower);
+        upper = minimum(upper, maker.capital.cash * 10n / (market.upper + 10n * loss));
+      } else {
+        const closing = side === 0 ? inventory : -inventory;
+        upper = minimum(upper, closing + minimum(MAX_POSITION_LOTS, maker.capital.cash * 10n / market.upper));
+      }
+      if (upper <= 0n) {
+        excluded.push({ instance: maker.config.instance, reason: 'zero-funded-capacity' });
+        return null;
+      }
+    }
     const reference = input.markets[marketIndex].referencePrice;
     const lowerBand = (quantity: bigint) => quote(quantity)*EXECUTION_DENOMINATOR >= quantity*reference*EXECUTION_LOWER_NUMERATOR;
     const upperBand = (quantity: bigint) => quote(quantity)*EXECUTION_DENOMINATOR <= quantity*reference*EXECUTION_UPPER_NUMERATOR;
@@ -137,6 +159,27 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     if (!margin.traderAdmissible(grossQuote,fee)) return false;
     if (better(result,best)) best = result;
     return true;
+  }
+  // A price-optimal directory allocation is useful only if it can actually
+  // be signed and passes the ordinary snapshot checks on every participant.
+  if (input.baselineCandidates) {
+    const baseline = input.baselineCandidates;
+    const existing = directoryAllocation(table.map((book, id) => baseline.has(id) ? book : null), side, lots, baseline.size);
+    if (existing) consider(existing);
+    const incumbent = best;
+    const proposed = directoryAllocation(table, side, lots, baseline.size);
+    const signed = new Set(proposed?.map(([id]) => id));
+    if (proposed && proposed.some(([id]) => !baseline.has(id))) {
+      for (const id of baseline) {
+        if (signed.size === baseline.size) break;
+        signed.add(id);
+      }
+      // Reprice the complete signed account set, including padding. A spare
+      // book can displace a planned leg at execution.
+      const padded = directoryAllocation(table.map((book, id) => signed.has(id) ? book : null), side, lots, signed.size);
+      if (padded) consider(padded);
+    }
+    return { allocation: best, metrics, excluded, candidateInstances: [...(best !== incumbent ? signed : baseline)] };
   }
   for (let index=0;index<makers.length;index++) {
     const entry = table[index];if (entry && lots >= entry.lower && lots <= entry.upper) consider([[index,lots]]);

@@ -57,3 +57,11 @@ it('checks owners, exact layout, executable and full ProgramData binding',async 
     await expect(authenticateLiquidityMarket(fixture.snapshot,fixture.accounts)).rejects.toThrow();
   }
 });
+
+it.each([16,32])('authenticates all %i canonical registrations and rejects an omitted last member', async count => {
+  const fixture = await liquidityAccountFixture(undefined,count);
+  const {adapters} = await authenticateLiquidityMarket(fixture.snapshot,fixture.accounts);
+  expect(adapters.map(maker => maker.registrationState.instance)).toEqual(Array.from({length:count},(_,id)=>id));
+  fixture.accounts.delete(fixture.states[count-1].registration);
+  await expect(authenticateLiquidityMarket(fixture.snapshot,fixture.accounts)).rejects.toThrow(/Missing/);
+});

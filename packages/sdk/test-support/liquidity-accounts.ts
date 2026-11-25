@@ -3,7 +3,7 @@ import * as sdk from '../src/index.js';
 import { emptyState,testAddress } from './liquidity-fixture.js';
 
 /** Encoded adversarial-reader fixtures, never submitted or called RPC evidence. */
-export async function liquidityAccountFixture(identity?:{venue:Address;market:Address;domain:Uint8Array;slot:bigint;now:bigint}) {
+export async function liquidityAccountFixture(identity?:{venue:Address;market:Address;domain:Uint8Array;slot:bigint;now:bigint}, count = 3) {
   const venue = identity?.venue??testAddress(1),market = identity?.market??testAddress(2),domain = identity?.domain??new Uint8Array(32).fill(31);
   const snapshot = { venue,market,marketIndex: 0 as const,domain,slot: identity?.slot??100n,now: identity?.now??100n,contextSlot: 100n };
   const loader = address('BPFLoaderUpgradeab1e11111111111111111111111'),keyBytes = getAddressEncoder();
@@ -13,7 +13,7 @@ export async function liquidityAccountFixture(identity?:{venue:Address;market:Ad
   const derive = async (program: Address,prefix: string,key: Address,tail?: Uint8Array) => getProgramDerivedAddress({
     programAddress: program,seeds: [new TextEncoder().encode(prefix),keyBytes.encode(key),...tail ? [tail] : []] });
   const states = [];
-  for (const instance of [0,1,2]) {
+  for (let instance = 0; instance < count; instance++) {
     const program = instance === 2 ? sdk.makerB.MAKER_B_PROGRAM_ADDRESS : sdk.makerA.MAKER_A_PROGRAM_ADDRESS;
     const [programData] = await getProgramDerivedAddress({ programAddress: loader,seeds: [keyBytes.encode(program)] });
     const executable = Buffer.alloc(36);executable.writeUInt32LE(2);Buffer.from(keyBytes.encode(programData)).copy(executable,4);
@@ -49,8 +49,8 @@ export async function liquidityAccountFixture(identity?:{venue:Address;market:Ad
     write();states.push({ registration,capital,config,price,program,programData,binding,capitalState,registrationState,bindingState,configState,priceState,write });
   }
   const [registry,bump] = await sdk.findLiquidityRegistryPda({ market });
-  const registryState = { ...emptyState(sdk.getLiquidityRegistryDecoder()),schemaVersion: 10,revision:1n,venue,market,bump,sealed: true,count: 3,
-    registrations: states.map(state => state.registration) };
+  const registryState = { ...emptyState(sdk.getLiquidityRegistryDecoder()),schemaVersion: 10,revision:1n,venue,market,bump,sealed: true,count,
+    registrations: states.slice(0,3).map(state => state.registration) };
   const writeRegistry = () => put(registry,sdk.CLEARING_PROGRAM_ADDRESS,sdk.getLiquidityRegistryEncoder().encode(registryState));
   writeRegistry();return { snapshot,accounts,states,registryState,writeRegistry };
 }

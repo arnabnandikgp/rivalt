@@ -19,7 +19,7 @@ pub const LOTS_PER_BTC: i64 = 1_000_000;
 pub const MAX_GROSS_LOTS: u64 = 200_000_000;
 use clearing_accounting::{add, mul, sub};
 pub use clearing_accounting::{cash_add, cash_sub, scaled, Error, Result, MAX_CASH, MAX_FUNDING, MAX_LOTS, MAX_PRICE, MAX_SCALED, SCALE};
-pub use risk_engine::{IM_BPS, MM_BPS};
+pub use risk_engine::{funded_opening_limit, funded_position_limit, IM_BPS, MM_BPS};
 pub const MAX_PARTICIPANTS: usize = 64;
 pub const MIN_ORDER_ATOMS: u64 = 1_000;
 

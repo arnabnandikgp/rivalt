@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { buildLiquidityRoute, buildMakerLiquidation, type LiquidityRouteInput } from './liquidity-route.js';
+import { makerDepth } from './maker-shortlist.js';
 import * as protocol from './generated/index.js';
 import { liquidityFixture, testAddress, emptyState } from '../test-support/liquidity-fixture.js';
 
@@ -126,4 +127,44 @@ it('selects a direct ledger-lane fill only while its held window and maker capac
   expect(await tag()).toEqual(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
   capacity.available.fill(10n);state.oracle.heldSlot=input.snapshot.slot;
   expect(await tag()).toEqual(protocol.EXECUTE_LIQUIDITY_ROUTE_DISCRIMINATOR);
+});
+
+
+it('estimates funded depth through inventory reductions, standing prices and consumed lots', () => {
+  const { financial, input } = fixture();
+  const maker = financial.makers[0];
+  maker.capital.cash = 3030n; // Three new lots at the upper risk price of 10,100 and 10% IM.
+  maker.capital.positions[0].lots = 2n;
+  maker.unavailable = 'stale-publication';
+  const order = { ...input, lots: 100n };
+  expect(makerDepth(order, maker).quantity).toBe(5n);
+  maker.registrationState.buyConsumed = 4094n;
+  expect(makerDepth(order, maker).quantity).toBe(2n);
+  maker.capital.positions[0].lots = -2n;
+  expect(makerDepth({ ...order, side: 1 }, maker).quantity).toBe(5n);
+  maker.shape = { ...maker.shape, mode: 3 };
+  expect(makerDepth({ ...order, side: 1 }, maker).quantity).toBe(2n);
+  maker.unavailable = 'quarantined';
+  expect(makerDepth({ ...order, side: 1 }, maker).quantity).toBe(0n);
+});
+
+it('keeps the valid prefix of a curved book and excludes a wholly off-band or self-owned book', () => {
+  const { financial, input } = fixture();
+  const maker = financial.makers[0];
+  const curve = [{ endLots: 40n, offset: 0n, slope: 800n }];
+  maker.shape = { ...maker.shape, asks: curve, bids: curve };
+  for (const side of [0, 1] as const) {
+    const order = { ...input, side, lots: 40n };
+    // At three lots the average is 10,800 or 9,200. At four it is 11,200 or 8,800.
+    expect(makerDepth(order, maker)).toEqual({ id: 0, quantity: 3n, gross: side === 0 ? 32400n : 27600n });
+  }
+  maker.price.anchor = 8500n;
+  // A cheap first lot can enter the collar only at a larger average size.
+  expect(makerDepth(input, maker).quantity).toBe(0n);
+  expect(makerDepth({ ...input, lots: 4n }, maker).gross).toBe(38800n);
+  maker.price.anchor = 12000n;
+  expect(makerDepth(input, maker).quantity).toBe(0n);
+  maker.price.anchor = 10000n;
+  maker.capital.owner = financial.root.owner;
+  expect(makerDepth(input, maker).quantity).toBe(0n);
 });

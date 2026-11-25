@@ -161,6 +161,27 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    multi = unique('execute_multi_route')
+    assert multi['discriminator'] == list(hashlib.sha256(b'global:execute_multi_route').digest()[:8])
+    assert multi['accounts'] == unique('execute_best_route')['accounts']
+    assert multi['args'] == [{'name':'args','type':{'defined':{'name':'MultiRouteIntent'}}}]
+    multi_type = next(t for t in actual['types'] if t['name']=='MultiRouteIntent')
+    assert multi_type['type'] == {'kind': 'struct', 'fields': [{'name': 'order', 'type': {'defined': {'name': 'BestRouteIntent'}}}, {'name': 'extra_epochs', 'type': {'vec': {'defined': {'name': 'MakerEpochs'}}}}]}
+    actual['types'].remove(multi_type)
+    actual['instructions'].remove(multi)
+    continued = next(event for event in actual['events'] if event['name']=='MakerFillContinuation')
+    assert continued['discriminator'] == list(hashlib.sha256(b'event:MakerFillContinuation').digest()[:8])
+    definition = next(t for t in actual['types'] if t['name']=='MakerFillContinuation')
+    continuation_fields = [
+        ('venue', 'pubkey'), ('market', 'pubkey'), ('slot', 'u64'), ('nonce', 'u64'), ('first_leg', 'u8'),
+        ('root_states', {'vec': {'defined': {'name': 'MarginAccountSnapshot'}}}),
+        ('maker_states', {'vec': {'defined': {'name': 'MakerRegistrationPayload'}}}),
+        ('legs', {'vec': {'defined': {'name': 'ExecutedLeg'}}}),
+    ]
+    assert definition['type'] == {'kind': 'struct', 'fields': [
+        {'name': name, 'type': field_type} for name, field_type in continuation_fields]}
+    actual['events'].remove(continued)
+    actual['types'].remove(definition)
     router = unique('execute_best_route')
     assert router['discriminator'] == list(hashlib.sha256(b'global:execute_best_route').digest()[:8])
     assert router['args'] == [{'name': 'args', 'type': {'defined': {'name': 'BestRouteIntent'}}}]

@@ -81,7 +81,7 @@ struct Entry {
 }
 
 pub(crate) struct Scope {
-    selected_makers: Option<[bool; 3]>,
+    selected_makers: Option<MakerAccess>,
     #[cfg(feature = "read-only-route-market")]
     venue_mode: Option<u8>,
     entries: Vec<Entry>,
@@ -98,12 +98,12 @@ impl Scope {
             #[cfg(feature = "read-only-route-market")] venue_mode: None }
     }
 
-    pub(crate) fn maker_access(&self, instance: usize) -> Result<Access> {
-        match self.selected_makers.and_then(|selected| selected.get(instance).copied()) {
-            Some(true) => Ok(Access::Write),
-            Some(false) => Ok(Access::Read),
-            None => Err(ClearingError::Profile.into()),
-        }
+    pub(crate) fn maker_access(&self, index: usize) -> Result<(Access, Access)> {
+        let plan = self.selected_makers.ok_or(ClearingError::Profile)?;
+        let filled = *plan.filled.get(index).ok_or(ClearingError::Profile)?;
+        let capital = if filled { Access::Write } else { Access::Read };
+        let registration = if plan.lane_slot == Some(index) { Access::Write } else { capital };
+        Ok((capital, registration))
     }
 
     #[cfg(feature = "book-inventory-qualification")]
@@ -641,9 +641,20 @@ pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
     run_with_remaining(context, instruction, Remaining::MembershipScan(true), handler)
 }
 
+/// Selection is fixed before either journal visit. Only the account holding
+/// the selected market totals may advance without an accompanying capital fill.
+#[derive(Clone, Copy)]
+pub(crate) struct MakerAccess {
+    pub filled: [bool; 8],
+    pub extras: usize,
+    pub lane_slot: Option<usize>,
+    pub external_lane: Option<Address>,
+}
+
 #[derive(Clone, Copy)]
 enum Remaining {
-    SelectedMakers([bool; 3]),
+    SelectedMakers(MakerAccess),
+    ExplicitLane,
     #[cfg(feature = "checked-funding-prefix")]
     FundingRegistrations,
     FrozenPlanPages,
@@ -655,8 +666,26 @@ enum Remaining {
 impl Remaining {
     fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
         match self {
-            Self::SelectedMakers(_) => {
-                require!(accounts.is_empty(), ClearingError::Profile);
+            Self::ExplicitLane => {
+                require!(accounts.len() <= 1, ClearingError::Profile);
+                if let Some(lane) = accounts.first_mut() {
+                    scope.raw::<MakerRegistration>(lane, Access::Write)?;
+                }
+                Ok(())
+            }
+            Self::SelectedMakers(plan) => {
+                let boundary=plan.extras.checked_mul(6).ok_or(ClearingError::Profile)?;
+                require!(plan.extras<=5 && accounts.len()>=boundary && accounts.len()<=boundary+3, ClearingError::Profile);
+                let (bundles,lanes)=accounts.split_at_mut(boundary);
+                for (index,bundle) in bundles.chunks_exact_mut(6).enumerate() {
+                    let access=if plan.filled[3+index] {Access::Write} else {Access::Read};
+                    scope.raw::<MarginAccount>(&mut bundle[0],access)?;
+                    scope.raw::<MakerRegistration>(&mut bundle[1],access)?;
+                }
+                for account in lanes {
+                    let access = if Some(*account.address()) == plan.external_lane { Access::Write } else { Access::Read };
+                    scope.raw::<MakerRegistration>(account, access)?;
+                }
                 Ok(())
             }
             Self::MembershipScan(root_write) => {
@@ -762,13 +791,20 @@ fn run_with_remaining<'context, T: ScopedContext>(
     Ok(())
 }
 
+pub(crate) fn run_explicit_route<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>, instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::ExplicitLane, handler)
+}
+
 pub(crate) fn run_selected_route<'context, T: ScopedContext>(
     context: &mut Context<'context, T>,
     instruction: [u8; 8],
-    quantities: [u64; 3],
+    plan: MakerAccess,
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
-    run_with_remaining(context, instruction, Remaining::SelectedMakers(quantities.map(|quantity| quantity != 0)), handler)
+    run_with_remaining(context, instruction, Remaining::SelectedMakers(plan), handler)
 }
 
 #[cfg(test)]

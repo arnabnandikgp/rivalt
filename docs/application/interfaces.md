@@ -69,10 +69,9 @@ simulation determines admission. Never label unpaid marked P&L as cash.
 ## Quotes and signed ingress
 
 On an execution-router venue, the ordinary wallet uses `AccountUserClient.marketOrder`
-and signs one order against the complete three-maker registry. The review shows
+and signs an order against the candidates shown in the wallet. The baseline deployment includes the complete three-maker registry. The opt-in local `multi-maker` profile discovers up to 32 registrations, defaults to four supplied makers and accepts an explicit two-leg or three-through-eight choice. The wallet retains a financially admitted preview or selects candidates with enough combined depth when possible under the fill limit. The review shows
 size, maximum spend or minimum proceeds, fee ceiling and expiry. The signed
-original is saved before direct RPC broadcast. Clearing selects up to two makers
-at landing. Price age alone does not expire that execution quote. Risk source,
+original is saved before direct RPC broadcast. At landing clearing selects up to two baseline makers or allocates across the wider signed shortlist. Price age alone does not expire that execution quote. Risk source,
 funding, maker control, consumption and trader limits still apply. The wallet can
 reconcile an ambiguous submission by its original signature. An integration using
 `/v4/submit` can relay the same bytes through the durable queue.

@@ -6,6 +6,7 @@ publish = false
 
 [features]
 default = []
+wide-maker-discovery = []
 idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]

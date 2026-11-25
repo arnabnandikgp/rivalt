@@ -261,3 +261,196 @@ fn clearing_search_stops_before_a_fifth_financial_admission() {
     assert_eq!(result, Err(QuoteError::SearchLimit));
     assert_eq!(admissions, 4);
 }
+
+#[test]
+fn funded_depth_preserves_every_quantity_that_can_meet_initial_margin() {
+    let book = shape(20, 0);
+    for side in [0, 1] {
+        for inventory in -5..=5 {
+            let curve = ExecutionCurve::new(&book, 30_001, side, inventory, 0).unwrap();
+            for cash in [0, 1, 3_000, 3_001, 6_000, 6_001, financial_core::MAX_CASH] {
+                let bounded = curve.with_funded_cash(cash, 30_001).unwrap();
+                for quantity in 1..=curve.capacity() {
+                    let after = inventory
+                        + if side == 0 {
+                            -(quantity as i64)
+                        } else {
+                            quantity as i64
+                        };
+                    // Independent ten-percent IM, rounded up to the collateral atom.
+                    let required = (after.unsigned_abs() * 30_001).div_ceil(10);
+                    if required <= cash {
+                        assert!(quantity <= bounded.capacity());
+                    }
+                }
+                assert!(bounded.capacity() <= curve.capacity());
+            }
+        }
+    }
+}
+
+#[test]
+fn eth_funded_singleton_wins_inside_the_original_clearing_budget() {
+    let book = shape(10_000, 0);
+    let books = std::array::from_fn(|index| {
+        let curve = ExecutionCurve::new(&book, 30_002 + 2 * index as u64, 0, 0, 0).unwrap();
+        Some(
+            curve
+                .with_funded_cash(if index == 0 { 1 } else { 500_000_000_000 }, 30_001)
+                .unwrap(),
+        )
+    });
+    for (limit, expected) in [(100_053_343, Some([0, 3334, 0])), (100_046_674, None)] {
+        let request = Order {
+            all_in_limit: limit,
+            ..order(0, 3334, 30_000)
+        };
+        let result = select_for_clearing(request, books, |candidate| {
+            assert_eq!(candidate.lots[0], 0);
+            Ok::<_, QuoteError>(true)
+        })
+        .unwrap();
+        assert_eq!(result.map(|allocation| allocation.lots), expected);
+    }
+}
+
+#[test]
+fn fragmented_dollar_order_requires_three_real_quantities_and_one_fee() {
+    let flat = shape(65_000, 0);
+    let curves = [61_002,61_004,61_006].map(|anchor| Some(ExecutionCurve::new(&flat,anchor,0,0,0).unwrap()));
+    let result = marginal::best_marginals(order(0,163_935,61_000), &curves).unwrap().unwrap();
+    assert_eq!(result.lots,[65_000,65_000,33_935]);
+    let gross = 65_000*61_002 + 65_000*61_004 + 33_935*61_006;
+    assert_eq!((result.gross,result.fee),(gross,(gross+4_999)/5_000));
+    assert!(marginal::best_marginals(order(0,163_935,61_000), &curves[..2]).unwrap().is_none());
+}
+
+#[test]
+fn whole_lot_price_optimum_matches_expanded_book_on_both_sides_for_four_to_eight_makers() {
+    for count in 4..=8 {
+        let mut shapes = Vec::new();
+        for id in 0..count {
+            let mut book = shape(2 + id as u64, id as u64 % 3);
+            book.skew_tick = id as u64 % 2;
+            book.skew_step = 2;
+            shapes.push(book);
+        }
+        for side in [0,1] {
+            let curves:Vec<_>=shapes.iter().enumerate().map(|(id,book)|Some(ExecutionCurve::new(book,
+                60_000+id as u64%3,side,0,0).unwrap())).collect();
+            let mut unit_prices=Vec::new();
+            for (id,_) in shapes.iter().enumerate() {
+                for index in 0..2+id {
+                    // Independent formula for this one-region book at zero inventory.
+                    let spread=(id % 3)*index + (id%2)*(index/2);
+                    let price=60_000+(id%3) as i64 + if side==0 {spread as i64} else {-(spread as i64)};
+                    unit_prices.push(price as u64);
+                }
+            }
+            unit_prices.sort();
+            if side == 1 {unit_prices.reverse();}
+            for size in 1..=unit_prices.len() {
+                let result=marginal::best_marginals(order(side,size as u64,60_000),&curves).unwrap().unwrap();
+                assert_eq!(result.gross,unit_prices[..size].iter().sum::<u64>());
+                assert_eq!(result.lots.iter().sum::<u64>(),size as u64);
+            }
+        }
+    }
+}
+
+#[test]
+fn constrained_eth_maker_shares_order_at_its_last_affordable_lot() {
+    let flat = shape(200_000, 0);
+    let curves = [30_200, 29_996, 29_994, 29_992].map(|price| {
+        let cash = if price == 30_200 { 240_000_000 } else { 500_000_000_000 };
+        Some(ExecutionCurve::new(&flat, price, 1, 0, 0).unwrap()
+            .with_opening_cash(cash, 29_700, 30_300, 100_000).unwrap())
+    });
+    let result = marginal::best_marginals(order(1, 100_000, 30_000), &curves).unwrap().unwrap();
+    assert_eq!(result.lots, [67_988, 32_012, 0, 0]);
+    assert_eq!((result.gross, result.fee, result.all_in), (3_013_469_552, 602_694, 3_012_866_858));
+    let strict = Order { all_in_limit: result.all_in + 1, ..order(1, 100_000, 30_000) };
+    assert!(marginal::best_marginals(strict, &curves).unwrap().is_none());
+}
+
+#[test]
+fn opening_bound_never_discards_an_affordable_prefix() {
+    for side in [0, 1] {
+        for slope in [0, 25, 190] {
+            let book = shape(20, slope);
+            for anchor in [9_001, 10_823] {
+                let curve = ExecutionCurve::new(&book, anchor, side, 0, 0).unwrap();
+                let mut gross = 0_i64;
+                for lots in 1..=20 {
+                    let price = anchor as i64 + (if side == 0 { 1 } else { -1 }) * (lots-1) as i64 * slope as i64;
+                    gross += price;
+                    let mark_loss = if side == 0 { lots as i64 * 10_003 - gross } else { gross - lots as i64 * 9_999 };
+                    let required = (lots * 10_003_u64).div_ceil(10) + mark_loss.max(0) as u64;
+                    assert!(curve.with_opening_cash(required, 9_999, 10_003, 20).unwrap().capacity() >= lots);
+                    if slope == 0 {
+                        assert!(curve.with_opening_cash(required-1, 9_999, 10_003, 20).unwrap().capacity() < lots);
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn direct_prefix_matches_individual_prices_inside_consumed_regions() {
+    let mut book = shape(23, 0);
+    let mut regions = book.bids;
+    regions[0] = PriceRegion { end_lots: 6, offset: 2, slope: 0 };
+    regions[1] = PriceRegion { end_lots: 15, offset: 4, slope: 3 };
+    regions[2] = PriceRegion { end_lots: 23, offset: 28, slope: 0 };
+    book.bids = regions;
+    book.asks = regions;
+    book.ask_count = 3;
+    book.bid_count = 3;
+    for side in [0, 1] {
+        for consumed in 0..23 {
+            let curve = ExecutionCurve::new(&book, 1000, side, 0, consumed).unwrap();
+            for cap in 1..=curve.capacity() {
+                let base = if side == 0 { 1000 } else { -1000 };
+                for offset in -1..32 {
+                    let expected = (consumed..consumed+cap).filter(|&index| {
+                        let price_offset = if index < 6 { 2 } else if index < 15 { 4+3*(index-6) } else { 28 };
+                        price_offset as i64 <= offset
+                    }).count() as u64;
+                    assert_eq!(curve.unskewed_prefix(cap, base + offset).unwrap(), Some(expected));
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn wide_order_uses_in_band_makers_and_respects_rounded_aggregate_fee() {
+    let flat = shape(100, 0);
+    for (side, prices, fee, net) in [
+        (0, [53_000, 60_000, 60_000, 60_000], 3_600, 18_003_600),
+        (1, [60_001, 60_000, 60_000, 60_000], 3_600, 17_996_400),
+    ] {
+        let curves = prices.map(|price| Some(ExecutionCurve::new(&flat, price, side, 0, 0).unwrap()));
+        let request = Order { all_in_limit: net, max_fee: fee, ..order(side, 300, 60_000) };
+        let winner = marginal::best_marginals(request, &curves).unwrap().unwrap();
+        assert_eq!(winner.lots, [0, 100, 100, 100]);
+        assert_eq!((winner.gross, winner.fee, winner.all_in), (18_000_000, fee, net));
+        let tighter = Order { all_in_limit: if side == 0 { net - 1 } else { net + 1 }, ..request };
+        assert!(marginal::best_marginals(tighter, &curves).unwrap().is_none());
+    }
+}
+
+#[test]
+fn wide_order_collar_can_require_more_than_one_lot_on_one_book() {
+    // First ask is 890, the second is 910. At index 1000 the two-lot average
+    // meets the 900 floor exactly, although its first lot cannot fill alone.
+    let rising = shape(2, 20);
+    let flat = shape(2, 0);
+    let curves = [
+        Some(ExecutionCurve::new(&rising, 890, 0, 0, 0).unwrap()),
+        Some(ExecutionCurve::new(&flat, 905, 0, 0, 0).unwrap()),
+    ];
+    let winner = marginal::best_marginals(order(0, 2, 1000), &curves).unwrap().unwrap();
+    assert_eq!((winner.lots, winner.gross), (vec![2, 0], 1800));
+}

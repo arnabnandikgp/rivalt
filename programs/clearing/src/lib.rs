@@ -776,11 +776,11 @@ pub mod clearing {
     }
 
     pub fn execute_market_lane(ctx: &mut Context<ExecuteMarketLane>, args: LiquidityRouteIntent) -> Result<()> {
-        scoped_history::run(ctx, [154, 97, 38, 114, 234, 143, 70, 85], false, |ctx, events| maker_liquidity::routes::execute_lane(ctx, events, args))
+        scoped_history::run_explicit_route(ctx, [154, 97, 38, 114, 234, 143, 70, 85], |ctx, events| maker_liquidity::routes::execute_lane(ctx, events, args))
     }
 
     pub fn execute_ledger_lane(ctx: &mut Context<ExecuteLedgerLane>, args: LiquidityRouteIntent) -> Result<()> {
-        scoped_history::run(ctx, [1, 178, 168, 44, 243, 136, 161, 76], false, |ctx, events| maker_liquidity::routes::execute_ledger_lane(ctx, events, args))
+        scoped_history::run_explicit_route(ctx, [1, 178, 168, 44, 243, 136, 161, 76], |ctx, events| maker_liquidity::routes::execute_ledger_lane(ctx, events, args))
     }
 
     pub fn checkpoint_market(ctx: &mut Context<CheckpointMarket>) -> Result<()> {
@@ -913,24 +913,25 @@ pub mod clearing {
         ctx: &mut Context<ExecuteLiquidityRoute>,
         args: LiquidityOrderExecution,
     ) -> Result<()> {
-        scoped_history::run(
+        scoped_history::run_explicit_route(
             ctx,
             [128, 46, 100, 204, 183, 230, 53, 135],
-            false,
             |ctx, events| maker_liquidity::routes::execute_order(ctx, events, args),
         )
     }
     pub fn execute_best_route(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) -> Result<()> {
         maker_liquidity::routes::execute_best(ctx, args)
     }
+    pub fn execute_multi_route(ctx: &mut Context<ExecuteBestRoute>, args: MultiRouteIntent) -> Result<()> {
+        maker_liquidity::routes::execute_multi(ctx, args)
+    }
     pub fn execute_liquidity_route(
         ctx: &mut Context<ExecuteLiquidityRoute>,
         args: LiquidityRouteIntent,
     ) -> Result<()> {
-        scoped_history::run(
+        scoped_history::run_explicit_route(
             ctx,
             [168, 103, 155, 184, 217, 71, 251, 209],
-            false,
             |ctx, events| maker_liquidity::routes::execute(ctx, events, args, false),
         )
     }
@@ -939,10 +940,9 @@ pub mod clearing {
         ctx: &mut Context<ExecuteLiquidityRoute>,
         args: LiquidityRouteIntent,
     ) -> Result<()> {
-        scoped_history::run(
+        scoped_history::run_explicit_route(
             ctx,
             [201, 205, 162, 241, 160, 102, 201, 176],
-            false,
             |ctx, events| maker_liquidity::routes::execute(ctx, events, args, true),
         )
     }

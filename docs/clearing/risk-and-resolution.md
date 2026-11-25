@@ -58,8 +58,8 @@ constructs the funded transfer, and commits the accepted pair. [Withdrawal handl
 Four records and two protective pairs are embedded in each root. Inclusive start,
 exclusive expiry; order lifetime and placement horizon at most 216,000 slots;
 quantity 1–100,000,000 lots; per-lot all-in limit 1–1,000,000 atoms; lifetime fee budget
-at most 1,000,000,000,000,000 atoms (the existing cash domain); index triggers 2–909,090 atoms. Every submitted
-subfill is exact-base atomic with at most two distinct maker capitals.
+at most 1,000,000,000,000,000 atoms (the existing cash domain); index triggers 2–909,090 atoms. Each stored-order
+subfill is exact-base atomic with at most two distinct maker capitals. Ordinary market orders have a separate [wider execution contract](../liquidity/routing.md#wider-atomic-fills).
 
 For each remaining risk-increasing buy lot reserve `ceil(upper/10) + max(limit-lower,0)`;
 for sell use `ceil(upper/10) + max(upper-limit,0)`, plus unspent fee budget. Reduce-only

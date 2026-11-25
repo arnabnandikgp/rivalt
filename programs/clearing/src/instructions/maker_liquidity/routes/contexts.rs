@@ -50,7 +50,7 @@ pub struct $name {
                     first_capital: &mut self.first_capital, first_registration: &mut self.first_registration,
                     first_program: &self.first_program, first_program_data: &self.first_program_data,
                     first_config: &self.first_config, first_price: &self.first_price,
-                    second_capital: self.second_capital.as_deref_mut(), second_registration: self.second_registration.as_deref_mut(),
+                    additional: Vec::new(), second_capital: self.second_capital.as_deref_mut(), second_registration: self.second_registration.as_deref_mut(),
                     second_program: self.second_program.as_ref(), second_program_data: self.second_program_data.as_deref(),
                     second_config: self.second_config.as_ref(), second_price: self.second_price.as_ref(),
                     event_authority: self.event_authority.account().clone(),
@@ -72,6 +72,53 @@ pub(super) struct MakerAccounts<'a> {
     data: &'a BorshAccount<ProgramData>,
     config: &'a UncheckedAccount,
     price: &'a UncheckedAccount,
+}
+/// Additional signed candidate bundles use the same six ordered accounts as
+/// each named candidate. Reject writable aliases before loading owned values.
+pub(super) struct ExtraMaker {
+    capital: Box<BorshAccount<MarginAccount>>,
+    registration: BorshAccount<MakerRegistration>,
+    program: UncheckedAccount,
+    data: BorshAccount<ProgramData>,
+    config: UncheckedAccount,
+    price: UncheckedAccount,
+}
+
+impl ExtraMaker {
+    pub(super) fn load(raw: &[AccountView], writable: &mut Vec<Address>) -> Result<Self> {
+        let [capital,registration,program,data,config,price] = raw else { return Err(ClearingError::MakerBinding.into()); };
+        for account in [capital,registration] {
+            require!(account.is_writable() && !account.is_signer() && !account.executable() && account.owner()==&crate::ID
+                && !writable.contains(account.address()), ClearingError::Alias);
+            writable.push(*account.address());
+        }
+        require!(program.executable() && !data.executable() && !config.executable() && !price.executable()
+            && [program,data,config,price].iter().all(|account| !account.is_signer() && !account.is_writable()),
+            ClearingError::MakerBinding);
+        // SAFETY: writable clearing-owned accounts are distinct from the named
+        // accounts and previous bundles. The typed loaders check discriminators.
+        unsafe {
+            Ok(Self {
+                capital:Box::new(BorshAccount::load_mut(capital.clone())?),
+                registration:BorshAccount::load_mut(registration.clone())?,
+                program:UncheckedAccount::load(program.clone())?,data:BorshAccount::load(data.clone())?,
+                config:UncheckedAccount::load(config.clone())?,price:UncheckedAccount::load(price.clone())?,
+            })
+        }
+    }
+
+    pub(super) fn pricing(&self) -> pricing::View<'_> {
+        pricing::View {capital:&self.capital,registration:&self.registration,program:&self.program,
+            data:&self.data,config:&self.config,price:&self.price}
+    }
+    fn bundle(&mut self) -> MakerAccounts<'_> {
+        MakerAccounts {capital:&mut self.capital,registration:&mut self.registration,program:&self.program,
+            data:&self.data,config:&self.config,price:&self.price}
+    }
+    pub(super) fn persist(&mut self) -> Result<()> {
+        self.capital.exit()?;
+        self.registration.exit()
+    }
 }
 macro_rules! maker_bundle {
     ($name:ident, $capital:ident, $registration:ident, $program:ident, $data:ident, $config:ident, $price:ident) => {
@@ -100,9 +147,9 @@ macro_rules! maker_bundle {
                     program: &self.$program, data: &self.$data, config: &self.$config, price: &self.$price}
             }
             pub(crate) fn visit_maker(&mut self, scope: &mut crate::scoped_history::Scope, index: usize) -> Result<()> {
-                let access = scope.maker_access(index)?;
-                scope.account(&mut self.$capital, access)?;
-                scope.account(&mut self.$registration, access)
+                let (capital, registration) = scope.maker_access(index)?;
+                scope.account(&mut self.$capital, capital)?;
+                scope.account(&mut self.$registration, registration)
             }
         }
     };
@@ -124,15 +171,22 @@ pub struct ExecuteBestRoute {
 }
 
 impl ExecuteBestRoute {
-    pub(super) fn selected(&mut self, lots: [u64; 3]) -> Result<RouteAccounts<'_>> {
-        let mut makers = [self.candidate_zero.bundle(), self.candidate_one.bundle(), self.candidate_two.bundle()]
-            .into_iter().zip(lots).filter_map(|(maker, quantity)| (quantity != 0).then_some(maker));
+    pub(super) fn selected<'a>(&'a mut self, extra: &'a mut [ExtraMaker], lots: &[u64], lane_slot: Option<usize>)
+        -> Result<(RouteAccounts<'a>, Option<&'a mut BorshAccount<MakerRegistration>>)> {
+        let mut lane = None;
+        let mut makers = Vec::with_capacity(lots.len());
+        for (index, maker) in [self.candidate_zero.bundle(), self.candidate_one.bundle(),
+            self.candidate_two.bundle()].into_iter().chain(extra.iter_mut().map(ExtraMaker::bundle)).enumerate() {
+            if lots[index] > 0 { makers.push(maker); }
+            else if lane_slot == Some(index) { lane = Some(maker.registration); }
+        }
+        let mut makers = makers.into_iter();
         let first = makers.next().ok_or(ClearingError::RouteIntent)?;
         let second = makers.next();
-        require!(makers.next().is_none(), ClearingError::RouteIntent);
+        let additional = makers.map(|maker| (maker.capital,maker.registration)).collect();
         let mut accounts = RouteAccounts {
             identity: self.identity.view(), registry: &self.registry,
-            first_capital: first.capital, first_registration: first.registration,
+            additional, first_capital: first.capital, first_registration: first.registration,
             first_program: first.program, first_program_data: first.data,
             first_config: first.config, first_price: first.price,
             second_capital: None, second_registration: None, second_program: None,
@@ -147,11 +201,12 @@ impl ExecuteBestRoute {
             accounts.second_config = Some(maker.config);
             accounts.second_price = Some(maker.price);
         }
-        Ok(accounts)
+        Ok((accounts, lane))
     }
 }
 
 pub(super) struct RouteAccounts<'a> {
+    pub additional: Vec<(&'a mut BorshAccount<MarginAccount>, &'a mut BorshAccount<MakerRegistration>)>,
     pub identity: RouteIdentityView<'a>,
     pub registry: &'a BorshAccount<LiquidityRegistry>,
     pub first_capital: &'a mut BorshAccount<MarginAccount>,

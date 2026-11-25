@@ -57,6 +57,7 @@ export * from "./executeLedgerLane.js";
 export * from "./executeLiquidityOrder.js";
 export * from "./executeLiquidityRoute.js";
 export * from "./executeMarketLane.js";
+export * from "./executeMultiRoute.js";
 export * from "./freezeAccounts.js";
 export * from "./fundMemberIndex.js";
 export * from "./fundMemberPage.js";

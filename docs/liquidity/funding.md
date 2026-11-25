@@ -70,11 +70,11 @@ The published report binds a single market, deployment and authority epoch.
   bounded snapshot-lag trust assumption and does not rewrite already-held funding.
 ## Calculation and causal time
 
-The backend requires all three sealed authenticated makers, even when a valid
+The backend requires every sealed authenticated maker (three in the default demo, up to 32 in wide local qualification), even when a valid
 maker contributes zero size. Missing, expired, disabled, quarantined or code-mismatched
 required inputs make coverage unavailable. A valid one-sided/inventory-limited
 maker can have zero side capacity; each aggregate side must still fill all Q with
-at most two capitals. Never choose a convenient incomplete subset.
+at most two capitals under the funding report contract. The wider atomic-fill instruction applies to ordinary market orders. It does not change the funding publisher’s Q or allocation rule.
 
 Reference is 2–909,090 quote atoms/lot and
 `Q = ceil(6,000,000/reference)` (7–3,000,000). Authenticate complete code hashes and
