@@ -3,6 +3,7 @@ import argparse
 import json
 import math
 from collections import Counter
+from dataclasses import dataclass
 from decimal import Decimal
 from itertools import combinations
 from pathlib import Path
@@ -152,7 +153,7 @@ def verify_consumed_depth(directory, roles, rows):
     return makers
 
 
-def native_scheduler(directory, rows):
+def native_scheduler(directory, rows, include_arrivals=False):
     signed = {row["signature"]: row for row in rows if row["signature"]}
     assert signed, "No signed trader order reached the validator"
     traces = {sig: [] for sig in signed}
@@ -204,7 +205,7 @@ def native_scheduler(directory, rows):
         }
         assigned_workers[int(events[1][3])] += 1
     filled = [value for signature, value in segments.items() if signed[signature]["error"] is None]
-    return {"signed": len(signed), "singleAttempt": len(segments), "singleAttemptFills": len(filled),
+    result = {"signed": len(signed), "singleAttempt": len(segments), "singleAttemptFills": len(filled),
             "client": {key: percentiles([sample[key] for sample in client]) for key in client[0]},
             "singleAdmission": len(admission_intervals),
             "sinceAdmission": {key: percentiles([sample[key] for sample in admission_intervals])
@@ -214,51 +215,130 @@ def native_scheduler(directory, rows):
             "singleAttemptWorkers": assigned_workers, "allAssignmentsByWorker": all_assignments,
             "timing": {key: percentiles([value[key] for value in segments.values()])
                        for key in ("admitToAssignUs", "assignToWorkerBatchUs", "admitToWorkerBatchUs")}}
+    if include_arrivals:
+        first_admissions = sorted(min(event[0] for event in events if event[1] == "admitted")
+                                  for events in traces.values())
+        intervals = [later - earlier for earlier, later in zip(first_admissions, first_admissions[1:])]
+        span = sum(intervals)
+        result["firstAdmissions"] = {"orders": len(first_admissions), "spanMs": round(span / 1000, 1),
+                                     "meanOrdersPerSecond": round(1_000_000 * len(intervals) / span, 2) if span else None,
+                                     "interarrivalUs": percentiles(intervals)}
+    return result
+
+
+@dataclass
+class AuditedRun:
+    placement: str
+    revision: str
+    conditions: tuple
+    metrics: dict
+    rows: list
+    trace: list
+
+
+def audit_run(directory, scheduler, include_arrivals=False):
+    run = read(directory / "contention-windows.json")
+    plan = read(directory / "scheduled-offers.json")
+    replay = read(directory / "contention-replay.json")
+    for key in ("placement", "revision", "build"):
+        assert run[key] == plan[key] == replay[key]
+    placement = run["placement"]
+    assert replay["events"] > 0
+    assert [window["wallets"] for window in run["windows"]] == ([12] if scheduler else [1, 12])
+    assert len(plan["trace"]) == 48
+    normalized = [(row["id"], row["stream"], row["dueMs"], row["side"], row["target"]) for row in plan["trace"]]
+    conditions = (run["build"], run["gapMs"], normalized)
+    totals = Counter()
+    for row in plan["trace"]:
+        totals[row["market"]] += int(row["target"])
+    if placement == "split":
+        assert totals[0] == totals[1] > 0
+    else:
+        assert set(totals) == {0 if placement == "btc" else 1}
+    for window in run["windows"]:
+        assert [{key: row[key] for key in plan["trace"][0]} for row in window["entries"]] == plan["trace"]
+        assert len({row["wallet"] for row in window["entries"]}) == window["wallets"]
+    rows = [row for window in run["windows"] for row in window["entries"]]
+    audit_maintenance(directory, run["windows"])
+    audit_signed(directory, rows, run["roles"])
+    used = verify_consumed_depth(directory, run["roles"], rows)
+    result = {"events": replay["events"], "consumedByMaker": used, "windows": [
+        summarize(window, run["gapMs"], run["roles"]) for window in run["windows"]]}
+    if scheduler:
+        binary = (directory / "validator-sha256.txt").read_text().split()[0]
+        version = (directory / "validator-version.txt").read_text().strip()
+        assert version.startswith("solana-test-validator 4.2.2 (src:c9c6f328;")
+        assert [(market["index"], market["status"]) for market in run["windows"][0]["openingMarkets"]] == [(0, 2), (1, 2)]
+        conditions += (version, binary)
+        result["scheduler"] = native_scheduler(directory, rows, include_arrivals)
+    return AuditedRun(placement, run["revision"], conditions, result, rows, plan["trace"])
+
+
+def wallet_preparation(rows):
+    stages, batches = [], {}
+    for row in rows:
+        if not row["signature"]:
+            continue
+        reads = row["snapshotReads"]
+        assert len(reads) == 4 and [r["accounts"] for r in reads[:3]] == [1, 4, 5]
+        assert reads[3]["accounts"] > 5
+        previous = row["readyMs"]
+        rpc_ms = 0
+        for name, read_event in zip(("makerRegistry", "registrations", "marginDiscovery", "coherentSnapshot"), reads):
+            start, end = read_event["startMs"], read_event["endMs"]
+            assert previous <= start <= end <= row["snapshotEndMs"]
+            assert 0 <= read_event["programDataBytes"] <= read_event["dataBytes"]
+            batches.setdefault(name, []).append((end - start, read_event))
+            previous = end
+            rpc_ms += end - start
+        landmarks = [row[key] for key in ("snapshotEndMs", "routeEndMs", "blockhashStartMs", "blockhashEndMs", "signedMs")]
+        assert sorted(landmarks) == landmarks
+        snapshot, route, fetch_start, fetch_end, signed = landmarks
+        durations = {"snapshotRpcMs": rpc_ms, "snapshotBetweenReadsMs": previous - row["readyMs"] - rpc_ms,
+                     "snapshotAfterLastReadMs": snapshot - previous, "routeConstructionMs": route - snapshot,
+                     "beforeBlockhashMs": fetch_start - route, "latestBlockhashMs": fetch_end - fetch_start,
+                     "compileSignSerializeMs": signed - fetch_end}
+        assert all(ms >= -1e-6 for ms in durations.values())
+        assert math.isclose(sum(durations.values()), signed - row["readyMs"], abs_tol=1e-6)
+        stages.append(durations)
+    assert stages, "No signed order to profile"
+    total = sum(sum(order.values()) for order in stages)
+    return {"signed": len(stages), "unsigned": len(rows) - len(stages),
+            "stages": {name: {**percentiles([order[name] for order in stages]),
+                              "percentOfSummedPreparation": round(100 * sum(order[name] for order in stages) / total, 2)}
+                       for name in stages[0]},
+            "snapshotMs": percentiles([row["snapshotEndMs"] - row["readyMs"] for row in rows if row["signature"]]),
+            "reads": {name: {"elapsedMs": percentiles([ms for ms, _ in samples]),
+                             **{key: percentiles([read[key] for _, read in samples])
+                                for key in ("accounts", "dataBytes", "programDataBytes")}}
+                      for name, samples in batches.items()}}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("directories", type=Path, nargs=3)
-    parser.add_argument("--scheduler", action="store_true", help="Audit the twelve-wallet Agave runs and native queue timestamps")
+    parser.add_argument("directories", type=Path, nargs="+")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--scheduler", action="store_true", help="Audit the three native queue traces")
+    mode.add_argument("--preparation", action="store_true", help="Compare a baseline and profiled split-market trace")
     args = parser.parse_args()
-    runs, schedules = {}, []
-    for directory in args.directories:
-        run = read(directory / "contention-windows.json")
-        plan = read(directory / "scheduled-offers.json")
-        replay = read(directory / "contention-replay.json")
-        for key in ("placement", "revision", "build"):
-            assert run[key] == plan[key] == replay[key]
-        placement = run["placement"]
-        assert placement not in runs and replay["events"] > 0
-        assert [window["wallets"] for window in run["windows"]] == ([12] if args.scheduler else [1, 12])
-        assert len(plan["trace"]) == 48
-        normalized = [(row["id"], row["stream"], row["dueMs"], row["side"], row["target"]) for row in plan["trace"]]
-        schedules.append((run["revision"], run["build"], run["gapMs"], normalized))
-        totals = Counter()
-        for row in plan["trace"]:
-            totals[row["market"]] += int(row["target"])
-        if placement == "split":
-            assert totals[0] == totals[1] > 0
-        else:
-            assert set(totals) == {0 if placement == "btc" else 1}
-        for window in run["windows"]:
-            assert [{key: row[key] for key in plan["trace"][0]} for row in window["entries"]] == plan["trace"]
-            assert len({row["wallet"] for row in window["entries"]}) == window["wallets"]
-        rows = [row for window in run["windows"] for row in window["entries"]]
-        audit_maintenance(directory, run["windows"])
-        audit_signed(directory, rows, run["roles"])
-        used = verify_consumed_depth(directory, run["roles"], rows)
-        runs[placement] = {"events": replay["events"], "consumedByMaker": used, "windows": [
-            summarize(window, run["gapMs"], run["roles"]) for window in run["windows"]]}
-        if args.scheduler:
-            binary = (directory / "validator-sha256.txt").read_text().split()[0]
-            version = (directory / "validator-version.txt").read_text().strip()
-            assert version.startswith("solana-test-validator 4.2.2 (src:c9c6f328;")
-            assert [(market["index"], market["status"]) for market in run["windows"][0]["openingMarkets"]] == [(0, 2), (1, 2)]
-            schedules[-1] += (version, binary)
-            runs[placement]["scheduler"] = native_scheduler(directory, rows)
-    assert set(runs) == {"btc", "eth", "split"} and all(value == schedules[0] for value in schedules)
-    print(json.dumps(runs, indent=2, sort_keys=True))
+    if args.preparation:
+        if len(args.directories) != 2:
+            parser.error("--preparation requires the baseline and measured split directories")
+        baseline, measured = [audit_run(directory, True, include_arrivals=True) for directory in args.directories]
+        assert baseline.placement == measured.placement == "split" and baseline.conditions == measured.conditions
+        assert baseline.trace == measured.trace, "Scheduled orders differ"
+        assert [row["wallet"] for row in baseline.rows] == [row["wallet"] for row in measured.rows]
+        result = {"baseline": {"revision": baseline.revision, **baseline.metrics},
+                  "measured": {"revision": measured.revision, **measured.metrics},
+                  "preparation": wallet_preparation(measured.rows)}
+    else:
+        if len(args.directories) != 3:
+            parser.error("Pass the three matched market directories")
+        runs = [audit_run(directory, args.scheduler) for directory in args.directories]
+        assert {run.placement for run in runs} == {"btc", "eth", "split"}
+        assert all(run.revision == runs[0].revision and run.conditions == runs[0].conditions for run in runs)
+        result = {run.placement: run.metrics for run in runs}
+    print(json.dumps(result, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

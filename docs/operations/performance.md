@@ -166,6 +166,29 @@ Every trader assignment, including retries, went to worker 0. The split trace re
 
 A preliminary stock-validator control finalized 48 oracle-policy refusals. The funding publications showed a one-second gap beyond the previous hold, which restarted recovery. The harness now refreshes signed inputs during the two-second minimum reporting interval and reads both markets' on-chain Normal states before measuring. The native harness also retains enough ledger history to replay from initialization and allows up to 90 seconds for finalized receipt auditing. The refused control is excluded from fill rates.
 
+### Where the wallet spends time before signing
+
+Harness `9369c98d` repeated the twelve-wallet BTC/ETH split on the same Agave binary, clearing build and 48-order schedule. The largest interval began **after the final account response arrived** and ended when the SDK returned a verified snapshot. It accounted for 66.7% of the time wallets spent preparing their orders. The SDK decodes clearing and maker accounts, derives their addresses and verifies maker program hashes during this interval. Timings include waits for other work on the same JavaScript event loop. [Snapshot reader](../../packages/sdk/src/account-snapshot.ts) · [Maker verification](../../packages/sdk/src/liquidity-adapter.ts)
+
+| Stage from wallet readiness to signature | Median | p95 | Share of time summed over 48 orders |
+|---|---:|---:|---:|
+| Four account RPC calls, including JSON parsing | 13.6 ms | 38.2 ms | 5.51% |
+| SDK work before and between account reads | 31.9 ms | 85.4 ms | 13.13% |
+| Final account response to verified snapshot | 138.0 ms | 438.3 ms | 66.73% |
+| Build the four-candidate order | 14.1 ms | 87.1 ms | 9.18% |
+| Order built to blockhash request | <0.1 ms | <0.1 ms | 0.02% |
+| Fetch recent blockhash | 2.0 ms | 16.4 ms | 1.75% |
+| Compile, sign and serialize | 8.5 ms | 18.0 ms | 3.68% |
+
+The complete snapshot took 522.3 ms p95 and preparation through signing took 580.5 ms p95. Each wallet read 1, 4, 5 and then 44 accounts. The final read returned 351,176 decoded bytes. Of those, 335,130 bytes (95.4%) belonged to the two maker program-data accounts. Byte counts measure payload size. They leave the relative cost of decoding, hashing and address derivation open. This book had four registered makers and the wallet included all four, so wider shortlist search needs its own workload.
+
+| Same split schedule, 25 orders offered/s | Orders finalized | First admissions/s at leader | Fills/s through drain | Scheduled to observed confirmation p95 | Leader admission to first worker p95 |
+|---|---:|---:|---:|---:|---:|
+| Previous window, `5475b255` | 48/48 | 8.54 | 7.94 | 4.207 s | 5.278 ms |
+| Instrumented repeat, `9369c98d` | 48/48 | 16.05 | 14.44 | 1.603 s | 23.592 ms |
+
+First admissions/s uses the 47 gaps from the first signed order admitted to the last. Fills/s counts all 48 orders from the scheduled start through the last observed outcome. The wallet waited for each trader's previous confirmation. Both runs delivered fewer than 25 signed orders/s to the leader and all trader assignments went to one worker. The rate difference illustrates run-to-run variability. The repeat changed benchmark instrumentation only. Its fresh PostgreSQL replay reconciled 305 events and 259 accounts. [Run the comparison](local-development.md#profiling-wallet-order-preparation)
+
 ## Wallet traffic and settlement
 
 Three local runs scheduled the same 120 BTC buys from 24 wallets over 4.165 seconds. Orders were one to three lots. One deep maker always quoted the best test ask. All runs used the bounded router, synthetic sources and a real settlement worker. The timing column includes time spent waiting to prepare the order.

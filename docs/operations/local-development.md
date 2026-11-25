@@ -260,3 +260,16 @@ python3 tests/performance/wallet-contention-report.py --scheduler "$comparison_d
 ```
 
 The report joins native events to each original signed order and its finalized receipt. It reports scheduler intervals in microseconds and client intervals in milliseconds. RPC response and validator processing can overlap. Aggregate latency percentiles cannot be added. For each signature admitted once, the report times first assignment, first worker start and last worker start from that admission. The last interval includes prior attempts when Agave retries. Client percentiles use every signed original. Single-attempt percentiles have their own denominator. The validator stops when the workload exits. Raw traces, ledger and receipts stay in the local run directory.
+
+### Profiling wallet order preparation
+
+Use the validator and clearing artifact exports above. Set `baseline_split` to a completed twelve-wallet split run from the same validator, such as `"$comparison_dir/split"` from the preceding command. The reference baseline used harness `5475b255`.
+
+```bash
+baseline_split="$comparison_dir/split"
+profiled_split=".local/agave-contention/preparation-$(date -u +%Y%m%dT%H%M%SZ)/split"
+RIVALT_CONTENTION_MARKETS=split RIVALT_RUN_DIR="$profiled_split" bash ops/validator-wallet-contention.sh
+python3 tests/performance/wallet-contention-report.py --preparation "$baseline_split" "$profiled_split"
+```
+
+The report checks both finalized journals, the validator binary, program build, per-wallet schedule and all signed outcomes. For each signed order it partitions elapsed time from wallet readiness to the original signature. The four sequential account calls include receipt and JSON parsing. The final batch includes both maker programs' upgradeable program data. Reported bytes are decoded account-data lengths. The elapsed time outside RPC includes event-loop waits. The leader's observed arrival rate divides the number of gaps between first admissions by their elapsed span. Fills/s uses every completed trader order through the last observed outcome.

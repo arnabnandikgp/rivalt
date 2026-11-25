@@ -47,7 +47,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 **Finding 3, native scheduler in Review.** Agave 4.2.2, clearing `b0e1a43f` and harness `5475b255` finalized 144/144 twelve-wallet orders and replayed 305 events per venue in fresh PostgreSQL databases. At 25 offered orders/s, BTC delivered 17.18 fills/s, ETH 13.84 and the split 7.94. In the split window the p95 wait to first validator worker was 5.278 ms, the wallet snapshot and signing took 1.699 s p95, and arrival to observed confirmation took 4.207 s p95. All trader assignments went to one worker. Validator saturation and fee competition remain open. [Matched scheduler and wallet intervals](operations/performance.md#native-validator-queue-timing)
 
-**Next action.** Time the SDK's snapshot reads and route construction separately on the same twelve-wallet split trace to identify what delays submission. The populated-book shock exercise remains deferred. [Qualification scorecard](operations/qualification-scorecard.md)
+**Finding 3, wallet preparation in Review.** On harness `9369c98d` and clearing `b0e1a43f`, the repeat finalized 48/48 split-market orders. Fresh PostgreSQL replay reconciled 305 events and 259 accounts. After the final account read, the SDK took 438.3 ms p95 to return a verified snapshot, accounting for 66.7% of summed preparation time. The four RPC calls accounted for 5.5% and route construction for 9.2%. The leader received 16.05 signed orders/s against 25 scheduled. Validator saturation remains open. [Timing and workload](operations/performance.md#where-the-wallet-spends-time-before-signing)
+
+**Next action.** Benchmark byte decoding, maker-code hashing and address derivation on the same captured snapshot to select the first SDK optimization while preserving all verification checks. The populated-book shock exercise remains deferred. [Qualification scorecard](operations/qualification-scorecard.md)
 
 | Open gate | What remains |
 |---|---|
