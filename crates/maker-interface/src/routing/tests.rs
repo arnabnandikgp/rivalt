@@ -357,3 +357,69 @@ fn whole_lot_price_optimum_matches_expanded_book_on_both_sides_for_four_to_eight
         }
     }
 }
+
+#[test]
+fn constrained_eth_maker_shares_order_at_its_last_affordable_lot() {
+    let flat = shape(200_000, 0);
+    let curves = [30_200, 29_996, 29_994, 29_992].map(|price| {
+        let cash = if price == 30_200 { 240_000_000 } else { 500_000_000_000 };
+        Some(ExecutionCurve::new(&flat, price, 1, 0, 0).unwrap()
+            .with_opening_cash(cash, 29_700, 30_300, 100_000).unwrap())
+    });
+    let result = marginal::best_marginals(order(1, 100_000, 30_000), &curves).unwrap().unwrap();
+    assert_eq!(result.lots, [67_988, 32_012, 0, 0]);
+    assert_eq!((result.gross, result.fee, result.all_in), (3_013_469_552, 602_694, 3_012_866_858));
+    let strict = Order { all_in_limit: result.all_in + 1, ..order(1, 100_000, 30_000) };
+    assert!(marginal::best_marginals(strict, &curves).unwrap().is_none());
+}
+
+#[test]
+fn opening_bound_never_discards_an_affordable_prefix() {
+    for side in [0, 1] {
+        for slope in [0, 25, 190] {
+            let book = shape(20, slope);
+            for anchor in [9_001, 10_823] {
+                let curve = ExecutionCurve::new(&book, anchor, side, 0, 0).unwrap();
+                let mut gross = 0_i64;
+                for lots in 1..=20 {
+                    let price = anchor as i64 + (if side == 0 { 1 } else { -1 }) * (lots-1) as i64 * slope as i64;
+                    gross += price;
+                    let mark_loss = if side == 0 { lots as i64 * 10_003 - gross } else { gross - lots as i64 * 9_999 };
+                    let required = (lots * 10_003_u64).div_ceil(10) + mark_loss.max(0) as u64;
+                    assert!(curve.with_opening_cash(required, 9_999, 10_003, 20).unwrap().capacity() >= lots);
+                    if slope == 0 {
+                        assert!(curve.with_opening_cash(required-1, 9_999, 10_003, 20).unwrap().capacity() < lots);
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn direct_prefix_matches_individual_prices_inside_consumed_regions() {
+    let mut book = shape(23, 0);
+    let mut regions = book.bids;
+    regions[0] = PriceRegion { end_lots: 6, offset: 2, slope: 0 };
+    regions[1] = PriceRegion { end_lots: 15, offset: 4, slope: 3 };
+    regions[2] = PriceRegion { end_lots: 23, offset: 28, slope: 0 };
+    book.bids = regions;
+    book.asks = regions;
+    book.ask_count = 3;
+    book.bid_count = 3;
+    for side in [0, 1] {
+        for consumed in 0..23 {
+            let curve = ExecutionCurve::new(&book, 1000, side, 0, consumed).unwrap();
+            for cap in 1..=curve.capacity() {
+                let base = if side == 0 { 1000 } else { -1000 };
+                for offset in -1..32 {
+                    let expected = (consumed..consumed+cap).filter(|&index| {
+                        let price_offset = if index < 6 { 2 } else if index < 15 { 4+3*(index-6) } else { 28 };
+                        price_offset as i64 <= offset
+                    }).count() as u64;
+                    assert_eq!(curve.unskewed_prefix(cap, base + offset).unwrap(), Some(expected));
+                }
+            }
+        }
+    }
+}

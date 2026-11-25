@@ -268,7 +268,12 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock, mu
                     request.consumed,
                 )
                 .and_then(|curve| {
-                    curve.with_funded_cash(view.capital.cash, identity.market.upper.max(1))
+                    let position = &view.capital.positions[market_index];
+                    if multi && position.lots == 0 && position.virtual_scaled == 0 {
+                        curve.with_opening_cash(view.capital.cash, identity.market.lower, identity.market.upper, args.lots)
+                    } else {
+                        curve.with_funded_cash(view.capital.cash, identity.market.upper.max(1))
+                    }
                 })
                 .map_err(|_| ClearingError::MakerQuote)?,
             );

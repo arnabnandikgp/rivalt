@@ -31,6 +31,9 @@ impl Book<'_> {
         if threshold >= self.last {
             return Ok(self.capacity);
         }
+        if let Some(quantity) = self.curve.unskewed_prefix(self.capacity, threshold)? {
+            return Ok(quantity);
+        }
         let mut low = 1;
         let mut high = self.capacity - 1;
         while low < high {

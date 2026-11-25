@@ -540,6 +540,50 @@ impl<'shape> ExecutionCurve<'shape> {
         Ok(self)
     }
 
+    /// Opening from zero inventory and zero carried claim only. Maker prices
+    /// improve with each additional lot, so the endpoint is at least as good
+    /// for the maker as any feasible average inside this order. Counting only
+    /// this unavoidable loss preserves even disconnected affordable quantities.
+    pub fn with_opening_cash(mut self, cash: u64, lower: u64, upper: u64, order_lots: u64) -> QuoteResult<Self> {
+        if self.inventory != 0 || lower == 0 || lower > upper || upper > MAX_PRICE {
+            return Err(QuoteError::Bounds);
+        }
+        self.capacity = self.capacity.min(order_lots);
+        if self.capacity == 0 { return Ok(self); }
+        let cost = self.marginal_cost(self.capacity)?;
+        let price = (if self.side == 0 { cost } else { -cost }).clamp(1, MAX_PRICE as i64) as u64;
+        let loss = if self.side == 0 { upper.saturating_sub(price) } else { price.saturating_sub(lower) };
+        let bound = financial_core::funded_opening_limit(cash, upper, loss).map_err(|_| QuoteError::Bounds)?;
+        self.capacity = self.capacity.min(bound as u64);
+        Ok(self)
+    }
+
+    /// Invert each linear price region when inventory skew is disabled. The
+    /// alternative for skewed quotes remains the exact marginal binary search.
+    pub(crate) fn unskewed_prefix(self, capacity: u64, threshold: i64) -> QuoteResult<Option<u64>> {
+        if self.shape.skew_tick != 0 { return Ok(None); }
+        let base = if self.side == 0 { self.anchor as i64 } else { -(self.anchor as i64) };
+        let Some(max_offset) = u64::try_from(threshold - base).ok() else { return Ok(Some(0)); };
+        let end = self.consumed + capacity; // Bounded by the validated published depth.
+        let mut start = 0;
+        let mut supplied = 0;
+        for region in self.shape.side_regions(self.side)? {
+            let first = self.consumed.max(start);
+            let stop = end.min(region.end_lots);
+            if first < stop {
+                if max_offset < region.offset { break; }
+                let through = if region.slope == 0 { stop } else {
+                    stop.min(start + (max_offset - region.offset) / region.slope + 1)
+                };
+                supplied += through.saturating_sub(first);
+                if through < stop { break; }
+            }
+            start = region.end_lots;
+            if start >= end { break; }
+        }
+        Ok(Some(supplied))
+    }
+
     pub(crate) fn capacity(self) -> u64 {
         self.capacity
     }
