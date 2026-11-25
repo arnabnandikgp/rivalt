@@ -33,7 +33,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 **[Matched economic comparison PR #186](https://github.com/arnabnandikgp/rivalt/pull/186) is in review.** Clearing `f0b8a599` and harness `22814361` exercised 60 local BTC offers across six independent venues. Thirty-six filled, twelve signed originals refused and twelve requests stopped at the source guard before signature. PostgreSQL replay reconciled all six venues (1,900 events altogether). At both directory sizes, two, four and eight legs filled $35,100.193, $45,100.228 and $65,100.237 respectively of $85,100.368 requested per venue. Eight legs still missed an executable $10,000 sell when the signed candidates supplied insufficient depth. [Per-cell economics and locks](operations/performance.md#matched-dollar-execution-across-16-and-32-makers)
 
-**Next action.** Make the wallet shortlist cover the requested size when funded, deeper makers can complete it. Repeat the matched thin-bid sell against the same signed-price and margin checks. [Executable depth deliverables](operations/qualification-scorecard.md#executable-depth-work)
+**Wallet shortlist improvement in review.** On the same clearing binary `f0b8a599`, SDK and harness `0edb3064` filled the previously refused 163,935-lot sell on both eight-leg books. The trader received 9,995.037152 test dollars with 16 registered makers and 9,992.798640 with 32. Both matched the previously computed eight-leg optimum. Across the six matched venues, 38/60 requests filled, ten signed requests exceeded the leg cap and twelve stopped at the source guard before signing. PostgreSQL replay reconciled 1,910 events. [Signed results](operations/performance.md#wallet-selection-by-order-size)
+
+**Next action.** Qualify shortlist price quality on sloped books and makers close to their margin limits, using an independent feasible-allocation reference at the signed leg cap.
 
 | Open gate | What remains |
 |---|---|

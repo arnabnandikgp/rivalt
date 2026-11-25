@@ -199,3 +199,18 @@ The final pair came from separate wallets after normal source recovery. Each pai
 - Two additional $5,000 buy requests per cell reached the wallet after published depth was replenished. The source was Degraded and the wallet refused both before signing. Their $10,000 target remains in each denominator. The next two scheduled requests followed four ordinary sampling rounds. Every signed original paid 5,000 test lamports, including refusals. Only fills paid a taker fee.
 
 The [reproduction instructions](local-development.md#matched-dollar-comparison) and [report](../../tests/performance/matched-maker-report.py) give per-order quantities, VWAP, fees, refusal reasons and the three reference prices, with every signed result checked against its retained receipt. These fixtures use flat, internally operated books. Sustained throughput, stressed maker margin and independent operators remain open.
+
+### Wallet selection by order size
+
+The eight-leg wallet previously chose eight 6,000-lot bids for a 163,935-lot BTC sell. With wallet and harness `0edb3064` and the same clearing binary `f0b8a599`, both directories filled the entire order. Each selected four 6,000-lot bids, then took 40,000, 40,000, 40,000 and 19,935 lots from the deeper makers. The trader signed once and paid 5,000 test lamports.
+
+| Registered makers | Maker IDs in signed order | Gross test dollars | Taker fee | Trader proceeds | CU | Signed bytes / accounts |
+|---:|---|---:|---:|---:|---:|---:|
+| 16 | 0–3 and 8–11 | 9,997.036560 | 1.999408 | 9,995.037152 | 688,766 | 2,068 / 45 |
+| 32 | 0–3 and 16–19 | 9,994.797600 | 1.998960 | 9,992.798640 | 687,114 | 2,068 / 45 |
+
+Both receipts matched the fee-inclusive eight-leg optimum computed against the original book before the change. In the 32-maker book the unrestricted quote would have paid 9,994.038132, an additional 1.239492 test dollars. The number of shallow bids increases with directory size in this fixture. Each maker's offset also depends on its registration ID. [Selection rule](../liquidity/routing.md#wide-maker-discovery-in-local-qualification)
+
+Across the same six venues, 38 of 60 orders filled, up from 36. At both directory sizes the eight-leg runs filled eight of ten orders for $75,100.272 of the $85,100.368 requested at the index (88.25%, previously 76.50%). The two- and four-leg runs again filled five and six of ten. The paired traces reproduced every other outcome and all-in amount, comparing the concurrent wallets together because their execution order can reverse. Twelve offers still stopped before signing while the source was Degraded. Ten signed refusals exceeded available depth at the leg cap. Fresh PostgreSQL replay reconciled 264, 268 and 279 events at 16 makers and 360, 364 and 375 at 32 makers, in increasing leg-cap order.
+
+The fixture uses flat bids and ample maker margin. Price ranking with a depth constraint does not guarantee the cheapest eligible subset of arbitrary curved books. A later reprice at an omitted maker remains unreachable by the signed order.

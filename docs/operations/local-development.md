@@ -161,21 +161,22 @@ For wider atomic fills use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a`, 
 
 ### Matched dollar comparison
 
-Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. The matched harness starts a fresh BTC book and fresh PostgreSQL for each cell. From the repository root, with the pinned artifact paths configured, run the following sequentially. Give each run a new directory.
+Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.
 
 ```bash
 source ops/env.sh
 export RIVALT_ROUTER_REVISION=f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a
 export RIVALT_SETTLEMENT_PROBE=execution-router-matched-makers
+comparison_dir=.local/matched-makers-depth-aware
 for makers in 16 32; do
   for legs in 2 4 8; do
     RIVALT_COMPARISON_MAKERS="$makers" RIVALT_COMPARISON_LEGS="$legs" \
-      RIVALT_RUN_DIR=".local/matched-makers/$makers-$legs" \
+      RIVALT_RUN_DIR="$comparison_dir/$makers-$legs" \
       bash ops/scalable-settlement-smoke.sh || exit 1
   done
 done
 node --import tsx tests/rpc-contract/comparison-reference-check.ts
-python3 tests/performance/matched-maker-report.py .local/matched-makers/{16,32}-{2,4,8}
+python3 tests/performance/matched-maker-report.py "$comparison_dir"/{16,32}-{2,4,8}
 ```
 
 The report checks each signed signature, fee and outcome against its retained finalized transaction. It also counts requests the wallet refused before signing. For each request it gives the same-bank full-directory price, the full-directory price at the leg cap, and the signed shortlist price. Each is fee-inclusive and requires the entire requested quantity. The constant-price reference independently enumerates maker subsets and measures quoted depth under each constraint. Clearing checks funding and margin when a signed order executes. A null reference means the requested size exceeded that book's capacity.
