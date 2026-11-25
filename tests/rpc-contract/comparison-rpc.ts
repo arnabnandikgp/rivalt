@@ -19,6 +19,7 @@ const count = Number(process.env.RIVALT_COMPARISON_MAKERS),
 assert([16, 32].includes(count) && [2, 4, 8].includes(width));
 const directory = process.env.RIVALT_RUN_DIR!,
   build = routerBuild();
+const deployment = build.artifactSet === sdk.FUNDED_MULTI_ARTIFACT_SET ? 'funded-multi-maker' : 'multi-maker';
 const offered = (label: string) => label.startsWith('compare ');
 const payers = new Map<string, Keypair>();
 let venue = '',
@@ -37,7 +38,7 @@ const { h, rpc, ws, checks, flush } = await openCanonicalRpcHarness(
     heapSize: (label) => (offered(label) ? 128 * 1024 : undefined),
     beforeBroadcast: async (label, original) => {
       if (!offered(label)) return;
-      assert.equal(accountUserAuthority(original, venue, 4, known, 'multi-maker')?.kind, 'accountStateVersion');
+      assert.equal(accountUserAuthority(original, venue, 4, known, deployment)?.kind, 'accountStateVersion');
       if (label === 'compare omitted reprice') {
         assert(afterSignature);
         await afterSignature();
@@ -111,7 +112,7 @@ try {
           await assert.rejects(
             width === 2
               ? sdk.buildBestRoute(input, owner.address)
-              : sdk.buildMultiMakerRoute(input, owner.address, width),
+              : sdk.buildMultiMakerRoute(input, owner.address, width, deployment),
             /Required liquidity market source unavailable/,
           );
           entries.push({
@@ -143,7 +144,7 @@ try {
         const order =
           width === 2
             ? await sdk.buildBestRoute(input, owner.address)
-            : await sdk.buildMultiMakerRoute(input, owner.address, width);
+            : await sdk.buildMultiMakerRoute(input, owner.address, width, deployment);
         const label = 'compare ' + request.name;
         payers.set(label, owner);
         return { request, trader, owner, label, lots, order, offers };
