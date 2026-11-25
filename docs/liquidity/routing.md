@@ -61,12 +61,23 @@ position. Makers sharing a lane still have separately margined capital and depth
 
 The wallet authenticates all registrations in one confirmed bank, prices
 single makers and pairs, and includes three candidate bundles in the signed
-transaction. A completed preview contributes the winning legs first. The
-wallet fills spare slots by average quoted price for the portion they might supply,
-using a funded cash ceiling and available depth. A host search that exhausts
-its work budget uses this ranking for all three places. The order builder
-returns the supplied maker IDs. Clearing checks the current curves and
-financial admission over those three candidates and can use up to two of them.
+transaction. A completed, financially admitted single or pair keeps its places.
+If the preview finds no fill or reaches its search budget, the wallet ranks the
+makers by average quoted price over the lots each could supply. It keeps a
+higher-ranked maker only if the remaining fill slots can still cover the order.
+If the whole directory is too shallow at that leg limit, it keeps the greatest
+reachable depth. It fills spare account slots by price and returns the signed
+IDs in registration order. A two-leg order can supply three candidate accounts
+but its coverage estimate counts only two fills.
+
+The wallet bounds each maker by unconsumed depth, inventory, funded cash and
+the numeric and average execution-price bounds. It can use the valid prefix
+of a sloping book. For a given ranking the coverage calculation takes at most
+one pass per permitted leg over the registered makers. It estimates depth at
+the snapshot. A particular split can still fail its price collar, whole-account
+margin or signed limit. Clearing authenticates the supplied makers and checks
+current execution. The ranking does not certify the best all-in price over
+every possible shortlist. [Wallet selection](../../packages/sdk/src/maker-shortlist.ts)
 
 A supplied maker can reprice after signing and win the trade. A better offer
 at an omitted maker requires a new order to reach it. Full-market price
