@@ -61,7 +61,7 @@ position. Makers sharing a lane still have separately margined capital and depth
 
 The wallet authenticates all registrations in one confirmed bank, prices
 single makers and pairs, and includes three candidate bundles in the signed
-transaction. A completed, financially admitted single or pair keeps its places.
+transaction. On the legacy two-leg route a completed, financially admitted single or pair keeps its places.
 If the preview finds no fill or reaches its search budget, the wallet ranks the
 makers by average quoted price over the lots each could supply. It keeps a
 higher-ranked maker only if the remaining fill slots can still cover the order.
@@ -69,6 +69,8 @@ If the whole directory is too shallow at that leg limit, it keeps the greatest
 reachable depth. It fills spare account slots by price and returns the signed
 IDs in registration order. A two-leg order can supply three candidate accounts
 but its coverage estimate counts only two fills.
+
+For ordinary orders on `funded-multi-maker`, the wallet compares its existing shortlist against a second selection priced across the full directory. When the cheapest combination uses too many makers, it retains the makers contributing the most lots and reprices the entire order on those books. It compares funded, fee-inclusive fills after the snapshot's maker, trader, price and fee checks, then fills spare account slots from the ranking. If the comparison reaches its work budget the wallet keeps its existing shortlist. This procedure can miss an economically feasible alternative when the unrestricted optimum needs more legs than the wallet can sign. Clearing always selects the actual quantities from the signed accounts at execution time.
 
 The wallet bounds each maker by unconsumed depth, inventory, funded cash and
 the numeric and average execution-price bounds. It can use the valid prefix

@@ -233,3 +233,9 @@ The reference reads the authenticated curves, caps, cash and risk bounds from th
 ### Funded opening depth
 
 Clearing `50bd8836` and wallet harness `152e4f18` repeated the ten-maker, four-leg comparison. The ordinary ETH sale now filled 67,988 and 32,012 lots for $3,012.866858 after the taker fee, using 383,599 CU. Raising minimum proceeds by one atom rejected the signed sale with byte-identical financial accounts. The explicit control returned the same proceeds in 240,487 CU. The four cheapest BTC curves landed for $9,838.645417 in 394,364 CU. Previously this allocation exhausted the 800,000-CU budget. The original wallet shortlist still cost $9,843.684008 in 391,726 CU. Fresh PostgreSQL replay reconciled 184 wallet events and 185 control events. All amounts use test collateral.
+
+### Price-aware wallet execution
+
+On clearing `50bd8836` and SDK/harness `7353f463`, both ordinary wallet orders reached the same amount as the independent four-leg reference and a signed control. The BTC buy supplied makers 6/7/8/9. Clearing filled 40,992 / 40,986 / 40,981 / 40,976 lots, for $9,836.678081 gross and a $1.967336 fee. The trader paid **$9,838.645417**, saving $5.038591 over the original shortlist. Execution used 394,364 CU. When allowed a fifth maker, 29 lots would go to maker 0. The wallet repriced the entire order after removing that contribution.
+
+On ETH the ordinary wallet sold 67,988 and 32,012 lots for **$3,012.866858** after fees, using 383,599 CU. Raising the minimum proceeds to $3,012.866859 rolled back. Each fresh venue reconciled 185 events in PostgreSQL. These prices qualify the measured snapshots. The shortlist comparison is a heuristic when the full-directory optimum exceeds the signed width or fails financial admission.
