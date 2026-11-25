@@ -37,6 +37,9 @@ const payers = new Map<string, Keypair>();
 const broadcasts = new Map<string, {at: number; locks: ReturnType<typeof transactionLocks>}>();
 const isOrder = (label: string) => label.startsWith('contention ');
 const reportLabel = 'P32 publisher available two-market reports';
+const nativeValidator = process.env.RIVALT_CONTENTION_RUNTIME === 'agave';
+const signedAt = new Map<string, number>(), acceptedAt = new Map<string, number>();
+const timedReportSignatures = new Set<string>();
 let measuring = false;
 const isTimedReport = (label: string) => measuring && label === reportLabel;
 const fundingRefusal = (error: unknown) => [1, 3].some(index =>
@@ -47,6 +50,12 @@ class ReportPreflightRefusal extends Error {
 let venue = '', checkpoints: Awaited<ReturnType<typeof sdk.venueMarketCheckpoints>> = [];
 const {h, rpc, ws, checks, flush} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
   process.env.RIVALT_WS_URL!, directory, {deferFinality: true, observeOutcomes: label => isOrder(label) || isTimedReport(label), measureComputeBoundary: isOrder,
+    finalityTimeoutMs: nativeValidator ? 90_000 : undefined,
+    signedOriginal: (label, signature) => {
+      if (isOrder(label)) signedAt.set(label, performance.now());
+      if (isTimedReport(label)) timedReportSignatures.add(signature);
+    },
+    broadcastAccepted: label => { if (isOrder(label)) acceptedAt.set(label, performance.now()); },
     afterSimulation: (label, signature, error) => {
       if (!isTimedReport(label) || error === null) return;
       if (fundingRefusal(error)) throw new ReportPreflightRefusal(signature, error);
@@ -83,16 +92,18 @@ try {
   }
   setup.roots.forEach((root, id) => { roles[root] = 'wallet margin ' + id; roles[setup.traderOwners[id].address] = 'payer ' + id; });
   const windows = [];
-  for (const wallets of [1, participants]) {
+  for (const wallets of nativeValidator ? [participants] : [1, participants]) {
+    // Native finality takes about 32 slots. Drain prior audits before refreshing
+    // the oracle so an audit barrier cannot consume the order's risk window.
+    if (nativeValidator) await flush();
     await setup.qualify();
-    await flush();
+    if (!nativeValidator) await flush();
     const started = performance.now(), elapsed = () => performance.now() - started;
     type Offer = typeof trace[number];
     type Result = Offer & {wallet: number; label: string; readyMs: number; observedMs: number;
       unsigned: string | null};
     const observations: Result[] = [], refreshes: {startMs:number; endMs:number;
       preflight: {signature:string; error:unknown} | null}[] = [];
-    const firstCheck = checks.length;
     measuring = true;
     let stop = false;
     const maintain = async () => {
@@ -173,14 +184,16 @@ try {
       }
       const broadcast = broadcasts.get(offer.label)!;
       entries.push({...offer, signature, error: tx.error, gross, fee, slot: receipt.slot, broadcastMs: broadcast.at - started,
+        signedMs: signedAt.get(offer.label)! - started, rpcAcceptedMs: acceptedAt.get(offer.label)! - started,
         locks: broadcast.locks, cu: tx.computeUnits, networkFeeLamports: String(receipt.meta.fee)});
     }
     assert.equal(entries.length, trace.length);
-    const reports = checks.slice(firstCheck).filter(check => check?.label === reportLabel);
+    const reports = checks.filter(check => check?.label === reportLabel && timedReportSignatures.has(String(check.signature)));
     for (const report of reports) assert(report.ws && (report.error === null || fundingRefusal(report.error)),
       'Unexpected finalized maintenance result ' + JSON.stringify(report.error));
     assert.equal(reports.length + refreshes.filter(sample => sample.preflight).length, refreshes.length);
     windows.push({wallets, entries, refreshes, reports: reports.map(({signature, error}) => ({signature, error}))});
+    timedReportSignatures.clear();
     writeFileSync(directory + '/contention-windows.json', json({revision, build, placement, gapMs, roles, windows}));
   }
   journal = await openSettlementJournal(rpc, setup, checks.filter(Boolean).map(row => String(row.signature)), build);
