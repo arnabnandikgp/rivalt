@@ -7,7 +7,7 @@ from math import ceil
 from pathlib import Path
 
 NAMES = {"omitted reprice", "fragmented 5000", "fragmented 10000", "fragmented 20000",
-         "thin bids", "deep replacement", "concurrent wallet A", "concurrent wallet B"}
+         "thin bids", "deep replacement", "immediately after replenishment A", "immediately after replenishment B", "concurrent wallet A", "concurrent wallet B"}
 SCALE = Decimal(1_000_000)
 
 
@@ -22,7 +22,8 @@ def money(atoms):
 def summarize(run):
     rows = run["entries"]
     assert len(rows) == len(NAMES) and {row["name"] for row in rows} == NAMES
-    assert len({row["signature"] for row in rows}) == len(rows)
+    signed = [row for row in rows if row["signature"]]
+    assert len({row["signature"] for row in signed}) == len(signed)
     assert int(run["reconciliation"]["actualVault"]) == int(run["reconciliation"]["allocatedVault"])
     filled = [row for row in rows if row["actual"]]
     details = []
@@ -46,11 +47,11 @@ def summarize(run):
                             takerFee=money(actual["fee"]) if actual else None,
                             **{key: money(row[key]["allIn"]) if row[key] else None
                                for key in ("unrestricted", "bounded", "shortlisted", "actual")}))
-    concurrent = [row for row in rows if row["batchSize"] == 2]
+    concurrent = [row for row in rows if row["name"].startswith("concurrent wallet")]
     assert len(concurrent) == 2 and len({row["batchConfirmedMs"] for row in concurrent}) == 1
     seconds = concurrent[0]["batchConfirmedMs"] / 1000
-    latency = [row["confirmedMs"] for row in rows]
-    return dict(makers=run["count"], legs=run["width"], offered=len(rows), filled=len(filled),
+    latency = [row["confirmedMs"] for row in signed]
+    return dict(makers=run["count"], legs=run["width"], offered=len(rows), signed=len(signed), filled=len(filled),
                 requested=money(sum(int(row["requestedIndexAtoms"]) for row in rows)),
                 filledIndex=money(sum(int(row["requestedIndexAtoms"]) for row in filled)),
                 takerFees=money(sum(int(row["actual"]["fee"]) for row in filled)),

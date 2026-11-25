@@ -9,10 +9,10 @@ const min = (a: bigint, b: bigint) => a < b ? a : b;
 
 // These fixtures have one flat region, constant spread and no inventory skew.
 // Price each maker directly from the fetched fields, without calling an SDK quote or allocator.
-export function readOffers(adapters: readonly LiquidityAdapter[], side: Side): Offer[] {
+export function readOffers(adapters: readonly LiquidityAdapter[], side: Side, standing = false): Offer[] {
   return adapters.map(({shape, price, registrationState, capital, snapshot, unavailable}, id) => {
     assert.equal(registrationState.instance, id);
-    assert.equal(unavailable, null);
+    assert(unavailable === null || standing && unavailable === 'stale-publication', String(unavailable));
     const regions = side === 0 ? shape.asks : shape.bids;
     assert.deepEqual([regions.length, shape.mode, shape.skewTick, regions[0].slope], [1, 1, 0n, 0n]);
     const inventory = capital.positions[snapshot.marketIndex].lots;

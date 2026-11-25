@@ -50,15 +50,30 @@ try{
   type Request={name:string;dollars:number;actor:number};
   async function batch(requests:Request[],side:0|1){
     await setup.sample();
-    const submissions=await Promise.all(requests.map(async request=>{
+    const prepared=await Promise.all(requests.map(async request=>{
       const trader=setup.roots[request.actor],owner=setup.traderOwners[request.actor];
       const snapshot=await setup.snapshot(trader,0),lots=(BigInt(request.dollars)*1_000_000n+reference-1n)/reference;
       const input={trader,snapshot,lots,side,marketIndex:0 as const,allInLimit:side===0?lots*(reference+100n):lots*(reference-100n),
         maxFee:(lots*(reference+100n)+4999n)/5000n,reduceOnly:false};
+      const offers=readOffers(snapshot.liquidity!.adapters,side,true);
+      const source=sdk.accountSourceMode(snapshot.safetyState,snapshot.marketStates[0],snapshot.now,snapshot.slot);
+      if(source!=='Normal'){
+        // The wallet rejects risk-increasing orders in this observed source mode.
+        await assert.rejects(width===2?sdk.buildBestRoute(input,owner.address):sdk.buildMultiMakerRoute(input,owner.address,width),
+          /Required liquidity market source unavailable/);
+        entries.push({name:request.name,side,requestedLots:lots,requestedIndexAtoms:lots*reference,
+          supplied:[],classification:'unsigned source '+source,unrestricted:compareFlat(offers,side,lots,count),
+          bounded:compareFlat(offers,side,lots,width),shortlisted:null,actual:null,missedAcrossDirectoryAtoms:null,
+          batchSize:requests.length,batchConfirmedMs:null,confirmedMs:null,cu:null,bytes:0,accounts:0,feeLamports:'0',
+          signature:null,error:source,slot:snapshot.slot,blockIndex:null});
+        return null;
+      }
       const order=width===2?await sdk.buildBestRoute(input,owner.address):await sdk.buildMultiMakerRoute(input,owner.address,width);
       const label='compare '+request.name;payers.set(label,owner);
-      return {request,trader,owner,label,lots,order,offers:readOffers(snapshot.liquidity!.adapters,side)};
+      return {request,trader,owner,label,lots,order,offers};
     }));
+    const submissions=prepared.filter(row=>row!==null);
+    if(!submissions.length)return;
     let book=submissions[0].offers.map(offer=>({...offer}));
     for(const row of submissions) assert.deepEqual(row.offers,book);
     if(requests[0].name==='omitted reprice')afterSignature=async()=>{
@@ -126,6 +141,9 @@ try{
     await h.send('replenish consumed quote',await withCheckpoints(sdk.getReplenishLiquidityInstruction({
       ...maker.controlCommon,expectedAuthority:state.authorityEpoch,expectedDepth:state.depthEpoch,sides:3})),[maker.owner]);
   }
+  await batch([{name:'immediately after replenishment A',dollars:5000,actor:1},
+    {name:'immediately after replenishment B',dollars:5000,actor:2}],0);
+  await setup.qualify();
   await batch([{name:'concurrent wallet A',dollars:5000,actor:1},{name:'concurrent wallet B',dollars:5000,actor:2}],0);
   journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   await journal.checkpoint('matched-market-orders',true);
