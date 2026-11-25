@@ -14,6 +14,7 @@ import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {routerBuild} from './execution-router-build.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
+import {presignedBurst} from './presigned-burst.js';
 
 const placement = process.env.RIVALT_CONTENTION_MARKETS;
 assert(placement === 'btc' || placement === 'eth' || placement === 'split');
@@ -22,12 +23,16 @@ assert.equal(build.artifactSet, sdk.PRICE_LIMITED_MULTI_ARTIFACT_SET);
 const deployment = 'price-limited-multi-maker';
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
 assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], {encoding: 'utf8'}).trim(), '');
-const participants = 12, rounds = 4, gapMs = 40;
+const burstMode = process.env.RIVALT_CONTENTION_MODE === 'presigned';
+const nativeValidator = process.env.RIVALT_CONTENTION_RUNTIME === 'agave';
+if (burstMode) assert(nativeValidator && placement !== 'eth');
+const participants = burstMode ? 50 : 12, rounds = burstMode ? 1 : 4, gapMs = burstMode ? 0 : 40;
 const trace = Array.from({length: participants * rounds}, (_, id) => {
   const stream = id % participants, round = Math.floor(id / participants);
   const market: 0 | 1 = placement === 'btc' ? 0 : placement === 'eth' ? 1 : stream % 2 === 0 ? 0 : 1;
-  const side: 0 | 1 = (Math.floor(stream / 2) + round) % 2 === 0 ? 0 : 1;
-  const target = [120n, 600n, 1200n][(stream + Math.floor(round / 2)) % 3] * 1_000_000n;
+  const side: 0 | 1 = (Math.floor(stream / 2) + round + (burstMode ? stream % 2 : 0)) % 2 === 0 ? 0 : 1;
+  const sizeIndex = burstMode ? Math.floor(stream / 2) : stream + Math.floor(round / 2);
+  const target = [120n, 600n, 1200n][sizeIndex % 3] * 1_000_000n;
   const indexPrice = market === 0 ? 60_000n : 30_000n;
   assert.equal(target % indexPrice, 0n);
   return {id, stream, side, market, target, lots: target / indexPrice, dueMs: id * gapMs};
@@ -37,7 +42,6 @@ const payers = new Map<string, Keypair>();
 const broadcasts = new Map<string, {at: number; locks: ReturnType<typeof transactionLocks>}>();
 const isOrder = (label: string) => label.startsWith('contention ');
 const reportLabel = 'P32 publisher available two-market reports';
-const nativeValidator = process.env.RIVALT_CONTENTION_RUNTIME === 'agave';
 const signedAt = new Map<string, number>(), acceptedAt = new Map<string, number>();
 const blockhashReads = new Map<string, {start: number; end: number}>();
 const timedReportSignatures = new Set<string>();
@@ -48,6 +52,8 @@ const fundingRefusal = (error: unknown) => [1, 3].some(index =>
 class ReportPreflightRefusal extends Error {
   constructor(readonly signature: string, readonly instructionError: unknown) { super('Funding report preflight refused'); }
 }
+const burst = burstMode ? presignedBurst(participants, async (): Promise<number> =>
+  rpc.call('getSlot', [{commitment: 'processed'}])) : undefined;
 let venue = '', checkpoints: Awaited<ReturnType<typeof sdk.venueMarketCheckpoints>> = [];
 const {h, rpc, ws, checks, flush} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
   process.env.RIVALT_WS_URL!, directory, {deferFinality: true, observeOutcomes: label => isOrder(label) || isTimedReport(label), measureComputeBoundary: isOrder,
@@ -68,7 +74,9 @@ const {h, rpc, ws, checks, flush} = await openCanonicalRpcHarness(process.env.RI
     beforeBroadcast: async (label, bytes) => {
       if (!isOrder(label)) return;
       assert.equal(accountUserAuthority(bytes, venue, 4, checkpoints, deployment)?.kind, 'accountStateVersion');
-      broadcasts.set(label, {locks: transactionLocks(Buffer.from(bytes, 'base64')), at: performance.now()});
+      const locks = transactionLocks(Buffer.from(bytes, 'base64'));
+      if (burst) await burst.ready(Number(label.split('/')[1]));
+      broadcasts.set(label, {locks, at: performance.now()});
     },
   });
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined;
@@ -77,7 +85,7 @@ try {
   // comparable. Four signed candidates also expose locks on unused makers.
   const regions = [{endLots: 20_000_000n, offset: 0n, slope: 0n}, ...symmetricPayoutShape.asks.slice(1)];
   const setup = await liquidityExecutionSetup(h, rpc, {makerCounts: [4, 4], marketCheckpoints: true,
-    marginLayout: 'ledger-lanes', traderCount: participants + 1, independentTraders: true, verifyRejections: false,
+    marginLayout: 'ledger-lanes', traderCount: burst ? participants : participants + 1, independentTraders: true, verifyRejections: false,
     refreshDuringSampleInterval: nativeValidator,
     makerCash: 500_000_000_000n, traderCash: 500_000_000_000n,
     shape: () => ({...symmetricPayoutShape, shortCap: 20_000_000n, longCap: 20_000_000n, bids: regions, asks: regions})});
@@ -135,7 +143,7 @@ try {
       }
     };
     const driveWallet = async (lane: number) => {
-      const wallet = wallets === 1 ? 0 : 1 + lane;
+      const wallet = burst ? lane : wallets === 1 ? 0 : 1 + lane;
       const trader = setup.roots[wallet], owner = setup.traderOwners[wallet];
       for (const offer of trace.filter(offer => offer.stream % wallets === lane)) {
         const wait = offer.dueMs - elapsed();
@@ -175,15 +183,19 @@ try {
         } catch (error) {
           if (payers.has(label) || !(error instanceof Error) ||
               !['Required liquidity market source unavailable.', 'Order risk window expired.'].includes(error.message)) throw error;
+          if (burst) throw error;
           unsigned = error.message;
           routeEndMs = elapsed();
         }
         observations.push({...offer, wallet, label, readyMs, snapshotReads, snapshotEndMs, routeEndMs, observedMs: elapsed(), unsigned});
       }
     };
-    const offerTasks = Promise.allSettled(Array.from({length: wallets}, (_, lane) => driveWallet(lane)))
+    const offerTasks = Promise.allSettled(Array.from({length: wallets}, (_, lane) => driveWallet(lane).catch(error => {
+      burst?.abort(error);
+      throw error;
+    })))
       .finally(() => { stop = true; });
-    const [outcomes] = await Promise.all([offerTasks, maintain()]);
+    const [outcomes] = await Promise.all([offerTasks, maintain().catch(error => { burst?.abort(error); throw error; })]);
     measuring = false;
     for (const outcome of outcomes) if (outcome.status === 'rejected') throw outcome.reason;
     await flush();
@@ -231,7 +243,9 @@ try {
     for (const report of reports) assert(report.ws && (report.error === null || fundingRefusal(report.error)),
       'Unexpected finalized maintenance result ' + JSON.stringify(report.error));
     assert.equal(reports.length + refreshes.filter(sample => sample.preflight).length, refreshes.length);
-    windows.push({wallets, openingMarkets, entries, refreshes, reports: reports.map(({signature, error}) => ({signature, error}))});
+    const release = burst?.released();
+    const burstRelease = release ? {slot: release.slot, previousSlot: release.previousSlot, elapsedMs: release.at - started} : undefined;
+    windows.push({wallets, openingMarkets, entries, burstRelease, refreshes, reports: reports.map(({signature, error}) => ({signature, error}))});
     timedReportSignatures.clear();
     writeFileSync(directory + '/contention-windows.json', json({revision, build, placement, gapMs, roles, windows}));
   }
