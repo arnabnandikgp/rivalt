@@ -9,7 +9,7 @@ export function routerBuild(selection:'funded-routing'|'bounded-entry'|'closed-q
   ['execution-router-closed-quantity','execution-router-mixed-storage'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'closed-quantity' : 'bounded-router-candidate',
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
-  const extended=['execution-router-multi-fills','execution-router-multi-width','execution-router-matched-makers'].includes(process.env.RIVALT_SETTLEMENT_PROBE??'');
+  const extended=['execution-router-multi-fills','execution-router-multi-width','execution-router-matched-makers','execution-router-feasible-books'].includes(process.env.RIVALT_SETTLEMENT_PROBE??'');
   if (extended) {
     const verified=accountDeployment('multi-maker');
     assert.equal(revision,verified.programRevision);
