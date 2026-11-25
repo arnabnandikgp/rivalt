@@ -53,6 +53,30 @@ Adding a third fill leg would require three-way allocation and corresponding
 atomic admission, fee and state updates. Adding a fourth candidate would also
 change the account list and signed registry epochs. [Qualification](../STATUS.md)
 
+## Wide maker discovery in local qualification
+
+The `wide-maker-discovery` program admits a sealed directory of 3–32 consecutive
+maker IDs for a market. Each registration has its own PDA, pricing accounts and
+isolated capital. The first three registration accounts also hold market
+accounting totals. A fill assigns gross-lot changes, funding and collected fees
+to the lane numbered `first filled maker ID % 3`. A checkpoint still reads
+exactly three lanes. Additional makers retain their own consumed depth and
+position. Makers sharing a lane still have separately margined capital and depth.
+
+The wallet authenticates all registrations in one confirmed bank, prices
+single makers and pairs, and includes three candidate bundles in the signed
+transaction. A completed preview contributes the winning legs first. The
+wallet fills spare slots by average quoted price for the portion they might supply,
+using a funded cash ceiling and available depth. A host search that exhausts
+its work budget uses this ranking for all three places. The order builder
+returns the supplied maker IDs. Clearing checks the current curves and
+financial admission over those three candidates and can use up to two of them.
+
+A supplied maker can reprice after signing and win the trade. A better offer
+at an omitted maker requires a new order to reach it. Full-market price
+discovery and the execution-time price guarantee therefore have different
+coverage. Funding still observes the full registry. [Funding](funding.md)
+
 ## Quote and settlement
 
 The SDK reads a coherent snapshot and previews maker prices and account admission. The owner or scoped delegate signs exact size, side, all-in limits, maximum fee, expiry and structural epochs. Standing maker prices can change until execution. Each selected maker receives only its bounded read-only pricing dependencies. Clearing authenticates the response, checks all participants, applies position, fee and depth changes, and commits the whole route atomically.

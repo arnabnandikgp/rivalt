@@ -14,6 +14,14 @@ Use the smallest check that exercises the changed behavior. For a financial tran
 | User-facing trade and payout | Verify wallet review and guards, actual fills, fees, inventory, funded and unpaid balances, vault movement and fresh SQL replay. [Wallet workload](local-development.md#wallet-load-comparison) |
 | CI scope | [Workflow](../../.github/workflows/pr-checks.yml) and [scope selector](../../ops/ci-scope.py). Broad regression belongs in the relevant CI jobs. |
 
+On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
+100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and
+445,226 CU (ETH, 32 makers, 32 loaded accounts). The later ETH quote from a
+supplied maker won. An omitted reprice was cheaper. A one-lot explicit
+reduction used 252,986 CU. Wrong-lane and price-limit refusals rolled back.
+A clean database independently replayed 358 events and reconciled 395 RPC
+accounts. This run used internal test collateral and a three-maker shortlist.
+
 ## Evidence by deployment
 
 | Path | What was verified | Evidence and limits |

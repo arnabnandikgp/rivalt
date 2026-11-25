@@ -144,3 +144,15 @@ checks every signed outcome against the independent reference, including both
 ETH limits while maker zero has one collateral atom.
 
 Run `python3 tests/performance/depth-benchmark-report.py ROUTED_RUN EXPLICIT_RUN` to summarize both completed directories. Read `ordinaryBtc` for requested and filled dollars at the index (atom totals use six decimals) and `dollarOrders` for each signed limit, average fill price, dollar cost versus the index, taker fee and refusal. An order with no fill has zero executed notional and a null execution price. The supplementary CU differences use two successful simulations on the same bank. `source ops/env.sh && node --import tsx tests/rpc-contract/depth-benchmark-reference-check.ts` checks the independent reference against exhaustive allocation on 216 small books and orders.
+
+## Wide maker discovery and fills
+
+Build clearing revision `5e32c124f078902535c6e40a02419f797550e89a` with
+`RIVALT_ATTRIBUTION_PROFILE=wide-maker-discovery` and an empty
+`RIVALT_ATTRIBUTION_DIR` using `bash ops/build-profit-attribution.sh`.
+At harness revision `951adeea` or its compatible stack head, set
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` to that directory, `RIVALT_ROUTER_REVISION`
+to the full program revision, and `RIVALT_SETTLEMENT_PROBE=execution-router-wide-fills`.
+Run `bash ops/scalable-settlement-smoke.sh` with the standard local oracle
+artifacts and Apple container PostgreSQL available. The run retains its signed
+originals and `wide-fills.json` under the ignored run directory.

@@ -27,7 +27,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 On funded-routing clearing `e02e72a0` with harness `db964391`, the ordinary ETH buy filled 3,334 lots at maker 1 for 100,033,336 gross atoms plus a 20,007-atom fee. At the tighter 100,046,674-atom limit it refused and rolled back. The other 35 orders reproduced their baseline outcomes, including fills for 22/30 ordinary BTC orders. The funded wallet withdrew 499,925.164827 test tokens after closing BTC and ETH. Fresh PostgreSQL replay reconciled 463 events. The wallet still searches three internal makers and fills up to two.
 
-**Next action.** Implement wide registered-maker discovery and a bounded signed shortlist. Qualify membership, execution-time repricing and the market-wide checkpoints at 16 and 32 registrations before expanding atomic fills. [Executable depth deliverables](operations/qualification-scorecard.md#executable-depth-work)
+**Wide discovery in review.** Clearing `5e32c124` and harness `951adeea` provisioned 16 BTC and 32 ETH makers on a fresh local venue. The wallet included three per order. Maker 15 filled BTC for 6,004,000 gross atoms. After signing, ETH maker 30 improved its ask and filled for 3,000,600 gross atoms. Maker 12 posted a cheaper omitted quote. An explicit BTC reduction filled, a substituted accounting lane and a breached trader limit both rolled back. PostgreSQL replay reconciled 358 events and 24,500 test tokens in custody. [Routing contract](liquidity/routing.md#wide-maker-discovery-in-local-qualification)
+
+**Next action.** Fill the 163,935-lot fragmented BTC order with three counterparties in one signed transaction, then measure four and eight legs within the wallet limits. [Executable depth deliverables](operations/qualification-scorecard.md#executable-depth-work)
 
 | Open gate | What remains |
 |---|---|
