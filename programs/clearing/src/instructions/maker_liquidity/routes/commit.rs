@@ -199,7 +199,7 @@ fn emit(
     fee: u64,
     fee_detail: FeeDetail,
     slot: u64,
-    legs: Vec<ExecutedLeg>,
+    mut legs: Vec<ExecutedLeg>,
     progress: Option<(i64,i128,RoutePath)>,
 ) -> Result<()> {
     let identity = &accounts.identity;
@@ -209,9 +209,12 @@ fn emit(
         roots.push(accounts.second_capital.as_deref().unwrap());
         makers.push(accounts.second_registration.as_deref().unwrap());
     }
-    for (capital,registration) in &accounts.additional {
-        roots.push(capital);
-        makers.push(registration);
+    let continued = if legs.len() > 3 { legs.split_off(2) } else { Vec::new() };
+    if continued.is_empty() {
+        for (capital,registration) in &accounts.additional {
+            roots.push(capital);
+            makers.push(registration);
+        }
     }
     let event = RouteEventView {
         venue: identity.venue.address().to_owned(),
@@ -259,5 +262,21 @@ fn emit(
     events.emit_borrowed::<RouteEvent, _>(
         &event,
         accounts.event_authority.clone(),
-    )
+    )?;
+    for (part,chunk) in continued.chunks(3).enumerate() {
+        #[derive(AnchorSerialize)]
+        struct Continuation<'a> {
+            venue: Address, market: Address, slot: u64, nonce: u64, first_leg: u8,
+            root_states: Vec<&'a MarginAccount>, maker_states: Vec<&'a MakerRegistration>,
+            legs: Vec<&'a ExecutedLeg>,
+        }
+        let start = part*3;
+        let makers = &accounts.additional[start..start+chunk.len()];
+        let payload=Continuation {venue:event.venue, market:event.market,slot,nonce:intent.nonce,first_leg:(2+start) as u8,
+            root_states:makers.iter().map(|(root,_)| &***root).collect(),
+            maker_states:makers.iter().map(|(_,registration)| &***registration).collect(),
+            legs:chunk.iter().collect()};
+        events.emit_borrowed::<crate::events::MakerFillContinuation,_>(&payload,accounts.event_authority.clone())?;
+    }
+    Ok(())
 }

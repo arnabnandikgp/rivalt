@@ -645,7 +645,8 @@ pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
 /// the selected market totals may advance without an accompanying capital fill.
 #[derive(Clone, Copy)]
 pub(crate) struct MakerAccess {
-    pub filled: [bool; 3],
+    pub filled: [bool; 8],
+    pub extras: usize,
     pub lane_slot: Option<usize>,
     pub external_lane: Option<Address>,
 }
@@ -673,8 +674,15 @@ impl Remaining {
                 Ok(())
             }
             Self::SelectedMakers(plan) => {
-                require!(accounts.len() <= 3, ClearingError::Profile);
-                for account in accounts {
+                let boundary=plan.extras.checked_mul(6).ok_or(ClearingError::Profile)?;
+                require!(plan.extras<=5 && accounts.len()>=boundary && accounts.len()<=boundary+3, ClearingError::Profile);
+                let (bundles,lanes)=accounts.split_at_mut(boundary);
+                for (index,bundle) in bundles.chunks_exact_mut(6).enumerate() {
+                    let access=if plan.filled[3+index] {Access::Write} else {Access::Read};
+                    scope.raw::<MarginAccount>(&mut bundle[0],access)?;
+                    scope.raw::<MakerRegistration>(&mut bundle[1],access)?;
+                }
+                for account in lanes {
                     let access = if Some(*account.address()) == plan.external_lane { Access::Write } else { Access::Read };
                     scope.raw::<MakerRegistration>(account, access)?;
                 }

@@ -73,6 +73,53 @@ pub(super) struct MakerAccounts<'a> {
     config: &'a UncheckedAccount,
     price: &'a UncheckedAccount,
 }
+/// Additional signed candidate bundles use the same six ordered accounts as
+/// each named candidate. Reject writable aliases before loading owned values.
+pub(super) struct ExtraMaker {
+    capital: Box<BorshAccount<MarginAccount>>,
+    registration: BorshAccount<MakerRegistration>,
+    program: UncheckedAccount,
+    data: BorshAccount<ProgramData>,
+    config: UncheckedAccount,
+    price: UncheckedAccount,
+}
+
+impl ExtraMaker {
+    pub(super) fn load(raw: &[AccountView], writable: &mut Vec<Address>) -> Result<Self> {
+        let [capital,registration,program,data,config,price] = raw else { return Err(ClearingError::MakerBinding.into()); };
+        for account in [capital,registration] {
+            require!(account.is_writable() && !account.is_signer() && !account.executable() && account.owner()==&crate::ID
+                && !writable.contains(account.address()), ClearingError::Alias);
+            writable.push(*account.address());
+        }
+        require!(program.executable() && !data.executable() && !config.executable() && !price.executable()
+            && [program,data,config,price].iter().all(|account| !account.is_signer() && !account.is_writable()),
+            ClearingError::MakerBinding);
+        // SAFETY: writable clearing-owned accounts are distinct from the named
+        // accounts and previous bundles. The typed loaders check discriminators.
+        unsafe {
+            Ok(Self {
+                capital:Box::new(BorshAccount::load_mut(capital.clone())?),
+                registration:BorshAccount::load_mut(registration.clone())?,
+                program:UncheckedAccount::load(program.clone())?,data:BorshAccount::load(data.clone())?,
+                config:UncheckedAccount::load(config.clone())?,price:UncheckedAccount::load(price.clone())?,
+            })
+        }
+    }
+
+    pub(super) fn pricing(&self) -> pricing::View<'_> {
+        pricing::View {capital:&self.capital,registration:&self.registration,program:&self.program,
+            data:&self.data,config:&self.config,price:&self.price}
+    }
+    fn bundle(&mut self) -> MakerAccounts<'_> {
+        MakerAccounts {capital:&mut self.capital,registration:&mut self.registration,program:&self.program,
+            data:&self.data,config:&self.config,price:&self.price}
+    }
+    pub(super) fn persist(&mut self) -> Result<()> {
+        self.capital.exit()?;
+        self.registration.exit()
+    }
+}
 macro_rules! maker_bundle {
     ($name:ident, $capital:ident, $registration:ident, $program:ident, $data:ident, $config:ident, $price:ident) => {
         #[derive(Accounts)]
@@ -124,12 +171,12 @@ pub struct ExecuteBestRoute {
 }
 
 impl ExecuteBestRoute {
-    pub(super) fn selected(&mut self, lots: [u64; 3], lane_slot: Option<usize>)
-        -> Result<(RouteAccounts<'_>, Option<&mut BorshAccount<MakerRegistration>>)> {
+    pub(super) fn selected<'a>(&'a mut self, extra: &'a mut [ExtraMaker], lots: &[u64], lane_slot: Option<usize>)
+        -> Result<(RouteAccounts<'a>, Option<&'a mut BorshAccount<MakerRegistration>>)> {
         let mut lane = None;
-        let mut makers = Vec::with_capacity(2);
+        let mut makers = Vec::with_capacity(lots.len());
         for (index, maker) in [self.candidate_zero.bundle(), self.candidate_one.bundle(),
-            self.candidate_two.bundle()].into_iter().enumerate() {
+            self.candidate_two.bundle()].into_iter().chain(extra.iter_mut().map(ExtraMaker::bundle)).enumerate() {
             if lots[index] > 0 { makers.push(maker); }
             else if lane_slot == Some(index) { lane = Some(maker.registration); }
         }

@@ -14,9 +14,9 @@ export const BEST_ROUTE_HEAP_BYTES = 128 * 1024;
 /** Include the best financially eligible snapshot legs when the preview finishes.
  * Rank fallback liquidity by the price of the amount it can actually supply.
  * The wallet exposes the selected IDs so omitted quotes are visible. */
-function shortlist(input: LiquidityRouteInput) {
+function shortlist(input: LiquidityRouteInput, width: number) {
   const makers = input.snapshot.liquidity!.adapters;
-  if (makers.length === 3) return [...makers];
+  if (makers.length <= width) return [...makers];
   const selected = new Set<number>();
   try {
     const quote = previewLiquidityRoute(input,true).allocation;
@@ -52,7 +52,7 @@ function shortlist(input: LiquidityRouteInput) {
     return left.id-right.id;
   });
   for(const candidate of ranked) {
-    if(selected.size === 3) break;
+    if(selected.size === width) break;
     selected.add(candidate.id);
   }
   return makers.filter(maker=>selected.has(maker.config.instance));
@@ -61,15 +61,16 @@ function shortlist(input: LiquidityRouteInput) {
 /** Ordinary market order against the signed shortlist at execution time. A snapshot
  * supplies identities and structural epochs. The signer does not pick legs. */
 export async function buildBestRoute(input: LiquidityRouteInput, actor: Address) {
-  return buildMarketOrder(input,actor,false);
+  return buildMarketOrder(input,actor,false,3);
 }
 
 /** Sign the separate local multi-maker instruction and its full candidate set. */
-export async function buildMultiMakerRoute(input: LiquidityRouteInput, actor: Address) {
-  return buildMarketOrder(input,actor,true);
+export async function buildMultiMakerRoute(input: LiquidityRouteInput, actor: Address, width = 3) {
+  requireValue(Number.isInteger(width) && width>=3 && width<=8,'Multi-maker candidate count must be between three and eight.');
+  return buildMarketOrder(input,actor,true,width);
 }
 
-async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, multi: boolean) {
+async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, multi: boolean, width: number) {
   const {snapshot, trader, lots, marketIndex, side, maxFee, allInLimit} = input;
   const root = snapshot.roots[trader];
   requireValue(!input.stored && snapshot.commitment === 'confirmed' && snapshot.marginLayout === 'ledger-lanes'
@@ -82,7 +83,7 @@ async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, mult
   requireValue(liquidity && liquidity.adapters.length === liquidity.registryState.count && liquidity.adapters.length >= 3
     && liquidity.adapters.every((entry, index) => entry.registrationState.instance === index),
     'The complete ordered maker registry is required.');
-  const candidates = shortlist(input);
+  const candidates = shortlist(input,width);
   const [zero, one, two] = candidates;
   const roots = [root, ...candidates.map(maker => maker.capital)];
   const required = requiredAccountMarkets(roots, 1 << marketIndex);
@@ -103,22 +104,29 @@ async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, mult
     twoCapital: two.registrationState.capital, twoRegistration: two.registration, twoProgram: two.registrationState.pricingProgram,
     twoProgramData: two.registrationState.programData, twoConfig: two.registrationState.config, twoPrice: two.registrationState.price,
   };
+  const epochs = candidates.map(maker => ({
+    authority: maker.registrationState.authorityEpoch, control: maker.config.controlEpoch,
+    shape: maker.config.shapeEpoch, depth: maker.registrationState.depthEpoch,
+  }));
   const order = {
     guard: accountGuard(snapshot, trader), domain: snapshot.venueState.domain, configEpoch: market.configEpoch,
     termsEpoch: market.termsEpoch, startSlot: snapshot.slot, expirySlot, side, lots, maxFee, allInLimit,
     reduceOnly: input.reduceOnly ?? (side === 1 ? position.lots >= lots : -position.lots >= lots),
-    generation: position.generation, makerEpochs: candidates.map(maker => ({
-      authority: maker.registrationState.authorityEpoch, control: maker.config.controlEpoch,
-      shape: maker.config.shapeEpoch, depth: maker.registrationState.depthEpoch,
-    })),
+    generation: position.generation, makerEpochs:epochs.slice(0,3),
   };
   let instruction: Instruction = multi
-    ? await clearing.getExecuteMultiRouteInstructionAsync({...accounts,order,extraEpochs:[]})
+    ? await clearing.getExecuteMultiRouteInstructionAsync({...accounts,order,extraEpochs:epochs.slice(3)})
     : await clearing.getExecuteBestRouteInstructionAsync({...accounts,...order});
   const ids = candidates.map(maker=>maker.config.instance);
   const missingLanes = liquidity.registryState.registrations.flatMap((address,id) =>
     !ids.includes(id) && ids.some(instance=>instance%3===id) ? [{address,role:AccountRole.WRITABLE}] : []);
-  if(missingLanes.length) instruction={...instruction,accounts:[...instruction.accounts!,...missingLanes]};
+  const bundles=candidates.slice(3).flatMap(maker=>[
+    {address:maker.registrationState.capital,role:AccountRole.WRITABLE},
+    {address:maker.registration,role:AccountRole.WRITABLE},
+    ...[maker.registrationState.pricingProgram,maker.registrationState.programData,maker.registrationState.config,
+      maker.registrationState.price].map(address=>({address,role:AccountRole.READONLY})),
+  ]);
+  if(bundles.length||missingLanes.length) instruction={...instruction,accounts:[...instruction.accounts!,...bundles,...missingLanes]};
   const checkpoints = marketCheckpointsFor(await venueMarketCheckpoints(snapshot.venue), instruction);
   return {instructions: [...checkpoints, instruction], expirySlot,candidateInstances:ids};
 }

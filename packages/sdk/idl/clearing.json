@@ -28128,6 +28128,19 @@
       ]
     },
     {
+      "name": "MakerFillContinuation",
+      "discriminator": [
+        89,
+        242,
+        181,
+        243,
+        143,
+        228,
+        128,
+        230
+      ]
+    },
+    {
       "name": "MarginMembershipChanged",
       "discriminator": [
         11,
@@ -32352,6 +32365,69 @@
           {
             "name": "depth",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MakerFillContinuation",
+      "docs": [
+        "Additional full maker snapshots from the same atomic route and trader nonce.",
+        "The first receipt includes the aggregate FILLED lots, gross and fee and its",
+        "first two maker entries. Each continuation repeats its zero-based offset."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "first_leg",
+            "type": "u8"
+          },
+          {
+            "name": "root_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarginAccountSnapshot"
+                }
+              }
+            }
+          },
+          {
+            "name": "maker_states",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MakerRegistrationPayload"
+                }
+              }
+            }
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ExecutedLeg"
+                }
+              }
+            }
           }
         ]
       }

@@ -1085,6 +1085,7 @@ export enum ClearingEvent {
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
   LiquidityRouteFeeRecorded,
+  MakerFillContinuation,
   MarginMembershipChanged,
   MarketCheckpointed,
   MarketFeesClassified,
@@ -1508,6 +1509,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.LiquidityRouteFeeRecorded;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([89, 242, 181, 243, 143, 228, 128, 230]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MakerFillContinuation;
   }
   if (
     containsBytes(

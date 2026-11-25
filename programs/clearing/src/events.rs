@@ -298,6 +298,22 @@ pub struct $name {
     };
 }
 fee_route_event!(LiquidityRouteFeeRecorded, market_pending);
+
+/// Additional full maker snapshots from the same atomic route and trader nonce.
+/// The first receipt includes the aggregate FILLED lots, gross and fee and its
+/// first two maker entries. Each continuation repeats its zero-based offset.
+#[event]
+pub struct MakerFillContinuation {
+    pub venue: Address,
+    pub market: Address,
+    pub slot: u64,
+    pub nonce: u64,
+    pub first_leg: u8,
+    pub root_states: Vec<MarginAccountSnapshot>,
+    pub maker_states: Vec<crate::state::liquidity::MakerRegistrationPayload>,
+    pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
+}
+
 fee_route_event!(MarketLaneFilled, market_pending, through: i64, index: i128);
 fee_route_event!(LedgerLaneFilled, lane_pending, through: i64, index: i128);
 

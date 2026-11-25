@@ -43,6 +43,7 @@ export * from "./liquidityMakerChanged.js";
 export * from "./liquidityRegistryChanged.js";
 export * from "./liquidityRouteExecuted.js";
 export * from "./liquidityRouteFeeRecorded.js";
+export * from "./makerFillContinuation.js";
 export * from "./marginMembershipChanged.js";
 export * from "./marketCheckpointed.js";
 export * from "./marketFeesClassified.js";
