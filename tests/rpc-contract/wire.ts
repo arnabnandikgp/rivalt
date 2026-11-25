@@ -20,8 +20,8 @@ export class WireRpc {
   }
 }
 
-export async function eventually<T>(read: () => Promise<T>, accept: (value: T) => boolean, label: string): Promise<T> {
-  const deadline = Date.now() + 15_000;
+export async function eventually<T>(read: () => Promise<T>, accept: (value: T) => boolean, label: string, timeoutMs = 15_000): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const value = await read();
     if (accept(value)) return value;

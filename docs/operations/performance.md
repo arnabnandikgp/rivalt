@@ -131,6 +131,115 @@ All three published curves priced every order. Each dollar order reached maker q
 
 The controls opened four lots in total. After the index moved to $62,000, the reduce-only sale left a flat trader with 3,984 unpaid collateral atoms. Collection from the losing maker and the backing scan enabled payment. The trader withdrew the 3,884-atom net gain after 100 atoms of trading fees. The token wallet gained and the vault lost exactly that amount. Fresh PostgreSQL replay matched 357 events. The four refused orders produced no claim or payout to measure. This was a sequential flat-book test with scripted settlement, one wallet and synthetic prices. [Signed harness](../../tests/rpc-contract/router-notional-rpc.ts) · [Run instructions](local-development.md#fixed-btc-order-sizes)
 
+## Wallet count and market contention
+
+On clearing `b0e1a43f` and harness `27710e33`, each fresh Surfpool venue received the same 48-request trace twice. The first window used one funded wallet. The second used twelve, with each wallet waiting for its own previous confirmation. Each window offered 25 orders/s over 1.920 seconds ($30,720 total test notional), in $120, $600 and $1,200 buys and sells. Every order filled at the synthetic index and paid the 2 bps taker fee. The split venue assigned six streams and half the dollars to each market. Four funded makers per market published deep, flat quotes with zero spread and skew. Normal pricing and funding upkeep continued during each window.
+
+| Markets | Wallets | Fills / offered | Trader fills/s | Filled test dollars/s | p95 arrival to confirmed fill | Last outcome from window start |
+|---|---:|---:|---:|---:|---:|---:|
+| BTC | 1 | 48/48 | 4.73 | 3,028.06 | 7.835 s | 10.145 s |
+| BTC | 12 | 48/48 | 11.97 | 7,658.22 | 2.133 s | 4.011 s |
+| ETH | 1 | 48/48 | 4.85 | 3,105.22 | 7.588 s | 9.893 s |
+| ETH | 12 | 48/48 | 11.50 | 7,359.27 | 2.397 s | 4.174 s |
+| 50/50 BTC and ETH | 1 | 48/48 | 4.14 | 2,647.16 | 9.318 s | 11.605 s |
+| 50/50 BTC and ETH | 12 | 48/48 | 10.00 | 6,396.84 | 2.863 s | 4.802 s |
+
+Trader fills/s counts each completed user order once, including orders split across makers. Both achieved rates use the full observation window through drain, including time spent waiting before signing. All six windows filled the same mix at an average of $640 per order, so filled dollars/s is exactly 640 times fills/s before rounding. Among twelve-wallet orders, all 1,056 distinct-wallet pairs on each single-market venue had common writable accounts. Each order locked the market, ledger, four maker capitals and four registrations. Only maker 0 on each active market consumed depth. In the split venue all 480 same-market pairs conflicted, and none of the 576 cross-market pairs shared an account that either transaction wrote. Among pairs with overlapping broadcast-to-confirmation intervals, 76/76 same-market pairs conflicted and 0/95 cross-market pairs conflicted.
+
+Twelve wallets improved the delivered rate in all three placements. Splitting the market did not improve it in this run. On the split venue p95 was 2.009 s before a wallet started preparing its request, 1.394 s for snapshot through preflight and 0.967 s from broadcast through observed confirmation. Those percentiles describe different samples and cannot be added. The recorded intervals include SDK, simulation, RPC polling and host scheduling. They do not isolate validator lock wait. Each placement had one short window per wallet count, the single-wallet window ran first, and each twelve-wallet trader used one market. Cross accounts carrying both markets can require additional dependencies.
+
+PostgreSQL independently replayed 477 BTC, 473 ETH and 557 split-venue events and reconciled the funded accounts. All 288 finalized originals and their WS observations matched the report. Fourteen timed funding maintenance attempts landed in the matched run. An earlier ETH run stopped when its harness treated a funding-report preflight refusal (6131) as fatal. The corrected harness records that refusal separately, leaves the refused report unsent, and samples again on its normal cadence. Production capacity and contention pricing require separate scheduler and fee-market evidence. [Reproduction and receipt audit](local-development.md#wallet-count-and-market-contention)
+
+### Native validator queue timing
+
+On Agave 4.2.2, harness `5475b255` replayed the twelve-wallet arrivals against clearing `b0e1a43f`. Each placement scheduled 48 signed 1,404-byte v1 orders over 1.920 seconds on a fresh book. Wallets waited for their own previous confirmation. All three placements used synthetic prices, four funded flat makers per market and zero priority fees. The earlier Surfpool twelve-wallet windows followed a one-wallet warm-up on the same book. Compare timings within each runtime first. [Run the native benchmark](local-development.md#native-validator-scheduler-replay)
+
+| Market placement | Filled / offered | Fills/s through drain | Arrival to observed confirmation p95 | Wallet stream wait p95 | Snapshot through signing p95 | Admission to first worker p95 | Admission to last worker p95 | Orders with repeated assignments |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| BTC | 48/48 | 17.18 | 1.274 s | 684 ms | 348 ms | 21.212 ms | 41.966 ms | 6 |
+| ETH | 48/48 | 13.84 | 1.868 s | 1,220 ms | 658 ms | 1.207 ms | 3.637 ms | 1 |
+| BTC/ETH split | 48/48 | 7.94 | 4.207 s | 3,400 ms | 1,699 ms | 5.278 ms | 24.050 ms | 1 |
+
+Each native interval starts when the leader accepts the transaction for its scheduler queue. First worker means the start of processing its assigned batch. Last worker includes elapsed time across internal retries. All 144 signatures had exactly one admission. In BTC, ETH and split order, p95 time to the first assignment itself was 21.210 ms, 0.019 ms and 0.038 ms. Preflight and subscription took 24.5, 47.7 and 86.7 ms p95, the send RPC took 12.3, 24.1 and 40.3 ms, and RPC response to client-observed confirmation took 645.7, 580.3 and 716.8 ms. The client polls for confirmation. These intervals can overlap validator processing, and percentiles describe separate distributions. [Agave worker assignment](https://github.com/anza-xyz/agave/blob/c9c6f3287e26f24e3476e13e751aebe710191e89/core/src/banking_stage/transaction_scheduler/greedy_scheduler.rs) · [Signature audit](../../tests/performance/wallet-contention-report.py)
+
+Every trader assignment, including retries, went to worker 0. The split trace retained 480/480 same-market lock overlaps and 0/576 cross-market overlaps. Cross-market orders could execute in parallel, but this wallet workload did not demonstrate parallel worker use. Its longest measured delays were before submission. The aggregate rate includes the time needed for all offered orders to finish. One window per placement on a single local leader supplies no saturation curve or evidence of priority-fee competition.
+
+A preliminary stock-validator control finalized 48 oracle-policy refusals. The funding publications showed a one-second gap beyond the previous hold, which restarted recovery. The harness now refreshes signed inputs during the two-second minimum reporting interval and reads both markets' on-chain Normal states before measuring. The native harness also retains enough ledger history to replay from initialization and allows up to 90 seconds for finalized receipt auditing. The refused control is excluded from fill rates.
+
+### Where the wallet spends time before signing
+
+Harness `9369c98d` repeated the twelve-wallet BTC/ETH split on the same Agave binary, clearing build and 48-order schedule. The largest interval began **after the final account response arrived** and ended when the SDK returned a verified snapshot. It accounted for 66.7% of the time wallets spent preparing their orders. The SDK decodes clearing and maker accounts, derives their addresses and verifies maker program hashes during this interval. Timings include waits for other work on the same JavaScript event loop. [Snapshot reader](../../packages/sdk/src/account-snapshot.ts) · [Maker verification](../../packages/sdk/src/liquidity-adapter.ts)
+
+| Stage from wallet readiness to signature | Median | p95 | Share of time summed over 48 orders |
+|---|---:|---:|---:|
+| Four account RPC calls, including JSON parsing | 13.6 ms | 38.2 ms | 5.51% |
+| SDK work before and between account reads | 31.9 ms | 85.4 ms | 13.13% |
+| Final account response to verified snapshot | 138.0 ms | 438.3 ms | 66.73% |
+| Build the four-candidate order | 14.1 ms | 87.1 ms | 9.18% |
+| Order built to blockhash request | <0.1 ms | <0.1 ms | 0.02% |
+| Fetch recent blockhash | 2.0 ms | 16.4 ms | 1.75% |
+| Compile, sign and serialize | 8.5 ms | 18.0 ms | 3.68% |
+
+The complete snapshot took 522.3 ms p95 and preparation through signing took 580.5 ms p95. Each wallet read 1, 4, 5 and then 44 accounts. The final read returned 351,176 decoded bytes. Of those, 335,130 bytes (95.4%) belonged to the two maker program-data accounts. Byte counts measure payload size. They leave the relative cost of decoding, hashing and address derivation open. This book had four registered makers and the wallet included all four, so wider shortlist search needs its own workload.
+
+| Same split schedule, 25 orders offered/s | Orders finalized | First admissions/s at leader | Fills/s through drain | Scheduled to observed confirmation p95 | Leader admission to first worker p95 |
+|---|---:|---:|---:|---:|---:|
+| Previous window, `5475b255` | 48/48 | 8.54 | 7.94 | 4.207 s | 5.278 ms |
+| Instrumented repeat, `9369c98d` | 48/48 | 16.05 | 14.44 | 1.603 s | 23.592 ms |
+
+First admissions/s uses the 47 gaps from the first signed order admitted to the last. Fills/s counts all 48 orders from the scheduled start through the last observed outcome. The wallet waited for each trader's previous confirmation. Both runs delivered fewer than 25 signed orders/s to the leader and all trader assignments went to one worker. The rate difference illustrates run-to-run variability. The repeat changed benchmark instrumentation only. Its fresh PostgreSQL replay reconciled 305 events and 259 accounts. [Run the comparison](local-development.md#profiling-wallet-order-preparation)
+
+### Wallet snapshot decoding and verification
+
+In two independent Node 24.22.0 processes, decoding two maker program-data accounts accounted for **50.8–52.2%** of the SDK's time from its final account response to a verified trade snapshot. The input was the retained Agave bank at slot 406, immediately before the first order landed in the twelve-wallet split run. Its replayed bank hash matched the original validator log. Each process profiled 48 serial snapshots on harness `36b6b256`. Each snapshot read 44 accounts in its final batch, including 335,130 bytes across the two maker programs. [Reproduce the offline replay](local-development.md#replaying-wallet-snapshot-verification-offline)
+
+| Stage after the final account response | First run, share of elapsed time | Repeat |
+|---|---:|---:|
+| Decode base64 for the two maker programs | 50.76% | 52.23% |
+| Decode base64 for other accounts | 3.91% | 3.92% |
+| Derive and find canonical addresses | 29.53% | 29.41% |
+| SHA-256 of the two maker program-data accounts | 1.51% | 1.26% |
+| Remaining verification and runtime work | 14.29% | 13.18% |
+
+At the profiled revision, the SDK copied the binary string returned by `atob` through `Uint8Array.from` with a mapping callback per character. The experiment allocated the destination array at the known length and copied each character code directly to its offset. Each process compared 72 snapshots per decoder per concurrency level in alternating order, with individual stage timers disabled.
+
+| Final response to verified snapshot | Original p50, run 1 / 2 | Candidate p50, run 1 / 2 | Original p95, run 1 / 2 | Candidate p95, run 1 / 2 |
+|---|---:|---:|---:|---:|
+| One wallet at a time | 23.60 / 23.50 ms | 10.66 / 10.64 ms | 29.21 / 25.64 ms | 11.89 / 11.52 ms |
+| Twelve wallets together, per wallet | 246.02 / 244.45 ms | 105.19 / 106.09 ms | 277.71 / 273.54 ms | 113.98 / 121.41 ms |
+
+Both decoders reproduced the bytes for all 655 exported accounts and the same decoded state for all twelve wallets. Both marked makers using altered program data unavailable. These timings cover SDK verification on one host from a fixed bank. [Node benchmark](../../tests/performance/wallet-snapshot-profile.ts)
+
+### Browser wallet verification with the default decoder
+
+At `402a6c03` the SDK uses the indexed copy by default. Two fresh headless Chrome 157.0.8103.39 processes replayed the same bank through the wallet's `readAccountTradeSnapshot`. The comparison bundle substituted only the previous decoder. Each process alternated the order for six rounds, giving 72 observations per decoder per workload after warmup. The interval starts when the final batch of 44 accounts is ready and ends when the wallet has verified the snapshot. [SDK decoder](../../packages/sdk/src/wallet-client.ts) · [Reproduction](local-development.md#replaying-wallet-snapshot-verification-offline)
+
+| Time per wallet | Previous median, run 1 / 2 | SDK median, run 1 / 2 | Previous p95, run 1 / 2 | SDK p95, run 1 / 2 |
+|---|---:|---:|---:|---:|
+| One wallet at a time | 16.1 / 16.2 ms | 7.3 / 7.3 ms | 16.7 / 16.9 ms | 8.0 / 7.9 ms |
+| Twelve wallets verifying together | 171.9 / 169.2 ms | 81.8 / 82.2 ms | 194.0 / 191.4 ms | 85.8 / 86.8 ms |
+
+Both bundles reproduced the bytes of all 655 accounts and the same serializable state for twelve BTC/ETH wallets. Both rejected malformed base64 and marked the affected adapters unavailable on both markets when one byte of approved maker code changed. A Node 24.22.0 replay at the same revision independently compared all account bytes with `Buffer.from`. There was no RPC transport, signature, or validator in the timed interval. The improvement applies to local wallet preparation. [Browser comparison](../../tests/browser/wallet-snapshot-comparison.ts)
+
+### Fifty already-signed orders in one slot
+
+Fifty distinct funded wallets each submitted one 1,404-byte v1 order on harness `97523cdf`, clearing `b0e1a43f` and the traced Agave 4.2.2 validator. Both fresh venues used the same 25 buys, 25 sells and $30,960 of requested notional across $120, $600 and $1,200 orders. Four internal makers per market quoted at the index. All 50 originals had been signed, simulated and subscribed over WebSocket before release. Funding maintenance continued. [Reproduce the burst](local-development.md#comparing-already-signed-order-bursts)
+
+| Measured after release | All 50 orders on BTC | 25 BTC and 25 ETH |
+|---|---:|---:|
+| Fills in the first slot after the release reference | 50/50 | 50/50 |
+| Slots after that reference for the last released order to land | 1 | 1 |
+| First to last scheduler admission | 1.4 ms | 2.1 ms |
+| Admission to first worker, median / p95 | 68.1 / 118.6 ms | 60.4 / 91.2 ms |
+| Assignments by validator worker | 50 on worker 0 | 31 on worker 0, 19 on worker 1 |
+| Largest cost charged to one writable account in the landing block | 17,957,403 | 8,980,288 |
+| Time between the previous and landing block's bank freezes | 457.1 ms | 470.5 ms |
+| Release to last confirmation observed by the client | 519.5 ms | 630.0 ms |
+
+Each local leader reported processed slot 636 immediately before release. Finalized receipts placed every order in slot 637 on its respective venue, including the 50th released order. All 1,225 BTC-only pairs shared writable accounts. In the split run 600/600 same-market pairs conflicted and 0/625 cross-market pairs did. Each order had one native admission and one worker assignment. The split used two workers and roughly halved the largest charge to one writable account. Scheduler cost covers all transactions in the block. Assignment counts identify workers but do not measure their execution overlap.
+
+The observed drain corresponds to 96.24 and 79.36 trader fills/s, respectively, including confirmation polling. Both placements cleared the whole burst in one local slot despite the difference in those rates. These were single bursts, with zero priority fees, one leader and measured block intervals above 450 ms. Only maker 0 supplied depth in each traded market. They establish a local lower bound of 50 fills in one block for this workload. A 200 ms slot target, sustained demand and competition for inclusion require separate measurements.
+
 ## Wallet traffic and settlement
 
 Three local runs scheduled the same 120 BTC buys from 24 wallets over 4.165 seconds. Orders were one to three lots. One deep maker always quoted the best test ask. All runs used the bounded router, synthetic sources and a real settlement worker. The timing column includes time spent waiting to prepare the order.

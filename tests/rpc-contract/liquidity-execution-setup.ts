@@ -16,7 +16,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { makerCounts?:readonly [number,number]; marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
+  options: { makerCounts?:readonly [number,number]; marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean; refreshDuringSampleInterval?: boolean } = {}) {
   const traderCount=options.traderCount??2;
   const makerCounts=options.makerCounts??[3,3];
   const population=traderCount+makerCounts[0]+makerCounts[1];
@@ -136,13 +136,16 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     const sampleTime = previous.reduce((latest, market) => market.oracle.sampledAt > latest ? market.oracle.sampledAt : latest, 0n) + 2n;
     const fenceTime = publishers.reduce((latest, publisher) => publisher.lastObservedTime > latest ? publisher.lastObservedTime : latest, 0n);
     const fenceSlot = publishers.reduce((latest, publisher) => publisher.lastObservedSlot > latest ? publisher.lastObservedSlot : latest, 0n);
+    // On a native validator these are two confirmed transactions. Publish the
+    // inputs during the minimum interval, then use the ordinary report fences.
+    if (options.refreshDuringSampleInterval) await fresh();
     await waitUntil(sampleTime > fenceTime ? sampleTime : fenceTime);
     // Fast confirmed provisioning can still be in the publisher's initialization
     // slot. Wait before refreshing inputs; never re-date a report or relax its
     // strictly newer-slot fence. No signed original exists at this point.
     const deadline = Date.now() + 20_000;
     while (await slot() <= fenceSlot) { assert(Date.now() < deadline, 'Publisher fence Clock progress'); await delay(100); }
-    await fresh();
+    if (!options.refreshDuringSampleInterval) await fresh();
     const reports: Instruction[] = [];
     const checkpointRequired=options.marketCheckpoints &&
       sdk.getVenueSafetyDecoder().decode((await h.read(fixture.safety))!).mode===1;

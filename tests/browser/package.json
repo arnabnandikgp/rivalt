@@ -2,6 +2,9 @@
   "name": "@rivalt/browser-tests",
   "private": true,
   "type": "module",
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
   "dependencies": {
     "@rivalt/sdk": "workspace:*",
     "@solana/kit": "8.5.0",

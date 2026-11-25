@@ -5,7 +5,12 @@ import {walletComputeBudget} from './route-budget.js';
 
 export const hex = (bytes: ArrayLike<number>) => Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
 export const toBase64 = (bytes: ArrayLike<number>) => btoa(Array.from(bytes, value => String.fromCharCode(value)).join(''));
-export const fromBase64 = (value: string) => Uint8Array.from(atob(value), char => char.charCodeAt(0));
+export function fromBase64(value: string): Uint8Array {
+  const decoded = atob(value);
+  const bytes = new Uint8Array(decoded.length);
+  for (let offset = 0; offset < decoded.length; offset++) bytes[offset] = decoded.charCodeAt(offset);
+  return bytes;
+}
 export function requireValue(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }

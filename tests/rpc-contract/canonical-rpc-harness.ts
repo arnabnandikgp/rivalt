@@ -16,7 +16,12 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
     observeOutcomes?: (label: string) => boolean;
     /** Resource-boundary probes record actual headroom, including a fully exhausted signed budget. */
     measureComputeBoundary?: (label: string) => boolean;
+    /** A workload may decline a known preflight refusal before any RPC submission. */
+    afterSimulation?: (label: string, signature: string, error: unknown) => void;
     beforeBroadcast?: (label: string, wireBase64: string) => Promise<void>;
+    blockhashRead?: (label: string, start: number, end: number) => void;
+    broadcastAccepted?: (label: string, signature: string) => void;
+    finalityTimeoutMs?: number;
     signedOriginal?: (label: string, signature: string) => void;
     payerFor?: (label: string) => Keypair | undefined;
     /** Deliberately malformed metas have no equivalent generated IDL builder.
@@ -49,7 +54,15 @@ const h: CanonicalHarness = {
     const observeOutcome = options.observeOutcomes?.(label) ?? false;
     const computeUnitLimit = options.computeUnitLimit?.(label,instructions)
       ?? (label.startsWith('reprice ') ? 100_000 : instructions.length > 1 && label.startsWith('atomic') ? 800_000 : 400_000);
-    const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(connection, options.payerFor?.(label) ?? payer, instructions,
+    const signingConnection: Pick<Connection, 'getLatestBlockhash'> = options.blockhashRead ? {
+      async getLatestBlockhash(commitment) {
+        const start = performance.now();
+        const lifetime = await connection.getLatestBlockhash(commitment);
+        options.blockhashRead!(label, start, performance.now());
+        return lifetime;
+      },
+    } : connection;
+    const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(signingConnection, options.payerFor?.(label) ?? payer, instructions,
       { computeUnitLimit, loadedAccountsDataSizeLimit: 8 * 1024 * 1024,heapSize:options.heapSize?.(label) }, signers);
     const wire = transaction.serialize(), wireBase64 = Buffer.from(wire).toString('base64');
     const signedAt = performance.now();
@@ -64,6 +77,7 @@ const h: CanonicalHarness = {
     console.log(`${transactionIndex}: ${label}: v${transaction.version} ${wireBytes} bytes (v0 ${v0Bytes})`);
     const simulation = await rpc.call('simulateTransaction', [wireBase64, { encoding: 'base64', sigVerify: true, commitment: 'confirmed' }]);
     writeFileSync(`${runDir}/simulation-${transactionIndex}.json`, serialize(simulation));
+    options.afterSimulation?.(label, expectedSignature, simulation.value.err);
     if (observeOutcome) { /* Timed offers retain and classify every actual outcome. */ }
     else if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
     else assertInstructionError(simulation.value.err?.InstructionError?.[1], expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);
@@ -75,11 +89,12 @@ const h: CanonicalHarness = {
     await options.beforeBroadcast?.(label, wireBase64);
     const signature = await rpc.call('sendTransaction', [wireBase64, { encoding: 'base64', skipPreflight: true }]);
     assert.equal(signature, expectedSignature);
+    options.broadcastAccepted?.(label, expectedSignature);
     const verify = async () => {
     let finalizedAt: number;
     try {
       await eventually(() => rpc.call('getSignatureStatuses', [[signature], { searchTransactionHistory: true }]),
-        response => response.value[0]?.confirmationStatus === 'finalized', label);
+        response => response.value[0]?.confirmationStatus === 'finalized', label, options.finalityTimeoutMs);
       finalizedAt = performance.now();
     } catch (error) {
       // Preserve the actual commitment/expiry state when a local runtime stalls;

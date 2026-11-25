@@ -207,3 +207,114 @@ The report checks that the two venues offered identical books, funded balances, 
 For the funded multi-maker comparison, build the same `wide-atomic-routes` profile at clearing revision `50bd8836352e3a138142a4ae377ec6dc9d75bcc8` and set `RIVALT_ROUTER_REVISION` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that revision and its matching directory. Use fresh directories for both arms. The new wallet run also signs a sale whose minimum proceeds exceed the best available fill by one collateral atom and checks rollback.
 
 For price-aware wallet selection, use SDK/harness `7353f463` or its compatible stack head with the funded multi-maker binary. The same two-arm command checks the ordinary fills against each independent allocation and signed control. Set `RIVALT_SETTLEMENT_PROBE=execution-router-matched-makers`, `RIVALT_COMPARISON_LEGS=8` and `RIVALT_COMPARISON_MAKERS=16` or `32` to reproduce the wide-directory compatibility traces at harness `7353f463`.
+
+## Wallet count and market contention
+
+Use the `wide-atomic-routes` build at `b0e1a43f22699bb67335011ef7acfb2edf48b0d2` and the matching directory from the wide-fill build instructions. Leave all three runs on the same host and run them sequentially. Each run provisions a fresh local venue and PostgreSQL database. Each window schedules 48 matched requests at 40 ms intervals. Twelve logical streams specify side and dollar size. One window sends every stream through one funded wallet. The other uses twelve independently funded wallets, each waiting only for its previous transaction to confirm.
+
+```bash
+source ops/env.sh
+export RIVALT_ROUTER_REVISION=b0e1a43f22699bb67335011ef7acfb2edf48b0d2
+export RIVALT_SETTLEMENT_PROBE=execution-router-wallet-contention
+# Point RIVALT_SETTLEMENT_ARTIFACT_DIR to the verified wide-atomic-routes build.
+comparison_dir=".local/wallet-contention/run-$(date -u +%Y%m%dT%H%M%SZ)"
+for market in btc split eth; do
+  RIVALT_CONTENTION_MARKETS="$market" RIVALT_RUN_DIR="$comparison_dir/$market" \
+    bash ops/scalable-settlement-smoke.sh || exit 1
+done
+python3 tests/performance/wallet-contention-report.py "$comparison_dir"/{btc,split,eth}
+```
+
+The report matches timetables across venues, audits fee payers, signatures, loaded account permissions and outcomes from finalized receipts, and checks consumed maker depth against the replayed journal. It counts all distinct-wallet transaction pairs and separately counts pairs whose observed broadcast-to-confirmation intervals overlapped. Timing includes the SDK snapshot, simulation, signing, RPC and local scheduling.
+
+### Native validator scheduler replay
+
+This twelve-wallet comparison runs a local Agave leader at its default slot timing. It uses the same 48 arrivals, fees, program binaries, economic checks and finalized PostgreSQL replay as the Surfpool comparison. Each placement gets a fresh ledger. For this test use Agave 4.2.2. The workspace's 4.1.2 RPC rejects the 1,404-byte v1 order before it reaches scheduling.
+
+Build the local test validator once. The small patch timestamps admission, worker assignment and the start of worker batch processing using one monotonic clock. A separate thread formats signatures and writes the trace. The command below uses the Rust toolchain and Apple Command Line Tools on the qualification host.
+
+```bash
+source ops/env.sh
+source_dir=.local/agave-contention/source
+git clone --branch v4.2.2 --depth 1 https://github.com/anza-xyz/agave.git "$source_dir"
+test "$(git -C "$source_dir" rev-parse HEAD)" = c9c6f3287e26f24e3476e13e751aebe710191e89
+git -C "$source_dir" apply --unidiff-zero "$PWD/tests/performance/agave-4.2.2-scheduler.patch"
+(
+  cd "$source_dir"
+  mkdir -p target/release
+  ln -s "$(xcode-select -p)/usr/lib/libclang.dylib" target/release/libclang.dylib
+  LIBCLANG_PATH="$(xcode-select -p)/usr/lib" CARGO_INCREMENTAL=0 \
+    CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_DEBUG=0 \
+    CARGO_PROFILE_RELEASE_STRIP=debuginfo CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+    CXXFLAGS=-g0 CFLAGS=-g0 cargo +1.97.1 build --release --locked \
+    -p agave-validator --bin solana-test-validator -j 5
+)
+export RIVALT_AGAVE_VALIDATOR="$source_dir/target/release/solana-test-validator"
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/wide-routing/build-b0e1a43f
+comparison_dir=".local/agave-contention/run-$(date -u +%Y%m%dT%H%M%SZ)"
+for market in btc split eth; do
+  RIVALT_CONTENTION_MARKETS="$market" RIVALT_RUN_DIR="$comparison_dir/$market" \
+    bash ops/validator-wallet-contention.sh || exit 1
+done
+python3 tests/performance/wallet-contention-report.py --scheduler "$comparison_dir"/{btc,split,eth}
+```
+
+The report joins native events to each original signed order and its finalized receipt. It reports scheduler intervals in microseconds and client intervals in milliseconds. RPC response and validator processing can overlap. Aggregate latency percentiles cannot be added. For each signature admitted once, the report times first assignment, first worker start and last worker start from that admission. The last interval includes prior attempts when Agave retries. Client percentiles use every signed original. Single-attempt percentiles have their own denominator. The validator stops when the workload exits. Raw traces, ledger and receipts stay in the local run directory.
+
+### Profiling wallet order preparation
+
+Use the validator and clearing artifact exports above. Set `baseline_split` to a completed twelve-wallet split run from the same validator, such as `"$comparison_dir/split"` from the preceding command. The reference baseline used harness `5475b255`.
+
+```bash
+baseline_split="$comparison_dir/split"
+profiled_split=".local/agave-contention/preparation-$(date -u +%Y%m%dT%H%M%SZ)/split"
+RIVALT_CONTENTION_MARKETS=split RIVALT_RUN_DIR="$profiled_split" bash ops/validator-wallet-contention.sh
+python3 tests/performance/wallet-contention-report.py --preparation "$baseline_split" "$profiled_split"
+```
+
+The report checks both finalized journals, the validator binary, program build, per-wallet schedule and all signed outcomes. For each signed order it partitions elapsed time from wallet readiness to the original signature. The four sequential account calls include receipt and JSON parsing. The final batch includes both maker programs' upgradeable program data. Reported bytes are decoded account-data lengths. The elapsed time outside RPC includes event-loop waits. The leader's observed arrival rate divides the number of gaps between first admissions by their elapsed span. Fills/s uses every completed trader order through the last observed outcome.
+
+### Replaying wallet snapshot verification offline
+
+The twelve-wallet split run retains an Agave ledger. For the measured run, slot 406 immediately precedes the first fill. Export that bank with Agave 4.2.2 on a scratch copy. The following uses APFS clones on the local macOS host and the retained Agave distribution.
+
+```bash
+source ops/env.sh
+run=.local/agave-contention/preparation-9369c98d/split
+scratch=$(mktemp -d .local/agave-contention/profile-XXXXXX)
+mkdir "$scratch/ledger"
+cp -cR "$run/ledger/rocksdb" "$scratch/ledger/"
+cp -c "$run/ledger/genesis.bin" "$run"/ledger/snapshot-400-*.tar.zst "$scratch/ledger/"
+tar -xjf .local/agave-contention/solana-release-aarch64-apple-darwin.tar.bz2 \
+  -C "$scratch" solana-release/bin/agave-ledger-tool
+"$scratch/solana-release/bin/agave-ledger-tool" --ledger "$scratch/ledger" --log "$scratch/export.log" \
+  accounts --halt-at-slot 406 --include-sysvars --output json-compact > "$scratch/accounts.json"
+rg 'bank frozen: 406 hash:' "$run/ledger/validator.log" "$scratch/export.log"
+node --experimental-test-module-mocks --import tsx tests/performance/wallet-snapshot-profile.ts \
+  "$scratch/accounts.json" "$run" 406
+```
+
+Verify that both logs give the same bank hash. The benchmark reads all four account batches from that bank and times the SDK from its final response to its verified snapshot. It checks the maker hashes against the retained journal, compares decoder outputs byte for byte, and checks the SDK's response to a changed maker binary. Stage shares come from serial replays of the previous decoder. The separate decoder comparison alternates execution order and reports single-wallet and twelve-concurrent-wallet timings with stage recording disabled.
+
+Use the same export to test the SDK in a real browser. Set `RIVALT_CHROME_PATH` to the local Chromium or Chrome executable, or use the Playwright-managed Chromium. The runner loads only the public bank data into a temporary headless browser and fulfills requests in memory. Run twice in separate processes to see timing variation.
+
+```bash
+node --import tsx tests/browser/wallet-snapshot-profile.ts "$scratch/accounts.json" "$run" 406
+```
+
+### Comparing already-signed order bursts
+
+Use the native validator and artifact exports in the scheduler replay instructions. Run each placement sequentially on a fresh venue:
+
+```bash
+burst_dir=".local/agave-contention/burst-$(date -u +%Y%m%dT%H%M%SZ)"
+for placement in btc split; do
+  RIVALT_CONTENTION_MODE=presigned RIVALT_CONTENTION_MARKETS="$placement" \
+    RIVALT_RUN_DIR="$burst_dir/$placement" bash ops/validator-wallet-contention.sh || exit 1
+done
+python3 tests/performance/wallet-contention-report.py --burst "$burst_dir"/{btc,split}
+```
+
+Each of 50 funded wallets places one four-candidate order. Sides and dollar sizes follow the same sequence on both venues. The harness holds every signed original after simulation and WebSocket subscription. Once all 50 are ready, it polls the processed slot, waits for the next observed slot change and releases the originals in order without waiting for another wallet's confirmation. An incomplete preparation cancels the burst. The report counts landed refusals separately from successful trader fills and checks every original against finalized RPC receipts, native scheduler events and PostgreSQL maker depth.
+
+Slot offsets use the last processed slot observed immediately before release as zero. This RPC reference can lag a bank that is still accepting transactions. The slot histogram shows which finalized blocks included the orders. A missing receipt fails the audit. For each landing block the report reads the validator's actual bank-freeze timestamps and scheduler costs. Native admission-to-worker timing uses the validator's clock. Release to observed confirmation also includes RPC transport and client polling.
