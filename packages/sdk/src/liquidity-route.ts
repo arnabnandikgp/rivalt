@@ -15,13 +15,12 @@ export type LiquidityRouteInput = MarginRouteIntent & {
 };
 
 /** Exact preview is available before activation; no transaction authority is implied. */
-export function previewLiquidityRoute(input: LiquidityRouteInput, standing = false, directoryWidth?: number) {
-  if (directoryWidth !== undefined) requireValue(standing && Number.isInteger(directoryWidth) &&
-    directoryWidth >= 3 && directoryWidth <= 8, 'Invalid multi-maker preview width.');
-  return previewRoute(input, false, standing, directoryWidth);
+export function previewLiquidityRoute(input: LiquidityRouteInput, standing = false, baselineCandidates?: ReadonlySet<number>) {
+  if (baselineCandidates) requireValue(standing && baselineCandidates.size >= 3 && baselineCandidates.size <= 8, 'Invalid multi-maker preview width.');
+  return previewRoute(input, false, standing, baselineCandidates);
 }
 
-function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean, standing = false, directoryWidth?: number) {
+function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean, standing = false, baselineCandidates?: ReadonlySet<number>) {
   const { snapshot,trader,marketIndex } = input;
   const root = snapshot.roots[trader];
   requireValue(snapshot.venueState.profileVersion === 6 && snapshot.liquidity && root?.schemaVersion === 10
@@ -33,7 +32,7 @@ function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean, sta
   const financialRoot = makerLiquidation ? { ...root, book: { ...root.book,
     orders: root.book.orders.map(entry => [1,2].includes(entry.order.state) && !entry.order.reduceOnly
       ? { ...entry, order: { ...entry.order, state: 6, reserve: 0n } } : entry) } } : root;
-  return allocateLiquidityRoute({ ...input, makerLiquidation, standing, directoryWidth, root: financialRoot, makers: snapshot.liquidity.adapters,markets: snapshot.marketStates,
+  return allocateLiquidityRoute({ ...input, makerLiquidation, standing, baselineCandidates, root: financialRoot, makers: snapshot.liquidity.adapters,markets: snapshot.marketStates,
     slot: snapshot.slot,now: snapshot.now,
     sources: snapshot.marketStates.map(market => accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)),
     funding: snapshot.marketStates.map(market => effectiveAccountFunding(snapshot.safetyState,market,snapshot.now,snapshot.slot)),

@@ -30,7 +30,10 @@ it('returns the best directory price when the exact fill fits the signed width',
           expect(count).toBeGreaterThan(width);
         } else {
           expect(allocation.length).toBeLessThanOrEqual(width);
-          expect(allocation.reduce((sum,[id,lots])=>sum+books[id].quote(lots),0n)).toBe(expected);
+          const gross = allocation.reduce((sum,[id,lots])=>sum+books[id].quote(lots),0n);
+          const unlimited = directoryAllocation(books, side, BigInt(size), books.length)!;
+          if (unlimited.length <= width) expect(gross).toBe(expected);
+          else expect(side === 0 ? gross >= expected : gross <= expected).toBe(true);
           expect(allocation.reduce((sum,[,lots])=>sum+lots,0n)).toBe(BigInt(size));
         }
       }
@@ -41,4 +44,10 @@ it('returns the best directory price when the exact fill fits the signed width',
 it('falls back for insufficient depth or a leg below its execution collar', () => {
   expect(directoryAllocation([null, book([100,101])],0,3n,3)).toBeNull();
   expect(directoryAllocation([book([100,101],2n),book([110])],0,1n,3)).toBeNull();
+});
+
+it('reprices the full size after dropping a fifth maker contributing a single marginal lot', () => {
+  const books = [book([106,106,106,106]), ...[100,101,102,103].map(first => book([first,first,107,110]))];
+  const result = directoryAllocation(books, 0, 9n, 4)!;
+  expect(result).toEqual([[1,3n],[2,2n],[3,2n],[4,2n]]);
 });

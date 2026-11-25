@@ -2,7 +2,7 @@
 // the wallet's leg cap. Gross quotes are cumulative and their marginals monotone.
 type Book = { lower: bigint; upper: bigint; quote(lots: bigint): bigint };
 
-export function directoryAllocation(books: readonly (Book | null)[], side: 0 | 1, size: bigint, width: number) {
+function priceAllocation(books: readonly (Book | null)[], side: 0 | 1, size: bigint) {
   const direction = side === 0 ? 1n : -1n;
   const curves = books.flatMap((book, id) => {
     if (!book) return [];
@@ -49,6 +49,17 @@ export function directoryAllocation(books: readonly (Book | null)[], side: 0 | 1
     remaining -= take;
   }
   const filled = legs.filter(leg => leg.lots > 0n).sort((left, right) => left.id - right.id);
-  if (remaining || filled.length > width || filled.some(leg => leg.lots < leg.lower)) return null;
+  if (remaining || filled.some(leg => leg.lots < leg.lower)) return null;
   return filled.map(leg => [leg.id, leg.lots] as [number, bigint]);
+}
+
+// When the directory spans too many makers, retain its largest contributions
+// and reprice the entire order. The caller separately prices its baseline set.
+export function directoryAllocation(books: readonly (Book | null)[], side: 0 | 1, size: bigint, width: number) {
+  const full = priceAllocation(books, side, size);
+  if (!full || full.length <= width) return full;
+  const largest = [...full].sort(([leftId, left], [rightId, right]) =>
+    left === right ? leftId - rightId : left > right ? -1 : 1);
+  const ids = new Set(largest.slice(0, width).map(([id]) => id));
+  return priceAllocation(books.map((book, id) => ids.has(id) ? book : null), side, size);
 }

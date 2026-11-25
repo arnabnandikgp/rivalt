@@ -11,18 +11,26 @@ import {requireValue} from './wallet-client.js';
 
 export const BEST_ROUTE_HEAP_BYTES = 128 * 1024;
 
-function shortlist(input: LiquidityRouteInput, width: number, legLimit: number, directoryWidth?: number) {
+function shortlist(input: LiquidityRouteInput, width: number, legLimit: number, priceDirectory: boolean) {
   const makers = input.snapshot.liquidity!.adapters;
   if (makers.length <= width) return [...makers];
   let previewIds: number[] = [];
   try {
-    const quote = previewLiquidityRoute(input, true, directoryWidth).allocation;
+    const quote = previewLiquidityRoute(input, true).allocation;
     previewIds = quote?.legs.map(leg => leg.instance) ?? [];
   } catch (error) {
     if (!(error instanceof LiquiditySearchLimitError)) throw error;
   }
-  const selected = selectMakerIds(makers.map(maker => makerDepth(input, maker)), input.side,
-    input.lots, legLimit, width, previewIds);
+  const depths = makers.map(maker => makerDepth(input, maker));
+  let selected = selectMakerIds(depths, input.side, input.lots, legLimit, width, previewIds);
+  if (priceDirectory) {
+    try {
+      const compared = previewLiquidityRoute(input, true, selected);
+      if (compared.candidateInstances) selected = new Set(compared.candidateInstances);
+    } catch (error) {
+      if (!(error instanceof LiquiditySearchLimitError)) throw error;
+    }
+  }
   return makers.filter(maker => selected.has(maker.config.instance));
 }
 
@@ -36,10 +44,10 @@ export async function buildBestRoute(input: LiquidityRouteInput, actor: Address)
 export async function buildMultiMakerRoute(input: LiquidityRouteInput, actor: Address, width = 3,
     deployment: 'multi-maker' | 'funded-multi-maker' = 'multi-maker') {
   requireValue(Number.isInteger(width) && width>=3 && width<=8,'Multi-maker candidate count must be between three and eight.');
-  return buildMarketOrder(input,actor,true,width, deployment === 'funded-multi-maker' ? width : undefined);
+  return buildMarketOrder(input,actor,true,width, deployment === 'funded-multi-maker');
 }
 
-async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, multi: boolean, width: number, directoryWidth?: number) {
+async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, multi: boolean, width: number, priceDirectory = false) {
   const {snapshot, trader, lots, marketIndex, side, maxFee, allInLimit} = input;
   const root = snapshot.roots[trader];
   requireValue(!input.stored && snapshot.commitment === 'confirmed' && snapshot.marginLayout === 'ledger-lanes'
@@ -52,7 +60,7 @@ async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, mult
   requireValue(liquidity && liquidity.adapters.length === liquidity.registryState.count && liquidity.adapters.length >= 3
     && liquidity.adapters.every((entry, index) => entry.registrationState.instance === index),
     'The complete ordered maker registry is required.');
-  const candidates = shortlist(input,width,multi ? width : 2,directoryWidth);
+  const candidates = shortlist(input,width,multi ? width : 2,priceDirectory);
   const [zero, one, two] = candidates;
   const roots = [root, ...candidates.map(maker => maker.capital)];
   const required = requiredAccountMarkets(roots, 1 << marketIndex);
