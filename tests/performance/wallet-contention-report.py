@@ -188,7 +188,10 @@ def native_scheduler(directory, rows):
         }
         assigned_workers[int(events[1][3])] += 1
     assert segments, "No unambiguous scheduler observations"
-    return {"signed": len(signed), "singleAttempt": len(segments), "multipleAttempts": multiple_attempts,
+    filled = [value for signature, value in segments.items() if signed[signature]["error"] is None]
+    return {"signed": len(signed), "singleAttempt": len(segments), "singleAttemptFills": len(filled),
+            "fillAdmitToWorkerBatchUs": percentiles([value["admitToWorkerBatchUs"] for value in filled]),
+            "multipleAttempts": multiple_attempts,
             "assignedWorkers": assigned_workers,
             "timing": {key: percentiles([value[key] for value in segments.values()]) for key in next(iter(segments.values()))}}
 
