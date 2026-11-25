@@ -7,16 +7,17 @@ import {symmetricPayoutShape} from './canonical-maker-cases.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {accountUserAuthority} from '../../packages/services/src/account-ingress.js';
 import type {Keypair} from '@solana/web3.js';
-import {routerBuild} from './execution-router-build.js';
+import {multiDeploymentFor,routerBuild} from './execution-router-build.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const directory=process.env.RIVALT_RUN_DIR!,build=routerBuild();
+const deployment=multiDeploymentFor(build.artifactSet);
 const timed=(label:string)=>label.startsWith('width ');
 const feePayers=new Map<string,Keypair>();
 let venue='',known:Awaited<ReturnType<typeof sdk.venueMarketCheckpoints>>=[];
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{
   payerFor:label=>feePayers.get(label),
-  beforeBroadcast:async(label,bytes)=>{if(timed(label))assert.equal(accountUserAuthority(bytes,venue,4,known,'multi-maker')?.kind,'accountStateVersion');},
+  beforeBroadcast:async(label,bytes)=>{if(timed(label))assert.equal(accountUserAuthority(bytes,venue,4,known,deployment)?.kind,'accountStateVersion');},
   deferFinality:true,heapSize:label=>timed(label)?128*1024:undefined,computeUnitLimit:label=>timed(label)?800_000:undefined,
   observeOutcomes:timed,measureComputeBoundary:timed,
 });
@@ -39,7 +40,7 @@ try {
     const quantities:bigint[]=makers.map((_,id)=>id<width-1?65_000n:id===width-1?33_935n:0n);
     const gross=quantities.reduce((sum,lots,id)=>sum+lots*(ref+2n+BigInt(id)*2n),0n),fee=(gross+4999n)/5000n;
     const order=await sdk.buildMultiMakerRoute({snapshot:snap,trader,marketIndex:index,side:0,lots:quantity,
-      maxFee:fee,allInLimit:gross+fee},owner.address,width);
+      maxFee:fee,allInLimit:gross+fee},owner.address,width,deployment);
     assert.deepEqual(order.candidateInstances,Array.from({length:width},(_,id)=>id));
     const label='width '+width+' independent market buy';
     feePayers.set(label,owner);

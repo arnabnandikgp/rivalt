@@ -42,9 +42,9 @@ export async function buildBestRoute(input: LiquidityRouteInput, actor: Address)
 
 /** Sign the separate local multi-maker instruction and its full candidate set. */
 export async function buildMultiMakerRoute(input: LiquidityRouteInput, actor: Address, width = 3,
-    deployment: 'multi-maker' | 'funded-multi-maker' = 'multi-maker') {
+    deployment: 'multi-maker' | 'funded-multi-maker' | 'price-limited-multi-maker' = 'multi-maker') {
   requireValue(Number.isInteger(width) && width>=3 && width<=8,'Multi-maker candidate count must be between three and eight.');
-  return buildMarketOrder(input,actor,true,width, deployment === 'funded-multi-maker');
+  return buildMarketOrder(input,actor,true,width, deployment !== 'multi-maker');
 }
 
 async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, multi: boolean, width: number, priceDirectory = false) {

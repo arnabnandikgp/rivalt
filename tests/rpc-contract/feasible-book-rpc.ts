@@ -11,14 +11,14 @@ import { symmetricPayoutShape } from './canonical-maker-cases.js';
 import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
 import { executionTestHelpers } from './liquidity-execution-helpers.js';
 import { openSettlementJournal } from './scalable-settlement-journal.js';
-import { routerBuild } from './execution-router-build.js';
+import { multiDeploymentFor, routerBuild } from './execution-router-build.js';
 import { feasibleBook, type Book, type Order } from './feasible-book-reference.js';
 
 const arm = process.env.RIVALT_FEASIBLE_ARM;
 assert(arm === 'wallet' || arm === 'control');
 const directory = process.env.RIVALT_RUN_DIR!, build = routerBuild();
-const fundedRouting = build.artifactSet === sdk.FUNDED_MULTI_ARTIFACT_SET;
-const deployment = fundedRouting ? 'funded-multi-maker' : 'multi-maker';
+const deployment = multiDeploymentFor(build.artifactSet);
+const fundedRouting = deployment !== 'multi-maker';
 const offered = (label: string) => label.startsWith('feasible ');
 const feePayers = new Map<string, Keypair>();
 let venue: Address, known: Awaited<ReturnType<typeof sdk.venueMarketCheckpoints>>;

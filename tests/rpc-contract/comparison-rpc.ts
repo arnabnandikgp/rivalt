@@ -12,14 +12,14 @@ import { executionTestHelpers } from './liquidity-execution-helpers.js';
 import { readOffers } from './depth-benchmark-reference.js';
 import { compareFlat } from './comparison-reference.js';
 import { openSettlementJournal } from './scalable-settlement-journal.js';
-import { routerBuild } from './execution-router-build.js';
+import { multiDeploymentFor, routerBuild } from './execution-router-build.js';
 
 const count = Number(process.env.RIVALT_COMPARISON_MAKERS),
   width = Number(process.env.RIVALT_COMPARISON_LEGS);
 assert([16, 32].includes(count) && [2, 4, 8].includes(width));
 const directory = process.env.RIVALT_RUN_DIR!,
   build = routerBuild();
-const deployment = build.artifactSet === sdk.FUNDED_MULTI_ARTIFACT_SET ? 'funded-multi-maker' : 'multi-maker';
+const deployment = multiDeploymentFor(build.artifactSet);
 const offered = (label: string) => label.startsWith('compare ');
 const payers = new Map<string, Keypair>();
 let venue = '',
