@@ -113,14 +113,19 @@ if __name__ == "__main__":
     runs = [load(path, arm) for path, arm in zip(sys.argv[1:], ["routed", "explicit"])]
     assert runs[0]["revision"] == runs[1]["revision"] and runs[0]["build"] == runs[1]["build"]
     assert [row["label"] for row in runs[0]["rows"]] == [row["label"] for row in runs[1]["rows"]]
-    # Both artifacts use the bounded-entry deployment. Keep the decisive paired witness in the report.
     for run in runs:
         cases = {row["control"]: row for row in run["rows"] if row["control"].startswith("maker-capital")}
         fallback = cases["maker-capital-fallback"]
         assert fallback["publishedBest"]["legs"][0]["id"] == 0 and fallback["best"]["legs"][0]["id"] == 1
         assert fallback["pair"]["explicit"]["error"] is None
-        assert fallback["pair"]["routed"]["error"]["InstructionError"][1] == {"Custom": 6133}
-        assert (fallback["fill"] is None) == (run["arm"] == "routed")
+        if run["build"]["artifactSet"] == "funded-maker-routing":
+            assert fallback["pair"]["routed"]["error"] is None
+            for field in ("legs", "gross", "fee"):
+                assert fallback["fill"][field] == fallback["best"][field]
+        else:
+            assert run["build"]["artifactSet"] == "bounded-entry-settlement"
+            assert fallback["pair"]["routed"]["error"]["InstructionError"][1] == {"Custom": 6133}
+            assert (fallback["fill"] is None) == (run["arm"] == "routed")
         assert cases["maker-capital-limit"]["fill"] is None
         for row in run["rows"]:
             if row["expectedRefusal"]:

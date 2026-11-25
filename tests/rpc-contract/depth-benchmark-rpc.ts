@@ -172,6 +172,19 @@ try {
       const signature = String(receipt.signature);
       const tx = await rpc.call('getTransaction',[signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
       const measured = meter(tx.meta.logMessages,tx.meta.computeUnitsConsumed,tx.meta.err);
+      if (build.artifactSet === sdk.FUNDED_ROUTING_ARTIFACT_SET) {
+        assert.equal(tx.meta.err === null, expectedRefusal === null, label);
+        if (capitalControl) {
+          assert.equal(lots, 3_334n);
+          if (control === 'maker-capital-fallback') {
+            assert.equal(allInLimit, 100_053_343n);
+            assert.deepEqual(best?.legs.map(leg => [leg.id,leg.lots]), [[1,3_334n]]);
+          } else {
+            assert.equal(allInLimit, 100_046_674n);
+            if (landedPath === 'routed') assert.deepEqual(tx.meta.err.InstructionError[1], {Custom:6120});
+          }
+        }
+      }
       const events = eventPayloads(signature,tx,authority).filter(event=>event.payload.subarray(0,8).equals(fillTag));
       let fill = null;
       if (tx.meta.err === null) {

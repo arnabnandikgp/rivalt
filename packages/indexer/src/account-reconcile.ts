@@ -129,7 +129,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped discriminator ${key}`);
         if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
           const attribution=sdk.decodeProfitAttribution(bytes,sponsored);
-          assert.equal(Boolean(attribution.entryBounds),binding.artifactSet===sdk.BOUNDED_ENTRY_ARTIFACT_SET,`Entry format mismatch ${key}`);
+          assert.equal(Boolean(attribution.entryBounds),sdk.hasBoundedEntry(binding.artifactSet),`Entry format mismatch ${key}`);
           assert.equal(attribution.closedQuantity, sdk.hasClosedQuantity(binding.artifactSet),`Payout rule mismatch ${key}`);
         } else if(capacity && entity.kind===6) {
           sdk.decodeCapacityAnchor(bytes,checkedFunding);
