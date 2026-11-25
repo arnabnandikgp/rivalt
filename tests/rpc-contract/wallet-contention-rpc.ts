@@ -95,12 +95,17 @@ try {
   const windows = [];
   for (const wallets of nativeValidator ? [participants] : [1, participants]) {
     await setup.qualify();
+    let openingMarkets;
     if (nativeValidator) {
       // Four accepted publications can still have a gap between their holds.
       // Observe both on-chain Normal states before starting the timed arrivals.
       for (let attempt = 0; ; attempt++) {
         const markets = await Promise.all([setup.marketState(0), setup.marketState(1)]);
-        if (markets.every(market => market.oracle.status === 2)) break;
+        if (markets.every(market => market.oracle.status === 2)) {
+          openingMarkets = markets.map(({index, oracle}) => ({index, status: oracle.status,
+            sampledAt: oracle.sampledAt, heldUntil: oracle.heldUntil, validSince: oracle.validSince}));
+          break;
+        }
         assert(attempt < 12, 'Could not acquire overlapping qualified funding windows on both markets');
         await setup.sample();
       }
@@ -199,7 +204,7 @@ try {
     for (const report of reports) assert(report.ws && (report.error === null || fundingRefusal(report.error)),
       'Unexpected finalized maintenance result ' + JSON.stringify(report.error));
     assert.equal(reports.length + refreshes.filter(sample => sample.preflight).length, refreshes.length);
-    windows.push({wallets, entries, refreshes, reports: reports.map(({signature, error}) => ({signature, error}))});
+    windows.push({wallets, openingMarkets, entries, refreshes, reports: reports.map(({signature, error}) => ({signature, error}))});
     timedReportSignatures.clear();
     writeFileSync(directory + '/contention-windows.json', json({revision, build, placement, gapMs, roles, windows}));
   }

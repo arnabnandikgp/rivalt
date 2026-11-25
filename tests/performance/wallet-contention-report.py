@@ -231,6 +231,7 @@ def main():
             binary = (directory / "validator-sha256.txt").read_text().split()[0]
             version = (directory / "validator-version.txt").read_text().strip()
             assert version.startswith("solana-test-validator 4.2.2 (src:c9c6f328;")
+            assert [(market["index"], market["status"]) for market in run["windows"][0]["openingMarkets"]] == [(0, 2), (1, 2)]
             schedules[-1] += (version, binary)
             runs[placement]["scheduler"] = native_scheduler(directory, rows)
     assert set(runs) == {"btc", "eth", "split"} and all(value == schedules[0] for value in schedules)
