@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
+import {isDeepStrictEqual} from 'node:util';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {decodeAccountInvocations} from '../../packages/indexer/src/account-events.js';
@@ -35,9 +36,22 @@ writeFileSync(directory + '/scheduled-offers.json', json({revision, build, place
 const payers = new Map<string, Keypair>();
 const broadcasts = new Map<string, {at: number; locks: ReturnType<typeof transactionLocks>}>();
 const isOrder = (label: string) => label.startsWith('contention ');
+const reportLabel = 'P32 publisher available two-market reports';
+let measuring = false;
+const isTimedReport = (label: string) => measuring && label === reportLabel;
+const fundingRefusal = (error: unknown) => [1, 3].some(index =>
+  isDeepStrictEqual(error, {InstructionError: [index, {Custom: sdk.CLEARING_ERROR__FUNDING_REPORT}]}));
+class ReportPreflightRefusal extends Error {
+  constructor(readonly signature: string, readonly instructionError: unknown) { super('Funding report preflight refused'); }
+}
 let venue = '', checkpoints: Awaited<ReturnType<typeof sdk.venueMarketCheckpoints>> = [];
 const {h, rpc, ws, checks, flush} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
-  process.env.RIVALT_WS_URL!, directory, {deferFinality: true, observeOutcomes: isOrder, measureComputeBoundary: isOrder,
+  process.env.RIVALT_WS_URL!, directory, {deferFinality: true, observeOutcomes: label => isOrder(label) || isTimedReport(label), measureComputeBoundary: isOrder,
+    afterSimulation: (label, signature, error) => {
+      if (!isTimedReport(label) || error === null) return;
+      if (fundingRefusal(error)) throw new ReportPreflightRefusal(signature, error);
+      assert.fail('Unexpected funding report preflight error ' + JSON.stringify(error));
+    },
     payerFor: label => payers.get(label), computeUnitLimit: label => isOrder(label) ? 800_000 : undefined,
     heapSize: label => isOrder(label) ? 128 * 1024 : undefined,
     beforeBroadcast: async (label, bytes) => {
@@ -76,15 +90,22 @@ try {
     type Offer = typeof trace[number];
     type Result = Offer & {wallet: number; label: string; readyMs: number; observedMs: number;
       unsigned: string | null};
-    const observations: Result[] = [], refreshes: {startMs:number; endMs:number}[] = [];
+    const observations: Result[] = [], refreshes: {startMs:number; endMs:number;
+      preflight: {signature:string; error:unknown} | null}[] = [];
+    const firstCheck = checks.length;
+    measuring = true;
     let stop = false;
     const maintain = async () => {
       while (!stop) {
         await delay(2000);
         if (stop) break;
         const startMs = elapsed();
-        await setup.sample();
-        refreshes.push({startMs, endMs: elapsed()});
+        let preflight = null;
+        try { await setup.sample(); } catch (error) {
+          if (!(error instanceof ReportPreflightRefusal)) throw error;
+          preflight = {signature: error.signature, error: error.instructionError};
+        }
+        refreshes.push({startMs, endMs: elapsed(), preflight});
       }
     };
     const driveWallet = async (lane: number) => {
@@ -115,13 +136,14 @@ try {
     const offerTasks = Promise.allSettled(Array.from({length: wallets}, (_, lane) => driveWallet(lane)))
       .finally(() => { stop = true; });
     const [outcomes] = await Promise.all([offerTasks, maintain()]);
+    measuring = false;
     for (const outcome of outcomes) if (outcome.status === 'rejected') throw outcome.reason;
     await flush();
     const entries = [];
     const blocks = new Map<number, string[]>();
     for (const offer of observations.sort((left, right) => left.id - right.id)) {
       if (offer.unsigned) { entries.push({...offer, signature: null}); continue; }
-      const tx = checks.find(check => check.label === offer.label)!;
+      const tx = checks.find(check => check?.label === offer.label)!;
       assert.equal(tx.signatures, 1);
       assert(tx.ws);
       const signature = String(tx.signature);
@@ -154,10 +176,14 @@ try {
         locks: broadcast.locks, cu: tx.computeUnits, networkFeeLamports: String(receipt.meta.fee)});
     }
     assert.equal(entries.length, trace.length);
-    windows.push({wallets, entries, refreshes});
+    const reports = checks.slice(firstCheck).filter(check => check?.label === reportLabel);
+    for (const report of reports) assert(report.ws && (report.error === null || fundingRefusal(report.error)),
+      'Unexpected finalized maintenance result ' + JSON.stringify(report.error));
+    assert.equal(reports.length + refreshes.filter(sample => sample.preflight).length, refreshes.length);
+    windows.push({wallets, entries, refreshes, reports: reports.map(({signature, error}) => ({signature, error}))});
     writeFileSync(directory + '/contention-windows.json', json({revision, build, placement, gapMs, roles, windows}));
   }
-  journal = await openSettlementJournal(rpc, setup, checks.map(row => String(row.signature)), build);
+  journal = await openSettlementJournal(rpc, setup, checks.filter(Boolean).map(row => String(row.signature)), build);
   await journal.checkpoint('wallet-contention', true);
   const {events, reconciliation} = await journal.finish();
   writeFileSync(directory + '/contention-replay.json', json({revision, build, placement, events, reconciliation}));

@@ -16,6 +16,8 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
     observeOutcomes?: (label: string) => boolean;
     /** Resource-boundary probes record actual headroom, including a fully exhausted signed budget. */
     measureComputeBoundary?: (label: string) => boolean;
+    /** A workload may decline a known preflight refusal before any RPC submission. */
+    afterSimulation?: (label: string, signature: string, error: unknown) => void;
     beforeBroadcast?: (label: string, wireBase64: string) => Promise<void>;
     signedOriginal?: (label: string, signature: string) => void;
     payerFor?: (label: string) => Keypair | undefined;
@@ -64,6 +66,7 @@ const h: CanonicalHarness = {
     console.log(`${transactionIndex}: ${label}: v${transaction.version} ${wireBytes} bytes (v0 ${v0Bytes})`);
     const simulation = await rpc.call('simulateTransaction', [wireBase64, { encoding: 'base64', sigVerify: true, commitment: 'confirmed' }]);
     writeFileSync(`${runDir}/simulation-${transactionIndex}.json`, serialize(simulation));
+    options.afterSimulation?.(label, expectedSignature, simulation.value.err);
     if (observeOutcome) { /* Timed offers retain and classify every actual outcome. */ }
     else if (expectedError === undefined) assert.equal(simulation.value.err, null, `${label}: ${simulation.value.logs?.join('\n')}`);
     else assertInstructionError(simulation.value.err?.InstructionError?.[1], expectedError, `${label}: ${simulation.value.logs?.join('\n')}`);

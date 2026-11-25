@@ -102,7 +102,9 @@ def summarize(window, gap, roles):
         "dispatchWaitMs": percentiles([max(0, row["readyMs"] - row["dueMs"]) for row in rows]),
         "snapshotThroughPreflightMs": percentiles([row["broadcastMs"] - row["readyMs"] for row in signed]),
         "broadcastToConfirmationMs": percentiles([row["observedMs"] - row["broadcastMs"] for row in signed]),
-        "completedMaintenanceSamples": len(window["refreshes"]),
+        "maintenanceAttempts": len(window["refreshes"]),
+        "maintenancePreflightRefusals": sum(sample["preflight"] is not None for sample in window["refreshes"]),
+        "maintenanceLandedRefusals": sum(report["error"] is not None for report in window["reports"]),
         "lockOverlap": lock_overlap(signed, roles),
     }
 
