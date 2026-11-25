@@ -76,6 +76,7 @@ try {
   const regions = [{endLots: 20_000_000n, offset: 0n, slope: 0n}, ...symmetricPayoutShape.asks.slice(1)];
   const setup = await liquidityExecutionSetup(h, rpc, {makerCounts: [4, 4], marketCheckpoints: true,
     marginLayout: 'ledger-lanes', traderCount: participants + 1, independentTraders: true, verifyRejections: false,
+    refreshDuringSampleInterval: nativeValidator,
     makerCash: 500_000_000_000n, traderCash: 500_000_000_000n,
     shape: () => ({...symmetricPayoutShape, shortCap: 20_000_000n, longCap: 20_000_000n, bids: regions, asks: regions})});
   venue = setup.venue;
@@ -93,11 +94,17 @@ try {
   setup.roots.forEach((root, id) => { roles[root] = 'wallet margin ' + id; roles[setup.traderOwners[id].address] = 'payer ' + id; });
   const windows = [];
   for (const wallets of nativeValidator ? [participants] : [1, participants]) {
-    // Native finality takes about 32 slots. Drain prior audits before refreshing
-    // the oracle so an audit barrier cannot consume the order's risk window.
-    if (nativeValidator) await flush();
     await setup.qualify();
-    if (!nativeValidator) await flush();
+    if (nativeValidator) {
+      // Four accepted publications can still have a gap between their holds.
+      // Observe both on-chain Normal states before starting the timed arrivals.
+      for (let attempt = 0; ; attempt++) {
+        const markets = await Promise.all([setup.marketState(0), setup.marketState(1)]);
+        if (markets.every(market => market.oracle.status === 2)) break;
+        assert(attempt < 12, 'Could not acquire overlapping qualified funding windows on both markets');
+        await setup.sample();
+      }
+    } else await flush();
     const started = performance.now(), elapsed = () => performance.now() - started;
     type Offer = typeof trace[number];
     type Result = Offer & {wallet: number; label: string; readyMs: number; observedMs: number;
@@ -108,7 +115,7 @@ try {
     let stop = false;
     const maintain = async () => {
       while (!stop) {
-        await delay(2000);
+        if (!nativeValidator) await delay(2000);
         if (stop) break;
         const startMs = elapsed();
         let preflight = null;

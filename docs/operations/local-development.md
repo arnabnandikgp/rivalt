@@ -241,6 +241,8 @@ test "$(git -C "$source_dir" rev-parse HEAD)" = c9c6f3287e26f24e3476e13e751aebe7
 git -C "$source_dir" apply --unidiff-zero "$PWD/tests/performance/agave-4.2.2-scheduler.patch"
 (
   cd "$source_dir"
+  mkdir -p target/release
+  ln -s "$(xcode-select -p)/usr/lib/libclang.dylib" target/release/libclang.dylib
   LIBCLANG_PATH="$(xcode-select -p)/usr/lib" CARGO_INCREMENTAL=0 \
     CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_DEBUG=0 \
     CARGO_PROFILE_RELEASE_STRIP=debuginfo CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \

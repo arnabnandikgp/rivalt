@@ -28,7 +28,7 @@ done
 "$RIVALT_AGAVE_VALIDATOR" --ledger "$RIVALT_RUN_DIR/ledger" --bind-address 127.0.0.1 \
   --rpc-port 19861 --gossip-port 19868 --faucet-port 19865 --dynamic-port-range 19900-19940 \
   --mint "$(solana-keygen pubkey .local/keys/payer.json)" "${programs[@]}" \
-  --limit-ledger-size 20000 --log-messages-bytes-limit 131072 --quiet > "$RIVALT_RUN_DIR/startup.log" 2>&1 &
+  --limit-ledger-size 250000 --log-messages-bytes-limit 131072 --quiet > "$RIVALT_RUN_DIR/startup.log" 2>&1 &
 validator_pid=$!
 cleanup() {
   kill "$validator_pid" 2>/dev/null || true
