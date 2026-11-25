@@ -18,10 +18,12 @@ import { executionTestHelpers } from './liquidity-execution-helpers.js';
 import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
 import { backingStep } from './membership-scan-helper.js';
 import { openSettlementJournal } from './scalable-settlement-journal.js';
+import { ethSpreadGain, makerExitLabel, makerProofWork, readMakerExit, summarizeMakerExit, type ProofReceipt } from './cold-maker-exit.js';
 import { eventually } from './wire.js';
 
 const arm = process.env.RIVALT_CASHOUT_ARM;
-assert(arm === 'trader' || arm === 'worker', 'Choose trader or worker settlement');
+const followMaker = arm === 'worker-eth-exit';
+assert(arm === 'trader' || arm === 'worker' || followMaker, 'Choose trader, worker or worker-eth-exit settlement');
 const dir = process.env.RIVALT_RUN_DIR!, url = process.env.RIVALT_RPC_URL!, wsUrl = process.env.RIVALT_WS_URL!;
 const database = process.env.RIVALT_DATABASE_URL!, runId = 'p55b2-application';
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
@@ -62,14 +64,17 @@ try {
   const creditors = setup.roots.slice(0, 2);
   const tokens = [setup.traderToken.address, (await fixtureKey('p32-scale-token-1')).address];
   const [certificate] = await sdk.deriveSettlementCertificate(setup.venue, 0);
+  const ethMaker = setup.instances[5];
+  assert.equal(ethMaker.market, setup.markets[1]);
+  const [ethCertificate] = await sdk.deriveSettlementCertificate(setup.venue, 1);
   const identity = { ...setup.identity, boundedEntry: true, closedQuantity: true };
-  const sendAs = async (owner: number, label: string, instructions: Instruction[]) => {
-    payers.set(label, owners[owner]);
-    await h.send(label, instructions, [owners[owner]]);
+  const sendAs = async (owner: typeof owners[number], label: string, instructions: Instruction[]) => {
+    payers.set(label, owner);
+    await h.send(label, instructions, [owner]);
   };
   async function trade(owner: number, market: 0 | 1, side: 0 | 1, size: bigint, maker: number, label: string, close = false) {
     const trader = setup.roots[owner];
-    await sendAs(owner, label, [await route({ trader, actor: owners[owner], marketIndex: market, side,
+    await sendAs(owners[owner], label, [await route({ trader, actor: owners[owner], marketIndex: market, side,
       lots: [size], makers: [setup.instances[maker]], marketLane: true, minimalMarkets: true,
       reduceOnly: close, generation: close ? (await root(trader)).positions[market].generation : undefined })]);
   }
@@ -127,6 +132,8 @@ try {
   const reference = [61_000n, 30_000n] as const;
   async function observe() {
     const keys = [...creditors, ...tokens, setup.vault, ...setup.ledgers, ...debtors];
+    const makerIndex = keys.length;
+    if (followMaker) keys.push(ethMaker.capital, ethMaker.token.address, ethCertificate);
     const response = await rpc.call('getMultipleAccounts', [keys, { commitment: 'confirmed', encoding: 'base64' }]);
     const data = (i: number) => Buffer.from(response.value[i].data[0], 'base64');
     const token = (i: number) => getTokenDecoder().decode(data(i)).amount;
@@ -139,7 +146,9 @@ try {
         if (claim < 0n) debt[market] += -claim / scale;
       }
     }
-    return { ms: elapsed(), slot: response.context.slot, debt, ethPool: sdk.decodeFeeLedger(data(6)).state.settlement, vault: token(4), pool: sdk.decodeFeeLedger(data(5)).state.settlement,
+    const maker = followMaker ? readMakerExit(data(makerIndex), data(makerIndex + 1),
+      response.value[makerIndex + 2] ? data(makerIndex + 2) : null, setup.venue, ethMaker.owner.address, setup.mint.address) : undefined;
+    return { ms: elapsed(), slot: response.context.slot, maker, debt, ethPool: sdk.decodeFeeLedger(data(6)).state.settlement, vault: token(4), pool: sdk.decodeFeeLedger(data(5)).state.settlement,
       creditors: creditors.map((_, i) => {
         const account = sdk.getMarginAccountDecoder().decode(data(i)), position = account.positions[0];
         return { lots: position.lots, claimScaled: position.virtualScaled, cash: account.cash, wallet: token(i + 2) };
@@ -147,6 +156,11 @@ try {
   }
   const first = await observe();
   assert.equal(first.pool, openingPool);
+  if (followMaker) {
+    assert(first.maker);
+    assert.deepEqual([first.maker.cash, first.maker.lots, first.maker.virtualScaled, first.maker.proof, first.ethPool],
+      [100_000_000n, 0n, 0n, null, 0n]);
+  }
   const observations = [first];
   async function record() { const state = await observe(); observations.push(state); return state; }
   background(async () => { while (running) { await record(); await delay(75); } });
@@ -190,7 +204,7 @@ try {
     await service.execute();
   }
   const settlement = background(async () => {
-    if (arm === 'worker') {
+    if (arm !== 'trader') {
       while (running && polling) {
         await dispatch();
         try { await service.settle(setup.payer); }
@@ -206,11 +220,11 @@ try {
           const state = await record();
           const amount = state.pool < remaining ? state.pool : remaining;
           if (!amount) {
-            await sendAs(i, 'owner collects ' + i, await collect(owners[i], remaining));
+            await sendAs(owners[i], 'owner collects ' + i, await collect(owners[i], remaining));
             assert((await record()).pool >= remaining, 'Signed collection did not fund the pool');
             continue;
           }
-          await sendAs(i, 'owner claims ' + i + ' remaining ' + remaining, await withCheckpoints(sdk.getPayAccountGainInstruction({
+          await sendAs(owners[i], 'owner claims ' + i + ' remaining ' + remaining, await withCheckpoints(sdk.getPayAccountGainInstruction({
             ...common, actor: owners[i], margin: creditors[i], certificate, marketIndex: 0, amount })));
           remaining -= amount;
           await record();
@@ -220,7 +234,8 @@ try {
   });
   // Common withdrawal policy: withdraw exactly the net trading gain once fully credited.
   const exited = new Set<number>();
-  const followupEnd = Math.max(...closeTimes) + 120_000;
+  let makerExited = false;
+  const followupEnd = Math.max(...closeTimes) + (followMaker ? 360_000 : 120_000);
   while (elapsed() < followupEnd) {
     healthy();
     const state = await record();
@@ -228,24 +243,34 @@ try {
       const account = state.creditors[i];
       if (exited.has(i) || account.claimScaled !== 0n) continue;
       assert.equal(account.cash, deposit + net);
-      await sendAs(i, 'withdraw creditor ' + i, await withCheckpoints(sdk.getWithdrawFundedAccountInstruction({
+      await sendAs(owners[i], 'withdraw creditor ' + i, await withCheckpoints(sdk.getWithdrawFundedAccountInstruction({
         ...common, owner: owners[i], margin: creditors[i], userToken: tokens[i], quoteMint: setup.mint.address,
         guard: await guard(creditors[i]), amount: net })));
       const withdrawn = (await record()).creditors[i];
       assert.deepEqual([withdrawn.wallet - first.creditors[i].wallet, withdrawn.cash], [net, deposit]);
       exited.add(i);
     }
-    if (exited.size === creditors.length && elapsed() >= Math.max(...closeTimes) + cutoffMs
+    if (state.maker && trafficFinished && !makerExited && state.maker.cash === first.maker!.cash + ethSpreadGain) {
+      assert(state.maker.proof?.complete && state.maker.lots === 0n && state.maker.virtualScaled === 0n);
+      await sendAs(ethMaker.owner, makerExitLabel, await withCheckpoints(sdk.getWithdrawFundedAccountInstruction({
+        ...common, owner: ethMaker.owner, margin: ethMaker.capital, userToken: ethMaker.token.address, quoteMint: setup.mint.address,
+        guard: await guard(ethMaker.capital), amount: ethSpreadGain })));
+      const withdrawn = (await record()).maker!;
+      assert.deepEqual([withdrawn.wallet - first.maker!.wallet, withdrawn.cash], [ethSpreadGain, first.maker!.cash]);
+      makerExited = true;
+    }
+    if ((!followMaker || makerExited) && exited.size === creditors.length && elapsed() >= Math.max(...closeTimes) + cutoffMs
       && (arm === 'trader' || (trafficFinished && state.debt.every(amount => amount === 0n)))) break;
     await delay(100);
   }
   const cutoff = await record();
   polling = false; await settlement; await traffic; healthy();
-  if (arm === 'worker') await eventually(async () => { await dispatch(); return intents(); },
+  if (arm !== 'trader') await eventually(async () => { await dispatch(); return intents(); },
     rows => rows.every(row => ['failed', 'finalized'].includes(row.status)), 'settlement originals drain', 45_000);
   running = false; await Promise.all(tasks); healthy(); await flush(); await indexer.close(); indexer = undefined;
   const workerReceipts: { request: string; signature: string; slot: number; error: unknown;
     collections: { marketIndex: number; amount: bigint }[] }[] = [];
+  const ethReceipts: ProofReceipt[] = [];
   const flows = [0, 1].map(() => ({ collections: 0, collected: 0n, paid: 0n }));
   for (const row of await intents()) {
     const receipt = await rpc.call('getTransaction', [row.signature, { commitment: 'finalized', encoding: 'base64', maxSupportedTransactionVersion: 1 }]);
@@ -254,6 +279,10 @@ try {
     const collections: { marketIndex: number; amount: bigint }[] = [];
     if (receipt.meta.err === null) {
       const { message } = VersionedTransaction.deserialize(Buffer.from(row.wire, 'base64'));
+      if (followMaker) {
+        const work = makerProofWork(message, ethCertificate, ethMaker.capital);
+        if (work) ethReceipts.push({ ...work, signature: row.signature, slot: receipt.slot, fee: BigInt(receipt.meta.fee) });
+      }
       for (const ix of message.compiledInstructions) {
         if (message.staticAccountKeys[ix.programIdIndex].address !== sdk.CLEARING_PROGRAM_ADDRESS) continue;
         const tag = sdk.hex(ix.data.subarray(0, 8));
@@ -282,6 +311,17 @@ try {
     const label = String(check.label);
     assert.equal(tx.message.staticAccountKeys[0].address, payers.get(label)!.address);
     assert.equal(tx.signatures.length, 1);
+    if (label === makerExitLabel) {
+      type TokenBalance = { accountIndex: number; mint: string; uiTokenAmount: { amount: string } };
+      const balance = (rows: TokenBalance[], key: string) => {
+        const entry = rows.find(row => tx.message.staticAccountKeys[row.accountIndex]?.address === key);
+        assert(entry && entry.mint === setup.mint.address);
+        return BigInt(entry.uiTokenAmount.amount);
+      };
+      for (const [key, delta] of [[ethMaker.token.address, ethSpreadGain], [setup.vault, -ethSpreadGain]] as const) {
+        assert.equal(balance(receipt.meta.postTokenBalances, key) - balance(receipt.meta.preTokenBalances, key), delta);
+      }
+    }
     ownerReceipts.push({ label, signature: check.signature, slot: receipt.slot, error: receipt.meta.err });
   }
   const rows = creditors.map((margin, i) => {
@@ -321,12 +361,13 @@ try {
   assert.equal(load.length, trafficCount);
   assert(load.some(check => check.error === null), 'No landed competing fills');
   const last = await observe();
-  assert.equal(first.vault - last.vault, last.creditors.reduce((sum, row, i) => sum + row.wallet - first.creditors[i].wallet, 0n));
+  const traderWithdrawals = last.creditors.reduce((sum, row, i) => sum + row.wallet - first.creditors[i].wallet, 0n);
+  assert.equal(first.vault - last.vault, traderWithdrawals + (last.maker ? last.maker.wallet - first.maker!.wallet : 0n));
   for (const [i, key] of creditors.entries()) {
     assert.equal(BigInt(replay.state.roots[key].cash), last.creditors[i].cash);
     assert.equal(BigInt(replay.state.roots[key].positions[0].virtualScaled), last.creditors[i].claimScaled);
   }
-  if (arm === 'worker') {
+  if (arm !== 'trader') {
     for (const market of [0, 1] as const) {
       const state = replay.state.markets[setup.markets[market]];
       assert.equal(BigInt(state.referencePrice), reference[market]);
@@ -337,14 +378,26 @@ try {
   }
   const availableForBoth = observations.find(state => state.creditors.every(row => row.lots === 0n)
     && state.pool >= state.creditors.reduce((total, row) => total + row.claimScaled / scale, 0n));
-  const result = { revision, program: build.revision, arm, openingPool, backingReadyBeforeClose: true, releasedMs, firstObservedPoolCoveringRemainingClaimsMs: availableForBoth?.ms ?? null, rows,
+  writeFileSync(dir + '/cashout-observations.json', json(observations));
+  let makerExit;
+  if (followMaker) {
+    writeFileSync(dir + '/cold-eth-receipts.json', json(ethReceipts));
+    const withdrawal = ownerReceipts.find(row => row.label === makerExitLabel);
+    assert(makerExited && withdrawal && withdrawal.error === null, 'Cold ETH maker withdrawal did not land before cutoff');
+    makerExit = summarizeMakerExit(observations, ethReceipts, { signature: String(withdrawal.signature), slot: withdrawal.slot });
+    const finalRoot = replay.state.roots[ethMaker.capital], finalProof = replay.state.backing[ethCertificate];
+    assert(finalProof.complete && BigInt(finalProof.next) === 12n && BigInt(finalProof.count) === 12n);
+    assert.deepEqual([BigInt(finalRoot.cash), BigInt(finalRoot.positions[1].lots), BigInt(finalRoot.positions[1].virtualScaled)],
+      [first.maker!.cash, 0n, 0n]);
+    assert.equal(last.ethPool, 0n);
+  }
+  const result = { makerExit, revision, program: build.revision, arm, openingPool, backingReadyBeforeClose: true, releasedMs, firstObservedPoolCoveringRemainingClaimsMs: availableForBoth?.ms ?? null, rows,
     traffic: { offered: trafficCount, filled: load.filter(row => row.error === null).length, gapMs: trafficGap, dueMs },
     exitsObserved: exited.size, observedThroughMs: cutoff.ms, events: replay.events, workerReceipts, workerFlows: flows, remainingLossAtoms: last.debt,
     receipts: ownerReceipts };
   writeFileSync(dir + '/cashout-backing.json', json(backingSamples));
-  writeFileSync(dir + '/cashout-observations.json', json(observations));
   writeFileSync(dir + '/cashout-result.json', json(result));
-  if (arm === 'worker') {
+  if (arm !== 'trader') {
     // Six round trips per wallet, two wallets per market, ten lots at a four-atom spread.
     // The opening BTC maker also owes 2,000 lots times 998 atoms, less the pre-seeded pool.
     assert.equal(competingFills.length, 48, 'Unmatched background traffic');
