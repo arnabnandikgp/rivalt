@@ -121,12 +121,25 @@ try {
   assert(beforeClose.payable, 'Both arms must start with current backing');
   const start = performance.now();
   const elapsed = () => Math.round(performance.now() - start);
+  // The opposing opening maker and the four traffic wallets are the only debtors in this book.
+  // Sampling them in the same bank lets the worker drain covered losses after the last exit.
+  const debtors = [setup.instances[0].capital, ...setup.roots.slice(2)];
+  const reference = [61_000n, 30_000n] as const;
   async function observe() {
-    const keys = [...creditors, ...tokens, setup.vault, setup.ledgers[0]];
+    const keys = [...creditors, ...tokens, setup.vault, ...setup.ledgers, ...debtors];
     const response = await rpc.call('getMultipleAccounts', [keys, { commitment: 'confirmed', encoding: 'base64' }]);
     const data = (i: number) => Buffer.from(response.value[i].data[0], 'base64');
     const token = (i: number) => getTokenDecoder().decode(data(i)).amount;
-    return { ms: elapsed(), slot: response.context.slot, vault: token(4), pool: sdk.decodeFeeLedger(data(5)).state.settlement,
+    const debt = [0n, 0n];
+    for (let i = 0; i < debtors.length; i++) {
+      const account = sdk.getMarginAccountDecoder().decode(data(7 + i));
+      for (const market of [0, 1] as const) {
+        const position = account.positions[market];
+        const claim = position.virtualScaled + position.lots * reference[market] * scale;
+        if (claim < 0n) debt[market] += -claim / scale;
+      }
+    }
+    return { ms: elapsed(), slot: response.context.slot, debt, ethPool: sdk.decodeFeeLedger(data(6)).state.settlement, vault: token(4), pool: sdk.decodeFeeLedger(data(5)).state.settlement,
       creditors: creditors.map((_, i) => {
         const account = sdk.getMarginAccountDecoder().decode(data(i)), position = account.positions[0];
         return { lots: position.lots, claimScaled: position.virtualScaled, cash: account.cash, wallet: token(i + 2) };
@@ -141,6 +154,7 @@ try {
   background(async () => { while (running) { await delay(1000); if (running) await setup.sample(); } });
   // Equal paced demand on both venues. Pin the background maker to avoid changing the initial debtor.
   // Each wallet owns its predecessor queue; all scheduled offers count, including landed refusals.
+  let trafficFinished = false;
   const traffic = background(async () => {
     await Promise.all([0, 1, 2, 3].map(async stream => {
       for (let id = stream; id < trafficCount; id += 4) {
@@ -149,6 +163,7 @@ try {
         await trade(stream + 2, market, (Math.floor(id / 4) % 2) as 0 | 1, 10n, market * 3 + 2, 'traffic ' + id);
       }
     }));
+    trafficFinished = true;
   });
   const closeTimes: number[] = [];
   for (let i = 0; i < creditors.length; i++) {
@@ -220,7 +235,8 @@ try {
       assert.deepEqual([withdrawn.wallet - first.creditors[i].wallet, withdrawn.cash], [net, deposit]);
       exited.add(i);
     }
-    if (exited.size === creditors.length && elapsed() >= Math.max(...closeTimes) + cutoffMs) break;
+    if (exited.size === creditors.length && elapsed() >= Math.max(...closeTimes) + cutoffMs
+      && (arm === 'trader' || (trafficFinished && state.debt.every(amount => amount === 0n)))) break;
     await delay(100);
   }
   const cutoff = await record();
@@ -228,12 +244,31 @@ try {
   if (arm === 'worker') await eventually(async () => { await dispatch(); return intents(); },
     rows => rows.every(row => ['failed', 'finalized'].includes(row.status)), 'settlement originals drain', 45_000);
   running = false; await Promise.all(tasks); healthy(); await flush(); await indexer.close(); indexer = undefined;
-  const workerReceipts = [];
+  const workerReceipts: { request: string; signature: string; slot: number; error: unknown;
+    collections: { marketIndex: number; amount: bigint }[] }[] = [];
+  const flows = [0, 1].map(() => ({ collections: 0, collected: 0n, paid: 0n }));
   for (const row of await intents()) {
     const receipt = await rpc.call('getTransaction', [row.signature, { commitment: 'finalized', encoding: 'base64', maxSupportedTransactionVersion: 1 }]);
     assert.equal(receipt.transaction[0], row.wire);
     assert.deepEqual((await ws.notification(subscriptions.get(row.signature)!)).params.result.value.err, receipt.meta.err);
-    workerReceipts.push({ request: row.request_id, signature: row.signature, slot: receipt.slot, error: receipt.meta.err });
+    const collections: { marketIndex: number; amount: bigint }[] = [];
+    if (receipt.meta.err === null) {
+      const { message } = VersionedTransaction.deserialize(Buffer.from(row.wire, 'base64'));
+      for (const ix of message.compiledInstructions) {
+        if (message.staticAccountKeys[ix.programIdIndex].address !== sdk.CLEARING_PROGRAM_ADDRESS) continue;
+        const tag = sdk.hex(ix.data.subarray(0, 8));
+        if (tag === sdk.hex(sdk.COLLECT_ACCOUNT_LOSS_DISCRIMINATOR)) {
+          const { marketIndex, amount } = sdk.getCollectAccountLossInstructionDataDecoder().decode(ix.data);
+          collections.push({ marketIndex, amount });
+          flows[marketIndex].collections++;
+          flows[marketIndex].collected += amount;
+        } else if (tag === sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR)) {
+          const { marketIndex, amount } = sdk.getPayAccountGainInstructionDataDecoder().decode(ix.data);
+          flows[marketIndex].paid += amount;
+        }
+      }
+    }
+    workerReceipts.push({ collections, request: row.request_id, signature: row.signature, slot: receipt.slot, error: receipt.meta.err });
   }
   if (arm === 'trader') assert.equal(workerReceipts.length, 0);
   const replayName = 'close-to-wallet';
@@ -262,7 +297,12 @@ try {
       assert.equal(holder.claimScaled % scale, 0n);
       const withdrawn = holder.wallet - first.creditors[i].wallet, credited = gain - unpaid;
       assert.equal(holder.cash + withdrawn, deposit - fees + credited);
-      return { ms, observedMs: state.ms - closeTimes[i], slot: state.slot, unpaid, credited, withdrawn, pool: state.pool };
+      const collectedBeforeSlot = [0n, 0n];
+      for (const receipt of workerReceipts) if (receipt.slot < state.slot) {
+        for (const { marketIndex, amount } of receipt.collections) collectedBeforeSlot[marketIndex] += amount;
+      }
+      return { ms, observedMs: state.ms - closeTimes[i], slot: state.slot, unpaid, credited, withdrawn, pool: state.pool,
+        ethPool: state.ethPool, outstandingLossAtoms: state.debt, workerCollectedBeforeSlot: collectedBeforeSlot };
     });
     return { margin, closeBroadcastMs: Math.round(broadcast.get('close creditor ' + i)! - start),
       closeConfirmedMs: closeTimes[i], gain, fees, net, firstCreditMs: delayTo(s => s.creditors[i].claimScaled < gain * scale),
@@ -286,15 +326,32 @@ try {
     assert.equal(BigInt(replay.state.roots[key].cash), last.creditors[i].cash);
     assert.equal(BigInt(replay.state.roots[key].positions[0].virtualScaled), last.creditors[i].claimScaled);
   }
+  if (arm === 'worker') {
+    for (const market of [0, 1] as const) {
+      const state = replay.state.markets[setup.markets[market]];
+      assert.equal(BigInt(state.referencePrice), reference[market]);
+      assert.equal(BigInt(state.fundingIndexScaled), 0n);
+      const pool = BigInt(replay.state.ledgers[setup.ledgers[market]].settlement);
+      assert.equal(pool, (market === 0 ? openingPool : 0n) + flows[market].collected - flows[market].paid);
+    }
+  }
   const availableForBoth = observations.find(state => state.creditors.every(row => row.lots === 0n)
     && state.pool >= state.creditors.reduce((total, row) => total + row.claimScaled / scale, 0n));
   const result = { revision, program: build.revision, arm, openingPool, backingReadyBeforeClose: true, releasedMs, firstObservedPoolCoveringRemainingClaimsMs: availableForBoth?.ms ?? null, rows,
     traffic: { offered: trafficCount, filled: load.filter(row => row.error === null).length, gapMs: trafficGap, dueMs },
-    exitsObserved: exited.size, observedThroughMs: cutoff.ms, events: replay.events, workerReceipts,
+    exitsObserved: exited.size, observedThroughMs: cutoff.ms, events: replay.events, workerReceipts, workerFlows: flows, remainingLossAtoms: last.debt,
     receipts: ownerReceipts };
   writeFileSync(dir + '/cashout-backing.json', json(backingSamples));
   writeFileSync(dir + '/cashout-observations.json', json(observations));
   writeFileSync(dir + '/cashout-result.json', json(result));
+  if (arm === 'worker') {
+    // Six round trips per wallet, two wallets per market, ten lots at a four-atom spread.
+    // The opening BTC maker also owes 2,000 lots times 998 atoms, less the pre-seeded pool.
+    assert.equal(competingFills.length, 48, 'Unmatched background traffic');
+    assert.deepEqual(flows.map(flow => flow.collected), [502_000n + 480n, 480n]);
+    assert.deepEqual(last.debt, [0n, 0n]);
+    assert.equal(exited.size, 2);
+  }
   console.log(json({ ...result, receipts: undefined, workerReceipts: workerReceipts.length }));
 } finally {
   running = false; polling = false; await Promise.allSettled(tasks);

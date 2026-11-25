@@ -5,13 +5,12 @@ import {createNoopSigner,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {accountTradeFixture} from '../../sdk/src/account-test-fixture.js';
-import {settleAccounts} from './account-settlement-worker.js';
+import {settleAccounts,type SettlementSchedule} from './account-settlement-worker.js';
 import {accountWorkerKeys} from './account-worker-state.js';
 import type {AccountRuntime} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
 
-// Encoded consumer input only; actual atomic completion/rollback is an RPC gate.
-it.each([0n,1n])('persists final coverage with payment only for a payable cohort (bad=%s)',async(bad)=>{
+async function finalPageFixture(bad: bigint) {
   const test=await accountTradeFixture(),margin=test.margins[0],venue=test.config.venue;
   const root=sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(margin).data[0],'base64'));
   root.positions[0].virtualScaled=3_000_000_001n;
@@ -35,6 +34,12 @@ it.each([0n,1n])('persists final coverage with payment only for a payable cohort
 
   test.put(certificate,sdk.getSettlementCertificateEncoder().encode({...test.empty(sdk.getSettlementCertificateDecoder()),
     schemaVersion:10,revision:1n,venue,marketIndex:0,backingEpoch:7n,count:2n,next:2n,membership:{checkpoint},bump}));
+  return {test,margin,venue,root,keys,certificate};
+}
+
+// Encoded consumer input only; actual atomic completion/rollback is an RPC gate.
+it.each([0n,1n])('persists final coverage with payment only for a payable cohort (bad=%s)',async(bad)=>{
+  const {test,margin,venue,root,keys,certificate}=await finalPageFixture(bad);
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];
   const runtime={rpc:test.rpc,budget:async()=> 'settlement-budget',pendingBudget:async()=>false,
     discovery:async()=>({state:{members:[margin]}}),
@@ -57,6 +62,43 @@ it.each([0n,1n])('persists final coverage with payment only for a payable cohort
   expect(authority).toEqual({kind:'accountStateVersion',venue,account:margin,value:root.stateVersion.toString()});
   for(const key of [test.custody,(await sdk.deriveVenueComponent(venue,'vault'))[0]])
     expect(instructions.slice(1).some(instruction=>instruction.accounts!.some(meta=>meta.address===key))).toBe(false);
+});
+
+it('gives a backed payout a turn between collections and rotates the collecting market', async () => {
+  const { test, margin, root, keys, certificate } = await finalPageFixture(0n);
+  const debtor = test.margins[1];
+  const account = sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(debtor).data[0], 'base64'));
+  account.isolatedMarketIndex = 0;
+  account.positions[0].virtualScaled = -2_000_000_000n;
+  root.positions[1].virtualScaled = -1_000_000_000n;
+  test.put(margin, sdk.getMarginAccountEncoder().encode(root));
+  test.put(debtor, sdk.getMarginAccountEncoder().encode(account));
+  const proof = sdk.getSettlementCertificateDecoder().decode(Buffer.from(test.accounts.get(certificate).data[0], 'base64'));
+  test.put(certificate, sdk.getSettlementCertificateEncoder().encode({ ...proof, complete: true }));
+  const ids: string[] = [];
+  let pending = false;
+  const runtime = {
+    rpc: test.rpc, budget: async () => 'settlement', pendingBudget: async () => pending,
+    discovery: async () => ({ state: { members: [debtor, margin] } }),
+    snapshot: async (members: typeof test.margins) => ({ ...await sdk.readAccountSnapshot(test.rpc, test.config, members, 'confirmed'), ...keys }),
+    enqueue: async (id: string) => { ids.push(id); },
+  } as unknown as AccountRuntime;
+  const signer = createNoopSigner(test.owner) as Keypair;
+  const schedule: SettlementSchedule = { next: 'collection', collectionMarket: 0 };
+  const poll = () => settleAccounts(runtime, signer, false, schedule);
+  expect((await poll()).reason).toBe('funded-account-loss');
+  pending = true;
+  expect((await poll()).reason).toBe('original-settlement-intent-pending');
+  expect(schedule).toEqual({ next: 'payment', collectionMarket: 1 });
+  pending = false;
+  expect((await poll()).reason).toBe('certified-market-gain');
+  expect((await poll()).reason).toBe('funded-account-loss');
+  expect(ids).toEqual(['keeper:loss:1:0:9', 'keeper:gain:0:0:9', 'keeper:loss:0:1:9']);
+
+  // With a missing certificate and background work throttled, skip straight to collection.
+  test.accounts.delete(certificate);
+  expect((await poll()).reason).toBe('funded-account-loss');
+  expect(ids.at(-1)).toBe('keeper:loss:1:0:9');
 });
 
 // The on-chain guard consumes contiguous sibling instructions for each serial operation.
