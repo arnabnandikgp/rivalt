@@ -45,3 +45,5 @@ The [entry-cost bounds comparison](qualification-scorecard.md#can-two-entry-cost
 The [exact replay experiment](qualification-scorecard.md#exact-replay-from-a-verified-checkpoint) on `3c0e35b4` recovered both entitlements with authenticated fill data and measured the first exact-record overflow on a longer frozen history. The commitments and checkpoint rotations were modeled locally. That experiment used exact records. Fresh local deployments use the [40-byte entry record](../clearing/accounts.md#wire-format-and-changes).
 
 Retain raw evidence at its ignored local path. Record new results against exact program and harness revisions, with the denominator, failed attempts, economic outcome and remaining limitation. Detailed runs and reproduction notes belong in the PR.
+
+The opt-in local multi-maker deployment has signed three-, four- and eight-leg fills, independent financial expectations, a last-leg rollback and fresh PostgreSQL replay. Wallet-relay authorization was checked on the original signed bytes. [Measured widths and exact deployment](performance.md#atomic-fills-across-three-to-eight-makers)

@@ -156,3 +156,5 @@ to the full program revision, and `RIVALT_SETTLEMENT_PROBE=execution-router-wide
 Run `bash ops/scalable-settlement-smoke.sh` with the standard local oracle
 artifacts and Apple container PostgreSQL available. The run retains its signed
 originals and `wide-fills.json` under the ignored run directory.
+
+For wider atomic fills use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a`, build profile `wide-atomic-routes` and harness `c5d51f9c` or its compatible stack head. Run the same supervisor with probes `execution-router-multi-fills` and `execution-router-multi-width` in separate fresh directories. The first checks the fragmented fill, final-maker rollback and insurance allocation. The second checks four and eight real maker fills and journal replay.

@@ -154,3 +154,15 @@ The funding publisher computes depth off chain. In three older 75-member runs on
 Load runs used local transaction fees and synthetic prices. Report offered, eligible, submitted and finalized outcomes separately, along with filled notional, payer costs, time to withdrawable cash and remaining unpaid claims. The illustrative hedge assumption and zero-priority-fee runs supply no production profitability estimate.
 
 For the pre/post Anchor migration comparison, per-instruction CU, wire and contention measurements, use the [tracked baselines](../../tests/performance/baselines/) and [pinned measurement report](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/performance.md).
+
+## Atomic fills across three to eight makers
+
+Clearing `f0b8a599`, wallet harness `c5d51f9c`, local signed v1 transactions. Each trader was the sole signer and fee payer. Each transaction used an 800,000 CU limit and 128 KiB heap request.
+
+| Market | Filled lots by maker | Gross test tokens | Taker fee | CU | Signed bytes | Accounts |
+|---|---|---:|---:|---:|---:|---:|
+| BTC | 65,000 + 65,000 + 33,935 | 10,000.628610 | 2.000126 | 399,121 | 1,238 | 25 |
+| BTC | 3 × 65,000 + 33,935 | 13,737.151480 | 2.747431 | 460,763 | 1,404 | 29 |
+| ETH | 7 × 65,000 + 33,935 | 14,672.232960 | 2.934447 | 673,599 | 2,068 | 45 |
+
+Each transaction paid 5,000 test lamports. With insufficient final-maker margin the three-leg BTC order returned 6120 at 250,104 CU, leaving all compared financial accounts byte-identical. Finalized RPC and signature WS reported the refusal. Surfpool’s logs WS reported a null error for that refused original. Fresh PostgreSQL replay reconciled 109 events for the three-leg venue and 158 for the four/eight-leg venue. These numbers describe the listed books and initial inventories.

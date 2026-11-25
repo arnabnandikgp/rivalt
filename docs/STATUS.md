@@ -29,7 +29,9 @@ On funded-routing clearing `e02e72a0` with harness `db964391`, the ordinary ETH 
 
 **Wide discovery in review.** Clearing `5e32c124` and harness `951adeea` provisioned 16 BTC and 32 ETH makers on a fresh local venue. The wallet included three per order. Maker 15 filled BTC for 6,004,000 gross atoms. After signing, ETH maker 30 improved its ask and filled for 3,000,600 gross atoms. Maker 12 posted a cheaper omitted quote. An explicit BTC reduction filled, a substituted accounting lane and a breached trader limit both rolled back. PostgreSQL replay reconciled 358 events and 24,500 test tokens in custody. [Routing contract](liquidity/routing.md#wide-maker-discovery-in-local-qualification)
 
-**Next action.** Fill the 163,935-lot fragmented BTC order with three counterparties in one signed transaction, then measure four and eight legs within the wallet limits. [Executable depth deliverables](operations/qualification-scorecard.md#executable-depth-work)
+**Wider atomic fills in review.** Clearing `f0b8a599` and harness `c5d51f9c` filled the 163,935-lot BTC order across three makers in 399,121 CU. Four and eight real counterparties filled in 460,763 and 673,599 CU. All three traders paid and signed alone. Final-leg margin refusal rolled back, and fresh PostgreSQL replay reconciled 109 and 158 events. [Results](operations/performance.md#atomic-fills-across-three-to-eight-makers)
+
+**Next action.** Replay matched dollar requests for 16 and 32 registered makers at two, four and eight legs. [Executable depth deliverables](operations/qualification-scorecard.md#executable-depth-work)
 
 | Open gate | What remains |
 |---|---|

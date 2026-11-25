@@ -46,12 +46,8 @@ Negative claims, reserved funds and trader health can still reject quantities
 inside the bound. Clearing runs full financial admission on the candidate.
 
 One position can accumulate fills from different makers across orders. Each
-exact-size order must fit a single maker or a pair. For example, if each of
-the three makers offers three lots, a nine-lot order cannot fill. The program
-already receives writable capital and registration for all three candidates.
-Adding a third fill leg would require three-way allocation and corresponding
-atomic admission, fee and state updates. Adding a fourth candidate would also
-change the account list and signed registry epochs. [Qualification](../STATUS.md)
+legacy exact-size order must fit a single maker or a pair. For example, if each of
+the three makers offers three lots, a nine-lot order cannot fill. The opt-in multi-maker instruction below extends this limit.
 
 ## Wide maker discovery in local qualification
 
@@ -76,6 +72,12 @@ A supplied maker can reprice after signing and win the trade. A better offer
 at an omitted maker requires a new order to reach it. Full-market price
 discovery and the execution-time price guarantee therefore have different
 coverage. Funding still observes the full registry. [Funding](funding.md)
+
+## Wider atomic fills
+
+On the opt-in local `multi-maker` deployment the wallet defaults to four signed candidates. A caller can request three through eight, subject to registered supply, or use the existing two-leg instruction. Clearing authenticates each supplied bundle and signed structural epoch. It limits each maker by current curve depth, inventory and its funded cash ceiling. It finds the marginal price that fills the exact order, assigns equally priced lots deterministically, verifies signed limits and runs full financial admission before committing. A failed final admission refuses the whole order. The multi-maker instruction does not search again for a worse-priced allocation that might pass a binding financial check.
+
+Each selected capital takes its own opposite position. The trader receives one aggregate position change and pays the 2 bps fee once. The first filled maker determines the accounting lane. Longer fill receipts are journaled in bounded chunks belonging to the same instruction and trader nonce. The program, SDK and indexer retain the legacy route and receipt formats. [Signed widths and limits](../operations/performance.md#atomic-fills-across-three-to-eight-makers)
 
 ## Quote and settlement
 

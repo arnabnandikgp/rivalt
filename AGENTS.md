@@ -35,7 +35,7 @@ intended changes and actual verified results separately.
   funding, reservations and held-window checks for transfers/withdrawals.
 - 2 bps aggregate taker/zero provider fee; 25% of collected fees to the originating
   market's insurance with exact carry. No token, tiers or automatic rebates.
-- At most two distinct maker capitals per atomic route; actual execution retains
+- Legacy market orders use at most two distinct capitals. The opt-in local multi-maker order can fill up to eight signed candidates atomically. Execution retains
   full financial admission, signed user limits and exact authority/epoch checks.
 - Maker CPI gets only its bounded approved dependencies, never the vault signer or
   arbitrary writable clearing accounts. Updater authority only reprices.
