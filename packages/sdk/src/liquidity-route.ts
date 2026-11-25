@@ -15,11 +15,11 @@ export type LiquidityRouteInput = MarginRouteIntent & {
 };
 
 /** Exact preview is available before activation; no transaction authority is implied. */
-export function previewLiquidityRoute(input: LiquidityRouteInput) {
-  return previewRoute(input, false);
+export function previewLiquidityRoute(input: LiquidityRouteInput, standing = false) {
+  return previewRoute(input, false, standing);
 }
 
-function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean) {
+function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean, standing = false) {
   const { snapshot,trader,marketIndex } = input;
   const root = snapshot.roots[trader];
   requireValue(snapshot.venueState.profileVersion === 6 && snapshot.liquidity && root?.schemaVersion === 10
@@ -31,7 +31,7 @@ function previewRoute(input: LiquidityRouteInput, makerLiquidation: boolean) {
   const financialRoot = makerLiquidation ? { ...root, book: { ...root.book,
     orders: root.book.orders.map(entry => [1,2].includes(entry.order.state) && !entry.order.reduceOnly
       ? { ...entry, order: { ...entry.order, state: 6, reserve: 0n } } : entry) } } : root;
-  return allocateLiquidityRoute({ ...input, makerLiquidation, root: financialRoot, makers: snapshot.liquidity.adapters,markets: snapshot.marketStates,
+  return allocateLiquidityRoute({ ...input, makerLiquidation, standing, root: financialRoot, makers: snapshot.liquidity.adapters,markets: snapshot.marketStates,
     slot: snapshot.slot,now: snapshot.now,
     sources: snapshot.marketStates.map(market => accountSourceMode(snapshot.safetyState,market,snapshot.now,snapshot.slot)),
     funding: snapshot.marketStates.map(market => effectiveAccountFunding(snapshot.safetyState,market,snapshot.now,snapshot.slot)),

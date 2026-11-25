@@ -16,16 +16,18 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
+  options: { makerCounts?:readonly [number,number]; marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean } = {}) {
   const traderCount=options.traderCount??2;
+  const makerCounts=options.makerCounts??[3,3];
+  const population=traderCount+makerCounts[0]+makerCounts[1];
   if(options.traderDeposits)assert(options.traderDeposits.length===traderCount && options.traderDeposits.every(amount=>amount>0n));
   const deposit=(index:number)=>options.traderDeposits?.[index]??options.traderCash??1_000_000n;
-  assert(Number.isSafeInteger(traderCount)&&traderCount>0&&traderCount+6<=1024,'Requested Financial members must fit the qualification storage fixture');
+  assert(Number.isSafeInteger(traderCount)&&traderCount>0&&population<=1024,'Requested Financial members must fit the qualification storage fixture');
   const region = (offset: bigint) => [{ endLots: 4096n, offset, slope: 0n },
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
     bidCount: 1, askCount: 1, bids: region(2n), asks: region(3n) };
-  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash,BigInt(Math.max(64,traderCount+6)));
+  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash,BigInt(Math.max(64,population)),makerCounts);
   const { payer, common, markets, instances, venue } = fixture;
   const now = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigInt64LE(32);
   const slot = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigUInt64LE(0);
@@ -84,7 +86,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       authority: payer, market: markets[index], primary: primary.address, guard: guard.address })]);
     const [configuration] = await sdk.findFundingPublisherPda({ market: markets[index] });
     await h.send('P32 publisher initialize', [sdk.getInitializeFundingPublisherInstruction({ ...common, authority: payer,
-      market: markets[index], registry: instances[index * 3].liquidityRegistry, configuration, publisher: fixture.updater.address })]);
+      market: markets[index], registry: instances[index * makerCounts[0]].liquidityRegistry, configuration, publisher: fixture.updater.address })]);
     configurations.push(configuration);
   }
   const [resolution] = await sdk.deriveVenueComponent(venue, 'resolution');
@@ -111,9 +113,18 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
       const config = await maker.state(), price = maker.module.getMakerPriceDecoder().decode((await h.read(maker.price))!).state;
       return maker.module.getRepriceInstruction({ ...maker.makerCommon, actor: fixture.updater,
         expectedControl: config.controlEpoch, expectedSequence: price.sequence,
-        anchor: (index < 3 ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n) + (options.anchorOffset?.(index)??0n) });
+        anchor: (index < makerCounts[0] ? sourcePrices.btc / 1_000_000n : sourcePrices.eth / 100_000n) + (options.anchorOffset?.(index)??0n) });
     }));
-    await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
+    if (reprices.length === 6) {
+      await h.send('refresh independent sources and six maker publications', [...sources, ...reprices], [primary, guard, fixture.updater]);
+    } else {
+      // A maker update writes two accounts. Limit each signed v1 packet to
+      // eight instructions and refresh the independent oracles last.
+      for (let start=0;start<reprices.length;start+=8) {
+        await h.send('refresh registered makers '+start,reprices.slice(start,start+8),[fixture.updater]);
+      }
+      await freshSources();
+    }
   }
   async function checkpoint(market:0|1) {
     return sdk.getCheckpointMarketInstructionAsync({...common,venue,safety:fixture.safety,market:markets[market]});

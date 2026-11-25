@@ -100,9 +100,9 @@ macro_rules! maker_bundle {
                     program: &self.$program, data: &self.$data, config: &self.$config, price: &self.$price}
             }
             pub(crate) fn visit_maker(&mut self, scope: &mut crate::scoped_history::Scope, index: usize) -> Result<()> {
-                let access = scope.maker_access(index)?;
-                scope.account(&mut self.$capital, access)?;
-                scope.account(&mut self.$registration, access)
+                let (capital, registration) = scope.maker_access(index)?;
+                scope.account(&mut self.$capital, capital)?;
+                scope.account(&mut self.$registration, registration)
             }
         }
     };
@@ -124,9 +124,16 @@ pub struct ExecuteBestRoute {
 }
 
 impl ExecuteBestRoute {
-    pub(super) fn selected(&mut self, lots: [u64; 3]) -> Result<RouteAccounts<'_>> {
-        let mut makers = [self.candidate_zero.bundle(), self.candidate_one.bundle(), self.candidate_two.bundle()]
-            .into_iter().zip(lots).filter_map(|(maker, quantity)| (quantity != 0).then_some(maker));
+    pub(super) fn selected(&mut self, lots: [u64; 3], lane_slot: Option<usize>)
+        -> Result<(RouteAccounts<'_>, Option<&mut BorshAccount<MakerRegistration>>)> {
+        let mut lane = None;
+        let mut makers = Vec::with_capacity(2);
+        for (index, maker) in [self.candidate_zero.bundle(), self.candidate_one.bundle(),
+            self.candidate_two.bundle()].into_iter().enumerate() {
+            if lots[index] > 0 { makers.push(maker); }
+            else if lane_slot == Some(index) { lane = Some(maker.registration); }
+        }
+        let mut makers = makers.into_iter();
         let first = makers.next().ok_or(ClearingError::RouteIntent)?;
         let second = makers.next();
         require!(makers.next().is_none(), ClearingError::RouteIntent);
@@ -147,7 +154,7 @@ impl ExecuteBestRoute {
             accounts.second_config = Some(maker.config);
             accounts.second_price = Some(maker.price);
         }
-        Ok(accounts)
+        Ok((accounts, lane))
     }
 }
 

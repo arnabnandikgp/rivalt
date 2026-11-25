@@ -81,7 +81,7 @@ struct Entry {
 }
 
 pub(crate) struct Scope {
-    selected_makers: Option<[bool; 3]>,
+    selected_makers: Option<MakerAccess>,
     #[cfg(feature = "read-only-route-market")]
     venue_mode: Option<u8>,
     entries: Vec<Entry>,
@@ -98,12 +98,12 @@ impl Scope {
             #[cfg(feature = "read-only-route-market")] venue_mode: None }
     }
 
-    pub(crate) fn maker_access(&self, instance: usize) -> Result<Access> {
-        match self.selected_makers.and_then(|selected| selected.get(instance).copied()) {
-            Some(true) => Ok(Access::Write),
-            Some(false) => Ok(Access::Read),
-            None => Err(ClearingError::Profile.into()),
-        }
+    pub(crate) fn maker_access(&self, index: usize) -> Result<(Access, Access)> {
+        let plan = self.selected_makers.ok_or(ClearingError::Profile)?;
+        let filled = *plan.filled.get(index).ok_or(ClearingError::Profile)?;
+        let capital = if filled { Access::Write } else { Access::Read };
+        let registration = if plan.lane_slot == Some(index) { Access::Write } else { capital };
+        Ok((capital, registration))
     }
 
     #[cfg(feature = "book-inventory-qualification")]
@@ -641,9 +641,18 @@ pub(crate) fn run_backing_scan<'context, T: ScopedContext>(
     run_with_remaining(context, instruction, Remaining::MembershipScan(true), handler)
 }
 
+/// Selection is fixed before either journal visit. Only the account holding
+/// the selected market totals may advance without an accompanying capital fill.
+#[derive(Clone, Copy)]
+pub(crate) struct MakerAccess {
+    pub filled: [bool; 3],
+    pub lane_slot: Option<usize>,
+    pub external_lane: Option<Address>,
+}
+
 #[derive(Clone, Copy)]
 enum Remaining {
-    SelectedMakers([bool; 3]),
+    SelectedMakers(MakerAccess),
     #[cfg(feature = "checked-funding-prefix")]
     FundingRegistrations,
     FrozenPlanPages,
@@ -655,8 +664,12 @@ enum Remaining {
 impl Remaining {
     fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
         match self {
-            Self::SelectedMakers(_) => {
-                require!(accounts.is_empty(), ClearingError::Profile);
+            Self::SelectedMakers(plan) => {
+                require!(accounts.len() <= 3, ClearingError::Profile);
+                for account in accounts {
+                    let access = if Some(*account.address()) == plan.external_lane { Access::Write } else { Access::Read };
+                    scope.raw::<MakerRegistration>(account, access)?;
+                }
                 Ok(())
             }
             Self::MembershipScan(root_write) => {
@@ -765,10 +778,10 @@ fn run_with_remaining<'context, T: ScopedContext>(
 pub(crate) fn run_selected_route<'context, T: ScopedContext>(
     context: &mut Context<'context, T>,
     instruction: [u8; 8],
-    quantities: [u64; 3],
+    plan: MakerAccess,
     handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
 ) -> Result<()> {
-    run_with_remaining(context, instruction, Remaining::SelectedMakers(quantities.map(|quantity| quantity != 0)), handler)
+    run_with_remaining(context, instruction, Remaining::SelectedMakers(plan), handler)
 }
 
 #[cfg(test)]

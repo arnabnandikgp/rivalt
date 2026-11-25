@@ -301,6 +301,7 @@ fn execute_core(
         &next,
         &actual_quotes,
         path,
+        None,
     )
 }
 

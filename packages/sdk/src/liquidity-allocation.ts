@@ -1,3 +1,5 @@
+import {MAX_REGISTERED_MAKERS} from './market-capacity.js';
+import {quoteCanonical} from './canonical-quote.js';
 import { EXECUTION_DENOMINATOR, EXECUTION_LOWER_NUMERATOR, EXECUTION_UPPER_NUMERATOR } from './price-policy.js';
 import type { Address } from '@solana/kit';
 import type { LiquidityAdapter } from './liquidity-adapter.js';
@@ -8,7 +10,7 @@ import { convexMinimum, firstTrue, lastTrue, LIQUIDITY_SEARCH_BUDGET, LiquidityS
 const MAX_CASH = 1_000_000_000_000_000n;
 const abs = (value: bigint) => value < 0n ? -value : value;
 const feeFor = (notional: bigint) => (notional+4999n)/5000n;
-export type LiquidityAllocationInput = LiquidityMarginInput & { makers: readonly LiquidityAdapter[] };
+export type LiquidityAllocationInput = LiquidityMarginInput & { makers: readonly LiquidityAdapter[]; standing?: boolean };
 export type LiquidityAllocationLeg = Readonly<{
   instance: number; registration: Address; capital: Address; lots: bigint; grossQuote: bigint;
   authorityEpoch: bigint; controlEpoch: bigint; shapeEpoch: bigint; depthEpoch: bigint;
@@ -37,7 +39,7 @@ function better(candidate: LiquidityAllocation, previous: LiquidityAllocation | 
 export function allocateLiquidityRoute(input: LiquidityAllocationInput): { allocation: LiquidityAllocation | null; metrics: LiquiditySearchMetrics;
   excluded: { instance: number; reason: string }[] } {
   const margin = prepareLiquidityMargin(input), { side, lots, slot, now, marketIndex } = input;
-  requireValue(input.makers.length === 3, 'Discovery must supply all three sealed maker records.');
+  requireValue(input.makers.length >= 3 && input.makers.length <= MAX_REGISTERED_MAKERS, 'Invalid maker discovery count.');
   const makers = [...input.makers].sort((left,right) => left.config.instance-right.config.instance);
   const anchor = makers[0].snapshot;
   requireValue(makers.every((maker,index) => maker.capability === 1 && maker.config.instance === index
@@ -45,9 +47,9 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     && maker.snapshot.marketIndex === marketIndex && maker.snapshot.market === anchor.market
     && maker.snapshot.venue === anchor.venue && maker.snapshot.contextSlot === anchor.contextSlot
     && hex(maker.snapshot.domain) === hex(anchor.domain)), 'Mixed/unsupported liquidity snapshot.');
-  requireValue(new Set(makers.map(maker => maker.registration)).size === 3
-    && new Set(makers.map(maker => maker.registrationState.capital)).size === 3
-    && new Set(makers.map(maker => maker.capital.id)).size === 3, 'Duplicate maker identity/capital.');
+  requireValue(new Set(makers.map(maker => maker.registration)).size === makers.length
+    && new Set(makers.map(maker => maker.registrationState.capital)).size === makers.length
+    && new Set(makers.map(maker => maker.capital.id)).size === makers.length, 'Duplicate maker identity/capital.');
   const metrics: LiquiditySearchMetrics = { compositions: 0, intervals: 0, quantityQuotes: 0, makerAdmissionChecks: 0, traderAdmissionChecks: 0 };
   const excluded: { instance: number; reason: string }[] = [];
   const minimum = (...values: bigint[]) => values.reduce((left,right) => left < right ? left : right);
@@ -57,9 +59,10 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
       throw new LiquiditySearchLimitError({ intervals: metrics.intervals,quantityQuotes: metrics.quantityQuotes });
   }
   const table = makers.map(maker => {
-    const status = maker.unavailable ?? (maker.capital.id === input.root.id || maker.capital.owner === input.root.owner ? 'self-capital' : null);
+    const standing = input.standing === true && maker.unavailable === 'stale-publication';
+    const status = (standing ? null : maker.unavailable) ?? (maker.capital.id === input.root.id || maker.capital.owner === input.root.owner ? 'self-capital' : null);
     if (status) { excluded.push({ instance: maker.config.instance, reason: status }); return null; }
-    requireValue(slot < maker.validUntilSlot && now < maker.validUntilTime, 'Expired liquidity snapshot.');
+    requireValue(standing || slot < maker.validUntilSlot && now < maker.validUntilTime, 'Expired liquidity snapshot.');
     const inventory = maker.capital.positions[marketIndex].lots;
     const remainingDepth = maker.depthHints(side).at(-1) ?? 0n;
     const inventoryHeadroom = side === 0 ? inventory+maker.shape.shortCap : maker.shape.longCap-inventory;
@@ -71,7 +74,8 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     function read(quantity: bigint): bigint|null {
       if (!cache.has(quantity)) {
         metrics.quantityQuotes++;budget();
-        try { cache.set(quantity,maker.quote(side,quantity).gross); }
+        try { cache.set(quantity,standing ? quoteCanonical(maker.shape,maker.price.anchor,side,quantity,inventory,
+          side === 0 ? maker.registrationState.buyConsumed : maker.registrationState.sellConsumed).gross : maker.quote(side,quantity).gross); }
         catch { cache.set(quantity,null); }
       }
       return cache.get(quantity)!;

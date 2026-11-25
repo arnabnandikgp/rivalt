@@ -159,8 +159,18 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   };
   if(capacity){
     for(const [market,projected] of Object.entries(state.markets)){
-      const makers=Object.entries(state.liquidity?.makers??{}).filter(([,maker])=>maker.market===market)
+      const members=Object.entries(state.liquidity?.makers??{}).filter(([,maker])=>maker.market===market)
         .sort(([,left],[,right])=>left.instance-right.instance);
+      const directory=Object.values(state.liquidity?.registries??{}).find(value=>value.market===market);
+      if(directory?.sealed) {
+        assert.equal(members.length,directory.count,'sealed discovery coverage');
+        members.forEach(([,member],index)=>assert.equal(member.instance,index,'contiguous maker registrations'));
+      }
+      const makers=members.filter(([,maker])=>maker.instance<3);
+      for(const [key,member] of members) {
+        if(member.instance>=3) assert(raw(key).subarray(sdk.getMakerRegistrationDecoder().fixedSize).every(byte=>byte===0),
+          'quote-only registration holds uncheckpointed market accounting');
+      }
       // Unsealed or partially initialized markets do not yet expose the capacity view.
       if(makers.length<3){
         assert.equal(projected.grossLots,'0');

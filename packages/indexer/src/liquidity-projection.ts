@@ -125,7 +125,14 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
         &&new Set(change.legs.map((leg:any)=>leg.registration)).size===change.legs.length,'canonical route shape');
       let ledgerAfter=change.ledger;
       if(event.type!=='LiquidityRouteExecutedV4') {
-        const accounting=feesForMarket(), prior=previousLedger(), lane=change.legs[0].registration;
+        const accounting=feesForMarket(), prior=previousLedger();
+        const instance=change.legs[0].instance;
+        let lane = change.legs[0].registration;
+        if(instance >= 3) {
+          const directory=present(Object.values(liquidity.registries).find(value=>value.market===change.market),'fee directory');
+          check(directory.sealed && instance < directory.count,'fee lane membership');
+          lane=directory.registrations[instance % 3];
+        }
         const amount=BigInt(change.fee), collected=BigInt(accounting.lanes[lane]??'0')+amount;
         const pending=BigInt(accounting.pending)+amount;
         if(event.type==='LedgerLaneFilled'){

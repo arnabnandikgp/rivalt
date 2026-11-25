@@ -78,31 +78,50 @@ impl From<maker_interface::QuoteError> for SelectionError {
 }
 
 pub fn execute_best(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) -> Result<()> {
-    require!(
-        cfg!(feature = "execution-router-qualification") && ctx.remaining_accounts()?.is_empty(),
-        ClearingError::Profile
-    );
+    require!(cfg!(feature = "execution-router-qualification"), ClearingError::Profile);
     let clock = Clock::get()?;
     let winner = choose(&ctx.accounts, &args, &clock)?;
     let quantities = winner.allocation.lots;
     let intent = args.terms(&ctx.accounts.identity.market, quantities);
-    crate::scoped_history::run_selected_route(
-        ctx,
-        [142, 199, 100, 123, 91, 206, 46, 151],
-        quantities,
-        |ctx, events| {
-            commit::apply(
-                &mut ctx.accounts.selected(quantities)?,
-                events,
-                &intent,
-                None,
-                &clock,
-                &winner.next,
-                &winner.quotes,
-                RoutePath::Serial,
-            )
-        },
-    )
+    let instances = [
+        ctx.accounts.candidate_zero.zero_registration.instance,
+        ctx.accounts.candidate_one.one_registration.instance,
+        ctx.accounts.candidate_two.two_registration.instance,
+    ];
+    let first = quantities.iter().position(|lots| *lots > 0).ok_or(ClearingError::RouteIntent)?;
+    let lane_id = instances[first] % 3;
+    let lane_key = ctx.accounts.registry.registrations[usize::from(lane_id)];
+    let lane_slot = (instances[first] >= 3).then(|| instances.iter().position(|id| *id == lane_id)).flatten();
+    let external_lane = (instances[first] >= 3 && lane_slot.is_none()).then_some(lane_key);
+    let remaining = ctx.remaining_accounts()?;
+    let mut extra = remaining.iter();
+    for id in 0u8..3 {
+        if !instances.contains(&id) && instances.iter().any(|instance| instance % 3 == id) {
+            let account = extra.next().ok_or(ClearingError::MakerBinding)?;
+            require!(account.address() == &ctx.accounts.registry.registrations[usize::from(id)]
+                && account.is_writable() && !account.is_signer() && !account.executable()
+                && account.owner() == &crate::ID, ClearingError::MakerBinding);
+        }
+    }
+    require!(extra.next().is_none(), ClearingError::MakerBinding);
+    let external_view = external_lane.and_then(|key| remaining.iter().find(|account| *account.address() == key).cloned());
+    let plan = crate::scoped_history::MakerAccess { filled: quantities.map(|lots| lots > 0), lane_slot, external_lane };
+    crate::scoped_history::run_selected_route(ctx, [142, 199, 100, 123, 91, 206, 46, 151], plan, |ctx, events| {
+        // SAFETY: only a missing canonical registration can enter external_view;
+        // it is writable and distinct from every named maker and other extra.
+        let mut external = external_view.map(|view| unsafe { BorshAccount::<MakerRegistration>::load_mut(view) }).transpose()?;
+        let (mut accounts, included_lane) = ctx.accounts.selected(quantities, lane_slot)?;
+        let lane = included_lane.or(external.as_mut());
+        if instances[first] >= 3 {
+            let supplied = lane.as_deref().ok_or(ClearingError::MakerBinding)?;
+            require!(supplied.address() == &lane_key && supplied.instance == lane_id
+                && supplied.market == *accounts.identity.market.address() && supplied.venue == *accounts.identity.venue.address()
+                && supplied.schema_version == SCHEMA_VERSION, ClearingError::MakerBinding);
+        }
+        commit::apply(&mut accounts, events, &intent, None, &clock, &winner.next, &winner.quotes, RoutePath::Serial, lane)?;
+        if let Some(mut raw) = external { raw.exit()?; }
+        Ok(())
+    })
 }
 
 #[inline(never)]
@@ -143,7 +162,8 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
     let mut cache = pricing::CodeApprovalCache::default();
     for (instance, view) in views.iter().enumerate() {
         require!(
-            usize::from(view.registration.instance) == instance
+            view.registration.instance < accounts.registry.count
+                && (instance == 0 || views[instance - 1].registration.instance < view.registration.instance)
                 && views[..instance]
                     .iter()
                     .all(|other| other.capital.address() != view.capital.address()

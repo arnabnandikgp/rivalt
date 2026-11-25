@@ -11,7 +11,9 @@ pub(super) fn apply(
     next: &candidates::Candidate,
     quotes: &[canonical::MakerQuoteResponse],
     path: RoutePath,
+    mut separate_lane: Option<&mut BorshAccount<MakerRegistration>>,
 ) -> Result<()> {
+    require!(accounts.first_registration.instance < 3 || separate_lane.is_some(), ClearingError::MakerBinding);
     let identity = &mut accounts.identity;
     let cash_before = u128::from(identity.trader.cash)
         + u128::from(accounts.first_capital.cash)
@@ -64,7 +66,7 @@ pub(super) fn apply(
         let roots = std::iter::once((&**identity.trader, next.trader.as_ref()))
             .chain(std::iter::once((&**accounts.first_capital, &next.makers[0])))
             .chain(accounts.second_capital.as_deref().zip(next.makers.get(1)).map(|(old,new)| (&**old,new)));
-        Some(crate::ledger_lane::record(identity.ledger, identity.safety, accounts.first_registration, roots, next.fee)?)
+        Some(crate::ledger_lane::record(identity.ledger, identity.safety, separate_lane.as_deref_mut().unwrap_or(accounts.first_registration), roots, next.fee)?)
     } else { None };
     consume(&mut accounts.first_registration, &quotes[0])?;
     executed.push(leg(
@@ -87,12 +89,12 @@ pub(super) fn apply(
     trading::commit_root(&mut identity.trader, &next.trader)?;
     if path != RoutePath::Serial {
         #[cfg(feature = "read-only-route-market")]
-        crate::market_capacity::record_local(identity.market, accounts.first_registration, next.position_delta)?;
+        crate::market_capacity::record_local(identity.market, separate_lane.as_deref_mut().unwrap_or(accounts.first_registration), next.position_delta)?;
         #[cfg(not(feature = "read-only-route-market"))]
         return Err(ClearingError::Profile.into());
     } else {
         #[cfg(feature = "bounded-market-read")]
-        crate::market_capacity::record(&mut identity.market, &mut accounts.first_registration, next.gross_lots, next.position_delta)?;
+        crate::market_capacity::record(&mut identity.market, separate_lane.as_deref_mut().unwrap_or(accounts.first_registration), next.gross_lots, next.position_delta)?;
         identity.market.gross_lots = next.gross_lots;
         trading::materialize_optional(
             [
@@ -107,7 +109,7 @@ pub(super) fn apply(
     }
     #[cfg(feature="checked-funding-prefix")]
     {
-        crate::market_funding::selected(&identity.market, &mut accounts.first_registration, clock)?;
+        crate::market_funding::selected(&identity.market, separate_lane.as_deref_mut().unwrap_or(accounts.first_registration), clock)?;
         if let Some(sibling) = identity.other_market.as_deref_mut() {
             crate::market_funding::canonical(sibling, clock)?;
         }
@@ -118,7 +120,7 @@ pub(super) fn apply(
         (insurance, retained, before, identity.ledger.insurance_fee_remainder)
     };
     #[cfg(feature="read-only-route-ledger")]
-    let fee_detail = match local_fee { Some(detail) => detail, None => crate::market_fees::escrow(identity.ledger,accounts.first_registration,next.fee)? };
+    let fee_detail = match local_fee { Some(detail) => detail, None => crate::market_fees::escrow(identity.ledger,separate_lane.as_deref_mut().unwrap_or(accounts.first_registration),next.fee)? };
     #[cfg(all(feature="aggregate-fee-qualification",not(feature="read-only-route-ledger")))]
     let fee_detail = crate::market_fees::escrow(&mut identity.ledger,&mut accounts.first_registration,next.fee)?;
 
