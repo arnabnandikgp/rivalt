@@ -71,6 +71,24 @@ try {
   const before=await capture();
   await h.send('wide wallet limit rollback',refused.instructions,[actor],sdk.CLEARING_ERROR__ROUTE_HEALTH);
   assert.deepEqual(await capture(),before);
+  await setup.sample();
+  const explicit=await sdk.buildLiquidityRoute({snapshot:await setup.snapshot(trader,0),trader,marketIndex:0,
+    side:1,lots:1n,allInLimit:59_940n,maxFee:15n},actor.address);
+  assert(explicit);
+  assert.deepEqual(explicit.allocation.legs.map(leg=>leg.instance),[15]);
+  assert.equal(explicit.allocation.grossQuote,59_960n);
+  assert.equal(explicit.allocation.fee,12n);
+  const instruction=explicit.instructions[0],known=await sdk.venueMarketCheckpoints(setup.venue);
+  const prefix=sdk.marketCheckpointsFor(known,instruction);
+  const extra=instruction.accounts.at(-1)!;
+  assert.equal(extra.address,setup.instances[0].registration);
+  const foreign={...instruction,accounts:[...instruction.accounts.slice(0,-1),{...extra,address:setup.instances[1].registration}]};
+  const beforeForeign=await capture();
+  await h.send('wide wallet refuses substituted fee lane',[...prefix,foreign],[actor],sdk.CLEARING_ERROR__MAKER_BINDING);
+  assert.deepEqual(await capture(),beforeForeign);
+  await h.send('wide wallet signed explicit reduction',[...prefix,instruction],[actor]);
+  assert.equal((await setup.snapshot(trader,0)).roots[trader].positions[0].lots,99n);
+  assert.equal((await setup.instances[15].registrationState()).sellConsumed,1n);
   await flush();
   journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   await journal.checkpoint('wide-fills',true);

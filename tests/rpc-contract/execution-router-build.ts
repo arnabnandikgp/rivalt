@@ -11,9 +11,9 @@ export function routerBuild(selection:'funded-routing'|'bounded-entry'|'closed-q
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const wideFills=process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-wide-fills';
   if (wideFills || process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-wide-directory') {
-    assert.equal(revision,wideFills?'326710e1c8647b86d3ce06c0ac0b548563204b91':'9a537a70a86e8ef8ebbfc4ec37bf84e7d5f37084');
+    assert.equal(revision,wideFills?'5e32c124f078902535c6e40a02419f797550e89a':'9a537a70a86e8ef8ebbfc4ec37bf84e7d5f37084');
     const artifacts = {
-      clearing:wideFills?{bytes:3636312,sha256:'a0c0cbe6b8ef579522822d2178ee838e0d80056d004009dace5a52f733273363'}:{bytes:3631168,sha256:'e370a3b1cb18896d05737777ec19deabab3c11532d69d11b3d5f23bd3b4ec283'},
+      clearing:wideFills?{bytes:3639640,sha256:'f386eddff755a76efc93d97b75c29de756b555a2eb78762649f03b91e223cb12'}:{bytes:3631168,sha256:'e370a3b1cb18896d05737777ec19deabab3c11532d69d11b3d5f23bd3b4ec283'},
       'maker-a':{bytes:167520,sha256:'2140ec94a8994a62d0c54044b10d14f48eae19dca0c9a8299b78f7b82b1ca97f'},
       'maker-b':{bytes:167520,sha256:'372794d71127c68e548d5df4edf0af70c11d15a3ed10dcf2bc993339e67752fe'},
     };

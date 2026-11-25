@@ -19,7 +19,7 @@ export async function readAccountSnapshot(rpc:Pick<UserRpc,'call'>,identity:Acco
   requireValue(margins.length>=1&&margins.length<=2&&new Set(margins).size===margins.length,'Select one or two distinct margin accounts.');
   return readSnapshot(rpc,identity,margins,commitment);
 }
-/** Trading discovers all three sealed candidates, then authenticates the complete
+/** Trading discovers every sealed registration, then authenticates the complete
  * financial and pricing dependency set in one final RPC context. */
 export async function readAccountTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,trader:Address,marketIndex:0|1,
   commitment:'confirmed'|'finalized'='confirmed') {

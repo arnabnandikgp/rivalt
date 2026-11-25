@@ -110,10 +110,11 @@ async function buildRoute(input: LiquidityRouteInput, actor: Address, makerLiqui
       termsEpoch: market.termsEpoch, configEpoch: market.configEpoch, side: input.side,
       allInLimit: makerLiquidation ? allocation.allIn : input.allInLimit,
       maxFee: makerLiquidation ? allocation.fee : input.maxFee, reduceOnly, generation: position.generation });
-  const lane = snapshot.liquidity!.registryState.registrations[first.registrationState.instance % 3];
-  const signedInstruction = first.registrationState.instance < 3 ? instruction : {
-    ...instruction, accounts:[...instruction.accounts,{address:lane,role:AccountRole.WRITABLE}],
-  };
+  const remaining = first.registrationState.instance < 3 ? [] : [{
+    address:snapshot.liquidity!.registryState.registrations[first.registrationState.instance % 3],
+    role:AccountRole.WRITABLE,
+  }];
+  const signedInstruction = {...instruction,accounts:[...instruction.accounts,...remaining]};
   return { snapshotCommitment: snapshot.commitment, snapshotSlot: snapshot.slot, trader, marketIndex,
     guard: common.guard, expirySlot, allocation, metrics: preview.metrics, excluded: preview.excluded,
     instructions: [signedInstruction], resourceBudget: { computeUnitLimit: 800_000, loadedAccountsDataSizeLimit: 8 * 1024 * 1024 } };
