@@ -50,6 +50,8 @@ def summarize(run):
                             requested=money(row["requestedIndexAtoms"]), classification=row["classification"],
                             supplied=row["supplied"], error=row["error"],
                             filledIndex=money(row["requestedIndexAtoms"]) if actual else "0",
+                            feeLamports=int(row["feeLamports"]), signedConfirmedMs=row["confirmedMs"],
+                            actualLegs=len(actual["legs"]) if actual else 0,
                             filledGross=money(actual["gross"]) if actual else None,
                             vwap=str(Decimal(actual["gross"]) / Decimal(row["requestedLots"])) if actual else None,
                             takerFee=money(actual["fee"]) if actual else None,
@@ -58,6 +60,8 @@ def summarize(run):
     concurrent = [row for row in rows if row["name"].startswith("concurrent wallet")]
     assert len(concurrent) == 2 and len({row["batchConfirmedMs"] for row in concurrent}) == 1
     seconds = concurrent[0]["batchConfirmedMs"] / 1000
+    shared_writes = set.intersection(*(set(row["writable"]) for row in concurrent))
+    assert len(shared_writes) > 0, "Expected the two funded orders to contend on candidate accounts"
     latency = [row["confirmedMs"] for row in signed]
     return dict(makers=run["count"], legs=run["width"], offered=len(rows), signed=len(signed), filled=len(filled),
                 requested=money(sum(int(row["requestedIndexAtoms"]) for row in rows)),
@@ -69,6 +73,8 @@ def summarize(run):
                 signedConfirmedP50ms=round(percentile(latency, .50), 1),
                 signedConfirmedP95ms=round(percentile(latency, .95), 1),
                 competingFills=sum(bool(row["actual"]) for row in concurrent),
+                competingSharedWritableAccounts=len(shared_writes),
+                competingSlotsApart=abs(concurrent[0]["slot"] - concurrent[1]["slot"]),
                 competingBatchSeconds=round(seconds, 3),
                 competingConfirmedOffersPerSecond=round(2 / seconds, 2),
                 competingFillsPerSecond=round(sum(bool(row["actual"]) for row in concurrent) / seconds, 2),
@@ -94,6 +100,14 @@ def main():
             assert receipt["meta"]["err"] == row["error"]
             assert int(receipt["meta"]["fee"]) == int(row["feeLamports"])
             assert bool(row["actual"]) == (row["error"] is None)
+            message = receipt["transaction"]["message"]
+            header = message["header"]
+            keys = message["accountKeys"]
+            required = header["numRequiredSignatures"]
+            writable = keys[:required-header["numReadonlySignedAccounts"]]
+            writable += keys[required:len(keys)-header["numReadonlyUnsignedAccounts"]]
+            writable += (receipt["meta"].get("loadedAddresses") or {}).get("writable", [])
+            row["writable"] = writable
             assert wire["label"] not in seen
             seen.add(wire["label"])
         assert seen == {label for label, row in by_label.items() if row["signature"]}

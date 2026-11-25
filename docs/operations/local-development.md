@@ -158,3 +158,26 @@ artifacts and Apple container PostgreSQL available. The run retains its signed
 originals and `wide-fills.json` under the ignored run directory.
 
 For wider atomic fills use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a`, build profile `wide-atomic-routes` and harness `c5d51f9c` or its compatible stack head. Run the same supervisor with probes `execution-router-multi-fills` and `execution-router-multi-width` in separate fresh directories. The first checks the fragmented fill, final-maker rollback and insurance allocation. The second checks four and eight real maker fills and journal replay.
+
+### Matched dollar comparison
+
+Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. The matched harness starts a fresh BTC book and fresh PostgreSQL for each cell. From the repository root, with the pinned artifact paths configured, run the following sequentially. Give each run a new directory.
+
+```bash
+source ops/env.sh
+export RIVALT_ROUTER_REVISION=f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a
+export RIVALT_SETTLEMENT_PROBE=execution-router-matched-makers
+for makers in 16 32; do
+  for legs in 2 4 8; do
+    RIVALT_COMPARISON_MAKERS="$makers" RIVALT_COMPARISON_LEGS="$legs" \
+      RIVALT_RUN_DIR=".local/matched-makers/$makers-$legs" \
+      bash ops/scalable-settlement-smoke.sh || exit 1
+  done
+done
+node --import tsx tests/rpc-contract/comparison-reference-check.ts
+python3 tests/performance/matched-maker-report.py .local/matched-makers/{16,32}-{2,4,8}
+```
+
+The report checks each signed signature, fee and outcome against its retained finalized transaction. It also counts requests the wallet refused before signing. For each request it gives the same-bank full-directory price, the full-directory price at the leg cap, and the signed shortlist price. Each is fee-inclusive and requires the entire requested quantity. The constant-price reference independently enumerates maker subsets and measures quoted depth under each constraint. Clearing checks funding and margin when a signed order executes. A null reference means the requested size exceeded that book's capacity.
+
+The trace uses a fixed $61,000 test BTC index, 65,000-lot asks and 6,000- or 40,000-lot bids per maker before the deep-book replacement. It also reprices a maker outside the already signed shortlist, installs a one-million-lot book, replenishes two consumed books, and offers two independent wallet orders concurrently. Each later order encounters the inventory and consumed depth left by its own cell's earlier fills. Confirmed latency includes simulation, WS subscription and local RPC. The two-wallet rate covers a single batch. The indexer replays the finalized venue into a fresh PostgreSQL database.
