@@ -271,9 +271,32 @@ Times start when the harness observed that trader's confirmed close. It sampled 
 
 At one second, the first self-service trader had withdrawn. The second had received 498,000 atoms of funded credit, with 498,000 still unpaid. That trader submitted a permissionless loss collection against the maker, claimed the remainder and withdrew. Both had their tokens by five seconds. On the worker venue neither trader had a credit or a withdrawal at the 1, 5, 15 or 30 second cutoffs. All 1,992,000 claim atoms were still owed to them at 30 seconds.
 
-On the worker venue the observed pool first covered both remaining claims 0.970 s after the second close. All 122 backing checks sampled through the last wallet exit were payable. The finalized worker receipts show twelve loss collections before its first gain payment, which went to a maker. The two designated creditors were paid later. Once credited, their tokens arrived another 75 ms and 51 ms later. The worker selects a covered loss before scheduling a gain and waits while a settlement original is outstanding. This workload exposes the cost of that scheduling order when the pool can already fund the claims. [Worker selection](../../packages/services/src/account-settlement-worker.ts) · [Cutoff report](../../tests/performance/close-to-wallet-report.py)
+On the worker venue the observed pool first covered both remaining claims 0.970 s after the second close. All 122 backing checks sampled through the last wallet exit were payable. The finalized worker receipts show twelve loss collections before its first gain payment, which went to a maker. The two designated creditors were paid later. Once credited, their tokens arrived another 75 ms and 51 ms later. That worker selected a covered loss before scheduling a gain and waited for the outstanding original. This workload exposes the cost of that scheduling order when the pool can already fund the claims. [Worker selection](../../packages/services/src/account-settlement-worker.ts) · [Cutoff report](../../tests/performance/close-to-wallet-report.py)
 
 An earlier paced control at `1bbc36e4` filled 32/32 orders per venue. The self-service exits landed at 0.303 and 0.388 s, before the second scheduled background fill. Worker exits took 37.382 and 42.221 s. The burst comparison above requires at least one competing fill in a strictly intervening slot for each measured exit. Cold backing, debtor discovery by an ordinary wallet, exhausted debtor collateral and production latency require separate evidence.
+
+### Scheduling payouts while losses keep arriving
+
+All three workers ran the same signed 48-order schedule on fresh local venues with the same clearing binary (`b7e4458b`) and observation code. Each designated BTC trader closed a 996,000-atom gain and withdrew 971,799 test-collateral atoms after fees. All 48 background orders filled in each run.
+
+| Worker | First trader withdrew | Second trader withdrew | Zero remaining loss after the last fill (from later close) | Replayed events |
+|---|---:|---:|---:|---:|
+| Collection first (`08645cd0`) | 40.815 s | 45.671 s | 33.043 s | 558 |
+| Rotate work, fixed payee order (`6434dafa`) | 33.831 s | 41.011 s | 51.109 s | 576 |
+| Rotate work and payees (`efff1af2`) | 11.674 s | 18.752 s | 45.915 s | 562 |
+
+Withdrawal times start at each trader’s confirmed close. The collection column starts at the later close and ends at the first zero-debt sample in a slot strictly after the last traffic fill. Turning between collections and payments alone let one maker earn again and receive four payouts before either trader. Continuing the payout search after the last creditor gave the two traders a turn while that maker kept trading.
+
+| After close | Wallets with tokens, previous → revised | BTC / ETH still collectible, previous | BTC / ETH still collectible, revised |
+|---:|---:|---:|---:|
+| 1 s | 0 → 0 | 160 / 160 | 160 / 160 |
+| 5 s | 0 → 0 | 220 / 200 | 220 / 200 |
+| 15 s | 0 → 1 | 180 / 200 | 340 / 220 |
+| 30 s | 0 → 2 | 240 / 240 | 300 / 260 |
+
+Wallet counts use each trader’s own cutoff. Debt uses a single confirmed bank at the second trader’s cutoff and includes losses already incurred by that point. Across all three runs, finalized collections after release were **502,480 collateral atoms on BTC and 480 on ETH**. The opening maker owed 502,000 more atoms after seeding the BTC pool. Each market’s two traffic wallets lost another 480 atoms over twelve round trips. The reporter includes each market’s pool, outstanding debt and collections in strictly earlier slots. The terminal pools reconcile to the opening pools plus collections less payments. All three ended with 4,000 atoms in the BTC pool and 480 in the ETH pool. The flat ETH maker still had a 480-atom claim and ETH backing was incomplete when observation stopped.
+
+These measurements cover two BTC creditors, a current backing certificate, four active trading wallets, six internal makers and an initially partly funded pool. The worker’s scheduling preference resets on restart. A larger population, cold backing and insufficient collectible collateral have separate timing limits. [Worker policy](../application/durability.md#settlement-during-trading) · [Reproduce the comparison](local-development.md#closing-a-position-through-wallet-withdrawal-under-load)
 
 ## Funding, costs and comparisons
 

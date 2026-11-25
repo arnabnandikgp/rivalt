@@ -62,13 +62,17 @@ if __name__ == "__main__":
     for key in ("offered", "gapMs"):
         assert before[0]["traffic"][key] == after[0]["traffic"][key]
     assert before[0]["traffic"].get("dueMs") == after[0]["traffic"].get("dueMs")
-    for result, cutoffs, overlap in (before, after):
+    for directory, (result, cutoffs, overlap) in zip(runs, (before, after)):
         summary = dict(arm=result["arm"], revision=result["revision"], traffic=result["traffic"],
                        creditors=len(result["rows"]), cutoffs=cutoffs, otherFillsStrictlyBetweenCloseAndExit=overlap,
                        relativeToConfirmedCloseMs=[
                            {k: row[k] for k in ("firstCreditMs", "fullCreditMs", "withdrawalMs")} for row in result["rows"]])
         if workers_only:
             # Collections exclude the sampled slot: the receipt cannot order an observation within it.
+            last_fill = max(row["slot"] for row in result["receipts"] if row["label"].startswith("traffic "))
+            states = json.loads((Path(directory) / "cashout-observations.json").read_text())
+            drained = next(row for row in states if row["slot"] > last_fill and all(int(debt) == 0 for debt in row["debt"]))
+            summary["allLossesCollectedMsAfterLaterClose"] = drained["ms"] - max(row["closeConfirmedMs"] for row in result["rows"])
             summary.update(workerFlows=result["workerFlows"], remainingLossAtoms=result["remainingLossAtoms"], marketsAtCutoffs=[
                 dict(margin=row["margin"], progress=[
                     {k: point[k] for k in ("ms", "pool", "ethPool", "outstandingLossAtoms", "workerCollectedBeforeSlot")}

@@ -1,6 +1,6 @@
 # Project status
 
-Updated 25 November 2026. Rivalt is a local, test-collateral BTC/ETH perpetual venue. The wallet uses on-chain execution-time routing across three internal makers per market. A fill selects up to two maker capitals. The same clearing engine handles isolated and cross accounts.
+Updated 26 November 2026. Rivalt is a local, test-collateral BTC/ETH perpetual venue. The wallet uses on-chain execution-time routing across three internal makers per market. A fill selects up to two maker capitals. The same clearing engine handles isolated and cross accounts.
 
 ## Integrated
 
@@ -49,7 +49,9 @@ With ordinary wallets preparing orders, final snapshot verification accounted fo
 
 **Finding 4, [close-to-wallet measurement in Review](https://github.com/arnabnandikgp/rivalt/pull/200).** On clearing `b7e4458b` and harness `f873bfd1`, two BTC traders withdrew 0.971799 test collateral each in both matched runs. Self-service took 0.800 and 1.236 s from confirmed close. On the worker venue both claims remained unpaid at 30 s despite sufficient pool cash within one second of the second close and a payable backing certificate at every sample. The wallets received tokens at 38.648 and 43.455 s. All 48 background orders filled in each run. [Receipts, cutoffs and limitations](operations/performance.md#from-a-profitable-close-to-tokens-in-the-wallet)
 
-**Next action.** Compare the current settlement worker with a scheduler that gives a ready payout a turn while collectible losses remain. Replay the same arrivals and measure time to each wallet, unpaid amounts and collection progress for both markets. [Qualification scorecard](operations/qualification-scorecard.md)
+**Finding 4, [automatic payout scheduling in Review](https://github.com/arnabnandikgp/rivalt/pull/201).** On clearing `b7e4458b` and worker `efff1af2`, the two traders withdrew after 11.674 and 18.752 s. The collection-first control took 40.815 and 45.671 s on the same harness. Each run filled 48/48 background orders and collected all 502,480 BTC-market and 480 ETH-market collateral atoms owed after release. The collection backlog drained at 33.043 s in the control and 45.915 s on the revised worker, measured from the later close. [Cutoffs and replay](operations/performance.md#scheduling-payouts-while-losses-keep-arriving)
+
+**Next action.** Extend the six-wallet worker run through completion of the ETH backing check and withdrawal of the ETH maker’s 480-atom claim. Record when backing, funded cash and wallet tokens first appear.
 
 | Open gate | What remains |
 |---|---|
