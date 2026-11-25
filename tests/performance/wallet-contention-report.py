@@ -161,39 +161,59 @@ def native_scheduler(directory, rows):
         if signature in signed:
             traces[signature].append((int(timestamp), stage, member, worker))
     segments = {}
+    client = []
+    admission_intervals = []
     assigned_workers = Counter()
+    all_assignments = Counter()
     multiple_attempts = {}
     for signature, events in traces.items():
         events.sort()
         stages = [event[1] for event in events]
+        all_assignments.update(int(event[3]) for event in events if event[1] == "assigned")
         for stage in ("admitted", "assigned", "worker"):
             assert stage in stages, f"{signature} has no {stage} timestamp"
-        if len(events) != 3:
-            # Multiple admissions/assignments can occur when Agave retries.
-            # Preserve these observations without guessing which landed.
-            multiple_attempts[signature] = stages
-            continue
-        assert stages == ["admitted", "assigned", "worker"] and len({e[2] for e in events}) == 1
-        admitted, assigned, worker = (event[0] for event in events)
         row = signed[signature]
         assert row["readyMs"] <= row["signedMs"] <= row["broadcastMs"] <= row["rpcAcceptedMs"] <= row["observedMs"]
-        segments[signature] = {
+        client.append({
             "snapshotAndSignMs": row["signedMs"] - row["readyMs"],
             "preflightAndSubscriptionMs": row["broadcastMs"] - row["signedMs"],
             "sendRpcMs": row["rpcAcceptedMs"] - row["broadcastMs"],
             "rpcResponseToObservedConfirmationMs": row["observedMs"] - row["rpcAcceptedMs"],
+        })
+        if stages.count("admitted") == 1 and len({e[2] for e in events}) == 1:
+            # These landmarks are unambiguous even when a worker returns work
+            # to the scheduler. The last interval can include earlier execution.
+            assert stages[0] == "admitted" and stages.index("assigned") < stages.index("worker")
+            start = events[0][0]
+            starts = [event[0] - start for event in events if event[1] == "worker"]
+            admission_intervals.append({"firstAssignmentUs": events[stages.index("assigned")][0] - start,
+                                        "firstWorkerBatchUs": starts[0], "lastWorkerBatchUs": starts[-1]})
+        if len(events) != 3:
+            # Multiple admissions/assignments can occur when Agave retries.
+            # Preserve these observations without guessing which landed.
+            multiple_attempts[signature] = [{"usFromFirstEvent": event[0] - events[0][0],
+                                             "stage": event[1], "id": event[2], "worker": event[3]}
+                                            for event in events]
+            continue
+        assert stages == ["admitted", "assigned", "worker"] and len({e[2] for e in events}) == 1
+        admitted, assigned, worker = (event[0] for event in events)
+        segments[signature] = {
             "admitToAssignUs": assigned - admitted,
             "assignToWorkerBatchUs": worker - assigned,
             "admitToWorkerBatchUs": worker - admitted,
         }
         assigned_workers[int(events[1][3])] += 1
-    assert segments, "No unambiguous scheduler observations"
     filled = [value for signature, value in segments.items() if signed[signature]["error"] is None]
     return {"signed": len(signed), "singleAttempt": len(segments), "singleAttemptFills": len(filled),
+            "client": {key: percentiles([sample[key] for sample in client]) for key in client[0]},
+            "singleAdmission": len(admission_intervals),
+            "sinceAdmission": {key: percentiles([sample[key] for sample in admission_intervals])
+                               for key in ("firstAssignmentUs", "firstWorkerBatchUs", "lastWorkerBatchUs")},
             "fillAdmitToWorkerBatchUs": percentiles([value["admitToWorkerBatchUs"] for value in filled]),
             "multipleAttempts": multiple_attempts,
-            "assignedWorkers": assigned_workers,
-            "timing": {key: percentiles([value[key] for value in segments.values()]) for key in next(iter(segments.values()))}}
+            "singleAttemptWorkers": assigned_workers, "allAssignmentsByWorker": all_assignments,
+            "timing": {key: percentiles([value[key] for value in segments.values()])
+                       for key in ("admitToAssignUs", "assignToWorkerBatchUs", "admitToWorkerBatchUs")}}
 
 
 def main():

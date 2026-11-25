@@ -150,6 +150,22 @@ Twelve wallets improved the delivered rate in all three placements. Splitting th
 
 PostgreSQL independently replayed 477 BTC, 473 ETH and 557 split-venue events and reconciled the funded accounts. All 288 finalized originals and their WS observations matched the report. Fourteen timed funding maintenance attempts landed in the matched run. An earlier ETH run stopped when its harness treated a funding-report preflight refusal (6131) as fatal. The corrected harness records that refusal separately, leaves the refused report unsent, and samples again on its normal cadence. Production capacity and contention pricing require separate scheduler and fee-market evidence. [Reproduction and receipt audit](local-development.md#wallet-count-and-market-contention)
 
+### Native validator queue timing
+
+On Agave 4.2.2, harness `5475b255` replayed the twelve-wallet arrivals against clearing `b0e1a43f`. Each placement scheduled 48 signed 1,404-byte v1 orders over 1.920 seconds on a fresh book. Wallets waited for their own previous confirmation. All three placements used synthetic prices, four funded flat makers per market and zero priority fees. The earlier Surfpool twelve-wallet windows followed a one-wallet warm-up on the same book. Compare timings within each runtime first. [Run the native benchmark](local-development.md#native-validator-scheduler-replay)
+
+| Market placement | Filled / offered | Fills/s through drain | Arrival to observed confirmation p95 | Wallet stream wait p95 | Snapshot through signing p95 | Admission to first worker p95 | Admission to last worker p95 | Orders with repeated assignments |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| BTC | 48/48 | 17.18 | 1.274 s | 684 ms | 348 ms | 21.212 ms | 41.966 ms | 6 |
+| ETH | 48/48 | 13.84 | 1.868 s | 1,220 ms | 658 ms | 1.207 ms | 3.637 ms | 1 |
+| BTC/ETH split | 48/48 | 7.94 | 4.207 s | 3,400 ms | 1,699 ms | 5.278 ms | 24.050 ms | 1 |
+
+Each native interval starts when the leader accepts the transaction for its scheduler queue. First worker means the start of processing its assigned batch. Last worker includes elapsed time across internal retries. All 144 signatures had exactly one admission. In BTC, ETH and split order, p95 time to the first assignment itself was 21.210 ms, 0.019 ms and 0.038 ms. Preflight and subscription took 24.5, 47.7 and 86.7 ms p95, the send RPC took 12.3, 24.1 and 40.3 ms, and RPC response to client-observed confirmation took 645.7, 580.3 and 716.8 ms. The client polls for confirmation. These intervals can overlap validator processing, and percentiles describe separate distributions. [Agave worker assignment](https://github.com/anza-xyz/agave/blob/c9c6f3287e26f24e3476e13e751aebe710191e89/core/src/banking_stage/transaction_scheduler/greedy_scheduler.rs) · [Signature audit](../../tests/performance/wallet-contention-report.py)
+
+Every trader assignment, including retries, went to worker 0. The split trace retained 480/480 same-market lock overlaps and 0/576 cross-market overlaps. Cross-market orders could execute in parallel, but this wallet workload did not demonstrate parallel worker use. Its longest measured delays were before submission. The aggregate rate includes the time needed for all offered orders to finish. One window per placement on a single local leader supplies no saturation curve or evidence of priority-fee competition.
+
+A preliminary stock-validator control finalized 48 oracle-policy refusals. The funding publications showed a one-second gap beyond the previous hold, which restarted recovery. The harness now refreshes signed inputs during the two-second minimum reporting interval and reads both markets' on-chain Normal states before measuring. The native harness also retains enough ledger history to replay from initialization and allows up to 90 seconds for finalized receipt auditing. The refused control is excluded from fill rates.
+
 ## Wallet traffic and settlement
 
 Three local runs scheduled the same 120 BTC buys from 24 wallets over 4.165 seconds. Orders were one to three lots. One deep maker always quoted the best test ask. All runs used the bounded router, synthetic sources and a real settlement worker. The timing column includes time spent waiting to prepare the order.

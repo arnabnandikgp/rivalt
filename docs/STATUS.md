@@ -45,7 +45,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 **Finding 3, local contention benchmark.** On clearing `b0e1a43f` and harness `27710e33`, all 288 matched requests filled. A twelve-wallet BTC/ETH split eliminated cross-market write conflicts (0/576 pairs) while all 480 same-market pairs conflicted. At 25 offered orders/s, the split venue delivered 10.00 trader fills/s at 2.863 s p95 from scheduled arrival. BTC-only delivered 11.97 fills/s and ETH-only delivered 11.50 fills/s. These rates use the original signed receipts. Fresh PostgreSQL replays reconciled all three venues. [One- and twelve-wallet results](operations/performance.md#wallet-count-and-market-contention)
 
-**Next action.** Repeat the twelve-wallet trace on a representative validator scheduler and measure scheduling wait separately from wallet preparation and RPC latency. The populated-book shock exercise remains deferred. [Qualification scorecard](operations/qualification-scorecard.md)
+**Finding 3, native scheduler in Review.** Agave 4.2.2, clearing `b0e1a43f` and harness `5475b255` finalized 144/144 twelve-wallet orders and replayed 305 events per venue in fresh PostgreSQL databases. At 25 offered orders/s, BTC delivered 17.18 fills/s, ETH 13.84 and the split 7.94. In the split window the p95 wait to first validator worker was 5.278 ms, the wallet snapshot and signing took 1.699 s p95, and arrival to observed confirmation took 4.207 s p95. All trader assignments went to one worker. Validator saturation and fee competition remain open. [Matched scheduler and wallet intervals](operations/performance.md#native-validator-queue-timing)
+
+**Next action.** Time the SDK's snapshot reads and route construction separately on the same twelve-wallet split trace to identify what delays submission. The populated-book shock exercise remains deferred. [Qualification scorecard](operations/qualification-scorecard.md)
 
 | Open gate | What remains |
 |---|---|
