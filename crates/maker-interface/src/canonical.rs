@@ -584,6 +584,11 @@ impl<'shape> ExecutionCurve<'shape> {
         Ok(Some(supplied))
     }
 
+    pub(crate) fn limited_to(mut self, lots: u64) -> Self {
+        self.capacity = self.capacity.min(lots);
+        self
+    }
+
     pub(crate) fn capacity(self) -> u64 {
         self.capacity
     }

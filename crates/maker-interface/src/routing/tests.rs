@@ -423,3 +423,34 @@ fn direct_prefix_matches_individual_prices_inside_consumed_regions() {
         }
     }
 }
+
+#[test]
+fn wide_order_uses_in_band_makers_and_respects_rounded_aggregate_fee() {
+    let flat = shape(100, 0);
+    for (side, prices, fee, net) in [
+        (0, [53_000, 60_000, 60_000, 60_000], 3_600, 18_003_600),
+        (1, [60_001, 60_000, 60_000, 60_000], 3_600, 17_996_400),
+    ] {
+        let curves = prices.map(|price| Some(ExecutionCurve::new(&flat, price, side, 0, 0).unwrap()));
+        let request = Order { all_in_limit: net, max_fee: fee, ..order(side, 300, 60_000) };
+        let winner = marginal::best_marginals(request, &curves).unwrap().unwrap();
+        assert_eq!(winner.lots, [0, 100, 100, 100]);
+        assert_eq!((winner.gross, winner.fee, winner.all_in), (18_000_000, fee, net));
+        let tighter = Order { all_in_limit: if side == 0 { net - 1 } else { net + 1 }, ..request };
+        assert!(marginal::best_marginals(tighter, &curves).unwrap().is_none());
+    }
+}
+
+#[test]
+fn wide_order_collar_can_require_more_than_one_lot_on_one_book() {
+    // First ask is 890, the second is 910. At index 1000 the two-lot average
+    // meets the 900 floor exactly, although its first lot cannot fill alone.
+    let rising = shape(2, 20);
+    let flat = shape(2, 0);
+    let curves = [
+        Some(ExecutionCurve::new(&rising, 890, 0, 0, 0).unwrap()),
+        Some(ExecutionCurve::new(&flat, 905, 0, 0, 0).unwrap()),
+    ];
+    let winner = marginal::best_marginals(order(0, 2, 1000), &curves).unwrap().unwrap();
+    assert_eq!((winner.lots, winner.gross), (vec![2, 0], 1800));
+}

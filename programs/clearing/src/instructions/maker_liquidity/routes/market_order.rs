@@ -288,7 +288,7 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock, mu
     };
     let (allocation,next) = if multi {
         let ideal = routing::marginal::best_marginals(order, &curves)
-            .map_err(|_| ClearingError::MakerQuote)?.ok_or(ClearingError::RouteHealth)?;
+            .map_err(|error| SelectionError::from(error).0)?.ok_or(ClearingError::RouteHealth)?;
         let allocation=ideal;
         let next = financial_candidate(accounts,args,&views,&states,&allocation.lots,&allocation.amounts,epochs,&environment,clock)?;
         (allocation,next)

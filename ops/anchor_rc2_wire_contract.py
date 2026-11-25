@@ -172,7 +172,14 @@ def undo_liquidation_delta(actual, program):
     continued = next(event for event in actual['events'] if event['name']=='MakerFillContinuation')
     assert continued['discriminator'] == list(hashlib.sha256(b'event:MakerFillContinuation').digest()[:8])
     definition = next(t for t in actual['types'] if t['name']=='MakerFillContinuation')
-    assert [field['name'] for field in definition['type']['fields']] == ['venue','market','slot','nonce','first_leg','root_states','maker_states','legs']
+    continuation_fields = [
+        ('venue', 'pubkey'), ('market', 'pubkey'), ('slot', 'u64'), ('nonce', 'u64'), ('first_leg', 'u8'),
+        ('root_states', {'vec': {'defined': {'name': 'MarginAccountSnapshot'}}}),
+        ('maker_states', {'vec': {'defined': {'name': 'MakerRegistrationPayload'}}}),
+        ('legs', {'vec': {'defined': {'name': 'ExecutedLeg'}}}),
+    ]
+    assert definition['type'] == {'kind': 'struct', 'fields': [
+        {'name': name, 'type': field_type} for name, field_type in continuation_fields]}
     actual['events'].remove(continued)
     actual['types'].remove(definition)
     router = unique('execute_best_route')

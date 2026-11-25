@@ -31,11 +31,11 @@ def summarize(rows):
         "offered": len(rows), "filled": len(filled),
         "single": sum(len(row["fill"]["legs"]) == 1 for row in filled),
         "split": sum(len(row["fill"]["legs"]) == 2 for row in filled),
-        "requestedIndexAtoms": requested, "filledIndexAtoms": executed,
+        "requestedIndexAtoms": str(requested), "filledIndexAtoms": str(executed),
         "indexNotionalFillPercent": format(Decimal(executed) * 100 / requested, ".2f") if requested else None,
-        "grossExecutionAtoms": sum(int(row["fill"]["gross"]) for row in filled),
-        "takerFeeAtoms": sum(int(row["fill"]["fee"]) for row in filled),
-        "signedNetworkLamports": sum(int(row["receipt"]["feeLamports"]) for row in rows),
+        "grossExecutionAtoms": str(sum(int(row["fill"]["gross"]) for row in filled)),
+        "takerFeeAtoms": str(sum(int(row["fill"]["fee"]) for row in filled)),
+        "signedNetworkLamports": str(sum(int(row["receipt"]["feeLamports"]) for row in rows)),
         "refusals": [{"reason": reason, "instructionError": json.loads(error), "count": count}
                      for (reason, error), count in failures.items()],
     }

@@ -2,6 +2,7 @@
 //! Each book's marginal cost is nondecreasing, including its inventory skew.
 //! Every lot cheaper than the cutoff is mandatory. Only lots at the cutoff tie.
 use super::*;
+mod constrained;
 
 const MAX_BOOKS: usize = 8;
 
@@ -52,6 +53,35 @@ impl Book<'_> {
 /// winner can never be committed by clearing. Caller supplies curves in stable
 /// increasing registration order. None denotes an ineligible or absent book.
 pub fn best_marginals(
+    order: Order,
+    curves: &[Option<ExecutionCurve>],
+) -> QuoteResult<Option<MultiAllocation>> {
+    if !(price_policy::MIN_REFERENCE_PRICE..=price_policy::MAX_REFERENCE_PRICE)
+        .contains(&order.reference)
+    {
+        return Err(QuoteError::Bounds);
+    }
+    let Some(ideal) = price_optimum(order, curves)? else {
+        return Ok(None);
+    };
+    let window = constrained::GrossWindow::new(order, ideal.gross)?;
+    let Some(window) = window else {
+        return Ok(None);
+    };
+    if window.contains(ideal.gross)
+        && order.within_limit(ideal.all_in)
+        && ideal
+            .lots
+            .iter()
+            .zip(&ideal.amounts)
+            .all(|(&lots, &gross)| constrained::in_band(order.reference, lots, gross))
+    {
+        return Ok(Some(ideal));
+    }
+    constrained::select(order, curves, window)
+}
+
+fn price_optimum(
     order: Order,
     curves: &[Option<ExecutionCurve>],
 ) -> QuoteResult<Option<MultiAllocation>> {
@@ -212,9 +242,6 @@ pub fn best_marginals(
         gross.checked_sub(fee)
     }
     .ok_or(QuoteError::Arithmetic)?;
-    if gross < MIN_ORDER_ATOMS || fee > order.max_fee || !order.within_limit(all_in) {
-        return Ok(None);
-    }
     Ok(Some(MultiAllocation {
         lots,
         amounts,

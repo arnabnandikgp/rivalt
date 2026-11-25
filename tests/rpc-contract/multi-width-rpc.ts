@@ -34,10 +34,8 @@ try {
     const width=index===0?4:8,quantity=BigInt(width-1)*65_000n+33_935n;
     const trader=setup.roots[index],owner=setup.traderOwners[index],ref=index===0?60_000n:30_000n;
     const makers=setup.instances.filter(maker=>maker.market===setup.markets[index]);
-    const keys=[trader,...setup.markets,...setup.ledgers,...makers.flatMap(maker=>[maker.capital,maker.registration])];
-    const read=()=>Promise.all(keys.map(key=>h.read(key)));
     await setup.sample();
-    const before=await read(),snap=await setup.snapshot(trader,index);
+    const snap=await setup.snapshot(trader,index);
     const quantities:bigint[]=makers.map((_,id)=>id<width-1?65_000n:id===width-1?33_935n:0n);
     const gross=quantities.reduce((sum,lots,id)=>sum+lots*(ref+2n+BigInt(id)*2n),0n),fee=(gross+4999n)/5000n;
     const order=await sdk.buildMultiMakerRoute({snapshot:snap,trader,marketIndex:index,side:0,lots:quantity,
@@ -49,15 +47,12 @@ try {
     await flush();
     const tx=checks.find(row=>row.label===label)!;
     assert.equal(tx.signatures,1);
-    if(tx.error!==null) {
-      assert.deepEqual(await read(),before);
-    } else {
-      const after=await setup.snapshot(trader,index);
-      assert.equal(after.roots[trader].positions[index].lots,quantity);
-      assert.equal(after.roots[trader].positions[index].virtualScaled,-gross*1_000_000_000n);
-      assert.equal(after.roots[trader].cash,snap.roots[trader].cash-fee);
-      assert.deepEqual(await Promise.all(makers.map(async maker=>(await maker.registrationState()).buyConsumed)),quantities);
-    }
+    assert.equal(tx.error,null,label);
+    const after=await setup.snapshot(trader,index);
+    assert.equal(after.roots[trader].positions[index].lots,quantity);
+    assert.equal(after.roots[trader].positions[index].virtualScaled,-gross*1_000_000_000n);
+    assert.equal(after.roots[trader].cash,snap.roots[trader].cash-fee);
+    assert.deepEqual(await Promise.all(makers.map(async maker=>(await maker.registrationState()).buyConsumed)),quantities);
     results.push({width,quantity,quantities,gross,fee,tx});
   }
   journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
