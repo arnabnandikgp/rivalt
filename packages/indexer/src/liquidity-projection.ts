@@ -25,7 +25,7 @@ const fields = (value:any,names:string[]) => names.map(name=>value[name]);
 export function projectLiquidity(state:AccountState,event:AccountEvent,financial:FinancialProjection,artifactSet?:string) {
   const liquidity=present(state.liquidity,'liquidity profile'),venue=present(state.venue,'venue');
   check(venue.profileVersion===6,'liquidity profile');
-  const makerLimit = artifactSet === sdk.WIDE_DIRECTORY_ARTIFACT_SET ? sdk.MAX_REGISTERED_MAKERS : 3;
+  const makerLimit = sdk.hasWideDirectory(artifactSet) ? sdk.MAX_REGISTERED_MAKERS : 3;
   const change=event.data;
   const marketIndex=venue.markets.indexOf(change.market??change.state?.market);
   check(marketIndex>=0&&marketIndex<venue.marketCount,'liquidity market');

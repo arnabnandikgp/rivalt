@@ -163,7 +163,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
           [fixture.updater],sdk.CLEARING_ERROR__PROFILE);
         await h.send('reject duplicate funding checkpoint',[sdk.withFundingCheckpoints(instruction,[checkpoints[0],checkpoints[0],checkpoints[2]])],
           [fixture.updater],sdk.CLEARING_ERROR__ALIAS);
-        const substituted=[instances[3].registration,...checkpoints.slice(1)];
+        const substituted=[instances[makerCounts[0]].registration,...checkpoints.slice(1)];
         await h.send('reject foreign funding checkpoint',[sdk.withFundingCheckpoints(instruction,substituted)],
           [fixture.updater],sdk.CLEARING_ERROR__MAKER_BINDING);
         assert.deepEqual(await Promise.all([h.read(markets[index]),h.read(input.configuration)]),before);

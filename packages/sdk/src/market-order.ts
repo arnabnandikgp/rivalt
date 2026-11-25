@@ -58,7 +58,7 @@ function shortlist(input: LiquidityRouteInput) {
   return makers.filter(maker=>selected.has(maker.config.instance));
 }
 
-/** Ordinary market order against the complete landed registry. A snapshot
+/** Ordinary market order against the signed shortlist at execution time. A snapshot
  * supplies identities and structural epochs. The signer does not pick legs. */
 export async function buildBestRoute(input: LiquidityRouteInput, actor: Address) {
   const {snapshot, trader, lots, marketIndex, side, maxFee, allInLimit} = input;
