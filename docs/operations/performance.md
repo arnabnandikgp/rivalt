@@ -201,14 +201,25 @@ In two independent Node 24.22.0 processes, decoding two maker program-data accou
 | SHA-256 of the two maker program-data accounts | 1.51% | 1.26% |
 | Remaining verification and runtime work | 14.29% | 13.18% |
 
-The SDK currently calls `atob` and copies its result through `Uint8Array.from` with a callback per character. A benchmark-only alternative kept `atob`, allocated the output once and copied bytes with an indexed loop. Each process compared 72 snapshots per decoder per concurrency level in alternating order, with individual stage timers disabled.
+At the profiled revision, the SDK copied the binary string returned by `atob` through `Uint8Array.from` with a mapping callback per character. The experiment allocated the destination array at the known length and copied each character code directly to its offset. Each process compared 72 snapshots per decoder per concurrency level in alternating order, with individual stage timers disabled.
 
 | Final response to verified snapshot | Original p50, run 1 / 2 | Candidate p50, run 1 / 2 | Original p95, run 1 / 2 | Candidate p95, run 1 / 2 |
 |---|---:|---:|---:|---:|
 | One wallet at a time | 23.60 / 23.50 ms | 10.66 / 10.64 ms | 29.21 / 25.64 ms | 11.89 / 11.52 ms |
 | Twelve wallets together, per wallet | 246.02 / 244.45 ms | 105.19 / 106.09 ms | 277.71 / 273.54 ms | 113.98 / 121.41 ms |
 
-Both decoders reproduced the bytes for all 655 exported accounts and the same decoded state for all twelve wallets. Both marked makers using altered program data unavailable. These timings cover SDK verification on one host from a fixed bank. Browser latency, live RPC timings and fills/s need separate measurements. The production SDK still uses the original decoder. [Current SDK decoder](../../packages/sdk/src/wallet-client.ts) · [Benchmark](../../tests/performance/wallet-snapshot-profile.ts)
+Both decoders reproduced the bytes for all 655 exported accounts and the same decoded state for all twelve wallets. Both marked makers using altered program data unavailable. These timings cover SDK verification on one host from a fixed bank. [Node benchmark](../../tests/performance/wallet-snapshot-profile.ts)
+
+### Browser wallet verification with the default decoder
+
+At `402a6c03` the SDK uses the indexed copy by default. Two fresh headless Chrome 157.0.8103.39 processes replayed the same bank through the wallet's `readAccountTradeSnapshot`. The comparison bundle substituted only the previous decoder. Each process alternated the order for six rounds, giving 72 observations per decoder per workload after warmup. The interval starts when the final batch of 44 accounts is ready and ends when the wallet has verified the snapshot. [SDK decoder](../../packages/sdk/src/wallet-client.ts) · [Reproduction](local-development.md#replaying-wallet-snapshot-verification-offline)
+
+| Time per wallet | Previous median, run 1 / 2 | SDK median, run 1 / 2 | Previous p95, run 1 / 2 | SDK p95, run 1 / 2 |
+|---|---:|---:|---:|---:|
+| One wallet at a time | 16.1 / 16.2 ms | 7.3 / 7.3 ms | 16.7 / 16.9 ms | 8.0 / 7.9 ms |
+| Twelve wallets verifying together | 171.9 / 169.2 ms | 81.8 / 82.2 ms | 194.0 / 191.4 ms | 85.8 / 86.8 ms |
+
+Both bundles reproduced the bytes of all 655 accounts and the same serializable state for twelve BTC/ETH wallets. Both rejected malformed base64 and marked the affected adapters unavailable on both markets when one byte of approved maker code changed. A Node 24.22.0 replay at the same revision independently compared all account bytes with `Buffer.from`. There was no RPC transport, signature, or validator in the timed interval. The improvement applies to local wallet preparation. [Browser comparison](../../tests/browser/wallet-snapshot-comparison.ts)
 
 ### Fifty already-signed orders in one slot
 

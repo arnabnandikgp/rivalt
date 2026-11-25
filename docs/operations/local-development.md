@@ -294,7 +294,13 @@ node --experimental-test-module-mocks --import tsx tests/performance/wallet-snap
   "$scratch/accounts.json" "$run" 406
 ```
 
-Verify that both logs give the same bank hash. The benchmark reads all four account batches from that bank and times the SDK from its final response to its verified snapshot. It checks the maker hashes against the retained journal, compares decoder outputs byte for byte, and checks the SDK's response to a changed maker binary. Stage shares come from serial replays. The separate decoder comparison alternates execution order and reports single-wallet and twelve-concurrent-wallet timings with stage recording disabled.
+Verify that both logs give the same bank hash. The benchmark reads all four account batches from that bank and times the SDK from its final response to its verified snapshot. It checks the maker hashes against the retained journal, compares decoder outputs byte for byte, and checks the SDK's response to a changed maker binary. Stage shares come from serial replays of the previous decoder. The separate decoder comparison alternates execution order and reports single-wallet and twelve-concurrent-wallet timings with stage recording disabled.
+
+Use the same export to test the SDK in a real browser. Set `RIVALT_CHROME_PATH` to the local Chromium or Chrome executable, or use the Playwright-managed Chromium. The runner loads only the public bank data into a temporary headless browser and fulfills requests in memory. Run twice in separate processes to see timing variation.
+
+```bash
+node --import tsx tests/browser/wallet-snapshot-profile.ts "$scratch/accounts.json" "$run" 406
+```
 
 ### Comparing already-signed order bursts
 
