@@ -298,6 +298,25 @@ Wallet counts use each trader’s own cutoff. Debt uses a single confirmed bank 
 
 These measurements cover two BTC creditors, a current backing certificate, four active trading wallets, six internal makers and an initially partly funded pool. The worker’s scheduling preference resets on restart. A larger population, cold backing and insufficient collectible collateral have separate timing limits. [Worker policy](../application/durability.md#settlement-during-trading) · [Reproduce the comparison](local-development.md#closing-a-position-through-wallet-withdrawal-under-load)
 
+### First ETH maker payout with cold backing
+
+On clearing `b7e4458b`, harness `254404ef` ran the six-wallet schedule with a current BTC certificate and no ETH certificate. The ordinary worker from `efff1af2` handled both markets. All 48 scheduled trades filled. The ETH maker sold 120 lots for 3,600,240 collateral atoms and bought back 120 for 3,599,760. Its 480-atom spread was 0.000480 test collateral. [Receipt report](../../tests/performance/cold-maker-exit.ts)
+
+| First confirmed observation | Seconds from start of trading |
+|---|---:|
+| ETH certificate created | 13.695 |
+| Maker flat with all 480 atoms unpaid | 25.611 |
+| ETH pool holds all 480 atoms | 46.118 |
+| ETH certificate covers all 12 members | 142.721 |
+| Maker margin credited by 480 atoms | 142.721 |
+| Owner wallet received 480 atoms | 142.797 |
+
+The maker waited 117.186 s from the observed flat claim to wallet receipt. Its pool held the full amount 96.603 s before the credit. The worker submitted 43 successful backing-check transactions across 12 members. The scan visits the membership index and its pages as well as the financial accounts. Clearing completed the final backing check and credited all 480 atoms in the same finalized transaction. ETH certificate initialization, checks and payment used 44 distinct successful worker transactions and 220,000 lamports in transaction fees. The owner signed and paid for a separate withdrawal. Its finalized SPL balances moved exactly 480 atoms from the vault to the maker wallet, leaving the original 100 test collateral in the margin account.
+
+The two BTC traders received 0.971799 test collateral each at 11.047 and 18.166 s after their respective closes. The BTC and ETH markets collected 502,480 and 480 atoms after release. The first zero-debt sample after the last fill was 45.590 s after the later BTC close. The ETH pool ended at zero. Fresh PostgreSQL replay reconciled 903 events.
+
+The 48 orders were a finite burst. Source and maker updates continued through the later backing checks and withdrawal. This measures one cold scan on a local 12-member venue with funded losses. [Run the qualification](local-development.md#closing-a-position-through-wallet-withdrawal-under-load)
+
 ## Funding, costs and comparisons
 
 The funding publisher computes depth off chain. In three older 75-member runs on clearing `79724a5a`, 12 two-market publication transactions used 48,940–49,110 CU. Another 54 transactions that also checkpointed both markets used 89,682–99,550 CU. These are complete transactions on that binary. [Funding contract](../liquidity/funding.md) · [Receipt reader](../../tests/performance/funding-receipts.py)

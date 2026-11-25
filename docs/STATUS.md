@@ -51,7 +51,9 @@ With ordinary wallets preparing orders, final snapshot verification accounted fo
 
 **Finding 4, [automatic payout scheduling in Review](https://github.com/arnabnandikgp/rivalt/pull/201).** On clearing `b7e4458b` and worker `efff1af2`, the two traders withdrew after 11.674 and 18.752 s. The collection-first control took 40.815 and 45.671 s on the same harness. Each run filled 48/48 background orders and collected all 502,480 BTC-market and 480 ETH-market collateral atoms owed after release. The collection backlog drained at 33.043 s in the control and 45.915 s on the revised worker, measured from the later close. [Cutoffs and replay](operations/performance.md#scheduling-payouts-while-losses-keep-arriving)
 
-**Next action.** Extend the six-wallet worker run through completion of the ETH backing check and withdrawal of the ETH maker’s 480-atom claim. Record when backing, funded cash and wallet tokens first appear.
+**Finding 4, cold ETH exit in Review.** Harness `254404ef` followed one 480-atom maker profit from a flat ETH position to its owner’s wallet in 117.186 s. The worker completed 43 backing checks across 12 members. Both BTC traders withdrew during the run, and fresh SQL replay reconciled 903 events. [Measurements](operations/performance.md#first-eth-maker-payout-with-cold-backing)
+
+**Next action.** Repeat the same book with ETH backing verified before trading. Compare the maker’s wait, the upfront work and any backing checks repeated after fills.
 
 | Open gate | What remains |
 |---|---|

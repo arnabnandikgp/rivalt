@@ -82,6 +82,13 @@ Each venue starts with a current BTC backing certificate and two independently f
 
 To compare worker policies, run the `worker` arm at each revision with the same observation harness. The collection-first control used the tree of `257ba582` with only `tests/rpc-contract/close-to-wallet-rpc.ts` from `6434dafa`. The final worker ran at `efff1af2`. Compare the two completed run directories with `python3 tests/performance/close-to-wallet-report.py --workers BEFORE_RUN AFTER_RUN`. The worker arm continues observing after wallet exit until the 48 orders have completed and covered losses on both markets have drained, subject to the 120-second follow-up.
 
+To follow the ETH maker through its first complete backing check, use the same exports above and a fresh run directory. The worker keeps polling after the 48 offers, with a six-minute observation limit from the later BTC close. The report reads the original finalized fill events and reconciles the ETH spread to the maker’s payment and ending position.
+
+```bash
+RIVALT_CASHOUT_ARM=worker-eth-exit RIVALT_RUN_DIR="$run/worker-eth-exit" bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/cold-maker-exit.ts "$run/worker-eth-exit"
+```
+
 ## Fixed-width entry qualification
 
 First provision the four P56 baseline binaries in `.local/anchor-rc2/current` in the program checkout. On a new machine, build them at `657a255` with `bash ops/install-anchor-rc2.sh` and `bash ops/build.sh`, then make that artifact directory available in the harness checkout too. Both the builder and the signed smoke check verify the baseline hashes. [Pinned toolchain and P56 build recipe](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/local-development.md#pinned-toolchain)
