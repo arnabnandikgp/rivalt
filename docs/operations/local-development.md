@@ -274,6 +274,28 @@ python3 tests/performance/wallet-contention-report.py --preparation "$baseline_s
 
 The report checks both finalized journals, the validator binary, program build, per-wallet schedule and all signed outcomes. For each signed order it partitions elapsed time from wallet readiness to the original signature. The four sequential account calls include receipt and JSON parsing. The final batch includes both maker programs' upgradeable program data. Reported bytes are decoded account-data lengths. The elapsed time outside RPC includes event-loop waits. The leader's observed arrival rate divides the number of gaps between first admissions by their elapsed span. Fills/s uses every completed trader order through the last observed outcome.
 
+### Replaying wallet snapshot verification offline
+
+The twelve-wallet split run retains an Agave ledger. For the measured run, slot 406 immediately precedes the first fill. Export that bank with Agave 4.2.2 on a scratch copy. The following uses APFS clones on the local macOS host and the retained Agave distribution.
+
+```bash
+source ops/env.sh
+run=.local/agave-contention/preparation-9369c98d/split
+scratch=$(mktemp -d .local/agave-contention/profile-XXXXXX)
+mkdir "$scratch/ledger"
+cp -cR "$run/ledger/rocksdb" "$scratch/ledger/"
+cp -c "$run/ledger/genesis.bin" "$run"/ledger/snapshot-400-*.tar.zst "$scratch/ledger/"
+tar -xjf .local/agave-contention/solana-release-aarch64-apple-darwin.tar.bz2 \
+  -C "$scratch" solana-release/bin/agave-ledger-tool
+"$scratch/solana-release/bin/agave-ledger-tool" --ledger "$scratch/ledger" --log "$scratch/export.log" \
+  accounts --halt-at-slot 406 --include-sysvars --output json-compact > "$scratch/accounts.json"
+rg 'bank frozen: 406 hash:' "$run/ledger/validator.log" "$scratch/export.log"
+node --experimental-test-module-mocks --import tsx tests/performance/wallet-snapshot-profile.ts \
+  "$scratch/accounts.json" "$run" 406
+```
+
+Verify that both logs give the same bank hash. The benchmark reads all four account batches from that bank and times the SDK from its final response to its verified snapshot. It checks the maker hashes against the retained journal, compares decoder outputs byte for byte, and checks the SDK's response to a changed maker binary. Stage shares come from serial replays. The separate decoder comparison alternates execution order and reports single-wallet and twelve-concurrent-wallet timings with stage recording disabled.
+
 ### Comparing already-signed order bursts
 
 Use the native validator and artifact exports in the scheduler replay instructions. Run each placement sequentially on a fresh venue:

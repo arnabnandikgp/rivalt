@@ -189,6 +189,27 @@ The complete snapshot took 522.3 ms p95 and preparation through signing took 580
 
 First admissions/s uses the 47 gaps from the first signed order admitted to the last. Fills/s counts all 48 orders from the scheduled start through the last observed outcome. The wallet waited for each trader's previous confirmation. Both runs delivered fewer than 25 signed orders/s to the leader and all trader assignments went to one worker. The rate difference illustrates run-to-run variability. The repeat changed benchmark instrumentation only. Its fresh PostgreSQL replay reconciled 305 events and 259 accounts. [Run the comparison](local-development.md#profiling-wallet-order-preparation)
 
+### Wallet snapshot decoding and verification
+
+In two independent Node 24.22.0 processes, decoding two maker program-data accounts accounted for **50.8–52.2%** of the SDK's time from its final account response to a verified trade snapshot. The input was the retained Agave bank at slot 406, immediately before the first order landed in the twelve-wallet split run. Its replayed bank hash matched the original validator log. Each process profiled 48 serial snapshots on harness `36b6b256`. Each snapshot read 44 accounts in its final batch, including 335,130 bytes across the two maker programs. [Reproduce the offline replay](local-development.md#replaying-wallet-snapshot-verification-offline)
+
+| Stage after the final account response | First run, share of elapsed time | Repeat |
+|---|---:|---:|
+| Decode base64 for the two maker programs | 50.76% | 52.23% |
+| Decode base64 for other accounts | 3.91% | 3.92% |
+| Derive and find canonical addresses | 29.53% | 29.41% |
+| SHA-256 of the two maker program-data accounts | 1.51% | 1.26% |
+| Remaining verification and runtime work | 14.29% | 13.18% |
+
+The SDK currently calls `atob` and copies its result through `Uint8Array.from` with a callback per character. A benchmark-only alternative kept `atob`, allocated the output once and copied bytes with an indexed loop. Each process compared 72 snapshots per decoder per concurrency level in alternating order, with individual stage timers disabled.
+
+| Final response to verified snapshot | Original p50, run 1 / 2 | Candidate p50, run 1 / 2 | Original p95, run 1 / 2 | Candidate p95, run 1 / 2 |
+|---|---:|---:|---:|---:|
+| One wallet at a time | 23.60 / 23.50 ms | 10.66 / 10.64 ms | 29.21 / 25.64 ms | 11.89 / 11.52 ms |
+| Twelve wallets together, per wallet | 246.02 / 244.45 ms | 105.19 / 106.09 ms | 277.71 / 273.54 ms | 113.98 / 121.41 ms |
+
+Both decoders reproduced the bytes for all 655 exported accounts and the same decoded state for all twelve wallets. Both marked makers using altered program data unavailable. These timings cover SDK verification on one host from a fixed bank. Browser latency, live RPC timings and fills/s need separate measurements. The production SDK still uses the original decoder. [Current SDK decoder](../../packages/sdk/src/wallet-client.ts) · [Benchmark](../../tests/performance/wallet-snapshot-profile.ts)
+
 ### Fifty already-signed orders in one slot
 
 Fifty distinct funded wallets each submitted one 1,404-byte v1 order on harness `97523cdf`, clearing `b0e1a43f` and the traced Agave 4.2.2 validator. Both fresh venues used the same 25 buys, 25 sells and $30,960 of requested notional across $120, $600 and $1,200 orders. Four internal makers per market quoted at the index. All 50 originals had been signed, simulated and subscribed over WebSocket before release. Funding maintenance continued. [Reproduce the burst](local-development.md#comparing-already-signed-order-bursts)

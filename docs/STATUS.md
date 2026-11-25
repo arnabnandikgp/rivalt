@@ -51,7 +51,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 **Finding 3, pre-signed bursts in Review.** Harness `97523cdf` on clearing `b0e1a43f` landed 50/50 orders in the next observed local slot on each fresh venue. BTC alone used one worker. Splitting 25 BTC and 25 ETH used two workers and lowered the largest writable-account cost from 17.96M to 8.98M. The landing blocks froze 457 and 470 ms after their predecessors. [Matched burst measurements](operations/performance.md#fifty-already-signed-orders-in-one-slot)
 
-**Next action.** Repeat the matched 50-wallet bursts on a local validator configured for a 200 ms slot target, record the actual block intervals, and compare slots to the last fill. Wallet SDK profiling is a separate latency follow-up. The populated-book shock exercise remains deferred. [Qualification scorecard](operations/qualification-scorecard.md)
+**Finding 3, offline SDK profile in Review.** At `36b6b256`, two processes replayed the pre-fill bank from the twelve-wallet workload. Decoding the two maker binaries took 50.8–52.2% of verification time after the final read, address derivation 29.4–29.5%, and hashing the binaries 1.3–1.5%. A benchmark-only byte-copy loop reduced the single-wallet median from about 23.5 to 10.6 ms. [Verification breakdown and twelve-wallet results](operations/performance.md#wallet-snapshot-decoding-and-verification)
+
+**Next action.** Apply the measured decoder change in the SDK and verify byte parity, invalid-input handling and wallet latency in a browser. The 200 ms validator repeat is deferred until a throughput claim or account-layout decision needs it. The populated-book shock exercise remains deferred. [Qualification scorecard](operations/qualification-scorecard.md)
 
 | Open gate | What remains |
 |---|---|
