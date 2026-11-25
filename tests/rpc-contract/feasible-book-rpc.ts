@@ -18,6 +18,7 @@ const arm = process.env.RIVALT_FEASIBLE_ARM;
 assert(arm === 'wallet' || arm === 'control');
 const directory = process.env.RIVALT_RUN_DIR!, build = routerBuild();
 const fundedRouting = build.artifactSet === sdk.FUNDED_MULTI_ARTIFACT_SET;
+const deployment = fundedRouting ? 'funded-multi-maker' : 'multi-maker';
 const offered = (label: string) => label.startsWith('feasible ');
 const feePayers = new Map<string, Keypair>();
 let venue: Address, known: Awaited<ReturnType<typeof sdk.venueMarketCheckpoints>>;
@@ -27,7 +28,7 @@ const { h, rpc, ws, checks, flush } = await openCanonicalRpcHarness(process.env.
     computeUnitLimit: label => offered(label) ? 800_000 : undefined,
     heapSize: label => offered(label) && label !== 'feasible constrained control' ? 128 * 1024 : undefined,
     beforeBroadcast: async (label, bytes) => {
-      if (offered(label)) assert.equal(accountUserAuthority(bytes, venue, 4, known, fundedRouting ? 'funded-multi-maker' : 'multi-maker')?.kind, 'accountStateVersion');
+      if (offered(label)) assert.equal(accountUserAuthority(bytes, venue, 4, known, deployment)?.kind, 'accountStateVersion');
     },
   });
 const makerCount = 10, width = 4, cash = 500_000_000_000n;
@@ -103,7 +104,7 @@ try {
     const reference = feasibleBook(books, order), best = reference.best;
     assert(best);
     const input: sdk.LiquidityRouteInput = { trader, snapshot, marketIndex: index, side, lots, allInLimit: order.limit, maxFee: order.maxFee, reduceOnly: false };
-    const normal = await sdk.buildMultiMakerRoute(input, owner.address, width);
+    const normal = await sdk.buildMultiMakerRoute(input, owner.address, width, deployment);
     const scoped = feasibleBook(books.filter(book => normal.candidateInstances.includes(book.id)), order);
     assert(scoped.best);
     let instructions = normal.instructions;
@@ -147,7 +148,7 @@ try {
     const read = () => Promise.all(keys.map(key => h.read(key)));
     const before = await read();
     if (fundedRouting && arm === 'wallet' && index === 1) {
-      const tighter = await sdk.buildMultiMakerRoute({ ...input, allInLimit: best.allIn + 1n }, owner.address, width);
+      const tighter = await sdk.buildMultiMakerRoute({ ...input, allInLimit: best.allIn + 1n }, owner.address, width, deployment);
       const tightLabel = 'feasible constrained one-atom limit';
       feePayers.set(tightLabel, owner);
       await h.send(tightLabel, tighter.instructions, [owner]);
@@ -207,7 +208,7 @@ try {
         curvedControlExhausted = receipt.meta.logMessages.some((line: string) => line.includes('exceeded CUs meter'));
       }
     }
-    if (fundedRouting && (index === 1 || arm === 'control')) {
+    if (fundedRouting) {
       assert.equal(actual?.allIn, best.allIn, label);
       assert.deepEqual(actual?.legs.map(leg => [leg.instance, BigInt(leg.lots)]), best.legs.map(leg => [leg.id, leg.lots]));
     }

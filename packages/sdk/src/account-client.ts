@@ -126,7 +126,7 @@ export class AccountUserClient extends WalletClient {
   async marketOrder(input:LiquidityRouteInput,actor:Address,maximumMakers?:number) {
     this.bound(input.snapshot);
     requireValue(usesExecutionRouter(this.config.deployment), 'Deployment does not support execution-time routing.');
-    if(usesMultiMaker(this.config.deployment) && maximumMakers!==2)return buildMultiMakerRoute(input,actor,maximumMakers??4);
+    if(usesMultiMaker(this.config.deployment) && maximumMakers!==2)return buildMultiMakerRoute(input,actor,maximumMakers??4,this.config.deployment);
     requireValue(maximumMakers===undefined||maximumMakers===2,'Unsupported execution width on this deployment.');
     return buildBestRoute(input,actor);
   }

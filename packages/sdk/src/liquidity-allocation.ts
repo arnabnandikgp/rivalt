@@ -1,3 +1,4 @@
+import { directoryAllocation } from './directory-allocation.js';
 import {MAX_REGISTERED_MAKERS} from './market-capacity.js';
 import {quoteCanonical} from './canonical-quote.js';
 import { EXECUTION_DENOMINATOR, EXECUTION_LOWER_NUMERATOR, EXECUTION_UPPER_NUMERATOR } from './price-policy.js';
@@ -10,7 +11,7 @@ import { convexMinimum, firstTrue, lastTrue, LIQUIDITY_SEARCH_BUDGET, LiquidityS
 const MAX_CASH = 1_000_000_000_000_000n;
 const abs = (value: bigint) => value < 0n ? -value : value;
 const feeFor = (notional: bigint) => (notional+4999n)/5000n;
-export type LiquidityAllocationInput = LiquidityMarginInput & { makers: readonly LiquidityAdapter[]; standing?: boolean };
+export type LiquidityAllocationInput = LiquidityMarginInput & { makers: readonly LiquidityAdapter[]; standing?: boolean; directoryWidth?: number };
 export type LiquidityAllocationLeg = Readonly<{
   instance: number; registration: Address; capital: Address; lots: bigint; grossQuote: bigint;
   authorityEpoch: bigint; controlEpoch: bigint; shapeEpoch: bigint; depthEpoch: bigint;
@@ -141,6 +142,12 @@ export function allocateLiquidityRoute(input: LiquidityAllocationInput): { alloc
     if (!margin.traderAdmissible(grossQuote,fee)) return false;
     if (better(result,best)) best = result;
     return true;
+  }
+  // A price-optimal directory allocation is useful only if it can actually
+  // be signed and passes the ordinary snapshot checks on every participant.
+  if (input.directoryWidth !== undefined) {
+    const proposed = directoryAllocation(table, side, lots, input.directoryWidth);
+    if (proposed && consider(proposed)) return { allocation: best as LiquidityAllocation | null, metrics, excluded };
   }
   for (let index=0;index<makers.length;index++) {
     const entry = table[index];if (entry && lots >= entry.lower && lots <= entry.upper) consider([[index,lots]]);

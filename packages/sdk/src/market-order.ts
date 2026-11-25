@@ -11,12 +11,12 @@ import {requireValue} from './wallet-client.js';
 
 export const BEST_ROUTE_HEAP_BYTES = 128 * 1024;
 
-function shortlist(input: LiquidityRouteInput, width: number, legLimit: number) {
+function shortlist(input: LiquidityRouteInput, width: number, legLimit: number, directoryWidth?: number) {
   const makers = input.snapshot.liquidity!.adapters;
   if (makers.length <= width) return [...makers];
   let previewIds: number[] = [];
   try {
-    const quote = previewLiquidityRoute(input, true).allocation;
+    const quote = previewLiquidityRoute(input, true, directoryWidth).allocation;
     previewIds = quote?.legs.map(leg => leg.instance) ?? [];
   } catch (error) {
     if (!(error instanceof LiquiditySearchLimitError)) throw error;
@@ -33,12 +33,13 @@ export async function buildBestRoute(input: LiquidityRouteInput, actor: Address)
 }
 
 /** Sign the separate local multi-maker instruction and its full candidate set. */
-export async function buildMultiMakerRoute(input: LiquidityRouteInput, actor: Address, width = 3) {
+export async function buildMultiMakerRoute(input: LiquidityRouteInput, actor: Address, width = 3,
+    deployment: 'multi-maker' | 'funded-multi-maker' = 'multi-maker') {
   requireValue(Number.isInteger(width) && width>=3 && width<=8,'Multi-maker candidate count must be between three and eight.');
-  return buildMarketOrder(input,actor,true,width);
+  return buildMarketOrder(input,actor,true,width, deployment === 'funded-multi-maker' ? width : undefined);
 }
 
-async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, multi: boolean, width: number) {
+async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, multi: boolean, width: number, directoryWidth?: number) {
   const {snapshot, trader, lots, marketIndex, side, maxFee, allInLimit} = input;
   const root = snapshot.roots[trader];
   requireValue(!input.stored && snapshot.commitment === 'confirmed' && snapshot.marginLayout === 'ledger-lanes'
@@ -51,7 +52,7 @@ async function buildMarketOrder(input: LiquidityRouteInput, actor: Address, mult
   requireValue(liquidity && liquidity.adapters.length === liquidity.registryState.count && liquidity.adapters.length >= 3
     && liquidity.adapters.every((entry, index) => entry.registrationState.instance === index),
     'The complete ordered maker registry is required.');
-  const candidates = shortlist(input,width,multi ? width : 2);
+  const candidates = shortlist(input,width,multi ? width : 2,directoryWidth);
   const [zero, one, two] = candidates;
   const roots = [root, ...candidates.map(maker => maker.capital)];
   const required = requiredAccountMarkets(roots, 1 << marketIndex);
