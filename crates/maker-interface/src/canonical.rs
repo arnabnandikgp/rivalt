@@ -544,6 +544,19 @@ impl<'shape> ExecutionCurve<'shape> {
         self.capacity
     }
 
+    /// Cost of just the nth lot, in minimization order for either side. Raw
+    /// marginal prices can exceed the valid domain near a curve's endpoint.
+    pub(crate) fn marginal_cost(self, lots: u64) -> QuoteResult<i64> {
+        if lots == 0 || lots > self.capacity { return Err(QuoteError::Capacity); }
+        let index = lots - 1;
+        let direction = if self.side == 0 { -1 } else { 1 };
+        let before = i128::from(self.inventory) + direction * i128::from(index);
+        let spread = offset_marginal(self.shape.side_regions(self.side)?, self.consumed + index)?;
+        let change = potential_marginal(self.shape, before, direction)?;
+        i64::try_from(spread + change - direction * i128::from(self.anchor))
+            .map_err(|_| QuoteError::Arithmetic)
+    }
+
     pub(crate) fn gross(self, lots: u64) -> QuoteResult<u64> {
         quote_validated_amount(
             self.shape,

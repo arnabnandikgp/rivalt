@@ -161,6 +161,14 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    multi = unique('execute_multi_route')
+    assert multi['discriminator'] == list(hashlib.sha256(b'global:execute_multi_route').digest()[:8])
+    assert multi['accounts'] == unique('execute_best_route')['accounts']
+    assert multi['args'] == [{'name':'args','type':{'defined':{'name':'MultiRouteIntent'}}}]
+    multi_type = next(t for t in actual['types'] if t['name']=='MultiRouteIntent')
+    assert multi_type['type'] == {'kind': 'struct', 'fields': [{'name': 'order', 'type': {'defined': {'name': 'BestRouteIntent'}}}, {'name': 'extra_epochs', 'type': {'vec': {'defined': {'name': 'MakerEpochs'}}}}]}
+    actual['types'].remove(multi_type)
+    actual['instructions'].remove(multi)
     router = unique('execute_best_route')
     assert router['discriminator'] == list(hashlib.sha256(b'global:execute_best_route').digest()[:8])
     assert router['args'] == [{'name': 'args', 'type': {'defined': {'name': 'BestRouteIntent'}}}]

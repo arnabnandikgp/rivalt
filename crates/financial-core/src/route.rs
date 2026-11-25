@@ -1,5 +1,10 @@
 //! Candidate-only FOK accounting. Authority, observations and CPI are clearing's job.
 use super::*;
+
+/// Enabled only in the local multi-maker build. Each leg has a distinct
+/// funded participant and the trader pays one aggregate fee.
+pub const MAX_FILL_MAKERS: usize = if cfg!(feature = "wide-atomic-routes") { 8 } else { 2 };
+
 use crate::margin::{Margin, Mode, MARKETS};
 
 pub fn apply(
@@ -29,7 +34,7 @@ pub fn candidate(
     funding: i128,
     notional_prefix: u64,
 ) -> Result<(Participant, Vec<Participant>, u64)> {
-    if makers.is_empty() || makers.len() > 2 || makers.len() != legs.len() || side > 1 {
+    if makers.is_empty() || makers.len() > MAX_FILL_MAKERS || makers.len() != legs.len() || side > 1 {
         return Err(Error::Bounds);
     }
     let mut cohort = vec![trader];
@@ -188,7 +193,7 @@ pub fn whole_account_candidate(
     prefix: u64,
 ) -> Result<(Margin, Vec<Margin>, u64)> {
     trader.validate()?;
-    if !trader.allows(market) || makers.is_empty() || makers.len() > 2 {
+    if !trader.allows(market) || makers.is_empty() || makers.len() > MAX_FILL_MAKERS {
         return Err(Error::Bounds);
     }
     let trader = trader.accrued(funding)?;

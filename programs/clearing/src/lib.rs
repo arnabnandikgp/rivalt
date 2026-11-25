@@ -922,6 +922,9 @@ pub mod clearing {
     pub fn execute_best_route(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) -> Result<()> {
         maker_liquidity::routes::execute_best(ctx, args)
     }
+    pub fn execute_multi_route(ctx: &mut Context<ExecuteBestRoute>, args: MultiRouteIntent) -> Result<()> {
+        maker_liquidity::routes::execute_multi(ctx, args)
+    }
     pub fn execute_liquidity_route(
         ctx: &mut Context<ExecuteLiquidityRoute>,
         args: LiquidityRouteIntent,

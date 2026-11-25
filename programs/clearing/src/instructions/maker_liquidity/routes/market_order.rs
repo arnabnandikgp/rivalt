@@ -30,6 +30,12 @@ pub struct BestRouteIntent {
     pub maker_epochs: [MakerEpochs; 3],
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
+pub struct MultiRouteIntent {
+    pub order: BestRouteIntent,
+    pub extra_epochs: Vec<MakerEpochs>,
+}
+
 impl BestRouteIntent {
     fn terms(&self, market: &Market, lots: [u64; 3]) -> RouteIntent {
         let legs = lots
@@ -78,9 +84,19 @@ impl From<maker_interface::QuoteError> for SelectionError {
 }
 
 pub fn execute_best(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) -> Result<()> {
+    execute_selected(ctx, args, false)
+}
+
+pub fn execute_multi(ctx: &mut Context<ExecuteBestRoute>, args: MultiRouteIntent) -> Result<()> {
+    require!(cfg!(feature = "wide-atomic-routes") && args.extra_epochs.is_empty(), ClearingError::Profile);
+    execute_selected(ctx, args.order, true)
+}
+
+#[inline(never)]
+fn execute_selected(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent, multi: bool) -> Result<()> {
     require!(cfg!(feature = "execution-router-qualification"), ClearingError::Profile);
     let clock = Clock::get()?;
-    let winner = choose(&ctx.accounts, &args, &clock)?;
+    let winner = choose(&ctx.accounts, &args, &clock, multi)?;
     let quantities = winner.allocation.lots;
     let intent = args.terms(&ctx.accounts.identity.market, quantities);
     let instances = [
@@ -106,7 +122,8 @@ pub fn execute_best(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) 
     require!(extra.next().is_none(), ClearingError::MakerBinding);
     let external_view = external_lane.and_then(|key| remaining.iter().find(|account| *account.address() == key).cloned());
     let plan = crate::scoped_history::MakerAccess { filled: quantities.map(|lots| lots > 0), lane_slot, external_lane };
-    crate::scoped_history::run_selected_route(ctx, [142, 199, 100, 123, 91, 206, 46, 151], plan, |ctx, events| {
+    let instruction = if multi { [228, 99, 109, 42, 17, 74, 96, 121] } else { [142, 199, 100, 123, 91, 206, 46, 151] };
+    crate::scoped_history::run_selected_route(ctx, instruction, plan, |ctx, events| {
         // SAFETY: only a missing canonical registration can enter external_view;
         // it is writable and distinct from every named maker and other extra.
         let mut external = external_view.map(|view| unsafe { BorshAccount::<MakerRegistration>::load_mut(view) }).transpose()?;
@@ -125,7 +142,7 @@ pub fn execute_best(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent) 
 }
 
 #[inline(never)]
-fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) -> Result<Winner> {
+fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock, multi: bool) -> Result<Winner> {
     let identity = &accounts.identity;
     execution_profile(&identity.venue, &identity.safety, &identity.market)?;
     require!(identity.safety.mode == ACTIVE, ClearingError::Profile);
@@ -242,42 +259,55 @@ fn choose(accounts: &ExecuteBestRoute, args: &BestRouteIntent, clock: &Clock) ->
         max_fee: args.max_fee,
         all_in_limit: args.all_in_limit,
     };
-    let mut admitted = None;
-    let allocation = routing::select_for_clearing(order, curves, |candidate| {
-        let next = financial_candidate(
-            accounts,
-            args,
-            &views,
-            &states,
-            candidate,
-            &environment,
-            clock,
-        );
-        match next {
-            Ok(next) => {
-                admitted = Some(next);
-                Ok(true)
+    let (allocation,next) = if multi {
+        let ideal = routing::marginal::best_marginals(order, &curves)
+            .map_err(|_| ClearingError::MakerQuote)?.ok_or(ClearingError::RouteHealth)?;
+        let allocation = Allocation {
+            lots: ideal.lots.try_into().map_err(|_| ClearingError::RouteIntent)?,
+            amounts: ideal.amounts.try_into().map_err(|_| ClearingError::RouteIntent)?,
+            gross: ideal.gross, fee: ideal.fee, all_in: ideal.all_in,
+        };
+        let next = financial_candidate(accounts,args,&views,&states,&allocation,&environment,clock)?;
+        (allocation,next)
+    } else {
+        let mut admitted = None;
+        let allocation = routing::select_for_clearing(order, curves, |candidate| {
+            let next = financial_candidate(
+                accounts,
+                args,
+                &views,
+                &states,
+                candidate,
+                &environment,
+                clock,
+            );
+            match next {
+                Ok(next) => {
+                    admitted = Some(next);
+                    Ok(true)
+                }
+                // The shared financial engine maps out-of-domain position/fee
+                // arithmetic to Arithmetic and failed post-fill margin to RouteHealth.
+                // Authority, binding, invariant and unexpected errors abort the order.
+                Err(error)
+                    if [
+                        ClearingError::RouteHealth,
+                        ClearingError::RouteLimit,
+                        ClearingError::Arithmetic,
+                    ]
+                    .into_iter()
+                    .any(|reason| ProgramError::from(reason) == error) =>
+                {
+                    Ok(false)
+                }
+                Err(error) => Err(SelectionError(error)),
             }
-            // The shared financial engine maps out-of-domain position/fee
-            // arithmetic to Arithmetic and failed post-fill margin to RouteHealth.
-            // Authority, binding, invariant and unexpected errors abort the order.
-            Err(error)
-                if [
-                    ClearingError::RouteHealth,
-                    ClearingError::RouteLimit,
-                    ClearingError::Arithmetic,
-                ]
-                .into_iter()
-                .any(|reason| ProgramError::from(reason) == error) =>
-            {
-                Ok(false)
-            }
-            Err(error) => Err(SelectionError(error)),
-        }
-    })
-    .map_err(|error| error.0)?
-    .ok_or(ClearingError::RouteHealth)?;
-    let next = admitted.ok_or(ClearingError::RouteHealth)?;
+        })
+        .map_err(|error| error.0)?
+        .ok_or(ClearingError::RouteHealth)?;
+        let next = admitted.ok_or(ClearingError::RouteHealth)?;
+        (allocation,next)
+    };
     require!(
         next.gross == allocation.gross && next.fee == allocation.fee,
         ClearingError::Reconciliation

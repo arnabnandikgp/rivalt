@@ -1,5 +1,6 @@
 //! Select an ordinary full-size order from three registered canonical curves.
 //! Price bounds prune splits. Only the caller's financial admission can accept one.
+pub mod marginal;
 use crate::canonical::{ExecutionCurve, MAX_DEPTH};
 use crate::{QuoteError, QuoteResult};
 use financial_core::{fee_total, price_policy, MIN_ORDER_ATOMS};

@@ -10,7 +10,7 @@ use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
 mod contract;
 mod market_order;
-pub use market_order::{execute_best, BestRouteIntent, MakerEpochs};
+pub use market_order::{execute_best, execute_multi, BestRouteIntent, MakerEpochs, MultiRouteIntent};
 mod liquidation;
 use contract::*;
 pub use contract::{LiquidityOrderExecution, LiquidityRouteIntent, LiquidityRouteLeg};

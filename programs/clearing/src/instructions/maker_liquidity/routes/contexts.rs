@@ -50,7 +50,7 @@ pub struct $name {
                     first_capital: &mut self.first_capital, first_registration: &mut self.first_registration,
                     first_program: &self.first_program, first_program_data: &self.first_program_data,
                     first_config: &self.first_config, first_price: &self.first_price,
-                    second_capital: self.second_capital.as_deref_mut(), second_registration: self.second_registration.as_deref_mut(),
+                    additional: Vec::new(), second_capital: self.second_capital.as_deref_mut(), second_registration: self.second_registration.as_deref_mut(),
                     second_program: self.second_program.as_ref(), second_program_data: self.second_program_data.as_deref(),
                     second_config: self.second_config.as_ref(), second_price: self.second_price.as_ref(),
                     event_authority: self.event_authority.account().clone(),
@@ -136,10 +136,10 @@ impl ExecuteBestRoute {
         let mut makers = makers.into_iter();
         let first = makers.next().ok_or(ClearingError::RouteIntent)?;
         let second = makers.next();
-        require!(makers.next().is_none(), ClearingError::RouteIntent);
+        let additional = makers.map(|maker| (maker.capital,maker.registration)).collect();
         let mut accounts = RouteAccounts {
             identity: self.identity.view(), registry: &self.registry,
-            first_capital: first.capital, first_registration: first.registration,
+            additional, first_capital: first.capital, first_registration: first.registration,
             first_program: first.program, first_program_data: first.data,
             first_config: first.config, first_price: first.price,
             second_capital: None, second_registration: None, second_program: None,
@@ -159,6 +159,7 @@ impl ExecuteBestRoute {
 }
 
 pub(super) struct RouteAccounts<'a> {
+    pub additional: Vec<(&'a mut BorshAccount<MarginAccount>, &'a mut BorshAccount<MakerRegistration>)>,
     pub identity: RouteIdentityView<'a>,
     pub registry: &'a BorshAccount<LiquidityRegistry>,
     pub first_capital: &'a mut BorshAccount<MarginAccount>,

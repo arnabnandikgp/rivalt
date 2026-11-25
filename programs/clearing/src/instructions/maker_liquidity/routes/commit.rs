@@ -14,8 +14,13 @@ pub(super) fn apply(
     mut separate_lane: Option<&mut BorshAccount<MakerRegistration>>,
 ) -> Result<()> {
     require!(accounts.first_registration.instance < 3 || separate_lane.is_some(), ClearingError::MakerBinding);
+    require!(quotes.len() == next.makers.len()
+        && quotes.len() == 1 + usize::from(accounts.second_capital.is_some()) + accounts.additional.len()
+        && (accounts.additional.is_empty() || cfg!(feature = "wide-atomic-routes") && path == RoutePath::Serial),
+        ClearingError::RouteIntent);
     let identity = &mut accounts.identity;
     let cash_before = u128::from(identity.trader.cash)
+        + accounts.additional.iter().map(|(capital,_)|u128::from(capital.cash)).sum::<u128>()
         + u128::from(accounts.first_capital.cash)
         + accounts
             .second_capital
@@ -76,13 +81,26 @@ pub(super) fn apply(
     ));
     if path != RoutePath::ReadOnlyLedger { identity.maintain_root(&accounts.first_capital, &next.makers[0])?; }
     trading::commit_root(&mut accounts.first_capital, &next.makers[0])?;
-    if quotes.len() == 2 {
+    if quotes.len() >= 2 {
         let registration = accounts.second_registration.as_deref_mut().unwrap();
         let capital = accounts.second_capital.as_deref_mut().unwrap();
         consume(registration, &quotes[1])?;
         executed.push(leg(registration, capital.address().to_owned(), &quotes[1]));
         if path != RoutePath::ReadOnlyLedger { identity.maintain_root(capital, &next.makers[1])?; }
         trading::commit_root(capital, &next.makers[1])?;
+    }
+    for (index,(capital,registration)) in accounts.additional.iter_mut().enumerate() {
+        let quote = &quotes[index + 2];
+        let after = &next.makers[index + 2];
+        #[cfg(feature = "profit-attribution-qualification")]
+        {
+            let market = usize::from(identity.market.index);
+            crate::profit_attribution::fill(capital, market, after.positions[market].lots, quote.gross)?;
+        }
+        consume(registration, quote)?;
+        executed.push(leg(registration,*capital.address(),quote));
+        identity.maintain_root(capital,after)?;
+        trading::commit_root(capital,after)?;
     }
     let order = order_index.map(|index| identity.trader.book.orders[index].order);
     if path != RoutePath::ReadOnlyLedger { identity.maintain_trader(&next.trader)?; }
@@ -187,9 +205,13 @@ fn emit(
     let identity = &accounts.identity;
     let mut roots: Vec<&MarginAccount> = vec![&identity.trader, &accounts.first_capital];
     let mut makers: Vec<&MakerRegistration> = vec![&accounts.first_registration];
-    if legs.len() == 2 {
+    if legs.len() >= 2 {
         roots.push(accounts.second_capital.as_deref().unwrap());
         makers.push(accounts.second_registration.as_deref().unwrap());
+    }
+    for (capital,registration) in &accounts.additional {
+        roots.push(capital);
+        makers.push(registration);
     }
     let event = RouteEventView {
         venue: identity.venue.address().to_owned(),

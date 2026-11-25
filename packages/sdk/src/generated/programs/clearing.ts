@@ -185,6 +185,7 @@ import {
   getExecuteLiquidityOrderInstructionAsync,
   getExecuteLiquidityRouteInstructionAsync,
   getExecuteMarketLaneInstructionAsync,
+  getExecuteMultiRouteInstructionAsync,
   getFreezeAccountsInstructionAsync,
   getFundMemberIndexInstructionAsync,
   getFundMemberPageInstructionAsync,
@@ -304,6 +305,7 @@ import {
   parseExecuteLiquidityOrderInstruction,
   parseExecuteLiquidityRouteInstruction,
   parseExecuteMarketLaneInstruction,
+  parseExecuteMultiRouteInstruction,
   parseFreezeAccountsInstruction,
   parseFundMemberIndexInstruction,
   parseFundMemberPageInstruction,
@@ -423,6 +425,7 @@ import {
   type ExecuteLiquidityOrderAsyncInput,
   type ExecuteLiquidityRouteAsyncInput,
   type ExecuteMarketLaneAsyncInput,
+  type ExecuteMultiRouteAsyncInput,
   type FreezeAccountsAsyncInput,
   type FundMemberIndexAsyncInput,
   type FundMemberPageAsyncInput,
@@ -504,6 +507,7 @@ import {
   type ParsedExecuteLiquidityOrderInstruction,
   type ParsedExecuteLiquidityRouteInstruction,
   type ParsedExecuteMarketLaneInstruction,
+  type ParsedExecuteMultiRouteInstruction,
   type ParsedFreezeAccountsInstruction,
   type ParsedFundMemberIndexInstruction,
   type ParsedFundMemberPageInstruction,
@@ -1683,6 +1687,7 @@ export enum ClearingInstruction {
   ExecuteLiquidityOrder,
   ExecuteLiquidityRoute,
   ExecuteMarketLane,
+  ExecuteMultiRoute,
   FreezeAccounts,
   FundMemberIndex,
   FundMemberPage,
@@ -2317,6 +2322,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ExecuteMarketLane;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([228, 99, 109, 42, 17, 74, 96, 121]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ExecuteMultiRoute;
   }
   if (
     containsBytes(
@@ -3229,6 +3245,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ExecuteMarketLane;
     } & ParsedExecuteMarketLaneInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ExecuteMultiRoute;
+    } & ParsedExecuteMultiRouteInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.FreezeAccounts;
     } & ParsedFreezeAccountsInstruction<TProgram>)
   | ({
@@ -3793,6 +3812,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ExecuteMarketLane,
         ...parseExecuteMarketLaneInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.ExecuteMultiRoute: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ExecuteMultiRoute,
+        ...parseExecuteMultiRouteInstruction(instruction),
       };
     }
     case ClearingInstruction.FreezeAccounts: {
@@ -4607,6 +4633,11 @@ export type ClearingPluginInstructions = {
     input: ExecuteMarketLaneAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getExecuteMarketLaneInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeMultiRoute: (
+    input: ExecuteMultiRouteAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getExecuteMultiRouteInstructionAsync> &
     SelfPlanAndSendFunctions;
   freezeAccounts: (
     input: FreezeAccountsAsyncInput,
@@ -5504,6 +5535,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getExecuteMarketLaneInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          executeMultiRoute: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteMultiRouteInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

@@ -238,7 +238,7 @@ pub(crate) fn candidate_for_version(
             && trader_model.allows(usize::from(market.index))
             && makers.len() == quotes.len()
             && makers.len() == intent.legs.len()
-            && (1..=2).contains(&makers.len())
+            && (1..=math::route::MAX_FILL_MAKERS).contains(&makers.len())
             && intent.domain == venue.domain
             && intent.terms_epoch == market.terms_epoch
             && intent.config_epoch == market.config_epoch

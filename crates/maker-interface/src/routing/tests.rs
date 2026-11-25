@@ -313,3 +313,47 @@ fn eth_funded_singleton_wins_inside_the_original_clearing_budget() {
         assert_eq!(result.map(|allocation| allocation.lots), expected);
     }
 }
+
+#[test]
+fn fragmented_dollar_order_requires_three_real_quantities_and_one_fee() {
+    let flat = shape(65_000, 0);
+    let curves = [61_002,61_004,61_006].map(|anchor| Some(ExecutionCurve::new(&flat,anchor,0,0,0).unwrap()));
+    let result = marginal::best_marginals(order(0,163_935,61_000), &curves).unwrap().unwrap();
+    assert_eq!(result.lots,[65_000,65_000,33_935]);
+    let gross = 65_000*61_002 + 65_000*61_004 + 33_935*61_006;
+    assert_eq!((result.gross,result.fee),(gross,(gross+4_999)/5_000));
+    assert!(marginal::best_marginals(order(0,163_935,61_000), &curves[..2]).unwrap().is_none());
+}
+
+#[test]
+fn whole_lot_price_optimum_matches_expanded_book_on_both_sides_for_four_to_eight_makers() {
+    for count in 4..=8 {
+        let mut shapes = Vec::new();
+        for id in 0..count {
+            let mut book = shape(2 + id as u64, id as u64 % 3);
+            book.skew_tick = id as u64 % 2;
+            book.skew_step = 2;
+            shapes.push(book);
+        }
+        for side in [0,1] {
+            let curves:Vec<_>=shapes.iter().enumerate().map(|(id,book)|Some(ExecutionCurve::new(book,
+                60_000+id as u64%3,side,0,0).unwrap())).collect();
+            let mut unit_prices=Vec::new();
+            for (id,_) in shapes.iter().enumerate() {
+                for index in 0..2+id {
+                    // Independent formula for this one-region book at zero inventory.
+                    let spread=(id % 3)*index + (id%2)*(index/2);
+                    let price=60_000+(id%3) as i64 + if side==0 {spread as i64} else {-(spread as i64)};
+                    unit_prices.push(price as u64);
+                }
+            }
+            unit_prices.sort();
+            if side == 1 {unit_prices.reverse();}
+            for size in 1..=unit_prices.len() {
+                let result=marginal::best_marginals(order(side,size as u64,60_000),&curves).unwrap().unwrap();
+                assert_eq!(result.gross,unit_prices[..size].iter().sum::<u64>());
+                assert_eq!(result.lots.iter().sum::<u64>(),size as u64);
+            }
+        }
+    }
+}

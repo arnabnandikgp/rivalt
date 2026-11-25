@@ -22,6 +22,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"
 
 
 [features]
+wide-atomic-routes = []
 parallel-market-prototype = []
 closed-quantity-model = ["clearing-accounting/surviving-profit"]
 # Explicitly meter the vector-backed reference on a local diagnostic SBF only.
