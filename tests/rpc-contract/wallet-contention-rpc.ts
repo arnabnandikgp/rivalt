@@ -144,7 +144,8 @@ try {
         assert.equal(BigInt(filled.lots), offer.lots);
         assert.equal(filled.market, setup.markets[offer.market]);
         assert.equal(filled.side, offer.side);
-        assert.equal(filled.trader, setup.roots[offer.wallet]);
+        assert.equal(filled.rootStates[0].owner, setup.traderOwners[offer.wallet].address);
+        assert.equal(filled.rootStates[0].subaccountIndex, 0);
         gross = BigInt(filled.grossQuote); fee = BigInt(filled.fee);
         assert.equal(gross, offer.target); assert.equal(fee, (gross + 4999n) / 5000n);
       }
