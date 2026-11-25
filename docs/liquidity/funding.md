@@ -74,7 +74,7 @@ The backend requires every sealed authenticated maker (three in the default demo
 maker contributes zero size. Missing, expired, disabled, quarantined or code-mismatched
 required inputs make coverage unavailable. A valid one-sided/inventory-limited
 maker can have zero side capacity; each aggregate side must still fill all Q with
-at most two capitals. Never choose a convenient incomplete subset.
+at most two capitals under the funding report contract. The wider atomic-fill instruction applies to ordinary market orders. It does not change the funding publisher’s Q or allocation rule.
 
 Reference is 2–909,090 quote atoms/lot and
 `Q = ceil(6,000,000/reference)` (7–3,000,000). Authenticate complete code hashes and
