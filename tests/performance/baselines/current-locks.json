@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "be243730818a2857b77ad89a076bf3212c836359d890bbd084e06aa5ecf3d00a",
+    "clearing": "024e7c389ff24e45312fb7769a8e72049b80b5f2f0ee767a2f6c087a80b6c5a4",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -1269,6 +1269,50 @@
         "second_program_data",
         "second_config",
         "second_price"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "execute_multi_route",
+      "write": [
+        "market",
+        "other_market",
+        "ledger",
+        "other_ledger",
+        "trader",
+        "zero_capital",
+        "zero_registration",
+        "one_capital",
+        "one_registration",
+        "two_capital",
+        "two_registration"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "registry",
+        "zero_program",
+        "zero_program_data",
+        "zero_config",
+        "zero_price",
+        "one_program",
+        "one_program_data",
+        "one_config",
+        "one_price",
+        "two_program",
+        "two_program_data",
+        "two_config",
+        "two_price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": [
+        "other_market",
+        "other_ledger"
       ]
     },
     {
