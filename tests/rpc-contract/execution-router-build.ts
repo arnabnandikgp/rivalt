@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {verifyTestBuild} from './backing-artifacts.js';
-import {accountDeployment,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
+import {accountDeployment,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
 
 /** Explicit local binary identity shared by the launcher and finalized journal. */
 export function routerBuild(selection:'funded-routing'|'bounded-entry'|'closed-quantity'|'bounded-router-candidate' =
@@ -11,12 +11,13 @@ export function routerBuild(selection:'funded-routing'|'bounded-entry'|'closed-q
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const extended=['execution-router-multi-fills','execution-router-multi-width','execution-router-matched-makers','execution-router-feasible-books'].includes(process.env.RIVALT_SETTLEMENT_PROBE??'');
   if (extended) {
-    const verified=accountDeployment('multi-maker');
+    const funded = accountDeployment('funded-multi-maker');
+    const verified = revision === funded.programRevision ? funded : accountDeployment('multi-maker');
     assert.equal(revision,verified.programRevision);
     const artifacts=Object.fromEntries(verified.artifacts.filter(artifact=>artifact.name!=='oracle-fixture')
       .map(({name,bytes,sha256})=>[name,{bytes,sha256}]));
     verifyTestBuild(directory,revision,artifacts,'wide-atomic-routes');
-    return {revision,artifacts,artifactSet:MULTI_ROUTING_ARTIFACT_SET};
+    return {revision,artifacts,artifactSet:verified.artifactSet};
   }
   const wideFills=process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-wide-fills';
   if (wideFills || process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-wide-directory') {

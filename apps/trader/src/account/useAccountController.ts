@@ -203,7 +203,7 @@ export function useAccountController(config: AccountTraderConfig) {
         return {instructions: order.instructions, via: 'rpc', details: [
           `${side===0?'Buy':'Sell'} ${fixed(lots, selectedMarket.decimals)} ${selectedMarket.name}${reduceOnly?' · reduce only':''}.`,
           `${side===0?'Maximum spend':'Minimum proceeds'} ${fixed(signedLimit)} test USD including fees. Maximum fee ${fixed(feeLimit)} test USD.`,
-          `Maker IDs ${order.candidateInstances.join(', ')}. Clearing may fill the full size against up to ${config.deployment==='multi-maker'?order.candidateInstances.length:2} makers. Expires at slot ${order.expirySlot}.`,
+          `Maker IDs ${order.candidateInstances.join(', ')}. Clearing may fill the full size against up to ${sdk.usesMultiMaker(config.deployment)?order.candidateInstances.length:2} makers. Expires at slot ${order.expirySlot}.`,
         ]};
       }
       if(config.version===4) {

@@ -62,7 +62,7 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4,checkp
     }
   }
   const economic=sdk.walletEconomicActions(message,checkpoints) as ParsedInput[];
-  const supported=checkpoints?[...actions,lane,...(sdk.usesExecutionRouter(deployment)?[standingOrder]:[]),...(deployment==='multi-maker'?[multiOrder]:[])]:actions;
+  const supported=checkpoints?[...actions,lane,...(sdk.usesExecutionRouter(deployment)?[standingOrder]:[]),...(sdk.usesMultiMaker(deployment)?[multiOrder]:[])]:actions;
   if(!economic.length||economic.length>2||tx.message.version===0&&(!limit||!price||!loaded))throw new Error('Missing explicit account action/budget/zero price');
   if(economic.length===2)sdk.validateActivationDeposit(economic);
   const first=economic[0];
@@ -90,7 +90,7 @@ export function accountUserAuthority(wire:string,venue:string,profile:4=4,checkp
     const [,end]=allowed.decoder.read(instruction.data,0);if(end!==instruction.data.length)throw new Error('Trailing account instruction bytes');
     const parsed=allowed.parse(instruction),fixed=Object.keys(parsed.accounts).length;
     const nodes=instruction.accounts.slice(fixed);
-    if(deployment==='multi-maker' && allowed.root==='trader'){
+    if(sdk.usesMultiMaker(deployment) && allowed.root==='trader'){
       const extra=allowed===multiOrder?(parsed.data as sdk.ExecuteMultiRouteInstructionData).extraEpochs.length:0;
       validateRoutingDependencies(parsed.accounts,nodes,extra,standing,checkpoints??[]);
     }else{

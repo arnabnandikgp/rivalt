@@ -6,7 +6,7 @@ import {testRpcUrl} from './test-deployment.js';
 import {ACCOUNT_PROFILE,readMembershipRegistry,readMarginMembership} from './account-membership.js';
 import {deriveMemberPage,deriveMemberIndex,deriveStorageFunding} from './account-addresses.js';
 import {ArtifactVerifier} from './artifacts.js';
-import {accountDeployment,usesBoundedEntry,usesClosedQuantity,usesExecutionRouter,usesUnifiedRecovery,type AccountDeployment} from './account-deployment.js';
+import {accountDeployment,usesMultiMaker,usesBoundedEntry,usesClosedQuantity,usesExecutionRouter,usesUnifiedRecovery,type AccountDeployment} from './account-deployment.js';
 import {readOwnerAccounts} from './account-owner-discovery.js';
 import {marketCheckpointsFor,venueMarketCheckpoints,walletEconomicActions,type MarketCheckpoint} from './market-checkpoints.js';
 import {decodeMembershipAccount} from './account-membership.js';
@@ -66,7 +66,7 @@ export class AccountUserClient extends WalletClient {
   private checkpoints?:MarketCheckpoint[];
   override async prepare(label:string,owner:Address,instructions:Instruction[],details:string[]=[]) {
     if(this.marginLayout==='ledger-lanes') {
-      this.checkpoints??=await venueMarketCheckpoints(this.config.venue,this.config.deployment==='multi-maker');
+      this.checkpoints??=await venueMarketCheckpoints(this.config.venue,usesMultiMaker(this.config.deployment));
       if(instructions.length===1) {
         const prefix=marketCheckpointsFor(this.checkpoints,instructions[0]);
         if(prefix.length) {
@@ -87,7 +87,7 @@ export class AccountUserClient extends WalletClient {
     const [budget]=accountWalletInstructions(instructions,this.checkpoints);
     const units=new DataView(Uint8Array.from(budget.data!).buffer).getUint32(1,true);
     const multi=economic.some(ix=>hex(ix.data?.slice(0,8)??[])===hex(protocol.EXECUTE_MULTI_ROUTE_DISCRIMINATOR));
-    if(multi) requireValue(this.config.deployment==='multi-maker','Unsupported multi-maker deployment.');
+    if(multi) requireValue(usesMultiMaker(this.config.deployment),'Unsupported multi-maker deployment.');
     const standing = multi||economic.some(ix=>hex(ix.data?.slice(0,8)??[])===hex(protocol.EXECUTE_BEST_ROUTE_DISCRIMINATOR));
     if (standing) requireValue(usesExecutionRouter(this.config.deployment), 'Deployment does not support execution-time routing.');
     return compileCanonicalTransaction({payerKey:new PublicKey(owner),recentBlockhash},economic,
@@ -126,7 +126,7 @@ export class AccountUserClient extends WalletClient {
   async marketOrder(input:LiquidityRouteInput,actor:Address,maximumMakers?:number) {
     this.bound(input.snapshot);
     requireValue(usesExecutionRouter(this.config.deployment), 'Deployment does not support execution-time routing.');
-    if(this.config.deployment==='multi-maker' && maximumMakers!==2)return buildMultiMakerRoute(input,actor,maximumMakers??4);
+    if(usesMultiMaker(this.config.deployment) && maximumMakers!==2)return buildMultiMakerRoute(input,actor,maximumMakers??4);
     requireValue(maximumMakers===undefined||maximumMakers===2,'Unsupported execution width on this deployment.');
     return buildBestRoute(input,actor);
   }

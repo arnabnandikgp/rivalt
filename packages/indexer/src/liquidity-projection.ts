@@ -120,7 +120,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
     case 'MarketLaneFilled':
     case 'LiquidityRouteFeeRecorded':
     case 'LiquidityRouteExecutedV4': {
-      const maximumLegs = artifactSet === sdk.MULTI_ROUTING_ARTIFACT_SET ? 8 : 2;
+      const maximumLegs = sdk.hasMultiMaker(artifactSet) ? 8 : 2;
       check(change.legs.length >= 1 && change.legs.length <= maximumLegs && change.makerStates.length===change.legs.length&&change.rootStates.length===change.legs.length+1
         &&new Set(change.rootStates.map((value:any)=>value.id)).size===change.rootStates.length
         &&new Set(change.legs.map((leg:any)=>leg.registration)).size===change.legs.length,'canonical route shape');

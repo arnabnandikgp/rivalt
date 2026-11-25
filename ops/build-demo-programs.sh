@@ -6,7 +6,7 @@ source ops/env.sh
 export RIVALT_DEMO_DEPLOYMENT="${RIVALT_DEMO_DEPLOYMENT:-bounded-entry}"
 case "$RIVALT_DEMO_DEPLOYMENT" in
   unified-recovery-candidate) feature=unified-recovery-qualification ;;
-  multi-maker) feature=wide-atomic-routes ;;
+  multi-maker|funded-multi-maker) feature=wide-atomic-routes ;;
   bounded-entry|funded-routing) feature=bounded-entry-settlement ;;
   closed-quantity) feature=closed-quantity-settlement ;;
   bounded-router-candidate|execution-router-candidate) feature=execution-router-qualification ;;

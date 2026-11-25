@@ -105,7 +105,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
   switch(event.type) {
     case 'MakerFillContinuation':
       // The invocation decoder joins these maker entries onto the first receipt.
-      accountCheck(artifactSet===sdk.MULTI_ROUTING_ARTIFACT_SET,'multi-maker deployment');
+      accountCheck(sdk.hasMultiMaker(artifactSet),'multi-maker deployment');
       break;
     case 'AccountCustodyChangedV3': {
       accountCheck(change.schemaVersion===10&&change.profileVersion===sdk.ACCOUNT_PROFILE&&change.domain===domain,'custody version/domain');
