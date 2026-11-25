@@ -39,6 +39,7 @@ const isOrder = (label: string) => label.startsWith('contention ');
 const reportLabel = 'P32 publisher available two-market reports';
 const nativeValidator = process.env.RIVALT_CONTENTION_RUNTIME === 'agave';
 const signedAt = new Map<string, number>(), acceptedAt = new Map<string, number>();
+const blockhashReads = new Map<string, {start: number; end: number}>();
 const timedReportSignatures = new Set<string>();
 let measuring = false;
 const isTimedReport = (label: string) => measuring && label === reportLabel;
@@ -56,6 +57,7 @@ const {h, rpc, ws, checks, flush} = await openCanonicalRpcHarness(process.env.RI
       if (isTimedReport(label)) timedReportSignatures.add(signature);
     },
     broadcastAccepted: label => { if (isOrder(label)) acceptedAt.set(label, performance.now()); },
+    blockhashRead: (label, start, end) => { if (isOrder(label)) blockhashReads.set(label, {start, end}); },
     afterSimulation: (label, signature, error) => {
       if (!isTimedReport(label) || error === null) return;
       if (fundingRefusal(error)) throw new ReportPreflightRefusal(signature, error);
@@ -112,8 +114,9 @@ try {
     } else await flush();
     const started = performance.now(), elapsed = () => performance.now() - started;
     type Offer = typeof trace[number];
+    type SnapshotRead = {startMs: number; endMs: number; accounts: number; dataBytes: number; programDataBytes: number};
     type Result = Offer & {wallet: number; label: string; readyMs: number; observedMs: number;
-      unsigned: string | null};
+      snapshotReads: SnapshotRead[]; snapshotEndMs: number; routeEndMs: number; unsigned: string | null};
     const observations: Result[] = [], refreshes: {startMs:number; endMs:number;
       preflight: {signature:string; error:unknown} | null}[] = [];
     measuring = true;
@@ -138,13 +141,34 @@ try {
         const wait = offer.dueMs - elapsed();
         if (wait > 0) await delay(wait);
         const readyMs = elapsed(), label = 'contention ' + wallets + '/' + offer.id;
-        const snapshot = await setup.snapshot(trader, offer.market);
+        const snapshotReads: SnapshotRead[] = [];
+        // A per-offer wrapper associates concurrent reads with the correct wallet
+        // without introducing another RPC call or copying account data.
+        const snapshot = await sdk.readAccountTradeSnapshot({async call(method, params) {
+          const startMs = elapsed();
+          const response = await rpc.call(method, params);
+          const endMs = elapsed();
+          assert.equal(method, 'getMultipleAccounts');
+          let dataBytes = 0, programDataBytes = 0;
+          for (const account of response.value) {
+            if (!account) continue;
+            assert.equal(account.data[1], 'base64');
+            const bytes = Buffer.byteLength(account.data[0], 'base64');
+            dataBytes += bytes;
+            if (account.owner === 'BPFLoaderUpgradeab1e11111111111111111111111' && !account.executable) programDataBytes += bytes;
+          }
+          snapshotReads.push({startMs, endMs, accounts: response.value.length, dataBytes, programDataBytes});
+          return response;
+        }}, setup.identity, trader, offer.market);
+        const snapshotEndMs = elapsed();
         const fee = (offer.target + 4999n) / 5000n;
         const input = {snapshot, trader, marketIndex: offer.market, side: offer.side, lots: offer.lots,
           maxFee: fee, allInLimit: offer.side === 0 ? offer.target + fee : offer.target - fee};
         let unsigned: string | null = null;
+        let routeEndMs: number;
         try {
           const order = await sdk.buildMultiMakerRoute(input, owner.address, 4, deployment);
+          routeEndMs = elapsed();
           assert.deepEqual(order.candidateInstances, [0, 1, 2, 3]);
           payers.set(label, owner);
           await h.send(label, order.instructions, [owner]);
@@ -152,8 +176,9 @@ try {
           if (payers.has(label) || !(error instanceof Error) ||
               !['Required liquidity market source unavailable.', 'Order risk window expired.'].includes(error.message)) throw error;
           unsigned = error.message;
+          routeEndMs = elapsed();
         }
-        observations.push({...offer, wallet, label, readyMs, observedMs: elapsed(), unsigned});
+        observations.push({...offer, wallet, label, readyMs, snapshotReads, snapshotEndMs, routeEndMs, observedMs: elapsed(), unsigned});
       }
     };
     const offerTasks = Promise.allSettled(Array.from({length: wallets}, (_, lane) => driveWallet(lane)))
@@ -195,8 +220,10 @@ try {
         assert.equal(gross, offer.target); assert.equal(fee, (gross + 4999n) / 5000n);
       }
       const broadcast = broadcasts.get(offer.label)!;
+      const blockhashRead = blockhashReads.get(offer.label)!;
       entries.push({...offer, signature, error: tx.error, gross, fee, slot: receipt.slot, broadcastMs: broadcast.at - started,
         signedMs: signedAt.get(offer.label)! - started, rpcAcceptedMs: acceptedAt.get(offer.label)! - started,
+        blockhashStartMs: blockhashRead.start - started, blockhashEndMs: blockhashRead.end - started,
         locks: broadcast.locks, cu: tx.computeUnits, networkFeeLamports: String(receipt.meta.fee)});
     }
     assert.equal(entries.length, trace.length);

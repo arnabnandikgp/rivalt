@@ -19,6 +19,7 @@ export async function openCanonicalRpcHarness(url: string,wsUrl: string,runDir: 
     /** A workload may decline a known preflight refusal before any RPC submission. */
     afterSimulation?: (label: string, signature: string, error: unknown) => void;
     beforeBroadcast?: (label: string, wireBase64: string) => Promise<void>;
+    blockhashRead?: (label: string, start: number, end: number) => void;
     broadcastAccepted?: (label: string, signature: string) => void;
     finalityTimeoutMs?: number;
     signedOriginal?: (label: string, signature: string) => void;
@@ -53,7 +54,15 @@ const h: CanonicalHarness = {
     const observeOutcome = options.observeOutcomes?.(label) ?? false;
     const computeUnitLimit = options.computeUnitLimit?.(label,instructions)
       ?? (label.startsWith('reprice ') ? 100_000 : instructions.length > 1 && label.startsWith('atomic') ? 800_000 : 400_000);
-    const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(connection, options.payerFor?.(label) ?? payer, instructions,
+    const signingConnection: Pick<Connection, 'getLatestBlockhash'> = options.blockhashRead ? {
+      async getLatestBlockhash(commitment) {
+        const start = performance.now();
+        const lifetime = await connection.getLatestBlockhash(commitment);
+        options.blockhashRead!(label, start, performance.now());
+        return lifetime;
+      },
+    } : connection;
+    const { transaction, v0Bytes, wireBytes } = await sdk.signCanonicalInstructions(signingConnection, options.payerFor?.(label) ?? payer, instructions,
       { computeUnitLimit, loadedAccountsDataSizeLimit: 8 * 1024 * 1024,heapSize:options.heapSize?.(label) }, signers);
     const wire = transaction.serialize(), wireBase64 = Buffer.from(wire).toString('base64');
     const signedAt = performance.now();
