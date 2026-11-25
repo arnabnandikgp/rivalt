@@ -49,7 +49,9 @@ const lots = 1_000n, openPrice = 60_002n, closePrice = 60_998n, deposit = 50_000
 const fee = (gross: bigint) => (gross + 4_999n) / 5_000n;
 const gain = lots * (closePrice - openPrice), fees = fee(lots * openPrice) + fee(lots * closePrice);
 const net = gain - fees, openingPool = gain * 3n / 2n, scale = 1_000_000_000n;
-const trafficCount = 32, trafficGap = 750, cutoffMs = 30_000;
+const trafficCount = 48, trafficGap = 750, cutoffMs = 30_000;
+// Four initial waves, followed by the same paced demand through the 30-second cutoff.
+const dueMs = Array.from({ length: trafficCount }, (_, id) => id < 16 ? Math.floor(id / 4) * 160 : 2_300 + (id - 16) * trafficGap);
 try {
   const setup = await liquidityExecutionSetup(h, rpc, { independentTraders: true, traderCount: owners.length,
     shape: symmetricPayoutShape, marketCheckpoints: true, marginLayout: 'ledger-lanes', makerCash: 100_000_000n,
@@ -95,10 +97,28 @@ try {
     anchor: binding.anchor, deployment: 'bounded-entry', profile: 'liquidity-execution-qualification' });
   await indexer.open();
   await setup.qualify();
-  const registry = sdk.getVenueRegistryDecoder().decode((await h.read(setup.registry))!);
-  const backing = async () => sdk.accountBackingStatus(
-    await sdk.readAccountSnapshot(rpc, identity, creditors, 'confirmed'), registry, await proof());
-  assert((await backing()).payable, 'Both arms must start with current backing');
+  // Attach registry and certificate to the SDK's account reads. Use the pair from the
+  // same final RPC context as the financial snapshot, including all execution lanes.
+  async function backing() {
+    let contextSlot = -1, extra: Buffer[] = [];
+    const sameBank = { async call(method: string, params: unknown[] = []) {
+      assert.equal(method, 'getMultipleAccounts');
+      const [keys, options] = params as [string[], unknown];
+      const response = await rpc.call(method, [[...keys, setup.registry, certificate], options]);
+      assert.equal(response.value.length, keys.length + 2);
+      extra = response.value.slice(-2).map((row: { data: [string, string] }) => Buffer.from(row.data[0], 'base64'));
+      contextSlot = response.context.slot;
+      return { context: response.context, value: response.value.slice(0, -2) };
+    } };
+    const snapshot = await sdk.readAccountSnapshot(sameBank, identity, creditors, 'confirmed');
+    assert.equal(snapshot.contextSlot, BigInt(contextSlot));
+    const status = sdk.accountBackingStatus(snapshot, sdk.getVenueRegistryDecoder().decode(extra[0]),
+      sdk.getSettlementCertificateDecoder().decode(extra[1]));
+    return { slot: contextSlot, payable: status.payable, complete: status.complete,
+      sourcesCurrent: status.sourcesCurrent, arithmeticReady: status.arithmeticReady, pool: snapshot.ledgerStates[0].settlement };
+  }
+  const beforeClose = await backing();
+  assert(beforeClose.payable, 'Both arms must start with current backing');
   const start = performance.now();
   const elapsed = () => Math.round(performance.now() - start);
   async function observe() {
@@ -124,7 +144,7 @@ try {
   const traffic = background(async () => {
     await Promise.all([0, 1, 2, 3].map(async stream => {
       for (let id = stream; id < trafficCount; id += 4) {
-        await delay(Math.max(0, id * trafficGap - elapsed())); healthy();
+        await delay(Math.max(0, dueMs[id] - elapsed())); healthy();
         const market = (stream % 2) as 0 | 1;
         await trade(stream + 2, market, (Math.floor(id / 4) % 2) as 0 | 1, 10n, market * 3 + 2, 'traffic ' + id);
       }
@@ -137,7 +157,14 @@ try {
     const closed = (await record()).creditors[i];
     assert.deepEqual([closed.lots, closed.claimScaled, closed.cash], [0n, gain * scale, deposit - fees]);
   }
-  assert((await backing()).payable, 'The backed claims must be payable after close');
+  const afterCloseBacking = await backing();
+  assert(afterCloseBacking.payable, 'The backed claims must be payable after close');
+  const backingSamples = [{ ...beforeClose, ms: 0 }, { ...afterCloseBacking, ms: elapsed() }];
+  background(async () => { while (running) {
+    const status = await backing();
+    backingSamples.push({ ...status, ms: elapsed() });
+    await delay(350);
+  } });
   const releasedMs = elapsed();
   const intents = async () => (await service.store.pool.query<{ request_id: string; signature: string; wire: string; status: string }>(
     'SELECT request_id,signature,wire,status FROM service_intents WHERE run_id=$1 ORDER BY request_id', [runId])).rows;
@@ -242,6 +269,14 @@ try {
       fullCreditMs: delayTo(s => s.creditors[i].claimScaled === 0n),
       withdrawalMs: delayTo(s => s.creditors[i].wallet === first.creditors[i].wallet + net), checkpoints };
   });
+  const competingFills = ownerReceipts.filter(row => row.label.startsWith('traffic ') && row.error === null);
+  for (const [i, row] of rows.entries()) {
+    const close = ownerReceipts.find(receipt => receipt.label === 'close creditor ' + i)!;
+    const withdrawal = ownerReceipts.find(receipt => receipt.label === 'withdraw creditor ' + i);
+    // Strictly interior slots prove overlap without claiming an ordering inside a slot.
+    if (withdrawal) assert(competingFills.some(fill => fill.slot > close.slot && fill.slot < withdrawal.slot),
+      'No competing fill in a slot strictly between close and withdrawal for ' + row.margin);
+  }
   const load = checks.filter(check => String(check.label).startsWith('traffic '));
   assert.equal(load.length, trafficCount);
   assert(load.some(check => check.error === null), 'No landed competing fills');
@@ -254,9 +289,10 @@ try {
   const availableForBoth = observations.find(state => state.creditors.every(row => row.lots === 0n)
     && state.pool >= state.creditors.reduce((total, row) => total + row.claimScaled / scale, 0n));
   const result = { revision, program: build.revision, arm, openingPool, backingReadyBeforeClose: true, releasedMs, firstObservedPoolCoveringRemainingClaimsMs: availableForBoth?.ms ?? null, rows,
-    traffic: { offered: trafficCount, filled: load.filter(row => row.error === null).length, gapMs: trafficGap },
+    traffic: { offered: trafficCount, filled: load.filter(row => row.error === null).length, gapMs: trafficGap, dueMs },
     exitsObserved: exited.size, observedThroughMs: cutoff.ms, events: replay.events, workerReceipts,
     receipts: ownerReceipts };
+  writeFileSync(dir + '/cashout-backing.json', json(backingSamples));
   writeFileSync(dir + '/cashout-observations.json', json(observations));
   writeFileSync(dir + '/cashout-result.json', json(result));
   console.log(json({ ...result, receipts: undefined, workerReceipts: workerReceipts.length }));
