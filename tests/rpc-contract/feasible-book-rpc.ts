@@ -31,6 +31,7 @@ const { h, rpc, ws, checks, flush } = await openCanonicalRpcHarness(process.env.
   });
 const makerCount = 10, width = 4, cash = 500_000_000_000n;
 const scale = 1_000_000_000n;
+type FillLeg = { instance: number; lots: string; gross: string; consumedBefore: string; consumedAfter: string };
 type Snapshot = Awaited<ReturnType<typeof sdk.readAccountTradeSnapshot>>;
 
 function readBook(snapshot: Snapshot, trader: Address, index: 0 | 1, side: 0 | 1): Book[] {
@@ -75,7 +76,12 @@ try {
   const { route, guard } = executionTestHelpers(h, setup);
   const prefix = (instruction: Instruction) => [...sdk.marketCheckpointsFor(known, instruction), instruction];
   const results = [];
-  for (const index of [0, 1] as const) {
+  // A successful control consumes depth. Try the mixed control only after an
+  // atomically rejected full-curve attempt leaves the BTC book untouched.
+  let curvedControlExhausted = false;
+  for (const scenario of ['curved', 'mixed', 'constrained'] as const) {
+    if (scenario === 'mixed' && !curvedControlExhausted) continue;
+    const index = scenario === 'constrained' ? 1 : 0;
     const side = index, lots = index === 0 ? 163935n : 100000n;
     const trader = setup.roots[index], owner = setup.traderOwners[index];
     const instances = setup.instances.filter(maker => maker.market === setup.markets[index]);
@@ -100,11 +106,15 @@ try {
     const scoped = feasibleBook(books.filter(book => normal.candidateInstances.includes(book.id)), order);
     assert(scoped.best);
     let instructions = normal.instructions;
+    let signedInstances = normal.candidateInstances;
     if (arm === 'control' && index === 0) {
       // Pass the independently chosen four real bundles to the same multi-route instruction.
       // All quantities are still selected on chain. The generated builder binds the real epochs.
       assert.equal(best.legs.length, 4);
-      const makers = best.legs.map(leg => snapshot.liquidity!.adapters[leg.id]);
+      // Two flat and two curved offers give an executable price comparator
+      // if the theoretical optimum is too expensive to search on chain.
+      signedInstances = scenario === 'mixed' ? [0, 1, 6, 7] : best.legs.map(leg => leg.id);
+      const makers = signedInstances.map(id => snapshot.liquidity!.adapters[id]);
       const epochs = makers.map(maker => ({ authority: maker.registrationState.authorityEpoch,
         control: maker.config.controlEpoch, shape: maker.config.shapeEpoch, depth: maker.registrationState.depthEpoch }));
       const [first, second, third, last] = makers;
@@ -118,7 +128,7 @@ try {
         twoCapital: third.registrationState.capital, twoRegistration: third.registration, twoProgram: third.registrationState.pricingProgram,
         twoProgramData: third.registrationState.programData, twoConfig: third.registrationState.config, twoPrice: third.registrationState.price,
         order: { ...standing.order, makerEpochs: epochs.slice(0, 3) }, extraEpochs: epochs.slice(3) });
-      const ids = best.legs.map(leg => leg.id);
+      const ids = signedInstances;
       instructions = prefix({ ...ix, accounts: [...ix.accounts, { address: last.registrationState.capital, role: AccountRole.WRITABLE },
         { address: last.registration, role: AccountRole.WRITABLE }, ...[last.registrationState.pricingProgram, last.registrationState.programData,
           last.registrationState.config, last.registrationState.price].map(address => ({ address, role: AccountRole.READONLY })),
@@ -127,10 +137,11 @@ try {
     } else if (arm === 'control' && index === 1) {
       assert.equal(best.legs.length, 2);
       assert.equal(best.legs[0].id, 0);
+      signedInstances = best.legs.map(leg => leg.id);
       instructions = prefix(await route({ trader, actor: owner, marketIndex: index, side, makers: best.legs.map(leg => instances[leg.id]),
         lots: best.legs.map(leg => leg.lots), allInLimit: order.limit, maxFee: order.maxFee, minimalMarkets: true }));
     }
-    const label: string = 'feasible ' + (index === 0 ? 'curved ' : 'constrained ') + arm;
+    const label: string = `feasible ${scenario} ${arm}`;
     const keys = [trader, ...setup.markets, ...setup.ledgers, ...instances.flatMap(maker => [maker.capital, maker.registration])];
     const read = () => Promise.all(keys.map(key => h.read(key)));
     const before = await read();
@@ -139,10 +150,14 @@ try {
     await flush();
     const tx: Record<string, unknown> = checks.find(row => row.label === label)!;
     assert.equal(tx.signatures, 1);
-    let actual: { gross: bigint; fee: bigint; allIn: bigint; legs: {instance:number;lots:string;gross:string}[] } | null = null;
+    let actual: { gross: bigint; fee: bigint; allIn: bigint; legs: FillLeg[] } | null = null;
     if (tx.error === null) {
       const receipt = await rpc.call('getTransaction', [tx.signature, { commitment: 'finalized', encoding: 'json', maxSupportedTransactionVersion: 1 }]);
-      const events = decodeAccountInvocations(String(tx.signature), receipt, 0, { program: sdk.CLEARING_PROGRAM_ADDRESS,
+      const block = await rpc.call('getBlock', [receipt.slot, { commitment: 'finalized', transactionDetails: 'signatures',
+        maxSupportedTransactionVersion: 1, rewards: false }]);
+      const blockIndex = block.signatures.indexOf(tx.signature);
+      assert(blockIndex >= 0);
+      const events = decodeAccountInvocations(String(tx.signature), receipt, blockIndex, { program: sdk.CLEARING_PROGRAM_ADDRESS,
         eventAuthority: setup.deployment.eventAuthority, venue, domain: setup.domain.toString('hex') }).flatMap(row => row.events);
       const fills = events.filter(row => ['LiquidityRouteFeeRecorded','LiquidityRouteExecutedV4','MarketLaneFilled'].includes(row.type));
       assert.equal(fills.length, 1);
@@ -151,20 +166,36 @@ try {
       assert.equal(fee, (gross + 4999n) / 5000n);
       assert.equal(lots, actual.legs.reduce((sum, leg) => sum + BigInt(leg.lots), 0n));
       assert(actual.legs.length <= width);
+      assert.equal(new Set(actual.legs.map(leg => leg.instance)).size, actual.legs.length);
+      assert.equal(actual.legs.reduce((total, leg) => total + BigInt(leg.gross), 0n), gross);
+      assert(actual.fee <= order.maxFee && (side === 0 ? actual.allIn <= order.limit : actual.allIn >= order.limit));
       const after = await setup.snapshot(trader, index), direction = side === 0 ? 1n : -1n;
       assert.equal(after.roots[trader].cash, order.traderCash - fee);
       assert.equal(after.roots[trader].positions[index].lots, direction * lots);
       assert.equal(after.roots[trader].positions[index].virtualScaled, -direction * gross * scale);
       for (const [instance, maker] of instances.entries()) {
-        const leg = actual.legs.find(leg => leg.instance === instance);
+        const leg: FillLeg | undefined = actual.legs.find(leg => leg.instance === instance);
+        if (leg) {
+          const quantity: bigint = BigInt(leg.lots);
+          assert.equal(BigInt(leg.consumedBefore), 0n);
+          assert.equal(BigInt(leg.consumedAfter), quantity);
+          const single = feasibleBook([books[instance]], { ...order, lots: quantity, width: 1, limit: side === 0 ? order.limit : 0n });
+          assert.equal(single.best?.gross, BigInt(leg.gross));
+        }
         const root = after.roots[maker.capital];
         assert.equal(root.cash, books[instance].cash);
         assert.equal(root.positions[index].lots, -direction * BigInt(leg?.lots ?? 0));
         assert.equal(root.positions[index].virtualScaled, direction * BigInt(leg?.gross ?? 0) * scale);
       }
       assert(side === 0 ? actual.allIn >= best.allIn : actual.allIn <= best.allIn);
-    } else assert.deepEqual(await read(), before);
-    results.push({ label, order, books, reference, scoped, shortlisted: normal.candidateInstances, actual, tx });
+    } else {
+      assert.deepEqual(await read(), before);
+      if (arm === 'control' && scenario === 'curved' && tx.computeUnits === 800_000) {
+        const receipt = await rpc.call('getTransaction', [tx.signature, { commitment: 'finalized', encoding: 'json', maxSupportedTransactionVersion: 1 }]);
+        curvedControlExhausted = receipt.meta.logMessages.some((line: string) => line.includes('exceeded CUs meter'));
+      }
+    }
+    results.push({ label, order, books, reference, scoped, shortlisted: normal.candidateInstances, signedInstances, actual, tx });
     writeFileSync(directory + '/feasible-orders.json', json(results));
     console.log(label, json({ oracle: best.allIn, actual: actual?.allIn, error: tx.error, cu: tx.computeUnits }));
   }
