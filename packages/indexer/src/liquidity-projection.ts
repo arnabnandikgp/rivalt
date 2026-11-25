@@ -25,6 +25,7 @@ const fields = (value:any,names:string[]) => names.map(name=>value[name]);
 export function projectLiquidity(state:AccountState,event:AccountEvent,financial:FinancialProjection,artifactSet?:string) {
   const liquidity=present(state.liquidity,'liquidity profile'),venue=present(state.venue,'venue');
   check(venue.profileVersion===6,'liquidity profile');
+  const makerLimit = artifactSet === sdk.WIDE_DIRECTORY_ARTIFACT_SET ? sdk.MAX_REGISTERED_MAKERS : 3;
   const change=event.data;
   const marketIndex=venue.markets.indexOf(change.market??change.state?.market);
   check(marketIndex>=0&&marketIndex<venue.marketCount,'liquidity market');
@@ -36,7 +37,7 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
   const previousLedger=()=>present(Object.values(state.ledgers).find(ledger=>ledger.market===change.market),'fee ledger');
   const maker=(value:any,key?:string) => {
     check(value.schemaVersion===10&&value.venue===change.venue&&value.market===venue.markets[marketIndex]
-      &&Number.isInteger(value.instance)&&value.instance>=0&&value.instance<3,'canonical maker identity');
+      &&Number.isInteger(value.instance)&&value.instance>=0&&value.instance<makerLimit,'canonical maker identity');
     const capital=present(state.roots[value.capital],'canonical maker capital');
     check(capital.role===1&&capital.mode===1&&capital.isolatedMarketIndex===marketIndex&&capital.owner===value.owner,'isolated canonical capital');
     const canonical=key??Object.keys(liquidity.makers).find(key=>liquidity.makers[key].capital===value.capital);
@@ -50,8 +51,8 @@ export function projectLiquidity(state:AccountState,event:AccountEvent,financial
   switch(event.type) {
     case 'LiquidityRegistryChangedV4': {
       const value=change.state;
-      check(value.schemaVersion===10&&value.venue===change.venue&&Number.isInteger(value.count)&&value.count>=0&&value.count<=3
-        &&(!value.sealed||value.count===3),'canonical registry shape');
+      check(value.schemaVersion===10&&value.venue===change.venue&&Number.isInteger(value.count)&&value.count>=0&&value.count<=makerLimit
+        &&(!value.sealed||value.count>=3),'canonical registry shape');
       const previous=liquidity.registries[change.registry];
       if(previous) {
         check(!previous.sealed&&value.count>=previous.count,'sealed/monotone registry');

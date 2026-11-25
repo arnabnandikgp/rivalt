@@ -37,9 +37,10 @@ export const UNIFIED_RECOVERY_ARTIFACT_SET='unified-recovery-79724a5a';
 // The new instruction uses unified recovery account and event layouts.
 export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
 export const BOUNDED_ENTRY_ARTIFACT_SET='bounded-entry-settlement';
+export const WIDE_DIRECTORY_ARTIFACT_SET='wide-maker-directory';
 export const FUNDED_ROUTING_ARTIFACT_SET='funded-maker-routing';
 export const usesBoundedEntry=(selection?:string)=>selection==='bounded-entry'||selection==='funded-routing';
-export const hasBoundedEntry=(set?:string)=>set===BOUNDED_ENTRY_ARTIFACT_SET||set===FUNDED_ROUTING_ARTIFACT_SET;
+export const hasBoundedEntry=(set?:string)=>set===BOUNDED_ENTRY_ARTIFACT_SET||set===FUNDED_ROUTING_ARTIFACT_SET||set===WIDE_DIRECTORY_ARTIFACT_SET;
 export const usesClosedQuantity=(selection?:string)=>usesBoundedEntry(selection)||selection==='closed-quantity';
 export const hasClosedQuantity=(set?:string)=>hasBoundedEntry(set)||set===CLOSED_QUANTITY_ARTIFACT_SET;
 export const CLOSED_QUANTITY_ARTIFACT_SET='closed-quantity-settlement';
