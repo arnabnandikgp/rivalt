@@ -6,6 +6,7 @@ source ops/env.sh
 export RIVALT_DEMO_DEPLOYMENT="${RIVALT_DEMO_DEPLOYMENT:-bounded-entry}"
 case "$RIVALT_DEMO_DEPLOYMENT" in
   unified-recovery-candidate) feature=unified-recovery-qualification ;;
+  multi-maker) feature=wide-atomic-routes ;;
   bounded-entry|funded-routing) feature=bounded-entry-settlement ;;
   closed-quantity) feature=closed-quantity-settlement ;;
   bounded-router-candidate|execution-router-candidate) feature=execution-router-qualification ;;
@@ -46,8 +47,10 @@ else
   maker_revision="$baseline_revision"
   if [[ "$feature" == execution-router-qualification || "$feature" == closed-quantity-settlement || "$feature" == bounded-entry-settlement ]]; then maker_revision="$revision"; fi
   build_program "$revision" programs/clearing/Cargo.toml clearing --features "$feature"
+  maker_feature=maker-liquidity-qualification
+  if [[ "$feature" == wide-atomic-routes ]]; then maker_feature=wide-maker-discovery; maker_revision="$revision"; fi
   for component in maker-a maker-b; do
-    build_program "$maker_revision" "programs/$component/Cargo.toml" "${component//-/_}" --features maker-liquidity-qualification
+    build_program "$maker_revision" "programs/$component/Cargo.toml" "${component//-/_}" --features "$maker_feature"
   done
   build_program "$baseline_revision" tests/fixtures/oracle/Cargo.toml oracle_fixture
   verify "$stage" > "$stage/build-manifest.json"

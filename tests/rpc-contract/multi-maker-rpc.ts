@@ -6,13 +6,18 @@ import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {symmetricPayoutShape} from './canonical-maker-cases.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
+import {accountUserAuthority} from '../../packages/services/src/account-ingress.js';
+import type {Keypair} from '@solana/web3.js';
 import {routerBuild} from './execution-router-build.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const directory = process.env.RIVALT_RUN_DIR!;
 const build = routerBuild();
+const feePayers=new Map<string,Keypair>();
+let venue='',known:Awaited<ReturnType<typeof sdk.venueMarketCheckpoints>>=[];
 const {h,rpc,ws,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
-  process.env.RIVALT_WS_URL!,directory,{deferFinality:true,
+  process.env.RIVALT_WS_URL!,directory,{deferFinality:true,payerFor:label=>feePayers.get(label),
+    beforeBroadcast:async(label,bytes)=>{if(label.startsWith('multi wallet'))assert.equal(accountUserAuthority(bytes,venue,4,known,'multi-maker')?.kind,'accountStateVersion');},
     computeUnitLimit:label=>label.startsWith('multi wallet')?800_000:undefined,
     heapSize:label=>label.startsWith('multi wallet')?128*1024:undefined,
     measureComputeBoundary:label=>label.startsWith('multi wallet')});
@@ -27,6 +32,8 @@ try {
   setup.sourcePrices.btc=61_000_000_000n;
   await setup.qualify();
   const trader=setup.roots[0],owner=setup.traderOwner,makers=setup.instances.slice(0,3);
+  venue=setup.venue;known=await sdk.venueMarketCheckpoints(setup.venue,true);
+  for(const label of ['multi wallet last maker lacks initial margin','multi wallet fragmented BTC buy'])feePayers.set(label,owner);
   const keys=[trader,...setup.markets,...setup.ledgers,...makers.flatMap(maker=>[maker.capital,maker.registration])];
   const dump=()=>Promise.all(keys.map(key=>h.read(key)));
   const order=async()=>sdk.buildMultiMakerRoute({snapshot:await setup.snapshot(trader,0),trader,
@@ -68,6 +75,7 @@ try {
   assert.equal(ledger.insurance,fee/4n);
   assert.equal(ledger.insuranceFeeRemainder,Number(fee%4n));
   await flush();
+  assert(checks.filter(row=>String(row.label).startsWith('multi wallet')).every(row=>row.signatures===1));
   journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   await journal.checkpoint('fragmented-three',true);
   const replay=await journal.finish();

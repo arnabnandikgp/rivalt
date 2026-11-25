@@ -9,14 +9,12 @@ export function routerBuild(selection:'funded-routing'|'bounded-entry'|'closed-q
   ['execution-router-closed-quantity','execution-router-mixed-storage'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'closed-quantity' : 'bounded-router-candidate',
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
-  const extended=process.env.RIVALT_SETTLEMENT_PROBE==='execution-router-multi-width';
-  if (extended || process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-multi-fills') {
-    assert.equal(revision,extended?'f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a':'f05d93191089e3440465424cf5d53071e1e7db65');
-    const artifacts = {
-      'clearing':extended?{bytes:3695504,sha256:'8b04d8ee378b22a868fef46da28323a8eac4704894eee7476e45ae441c1989bf'}:{bytes:3666448,sha256:'ceb335974c7a1f492028606e05b96c38fd3d9866205392cdeed2951fa379db69'},
-      'maker-a':{bytes:167520,sha256:'2140ec94a8994a62d0c54044b10d14f48eae19dca0c9a8299b78f7b82b1ca97f'},
-      'maker-b':{bytes:167520,sha256:'372794d71127c68e548d5df4edf0af70c11d15a3ed10dcf2bc993339e67752fe'},
-    };
+  const extended=['execution-router-multi-fills','execution-router-multi-width'].includes(process.env.RIVALT_SETTLEMENT_PROBE??'');
+  if (extended) {
+    const verified=accountDeployment('multi-maker');
+    assert.equal(revision,verified.programRevision);
+    const artifacts=Object.fromEntries(verified.artifacts.filter(artifact=>artifact.name!=='oracle-fixture')
+      .map(({name,bytes,sha256})=>[name,{bytes,sha256}]));
     verifyTestBuild(directory,revision,artifacts,'wide-atomic-routes');
     return {revision,artifacts,artifactSet:MULTI_ROUTING_ARTIFACT_SET};
   }

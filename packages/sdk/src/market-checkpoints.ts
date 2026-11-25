@@ -1,20 +1,21 @@
 import {type Address,type Instruction} from '@solana/kit';
 import {deriveAccountMarket,deriveMarketLedger} from './account-addresses.js';
-import {makerRegistrationPdas} from './market-capacity.js';
+import {registeredMakerPdas,MAX_REGISTERED_MAKERS} from './market-capacity.js';
 import * as clearing from './generated/index.js';
 import {hex,requireValue} from './wallet-client.js';
 
-export type MarketCheckpoint={account:Address;instruction:Instruction};
-export async function venueMarketCheckpoints(venue:Address):Promise<MarketCheckpoint[]> {
+export type MarketCheckpoint={account:Address;instruction:Instruction;makerDirectory?:readonly Address[]};
+export async function venueMarketCheckpoints(venue:Address,wideDirectory=false):Promise<MarketCheckpoint[]> {
   const common={venue,program:clearing.CLEARING_PROGRAM_ADDRESS};
   const perMarket=await Promise.all([0,1].map(async index=>{
     const [market]=await deriveAccountMarket(venue,index);
-    const [[ledger],[[first],[second],[third]]]=await Promise.all([deriveMarketLedger(market),makerRegistrationPdas(market)]);
+    const [[ledger],registrations]=await Promise.all([deriveMarketLedger(market),registeredMakerPdas(market,wideDirectory?MAX_REGISTERED_MAKERS:3)]);
+    const [[first],[second],[third]]=registrations;
     const [checkpoint,fees]=await Promise.all([
       clearing.getCheckpointMarketInstructionAsync({...common,market,first,second,third}),
       clearing.getClassifyMarketFeesInstructionAsync({...common,ledger,first,second,third}),
     ]);
-    return [{account:market,instruction:checkpoint},{account:ledger,instruction:fees}];
+    return [{account:market,instruction:checkpoint,makerDirectory:registrations.map(([key])=>key)},{account:ledger,instruction:fees}];
   }));
   return perMarket.flat();
 }
