@@ -256,6 +256,25 @@ For the remaining refusal, wallet 14's three-lot order 109 simulated successfull
 
 In the separate 16-wallet mixed-market workload the BTC creditor started flat with all 996 atoms already in the pool. The original worker left the claim unpaid for more than 191 seconds while servicing other work. The revised worker paid all 996 after 93.041 seconds on harness `c615ba2f`, with 72/72 trader fills and 83 successful settlement originals. The first ETH payment was observed at 238.158 seconds. A reconciled projection and a trader fill are distinct from a cash payout. [Worker comparison](https://github.com/arnabnandikgp/rivalt/pull/168)
 
+### From a profitable close to tokens in the wallet
+
+Two fresh Surfpool 1.7.0 venues at clearing `b7e4458b` ran the same workload on harness `f873bfd1`. Each of two traders bought 1,000 BTC lots at 60,002 atoms per lot and closed at 60,998. Each earned 996,000 atoms, paid 24,201 in fees and could withdraw 971,799 atoms (0.971799 test collateral). The market started with a current backing certificate and 1,494,000 atoms collected from a funded maker, enough for one and a half of the two claims. Four other wallets submitted 48 BTC/ETH trades on a fixed schedule. All 48 filled on each venue. [Run the comparison](local-development.md#closing-a-position-through-wallet-withdrawal-under-load)
+
+| Payout submitter | Creditor | First credit | Full credit | Tokens in wallet | Other fills in slots strictly between close and withdrawal |
+|---|---|---:|---:|---:|---:|
+| Trader | First | 0.494 s | 0.494 s | 0.800 s | 11 |
+| Trader | Second | 0.623 s | 1.102 s | 1.236 s | 8 |
+| Settlement worker | First | 38.573 s | 38.573 s | 38.648 s | 44 |
+| Settlement worker | Second | 43.404 s | 43.404 s | 43.455 s | 44 |
+
+Times start when the harness observed that trader's confirmed close. It sampled the margin, settlement pool, vault and both wallet destinations together at confirmed commitment, then checked finalized receipts and fresh PostgreSQL replay (489 and 551 events). Both paths began submitting payouts after both closes confirmed. Each owner withdrew the net gain once their full claim was credited. The two trader-directed claims used a fixed submission order and a known debtor. The worker used ordinary discovery and its durable queue. These are two creditors per venue on one local host with synthetic prices and internal makers.
+
+At one second, the first self-service trader had withdrawn. The second had received 498,000 atoms of funded credit, with 498,000 still unpaid. That trader submitted a permissionless loss collection against the maker, claimed the remainder and withdrew. Both had their tokens by five seconds. On the worker venue neither trader had a credit or a withdrawal at the 1, 5, 15 or 30 second cutoffs. All 1,992,000 claim atoms were still owed to them at 30 seconds.
+
+On the worker venue the observed pool first covered both remaining claims 0.970 s after the second close. All 122 backing checks sampled through the last wallet exit were payable. The finalized worker receipts show twelve loss collections before its first gain payment, which went to a maker. The two designated creditors were paid later. Once credited, their tokens arrived another 75 ms and 51 ms later. The worker selects a covered loss before scheduling a gain and waits while a settlement original is outstanding. This workload exposes the cost of that scheduling order when the pool can already fund the claims. [Worker selection](../../packages/services/src/account-settlement-worker.ts) · [Cutoff report](../../tests/performance/close-to-wallet-report.py)
+
+An earlier paced control at `1bbc36e4` filled 32/32 orders per venue. The self-service exits landed at 0.303 and 0.388 s, before the second scheduled background fill. Worker exits took 37.382 and 42.221 s. The burst comparison above requires at least one competing fill in a strictly intervening slot for each measured exit. Cold backing, debtor discovery by an ordinary wallet, exhausted debtor collateral and production latency require separate evidence.
+
 ## Funding, costs and comparisons
 
 The funding publisher computes depth off chain. In three older 75-member runs on clearing `79724a5a`, 12 two-market publication transactions used 48,940–49,110 CU. Another 54 transactions that also checkpointed both markets used 89,682–99,550 CU. These are complete transactions on that binary. [Funding contract](../liquidity/funding.md) · [Receipt reader](../../tests/performance/funding-receipts.py)

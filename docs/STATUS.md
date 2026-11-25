@@ -47,7 +47,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 With ordinary wallets preparing orders, final snapshot verification accounted for 66.7% of summed preparation time on harness `9369c98d`. The SDK now uses the measured decoder by default. At `402a6c03`, two Chrome runs lowered the median from 16.1–16.2 to 7.3 ms for one wallet and from 169.2–171.9 to 81.8–82.2 ms per wallet for twelve together. Byte parity, malformed inputs, and altered-maker rejection passed. The 200 ms repeat is deferred. Sustained network capacity and priority-fee competition remain unmeasured. [Wallet preparation](operations/performance.md#where-the-wallet-spends-time-before-signing) · [Browser measurements](operations/performance.md#browser-wallet-verification-with-the-default-decoder) · [Decoder PR](https://github.com/arnabnandikgp/rivalt/pull/198)
 
-**Next action.** For finding 4, measure the interval from a signed position close through claim funding and SPL withdrawal under load. Include partially paid and waiting creditors in the denominator. [Qualification scorecard](operations/qualification-scorecard.md)
+**Finding 4, [close-to-wallet measurement in Review](https://github.com/arnabnandikgp/rivalt/pull/200).** On clearing `b7e4458b` and harness `f873bfd1`, two BTC traders withdrew 0.971799 test collateral each in both matched runs. Self-service took 0.800 and 1.236 s from confirmed close. On the worker venue both claims remained unpaid at 30 s despite sufficient pool cash within one second of the second close and a payable backing certificate at every sample. The wallets received tokens at 38.648 and 43.455 s. All 48 background orders filled in each run. [Receipts, cutoffs and limitations](operations/performance.md#from-a-profitable-close-to-tokens-in-the-wallet)
+
+**Next action.** Compare the current settlement worker with a scheduler that gives a ready payout a turn while collectible losses remain. Replay the same arrivals and measure time to each wallet, unpaid amounts and collection progress for both markets. [Qualification scorecard](operations/qualification-scorecard.md)
 
 | Open gate | What remains |
 |---|---|

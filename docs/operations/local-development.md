@@ -62,6 +62,24 @@ python3 tests/performance/compare-router-load.py .local/load-control .local/load
 
 The control waits for the trader originals to drain before starting settlement. The active arm overlaps settlement with the scheduled offers. To reproduce the 24-wallet comparison, use 120 offers, 35 ms gaps, 100% BTC, rotating asks, one shallow maker lot, a three-lot order maximum, 2,100 ms refresh and seed 117. Compare independent wallet preparation with confirmed predecessors, then repeat the confirmed arm with maker 1 storage sponsorship. The [harness](../../tests/rpc-contract/router-load-rpc.ts) defines the environment knobs. [Observed results](performance.md) · [Exact comparison commands](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/local-development.md#match-trading-load-with-and-without-profit-settlement)
 
+### Closing a position through wallet withdrawal under load
+
+Use the bounded-entry test deployment and baseline artifacts described under [Fixed-width entry qualification](#fixed-width-entry-qualification). Run the two arms sequentially on the same machine with fresh supervised Surfpool and PostgreSQL instances.
+
+```bash
+source ops/env.sh
+export RIVALT_SETTLEMENT_PROBE=execution-router-bounded-entry-cashout
+export RIVALT_ROUTER_REVISION=b7e4458b57a3a9bbb0906929a936094c78393b47
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/bounded-entry/build-b7e4458b
+run=".local/close-to-wallet/$(date -u +%Y%m%dT%H%M%SZ)"
+for arm in trader worker; do
+  RIVALT_CASHOUT_ARM="$arm" RIVALT_RUN_DIR="$run/$arm" bash ops/scalable-settlement-smoke.sh || exit 1
+done
+python3 tests/performance/close-to-wallet-report.py "$run/trader" "$run/worker"
+```
+
+Each venue starts with a current BTC backing certificate and two independently funded traders holding 1,000 lots each. A signed collection funds 1.5 of their two equal claims before the close. Four other wallets submit 48 ten-lot BTC and ETH orders. Four waves of four start at 160 ms intervals, then 32 offers arrive at 750 ms intervals starting at 2.3 seconds. The report counts fills in slots strictly between each close and token withdrawal. In the trader arm each owner submits their own payout and can collect the remaining cash from the known debtor. In the worker arm the settlement service chooses what to collect and whom to pay. In both arms the owner withdraws the net profit once their entire claim is credited. Confirmed account reads time the stages. The harness separately checks signed originals over RPC and WebSocket and reconciles the final state and event history in fresh PostgreSQL. The report includes every designated creditor at each cutoff.
+
 ## Fixed-width entry qualification
 
 First provision the four P56 baseline binaries in `.local/anchor-rc2/current` in the program checkout. On a new machine, build them at `657a255` with `bash ops/install-anchor-rc2.sh` and `bash ops/build.sh`, then make that artifact directory available in the harness checkout too. Both the builder and the signed smoke check verify the baseline hashes. [Pinned toolchain and P56 build recipe](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/local-development.md#pinned-toolchain)
