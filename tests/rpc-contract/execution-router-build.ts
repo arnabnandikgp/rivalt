@@ -9,10 +9,11 @@ export function routerBuild(selection:'funded-routing'|'bounded-entry'|'closed-q
   ['execution-router-closed-quantity','execution-router-mixed-storage'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'closed-quantity' : 'bounded-router-candidate',
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
-  if (process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-multi-fills') {
-    assert.equal(revision,'f05d93191089e3440465424cf5d53071e1e7db65');
+  const extended=process.env.RIVALT_SETTLEMENT_PROBE==='execution-router-multi-width';
+  if (extended || process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-multi-fills') {
+    assert.equal(revision,extended?'5736b2e6ac41a4c9c619df75ac76eadf215983bd':'f05d93191089e3440465424cf5d53071e1e7db65');
     const artifacts = {
-      'clearing':{bytes:3666448,sha256:'ceb335974c7a1f492028606e05b96c38fd3d9866205392cdeed2951fa379db69'},
+      'clearing':extended?{bytes:3693768,sha256:'295cfd5e50adc4c98b010e756a869648a535213e1ec972ec9352ad781617a409'}:{bytes:3666448,sha256:'ceb335974c7a1f492028606e05b96c38fd3d9866205392cdeed2951fa379db69'},
       'maker-a':{bytes:167520,sha256:'2140ec94a8994a62d0c54044b10d14f48eae19dca0c9a8299b78f7b82b1ca97f'},
       'maker-b':{bytes:167520,sha256:'372794d71127c68e548d5df4edf0af70c11d15a3ed10dcf2bc993339e67752fe'},
     };
