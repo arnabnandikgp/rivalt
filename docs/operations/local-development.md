@@ -207,3 +207,22 @@ The report checks that the two venues offered identical books, funded balances, 
 For the funded multi-maker comparison, build the same `wide-atomic-routes` profile at clearing revision `50bd8836352e3a138142a4ae377ec6dc9d75bcc8` and set `RIVALT_ROUTER_REVISION` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that revision and its matching directory. Use fresh directories for both arms. The new wallet run also signs a sale whose minimum proceeds exceed the best available fill by one collateral atom and checks rollback.
 
 For price-aware wallet selection, use SDK/harness `7353f463` or its compatible stack head with the funded multi-maker binary. The same two-arm command checks the ordinary fills against each independent allocation and signed control. Set `RIVALT_SETTLEMENT_PROBE=execution-router-matched-makers`, `RIVALT_COMPARISON_LEGS=8` and `RIVALT_COMPARISON_MAKERS=16` or `32` to reproduce the wide-directory compatibility traces at harness `7353f463`.
+
+## Wallet count and market contention
+
+Use the `wide-atomic-routes` build at `b0e1a43f22699bb67335011ef7acfb2edf48b0d2` and the matching directory from the wide-fill build instructions. Leave all three runs on the same host and run them sequentially. Each run provisions a fresh local venue and PostgreSQL database. Each window schedules 48 matched requests at 40 ms intervals. Twelve logical streams specify side and dollar size. One window sends every stream through one funded wallet. The other uses twelve independently funded wallets, each waiting only for its previous transaction to confirm.
+
+```bash
+source ops/env.sh
+export RIVALT_ROUTER_REVISION=b0e1a43f22699bb67335011ef7acfb2edf48b0d2
+export RIVALT_SETTLEMENT_PROBE=execution-router-wallet-contention
+# Point RIVALT_SETTLEMENT_ARTIFACT_DIR to the verified wide-atomic-routes build.
+comparison_dir=".local/wallet-contention/run-$(date -u +%Y%m%dT%H%M%SZ)"
+for market in btc split eth; do
+  RIVALT_CONTENTION_MARKETS="$market" RIVALT_RUN_DIR="$comparison_dir/$market" \
+    bash ops/scalable-settlement-smoke.sh || exit 1
+done
+python3 tests/performance/wallet-contention-report.py "$comparison_dir"/{btc,split,eth}
+```
+
+The report matches timetables across venues, audits fee payers, signatures, loaded account permissions and outcomes from finalized receipts, and checks consumed maker depth against the replayed journal. It counts all distinct-wallet transaction pairs and separately counts pairs whose observed broadcast-to-confirmation intervals overlapped. Timing includes the SDK snapshot, simulation, signing, RPC and local scheduling.

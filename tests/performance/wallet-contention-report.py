@@ -1,0 +1,166 @@
+"""Audit scheduled wallet orders against finalized receipts and compare their lock sets."""
+import argparse
+import json
+import math
+from collections import Counter
+from decimal import Decimal
+from itertools import combinations
+from pathlib import Path
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+def percentiles(samples):
+    if not samples:
+        return None
+    ordered = sorted(samples)
+    return {label: round(ordered[math.ceil(len(ordered) * fraction) - 1], 1)
+            for label, fraction in [("p50", .50), ("p95", .95), ("max", 1)]}
+
+
+def dollars_per_second(atoms, milliseconds):
+    return format(Decimal(atoms) / 1000 / Decimal(str(milliseconds)), ".2f")
+
+
+def audit_signed(directory, rows, roles):
+    expected = {row["label"]: row for row in rows if row["signature"]}
+    assert len({row["signature"] for row in expected.values()}) == len(expected)
+    for file in directory.glob("wire-*.json"):
+        wire = read(file)
+        if not wire["label"].startswith("contention "):
+            continue
+        row = expected.pop(wire["label"])
+        receipt = read(file.with_name(file.name.replace("wire-", "transaction-")))
+        assert receipt["transaction"]["signatures"] == [row["signature"]] == [wire["signature"]]
+        assert receipt["slot"] == row["slot"] and receipt["meta"]["err"] == row["error"]
+        assert receipt["meta"]["computeUnitsConsumed"] == row["cu"]
+        assert receipt["meta"]["fee"] == int(row["networkFeeLamports"])
+        assert int(row["gross"]) == (int(row["target"]) if row["error"] is None else 0)
+        assert int(row["fee"]) == (int(row["gross"]) + 4999) // 5000
+        assert read(file.with_name(file.name.replace("wire-", "ws-")))["logs"]["params"]["result"]["value"]["signature"] == row["signature"]
+        message = receipt["transaction"]["message"]
+        keys, header = message["accountKeys"], message["header"]
+        required = header["numRequiredSignatures"]
+        assert required == 1 and roles[keys[0]] == f"payer {row['wallet']}"
+        writable = keys[:required - header["numReadonlySignedAccounts"]] + keys[required:len(keys) - header["numReadonlyUnsignedAccounts"]]
+        extra = receipt["meta"].get("loadedAddresses") or {}
+        writable = set(writable) | set(extra.get("writable", []))
+        assert writable == set(row["locks"]["write"])
+        assert (set(keys) | set(extra.get("readonly", []))) - writable == set(row["locks"]["read"])
+    assert not expected, list(expected)
+
+
+def lock_overlap(rows, roles):
+    """A full-message W/W or W/R overlap implies serialization if both execute.
+    RPC broadcast-to-confirmation intervals only establish observed outstanding requests."""
+    groups = {}
+    for first, second in combinations(rows, 2):
+        if first["wallet"] == second["wallet"]:
+            continue
+        group = "sameMarket" if first["market"] == second["market"] else "crossMarket"
+        count = groups.setdefault(group, {"pairs": 0, "conflicting": 0, "outstandingPairs": 0,
+                                          "outstandingConflicting": 0, "sharedAccounts": Counter()})
+        left, right = first["locks"], second["locks"]
+        ww = set(left["write"]) & set(right["write"])
+        wr = (set(left["read"]) & set(right["write"])) | (set(left["write"]) & set(right["read"]))
+        conflict = bool(ww or wr)
+        overlap = max(first["broadcastMs"], second["broadcastMs"]) < min(first["observedMs"], second["observedMs"])
+        count["pairs"] += 1
+        count["conflicting"] += int(conflict)
+        count["outstandingPairs"] += int(overlap)
+        count["outstandingConflicting"] += int(overlap and conflict)
+        for key in ww | wr:
+            count["sharedAccounts"][roles.get(key, key) + (" W/W" if key in ww else " W/R")] += 1
+    return groups
+
+
+def summarize(window, gap, roles):
+    rows = window["entries"]
+    signed = [row for row in rows if row["signature"]]
+    filled = [row for row in signed if row["error"] is None]
+    duration = len(rows) * gap
+    drained = max(duration, max(row["observedMs"] for row in rows))
+    for row in rows:
+        assert row["dueMs"] == row["id"] * gap and row["readyMs"] >= row["dueMs"] - 2
+        assert row["observedMs"] >= row["readyMs"] and bool(row["unsigned"]) != bool(row["signature"])
+        if row["signature"]:
+            assert row["readyMs"] <= row["broadcastMs"] <= row["observedMs"]
+    offered = sum(int(row["target"]) for row in rows)
+    executed = sum(int(row["gross"]) for row in filled)
+    return {
+        "wallets": window["wallets"], "offered": len(rows), "signed": len(signed), "filled": len(filled),
+        "unsignedRefusals": dict(Counter(row["unsigned"] for row in rows if row["unsigned"])),
+        "signedRefusals": dict(Counter(json.dumps(row["error"]) for row in signed if row["error"] is not None)),
+        "offeredIndexAtoms": str(offered), "filledGrossAtoms": str(executed),
+        "scheduledMs": duration, "throughDrainMs": round(drained, 1),
+        "offeredDollarsPerSecond": dollars_per_second(offered, duration),
+        "filledDollarsPerSecond": dollars_per_second(executed, drained),
+        "outcomesFromArrivalMs": percentiles([row["observedMs"] - row["dueMs"] for row in rows]),
+        "fillsFromArrivalMs": percentiles([row["observedMs"] - row["dueMs"] for row in filled]),
+        "dispatchWaitMs": percentiles([max(0, row["readyMs"] - row["dueMs"]) for row in rows]),
+        "snapshotThroughPreflightMs": percentiles([row["broadcastMs"] - row["readyMs"] for row in signed]),
+        "broadcastToConfirmationMs": percentiles([row["observedMs"] - row["broadcastMs"] for row in signed]),
+        "completedMaintenanceSamples": len(window["refreshes"]),
+        "lockOverlap": lock_overlap(signed, roles),
+    }
+
+
+def verify_consumed_depth(directory, roles, rows):
+    checkpoint, = read(directory / "application-sql-checkpoints.json")
+    assert checkpoint["name"] == "wallet-contention"
+    totals, makers = Counter(), {}
+    for state in checkpoint["state"]["liquidity"]["makers"].values():
+        market = ["BTC market", "ETH market"].index(roles[state["market"]])
+        buy, sell = int(state["buyConsumed"]), int(state["sellConsumed"])
+        assert buy >= 0 and sell >= 0
+        totals[market, 0] += buy
+        totals[market, 1] += sell
+        if buy or sell:
+            makers[roles[state["capital"]]] = {"buyLots": str(buy), "sellLots": str(sell)}
+    expected = Counter()
+    for row in rows:
+        if row["signature"] and row["error"] is None:
+            expected[row["market"], row["side"]] += int(row["lots"])
+    assert totals == expected, "Final maker depth must equal all landed lots on each side"
+    return makers
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("directories", type=Path, nargs=3)
+    runs, schedules = {}, []
+    for directory in parser.parse_args().directories:
+        run = read(directory / "contention-windows.json")
+        plan = read(directory / "scheduled-offers.json")
+        replay = read(directory / "contention-replay.json")
+        for key in ("placement", "revision", "build"):
+            assert run[key] == plan[key] == replay[key]
+        placement = run["placement"]
+        assert placement not in runs and replay["events"] > 0
+        assert [window["wallets"] for window in run["windows"]] == [1, 12]
+        assert len(plan["trace"]) == 48
+        normalized = [(row["id"], row["stream"], row["dueMs"], row["side"], row["target"]) for row in plan["trace"]]
+        schedules.append((run["revision"], run["build"], run["gapMs"], normalized))
+        totals = Counter()
+        for row in plan["trace"]:
+            totals[row["market"]] += int(row["target"])
+        if placement == "split":
+            assert totals[0] == totals[1] > 0
+        else:
+            assert set(totals) == {0 if placement == "btc" else 1}
+        for window in run["windows"]:
+            assert [{key: row[key] for key in plan["trace"][0]} for row in window["entries"]] == plan["trace"]
+            assert len({row["wallet"] for row in window["entries"]}) == window["wallets"]
+        rows = [row for window in run["windows"] for row in window["entries"]]
+        audit_signed(directory, rows, run["roles"])
+        used = verify_consumed_depth(directory, run["roles"], rows)
+        runs[placement] = {"events": replay["events"], "consumedByMaker": used, "windows": [
+            summarize(window, run["gapMs"], run["roles"]) for window in run["windows"]]}
+    assert set(runs) == {"btc", "eth", "split"} and all(value == schedules[0] for value in schedules)
+    print(json.dumps(runs, indent=2))
+
+
+if __name__ == "__main__":
+    main()
