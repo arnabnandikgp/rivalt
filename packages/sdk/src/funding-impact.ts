@@ -1,3 +1,4 @@
+import {MAX_REGISTERED_MAKERS} from './market-capacity.js';
 import { MIN_REFERENCE_PRICE, MAX_REFERENCE_PRICE, MAX_FUNDING_SAMPLE_LOTS, EXECUTION_DENOMINATOR, EXECUTION_LOWER_NUMERATOR, EXECUTION_UPPER_NUMERATOR } from './price-policy.js';
 import { quoteCanonical, validateCanonicalShape, type CanonicalShape } from './canonical-quote.js';
 import { convexMinimum, firstTrue, lastTrue } from './quantity-search.js';
@@ -20,7 +21,7 @@ const maximum = (...values: bigint[]) => values.reduce((left, right) => left > r
  * No hypothetical financial admission or taker fees participate in funding. */
 export function allocateFundingSide(makers: readonly FundingCurve[], reference: bigint,
   quantity: bigint, side: 0 | 1, metrics: FundingSearchMetrics = { quantityQuotes: 0, compositions: 0 }): FundingAllocation | null {
-  requireValue(makers.length === 3 && reference >= MIN_REFERENCE_PRICE && reference <= MAX_REFERENCE_PRICE
+  requireValue(makers.length >= 3 && makers.length <= MAX_REGISTERED_MAKERS && reference >= MIN_REFERENCE_PRICE && reference <= MAX_REFERENCE_PRICE
     && quantity > 0n && quantity <= MAX_FUNDING_SAMPLE_LOTS && (side === 0 || side === 1), 'Invalid funding allocation domain.');
   const table = makers.map(maker => {
     const { shape, inventory, anchor } = maker;
@@ -55,20 +56,20 @@ export function allocateFundingSide(makers: readonly FundingCurve[], reference: 
     if (best === null || (side === 0 ? gross < best.gross : gross > best.gross)) best = { gross, quantities };
   };
   // Stable ties: one leg, ascending instance IDs, descending first quantity.
-  for (let maker = 0; maker < 3; maker++) {
+  for (let maker = 0; maker < makers.length; maker++) {
     const entry = table[maker];
     if (!entry || quantity < entry.lower || quantity > entry.upper) continue;
-    const quantities = [0n, 0n, 0n]; quantities[maker] = quantity;
+    const quantities = Array<bigint>(makers.length).fill(0n); quantities[maker] = quantity;
     consider(entry.quote(quantity), quantities);
   }
-  for (let first = 0; first < 3; first++) for (let second = first + 1; second < 3; second++) {
+  for (let first = 0; first < makers.length; first++) for (let second = first + 1; second < makers.length; second++) {
     const left = table[first], right = table[second];
     if (!left || !right) continue;
     const lower = maximum(left.lower, quantity - right.upper), upper = minimum(left.upper, quantity - right.lower);
     if (lower > upper) continue;
     const gross = (lots: bigint) => left.quote(lots) + right.quote(quantity - lots);
     const firstLots = convexMinimum(lower, upper, lots => side === 0 ? gross(lots) : -gross(lots));
-    const quantities = [0n, 0n, 0n]; quantities[first] = firstLots; quantities[second] = quantity - firstLots;
+    const quantities = Array<bigint>(makers.length).fill(0n); quantities[first] = firstLots; quantities[second] = quantity - firstLots;
     consider(gross(firstLots), quantities);
   }
   return best;

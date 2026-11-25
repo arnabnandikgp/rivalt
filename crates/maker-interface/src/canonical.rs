@@ -12,6 +12,8 @@ pub const STANDING_TRADE_VERSION: u16 = 5;
 pub const ACCOUNT_SCHEMA: u16 = 5;
 pub const CAPABILITY: u16 = 1;
 pub const MAX_REGIONS: usize = 8;
+/// Consecutive registration PDAs per market in the explicitly selected build.
+pub const REGISTRATION_LIMIT: u8 = if cfg!(feature = "wide-maker-discovery") { 32 } else { 3 };
 /// Declared side depth shares the checked quantity domain, not a small test book.
 pub const MAX_DEPTH: u64 = MAX_LOTS as u64;
 pub const MAX_TTL_SLOTS: u16 = 150;
@@ -591,7 +593,7 @@ pub fn validate_standing_publication(
     if config.schema_version != ACCOUNT_SCHEMA
         || price.schema_version != ACCOUNT_SCHEMA
         || config.capability != CAPABILITY
-        || config.instance > 2
+        || config.instance >= REGISTRATION_LIMIT
         || price.config != config_key
         || config.control_epoch == 0
         || config.shape_epoch == 0

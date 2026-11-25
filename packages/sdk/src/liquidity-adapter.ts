@@ -1,4 +1,4 @@
-import {makerRegistrationPdas} from './market-capacity.js';
+import {registeredMakerPdas, MAX_REGISTERED_MAKERS} from './market-capacity.js';
 import {decodeMakerFeeLane} from './market-fees.js';
 import {feeLaneLayout,hasFeeLayout,decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
 import { MAX_PRICE } from './price-policy.js';
@@ -78,9 +78,17 @@ export function canonicalShapeFromAccount(state: canonical.LiquidityShape): Cano
 export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venue: Address, market: Address,
   commitment: 'confirmed' | 'finalized', layout?:MarginLayout) {
   const [registry] = await clearing.findLiquidityRegistryPda({ market });
-  const registrations = (await makerRegistrationPdas(market)).map(([key])=>key);
-  const discovery = await rpc.call('getMultipleAccounts',[registrations,{ encoding: 'base64', commitment }]);
-  requireValue(discovery.value?.length === 3, 'Incomplete liquidity discovery.');
+  const registryResponse = await rpc.call('getMultipleAccounts',[[registry],{encoding:'base64',commitment}]);
+  const registryAccount = new Map([[registry,registryResponse.value?.[0]]]);
+  const directory = decode(bytes(registryAccount,registry,clearing.CLEARING_PROGRAM_ADDRESS),
+    clearing.LIQUIDITY_REGISTRY_DISCRIMINATOR,clearing.getLiquidityRegistryDecoder());
+  requireValue(directory.schemaVersion === 10 && directory.sealed && directory.market === market && directory.venue === venue,
+    'Invalid sealed maker directory.');
+  const registrations = (await registeredMakerPdas(market,directory.count)).map(([key])=>key);
+  const minContextSlot = Number(rpcInteger(registryResponse.context.slot));
+  const discovery = await rpc.call('getMultipleAccounts',[registrations,{encoding:'base64',commitment,minContextSlot}]);
+  requireValue(discovery.value?.length === registrations.length && rpcInteger(discovery.context.slot) >= BigInt(minContextSlot),
+    'Incomplete liquidity discovery.');
   const accounts: LiquidityAccountMap = new Map(registrations.map((key,index) => [key,discovery.value[index]]));
   const capitals: Address[] = [], dependencies: Address[] = [registry,...registrations];
   for (const [instance,key] of registrations.entries()) {
@@ -94,7 +102,7 @@ export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venu
     capitals.push(state.capital);
     dependencies.push(state.config,state.price,state.pricingProgram,state.programData,binding);
   }
-  requireValue(new Set(capitals).size === 3, 'Aliased discovered maker capital.');
+  requireValue(new Set(capitals).size === registrations.length, 'Aliased discovered maker capital.');
   return { capitals, keys: [...new Set(dependencies)], contextSlot: rpcInteger(discovery.context.slot) };
 }
 
@@ -108,20 +116,20 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
   const registry = decode(bytes(accounts,registryKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.LIQUIDITY_REGISTRY_DISCRIMINATOR,
     clearing.getLiquidityRegistryDecoder());
   requireValue(registry.schemaVersion === 10 && registry.venue === snapshot.venue && registry.market === snapshot.market
-    && registry.bump === registryBump && registry.sealed && registry.count === LIQUIDITY_MAKER_COUNT,
+    && registry.bump === registryBump && registry.sealed && registry.count >= 3 && registry.count <= MAX_REGISTERED_MAKERS,
     'Liquidity registry is not complete and sealed.');
   requireValue(new Set(registry.registrations).size === LIQUIDITY_MAKER_COUNT, 'Aliased maker registration.');
   const seenCapital = new Set<Address>();
   const seenRootIds = new Set<bigint>();
   const codeHashes = new Map<Address, string>();
   const adapters: LiquidityAdapter[] = [];
-  for (const [instance, registrationKey] of registry.registrations.entries()) {
-    const [expectedRegistration, registrationBump] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
-      seeds: [new TextEncoder().encode('maker-v4'), KEY.encode(snapshot.market), Uint8Array.of(instance)] });
+  const pdas = await registeredMakerPdas(snapshot.market, registry.count);
+  requireValue(registry.registrations.every((key,index) => key === pdas[index][0]), 'Foreign accounting lane registration.');
+  for (const [instance, [registrationKey, registrationBump]] of pdas.entries()) {
     const rawRegistration=bytes(accounts,registrationKey,clearing.CLEARING_PROGRAM_ADDRESS);
     const registration = hasFeeLayout(snapshot.marginLayout)?decodeMakerFeeLane(rawRegistration,feeLaneLayout(snapshot.marginLayout)).state:decode(rawRegistration, clearing.MAKER_REGISTRATION_DISCRIMINATOR,
       clearing.getMakerRegistrationDecoder());
-    requireValue(registrationKey === expectedRegistration && registration.bump === registrationBump && registration.schemaVersion === 10
+    requireValue(registration.bump === registrationBump && registration.schemaVersion === 10
       && registration.venue === snapshot.venue && registration.market === snapshot.market && registration.instance === instance
       && registration.authorityEpoch > 0n && registration.depthEpoch > 0n
       && registration.buyConsumed <= MAX_MAKER_DEPTH_LOTS && registration.sellConsumed <= MAX_MAKER_DEPTH_LOTS,

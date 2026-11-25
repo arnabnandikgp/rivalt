@@ -1,3 +1,4 @@
+import {readCoherentAccounts} from './coherent-accounts.js';
 import {hasCapacityLayout,hasFundingLayout,type MarginLayout} from './profit-attribution.js';
 import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
 import { BTC_LOTS_PER_UNIT, ETH_LOTS_PER_UNIT, FUNDING_REFERENCE_NOTIONAL } from './price-policy.js';
@@ -58,10 +59,10 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   const checkpointAccounts=registrationPdas.map(([key])=>key);
   const keys = [...new Set([...checkpointAccounts,venue, market, configuration, safety, ACCOUNT_CLOCK, registry,
     ...discoveredMarket.oracle.sources, ...discovery?.keys ?? [], ...discovery?.capitals ?? []])];
-  requireValue(keys.length <= 48, 'Funding snapshot exceeds bounded dependency set.');
+  requireValue(keys.length <= 33 + 5 * (discovery?.capitals.length ?? 0), 'Funding snapshot exceeds bounded dependency set.');
   const discoveredSlot = rpcInteger(sourceDiscovery.context.slot);
   const minContextSlot = discovery && discovery.contextSlot > discoveredSlot ? discovery.contextSlot : discoveredSlot;
-  const response = await rpc.call('getMultipleAccounts', [keys, { encoding: 'base64', commitment, minContextSlot: Number(minContextSlot) }]);
+  const response = await readCoherentAccounts(rpc,keys,commitment,minContextSlot);
   const contextSlot = rpcInteger(response.context.slot);
   requireValue(response.value?.length === keys.length && contextSlot >= minContextSlot, 'Incomplete or regressed funding snapshot.');
   const accounts: LiquidityAccountMap = new Map(keys.map((key, index) => [key, response.value[index]]));

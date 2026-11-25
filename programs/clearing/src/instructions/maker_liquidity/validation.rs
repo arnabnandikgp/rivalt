@@ -85,7 +85,7 @@ pub(crate) fn config_and_price(
 ) -> Result<(CurveState, PriceState)> {
     require!(
         (program == MAKER_A || program == MAKER_B)
-            && instance < 3
+            && instance < canonical::REGISTRATION_LIMIT
             && *config.owner() == program
             && *price.owner() == program
             && !config.executable()

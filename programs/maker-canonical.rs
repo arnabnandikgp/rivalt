@@ -125,7 +125,7 @@ fn initialize_curve(
             && capital.mode == MODE_ISOLATED
             && capital.role == ROLE_MAKER
             && capital.isolated_market_index == market.index
-            && instance < 3,
+            && instance < canonical::REGISTRATION_LIMIT,
         MakerError::Binding
     );
     require!(

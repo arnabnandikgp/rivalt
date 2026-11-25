@@ -1,3 +1,4 @@
+import {readCoherentAccounts} from './coherent-accounts.js';
 import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
 import {ledgerFromExecutionLanes} from './ledger-lanes.js';
 import {decodeFeeLedger} from './market-fees.js';
@@ -61,10 +62,10 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(new Set(keys).size===keys.length,'Aliased account dependencies.');
   // RPC dependency discovery includes all unselected makers and full code. This
   // read bound is separate from the signed transaction's loaded-account budget.
-  requireValue(keys.length<=(liquidityDiscovery?48:32),'Account snapshot exceeds bounded dependency set.');
+  requireValue(keys.length<=(liquidityDiscovery?30+6*liquidityDiscovery.capitals.length:32),'Account snapshot exceeds bounded dependency set.');
   const discoverySlot=rpcInteger(discovery.context.slot);
   requireValue(discoverySlot>=makerDiscoverySlot,'Account RPC predates maker discovery.');
-  const response=await rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment,minContextSlot:Number(discoverySlot)}]);
+  const response=await readCoherentAccounts(rpc,keys,commitment,discoverySlot);
   const contextSlot=rpcInteger(response.context.slot);requireValue(contextSlot>=discoverySlot,'Account RPC predates discovery.');
   requireValue(response.value?.length===keys.length,'Incomplete account snapshot.');
   const accounts=new Map<Address,any>(keys.map((key,index)=>[key,response.value[index]]));
