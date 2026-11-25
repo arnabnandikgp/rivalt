@@ -159,6 +159,8 @@ originals and `wide-fills.json` under the ignored run directory.
 
 For wider atomic fills use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a`, build profile `wide-atomic-routes` and harness `c5d51f9c` or its compatible stack head. Run the same supervisor with probes `execution-router-multi-fills` and `execution-router-multi-width` in separate fresh directories. The first checks the fragmented fill, final-maker rollback and insurance allocation. The second checks four and eight real maker fills and journal replay.
 
+For the price-collar and aggregate-fee regressions, build `wide-atomic-routes` at `b0e1a43f22699bb67335011ef7acfb2edf48b0d2`. Set `RIVALT_ROUTER_REVISION` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that revision and its build directory. Run the supervisor once with `RIVALT_SETTLEMENT_PROBE=execution-router-multi-price-limits` and once with `execution-router-multi-width`, each in a fresh run directory. The first verifies signed fills and one-atom refusals. The second requires both widths to fill and replay.
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.
