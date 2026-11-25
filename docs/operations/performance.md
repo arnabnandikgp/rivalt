@@ -166,3 +166,36 @@ Clearing `f0b8a599`, wallet harness `c5d51f9c`, local signed v1 transactions. Ea
 | ETH | 7 × 65,000 + 33,935 | 14,672.232960 | 2.934447 | 673,599 | 2,068 | 45 |
 
 Each transaction paid 5,000 test lamports. With insufficient final-maker margin the three-leg BTC order returned 6120 at 250,104 CU, leaving all compared financial accounts byte-identical. Finalized RPC and signature WS reported the refusal. Surfpool’s logs WS reported a null error for that refused original. Fresh PostgreSQL replay reconciled 109 events for the three-leg venue and 158 for the four/eight-leg venue. These numbers describe the listed books and initial inventories.
+
+## Matched dollar execution across 16 and 32 makers
+
+Clearing `f0b8a599`, RPC harness `22814361`. Each of six fresh local venues received the same ten exact-size BTC requests under a synthetic $61,000 index. Each venue received **$85,100.368** of requested index notional after rounding to whole lots. A refusal counts as zero filled dollars. There were three funded trading wallets, two internal maker programs and separately funded capital for every registration. The two-leg instruction supplied three candidates. The four- and eight-leg instructions supplied four and eight. The reference independently priced the complete directory, the best directory-wide allocation under the leg limit and the signed shortlist at execution.
+
+| Makers | Leg cap | Filled / offered | Filled dollars at index | Taker fees | Extra cost on fills versus full directory | Replayed events |
+|---:|---:|---:|---:|---:|---:|---:|
+| 16 | 2 | 5/10 | $35,100.193 | $7.021975 | $6.021046 | 264 |
+| 16 | 4 | 6/10 | $45,100.228 | $9.021955 | $3.030654 | 268 |
+| 16 | 8 | 7/10 | $65,100.237 | $13.023022 | $0.044289 | 274 |
+| 32 | 2 | 5/10 | $35,100.193 | $7.023657 | $14.434536 | 360 |
+| 32 | 4 | 6/10 | $45,100.228 | $9.023142 | $8.965025 | 364 |
+| 32 | 8 | 7/10 | $65,100.237 | $13.023022 | $0.044289 | 370 |
+
+All completed trades matched the independent fee-inclusive value available from their signed candidates. The extra cost column is the trader's aggregate worse execution across fills in that cell, compared to the unrestricted directory on the same book at landing. Refused requests have no execution price. Filling more early orders changes the depth left for later ones.
+
+| Makers / cap | Signed / offered | Transaction fees in test lamports | Signed to confirmed p50 / p95 | Shared writable accounts on final pair | Final pair fills / elapsed seconds |
+|---|---:|---:|---:|---:|---:|
+| 16 / 2 | 8/10 | 40,000 | 175.1 / 259.2 ms | 8 | 2 / 0.220 |
+| 16 / 4 | 8/10 | 40,000 | 177.7 / 254.0 ms | 10 | 2 / 0.224 |
+| 16 / 8 | 8/10 | 40,000 | 228.3 / 265.1 ms | 18 | 2 / 0.283 |
+| 32 / 2 | 8/10 | 40,000 | 176.7 / 254.5 ms | 8 | 2 / 0.224 |
+| 32 / 4 | 8/10 | 40,000 | 177.0 / 250.7 ms | 10 | 2 / 0.190 |
+| 32 / 8 | 8/10 | 40,000 | 226.5 / 263.6 ms | 19 | 2 / 0.287 |
+
+The final pair came from separate wallets after normal source recovery. Each pair was submitted concurrently. Elapsed time covers building and signing through both confirmations, including local simulation, subscription and submission. Signed-to-confirmed latency starts at signature. The omitted-maker reprice happens during that interval. These short local batches measure shared locks and observed latency. They provide no sustained network throughput estimate.
+
+- On all six venues the $100 buy signed before an omitted maker improved its price. The trader paid $100.063289 all-in. The new best directory price would have cost $100.019000.
+- In the fragmented book, the $10,000 buy first filled at four legs and the $20,000 buy first filled at eight among the three tested caps. With two, the $20,000 order filled after a deep replacement maker posted.
+- With 32 registrations, the eight-leg $10,000 sell included makers 0–7. Each bid for only 6,000 lots. The signed set therefore offered 48,000 lots for a 163,935-lot sale. The independent eight-maker allocation could deliver $9,992.798640 after fees using makers 0–3 and 16–19. Selecting enough aggregate depth matters even with eight available legs.
+- Two additional $5,000 buy requests per cell reached the wallet after published depth was replenished. The source was Degraded and the wallet refused both before signing. Their $10,000 target remains in each denominator. The next two scheduled requests followed four ordinary sampling rounds. Every signed original paid 5,000 test lamports, including refusals. Only fills paid a taker fee.
+
+The [reproduction instructions](local-development.md#matched-dollar-comparison) and [report](../../tests/performance/matched-maker-report.py) give per-order quantities, VWAP, fees, refusal reasons and the three reference prices, with every signed result checked against its retained receipt. These fixtures use flat, internally operated books. Sustained throughput, stressed maker margin and independent operators remain open.

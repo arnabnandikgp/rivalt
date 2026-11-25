@@ -31,7 +31,9 @@ On funded-routing clearing `e02e72a0` with harness `db964391`, the ordinary ETH 
 
 **Wider atomic fills in review.** Clearing `f0b8a599` and harness `c5d51f9c` filled the 163,935-lot BTC order across three makers in 399,121 CU. Four and eight real counterparties filled in 460,763 and 673,599 CU. All three traders paid and signed alone. Final-leg margin refusal rolled back, and fresh PostgreSQL replay reconciled 109 and 158 events. [Results](operations/performance.md#atomic-fills-across-three-to-eight-makers)
 
-**Next action.** Replay matched dollar requests for 16 and 32 registered makers at two, four and eight legs. [Executable depth deliverables](operations/qualification-scorecard.md#executable-depth-work)
+**Matched economic comparison in review.** Clearing `f0b8a599` and harness `22814361` exercised 60 local BTC offers across six independent venues. Thirty-six filled, twelve signed originals refused and twelve requests stopped at the source guard before signature. PostgreSQL replay reconciled all six venues (1,900 events altogether). At both directory sizes, two, four and eight legs filled $35,100.193, $45,100.228 and $65,100.237 respectively of $85,100.368 requested per venue. Eight legs still missed an executable $10,000 sell when the signed candidates supplied insufficient depth. [Per-cell economics and locks](operations/performance.md#matched-dollar-execution-across-16-and-32-makers)
+
+**Next action.** Make the wallet shortlist cover the requested size when funded, deeper makers can complete it. Repeat the matched thin-bid sell against the same signed-price and margin checks. [Executable depth deliverables](operations/qualification-scorecard.md#executable-depth-work)
 
 | Open gate | What remains |
 |---|---|
