@@ -241,3 +241,9 @@ On clearing `50bd8836` and SDK/harness `7353f463`, both ordinary wallet orders r
 On ETH the ordinary wallet sold 67,988 and 32,012 lots for **$3,012.866858** after fees, using 383,599 CU. Raising the minimum proceeds to $3,012.866859 rolled back. Each fresh venue reconciled 185 events in PostgreSQL. These prices qualify the measured snapshots. The shortlist comparison is a heuristic when the full-directory optimum exceeds the signed width or fails financial admission.
 
 The eight-leg compatibility trace at the same SDK and program revisions filled 8/10 offers in each of the 16- and 32-maker venues. Four offers across both venues stopped at the source guard before signing. The 163,935-lot thin-bid BTC sale still returned $9,995.037152 and $9,992.798640 respectively. Each of the 16 signed orders was refetched and audited. Fresh PostgreSQL replay reconciled 279 and 375 events respectively.
+
+### Signed price and fee limits
+
+Clearing `b0e1a43f` and harness `a9dc0bba` ran three fresh local venues. Each four-book limit case offered 100 lots per maker. Three makers filled the complete 300-lot request. The BTC buy excluded the 53,000 ask below the 54,000 floor and paid 18,003,600 atoms including fees. The ETH sell excluded the 30,001 bid that would raise the fee above 1,800 atoms and received 8,998,200 atoms. The fills used 516,677 and 549,088 CU. Tightening either all-in limit by one atom returned `RouteHealth` and the financial accounts matched their pretrade bytes. PostgreSQL replay reconciled 107 events.
+
+On the width venue both positive orders landed, at 465,564 CU for four counterparties and 682,804 CU for eight. Replay reconciled 158 events. On the wallet venue the curved BTC buy paid $9,838.645417 and the maker-margin-constrained ETH sell received $3,012.866858 after fees. Its one-atom-tighter sell refused. Replay reconciled 185 events. These runs used internal makers and the opt-in local program.
