@@ -145,7 +145,7 @@ it('estimates funded depth through inventory reductions, standing prices and con
   maker.shape = { ...maker.shape, mode: 3 };
   expect(makerDepth({ ...order, side: 1 }, maker).quantity).toBe(2n);
   maker.unavailable = 'quarantined';
-  expect(makerDepth(order, maker).quantity).toBe(0n);
+  expect(makerDepth({ ...order, side: 1 }, maker).quantity).toBe(0n);
 });
 
 it('keeps the valid prefix of a curved book and excludes a wholly off-band or self-owned book', () => {
@@ -158,6 +158,10 @@ it('keeps the valid prefix of a curved book and excludes a wholly off-band or se
     // At three lots the average is 10,800 or 9,200. At four it is 11,200 or 8,800.
     expect(makerDepth(order, maker)).toEqual({ id: 0, quantity: 3n, gross: side === 0 ? 32400n : 27600n });
   }
+  maker.price.anchor = 8500n;
+  // A cheap first lot can enter the collar only at a larger average size.
+  expect(makerDepth(input, maker).quantity).toBe(0n);
+  expect(makerDepth({ ...input, lots: 4n }, maker).gross).toBe(38800n);
   maker.price.anchor = 12000n;
   expect(makerDepth(input, maker).quantity).toBe(0n);
   maker.price.anchor = 10000n;
