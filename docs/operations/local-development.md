@@ -226,3 +226,35 @@ python3 tests/performance/wallet-contention-report.py "$comparison_dir"/{btc,spl
 ```
 
 The report matches timetables across venues, audits fee payers, signatures, loaded account permissions and outcomes from finalized receipts, and checks consumed maker depth against the replayed journal. It counts all distinct-wallet transaction pairs and separately counts pairs whose observed broadcast-to-confirmation intervals overlapped. Timing includes the SDK snapshot, simulation, signing, RPC and local scheduling.
+
+### Native validator scheduler replay
+
+This twelve-wallet comparison runs a local Agave leader at its default slot timing. It uses the same 48 arrivals, fees, program binaries, economic checks and finalized PostgreSQL replay as the Surfpool comparison. Each placement gets a fresh ledger. For this test use Agave 4.2.2. The workspace's 4.1.2 RPC rejects the 1,404-byte v1 order before it reaches scheduling.
+
+Build the local test validator once. The small patch timestamps admission, worker assignment and the start of worker batch processing using one monotonic clock. A separate thread formats signatures and writes the trace. The command below uses the Rust toolchain and Apple Command Line Tools on the qualification host.
+
+```bash
+source ops/env.sh
+source_dir=.local/agave-contention/source
+git clone --branch v4.2.2 --depth 1 https://github.com/anza-xyz/agave.git "$source_dir"
+test "$(git -C "$source_dir" rev-parse HEAD)" = c9c6f3287e26f24e3476e13e751aebe710191e89
+git -C "$source_dir" apply --unidiff-zero "$PWD/tests/performance/agave-4.2.2-scheduler.patch"
+(
+  cd "$source_dir"
+  LIBCLANG_PATH="$(xcode-select -p)/usr/lib" CARGO_INCREMENTAL=0 \
+    CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_DEBUG=0 \
+    CARGO_PROFILE_RELEASE_STRIP=debuginfo CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+    CXXFLAGS=-g0 CFLAGS=-g0 cargo +1.97.1 build --release --locked \
+    -p agave-validator --bin solana-test-validator -j 5
+)
+export RIVALT_AGAVE_VALIDATOR="$source_dir/target/release/solana-test-validator"
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/wide-routing/build-b0e1a43f
+comparison_dir=".local/agave-contention/run-$(date -u +%Y%m%dT%H%M%SZ)"
+for market in btc split eth; do
+  RIVALT_CONTENTION_MARKETS="$market" RIVALT_RUN_DIR="$comparison_dir/$market" \
+    bash ops/validator-wallet-contention.sh || exit 1
+done
+python3 tests/performance/wallet-contention-report.py --scheduler "$comparison_dir"/{btc,split,eth}
+```
+
+The report joins native events to each original signed order and its finalized receipt. It reports scheduler intervals in microseconds and client intervals in milliseconds. RPC response and validator processing can overlap. Aggregate latency percentiles cannot be added. A signature with multiple scheduling attempts is counted separately and excluded from the single-attempt timing distribution. The validator stops when the workload exits. Raw traces, ledger and receipts stay in the local run directory.

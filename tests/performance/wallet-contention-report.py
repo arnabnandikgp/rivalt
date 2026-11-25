@@ -152,11 +152,54 @@ def verify_consumed_depth(directory, roles, rows):
     return makers
 
 
+def native_scheduler(directory, rows):
+    signed = {row["signature"]: row for row in rows if row["signature"]}
+    assert signed, "No signed trader order reached the validator"
+    traces = {sig: [] for sig in signed}
+    for line in (directory / "scheduler.trace").read_text().splitlines():
+        timestamp, stage, member, signature, worker = line.split()
+        if signature in signed:
+            traces[signature].append((int(timestamp), stage, member, worker))
+    segments = {}
+    assigned_workers = Counter()
+    multiple_attempts = {}
+    for signature, events in traces.items():
+        events.sort()
+        stages = [event[1] for event in events]
+        for stage in ("admitted", "assigned", "worker"):
+            assert stage in stages, f"{signature} has no {stage} timestamp"
+        if len(events) != 3:
+            # Multiple admissions/assignments can occur when Agave retries.
+            # Preserve these observations without guessing which landed.
+            multiple_attempts[signature] = stages
+            continue
+        assert stages == ["admitted", "assigned", "worker"] and len({e[2] for e in events}) == 1
+        admitted, assigned, worker = (event[0] for event in events)
+        row = signed[signature]
+        assert row["readyMs"] <= row["signedMs"] <= row["broadcastMs"] <= row["rpcAcceptedMs"] <= row["observedMs"]
+        segments[signature] = {
+            "snapshotAndSignMs": row["signedMs"] - row["readyMs"],
+            "preflightAndSubscriptionMs": row["broadcastMs"] - row["signedMs"],
+            "sendRpcMs": row["rpcAcceptedMs"] - row["broadcastMs"],
+            "rpcResponseToObservedConfirmationMs": row["observedMs"] - row["rpcAcceptedMs"],
+            "admitToAssignUs": assigned - admitted,
+            "assignToWorkerBatchUs": worker - assigned,
+            "admitToWorkerBatchUs": worker - admitted,
+        }
+        assigned_workers[int(events[1][3])] += 1
+    assert segments, "No unambiguous scheduler observations"
+    return {"signed": len(signed), "singleAttempt": len(segments), "multipleAttempts": multiple_attempts,
+            "assignedWorkers": assigned_workers,
+            "timing": {key: percentiles([value[key] for value in segments.values()]) for key in next(iter(segments.values()))}}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directories", type=Path, nargs=3)
+    parser.add_argument("--scheduler", action="store_true", help="Audit the twelve-wallet Agave runs and native queue timestamps")
+    args = parser.parse_args()
     runs, schedules = {}, []
-    for directory in parser.parse_args().directories:
+    for directory in args.directories:
         run = read(directory / "contention-windows.json")
         plan = read(directory / "scheduled-offers.json")
         replay = read(directory / "contention-replay.json")
@@ -164,7 +207,7 @@ def main():
             assert run[key] == plan[key] == replay[key]
         placement = run["placement"]
         assert placement not in runs and replay["events"] > 0
-        assert [window["wallets"] for window in run["windows"]] == [1, 12]
+        assert [window["wallets"] for window in run["windows"]] == ([12] if args.scheduler else [1, 12])
         assert len(plan["trace"]) == 48
         normalized = [(row["id"], row["stream"], row["dueMs"], row["side"], row["target"]) for row in plan["trace"]]
         schedules.append((run["revision"], run["build"], run["gapMs"], normalized))
@@ -184,6 +227,12 @@ def main():
         used = verify_consumed_depth(directory, run["roles"], rows)
         runs[placement] = {"events": replay["events"], "consumedByMaker": used, "windows": [
             summarize(window, run["gapMs"], run["roles"]) for window in run["windows"]]}
+        if args.scheduler:
+            binary = (directory / "validator-sha256.txt").read_text().split()[0]
+            version = (directory / "validator-version.txt").read_text().strip()
+            assert version.startswith("solana-test-validator 4.2.2 (src:c9c6f328;")
+            schedules[-1] += (version, binary)
+            runs[placement]["scheduler"] = native_scheduler(directory, rows)
     assert set(runs) == {"btc", "eth", "split"} and all(value == schedules[0] for value in schedules)
     print(json.dumps(runs, indent=2, sort_keys=True))
 
