@@ -266,6 +266,18 @@ try {
   await batch([{ name: 'fragmented 10000', dollars: 10000, actor: 0 }], 0);
   await batch([{ name: 'fragmented 20000', dollars: 20000, actor: 0 }], 0);
   await batch([{ name: 'thin bids', dollars: 10000, actor: 1 }], 1);
+  // The unchanged book offers 6,000 lots per shallow maker and 40,000 per deep maker.
+  // The pre-change independent reference found four of each for the eight-leg sell.
+  const thinSale = entries.at(-1)!;
+  assert.equal(thinSale.name, 'thin bids');
+  assert.equal(thinSale.classification, width === 8 ? 'filled' : 'insufficient depth at leg limit');
+  if (width === 8) {
+    const firstDeep = count / 2;
+    assert.deepEqual(thinSale.supplied, [0, 1, 2, 3, firstDeep, firstDeep + 1, firstDeep + 2, firstDeep + 3]);
+    const sale = thinSale.actual as { allIn: bigint; legs: { lots: string }[] };
+    assert.deepEqual(sale.legs.map(leg => BigInt(leg.lots)), [6000n, 6000n, 6000n, 6000n, 40000n, 40000n, 40000n, 19935n]);
+    assert.equal(sale.allIn, count === 32 ? 9_992_798_640n : 9_995_037_152n);
+  }
   const deep = makers[count - 1],
     registration = await deep.registrationState(),
     config = await deep.state();
