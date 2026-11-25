@@ -135,4 +135,12 @@ RIVALT_BENCH_ARM=explicit bash ops/scalable-settlement-smoke.sh
 
 Each run retains its signed originals, simulations, finalized RPC and WS records, PostgreSQL reconciliation and `depth-benchmark.json` locally. The latter records each offer, the independent optimal allocation for the fixture’s flat price regions, the signed limit, and the actual outcome. When a pair of makers can supply the size, both transaction alternatives are signed and simulated at the same confirmed slot before broadcasting the designated one. When the size exceeds every pair, both runs submit the wallet’s routed original so the refusal has a receipt.
 
+To repeat against the funded-routing candidate, build program revision
+`e02e72a06a16c36cd2b843ca373895e3fbd23927` with the same
+`bounded-entry-settlement` Cargo feature. Point `RIVALT_SETTLEMENT_ARTIFACT_DIR`
+at that build, set `RIVALT_ROUTER_REVISION` to its full revision and use
+`RIVALT_SETTLEMENT_PROBE=execution-router-funded-benchmark`. The routed run
+checks every signed outcome against the independent reference, including both
+ETH limits while maker zero has one collateral atom.
+
 Run `python3 tests/performance/depth-benchmark-report.py ROUTED_RUN EXPLICIT_RUN` to summarize both completed directories. Read `ordinaryBtc` for requested and filled dollars at the index (atom totals use six decimals) and `dollarOrders` for each signed limit, average fill price, dollar cost versus the index, taker fee and refusal. An order with no fill has zero executed notional and a null execution price. The supplementary CU differences use two successful simulations on the same bank. `source ops/env.sh && node --import tsx tests/rpc-contract/depth-benchmark-reference-check.ts` checks the independent reference against exhaustive allocation on 216 small books and orders.

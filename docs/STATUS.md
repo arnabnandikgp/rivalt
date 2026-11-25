@@ -25,7 +25,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 **Dollar-fill benchmark in review.** On clearing `b7e4458b` and harness `6ddfcaee`, the wallet filled 22/30 ordinary BTC orders and $243,600.755 of $462,600.942 requested at the index. The fragmented book filled 6/10 requests and 7.91% of requested dollars. Every completed fill matched the reference price and aggregate fee for its maker allocation. A separate $100 ETH buy failed even though a funded maker filled it within the same signed limit on the control venue. The per-order dollar report was checked against all 72 retained originals from the two runs. [Dollar outcomes](operations/performance.md#dollar-sized-orders-and-executable-depth) · [PR #181](https://github.com/arnabnandikgp/rivalt/pull/181)
 
-**Next action.** Use the 3,334-lot ETH order as the acceptance case for routing past an underfunded maker. Clearing must find the funded maker at or below the $100.053343 signed limit while preserving full margin admission and the wallet budget. The combined market-shock and recovery exercise remains deferred.
+On funded-routing clearing `e02e72a0` with harness `db964391`, the ordinary ETH buy filled 3,334 lots at maker 1 for 100,033,336 gross atoms plus a 20,007-atom fee. At the tighter 100,046,674-atom limit it refused and rolled back. The other 35 orders reproduced their baseline outcomes, including fills for 22/30 ordinary BTC orders. The funded wallet withdrew 499,925.164827 test tokens after closing BTC and ETH. Fresh PostgreSQL replay reconciled 463 events. The wallet still searches three internal makers and fills up to two.
+
+**Next action.** Implement wide registered-maker discovery and a bounded signed shortlist. Qualify membership, execution-time repricing and the market-wide checkpoints at 16 and 32 registrations before expanding atomic fills. [Executable depth deliverables](operations/qualification-scorecard.md#executable-depth-work)
 
 | Open gate | What remains |
 |---|---|

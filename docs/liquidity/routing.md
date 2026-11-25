@@ -34,6 +34,17 @@ intervals, 512 gross evaluations and four full financial admissions. Exceeding
 any limit returns `RouteSearchLimit` (6133) and discards the incumbent. These
 are work limits, independent of order size. Transaction-wide compute exhaustion
 is still possible, including during account authentication or final settlement.
+
+The opt-in `funded-routing` build also bounds each maker's searchable lots
+using the funded cash in its isolated account. At the market's upper risk
+price, the largest absolute inventory that cash could margin is
+`floor(cash × 10,000 / (upper × IM_bps))`, capped at the position limit.
+For a trader buy, add the maker's signed inventory to this bound. For a sell,
+subtract its signed inventory. Clip the result at zero and at published
+capacity. This preserves the opportunity to flatten a maker with little cash.
+Negative claims, reserved funds and trader health can still reject quantities
+inside the bound. Clearing runs full financial admission on the candidate.
+
 One position can accumulate fills from different makers across orders. Each
 exact-size order must fit a single maker or a pair. For example, if each of
 the three makers offers three lots, a nine-lot order cannot fill. The program
