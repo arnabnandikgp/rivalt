@@ -52,6 +52,27 @@ def audit_signed(directory, rows, roles):
     assert not expected, list(expected)
 
 
+def audit_maintenance(directory, windows):
+    preflight = {sample["preflight"]["signature"]: sample["preflight"]["error"]
+                 for window in windows for sample in window["refreshes"] if sample["preflight"]}
+    sent = {report["signature"]: report["error"] for window in windows for report in window["reports"]}
+    assert not set(preflight) & set(sent)
+    assert len(preflight) + len(sent) == sum(len(window["refreshes"]) for window in windows)
+    for file in directory.glob("wire-*.json"):
+        wire = read(file)
+        if wire["label"] != "P32 publisher available two-market reports":
+            continue
+        signature = wire["signature"]
+        receipt = file.with_name(file.name.replace("wire-", "transaction-"))
+        if signature in preflight:
+            simulation = read(file.with_name(file.name.replace("wire-", "simulation-")))
+            assert simulation["value"]["err"] == preflight.pop(signature) and not receipt.exists()
+        elif signature in sent:
+            final = read(receipt)
+            assert final["transaction"]["signatures"][0] == signature and final["meta"]["err"] == sent.pop(signature)
+    assert not preflight and not sent
+
+
 def lock_overlap(rows, roles):
     """A full-message W/W or W/R overlap implies serialization if both execute.
     RPC broadcast-to-confirmation intervals only establish observed outstanding requests."""
@@ -156,12 +177,13 @@ def main():
             assert [{key: row[key] for key in plan["trace"][0]} for row in window["entries"]] == plan["trace"]
             assert len({row["wallet"] for row in window["entries"]}) == window["wallets"]
         rows = [row for window in run["windows"] for row in window["entries"]]
+        audit_maintenance(directory, run["windows"])
         audit_signed(directory, rows, run["roles"])
         used = verify_consumed_depth(directory, run["roles"], rows)
         runs[placement] = {"events": replay["events"], "consumedByMaker": used, "windows": [
             summarize(window, run["gapMs"], run["roles"]) for window in run["windows"]]}
     assert set(runs) == {"btc", "eth", "split"} and all(value == schedules[0] for value in schedules)
-    print(json.dumps(runs, indent=2))
+    print(json.dumps(runs, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

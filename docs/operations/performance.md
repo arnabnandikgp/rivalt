@@ -131,6 +131,25 @@ All three published curves priced every order. Each dollar order reached maker q
 
 The controls opened four lots in total. After the index moved to $62,000, the reduce-only sale left a flat trader with 3,984 unpaid collateral atoms. Collection from the losing maker and the backing scan enabled payment. The trader withdrew the 3,884-atom net gain after 100 atoms of trading fees. The token wallet gained and the vault lost exactly that amount. Fresh PostgreSQL replay matched 357 events. The four refused orders produced no claim or payout to measure. This was a sequential flat-book test with scripted settlement, one wallet and synthetic prices. [Signed harness](../../tests/rpc-contract/router-notional-rpc.ts) · [Run instructions](local-development.md#fixed-btc-order-sizes)
 
+## Wallet count and market contention
+
+On clearing `b0e1a43f` and harness `27710e33`, each fresh Surfpool venue received the same 48-request trace twice. The first window used one funded wallet. The second used twelve, with each wallet waiting for its own previous confirmation. Each window scheduled $30,720 of test notional over 1.920 seconds ($16,000/s), in $120, $600 and $1,200 buys and sells. Every order filled at the synthetic index and paid the 2 bps taker fee. The split venue assigned six streams and half the dollars to each market. Four funded makers per market published deep, flat quotes with zero spread and skew. Normal pricing and funding upkeep continued during each window.
+
+| Markets | Wallets | Fills / offered | Filled test dollars/s | p95 arrival to confirmed fill | Last outcome from window start |
+|---|---:|---:|---:|---:|---:|
+| BTC | 1 | 48/48 | 3,028.06 | 7.835 s | 10.145 s |
+| BTC | 12 | 48/48 | 7,658.22 | 2.133 s | 4.011 s |
+| ETH | 1 | 48/48 | 3,105.22 | 7.588 s | 9.893 s |
+| ETH | 12 | 48/48 | 7,359.27 | 2.397 s | 4.174 s |
+| 50/50 BTC and ETH | 1 | 48/48 | 2,647.16 | 9.318 s | 11.605 s |
+| 50/50 BTC and ETH | 12 | 48/48 | 6,396.84 | 2.863 s | 4.802 s |
+
+Filled dollars/s uses the entire interval from the first scheduled arrival through drain, including delays before signing. Among twelve-wallet orders, all 1,056 distinct-wallet pairs on each single-market venue had common writable accounts. Each order locked the market, ledger, four maker capitals and four registrations. Only maker 0 on each active market consumed depth. In the split venue all 480 same-market pairs conflicted, and none of the 576 cross-market pairs shared an account that either transaction wrote. Among pairs with overlapping broadcast-to-confirmation intervals, 76/76 same-market pairs conflicted and 0/95 cross-market pairs conflicted.
+
+Twelve wallets improved the delivered rate in all three placements. Splitting the market did not improve it in this run. On the split venue p95 was 2.009 s before a wallet started preparing its request, 1.394 s for snapshot through preflight and 0.967 s from broadcast through observed confirmation. Those percentiles describe different samples and cannot be added. The recorded intervals include SDK, simulation, RPC polling and host scheduling. They do not isolate validator lock wait. Each placement had one short window per wallet count, the single-wallet window ran first, and each twelve-wallet trader used one market. Cross accounts carrying both markets can require additional dependencies.
+
+PostgreSQL independently replayed 477 BTC, 473 ETH and 557 split-venue events and reconciled the funded accounts. All 288 finalized originals and their WS observations matched the report. Fourteen timed funding maintenance attempts landed in the matched run. An earlier ETH run stopped when its harness treated a funding-report preflight refusal (6131) as fatal. The corrected harness records that refusal separately, leaves the refused report unsent, and samples again on its normal cadence. Production capacity and contention pricing require separate scheduler and fee-market evidence. [Reproduction and receipt audit](local-development.md#wallet-count-and-market-contention)
+
 ## Wallet traffic and settlement
 
 Three local runs scheduled the same 120 BTC buys from 24 wallets over 4.165 seconds. Orders were one to three lots. One deep maker always quoted the best test ask. All runs used the bounded router, synthetic sources and a real settlement worker. The timing column includes time spent waiting to prepare the order.
