@@ -37,7 +37,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 **Finding 2 remains open.** On clearing `f0b8a599` and harness `b61ade13`, a signed alternative saved $1.720650 on the same $9,836.10 BTC buy. A wallet ETH sale failed admission even though two shortlisted makers could fill it for $3,012.866858 net. The cheapest calculated BTC allocation exhausted the 800,000-CU wallet budget. [Signed comparison and scope](operations/performance.md#curved-quotes-and-binding-maker-margin)
 
-**Next action.** Make ordinary multi-maker routing fill the 100,000-lot ETH regression with the financially admissible maker split and full existing risk checks.
+**Funded multi-maker routing in review.** Clearing `50bd8836`, harness `152e4f18`: the ordinary ETH sale reached the independently calculated $3,012.866858 net. A one-atom-tighter minimum rolled back. The globally cheapest BTC control landed for $9,838.645417 in 394,364 CU, but the wallet still paid $9,843.684008. Fresh SQL replay reconciled 184 wallet and 185 control events. [Measurements](operations/performance.md#funded-opening-depth)
+
+**Next action.** Include the four cheapest curved BTC makers in the ordinary wallet transaction and repeat both priced orders against the signed controls.
 
 | Open gate | What remains |
 |---|---|

@@ -201,3 +201,5 @@ pnpm exec vitest run tests/rpc-contract/feasible-book-reference.test.ts
 ```
 
 The report checks that the two venues offered identical books, funded balances, risk bounds and signed economic limits. For each order it compares the ordinary wallet fill, the calculated best allocation within four legs and the best control that actually landed. All three include the taker fee. A missing fill has no execution price. The control uses the same wallet compute limit and either supplies four candidate bundles for on-chain selection or signs an explicit two-leg split.
+
+For the funded multi-maker comparison, build the same `wide-atomic-routes` profile at clearing revision `50bd8836352e3a138142a4ae377ec6dc9d75bcc8` and set `RIVALT_ROUTER_REVISION` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that revision and its matching directory. Use fresh directories for both arms. The new wallet run also signs a sale whose minimum proceeds exceed the best available fill by one collateral atom and checks rollback.
