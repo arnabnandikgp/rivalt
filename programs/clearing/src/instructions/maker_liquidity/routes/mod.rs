@@ -23,15 +23,37 @@ mod tests;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum RoutePath { Serial, ReadOnlyMarket, ReadOnlyLedger }
 
+/// Fixed-leg routes place all market accounting on the same physical lane
+/// as the ordinary router. Scope capture has checked the type, ownership,
+/// writable privilege and uniqueness of every extra account before entry.
+fn explicit_lane(
+    registry: &LiquidityRegistry, first: &MakerRegistration, remaining: &[AccountView],
+) -> Result<Option<BorshAccount<MakerRegistration>>> {
+    if first.instance < 3 {
+        require!(remaining.is_empty(), ClearingError::MakerBinding);
+        return Ok(None);
+    }
+    let lane_id = first.instance % 3;
+    let [view] = remaining else { return Err(ClearingError::MakerBinding.into()); };
+    require!(cfg!(feature = "wide-maker-discovery") && first.instance < registry.count
+        && view.address() == &registry.registrations[usize::from(lane_id)], ClearingError::MakerBinding);
+    // SAFETY: the scope rejects duplicates including named accounts. The
+    // registration PDA is unique, writable, clearing-owned and typed.
+    let lane = unsafe { BorshAccount::<MakerRegistration>::load_mut(view.clone()) }?;
+    require!(lane.instance == lane_id && lane.venue == first.venue && lane.market == first.market,
+        ClearingError::MakerBinding);
+    Ok(Some(lane))
+}
+
 pub fn execute(
     ctx: &mut Context<ExecuteLiquidityRoute>,
     events: &mut crate::event_cpi::Payloads,
     args: LiquidityRouteIntent,
     forced: bool,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
-    require!(remaining_accounts.is_empty(), ClearingError::Profile);
-    execute_intent(&mut ctx.accounts.view(), events, args, forced, RoutePath::Serial)
+    let remaining = ctx.remaining_accounts()?;
+    let lane = explicit_lane(&ctx.accounts.registry, &ctx.accounts.first_registration, &remaining)?;
+    execute_intent(&mut ctx.accounts.view(), events, args, forced, RoutePath::Serial, lane)
 }
 
 pub fn execute_lane(
@@ -40,13 +62,16 @@ pub fn execute_lane(
     args: LiquidityRouteIntent,
 ) -> Result<()> {
     require!(cfg!(feature = "read-only-route-market"), ClearingError::Profile);
-    require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Profile);
-    execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyMarket)
+    let remaining = ctx.remaining_accounts()?;
+    let lane = explicit_lane(&ctx.accounts.registry, &ctx.accounts.first_registration, &remaining)?;
+    execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyMarket, lane)
 }
 
 pub fn execute_ledger_lane(ctx: &mut Context<ExecuteLedgerLane>, events: &mut crate::event_cpi::Payloads, args: LiquidityRouteIntent) -> Result<()> {
-    require!(cfg!(feature = "read-only-route-ledger") && ctx.remaining_accounts()?.is_empty(), ClearingError::Profile);
-    execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyLedger)
+    require!(cfg!(feature = "read-only-route-ledger"), ClearingError::Profile);
+    let remaining = ctx.remaining_accounts()?;
+    let lane = explicit_lane(&ctx.accounts.registry, &ctx.accounts.first_registration, &remaining)?;
+    execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyLedger, lane)
 }
 
 fn execute_intent(
@@ -55,6 +80,7 @@ fn execute_intent(
     args: LiquidityRouteIntent,
     forced: bool,
     path: RoutePath,
+    lane: Option<BorshAccount<MakerRegistration>>,
 ) -> Result<()> {
     args.guard.check(
         &accounts.identity.venue,
@@ -87,7 +113,7 @@ fn execute_intent(
         generation: args.generation,
         legs: shared_legs(&args.legs),
     };
-    execute_core(accounts, events, intent, None, forced, path, &args.legs, &clock)
+    execute_core(accounts, events, intent, None, forced, path, &args.legs, &clock, lane)
 }
 
 pub fn execute_order(
@@ -95,8 +121,8 @@ pub fn execute_order(
     events: &mut crate::event_cpi::Payloads,
     args: LiquidityOrderExecution,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
-    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let remaining = ctx.remaining_accounts()?;
+    let lane = explicit_lane(&ctx.accounts.registry, &ctx.accounts.first_registration, &remaining)?;
     args.guard.check(
         &ctx.accounts.identity.venue,
         &ctx.accounts.identity.safety,
@@ -130,6 +156,7 @@ pub fn execute_order(
         RoutePath::Serial,
         &args.legs,
         &clock,
+        lane,
     )
 }
 
@@ -143,6 +170,7 @@ fn execute_core(
     path: RoutePath,
     signed_legs: &[LiquidityRouteLeg],
     clock: &Clock,
+    mut lane: Option<BorshAccount<MakerRegistration>>,
 ) -> Result<()> {
     let identity = &accounts.identity;
     execution_profile(&identity.venue, &identity.safety, &identity.market)?;
@@ -301,8 +329,10 @@ fn execute_core(
         &next,
         &actual_quotes,
         path,
-        None,
-    )
+        lane.as_mut(),
+    )?;
+    if let Some(mut external) = lane { external.exit()?; }
+    Ok(())
 }
 
 /// Construct large root values in their own frame and place them directly in the

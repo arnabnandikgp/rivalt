@@ -653,6 +653,7 @@ pub(crate) struct MakerAccess {
 #[derive(Clone, Copy)]
 enum Remaining {
     SelectedMakers(MakerAccess),
+    ExplicitLane,
     #[cfg(feature = "checked-funding-prefix")]
     FundingRegistrations,
     FrozenPlanPages,
@@ -664,6 +665,13 @@ enum Remaining {
 impl Remaining {
     fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
         match self {
+            Self::ExplicitLane => {
+                require!(accounts.len() <= 1, ClearingError::Profile);
+                if let Some(lane) = accounts.first_mut() {
+                    scope.raw::<MakerRegistration>(lane, Access::Write)?;
+                }
+                Ok(())
+            }
             Self::SelectedMakers(plan) => {
                 require!(accounts.len() <= 3, ClearingError::Profile);
                 for account in accounts {
@@ -773,6 +781,13 @@ fn run_with_remaining<'context, T: ScopedContext>(
     event_cpi::emit_borrowed::<AccountTransition, _>(&event, context.accounts.event_authority())?;
     profile_cu!("scope-exit");
     Ok(())
+}
+
+pub(crate) fn run_explicit_route<'context, T: ScopedContext>(
+    context: &mut Context<'context, T>, instruction: [u8; 8],
+    handler: impl FnOnce(&mut Context<'context, T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context, instruction, Remaining::ExplicitLane, handler)
 }
 
 pub(crate) fn run_selected_route<'context, T: ScopedContext>(
