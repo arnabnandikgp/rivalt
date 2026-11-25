@@ -116,6 +116,8 @@ def summarize(window, gap, roles):
         "signedRefusals": dict(Counter(json.dumps(row["error"]) for row in signed if row["error"] is not None)),
         "offeredIndexAtoms": str(offered), "filledGrossAtoms": str(executed),
         "scheduledMs": duration, "throughDrainMs": round(drained, 1),
+        "offeredOrdersPerSecond": round(len(rows) * 1000 / duration, 2),
+        "filledOrdersPerSecond": round(len(filled) * 1000 / drained, 2),
         "offeredDollarsPerSecond": dollars_per_second(offered, duration),
         "filledDollarsPerSecond": dollars_per_second(executed, drained),
         "outcomesFromArrivalMs": percentiles([row["observedMs"] - row["dueMs"] for row in rows]),

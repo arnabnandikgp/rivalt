@@ -133,18 +133,18 @@ The controls opened four lots in total. After the index moved to $62,000, the re
 
 ## Wallet count and market contention
 
-On clearing `b0e1a43f` and harness `27710e33`, each fresh Surfpool venue received the same 48-request trace twice. The first window used one funded wallet. The second used twelve, with each wallet waiting for its own previous confirmation. Each window scheduled $30,720 of test notional over 1.920 seconds ($16,000/s), in $120, $600 and $1,200 buys and sells. Every order filled at the synthetic index and paid the 2 bps taker fee. The split venue assigned six streams and half the dollars to each market. Four funded makers per market published deep, flat quotes with zero spread and skew. Normal pricing and funding upkeep continued during each window.
+On clearing `b0e1a43f` and harness `27710e33`, each fresh Surfpool venue received the same 48-request trace twice. The first window used one funded wallet. The second used twelve, with each wallet waiting for its own previous confirmation. Each window offered 25 orders/s over 1.920 seconds ($30,720 total test notional), in $120, $600 and $1,200 buys and sells. Every order filled at the synthetic index and paid the 2 bps taker fee. The split venue assigned six streams and half the dollars to each market. Four funded makers per market published deep, flat quotes with zero spread and skew. Normal pricing and funding upkeep continued during each window.
 
-| Markets | Wallets | Fills / offered | Filled test dollars/s | p95 arrival to confirmed fill | Last outcome from window start |
-|---|---:|---:|---:|---:|---:|
-| BTC | 1 | 48/48 | 3,028.06 | 7.835 s | 10.145 s |
-| BTC | 12 | 48/48 | 7,658.22 | 2.133 s | 4.011 s |
-| ETH | 1 | 48/48 | 3,105.22 | 7.588 s | 9.893 s |
-| ETH | 12 | 48/48 | 7,359.27 | 2.397 s | 4.174 s |
-| 50/50 BTC and ETH | 1 | 48/48 | 2,647.16 | 9.318 s | 11.605 s |
-| 50/50 BTC and ETH | 12 | 48/48 | 6,396.84 | 2.863 s | 4.802 s |
+| Markets | Wallets | Fills / offered | Trader fills/s | Filled test dollars/s | p95 arrival to confirmed fill | Last outcome from window start |
+|---|---:|---:|---:|---:|---:|---:|
+| BTC | 1 | 48/48 | 4.73 | 3,028.06 | 7.835 s | 10.145 s |
+| BTC | 12 | 48/48 | 11.97 | 7,658.22 | 2.133 s | 4.011 s |
+| ETH | 1 | 48/48 | 4.85 | 3,105.22 | 7.588 s | 9.893 s |
+| ETH | 12 | 48/48 | 11.50 | 7,359.27 | 2.397 s | 4.174 s |
+| 50/50 BTC and ETH | 1 | 48/48 | 4.14 | 2,647.16 | 9.318 s | 11.605 s |
+| 50/50 BTC and ETH | 12 | 48/48 | 10.00 | 6,396.84 | 2.863 s | 4.802 s |
 
-Filled dollars/s uses the entire interval from the first scheduled arrival through drain, including delays before signing. Among twelve-wallet orders, all 1,056 distinct-wallet pairs on each single-market venue had common writable accounts. Each order locked the market, ledger, four maker capitals and four registrations. Only maker 0 on each active market consumed depth. In the split venue all 480 same-market pairs conflicted, and none of the 576 cross-market pairs shared an account that either transaction wrote. Among pairs with overlapping broadcast-to-confirmation intervals, 76/76 same-market pairs conflicted and 0/95 cross-market pairs conflicted.
+Trader fills/s counts each completed user order once, including orders split across makers. Both achieved rates use the full observation window through drain, including time spent waiting before signing. All six windows filled the same mix at an average of $640 per order, so filled dollars/s is exactly 640 times fills/s before rounding. Among twelve-wallet orders, all 1,056 distinct-wallet pairs on each single-market venue had common writable accounts. Each order locked the market, ledger, four maker capitals and four registrations. Only maker 0 on each active market consumed depth. In the split venue all 480 same-market pairs conflicted, and none of the 576 cross-market pairs shared an account that either transaction wrote. Among pairs with overlapping broadcast-to-confirmation intervals, 76/76 same-market pairs conflicted and 0/95 cross-market pairs conflicted.
 
 Twelve wallets improved the delivered rate in all three placements. Splitting the market did not improve it in this run. On the split venue p95 was 2.009 s before a wallet started preparing its request, 1.394 s for snapshot through preflight and 0.967 s from broadcast through observed confirmation. Those percentiles describe different samples and cannot be added. The recorded intervals include SDK, simulation, RPC polling and host scheduling. They do not isolate validator lock wait. Each placement had one short window per wallet count, the single-wallet window ran first, and each twelve-wallet trader used one market. Cross accounts carrying both markets can require additional dependencies.
 
