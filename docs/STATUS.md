@@ -49,7 +49,9 @@ At native test revision `1c37352d`, the independent exact-fraction model exercis
 
 **Finding 3, wallet preparation in Review.** On harness `9369c98d` and clearing `b0e1a43f`, the repeat finalized 48/48 split-market orders. Fresh PostgreSQL replay reconciled 305 events and 259 accounts. After the final account read, the SDK took 438.3 ms p95 to return a verified snapshot, accounting for 66.7% of summed preparation time. The four RPC calls accounted for 5.5% and route construction for 9.2%. The leader received 16.05 signed orders/s against 25 scheduled. Validator saturation remains open. [Timing and workload](operations/performance.md#where-the-wallet-spends-time-before-signing)
 
-**Next action.** Benchmark byte decoding, maker-code hashing and address derivation on the same captured snapshot to select the first SDK optimization while preserving all verification checks. The populated-book shock exercise remains deferred. [Qualification scorecard](operations/qualification-scorecard.md)
+**Finding 3, pre-signed bursts in Review.** Harness `97523cdf` on clearing `b0e1a43f` landed 50/50 orders in the next observed local slot on each fresh venue. BTC alone used one worker. Splitting 25 BTC and 25 ETH used two workers and lowered the largest writable-account cost from 17.96M to 8.98M. The landing blocks froze 457 and 470 ms after their predecessors. [Matched burst measurements](operations/performance.md#fifty-already-signed-orders-in-one-slot)
+
+**Next action.** Repeat the matched 50-wallet bursts on a local validator configured for a 200 ms slot target, record the actual block intervals, and compare slots to the last fill. Wallet SDK profiling is a separate latency follow-up. The populated-book shock exercise remains deferred. [Qualification scorecard](operations/qualification-scorecard.md)
 
 | Open gate | What remains |
 |---|---|

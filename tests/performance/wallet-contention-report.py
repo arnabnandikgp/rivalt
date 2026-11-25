@@ -2,8 +2,10 @@
 import argparse
 import json
 import math
+import re
 from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from itertools import combinations
 from pathlib import Path
@@ -153,7 +155,7 @@ def verify_consumed_depth(directory, roles, rows):
     return makers
 
 
-def native_scheduler(directory, rows, include_arrivals=False):
+def native_scheduler(directory, rows, include_arrivals=False, include_worker_markets=False):
     signed = {row["signature"]: row for row in rows if row["signature"]}
     assert signed, "No signed trader order reached the validator"
     traces = {sig: [] for sig in signed}
@@ -223,6 +225,12 @@ def native_scheduler(directory, rows, include_arrivals=False):
         result["firstAdmissions"] = {"orders": len(first_admissions), "spanMs": round(span / 1000, 1),
                                      "meanOrdersPerSecond": round(1_000_000 * len(intervals) / span, 2) if span else None,
                                      "interarrivalUs": percentiles(intervals)}
+    if include_worker_markets:
+        by_market = {}
+        for signature, events in traces.items():
+            market = ("BTC", "ETH")[signed[signature]["market"]]
+            by_market.setdefault(market, Counter()).update(worker for _, stage, _, worker in events if stage == "assigned")
+        result["assignmentsByMarketAndWorker"] = by_market
     return result
 
 
@@ -236,7 +244,66 @@ class AuditedRun:
     trace: list
 
 
-def audit_run(directory, scheduler, include_arrivals=False):
+def landed_block_metrics(directory, slots, roles):
+    # Use the instrumented validator's actual freeze timestamps and bank-wide scheduler costs.
+    # An adjacent frozen bank may be absent when a slot was skipped.
+    freezes, costs = {}, {}
+    wanted = set(slots) | {slot - 1 for slot in slots}
+    with (directory / "ledger" / "validator.log").open() as log:
+        for line in log:
+            if "solana_runtime::bank] bank frozen:" in line:
+                slot = int(line.split("bank frozen: ", 1)[1].split()[0])
+                if slot in wanted:
+                    freezes[slot] = datetime.fromisoformat(line[1:].split(" ", 1)[0].replace("Z", "+00:00"))
+            elif "cost_tracker_stats,is_leader=true " in line:
+                fields = dict(re.findall(r'(\w+)=("[^"]*"|\d+i)(?=\s|$)', line))
+                slot = int(fields["bank_slot"][:-1])
+                if slot in slots:
+                    account = fields["costliest_account"].strip('"')
+                    costs[slot] = {"transactionsInBank": int(fields["transaction_count"][:-1]),
+                                   "bankCost": int(fields["block_cost"][:-1]),
+                                   "costliestAccount": roles.get(account, account),
+                                   "costliestAccountCost": int(fields["costliest_account_cost"][:-1])}
+    assert set(costs) == set(slots) and set(slots) <= freezes.keys()
+    for slot, cost in costs.items():
+        cost["sincePreviousBankFreezeMs"] = (round((freezes[slot] - freezes[slot-1]).total_seconds() * 1000, 2)
+                                             if slot - 1 in freezes else None)
+    return costs
+
+
+def burst_window(window, roles):
+    rows = window["entries"]
+    release = window["burstRelease"]
+    start, slot = release["elapsedMs"], release["slot"]
+    assert slot > release["previousSlot"] and len(rows) == 50
+    assert [row["id"] for row in rows] == list(range(50))
+    assert all(row["signature"] and row["unsigned"] is None and row["dueMs"] == 0 and
+               row["wallet"] == row["id"] and row["signedMs"] <= start <= row["broadcastMs"] <= row["observedMs"]
+               for row in rows)
+    assert [row["broadcastMs"] for row in rows] == sorted(row["broadcastMs"] for row in rows)
+    assert all(row["slot"] >= slot for row in rows)
+    fills = [row for row in rows if row["error"] is None]
+    by_slot = []
+    for landing_slot in range(slot, max(row["slot"] for row in rows) + 1):
+        landed = [row for row in rows if row["slot"] == landing_slot]
+        by_slot.append({"slot": landing_slot, "offset": landing_slot - slot,
+                        "btcFills": sum(row["error"] is None and row["market"] == 0 for row in landed),
+                        "ethFills": sum(row["error"] is None and row["market"] == 1 for row in landed),
+                        "refusals": sum(row["error"] is not None for row in landed)})
+    drain = max(row["observedMs"] for row in rows) - start
+    return {"signed": len(rows), "fills": len(fills), "refusals": dict(Counter(
+                json.dumps(row["error"]) for row in rows if row["error"] is not None)),
+            "releaseSlot": slot, "bySlot": by_slot, "fillSlotOffsets": percentiles([row["slot"] - slot for row in fills]),
+            "outcomeSlotOffsets": percentiles([row["slot"] - slot for row in rows]),
+            "lastReleasedOrder": {"id": rows[-1]["id"], "slotOffset": rows[-1]["slot"] - slot,
+                                  "filled": rows[-1]["error"] is None},
+            "lastSenderReleasedMs": round(max(row["broadcastMs"] for row in rows) - start, 2),
+            "throughObservedDrainMs": round(drain, 2), "fillsPerSecondThroughObservedDrain": round(len(fills) * 1000 / drain, 2),
+            "computeUnitsPerFill": percentiles([row["cu"] for row in fills]),
+            "lockOverlap": lock_overlap(rows, roles), "fundingAttempts": len(window["refreshes"])}
+
+
+def audit_run(directory, scheduler, include_arrivals=False, burst=False):
     run = read(directory / "contention-windows.json")
     plan = read(directory / "scheduled-offers.json")
     replay = read(directory / "contention-replay.json")
@@ -244,8 +311,10 @@ def audit_run(directory, scheduler, include_arrivals=False):
         assert run[key] == plan[key] == replay[key]
     placement = run["placement"]
     assert replay["events"] > 0
-    assert [window["wallets"] for window in run["windows"]] == ([12] if scheduler else [1, 12])
-    assert len(plan["trace"]) == 48
+    wallet_counts = [50] if burst else [12] if scheduler else [1, 12]
+    assert [window["wallets"] for window in run["windows"]] == wallet_counts
+    assert len(plan["trace"]) == (50 if burst else 48)
+    assert run["gapMs"] == (0 if burst else 40)
     normalized = [(row["id"], row["stream"], row["dueMs"], row["side"], row["target"]) for row in plan["trace"]]
     conditions = (run["build"], run["gapMs"], normalized)
     totals = Counter()
@@ -262,15 +331,21 @@ def audit_run(directory, scheduler, include_arrivals=False):
     audit_maintenance(directory, run["windows"])
     audit_signed(directory, rows, run["roles"])
     used = verify_consumed_depth(directory, run["roles"], rows)
-    result = {"events": replay["events"], "consumedByMaker": used, "windows": [
-        summarize(window, run["gapMs"], run["roles"]) for window in run["windows"]]}
+    result = {"events": replay["events"], "consumedByMaker": used}
+    if burst:
+        assert all(row["market"] == (row["id"] % 2 if placement == "split" else 0) for row in rows)
+        assert replay["reconciliation"]["actualVault"] == replay["reconciliation"]["allocatedVault"]
+        result["burst"] = burst_window(run["windows"][0], run["roles"])
+        result["landedBlockMetrics"] = landed_block_metrics(directory, {row["slot"] for row in rows}, run["roles"])
+    else:
+        result["windows"] = [summarize(window, run["gapMs"], run["roles"]) for window in run["windows"]]
     if scheduler:
         binary = (directory / "validator-sha256.txt").read_text().split()[0]
         version = (directory / "validator-version.txt").read_text().strip()
         assert version.startswith("solana-test-validator 4.2.2 (src:c9c6f328;")
         assert [(market["index"], market["status"]) for market in run["windows"][0]["openingMarkets"]] == [(0, 2), (1, 2)]
         conditions += (version, binary)
-        result["scheduler"] = native_scheduler(directory, rows, include_arrivals)
+        result["scheduler"] = native_scheduler(directory, rows, include_arrivals, include_worker_markets=burst)
     return AuditedRun(placement, run["revision"], conditions, result, rows, plan["trace"])
 
 
@@ -320,8 +395,16 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--scheduler", action="store_true", help="Audit the three native queue traces")
     mode.add_argument("--preparation", action="store_true", help="Compare a baseline and profiled split-market trace")
+    mode.add_argument("--burst", action="store_true", help="Audit matched BTC and BTC/ETH pre-signed bursts")
     args = parser.parse_args()
-    if args.preparation:
+    if args.burst:
+        if len(args.directories) != 2:
+            parser.error("--burst requires the BTC and split directories")
+        runs = [audit_run(directory, True, include_arrivals=True, burst=True) for directory in args.directories]
+        assert {run.placement for run in runs} == {"btc", "split"}
+        assert runs[0].conditions == runs[1].conditions and runs[0].revision == runs[1].revision
+        result = {run.placement: {"revision": run.revision, **run.metrics} for run in runs}
+    elif args.preparation:
         if len(args.directories) != 2:
             parser.error("--preparation requires the baseline and measured split directories")
         baseline, measured = [audit_run(directory, True, include_arrivals=True) for directory in args.directories]

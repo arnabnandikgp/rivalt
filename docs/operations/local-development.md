@@ -273,3 +273,20 @@ python3 tests/performance/wallet-contention-report.py --preparation "$baseline_s
 ```
 
 The report checks both finalized journals, the validator binary, program build, per-wallet schedule and all signed outcomes. For each signed order it partitions elapsed time from wallet readiness to the original signature. The four sequential account calls include receipt and JSON parsing. The final batch includes both maker programs' upgradeable program data. Reported bytes are decoded account-data lengths. The elapsed time outside RPC includes event-loop waits. The leader's observed arrival rate divides the number of gaps between first admissions by their elapsed span. Fills/s uses every completed trader order through the last observed outcome.
+
+### Comparing already-signed order bursts
+
+Use the native validator and artifact exports in the scheduler replay instructions. Run each placement sequentially on a fresh venue:
+
+```bash
+burst_dir=".local/agave-contention/burst-$(date -u +%Y%m%dT%H%M%SZ)"
+for placement in btc split; do
+  RIVALT_CONTENTION_MODE=presigned RIVALT_CONTENTION_MARKETS="$placement" \
+    RIVALT_RUN_DIR="$burst_dir/$placement" bash ops/validator-wallet-contention.sh || exit 1
+done
+python3 tests/performance/wallet-contention-report.py --burst "$burst_dir"/{btc,split}
+```
+
+Each of 50 funded wallets places one four-candidate order. Sides and dollar sizes follow the same sequence on both venues. The harness holds every signed original after simulation and WebSocket subscription. Once all 50 are ready, it polls the processed slot, waits for the next observed slot change and releases the originals in order without waiting for another wallet's confirmation. An incomplete preparation cancels the burst. The report counts landed refusals separately from successful trader fills and checks every original against finalized RPC receipts, native scheduler events and PostgreSQL maker depth.
+
+Slot offsets use the last processed slot observed immediately before release as zero. This RPC reference can lag a bank that is still accepting transactions. The slot histogram shows which finalized blocks included the orders. A missing receipt fails the audit. For each landing block the report reads the validator's actual bank-freeze timestamps and scheduler costs. Native admission-to-worker timing uses the validator's clock. Release to observed confirmation also includes RPC transport and client polling.

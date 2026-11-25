@@ -189,6 +189,25 @@ The complete snapshot took 522.3 ms p95 and preparation through signing took 580
 
 First admissions/s uses the 47 gaps from the first signed order admitted to the last. Fills/s counts all 48 orders from the scheduled start through the last observed outcome. The wallet waited for each trader's previous confirmation. Both runs delivered fewer than 25 signed orders/s to the leader and all trader assignments went to one worker. The rate difference illustrates run-to-run variability. The repeat changed benchmark instrumentation only. Its fresh PostgreSQL replay reconciled 305 events and 259 accounts. [Run the comparison](local-development.md#profiling-wallet-order-preparation)
 
+### Fifty already-signed orders in one slot
+
+Fifty distinct funded wallets each submitted one 1,404-byte v1 order on harness `97523cdf`, clearing `b0e1a43f` and the traced Agave 4.2.2 validator. Both fresh venues used the same 25 buys, 25 sells and $30,960 of requested notional across $120, $600 and $1,200 orders. Four internal makers per market quoted at the index. All 50 originals had been signed, simulated and subscribed over WebSocket before release. Funding maintenance continued. [Reproduce the burst](local-development.md#comparing-already-signed-order-bursts)
+
+| Measured after release | All 50 orders on BTC | 25 BTC and 25 ETH |
+|---|---:|---:|
+| Fills in the first slot after the release reference | 50/50 | 50/50 |
+| Slots after that reference for the last released order to land | 1 | 1 |
+| First to last scheduler admission | 1.4 ms | 2.1 ms |
+| Admission to first worker, median / p95 | 68.1 / 118.6 ms | 60.4 / 91.2 ms |
+| Assignments by validator worker | 50 on worker 0 | 31 on worker 0, 19 on worker 1 |
+| Largest cost charged to one writable account in the landing block | 17,957,403 | 8,980,288 |
+| Time between the previous and landing block's bank freezes | 457.1 ms | 470.5 ms |
+| Release to last confirmation observed by the client | 519.5 ms | 630.0 ms |
+
+Each local leader reported processed slot 636 immediately before release. Finalized receipts placed every order in slot 637 on its respective venue, including the 50th released order. All 1,225 BTC-only pairs shared writable accounts. In the split run 600/600 same-market pairs conflicted and 0/625 cross-market pairs did. Each order had one native admission and one worker assignment. The split used two workers and roughly halved the largest charge to one writable account. Scheduler cost covers all transactions in the block. Assignment counts identify workers but do not measure their execution overlap.
+
+The observed drain corresponds to 96.24 and 79.36 trader fills/s, respectively, including confirmation polling. Both placements cleared the whole burst in one local slot despite the difference in those rates. These were single bursts, with zero priority fees, one leader and measured block intervals above 450 ms. Only maker 0 supplied depth in each traded market. They establish a local lower bound of 50 fills in one block for this workload. A 200 ms slot target, sustained demand and competition for inclusion require separate measurements.
+
 ## Wallet traffic and settlement
 
 Three local runs scheduled the same 120 BTC buys from 24 wallets over 4.165 seconds. Orders were one to three lots. One deep maker always quoted the best test ask. All runs used the bounded router, synthetic sources and a real settlement worker. The timing column includes time spent waiting to prepare the order.
