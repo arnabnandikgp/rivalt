@@ -31,6 +31,16 @@ For [signed orders on a sparse account](../clearing/accounts.md#signed-orders-on
 
 For the [sparse funded-receiver check](../clearing/risk-and-resolution.md#funded-receiver-on-a-sparse-cross-account), run `RIVALT_PROOF_SCOPE=slot-liquidation bash ops/default-proof-smoke.sh`. Build the positions with signed orders, leave a debt in a flat market, then shock a different market from the one being liquidated. Test zero progress after the receiver fee, a receiver one atom short after reserving its own order, absent consent and omitted markets. Verify the exact signers, both account revisions, order cancellation or retention, final SPL withdrawal and post-recovery refusal. Recompute both deficits and the receiver’s initial margin from finalized history in a fresh PostgreSQL database.
 
+For the [three-market frozen book](qualification-scorecard.md#three-market-frozen-book-settlement), run the native fixture from the repository root:
+
+```sh
+source ops/env.sh
+cargo build --locked -p financial-core --features three-market-model --example three_market_default
+python3 tests/financial/test_three_market_default.py
+```
+
+Rust solves the simultaneous capacity constraints with exact rational arithmetic. The Python reference enumerates which debts and markets are paid in full, solves the resulting balance equations and checks candidate rates against the original cash flows. Compare all exact and rounded results, permute market columns and stable membership input order, and repeat two-market cases against the established atom contract. The comparison ends at terminal plan balances. Signed verification, application and custody exits require a separate Surfpool and PostgreSQL run.
+
 For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
 build `cargo build --locked --offline -p financial-core --bin backing-driver`
 and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares

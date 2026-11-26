@@ -191,6 +191,41 @@ Before activation, qualify cycles, multiple sources, fractional ownership,
 terminal rounding, forced reductions, insurance use and every final withdrawal
 against a complete independent book. [Finding 11](../operations/qualification-scorecard.md#payout-and-cross-margin-work)
 
+### Three-market settlement before forced reductions
+
+The native model takes the frozen roster, each member's funded cash and three
+signed claims after index valuation and funding, and each market's pool, reserve
+and retained fees. It checks that every member appears exactly once, that each
+market's net claims match its settlement pool and that funded balances reconcile
+to the supplied vault balance.
+
+First collect each debtor's own cash up to its total debt rounded down to whole
+atoms. Split that collection in proportion to its frozen debts. Then, at a
+candidate set of market recovery rates, work out what the account can pass on:
+
+```text
+recovered = sum(positive_claim[m] × recovery_rate[m])
+applied   = min(recovered, total_remaining_debt)
+to[m]     = applied × remaining_debt[m] / total_remaining_debt
+```
+
+An account with zero remaining debt keeps its recovery. An account owed money
+in two markets combines both recoveries before applying the debt cap once.
+Solve the three market rates together, choosing the greatest rates consistent
+with all three balances. Reciprocal claims can discharge in a cashless cycle.
+Any outside creditor still participates at its market's rate.
+
+Each reserve covers only its own market's shortfall. If its required contribution
+is fractional, round that budget down and solve the entire book again. A lower
+budget can reduce incoming funds in another market. Each reserve can be clipped
+once, giving at most four rate evaluations for three markets. Allocate terminal
+whole atoms over the complete flow graph using the existing residual rounding
+rule, with rows and markets in stable ID order. The model returns each creditor's
+exact impairment, each debtor's residual writeoff and each member's whole cash
+balance. Total writeoffs must equal impairments separately in every market.
+Signed freeze inputs, protected forced reductions and wallet withdrawals are
+separate acceptance gates. [Qualification results](../operations/qualification-scorecard.md#three-market-frozen-book-settlement)
+
 ### Current two-market equations
 
 For the set of claims being settled, let `W_m` be the sum of positive claims in a market, and `B_m` its initial P plus
