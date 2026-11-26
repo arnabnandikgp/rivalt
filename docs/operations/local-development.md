@@ -286,6 +286,25 @@ node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-cre
 
 Six maker capitals and 122 trader margin accounts occupy the eight coverage lanes. Recovery storage has a separate 129th seat. The test signs the extra registration and activation attempts, a ten-lot ETH round trip and loss collection. It pays the same flat maker in two equal credits. Between payments, eight trader margin accounts open ETH longs, one per lane. The owner withdraws the full credited amount. It then opens vacancies in two lanes and retries the same registered ID. The fill-event reporter independently reconstructs the spread and checks each exposed account at its adverse ETH price. The ignored `capacity.json` records the selected finalized receipts, compute units, coverage work and SQL event count.
 
+### Direct payout at 1,000 financial members
+
+Build the separate clearing profile from clean program revision `213d394d748741ca60e1230a9bdbdab6596f86c9`. Use a fresh directory for the build. From the qualification checkout, run the signed workload and independent fill-event reader with the pinned artifacts.
+
+```sh
+# Program checkout
+RIVALT_ATTRIBUTION_PROFILE=thousand-member-credit \
+  RIVALT_ATTRIBUTION_DIR=.local/direct-closed-credit/build-213d394d bash ops/build-profit-attribution.sh
+
+# Qualification checkout with the build directory available at this path
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-213d394d \
+  RIVALT_ROUTER_REVISION=213d394d748741ca60e1230a9bdbdab6596f86c9 \
+  RIVALT_SETTLEMENT_PROBE=execution-router-thousand-member-credit \
+  RIVALT_RUN_DIR=.local/direct-closed-credit/thousand-repeat bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/thousand-repeat
+```
+
+The eight coverage lanes have 125 rows each. The matched credit attempts start at 400,000 CU with the default 32 KiB heap. After an observed resource refusal, the harness checks rollback and retries the same entitlement with a larger heap or compute limit as required. `credit-attempts.json` records each finalized signature and resource setting. Provisioning and the other financial actions in this run request 128 KiB of heap.
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.

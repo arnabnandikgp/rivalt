@@ -69,7 +69,9 @@ it('builds a local direct credit with both price markets and only the ledgers th
       role:index===Number(margin.id%8n)?AccountRole.WRITABLE:AccountRole.READONLY})));
     return instructions;
   };
-  expect(await build()).toHaveLength(4);
+  const ordinary = await build();
+  expect(ordinary).toHaveLength(4);
+  expect(await sdk.directClosedProfitCredit({...input,artifactSet:sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET})).toEqual(ordinary);
   margin.positions[0].virtualScaled=-1n;
   expect(await build()).toHaveLength(5);
 });

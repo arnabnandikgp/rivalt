@@ -137,7 +137,14 @@ try {
       if (tx.meta.err) {
         const error = tx.meta.err.InstructionError?.[1];
         if (error==='ComputationalBudgetExceeded' || (error==='ProgramFailedToComplete' && logs.some(line=>/exceeded CUs meter|computational budget exceeded/i.test(line)))) reason = 'compute';
-        else if (error==='ProgramFailedToComplete' && logs.some(line=>/memory allocation failed|in heap region/i.test(line))) reason = 'heap';
+        else if (error==='ProgramFailedToComplete' && logs.some(line => {
+          if (/memory allocation failed|in heap region/i.test(line)) return true;
+          // Agave names the unmapped tail of the requested heap an unallocated region.
+          const fault = /Access violation (?:writing|reading) (\d+) bytes at address (0x[0-9a-f]+) \(in unallocated region\)/i.exec(line);
+          if (!fault) return false;
+          const offset = BigInt(fault[2]) - 0x300000000n;
+          return offset >= 0n && offset < 256n*1024n && offset + BigInt(fault[1]) > BigInt(heap ?? 32768);
+        })) reason = 'heap';
         else assert.fail('Unexpected credit error: '+JSON.stringify(tx.meta.err)+' '+logs.slice(-8).join(' '));
         assert.deepEqual(await Promise.all(watched.map(h.read)),before);
       }
