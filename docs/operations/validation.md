@@ -14,6 +14,15 @@ Use the smallest check that exercises the changed behavior. For a financial tran
 | User-facing trade and payout | Verify wallet review and guards, actual fills, fees, inventory, funded and unpaid balances, vault movement and fresh SQL replay. [Wallet workload](local-development.md#wallet-load-comparison) |
 | CI scope | [Workflow](../../.github/workflows/pr-checks.yml) and [scope selector](../../ops/ci-scope.py). Broad regression belongs in the relevant CI jobs. |
 
+For the [withdrawal width comparison](qualification-scorecard.md#withdrawal-risk-at-two-four-and-eight-markets),
+run `cargo test --locked --offline -p financial-core --test withdrawal_width -- --nocapture`.
+Compare both cash requirements with all independent funding corners at two, four
+and eight markets. Run `RIVALT_PROOF_SCOPE=withdrawal-width bash ops/default-proof-smoke.sh`
+for the signed diagnostic. At each width, require the exact maximum to pass, one
+extra atom to refuse, and missing and substituted markets to refuse. Check
+fixture accounts before and after, compare the returned remaining cash with the
+independent amount, and rebuild the receipt table from finalized program history.
+
 For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
 build `cargo build --locked --offline -p financial-core --bin backing-driver`
 and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares

@@ -53,6 +53,31 @@ constructs the funded transfer, and commits the accepted pair. [Withdrawal handl
 [withdrawal candidate](../../programs/clearing/src/instructions/account_cash/engine.rs),
 [liquidation handler](../../programs/clearing/src/instructions/account_safety/risk.rs)
 
+### Withdrawal risk across occupied markets
+
+Current clearing enumerates the four BTC/ETH funding corners. The width
+comparison uses the same two requirements after accruing positions and refreshing
+order reservations. At current funding, retained cash must cover negative claims,
+per-market initial margin rounded up in atoms, and remaining order reservations.
+Across the held funding window, retained cash must cover negative claims. Keep
+fractional losses at full scale until comparing them to whole cash atoms.
+
+At a fixed adverse index price, increasing the funding index decreases a long's
+claim and increases a short's claim. Taking only the negative part preserves
+that ordering. With independent funding windows, the worst simultaneous loss
+is therefore the sum obtained by choosing high funding for each long and low
+funding for each short. A flat debt is fixed and a positive unpaid claim
+contributes zero. This lets one pass over the occupied markets calculate both
+cash requirements. The argument depends on the current additive risk rule and
+independent windows.
+
+The candidate takes canonical slots in market-ID order. It checks the supplied
+windows against each open position. Clearing must still derive the complete
+slot list from account state, authenticate price and funding inputs, refresh
+reservations including order-only markets, and enforce authority and custody.
+The signed width fixture has synthetic inputs and read-only accounts.
+[Risk calculation](../../crates/risk-engine/src/withdrawal.rs) · [Qualification](../operations/qualification-scorecard.md#withdrawal-risk-at-two-four-and-eight-markets)
+
 ## Orders and protection
 
 Four records and two protective pairs are embedded in each root. Inclusive start,
