@@ -25,7 +25,11 @@ for the [exact BTC/ETH comparison](qualification-scorecard.md#exact-btceth-debto
 It checks stale inputs after an admitted native fill, exact versus summary reads,
 and two independent ways of valuing the same cohort. The resulting row counts
 measure native financial work. The current clearing payout still requires its
-certificate.
+certificate. For signed exact-read costs, run
+`RIVALT_PROOF_SCOPE=coverage bash ops/default-proof-smoke.sh` on the local
+stack. This fixture meters the row predicate on selected program-owned accounts.
+It verifies the one-atom refusal, the repair and six finalized read outcomes
+against PostgreSQL. It does not execute a clearing payout.
 
 On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
 100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and

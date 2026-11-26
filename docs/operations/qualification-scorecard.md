@@ -104,9 +104,29 @@ counts exclude account framing and the transaction message. One updated member
 widens one summary and replaces one row. Historical extremes can continue to
 force exact reads after a debtor recovers. A claim reading all summaries would
 also conflict with a fill writing any of them. The model assumes clearing has
-tracked every admitted economic change from genesis. Signed account binding,
-SBF compute, contention, pool reconciliation and direct wallet exit under load
-still require qualification.
+tracked every admitted economic change from genesis.
+
+**Signed cost of reading exact rows.** A separate read-only Surfpool fixture
+uses the same checked predicate on packed accounts. A caller selects the rows
+to measure. The fixture has no clearing or custody authority. In the populated
+cross book, a signed update reduced the last account's cash by one atom. The
+previously successful all-lane instruction then refused. Restoring cash allowed
+the last lane to pass again. The harness checked every initial row against its
+independent expected balance and verified finalized RPC receipts and WS
+notifications. A fresh PostgreSQL database recorded all six read outcomes.
+
+| Signed read on the solvent book | CU | Transaction bytes | Packed body account data |
+|---|---:|---:|---:|
+| Empty instruction control | 863 | 241 | 0 bytes |
+| 125 rows in one lane | 102,169 | 274 | 8,045 bytes |
+| 1,000 rows in eight lanes | 811,251 | 505 | 64,360 bytes |
+
+Each read paid 5,000 test lamports. Only the fee payer was writable. A
+single-lane read shared its body with a writer updating that lane. An all-lane
+read shared a body with every lane writer. The empty control measures fixture
+overhead. All three measurements exclude summary selection, full membership
+and economic reconciliation, recipient admission and the payout itself.
+[Signed diagnostic](../../tests/rpc-contract/payout-coverage-rpc.ts)
 
 ## Executable depth work
 
