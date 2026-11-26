@@ -2,9 +2,10 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
-import {AccountRole, type Address, type Instruction, type ReadonlyUint8Array} from '@solana/kit';
+import {AccountRole, type Address, type Instruction} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {json} from '../../packages/indexer/src/events.js';
+import {coverageProvisioning, appendCoverage as append} from './coverage-provisioning.js';
 import {registerFinancialTestMargin} from './account-membership-setup.js';
 import {symmetricPayoutShape} from './canonical-maker-cases.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
@@ -13,7 +14,7 @@ import {payerKey} from './harness.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
-import {auditCoverage, coverageLanes, observeCoverage, openCoverageLane} from './shadow-coverage.js';
+import {auditCoverage, observeCoverage} from './shadow-coverage.js';
 
 const dir = process.env.RIVALT_RUN_DIR!;
 const build = routerBuild();
@@ -22,14 +23,7 @@ assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],
 const {rpc, ws, h: transport, flush, checks} = await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
   process.env.RIVALT_WS_URL!, dir, {deferFinality:true});
 const payer = await payerKey();
-const members = new Map<Address, Address>();
-let lanes: Address[] = [];
 const controls = new Set<string>();
-const is = (ix: Instruction, discriminator: ReadonlyUint8Array) => ix.programAddress === sdk.CLEARING_PROGRAM_ADDRESS
-  && Buffer.from(ix.data ?? []).subarray(0,8).equals(Buffer.from(discriminator));
-const append = (ix: Instruction, keys: Address[]): Instruction => ({...ix, accounts:[
-  ...(ix.accounts ?? []), ...Array.from(new Set(keys), address => ({address,role:AccountRole.WRITABLE})),
-]});
 const capture = (keys: Address[]) => Promise.all(keys.map(key => transport.read(key)));
 async function refuse(label: string, instructions: Instruction[], signers: Parameters<typeof transport.send>[2], expected=sdk.CLEARING_ERROR__EXIT_COHORT) {
   // Include the token vault, financial roots, registry, index and lane accounts if present.
@@ -41,43 +35,12 @@ async function refuse(label: string, instructions: Instruction[], signers: Param
   controls.add(label);
 }
 
-const h: typeof transport = {...transport, async send(label, instructions, signers, error) {
-  const decorated: Instruction[] = [];
-  for (const ix of instructions) {
-    const keys = (ix.accounts ?? []).filter(meta=>(meta.role & 1)!==0 && members.has(meta.address)).map(meta=>members.get(meta.address)!);
-    if (is(ix,sdk.ACTIVATE_MARGIN_DISCRIMINATOR) || is(ix,sdk.DEPOSIT_ACCOUNT_DISCRIMINATOR)) {
-      assert.equal(keys.length,1);
-      const operation = is(ix,sdk.ACTIVATE_MARGIN_DISCRIMINATOR) ? 'join' : 'deposit';
-      if (!controls.has('missing lane on '+operation)) {
-        await refuse('missing lane on '+operation,[ix],signers);
-        await refuse('wrong lane on '+operation,[append(ix,[lanes.find(key=>key!==keys[0])!])],signers);
-      }
-      decorated.push(append(ix,keys));
-    } else decorated.push(ix);
+const {h, lanes, members} = coverageProvisioning(transport,payer,async (operation,ix,keys,signers) => {
+  if (!controls.has('missing lane on '+operation)) {
+    await refuse('missing lane on '+operation,[ix],signers);
+    await refuse('wrong lane on '+operation,[append(ix,[lanes.find(key=>key!==keys[0])!])],signers);
   }
-  await transport.send(label,decorated,signers,error);
-  if (error!==undefined) return;
-  for (const ix of instructions) {
-    if (!ix.accounts || !ix.data) continue;
-    const fixed = {...ix, accounts:ix.accounts, data:ix.data};
-    if (is(ix,sdk.INITIALIZE_MARKET_DISCRIMINATOR)) {
-      const parsed = sdk.parseInitializeMarketInstruction(fixed);
-      if (parsed.data.index===1) {
-        const venue = parsed.accounts.venue.address;
-        const [registry] = await sdk.deriveVenueComponent(venue,'registry');
-        const markets = sdk.getVenueDecoder().decode((await transport.read(venue))!).markets;
-        lanes = await coverageLanes(venue);
-        for (const [index,key] of lanes.entries()) {
-          await transport.send('open maintained lane '+index,[openCoverageLane(payer.address,[venue,registry,...markets],key,index)]);
-        }
-      }
-    } else if (is(ix,sdk.REGISTER_MARGIN_DISCRIMINATOR)) {
-      const key = sdk.parseRegisterMarginInstruction(fixed).accounts.margin.address;
-      const margin = sdk.getMarginAccountDecoder().decode((await transport.read(key))!);
-      members.set(key,lanes[Number(margin.id % 8n)]);
-    }
-  }
-}};
+});
 
 try {
   const setup = await liquidityExecutionSetup(h,rpc,{traderCount:1, marketCheckpoints:true,

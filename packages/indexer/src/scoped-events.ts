@@ -137,7 +137,7 @@ function compiledMessage(transaction: any) {
  * called through an external wrapper and multiple clearing calls in one message.
  * Invalid input returns no partial result. Failed transactions have no effects. */
 export function scopedInvocations(signature: string, transaction: any, transactionIndex: number,
-  binding: {program: string; eventAuthority: string; venue: string; domain: string; shadowCoverage?: boolean}): ScopedInvocation[] {
+  binding: {program: string; eventAuthority: string; venue: string; domain: string; shadowCoverage?: boolean; verifiedCoverage?: boolean}): ScopedInvocation[] {
   if (!transaction?.meta || transaction.transaction?.signatures?.[0] !== signature)
     throw new Error('Missing transaction metadata/identity');
   integer(transaction.slot); integer(transactionIndex);
@@ -163,9 +163,10 @@ export function scopedInvocations(signature: string, transaction: any, transacti
         if(current.accounts.length!==5)throw new Error('Invalid read-only market view');
         return null; // Five read-only accounts, eight bytes of return data, zero financial effects.
       }
-      const shadow = binding.shadowCoverage && coverageWork.get(current.bytes.subarray(0,8).toString('hex'));
+      const shadow = (binding.shadowCoverage || binding.verifiedCoverage) && coverageWork.get(current.bytes.subarray(0,8).toString('hex'));
       if (shadow) {
-        if (current.bytes.length !== shadow.bytes || current.accounts.length !== shadow.accounts)
+        const accounts = binding.verifiedCoverage && shadow.accounts === 12 ? 14 : shadow.accounts;
+        if (current.bytes.length !== shadow.bytes || current.accounts.length !== accounts)
           throw new Error('Invalid local coverage observation');
         return null;
       }
