@@ -73,7 +73,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 4, direct payout at full lane capacity.** On clearing `984f18f3` and harness `53317975`, two equal 20-atom ETH credits used 161,532 CU with zero individual checks and 260,646 CU with all 128 rows checked. Each landed in one transaction. The owner withdrew all 40 atoms and fresh PostgreSQL replay reconciled 499 events. A 129th identity registered but could only activate after a vacancy opened in its assigned lane. [Capacity, fees and workload](operations/performance.md#direct-payout-at-128-financial-members)
 
-**Next action.** On a separate local build, qualify a 1,000-member direct payout against the same summary-only and individual-check books. Report funded exits, account and compute budgets, and any refused original at the worker’s current 400,000-CU limit.
+**Finding 4, 1,000-member local payout.** On clearing `213d394d` and harness `e4105ea0`, both ordinary 400,000-CU / 32 KiB attempts rolled back. With a 256 KiB heap the all-flat credit used 204,674 CU. After eight ETH longs opened, checking every member used 964,970 CU. The flat maker withdrew both 20-atom credits. Fresh PostgreSQL replay reconciled 3,232 events and the final 999-member book after two exits and one admission. [Every signed resource attempt](operations/performance.md#direct-payout-at-1000-financial-members)
+
+**Next action.** Change the local payout path to read lane summaries without allocating every row and update only the affected member lane. Requalify the same two books and the underfunded idle-debtor refusal before changing worker budgets.
 
 | Open gate | What remains |
 |---|---|
