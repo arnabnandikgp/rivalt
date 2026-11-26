@@ -12,7 +12,8 @@ const read = (file:string) => JSON.parse(readFileSync(join(directory,file), 'utf
 const result = read('capacity.json');
 const population = result.fullBook.members;
 assert([128,1_000].includes(population));
-assert.deepEqual(result.coverageLogs, [0,population].map(exact => 'coverage target=1 members='+population+' exact='+exact+' covered=1'));
+const expectedRows = result.grouped ? [0,0,0] : [0,population];
+assert.deepEqual(result.coverageLogs, expectedRows.map(exact => 'coverage target=1 members='+population+' exact='+exact+' covered=1'));
 const [authority] = await sdk.findEventAuthorityPda();
 const tag = Buffer.from(sdk.LEDGER_LANE_FILLED_EVENT_DISCRIMINATOR);
 const margins = new Map<bigint,sdk.MarginAccountSnapshot>(), owners = new Set<string>();
@@ -27,6 +28,10 @@ type Attempt = {label:string;units:number;heap:number;cu:number;signature:string
 const attempts = new Map<string,Attempt>((result.attempts ?? []).map((attempt:Attempt) => [attempt.signature,attempt]));
 const attemptsSeen = new Set<string>();
 const paidByCase = new Map<string,bigint>();
+const latest = new Map<bigint,sdk.MarginAccountSnapshot>();
+const riskBounds = new Map<number,readonly bigint[]>();
+const sparseFillCu: number[] = [];
+let denseSnapshot: {members:number;openByMarket:number[];minimumHeadroom:string}|undefined;
 let payerFees = 0n;
 for (const file of files) {
   const wire = read(file);
@@ -58,6 +63,30 @@ for (const file of files) {
       }
     }
     assert.deepEqual([units,heap,principal],[attempt.units,attempt.heap,20n]);
+    if (result.grouped && receipt.meta.err===null) {
+      assert(receipt.meta.logMessages.includes('Program log: coverage target=1 members=1000 exact=0 covered=1'));
+      if (attempt.label==='pay closed ETH spread with every member exposed') {
+        const openByMarket=[0,0], netLots=[0n,0n];
+        let minimum:bigint|undefined;
+        assert.equal(latest.size,1_000);
+        for (const root of latest.values()) {
+          assert(root.positions.some(pos=>pos.lots!==0n));
+          let headroom=root.cash*1_000_000_000n;
+          for (const [market,pos] of root.positions.entries()) {
+            const adverse=riskBounds.get(market)![pos.lots<0n ? 1 : 0];
+            const claim=pos.virtualScaled + pos.lots*(adverse*1_000_000_000n+pos.fundingCheckpointScaled);
+            if (claim<0n) headroom+=claim;
+            if (pos.lots!==0n) openByMarket[market]++;
+            netLots[market]+=pos.lots;
+          }
+          assert(headroom>=0n);
+          if (minimum===undefined || headroom<minimum) minimum=headroom;
+        }
+        assert.deepEqual(netLots,[0n,0n]);
+        assert.deepEqual(openByMarket,[6,997]);
+        denseSnapshot={members:latest.size,openByMarket,minimumHeadroom:String(minimum)};
+      }
+    }
     attemptsSeen.add(wire.signature);
     payerFees += BigInt(receipt.meta.fee);
     const previous = paidByCase.get(attempt.label) ?? 0n;
@@ -65,19 +94,31 @@ for (const file of files) {
     continue;
   }
   const opening = /^open forty ETH lots in lane ([0-7])$/.exec(wire.label);
-  if (!opening && !['buy ten ETH lots','sell ten ETH lots'].includes(wire.label)) continue;
+  const denseFill = /^dense (ETH fill|BTC cross fill) [0-9]+$/.test(wire.label);
+  if (!opening && !denseFill && !/^(buy|sell) (ten|fifteen) ETH lots$/.test(wire.label)) continue;
   const receipt = read(file.replace('wire-', 'transaction-'));
   assert.equal(receipt.meta.err, null);
   const matches = eventPayloads(wire.signature, receipt, authority).filter(row => row.payload.subarray(0,8).equals(tag));
   assert.equal(matches.length, 1);
   const fill = sdk.getLedgerLaneFilledEventDecoder().decode(matches[0].payload);
+  for (const root of fill.rootStates) latest.set(root.id,root);
+  const market = fill.marketState;
+  const interval = [market.lower,market.upper];
+  if (riskBounds.has(market.index)) assert.deepEqual(riskBounds.get(market.index),interval);
+  riskBounds.set(market.index,interval);
+  assert.equal(market.fundingIndexScaled,0n);
+  assert.equal(market.oracle.premiumScaled,0n);
+  if (denseFill) {
+    assert.equal(fill.lots,1n);
+    continue;
+  }
   assert.equal(fill.marketState.index, 1);
   assert.equal(fill.legs.length, 1);
   if (!opening) {
-    assert.equal(fill.side, wire.label === 'buy ten ETH lots' ? 0 : 1);
+    assert.equal(fill.side, wire.label.startsWith('buy ') ? 0 : 1);
     assert(!roundTripSides.has(fill.side));
     roundTripSides.add(fill.side);
-    assert.equal(fill.lots, 10n);
+    assert.equal(fill.lots, result.grouped ? 15n : 10n);
     assert.equal(fill.legs[0].instance, 0);
     const providers = fill.rootStates.filter(margin=>margin.role !== 0);
     assert.equal(providers.length,1);
@@ -90,6 +131,7 @@ for (const file of files) {
   const lane = Number(opening[1]);
   assert(!lanes.has(lane));
   lanes.add(lane);
+  sparseFillCu.push(receipt.meta.computeUnitsConsumed);
   assert.deepEqual([fill.lots,fill.side,fill.marketState.fundingIndexScaled,fill.marketState.oracle.premiumScaled], [40n,0,0n,0n]);
   const currentBounds: [bigint,bigint] = [fill.marketState.lower,fill.marketState.upper];
   if (bounds) assert.deepEqual(currentBounds,bounds);
@@ -103,7 +145,7 @@ for (const file of files) {
   }
 }
 assert(bounds && roundTripSides.size === 2);
-assert.deepEqual([lanes.size, makers.size, margins.size, spread], [8,2,10,40n]);
+assert.deepEqual([lanes.size, makers.size, margins.size, spread], [8,2,10,result.grouped ? 60n : 40n]);
 assert.equal(BigInt(result.withdrawn), spread);
 const scale = 1_000_000_000n;
 let netLots = 0n;
@@ -121,7 +163,8 @@ for (const margin of margins.values()) {
 assert.equal(netLots, 0n);
 if (population === 1_000) {
   assert.equal(attemptsSeen.size,result.attempts.length);
-  assert.deepEqual([...paidByCase.values()],[20n,20n]);
+  assert.deepEqual([...paidByCase.values()],expectedRows.map(()=>20n));
 }
-console.log(json({creditAttemptFees: attempts.size ? payerFees : undefined, spread, occupiedLanes:lanes.size, exposedAccounts:margins.size, exposedTraderOwners:owners.size,
+if (result.grouped) assert(denseSnapshot);
+console.log(json({denseSnapshot, sparseFillCu, creditAttemptFees: attempts.size ? payerFees : undefined, spread, occupiedLanes:lanes.size, exposedAccounts:margins.size, exposedTraderOwners:owners.size,
   lower:bounds[0], upper:bounds[1], minimumCoveredCashScaled:headroom.reduce((lowest,value) => value < lowest ? value : lowest)}));
