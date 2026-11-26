@@ -233,6 +233,25 @@ RIVALT_SETTLEMENT_PROBE=execution-router-verified-coverage bash ops/scalable-set
 
 The supervisor signs a cross trader’s fills and ETH loss collection. It compares the maintained backing result with margin-account arithmetic, the existing certificate and actual one-atom payment attempts as BTC falls and recovers. Signed receipts, the PostgreSQL replay and `verified-backing.json` stay in the ignored run directory.
 
+### Qualifying direct profit credits
+
+Build from clean program revision `984f18f3a4e1d6880926805bbf120f3cb1d41bfc` with the qualified base artifacts installed.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=direct-closed-credit \
+  RIVALT_ATTRIBUTION_DIR=.local/direct-closed-credit/build-984f18f3 bash ops/build-profit-attribution.sh
+```
+
+From the qualification checkout, start fresh local services using those artifacts.
+
+```sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-984f18f3
+export RIVALT_ROUTER_REVISION=984f18f3a4e1d6880926805bbf120f3cb1d41bfc
+RIVALT_SETTLEMENT_PROBE=execution-router-direct-credit bash ops/scalable-settlement-smoke.sh
+```
+
+The signed workload uses separate fee payers for BTC fills and ETH credits. Its ignored run directory contains `direct-credit.json`, signed originals, RPC receipts and local database data. [Acceptance checks](validation.md)
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.

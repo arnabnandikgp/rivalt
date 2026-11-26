@@ -59,7 +59,7 @@ it('liability dependencies include even fractional claims but exclude inert orde
 it('builds a local direct credit with both price markets and only the ledgers the recipient needs',async()=>{
   const fixture=await accountFixture(), snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,fixture.margins);
   const margin=structuredClone(snapshot.roots[fixture.margins[0]]);
-  const actor=createNoopSigner(margin.venue);
+  const actor=createNoopSigner(margin.owner);
   const input={actor,margin,marketIndex:1 as const,amount:1n,artifactSet:sdk.DIRECT_CREDIT_ARTIFACT_SET};
   await expect(sdk.directClosedProfitCredit({...input,artifactSet:sdk.VERIFIED_COVERAGE_ARTIFACT_SET})).rejects.toThrow(/deployment/);
   const build=async()=>{

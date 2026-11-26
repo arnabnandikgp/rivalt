@@ -37,6 +37,8 @@ For the [clearing-maintained coverage build](local-development.md#verifying-mand
 
 For the [idle-debtor comparison](local-development.md#comparing-market-backing-during-a-btc-price-shock), independently check net lots, net fixed claims and gross debtor losses at current risk bounds. Compare against a freshly completed certificate and a signed payment attempt at each of the initial, adverse and recovered prices. Verify the debtor and lane bytes across each reprice, reject a mismatched ledger and an expired required source, admit an expired unrelated source, and replay finalized effects into a fresh database.
 
+For the [direct-credit workload](local-development.md#qualifying-direct-profit-credits), start with a fresh market and zero settlement certificates. Confirm a funded credit after a new member joins, repeat after an idle debtor recovers and a member leaves, and trace the credited profit through the owner’s SPL withdrawal. Refused requests must preserve the recipient, debtors, pool, checkpoints and coverage rows. Compare sequential and simultaneous fill/credit pairs with distinct fee payers, verify the overlapping locks from the actual transactions, and reconcile finalized effects through a fresh PostgreSQL replay.
+
 On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
 100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and
 445,226 CU (ETH, 32 makers, 32 loaded accounts). The later ETH quote from a

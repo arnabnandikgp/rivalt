@@ -67,7 +67,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 4, complete market-backing comparison.** On clearing `8a239609` and harness `36765e1b`, the maintained check and three independently rebuilt ETH certificates agreed through a BTC price shock and recovery. With nine atoms in the pool, lowering BTC made the idle debtor underfunded and blocked a one-atom claim. Restoring BTC allowed that claim. The ETH observation used 42,035–42,044 CU at the three price points. Fresh PostgreSQL replay reconciled 792 events. The certificate authorized both actual payments. [Conditions and measured results](operations/qualification-scorecard.md#market-backing-during-an-idle-btc-loss)
 
-**Next action.** On the bounded local build, use the maintained check inside a permissionless closed-profit credit and repeat the cold payout with membership churn. Verify the cash transfer and all refusal paths in the same instruction, then measure contention under concurrent fills.
+**Finding 4, atomic closed-profit credit on a fresh local deployment.** Clearing `984f18f3` and harness `ed673ae8` paid a maker directly after a ninth member joined. Its first credit used one transaction, 156,449 CU and zero certificate checks. When BTC moved against an idle ETH debtor, payment refused with nine atoms still in the pool. After recovery and a member exit, the maker received and withdrew all 40 earned atoms. Eight refusal controls rolled back. Four concurrent BTC fill and ETH credit pairs finalized in their respective slots despite four overlapping locks per pair. Fresh PostgreSQL replay matched 263 events. The direct path is available through the pinned local SDK. [Qualification and limits](operations/qualification-scorecard.md#direct-credit-with-membership-changes-and-competing-fills)
+
+**Next action.** Add direct credit to the settlement worker for the pinned local deployment and rerun the original 12-member, 48-order cold ETH exit. Compare time from close to wallet withdrawal, loss collection work and competing fills with the certificate run.
 
 | Open gate | What remains |
 |---|---|
