@@ -69,7 +69,9 @@ export async function reconcileMembershipStorage(key:string,kind:number,bytes:Bu
   throw new Error(`Unsupported membership storage ${kind}`);
 }
 
-export async function requireMembershipCoverage(state:AccountState,venue:string,program:string) {
+export async function requireMembershipCoverage(
+  state:Pick<AccountState,'identities'|'revisions'> & {roots:Readonly<Record<string,{lifecycle:number}>>},
+  venue:string,program:string) {
   const venueKey=address(venue),programKey=address(program);
   const pages=new Set<bigint>();
   let financial=new Set<bigint>();
