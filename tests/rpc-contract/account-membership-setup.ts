@@ -43,8 +43,14 @@ export async function provisionRecoveryWorkspace(h:Harness,common:Common,payer:K
   }
   assert.equal((await state()).readyCapacity,capacity);return storage;
 }
-export async function registerFinancialTestMargin(h:Harness,common:Common,payer:Keypair,input:{owner:Keypair;portfolio:Address;margin:Address;
-  subaccountIndex:number;mode:number;isolatedMarketIndex:number;role:number}) {
+type TestMargin = {owner:Keypair;portfolio:Address;margin:Address;subaccountIndex:number;mode:number;isolatedMarketIndex:number;role:number};
+
+export async function registerFinancialTestMargin(h:Harness,common:Common,payer:Keypair,input:TestMargin) {
+  const activate = await registerTestMarginForActivation(h,common,payer,input);
+  await h.send('activate storage-backed Financial candidate',[activate],[input.owner]);
+}
+
+export async function registerTestMarginForActivation(h:Harness,common:Common,payer:Keypair,input:TestMargin) {
   const registry=sdk.getVenueRegistryDecoder().decode((await h.read(common.registry))!);
   const [members]=await sdk.deriveMemberPage(common.venue,registry.nextId/64n);
   if(!await h.read(members)) {
@@ -64,6 +70,6 @@ export async function registerFinancialTestMargin(h:Harness,common:Common,payer:
   const revisions=await Promise.all(path.map(async([key])=>sdk.getMemberIndexNodeDecoder().decode((await h.read(key))!).revision));
   const instruction=sdk.getActivateMarginInstruction({...common,...input,members,storage,binding,revision:root.revision,
     membershipEpoch:currentRegistry.membershipEpoch,safetyEpoch:safety.epoch,indexRevisions:revisions});
-  await h.send('activate storage-backed Financial candidate',[{...instruction,accounts:[...instruction.accounts,
-    ...path.map(([address])=>({address,role:AccountRole.WRITABLE}))]}],[input.owner]);
+  return {...instruction,accounts:[...instruction.accounts,
+    ...path.map(([address])=>({address,role:AccountRole.WRITABLE}))]};
 }

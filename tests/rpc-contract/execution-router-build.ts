@@ -11,7 +11,7 @@ export function multiDeploymentFor(artifactSet: string) {
 
 /** Explicit local binary identity shared by the launcher and finalized journal. */
 export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'|'maintained-coverage'|'shadow-coverage'|'funded-routing'|'bounded-entry'|'closed-quantity'|'bounded-router-candidate' =
-  ['execution-router-direct-credit','execution-router-direct-cashout'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'direct-closed-credit' :
+  ['execution-router-direct-credit','execution-router-direct-cashout','execution-router-direct-capacity'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'direct-closed-credit' :
   process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-verified-coverage' ? 'verified-coverage' :
   process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-maintained-coverage' ? 'maintained-coverage' :
   process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-shadow-coverage' ? 'shadow-coverage' :

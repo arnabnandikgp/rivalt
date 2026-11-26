@@ -16,7 +16,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { makerCounts?:readonly [number,number]; marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean; refreshDuringSampleInterval?: boolean } = {}) {
+  options: { recoveryCapacity?:number; makerCounts?:readonly [number,number]; marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean; refreshDuringSampleInterval?: boolean } = {}) {
   const traderCount=options.traderCount??2;
   const makerCounts=options.makerCounts??[3,3];
   const population=traderCount+makerCounts[0]+makerCounts[1];
@@ -27,7 +27,9 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
     ...Array.from({ length: 7 }, () => ({ endLots: 0n, offset: 0n, slope: 0n }))];
   const shape = { ...goldenShape, skewTick: 0n, longCap: 4096n, shortCap: 4096n,
     bidCount: 1, askCount: 1, bids: region(2n), asks: region(3n) };
-  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash,BigInt(Math.max(64,population)),makerCounts);
+  const recoveryCapacity = options.recoveryCapacity ?? Math.max(64,population);
+  assert(Number.isSafeInteger(recoveryCapacity) && recoveryCapacity >= population && recoveryCapacity <= 1024);
+  const fixture = await provisionCanonicalMakers(h, options.shape ?? shape, [0, 1], options.makerCash,BigInt(recoveryCapacity),makerCounts);
   const { payer, common, markets, instances, venue } = fixture;
   const now = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigInt64LE(32);
   const slot = async () => (await h.read(sdk.ACCOUNT_CLOCK))!.readBigUInt64LE(0);

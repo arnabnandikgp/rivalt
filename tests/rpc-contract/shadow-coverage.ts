@@ -75,20 +75,36 @@ export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType
 
 type BankReader = {call(method: string, args: any[]): Promise<any>};
 
-  // Decode all eight lane bodies independently against the current canonical roots in one RPC bank.
+// Each batch reads its roots, registry and eight lanes in the same finalized bank.
 export async function auditCoverage(rpc: BankReader, venue: Address, registry: Address, lanes: Address[], roots: Address[], maintained = false) {
-    const response = await rpc.call('getMultipleAccounts', [[...lanes, ...roots, registry], {encoding:'base64',commitment:'finalized'}]);
-    const data = (index: number) => {
-      const account = response.value[index];
-      assert.equal(account.owner, sdk.CLEARING_PROGRAM_ADDRESS);
-      return Buffer.from(account.data[0],'base64');
-    };
+    const witnesses = [...lanes, registry];
+    const chunkSize = 100 - witnesses.length;
+    assert(lanes.length === 8 && new Set(roots).size === roots.length);
+    let witnessBytes: Buffer[] | undefined;
+    const rootBytes: Buffer[] = [];
+    let slot = 0;
+    for (let offset = 0; offset < roots.length || offset === 0; offset += chunkSize) {
+      const keys = [...witnesses, ...roots.slice(offset, offset + chunkSize)];
+      const response = await rpc.call('getMultipleAccounts', [keys, {encoding:'base64',commitment:'finalized',minContextSlot:slot}]);
+      assert.equal(response.value.length, keys.length);
+      assert(response.context.slot >= slot);
+      slot = response.context.slot;
+      const bytes = response.value.map((account: {owner:string;data:[string,string]}) => {
+        assert.equal(account.owner, sdk.CLEARING_PROGRAM_ADDRESS);
+        return Buffer.from(account.data[0],'base64');
+      });
+      const batchWitnesses = bytes.slice(0, witnesses.length);
+      if (witnessBytes) assert.deepEqual(batchWitnesses, witnessBytes, 'Coverage changed between audit batches');
+      else witnessBytes = batchWitnesses;
+      rootBytes.push(...bytes.slice(witnesses.length));
+    }
+    assert(witnessBytes);
     const decoded = new Map<bigint, Buffer>();
-    const state = sdk.getVenueRegistryDecoder().decode(data(lanes.length + roots.length));
+    const state = sdk.getVenueRegistryDecoder().decode(witnessBytes[lanes.length]);
     const epoch = state.membershipEpoch;
     assert.equal(state.financialCount, BigInt(roots.length));
     for (const [index] of lanes.entries()) {
-      const bytes = data(index);
+      const bytes: Buffer = witnessBytes[index];
       assert(bytes.subarray(0,8).equals(createHash('sha256').update('account:CoverageLane').digest().subarray(0,8)));
       assert(bytes.subarray(8,40).equals(Buffer.from(getAddressEncoder().encode(venue))));
       assert.equal(bytes[40],index);
@@ -103,12 +119,12 @@ export async function auditCoverage(rpc: BankReader, venue: Address, registry: A
     assert.equal(decoded.size,roots.length);
     const signed128 = (bytes: Buffer, offset: number) => (bytes.readBigInt64LE(offset+8)<<64n)+bytes.readBigUInt64LE(offset);
     for (const [index] of roots.entries()) {
-      const margin = sdk.getMarginAccountDecoder().decode(data(lanes.length+index)), row=decoded.get(margin.id)!;
+      const margin = sdk.getMarginAccountDecoder().decode(rootBytes[index]), row=decoded.get(margin.id)!;
       assert.equal(row.readBigUInt64LE(8),margin.cash);
       margin.positions.forEach((pos, market) => {
         assert.equal(row.readBigInt64LE(16+market*8),pos.lots);
         assert.equal(signed128(row,32+16*market),pos.virtualScaled+pos.lots*pos.fundingCheckpointScaled);
       });
     }
-    return {slot:response.context.slot, members:decoded.size, membershipEpoch:epoch, lanes};
+    return {slot, members:decoded.size, membershipEpoch:epoch, lanes};
   }
