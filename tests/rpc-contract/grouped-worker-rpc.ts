@@ -26,9 +26,11 @@ assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],
 const build=routerBuild(),payer=await payerKey();
 assert.equal(build.artifactSet,sdk.GROUPED_CREDIT_ARTIFACT_SET);
 const payers=new Map<string,typeof payer>();
+let latestFundingReport:string|undefined;
 const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(url,wsUrl,dir,{
   deferFinality:true,payerFor:label=>payers.get(label),heapSize:()=>128*1024,
   observeOutcomes:label=>label.startsWith('traffic '),
+  broadcastAccepted:(label,signature)=>{if(label==='P32 publisher available two-market reports')latestFundingReport=signature;},
   computeUnitLimit:label=>label.startsWith('cross ') ? 600_000 : label==='blocked payout' ? 1_400_000 : undefined});
 const {h,members}=coverageProvisioning(transport,payer);
 let worker:Awaited<ReturnType<typeof groupedWorkerDriver>>|undefined;
@@ -162,7 +164,7 @@ try {
   assert.equal((await root(recipient)).cash,cashStart);assert.equal((await root(recipient)).positions[1].virtualScaled,gain*scale);
   assert(await pool()>=gain);assert.deepEqual(await h.read(idle),frozenDebtor);
   setup.sourcePrices.btc=48_000_000_000n;await setup.qualify();refreshed=Date.now();
-  const recoverySlot=Number(await setup.slot()),recoveredAt=Date.now();
+  const recoveryReport=latestFundingReport,recoveredAt=Date.now();assert(recoveryReport);
   await exitUnderFills('recovered',second,recoveredAt);
   timings[1].fundedAt=fundedAt;
   const receipts=await service.drain();await flush();
@@ -171,6 +173,11 @@ try {
   const exact=Number(/exact=(\d+) covered=1/.exec(paid[1].coverage??'')?.[1]);
   assert(paid[0].slot<paid[1].slot && exact>0);
   if(population===1000)assert(exact>128 && paid[1].cu>400_000 && Number(paid[1].limit)>400_000,'Many-group automatic sizing missing');
+  // A subsequent Clock read can be ahead of both signed transactions. Use the
+  // finalized slot of the source update that established the recovered price.
+  const recoveryReceipt=await rpc.call('getTransaction',[recoveryReport,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+  assert.equal(recoveryReceipt.meta.err,null);
+  const recoverySlot=Number(recoveryReceipt.slot);
   const trafficResults=[];
   for(const [phase,startSlot] of [['ordinary',(await receipt('ordinary close')).slot],['recovered',recoverySlot]] as const){
     const exit=await receipt(phase+' withdraw');
