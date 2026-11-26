@@ -53,6 +53,47 @@ pub struct CashSlot {
     entry: [u8; EntryCost::BYTES],
 }
 
+impl CashSlot {
+    pub(super) fn market(&self) -> u16 {
+        self.market
+    }
+
+    pub(super) fn decode(&self) -> Result<(Binding, MarketImage)> {
+        let position = Position {
+            lots: self.lots,
+            virtual_scaled: self.virtual_scaled,
+            funding_checkpoint: self.checkpoint,
+            generation: self.generation,
+        };
+        Ok((
+            Binding {
+                market: self.market,
+                incarnation: self.incarnation,
+            },
+            MarketImage {
+                market: self.market,
+                position,
+                entry: checked(EntryCost::read(&self.entry, self.lots))?,
+            },
+        ))
+    }
+
+    pub(super) fn encode((binding, image): &(Binding, MarketImage)) -> Result<Self> {
+        let mut entry = [0; EntryCost::BYTES];
+        checked(image.entry.write(&mut entry))?;
+        let position = image.position;
+        Ok(Self {
+            market: binding.market,
+            incarnation: binding.incarnation,
+            lots: position.lots,
+            virtual_scaled: position.virtual_scaled,
+            checkpoint: position.funding_checkpoint,
+            generation: position.generation,
+            entry,
+        })
+    }
+}
+
 #[account(borsh)]
 pub struct SlotMargin {
     pub custody: Address,
@@ -73,26 +114,11 @@ impl SlotMargin {
     }
 
     fn directory(&self) -> Result<MarketSlots> {
-        let mut records = Vec::with_capacity(self.slots.len());
-        for row in &self.slots {
-            let position = Position {
-                lots: row.lots,
-                virtual_scaled: row.virtual_scaled,
-                funding_checkpoint: row.checkpoint,
-                generation: row.generation,
-            };
-            records.push((
-                Binding {
-                    market: row.market,
-                    incarnation: row.incarnation,
-                },
-                MarketImage {
-                    market: row.market,
-                    position,
-                    entry: checked(EntryCost::read(&row.entry, row.lots))?,
-                },
-            ));
-        }
+        let records = self
+            .slots
+            .iter()
+            .map(CashSlot::decode)
+            .collect::<Result<Vec<_>>>()?;
         checked(MarketSlots::restore(
             Mode::Cross,
             usize::from(self.width),
@@ -103,7 +129,7 @@ impl SlotMargin {
     }
 }
 
-fn checked<T>(result: clearing_accounting::Result<T>) -> Result<T> {
+pub(super) fn checked<T>(result: clearing_accounting::Result<T>) -> Result<T> {
     result.map_err(|_| ProofError::UnsupportedBook.into())
 }
 
@@ -239,19 +265,11 @@ pub fn prepare(ctx: &mut Context<CreateSlotMargin>, width: u8, child: u8) -> Res
             .successor(&images, &[margin.order_market]),
     )?;
     margin.last_incarnation = book.last_incarnation();
-    for (binding, image) in book.records() {
-        let mut entry = [0; EntryCost::BYTES];
-        checked(image.entry.write(&mut entry))?;
-        margin.slots.push(CashSlot {
-            market: binding.market,
-            incarnation: binding.incarnation,
-            lots: image.position.lots,
-            virtual_scaled: image.position.virtual_scaled,
-            checkpoint: 0,
-            generation: image.position.generation,
-            entry,
-        });
-    }
+    margin.slots = book
+        .records()
+        .iter()
+        .map(CashSlot::encode)
+        .collect::<Result<_>>()?;
     Ok(())
 }
 

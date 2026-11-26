@@ -7,6 +7,8 @@ use coverage::*;
 mod mirror;
 mod withdrawal;
 mod slot_custody;
+mod slot_trading;
+use slot_trading::*;
 use slot_custody::*;
 use withdrawal::*;
 use basis::*;
@@ -55,6 +57,31 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    pub fn open_trade_root(ctx: &mut Context<OpenTradeRoot>, isolated: u16) -> Result<()> {
+        slot_trading::open_root(ctx, isolated)
+    }
+    pub fn open_trade_market(ctx: &mut Context<OpenTradeMarket>, id: u16) -> Result<()> {
+        slot_trading::open_market(ctx, id)
+    }
+    pub fn publish_trade_market(ctx: &mut Context<PublishTradeMarket>, revision: u64, price: u64, funding_atoms: i64) -> Result<()> {
+        slot_trading::publish(ctx, revision, price, funding_atoms)
+    }
+    pub fn deposit_trade_cash(ctx: &mut Context<TradeWallet>, revision: u64, amount: u64) -> Result<()> {
+        slot_trading::wallet(ctx, revision, amount, false)
+    }
+    pub fn withdraw_trade_cash(ctx: &mut Context<TradeWallet>, revision: u64, amount: u64) -> Result<()> {
+        slot_trading::wallet(ctx, revision, amount, true)
+    }
+    pub fn place_trade_order(ctx: &mut Context<TraderOrder>, revision: u64, terms: OrderTerms) -> Result<()> {
+        slot_trading::place(ctx, revision, terms)
+    }
+    pub fn cancel_trade_order(ctx: &mut Context<TraderOrder>, revision: u64) -> Result<()> {
+        slot_trading::cancel(ctx, revision)
+    }
+    pub fn fill_trade_order(ctx: &mut Context<MatchTrade>, trader_revision: u64, maker_revision: u64, price_revision: u64, lots: u64) -> Result<()> {
+        slot_trading::execute(ctx, trader_revision, maker_revision, price_revision, lots)
+    }
 
     pub fn open_slot_custody(ctx: &mut Context<OpenSlotCustody>) -> Result<()> {
         slot_custody::open(ctx)
@@ -215,4 +242,6 @@ pub enum ProofError {
     CoverageDebt,
     WithdrawalHealth,
     CustodyBinding,
+    TradeTerms,
+    TradeHealth,
 }
