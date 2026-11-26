@@ -76,7 +76,7 @@ export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType
 type BankReader = {call(method: string, args: any[]): Promise<any>};
 
 // Each batch reads its roots, registry and eight lanes in the same finalized bank.
-export async function auditCoverage(rpc: BankReader, venue: Address, registry: Address, lanes: Address[], roots: Address[], maintained = false) {
+export async function auditCoverage(rpc: BankReader, venue: Address, registry: Address, lanes: Address[], roots: Address[], maintained = false, rowsPerLane = 16) {
     const witnesses = [...lanes, registry];
     const chunkSize = 100 - witnesses.length;
     assert(lanes.length === 8 && new Set(roots).size === roots.length);
@@ -110,7 +110,8 @@ export async function auditCoverage(rpc: BankReader, venue: Address, registry: A
       assert.equal(bytes[40],index);
       assert.equal(bytes.readBigUInt64LE(42), maintained ? 1n : epoch);
       const count = bytes.readUInt32LE(322);
-      assert(count <= 16);
+      assert(count <= rowsPerLane);
+      if (rowsPerLane === 125) assert.equal(bytes.length, 326 + 64*rowsPerLane + 74);
       for (let n=0; n<count; n++) {
         const row = bytes.subarray(326+64*n,326+64*(n+1)), id=row.readBigUInt64LE();
         assert.equal(Number(id % 8n),index); assert(!decoded.has(id)); decoded.set(id,row);

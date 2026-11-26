@@ -37,6 +37,9 @@ export const UNIFIED_RECOVERY_ARTIFACT_SET='unified-recovery-79724a5a';
 // The new instruction uses unified recovery account and event layouts.
 export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
 export const DIRECT_CREDIT_ARTIFACT_SET='direct-closed-credit-984f18f3';
+// Distinct lane allocation on a fresh qualification bank. No operator deployment selector.
+export const THOUSAND_MEMBER_CREDIT_ARTIFACT_SET='thousand-member-credit-213d394d';
+export const hasDirectCredit=(set?:string)=>set===DIRECT_CREDIT_ARTIFACT_SET||set===THOUSAND_MEMBER_CREDIT_ARTIFACT_SET;
 export const VERIFIED_COVERAGE_ARTIFACT_SET='verified-coverage-8a239609';
 export const MAINTAINED_COVERAGE_ARTIFACT_SET='maintained-coverage-eb1cb0e4';
 export const SHADOW_COVERAGE_ARTIFACT_SET='shadow-coverage-ce9e8e9c';
@@ -52,7 +55,7 @@ export const hasMultiMaker=(set?:string)=>set===MULTI_ROUTING_ARTIFACT_SET||set=
 export const hasWideDirectory=(set?:string)=>set===WIDE_DIRECTORY_ARTIFACT_SET||set===WIDE_ROUTING_ARTIFACT_SET||hasMultiMaker(set);
 export const FUNDED_ROUTING_ARTIFACT_SET='funded-maker-routing';
 export const usesBoundedEntry=(selection?:string)=>selection==='direct-closed-credit'||selection==='verified-coverage'||selection==='maintained-coverage'||selection==='shadow-coverage'||selection==='bounded-entry'||selection==='funded-routing'||usesMultiMaker(selection);
-export const hasBoundedEntry=(set?:string)=>set===DIRECT_CREDIT_ARTIFACT_SET||set===VERIFIED_COVERAGE_ARTIFACT_SET||set===MAINTAINED_COVERAGE_ARTIFACT_SET||set===SHADOW_COVERAGE_ARTIFACT_SET||set===BOUNDED_ENTRY_ARTIFACT_SET||set===FUNDED_ROUTING_ARTIFACT_SET||hasWideDirectory(set);
+export const hasBoundedEntry=(set?:string)=>hasDirectCredit(set)||set===VERIFIED_COVERAGE_ARTIFACT_SET||set===MAINTAINED_COVERAGE_ARTIFACT_SET||set===SHADOW_COVERAGE_ARTIFACT_SET||set===BOUNDED_ENTRY_ARTIFACT_SET||set===FUNDED_ROUTING_ARTIFACT_SET||hasWideDirectory(set);
 export const usesClosedQuantity=(selection?:string)=>usesBoundedEntry(selection)||selection==='closed-quantity';
 export const hasClosedQuantity=(set?:string)=>hasBoundedEntry(set)||set===CLOSED_QUANTITY_ARTIFACT_SET;
 export const CLOSED_QUANTITY_ARTIFACT_SET='closed-quantity-settlement';

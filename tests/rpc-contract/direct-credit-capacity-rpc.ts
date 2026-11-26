@@ -19,14 +19,26 @@ import {auditCoverage} from './shadow-coverage.js';
 
 const dir = process.env.RIVALT_RUN_DIR!;
 const build = routerBuild();
-assert.equal(build.artifactSet, sdk.DIRECT_CREDIT_ARTIFACT_SET);
+const large = build.artifactSet === sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET;
+assert(large || build.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET);
+const population = large ? 1_000 : 128;
+const rowsPerLane = population / 8;
 const revision = execFileSync('git', ['rev-parse','HEAD'], {encoding:'utf8'}).trim();
 assert.equal(execFileSync('git', ['status','--porcelain','--untracked-files=no'], {encoding:'utf8'}).trim(), '');
 const payer = await payerKey();
+// Capture the actual initial 400k/32 KiB attempt even if it fails at runtime.
+const attempts = new Map<string, {units:number; heap?:number}>();
+const results: {label:string;units:number;heap:number;signature:string;cu:number;error:unknown;reason:string|null}[] = [];
+const completed = new Map<string,string>();
 const {rpc, ws, h:transport, checks, flush} = await openCanonicalRpcHarness(
-  process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, dir, {deferFinality:true});
+  process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, dir, {
+    deferFinality:true,
+    computeUnitLimit:label=>attempts.get(label)?.units,
+    heapSize:label=>attempts.has(label) ? attempts.get(label)?.heap : large ? 128*1024 : undefined,
+    observeOutcomes:label=>attempts.has(label),
+    measureComputeBoundary:label=>attempts.has(label),
+  });
 const {h, lanes, members} = coverageProvisioning(transport, payer);
-const population = 128;
 const quietCredit = 'pay half the spread before other positions open';
 const exposedCredit = 'pay half the spread with open positions in every lane';
 const collectLabel = 'collect closed ETH loss at full lane capacity';
@@ -45,11 +57,11 @@ try {
   const counts = () => lanes.map(lane => [...active].filter(member => members.get(member) === lane).length);
   const audit = async () => {
     await flush();
-    return auditCoverage(rpc, venue, registry, lanes, [...active], true);
+    return auditCoverage(rpc, venue, registry, lanes, [...active], true, rowsPerLane);
   };
   const fullBook = await audit();
-  assert.deepEqual(counts(), Array(8).fill(16));
-  assert.equal(sdk.getRecoveryStorageDecoder().decode((await h.read(setup.storage))!).readyCapacity, 129n);
+  assert.deepEqual(counts(), Array(8).fill(rowsPerLane));
+  assert.equal(sdk.getRecoveryStorageDecoder().decode((await h.read(setup.storage))!).readyCapacity, BigInt(population+1));
 
   // Register a new identity on an existing portfolio without activating it.
   const applicant = setup.traderOwners.at(-1)!;
@@ -74,7 +86,8 @@ try {
     assert.deepEqual(await Promise.all(watched.map(h.read)), before);
     assert.equal((await root(candidate)).lifecycle, sdk.MEMBER_REGISTERED);
   }
-  await refuseActivation('reject seventeenth member in full lane', activation);
+  const fullLaneRefusal = 'reject admission in full lane';
+  await refuseActivation(fullLaneRefusal, activation);
 
   const maker = setup.instances[3], debtor = roots[0], trader = setup.traderOwners[0];
   const initialCash = (await root(maker.capital)).cash;
@@ -102,7 +115,43 @@ try {
   const payHalf = async (label:string) => {
     const instructions = await sdk.directClosedProfitCredit({artifactSet:build.artifactSet, actor:payer,
       margin:await root(maker.capital), marketIndex:1, amount:spread/2n});
-    await h.send(label, instructions);
+    if (!large) {
+      await h.send(label, instructions);
+      completed.set(label,label);
+      return;
+    }
+    const watched = [...new Set([maker.capital, registry, ...lanes, ...markets, ...ledgers,
+      ...setup.instances.map(instance=>instance.registration), setup.vault, maker.token.address])];
+    const before = await Promise.all(watched.map(h.read));
+    let units = sdk.ROUTE_COMPUTE_UNITS, heap: number | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const name = label+' ('+units+' CU, '+(heap??32768)/1024+' KiB)';
+      attempts.set(name,{units,heap});
+      await h.send(name, instructions);
+      await flush();
+      const check = checks.find(row=>row.label===name)!;
+      const tx = await rpc.call('getTransaction',[check.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+      assert.deepEqual(check.simulationError,tx.meta.err);
+      const logs: string[] = tx.meta.logMessages;
+      let reason: string | null = null;
+      if (tx.meta.err) {
+        const error = tx.meta.err.InstructionError?.[1];
+        if (error==='ComputationalBudgetExceeded' || (error==='ProgramFailedToComplete' && logs.some(line=>/exceeded CUs meter|computational budget exceeded/i.test(line)))) reason = 'compute';
+        else if (error==='ProgramFailedToComplete' && logs.some(line=>/memory allocation failed|in heap region/i.test(line))) reason = 'heap';
+        else assert.fail('Unexpected credit error: '+JSON.stringify(tx.meta.err)+' '+logs.slice(-8).join(' '));
+        assert.deepEqual(await Promise.all(watched.map(h.read)),before);
+      }
+      results.push({label,units,heap:heap??32768,signature:String(check.signature),cu:tx.meta.computeUnitsConsumed,error:tx.meta.err,reason});
+      writeFileSync(dir+'/credit-attempts.json',json(results));
+      if (!reason) { completed.set(label,name); return; }
+      if (reason==='heap' && !heap) heap = 128*1024;
+      else if (reason==='compute' && units===sdk.ROUTE_COMPUTE_UNITS) units = 1_400_000;
+      else break;
+      // Refresh after a finalized refusal, preserving all balances and the original entitlement.
+      await setup.sample();
+      for (const [index,bytes] of (await Promise.all(watched.map(h.read))).entries()) before[index]=bytes;
+    }
+    assert.fail('No funded credit within the diagnostic envelope: '+label);
   };
   await payHalf(quietCredit);
   assert.equal(await pool(), spread/2n);
@@ -153,23 +202,23 @@ try {
     active.delete(margin);
   }
   await vacate(idle.find(margin => members.get(margin) !== candidateLane)!);
-  assert.equal((await audit()).members, 127);
+  assert.equal((await audit()).members, population-1);
   await refuseActivation('reject full lane with a vacancy elsewhere', await membership(candidate, applicant, true));
   await vacate(idle.find(margin => members.get(margin) === candidateLane)!);
   await h.send('activate waiting member after a matching vacancy', [await membership(candidate, applicant, true)], [applicant]);
   active.add(candidate);
   assert.equal((await root(candidate)).lifecycle, sdk.MEMBER_FINANCIAL);
   const finalBook = await audit();
-  assert.equal(finalBook.members, 127);
-  assert.equal(counts()[lanes.indexOf(candidateLane)], 16);
-  const measured = checks.filter(row => [quietCredit,exposedCredit,collectLabel,exitLabel,'reject seventeenth member in full lane',
+  assert.equal(finalBook.members, population-1);
+  assert.equal(counts()[lanes.indexOf(candidateLane)], rowsPerLane);
+  const measured = checks.filter(row => [completed.get(quietCredit),completed.get(exposedCredit),collectLabel,exitLabel,fullLaneRefusal,
     'reject full lane with a vacancy elsewhere','activate waiting member after a matching vacancy'].includes(String(row.label)));
   assert.equal(measured.length, 7);
   const coverageLogs = [];
-  for (const [label, exact] of [[quietCredit,0],[exposedCredit,128]] as const) {
-    const receipt = await rpc.call('getTransaction',[measured.find(row=>row.label===label)!.signature,
+  for (const [label, exact] of [[quietCredit,0],[exposedCredit,population]] as const) {
+    const receipt = await rpc.call('getTransaction',[measured.find(row=>row.label===completed.get(label))!.signature,
       {encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
-    const message = 'coverage target=1 members=128 exact='+exact+' covered=1';
+    const message = 'coverage target=1 members='+population+' exact='+exact+' covered=1';
     assert(receipt.meta.logMessages.includes('Program log: '+message), label+' expected '+message);
     coverageLogs.push(message);
   }
@@ -178,7 +227,7 @@ try {
   assert.equal(replay.state.members.length, finalBook.members);
   assert.equal(BigInt(replay.state.roots[maker.capital].cash), initialCash);
   writeFileSync(dir+'/capacity.json', json({revision, program:build.revision, fullBook, finalBook,
-    recoveryCapacity:129, credited:spread, withdrawn:spread, coverageLogs, measured, events:replay.events}));
+    population, recoveryCapacity:population+1, attempts:results, credited:spread, withdrawn:spread, coverageLogs, measured, events:replay.events}));
   console.log('Capacity run verified', coverageLogs, replay.events, 'replayed events.');
 } finally {
   await ws.close();
