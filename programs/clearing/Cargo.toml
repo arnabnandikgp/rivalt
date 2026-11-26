@@ -25,6 +25,7 @@ multi-lot-book-qualification = ["book-inventory-qualification", "default-plan-se
 book-inventory-qualification = ["partial-inventory-qualification"]
 unified-recovery-qualification = ["populated-recovery-qualification"]
 execution-router-qualification = ["unified-recovery-qualification"]
+direct-closed-credit = ["verified-coverage"]
 verified-coverage = ["maintained-coverage"]
 maintained-coverage = ["shadow-coverage"]
 shadow-coverage = ["bounded-entry-settlement"]

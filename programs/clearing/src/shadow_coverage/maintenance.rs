@@ -75,7 +75,7 @@ impl Changes {
             let mut lane = CoverageLane::try_deserialize(&mut &view.try_borrow()?[..])?;
             let index = usize::from(lane.lane);
             require!(
-                view.is_writable()
+                (cfg!(feature = "direct-closed-credit") || view.is_writable())
                     && !view.is_signer()
                     && !view.executable()
                     && lane.venue == venue
@@ -99,7 +99,10 @@ impl Changes {
                 .iter()
                 .filter(|change| change.before != change.after && change.lane() == index)
             {
-                require!(change.venue == venue, ClearingError::ExitCohort);
+                require!(
+                    view.is_writable() && change.venue == venue,
+                    ClearingError::ExitCohort
+                );
                 let old = lane
                     .members
                     .iter()

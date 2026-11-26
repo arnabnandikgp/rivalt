@@ -1,4 +1,4 @@
-//! Observation only on a fresh local venue. The payment handler never reads these PDAs.
+//! Fresh local coverage lanes. Only the direct-credit profile can use them for payment.
 //! Recording is permissionless and can only copy the canonical clearing-owned financial root.
 #[cfg(feature = "verified-coverage")]
 mod backing;
@@ -198,14 +198,42 @@ pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
         ClearingError::ExitCohort
     );
     #[cfg(feature = "verified-coverage")]
-    let (lanes, pool, mut check) = (
+    let (lanes, pool) = (
         &remaining[2..],
         backing::pool(accounts, &remaining[..2], target)?,
-        backing::MarketCheck::default(),
     );
     #[cfg(not(feature = "verified-coverage"))]
     let lanes = &remaining[..];
     let snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
+    let covered = market_backed(
+        accounts.venue.address(),
+        &accounts.registry,
+        &snapshot,
+        target,
+        lanes,
+        #[cfg(feature = "verified-coverage")]
+        pool,
+    )?;
+    Ok(u64::from(covered))
+}
+
+// Both the observer and the credit instruction authenticate the market and ledger accounts
+// in their own context. This part authenticates every lane against the live venue registry.
+#[inline(never)]
+pub(crate) fn market_backed(
+    venue: &Address,
+    registry: &VenueRegistry,
+    snapshot: &Snapshot,
+    target: usize,
+    lanes: &[AccountView],
+    #[cfg(feature = "verified-coverage")] pool: u64,
+) -> Result<bool> {
+    require!(
+        target < 2 && lanes.len() == LANES,
+        ClearingError::ExitCohort
+    );
+    #[cfg(feature = "verified-coverage")]
+    let mut check = backing::MarketCheck::default();
     let region = Region {
         markets: std::array::from_fn(|market| MarketRegion {
             price_low: snapshot.risks[market].lower,
@@ -223,7 +251,7 @@ pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
         let expected = create_program_address(
             &[
                 b"coverage-lane",
-                accounts.venue.address().as_ref(),
+                venue.as_ref(),
                 &[index as u8],
                 &[lane.bump],
             ],
@@ -232,12 +260,12 @@ pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
         .map_err(|_| ClearingError::ExitCohort)?;
         require!(
             lane.address() == &expected
-                && lane.venue == *accounts.venue.address()
+                && lane.venue == *venue
                 && lane.membership_epoch
                     == if cfg!(feature = "maintained-coverage") {
                         1
                     } else {
-                        accounts.registry.membership_epoch
+                        registry.membership_epoch
                     }
                 && usize::from(lane.lane) == index
                 && lane.members.len() <= ROWS_PER_LANE,
@@ -263,11 +291,11 @@ pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
         }
     }
     require!(
-        members != 0 && members == accounts.registry.financial_count,
+        members != 0 && members == registry.financial_count,
         ClearingError::ExitCohort
     );
     #[cfg(feature = "verified-coverage")]
-    check.finish(&snapshot, pool)?;
+    check.finish(snapshot, pool)?;
     msg!(
         "coverage target={} members={} exact={} covered={}",
         target,
@@ -275,5 +303,5 @@ pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
         exact,
         u8::from(covered)
     );
-    Ok(u64::from(covered))
+    Ok(covered)
 }
