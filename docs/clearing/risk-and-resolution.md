@@ -116,6 +116,12 @@ After fees, selected absolute exposure and whole-account MM deficit must both
 strictly decrease. Mere exposure reduction is insufficient. Failure rolls back
 funding, orders, positions and fee. No forced unfunded receiver or hidden subsidy.
 
+### Funded receiver on a sparse cross account
+
+The local width fixture lets any fee payer submit a transfer signed by the receiving cross trader. The target owner supplies no signature. The program reads the current observations for both accounts, the selected position and surviving orders. A target order that increases risk is cancelled atomically. Orders on the receiver still reserve collateral. A reduce-only order can execute only against the remaining eligible quantity in its original position generation.
+
+The target’s maintenance shortfall includes its flat debts and the negative claim on each open position at its current funding index and adverse price. Each market’s maintenance requirement rounds up separately. The signed transfer price must fall within the existing receiver price band. The target transfers signed lots to the receiver at the agreed price. Each account updates its own entry cost. The target pays the receiver fee from funded cash. The transaction succeeds only if the resulting shortfall is strictly smaller and the receiver’s funded equity supports its initial margin and remaining orders. The result returns the before and after shortfall in scaled atoms and the fee in whole atoms. [Receiver implementation](../../tests/programs/default-proof/src/slot_trading/liquidation.rs)
+
 ### Maker liquidation
 
 `liquidate_liquidity_route` shares the existing maker route's quote authentication,
