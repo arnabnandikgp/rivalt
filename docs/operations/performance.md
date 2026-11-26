@@ -336,7 +336,24 @@ The same worker and harness revision (`88625d28`) ran sequentially on two fresh 
 
 The direct worker paid 140, 100 and 240 atoms. The first 140 came from earlier closed quantity. At its last close the maker therefore had 140 atoms of funded cash above principal and 340 atoms still owed. The collection milestone counts both cash left in the ETH pool and cash already paid to the maker. Both workers collected 502,480 BTC-market atoms and 480 ETH-market atoms after release. Their final ETH pool and outstanding collectible losses were zero. Fees in the table exclude loss collections, BTC credits, setup and owner withdrawals.
 
-This is one pair of runs. It measures the effect of the deployed payout paths on this finite book. The direct worker still discovers candidates off chain, and clearing reads all eight coverage accounts for each payment. The next population test is the 16-member capacity of each lane. The 1,000-member workload and sustained contention remain open.
+This is one pair of runs. It measures the effect of the deployed payout paths on this finite book. The direct worker still discovers candidates off chain, and clearing reads all eight coverage accounts for each payment. The [128-member test](#direct-payout-at-128-financial-members) exercises the 16-member capacity of each lane. The 1,000-member workload and sustained contention remain open.
+
+### Direct payout at 128 financial members
+
+On clearing `984f18f3`, harness `53317975` filled eight lanes with 16 members each. Six were internal maker capitals and 122 were trader margin accounts. Recovery had 129 funded seats. The same flat ETH maker earned 40 collateral atoms on a ten-lot round trip, then received two equal credits from the collected loss. No ETH certificate was created. [Reproduction and independent receipt check](local-development.md#direct-payout-at-full-coverage-capacity)
+
+| Finalized transaction | Individual rows checked for backing | Whole transaction CU | Wire bytes | Accounts | Fee, lamports |
+|---|---:|---:|---:|---:|---:|
+| Collect 40 ETH-market loss atoms | — | 131,475 | 849 | 19 | 5,000 |
+| Credit 20 atoms with all positions flat | 0 | 161,532 | 1,029 | 25 | 5,000 |
+| Credit 20 atoms with open ETH positions in every lane | 128 | 260,646 | 1,029 | 25 | 5,000 |
+| Withdraw the 40 funded atoms to the owner's SPL account | — | 144,545 | 1,107 | 24 | 10,000 |
+
+Between credits, eight margin accounts with two trader authorities bought 40 ETH lots each against two other maker capitals. An independent reader reconstructed the fills and marked the ten exposed accounts at their adverse bounds of 29,700 or 30,300 collateral atoms per lot. Each could cover its losses. Eight changed trader positions were sufficient to make clearing check every row. The second credit used 99,114 more CU and remained within the ordinary 400,000-CU limit. Both credits had the same wire size and fee. The withdrawal had two signatures because the fixture supplied a separate fee payer.
+
+The 129th identity registered. Its attempt to activate in a full lane rolled back in 53,666 CU. After an account left a different lane, a second attempt at 127 active members still rolled back. Freeing a seat in the candidate’s own lane allowed that same identity to activate in 63,815 CU. Finalized membership, margin cash and the token exit reconciled in fresh PostgreSQL replay (499 events). An earlier quiet run on harness `96cacd73` paid all 40 atoms in one 161,539-CU transaction and replayed 483 events.
+
+The paired run used 50 ms local slots, zero priority fees and a fixed synthetic price. It measures payout execution on a full book with ten open positions. Saturated fill traffic and a 1,000-member payout remain open.
 
 ## Funding, costs and comparisons
 

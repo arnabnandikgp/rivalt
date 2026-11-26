@@ -281,9 +281,10 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-984f18f3 \
   RIVALT_ROUTER_REVISION=984f18f3a4e1d6880926805bbf120f3cb1d41bfc \
   RIVALT_SETTLEMENT_PROBE=execution-router-direct-capacity \
   RIVALT_RUN_DIR=.local/direct-closed-credit/capacity-repeat bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/capacity-repeat
 ```
 
-Six maker capitals and 122 trader margin accounts occupy the eight coverage lanes. Recovery storage has a separate 129th seat. The test signs the extra registration and activation attempts, a ten-lot ETH round trip and loss collection. It pays the same flat maker in two equal credits. Between payments, eight traders open ETH longs, one per lane. The owner withdraws the full credited amount. It then opens vacancies in two lanes and retries the same registered ID. The ignored `capacity.json` records the selected finalized receipts, compute units, coverage work and SQL event count.
+Six maker capitals and 122 trader margin accounts occupy the eight coverage lanes. Recovery storage has a separate 129th seat. The test signs the extra registration and activation attempts, a ten-lot ETH round trip and loss collection. It pays the same flat maker in two equal credits. Between payments, eight trader margin accounts open ETH longs, one per lane. The owner withdraws the full credited amount. It then opens vacancies in two lanes and retries the same registered ID. The fill-event reporter independently reconstructs the spread and checks each exposed account at its adverse ETH price. The ignored `capacity.json` records the selected finalized receipts, compute units, coverage work and SQL event count.
 
 ### Matched dollar comparison
 

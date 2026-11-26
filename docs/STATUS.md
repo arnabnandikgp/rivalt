@@ -71,7 +71,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 4, automatic direct credit.** On worker and harness `88625d28`, the ETH maker received its 480 atoms in its wallet 13.994 s after going flat on direct clearing `984f18f3`, compared with 115.232 s on certificate clearing `b7e4458b`. The direct worker submitted three credits and zero backing-check transactions. The certificate worker submitted 43 backing checks. Both venues filled all 48 orders, collected all covered losses and completed all three wallet exits. Fresh SQL replay reconciled 550 and 899 events respectively. [Matched results and limits](operations/performance.md#automatic-payout-on-the-same-12-member-book)
 
-**Next action.** Measure a complete direct payout at the eight-lane capacity boundary on a fresh local venue, including admission to a full lane, loss collection, credit CU and token withdrawal.
+**Finding 4, direct payout at full lane capacity.** On clearing `984f18f3` and harness `53317975`, two equal 20-atom ETH credits used 161,532 CU with zero individual checks and 260,646 CU with all 128 rows checked. Each landed in one transaction. The owner withdrew all 40 atoms and fresh PostgreSQL replay reconciled 499 events. A 129th identity registered but could only activate after a vacancy opened in its assigned lane. [Capacity, fees and workload](operations/performance.md#direct-payout-at-128-financial-members)
+
+**Next action.** On a separate local build, qualify a 1,000-member direct payout against the same summary-only and individual-check books. Report funded exits, account and compute budgets, and any refused original at the worker’s current 400,000-CU limit.
 
 | Open gate | What remains |
 |---|---|
