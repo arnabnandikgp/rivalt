@@ -9,7 +9,7 @@ from itertools import permutations
 import unittest
 
 from account_contract_reference import Account, InvalidTransition
-from clearing_network_reference import clear_atom_cohort, clear_rational_cohort
+from clearing_network_reference import clear_atom_cohort, clear_rational_cohort, recovered_debt_shares
 
 
 class ClearingNetworkContract(unittest.TestCase):
@@ -21,6 +21,7 @@ class ClearingNetworkContract(unittest.TestCase):
         splits = [(btc, recovered - btc) for btc in range(btc_debt + 1)
                   if 0 <= recovered - btc <= eth_debt]
         proportional, = [split for split in splits if split[0]*eth_debt == split[1]*btc_debt]
+        self.assertEqual(recovered_debt_shares(recovered, (btc_debt, eth_debt)), proportional)
         eth_first = max(splits, key=lambda split: split[1])
         self.assertEqual((proportional, eth_first), ((100, 80), (60, 120)))
         for (btc, eth), reserve, expected in (
@@ -29,6 +30,19 @@ class ClearingNetworkContract(unittest.TestCase):
             spent = min(reserve, btc_debt - btc)
             self.assertEqual((btc + spent, eth, spent), expected)
             self.assertEqual((btc + spent) + eth + (reserve - spent), recovered + reserve)
+
+    def test_partial_source_recovery_preserves_frozen_destination_shares(self):
+        debts = (150, 120)
+        self.assertEqual(recovered_debt_shares(90, debts), (50, 40))
+        single_atom = recovered_debt_shares(1, debts)
+        self.assertEqual(single_atom, (Fraction(5, 9), Fraction(4, 9)))
+        self.assertEqual(recovered_debt_shares(1, debts[::-1]), single_atom[::-1])
+        self.assertEqual(recovered_debt_shares(300, debts), debts)
+        self.assertEqual(recovered_debt_shares(90, (0, 0)), (0, 0))
+        self.assertEqual(recovered_debt_shares(0, debts), (0, 0))
+        self.assertEqual(recovered_debt_shares(75, (0, 120)), (0, 75))
+        with self.assertRaises(InvalidTransition):
+            recovered_debt_shares(90, (-10, 120))
 
     def test_unrelated_market_does_not_share_a_blanket_haircut(self):
         accounts = (Account(100, (-100, 0)), Account(0, (100, 0)),

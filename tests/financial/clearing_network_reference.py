@@ -13,6 +13,23 @@ from itertools import product
 from account_contract_reference import Account, require
 
 
+def recovered_debt_shares(recovered, frozen_debts):
+    """Successor benchmark for one debtor, before destination insurance.
+
+    Inputs are the cumulative recovered proceeds and remaining debts fixed at
+    allocation time. Retain exact ownership until complete terminal rounding.
+    """
+    frozen_debts = tuple(frozen_debts)
+    require(type(recovered) in (int, Fraction) and recovered >= 0, 'nonnegative proceeds')
+    require(all(type(debt) in (int, Fraction) and debt >= 0 for debt in frozen_debts),
+            'nonnegative destination debts')
+    total = sum(frozen_debts, Fraction(0))
+    if not total:
+        return tuple(Fraction(0) for _ in frozen_debts)
+    available = min(recovered, total)
+    return tuple(available * debt / total for debt in frozen_debts)
+
+
 @dataclass(frozen=True)
 class ClaimLink:
     account_index: int

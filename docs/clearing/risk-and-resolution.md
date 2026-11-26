@@ -150,14 +150,18 @@ The balances reconcile in all three markets before resolution.
 | Proportional, with 150 atoms of BTC insurance available | 150 | 80 | 50 |
 | ETH debt paid first, same BTC insurance available | 150 | 120 | 90 |
 
-Both policies conserve cash. The proposed benchmark allocates recovered proceeds
-in proportion to frozen remaining debts before destination insurance. This makes
-the split independent of market labels, transaction order and reserve size.
+The approved successor rule splits recovered proceeds in proportion to the
+debtor's frozen remaining destination debts, before destination insurance. The
+split is independent of market labels, transaction order and reserve size. In
+the same book, if SOL recovers only 90 atoms, BTC receives 50 and ETH 40 before
+insurance. If it recovers one atom, their exact shares are 5/9 and 4/9 of an
+atom. Preserve those fractions until the complete book is rounded. Cap total
+debt discharge at 270 even if more proceeds become available.
+
 Letting destination insurance influence the split can increase aggregate recovery
-and spend more of one market's reserve. Approval of the work sequence does not
-select these economics. Before activation, settle the policy, including partial
-source recovery, cycles, multiple sources, fractional ownership and terminal
-rounding. Qualify forced reductions, insurance use and every final withdrawal
+and spend more of one market's reserve, as the alternative rows illustrate.
+Before activation, qualify cycles, multiple sources, fractional ownership,
+terminal rounding, forced reductions, insurance use and every final withdrawal
 against a complete independent book. [Finding 11](../operations/qualification-scorecard.md#payout-and-cross-margin-work)
 
 ### Current two-market equations
