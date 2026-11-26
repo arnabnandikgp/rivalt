@@ -19,7 +19,7 @@ type Frame = { program: string; depth: number; consumed?: number; failed?: boole
 const budgetProgram = 'ComputeBudget111111111111111111111111111111';
 const digest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
-export function receiptMetrics(receipt: Receipt, wire: Uint8Array, contracts: ProgramContract[]) {
+export function verifyReceiptWire(receipt: Receipt, wire: Uint8Array) {
   const transaction = VersionedTransaction.deserialize(wire), message = transaction.message;
   assert([0, 1].includes(Number(message.version)), 'Only qualified v0/v1 messages');
   const locks = transactionLocks(wire); // refuses unresolved address lookups
@@ -35,6 +35,11 @@ export function receiptMetrics(receipt: Receipt, wire: Uint8Array, contracts: Pr
     assert.deepEqual([...instruction.accountKeyIndexes], fetched.accounts, 'Fetched privileges use the signed account indices');
     assert.deepEqual(Buffer.from(instruction.data), Buffer.from(getBase58Encoder().encode(fetched.data)), 'Fetched instruction matches signed wire');
   }
+  return {transaction,message,keys,locks};
+}
+
+export function receiptMetrics(receipt: Receipt, wire: Uint8Array, contracts: ProgramContract[]) {
+  const {transaction,message,keys,locks}=verifyReceiptWire(receipt,wire);
   assert(Number.isSafeInteger(receipt.meta.computeUnitsConsumed) && receipt.meta.computeUnitsConsumed > 0);
   assert(Number.isSafeInteger(receipt.meta.fee) && receipt.meta.fee >= 0);
   const contractsByAddress = new Map(contracts.map(contract => [contract.address, contract]));

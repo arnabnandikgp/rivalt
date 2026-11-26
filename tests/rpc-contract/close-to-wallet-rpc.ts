@@ -58,9 +58,13 @@ const h: typeof transport = {...base, send(label, instructions, ...args) {
   }) : shadow?.decorate(instructions) ?? instructions;
   return base.send(label,prepared,...args);
 }};
+let coldCertificate:string|undefined,observedCold=false;
 class ShadowWorker extends AccountRuntime {
-  override enqueue(...args: Parameters<AccountRuntime['enqueue']>) {
+  override async enqueue(...args: Parameters<AccountRuntime['enqueue']>) {
     assert(shadow);
+    // In the shadow comparison, first capture the funded ETH book without a certificate.
+    // Other settlement work continues while the harness waits for that observation.
+    if(!observedCold && args[1].some(ix=>ix.accounts?.some(meta=>meta.address===coldCertificate)))return;
     args[1] = shadow.decorate(args[1]);
     return super.enqueue(...args);
   }
@@ -105,6 +109,7 @@ try {
   const ethMaker = setup.instances[5];
   assert.equal(ethMaker.market, setup.markets[1]);
   const [ethCertificate] = await sdk.deriveSettlementCertificate(setup.venue, 1);
+  coldCertificate=ethCertificate;
   const identity = { ...setup.identity, boundedEntry: true, closedQuantity: true };
   const sendAs = async (owner: typeof owners[number], label: string, instructions: Instruction[]) => {
     payers.set(label, owner);
@@ -200,7 +205,15 @@ try {
       [100_000_000n, 0n, 0n, null, 0n]);
   }
   const observations = [first];
-  async function record() { const state = await observe(); observations.push(state); return state; }
+  let latest=Promise.resolve(first);
+  function record() {
+    latest=latest.then(async previous=>{
+      const state=await observe();
+      if(state.slot<previous.slot)return previous;
+      observations.push(state);return state;
+    });
+    return latest;
+  }
   background(async () => { while (running) { await record(); await delay(75); } });
   background(async () => { while (running) { await indexer!.cycle(); await delay(100); } });
   background(async () => { while (running) { await delay(1000); if (running) await setup.sample(); } });
@@ -272,14 +285,18 @@ try {
   });
   // Common withdrawal policy: withdraw exactly the net trading gain once fully credited.
   const exited = new Set<number>();
-  let makerExited = false, observedCold = false;
+  let makerExited = false;
   const followupEnd = Math.max(...closeTimes) + (followMaker ? 360_000 : 120_000);
   while (elapsed() < followupEnd) {
     healthy();
     const state = await record();
     if (shadow && !observedCold && state.maker?.lots === 0n && state.maker.virtualScaled === ethSpreadGain * scale
         && state.ethPool === ethSpreadGain && !state.maker.proof?.complete) {
-      await h.send('observe funded ETH before first certificate', [shadow.observe(1)]);
+      const label='observe funded ETH before first certificate';
+      await h.send(label, [shadow.observe(1)]);await flush();
+      const original=checks.find(row=>row.label===label)!;
+      const receipt=await rpc.call('getTransaction',[original.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+      await eventually(()=>setup.slot(),slot=>slot>BigInt(receipt.slot),'slot after cold observation');
       observedCold = true;
     }
     for (let i = 0; i < creditors.length; i++) {

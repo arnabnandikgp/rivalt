@@ -93,7 +93,7 @@ node --import tsx tests/performance/cold-maker-exit.ts "$run/worker-eth-exit"
 
 First provision the four P56 baseline binaries in `.local/anchor-rc2/current` in the program checkout. On a new machine, build them at `657a255` with `bash ops/install-anchor-rc2.sh` and `bash ops/build.sh`, then make that artifact directory available in the harness checkout too. Both the builder and the signed smoke check verify the baseline hashes. [Pinned toolchain and P56 build recipe](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/local-development.md#pinned-toolchain)
 
-Build from a clean checkout of program revision `b7e4458b57a3a9bbb0906929a936094c78393b47` with `RIVALT_ATTRIBUTION_PROFILE=bounded-entry-settlement` and `bash ops/build-profit-attribution.sh`. From the harness checkout set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that output directory and `RIVALT_ROUTER_REVISION` to the full program revision. Use a fresh `RIVALT_RUN_DIR` or leave it unset for each invocation.
+Build from a clean checkout of program revision `b7e4458b57a3a9bbb0906929a936094c78393b47` with `RIVALT_ATTRIBUTION_DIR=.local/bounded-entry/build-b7e4458b RIVALT_ATTRIBUTION_PROFILE=bounded-entry-settlement bash ops/build-profit-attribution.sh`. From the harness checkout set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that output directory and `RIVALT_ROUTER_REVISION` to the full program revision. Use a fresh `RIVALT_RUN_DIR` or leave it unset for each invocation.
 
 ```sh
 RIVALT_SETTLEMENT_PROBE=execution-router-bounded-entry bash ops/scalable-settlement-smoke.sh
@@ -201,7 +201,7 @@ RIVALT_SETTLEMENT_PROBE=execution-router-shadow-coverage RIVALT_CASHOUT_ARM=work
   bash ops/scalable-settlement-smoke.sh
 ```
 
-Each run provisions fresh local services and writes its own `shadow-coverage.json` and `cashout-result.json` in the ignored run directory. The first file contains per-fill compute, writable accounts and claim-time observations. The second contains the certified payments, withdrawals and replay result.
+Each run provisions fresh local services and writes its own `shadow-coverage.json` and `cashout-result.json` in the ignored run directory. The shadow harness withholds ETH certificate work until its funded cold observation has finalized in an earlier slot. Other settlement continues during this observation. The first file contains per-fill compute, writable accounts and claim-time observations. The second contains the certified payments, withdrawals and replay result.
 
 ### Verifying mandatory coverage updates
 

@@ -2,8 +2,9 @@
 import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
-import {ComputeBudgetProgram, VersionedTransaction} from '@solana/web3.js';
+import {ComputeBudgetProgram} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
+import {verifyReceiptWire} from './receipt-metrics.js';
 import {eventPayloads, json} from '../../packages/indexer/src/events.js';
 
 const directory = process.argv[2];
@@ -38,7 +39,9 @@ for (const file of files) {
   const attempt = attempts.get(wire.signature);
   if (attempt) {
     const receipt = read(file.replace('wire-', 'transaction-'));
-    const tx = VersionedTransaction.deserialize(Buffer.from(wire.wireBase64,'base64'));
+    const {transaction:tx} = verifyReceiptWire(receipt,Buffer.from(wire.wireBase64,'base64'));
+    assert.equal(tx.message.recentBlockhash,receipt.transaction.message.recentBlockhash);
+    assert.deepEqual(tx.message.header,receipt.transaction.message.header);
     assert.equal(tx.version,0); // These 25-account payments encode the budget in v0 instructions.
     assert.equal(receipt.transaction.signatures[0],wire.signature);
     assert.equal(receipt.meta.computeUnitsConsumed,attempt.cu);
