@@ -23,8 +23,6 @@ const {rpc, h, checks, ws} = await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, runDir, {
     instructionConformance: () => false, computeUnitLimit: () => budget,
     heapSize: label => label.startsWith('prepare') || label.startsWith('change') ? 128 * 1024 : undefined,
-    measureComputeBoundary: () => true,
-    observeOutcomes: label => label.startsWith('read '),
   });
 const db = new URL(process.env.RIVALT_DATABASE_URL!);
 assert.equal(db.hostname, '127.0.0.1');
@@ -76,7 +74,7 @@ async function read(label: string, mask: number, reduced = false) {
   const loaded = selected(mask), debtExpected = reduced && loaded.includes(bodies[7]);
   const metas = loaded.map(key => ({address: key, role: AccountRole.READONLY}));
   const ix = instruction('read_coverage', [{address: payer.address, role: AccountRole.READONLY}, ...metas], mask);
-  await h.send('read ' + label, [ix]);
+  await h.send('read ' + label, [ix], [], debtExpected ? 6006 : undefined);
   const check = checks.at(-1)!;
   const tx = await rpc.call('getTransaction', [check.signature, {commitment: 'finalized', maxSupportedTransactionVersion: 1}]);
   const count = rowsPerLane * loaded.length;
@@ -96,15 +94,10 @@ async function read(label: string, mask: number, reduced = false) {
     assert(!debtExpected);
     assert.equal(tx.meta.returnData.programId, program);
     assert.equal(Buffer.from(tx.meta.returnData.data[0], 'base64').readUInt32LE(), count);
-  } else if (tx.meta.err.InstructionError?.[1]?.Custom === 6006) {
-    assert(debtExpected);
-    outcome = 'uncovered';
   } else {
-    // A resource failure is a measurement only for the full-population case.
-    assert.equal(count, 1000);
-    assert.equal(tx.meta.computeUnitsConsumed, budget);
-    assert(tx.meta.logMessages.some((line: string) => /compute units|computational budget/i.test(line)));
-    outcome = 'compute limit';
+    assert(debtExpected);
+    assert.deepEqual(tx.meta.err.InstructionError[1], {Custom: 6006});
+    outcome = 'uncovered';
   }
   await sql.query('INSERT INTO coverage_reads VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [
     label, check.signature, count, outcome, tx.meta.computeUnitsConsumed, check.bytes, accountBytes * loaded.length, tx.meta.fee]);
@@ -140,7 +133,7 @@ try {
     assert.equal(tx.meta.err === null, result.outcome === 'covered');
   }
   writeFileSync(runDir + '/coverage-reads.json', JSON.stringify(results, null, 2));
-  console.log(results.map(({label, outcome, cu, wire_bytes}) => ({label, outcome, cu, wire_bytes})));
+  console.table(results, ['label', 'outcome', 'cu', 'wire_bytes']);
 } finally {
   ws.close();
   await sql.end();
