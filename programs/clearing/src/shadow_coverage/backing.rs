@@ -27,7 +27,7 @@ impl Totals {
                 Ok(())
             };
             for market in 0..2 {
-                // MAX_FIXED < 2^87 per member, and this build holds at most 128 members.
+                // MAX_FIXED < 2^87 per member, and each lane is capped at ROWS_PER_LANE.
                 self.lots[market] = self.lots[market]
                     .checked_add(sign * i128::from(row.lots[market]))
                     .ok_or(ClearingError::Arithmetic)?;
@@ -77,7 +77,7 @@ impl MarketCheck {
     pub(super) fn add(
         &mut self,
         totals: Totals,
-        rows: &[CoverageMember],
+        rows: impl Iterator<Item = Result<CoverageMember>>,
         target: usize,
         prices: [[i128; 2]; 2],
     ) -> Result<()> {
@@ -97,10 +97,11 @@ impl MarketCheck {
             self.required |= sibling;
         }
         if self.required & sibling == 0 && totals.both_open != 0 {
-            for row in rows
-                .iter()
-                .filter(|row| row.lots.iter().all(|lots| *lots != 0))
-            {
+            for row in rows {
+                let row = row?;
+                if row.lots.contains(&0) {
+                    continue;
+                }
                 let lots = row.lots[target];
                 let price = prices[target][usize::from(lots < 0)];
                 let marked = i128::from(lots)
@@ -189,7 +190,12 @@ mod tests {
         }
         let mut check = MarketCheck::default();
         check
-            .add(totals, rows, target, interval.map(|r| r.map(|n| n * ATOM)))
+            .add(
+                totals,
+                rows.iter().copied().map(Ok),
+                target,
+                interval.map(|r| r.map(|n| n * ATOM)),
+            )
             .unwrap();
         check
     }

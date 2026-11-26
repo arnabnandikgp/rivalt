@@ -68,37 +68,30 @@ impl Changes {
     pub(crate) fn commit(&self, venue: Address, views: &[AccountView]) -> Result<()> {
         let mut present = [false; LANES];
         for view in views {
+            let data = view.try_borrow()?;
+            let header = LaneHeader::authenticate(view, &data, &venue, 1)?;
+            let index = usize::from(header.lane);
             require!(
-                view.owner() == &crate::ID && view.data_len() == CoverageLane::SPACE,
+                !view.is_signer()
+                    && (cfg!(feature = "direct-closed-credit") || view.is_writable())
+                    && !present[index],
                 ClearingError::ExitCohort
             );
-            let mut lane = CoverageLane::try_deserialize(&mut &view.try_borrow()?[..])?;
-            let index = usize::from(lane.lane);
-            require!(
-                (cfg!(feature = "direct-closed-credit") || view.is_writable())
-                    && !view.is_signer()
-                    && !view.executable()
-                    && lane.venue == venue
-                    && index < LANES
-                    && !present[index]
-                    && lane.membership_epoch == 1,
-                ClearingError::ExitCohort
-            );
-            let expected = create_program_address(
-                &[b"coverage-lane", venue.as_ref(), &[lane.lane], &[lane.bump]],
-                &crate::ID,
-            )
-            .map_err(|_| ClearingError::ExitCohort)?;
-            require_keys_eq!(expected, *view.address(), ClearingError::ExitCohort);
             present[index] = true;
-            #[cfg(feature = "verified-coverage")]
-            let mut totals = backing::Totals::read(view)?;
-            let mut modified = false;
-            for change in self
+            let mut changes = self
                 .0
                 .iter()
                 .filter(|change| change.before != change.after && change.lane() == index)
-            {
+                .peekable();
+            if changes.peek().is_none() {
+                continue;
+            }
+            // Only an affected lane needs owned rows for insertion, removal or replacement.
+            let mut lane = CoverageLane::try_deserialize(&mut &data[..])?;
+            drop(data);
+            #[cfg(feature = "verified-coverage")]
+            let mut totals = backing::Totals::read(view)?;
+            for change in changes {
                 require!(
                     view.is_writable() && change.venue == venue,
                     ClearingError::ExitCohort
@@ -123,13 +116,10 @@ impl Changes {
                         lane.radius = [[i128::MAX; 2]; 4];
                     }
                 }
-                modified = true;
             }
-            if modified {
-                #[cfg(feature = "verified-coverage")]
-                totals.write(view)?;
-                crate::wire::write_account(&lane, &mut view.clone().try_borrow_mut()?[..])?;
-            }
+            #[cfg(feature = "verified-coverage")]
+            totals.write(view)?;
+            crate::wire::write_account(&lane, &mut view.clone().try_borrow_mut()?[..])?;
         }
         require!(
             self.0

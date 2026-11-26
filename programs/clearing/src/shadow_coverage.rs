@@ -2,6 +2,8 @@
 //! Recording is permissionless and can only copy the canonical clearing-owned financial root.
 #[cfg(feature = "verified-coverage")]
 mod backing;
+mod lane;
+use lane::LaneHeader;
 #[cfg(feature = "maintained-coverage")]
 pub(crate) mod maintenance;
 use crate::{engine, instructions::account_cash::Snapshot, state::accounts::*, ClearingError};
@@ -252,34 +254,23 @@ pub(crate) fn market_backed(
     let mut exact = 0u64;
     let mut covered = true;
     for (index, view) in lanes.iter().enumerate() {
-        let lane = BorshAccount::<CoverageLane>::load(view.clone())?;
-        let expected = create_program_address(
-            &[
-                b"coverage-lane",
-                venue.as_ref(),
-                &[index as u8],
-                &[lane.bump],
-            ],
-            &crate::ID,
-        )
-        .map_err(|_| ClearingError::ExitCohort)?;
-        require!(
-            lane.address() == &expected
-                && lane.venue == *venue
-                && lane.membership_epoch
-                    == if cfg!(feature = "maintained-coverage") {
-                        1
-                    } else {
-                        registry.membership_epoch
-                    }
-                && usize::from(lane.lane) == index
-                && lane.members.len() <= ROWS_PER_LANE,
-            ClearingError::ExitCohort
-        );
+        let bytes = view.try_borrow()?;
+        let epoch = if cfg!(feature = "maintained-coverage") {
+            1
+        } else {
+            registry.membership_epoch
+        };
+        let lane = LaneHeader::authenticate(view, &bytes, venue, epoch)?;
+        require!(usize::from(lane.lane) == index, ClearingError::ExitCohort);
         #[cfg(feature = "verified-coverage")]
-        check.add(backing::Totals::read(view)?, &lane.members, target, prices)?;
-        members += lane.members.len() as u64;
-        if lane.members.is_empty() {
+        check.add(
+            backing::Totals::read(view)?,
+            lane.members(&bytes),
+            target,
+            prices,
+        )?;
+        members += lane.count() as u64;
+        if lane.count() == 0 {
             continue;
         }
         let moves = engine::checked(coverage::displacements(prices, lane.anchor))?;
@@ -288,7 +279,8 @@ pub(crate) fn market_backed(
         {
             continue;
         }
-        for row in &lane.members {
+        for row in lane.members(&bytes) {
+            let row = row?;
             exact += 1;
             covered &= engine::checked(financial_core::backing::projected::covers(
                 row.cash, row.lots, row.fixed, target, prices,
