@@ -12,8 +12,13 @@ use financial_core::backing::{
 };
 
 const LANES: usize = 8;
-// Rent and serialization bound for this twelve-member experiment, not an admission limit.
-const ROWS_PER_LANE: usize = 16;
+// Fresh local deployments reserve all row space at genesis. The layout and
+// admission limit belong to the binary that opened the lane.
+const ROWS_PER_LANE: usize = if cfg!(feature = "thousand-member-credit") {
+    125
+} else {
+    16
+};
 
 #[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy, PartialEq, Eq, IdlType)]
 pub struct CoverageMember {
