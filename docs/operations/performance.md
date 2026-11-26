@@ -377,6 +377,19 @@ Recovery had 1,001 funded seats. A new identity registered but its financial act
 
 Each lane reserves 8,400 bytes compared with 1,424 at 128 members. The backing read decodes every lane’s member list even when a summary proves solvency. The final coverage update also decodes the supplied lanes. Both passes matter when sizing heap. Sustained concurrent fills, automatic worker delivery on the larger build and wider cross-market accounts require separate qualification. [Backing read](../../programs/clearing/src/shadow_coverage.rs) · [Coverage update](../../programs/clearing/src/shadow_coverage/maintenance.rs)
 
+### Streamed coverage on the same 1,000-member book
+
+Clearing `99165b41` and harness `1d105af3` repeated the two 20-atom ETH payments from the [prior run](#direct-payout-at-1000-financial-members). Both runs used the same eight 8,400-byte coverage accounts, six maker capitals, 994 trader margin accounts, program instruction and 400,000-CU / 32 KiB initial request. Each successful transaction included the same 25 accounts. Only the recipient’s coverage lane was writable. The new reader uses the ordinary 1,029-byte payment even for the diagnostic compute retry.
+
+| Book and individual checks | Prior successful CU / requested heap | Streamed successful CU / requested heap | Change in successful CU | Outcome of first streamed attempt |
+|---|---:|---:|---:|---|
+| All positions flat, zero individual checks | 204,674 / 256 KiB | **157,640 / 32 KiB** | −47,034 (23.0%) | Paid |
+| ETH positions in every lane, 1,000 individual checks | 964,970 / 256 KiB | **922,864 / 32 KiB** | −42,106 (4.4%) | Compute exhausted and rolled back. Paid on retry requesting 1,400,000 CU. |
+
+The maker withdrew all 40 funded atoms in a separate 150,232-CU transaction. At zero priority fee the three payment attempts cost 15,000 lamports altogether, compared with 35,000 across seven prior attempts. This comparison excludes collection, source refreshes and withdrawal fees. Ten accounts had open ETH exposure during the second payment. The observed compute cost is specific to that book. Fresh PostgreSQL replay reconciled 3,216 events with 999 members after two exits and one admission.
+
+On a separate nine-member bank with the same binary, a fall in BTC left an idle cross debtor unable to back an ETH payment. Clearing checked one individual row and refused one atom with nine still in the pool. The compared financial accounts were byte-identical after rollback. Once the debtor recovered, payment resumed and the maker ultimately withdrew its full 40 atoms. Fresh PostgreSQL replay reconciled 263 events for this control. [Reproduction](local-development.md#direct-payout-at-1000-financial-members)
+
 ## Funding, costs and comparisons
 
 The funding publisher computes depth off chain. In three older 75-member runs on clearing `79724a5a`, 12 two-market publication transactions used 48,940–49,110 CU. Another 54 transactions that also checkpointed both markets used 89,682–99,550 CU. These are complete transactions on that binary. [Funding contract](../liquidity/funding.md) · [Receipt reader](../../tests/performance/funding-receipts.py)

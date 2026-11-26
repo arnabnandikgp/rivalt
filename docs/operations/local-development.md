@@ -305,6 +305,16 @@ node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-cre
 
 The eight coverage lanes have 125 rows each. The matched credit attempts start at 400,000 CU with the default 32 KiB heap. After each finalized resource refusal, the harness checks rollback and retries the same payment. A heap fault advances the request from 32 to 128 to 256 KiB. Compute exhaustion raises the limit to 1,400,000 CU. Each retry changes one resource setting. `credit-attempts.json` records each finalized signature and resource setting. Provisioning and the other financial actions in this run request 128 KiB of heap.
 
+To compare the streamed reader, build the same `thousand-member-credit` profile from clean program revision `99165b413d6c3b3fe0540ab0756861394324b5d8` into `.local/direct-closed-credit/build-99165b41`. On the qualification checkout run the following commands. Each probe starts its own fresh venue and database.
+
+```sh
+export RIVALT_ROUTER_REVISION=99165b413d6c3b3fe0540ab0756861394324b5d8
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-99165b41
+RIVALT_SETTLEMENT_PROBE=execution-router-streamed-credit RIVALT_RUN_DIR=.local/direct-closed-credit/streamed-risk bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=execution-router-streamed-capacity RIVALT_RUN_DIR=.local/direct-closed-credit/streamed-capacity bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/streamed-capacity
+```
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.

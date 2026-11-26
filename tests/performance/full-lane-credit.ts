@@ -18,6 +18,7 @@ const tag = Buffer.from(sdk.LEDGER_LANE_FILLED_EVENT_DISCRIMINATOR);
 const margins = new Map<bigint,sdk.MarginAccountSnapshot>(), owners = new Set<string>();
 const lanes = new Set<number>(), makers = new Set<bigint>();
 let spread = 0n;
+let recipientLane: number | undefined;
 const roundTripSides = new Set<number>();
 let bounds: [bigint,bigint] | undefined;
 const files = readdirSync(directory).filter(name => /^wire-\d+\.json$/.test(name))
@@ -38,6 +39,7 @@ for (const file of files) {
     assert.equal(receipt.meta.computeUnitsConsumed,attempt.cu);
     assert.deepEqual(receipt.meta.err,attempt.error);
     const keys = receipt.transaction.message.accountKeys;
+    assert.notEqual(recipientLane,undefined);
     let heap = 32*1024, units = 0, principal = 0n;
     for (const ix of tx.message.compiledInstructions) {
       const program = keys[ix.programIdIndex], data = Buffer.from(ix.data);
@@ -48,6 +50,10 @@ for (const file of files) {
       if (program === sdk.CLEARING_PROGRAM_ADDRESS && data.subarray(0,8).equals(Buffer.from(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR))) {
         const credit = sdk.getPayAccountGainInstructionDataDecoder().decode(ix.data);
         assert.equal(credit.marketIndex,1);
+        const laneIndices = Array.from(ix.accountKeyIndexes).slice(-8);
+        assert.deepEqual(laneIndices.map(index=>keys[index]),result.fullBook.lanes);
+        assert.deepEqual(laneIndices.map(index=>tx.message.isAccountWritable(index)),
+          laneIndices.map((_,lane)=>lane===recipientLane));
         principal += credit.amount;
       }
     }
@@ -73,6 +79,11 @@ for (const file of files) {
     roundTripSides.add(fill.side);
     assert.equal(fill.lots, 10n);
     assert.equal(fill.legs[0].instance, 0);
+    const providers = fill.rootStates.filter(margin=>margin.role !== 0);
+    assert.equal(providers.length,1);
+    const lane = Number(providers[0].id % 8n);
+    if (recipientLane !== undefined) assert.equal(lane,recipientLane);
+    recipientLane = lane;
     spread += fill.side === 0 ? fill.grossQuote : -fill.grossQuote;
     continue;
   }

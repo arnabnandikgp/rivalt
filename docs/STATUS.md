@@ -75,7 +75,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 4, 1,000-member local payout.** On clearing `213d394d` and harness `e4105ea0`, both ordinary 400,000-CU / 32 KiB attempts rolled back. With a 256 KiB heap the all-flat credit used 204,674 CU. After eight ETH longs opened, checking every member used 964,970 CU. The flat maker withdrew both 20-atom credits. Fresh PostgreSQL replay reconciled 3,232 events and the final 999-member book after two exits and one admission. [Every signed resource attempt](operations/performance.md#direct-payout-at-1000-financial-members)
 
-**Next action.** Change the local payout path to read lane summaries without allocating every row and update only the affected member lane. Requalify the same two books and the underfunded idle-debtor refusal before changing worker budgets.
+**Finding 4, streamed local payout.** Clearing `99165b41` and harness `1d105af3` paid both 20-atom credits with the default 32 KiB heap. Summaries alone used 157,640 CU. Checking all 1,000 members required 922,864 CU and a larger compute request. The owner withdrew the full 40 atoms and fresh PostgreSQL replay reconciled 3,216 events. On the separate price-shock control, the nine-member book refused the one-atom ETH payout before the debtor recovered. [Matched results](operations/performance.md#streamed-coverage-on-the-same-1000-member-book)
+
+**Next action.** Qualify the settlement worker selecting a compute limit from simulation on these two 1,000-member books while fills compete. Measure first-attempt payments and confirm that a genuinely uncovered debtor still blocks payment.
 
 | Open gate | What remains |
 |---|---|
