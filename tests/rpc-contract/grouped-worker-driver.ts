@@ -6,7 +6,17 @@ import {AccountRuntime} from '../../packages/services/src/account-runtime.js';
 import {LiquidityIndexer} from '../../packages/indexer/src/liquidity-indexer.js';
 import type {WireRpc,WireSubscriptions} from './wire.js';
 
-type Intent={request_id:string;signature:string;wire:string;status:string};
+type Intent={request_id:string;signature:string;wire:string;status:string;
+  result:{slot:string;fee:string|null;economicEffect?:string}|null};
+export async function verifyWorkerExpiry(row:Pick<Intent,'request_id'|'signature'|'status'|'result'>,receipt:unknown,rpc:Pick<WireRpc,'call'>){
+  assert.equal(row.status,'expired-unexecuted');
+  assert(row.result && row.result.economicEffect==='not-applied' && row.result.fee===null);
+  assert(/^\d+$/.test(row.result.slot),'Missing finalized expiry proof slot');
+  assert.equal(receipt,null,'Expired original has a finalized receipt');
+  const status=await rpc.call('getSignatureStatuses',[[row.signature],{searchTransactionHistory:true}]);
+  assert.deepEqual(status.value,[null],'Expired original has an observed landing');
+  return {id:row.request_id,signature:row.signature,proofSlot:row.result.slot};
+}
 const runId='p55b2-application';
 export async function groupedWorkerDriver(url:string,wsUrl:string,database:string,venue:string,anchor:string,
   payer:Keypair,rpc:WireRpc,ws:WireSubscriptions) {
@@ -34,13 +44,14 @@ export async function groupedWorkerDriver(url:string,wsUrl:string,database:strin
   let service=serviceInstance();
   const subscriptions=new Map<string,number>();
   const turns:{at:number;ms:number;reason:string}[]=[];
-  const intents=async()=>(await service.store.pool.query<Intent>('SELECT request_id,signature,wire,status FROM service_intents WHERE run_id=$1 ORDER BY request_id',[runId])).rows;
+  const intents=async()=>(await service.store.pool.query<Intent>('SELECT request_id,signature,wire,status,result FROM service_intents WHERE run_id=$1 ORDER BY request_id',[runId])).rows;
   async function dispatch() {
     for(const row of await intents())if(row.status==='pending'&&!subscriptions.has(row.signature))
       subscriptions.set(row.signature,await ws.call('signatureSubscribe',[row.signature,{commitment:'finalized'}]));
     await service.execute();
   }
-  return {probes,turns,intents,healthy,
+  const expiries:{id:string;signature:string;proofSlot:string}[]=[];
+  return {probes,turns,intents,expiries,healthy,
     async ready(){
       const deadline=Date.now()+600_000;
       while(!indexer.healthy){healthy();assert(Date.now()<deadline,'No fresh reconciled publication');await delay(100);}
@@ -63,7 +74,12 @@ export async function groupedWorkerDriver(url:string,wsUrl:string,database:strin
       const receipts=[];
       for(const row of await intents()){
         const tx=await rpc.call('getTransaction',[row.signature,{encoding:'base64',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+        if(row.status==='expired-unexecuted'){
+          expiries.push(await verifyWorkerExpiry(row,tx,rpc));continue;
+        }
+        assert(['finalized','failed'].includes(row.status));
         assert(tx && tx.transaction[0]===row.wire,'Finalized original bytes');
+        assert.equal(row.status,tx.meta.err===null?'finalized':'failed');
         assert.deepEqual((await ws.notification(subscriptions.get(row.signature)!)).params.result.value.err,tx.meta.err);
         const message=VersionedTransaction.deserialize(Buffer.from(row.wire,'base64')).message;
         const cleared=message.compiledInstructions.filter(ix=>message.staticAccountKeys[ix.programIdIndex].address===sdk.CLEARING_PROGRAM_ADDRESS);

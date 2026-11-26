@@ -184,7 +184,7 @@ try {
   const refusal=await receipt('blocked payout');
   assert(refusal.meta.logMessages.some((line:string)=>line.includes('members='+population) && line.endsWith('covered=0')));
   assert.equal(await h.read(certificate),null);
-  const results={revision,program:build.revision,population,groups:groups.size,timings,receipts,turns:service.turns,
+  const results={revision,program:build.revision,population,groups:groups.size,timings,receipts,expiries:service.expiries,turns:service.turns,
     probes:service.probes,metrics:service.metrics,trafficResults,exact};
   writeFileSync(dir+'/worker-financial.json',json(results));
   await worker.close();worker=undefined;

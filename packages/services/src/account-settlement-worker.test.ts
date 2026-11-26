@@ -6,7 +6,7 @@ import {createNoopSigner,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {accountTradeFixture} from '../../sdk/src/account-test-fixture.js';
-import {settleAccounts,type SettlementSchedule} from './account-settlement-worker.js';
+import {settleAccounts,orderedPayments,type SettlementSchedule} from './account-settlement-worker.js';
 import {accountWorkerKeys} from './account-worker-state.js';
 import type {AccountRuntime} from './account-runtime.js';
 import type {AccountAuthority} from './account-authority.js';
@@ -182,4 +182,14 @@ it('sizes grouped credit from measured compute while respecting the transaction 
   expect(directCreditLimit(510_001)).toBe(586_502);
   expect(directCreditLimit(1_399_999)).toBe(1_400_000);
   for(const units of [0,NaN,400_000.5,1_400_001])expect(()=>directCreditLimit(units)).toThrow();
+});
+
+it('pays the next ready creditor when the previous flat payee is absent from grouped RPC reads',async()=>{
+  const {test}=await finalPageFixture(0n);
+  const [early,flat]=test.margins, [next,later]=test.marketPdas.map(([key])=>key);
+  const ordered=[early,flat,next,later];
+  const ready=[early,next,later].map(margin=>({margin,marketIndex:0 as const}));
+  expect(orderedPayments(ordered,ready,{margin:flat,marketIndex:1})).toEqual([ready[1],ready[2],ready[0]]);
+  const sibling={margin:flat,marketIndex:1 as const};
+  expect(orderedPayments(ordered,[ready[0],sibling,...ready.slice(1)],{margin:flat,marketIndex:0})[0]).toEqual(sibling);
 });

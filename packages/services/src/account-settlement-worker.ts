@@ -47,6 +47,18 @@ const workOrder = {
   maintenance: ['maintenance', 'collection', 'payment'],
 } as const;
 
+/** Resume after the last payee in complete discovery order, even when its current
+ * flat balance caused discovery to skip its RPC read. Each market has its own claim. */
+export function orderedPayments(members:readonly string[],gains:Candidate[],previous?:Candidate) {
+  if(!previous)return gains;
+  const memberIndex=members.indexOf(previous.margin);
+  if(memberIndex<0)return gains;
+  const throughPayee=new Set(members.slice(0,memberIndex+1));
+  const next=gains.findIndex(gain=>!throughPayee.has(gain.margin) ||
+    (gain.margin===previous.margin && gain.marketIndex>previous.marketIndex));
+  return next>0?gains.slice(next).concat(gains.slice(0,next)):gains;
+}
+
 export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allowBackgroundPage = true,
   schedule: SettlementSchedule = { next: 'collection', collectionMarket: 0 }): Promise<AccountWorkerOutcome> {
   const budget = await runtime.budget('settlement', key);
@@ -75,7 +87,6 @@ export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allo
     }
   }
   const gains: Candidate[] = [], losses: [Address[], Address[]] = [[], []];
-  let paymentOffset = 0;
   for await (const {margin,snapshot} of candidates()) {
     if (snapshot.safetyState.mode !== 1 || snapshot.safetyState.paused) return { status: 'blocked', reason: 'venue-mode' };
     for (const marketIndex of [0, 1] as const) {
@@ -88,13 +99,11 @@ export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allo
         } else losses[marketIndex].push(margin);
       }
       if (accountClaimAmount(snapshot, margin, marketIndex, true) > 0n) gains.push({ margin, marketIndex });
-      // Resume in discovery order even if the previous payee no longer has a claim.
-      if (schedule.lastPayment?.margin === margin && schedule.lastPayment.marketIndex === marketIndex) paymentOffset = gains.length;
     }
   }
 
   // A backing turn may atomically pay a claimant too, so use the same order for both.
-  const orderedGains = paymentOffset > 0 ? gains.slice(paymentOffset).concat(gains.slice(0, paymentOffset)) : gains;
+  const orderedGains = orderedPayments(state.members,gains,schedule.lastPayment);
   let pageDeferred = false;
   for (const turn of workOrder[schedule.next]) {
     if (turn === 'collection') {
