@@ -39,6 +39,8 @@ For the [idle-debtor comparison](local-development.md#comparing-market-backing-d
 
 For the [direct-credit workload](local-development.md#qualifying-direct-profit-credits), start with a fresh market and zero settlement certificates. Confirm a funded credit after a new member joins, repeat after an idle debtor recovers and a member leaves, and trace the credited profit through the owner’s SPL withdrawal. Refused requests must preserve the recipient, debtors, pool, checkpoints and coverage rows. Compare sequential and simultaneous fill/credit pairs with distinct fee payers, verify the overlapping locks from the actual transactions, and reconcile finalized effects through a fresh PostgreSQL replay.
 
+For the [coverage-capacity workload](local-development.md#direct-payout-at-full-coverage-capacity), fill all eight lanes with canonical financial accounts and provision an extra recovery seat. Compare all 128 margin roots with their lane records, carry the closed ETH spread from its debtor to the maker’s SPL wallet, and compare whole-transaction CU for equal credits with zero and 128 individually checked rows. Require clearing’s signed execution logs to identify each branch. A refused activation must preserve the writable financial and membership accounts. Retry the same identity after freeing a seat elsewhere and again after freeing a seat in its own lane. Reconcile the final membership and cash by replaying finalized transactions into fresh PostgreSQL.
+
 On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
 100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and
 445,226 CU (ETH, 32 makers, 32 loaded accounts). The later ETH quote from a

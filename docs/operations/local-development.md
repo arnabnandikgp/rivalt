@@ -272,6 +272,19 @@ node --import tsx tests/performance/cold-maker-exit.ts .local/close-to-wallet/ce
 
 Use new output directories for each repeat. The independent report reconstructs the maker’s spread from finalized fill events and checks it against loss collection, payment and the owner’s token withdrawal.
 
+### Direct payout at full coverage capacity
+
+Use the same pinned direct-credit artifacts as the cold-payout check. Run from a clean checkout and choose a fresh result directory.
+
+```sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-984f18f3 \
+  RIVALT_ROUTER_REVISION=984f18f3a4e1d6880926805bbf120f3cb1d41bfc \
+  RIVALT_SETTLEMENT_PROBE=execution-router-direct-capacity \
+  RIVALT_RUN_DIR=.local/direct-closed-credit/capacity-repeat bash ops/scalable-settlement-smoke.sh
+```
+
+Six maker capitals and 122 trader margin accounts occupy the eight coverage lanes. Recovery storage has a separate 129th seat. The test signs the extra registration and activation attempts, a ten-lot ETH round trip and loss collection. It pays the same flat maker in two equal credits. Between payments, eight traders open ETH longs, one per lane. The owner withdraws the full credited amount. It then opens vacancies in two lanes and retries the same registered ID. The ignored `capacity.json` records the selected finalized receipts, compute units, coverage work and SQL event count.
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.
