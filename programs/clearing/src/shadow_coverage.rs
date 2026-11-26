@@ -1,5 +1,7 @@
 //! Observation only on a fresh local venue. The payment handler never reads these PDAs.
 //! Recording is permissionless and can only copy the canonical clearing-owned financial root.
+#[cfg(feature = "maintained-coverage")]
+pub(crate) mod maintenance;
 use crate::{engine, instructions::account_cash::Snapshot, state::accounts::*, ClearingError};
 use anchor_lang::prelude::*;
 use financial_core::backing::{
@@ -11,7 +13,7 @@ const LANES: usize = 8;
 // Rent and serialization bound for this twelve-member experiment, not an admission limit.
 const ROWS_PER_LANE: usize = 16;
 
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy, IdlType)]
+#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy, PartialEq, Eq, IdlType)]
 pub struct CoverageMember {
     pub id: u64,
     pub cash: u64,
@@ -71,6 +73,16 @@ pub fn open(ctx: &mut Context<OpenCoverageLane>, lane: u8) -> Result<()> {
     require!(usize::from(lane) < LANES, ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     let anchor = [accounts.btc.reference_price, accounts.eth.reference_price];
+    #[cfg(feature = "maintained-coverage")]
+    let anchor = {
+        // Fresh genesis only. All lanes are opened before the first financial join.
+        require!(
+            accounts.registry.membership_epoch == 1 && accounts.registry.financial_count == 0,
+            ClearingError::ExitCohort
+        );
+        // Markets can be unsampled during genesis. The anchor only affects the tightness of a bound.
+        anchor.map(|price| price.max(1))
+    };
     require!(
         anchor
             .iter()
@@ -100,9 +112,32 @@ pub struct RecordCoverageRow {
 }
 
 pub fn record(ctx: &mut Context<RecordCoverageRow>) -> Result<()> {
-    let margin = &ctx.accounts.margin;
-    let row = engine::checked(Row::from_margin(&engine::account::model(margin)?))?;
-    let body = &mut ctx.accounts.body;
+    require!(
+        !cfg!(feature = "maintained-coverage"),
+        ClearingError::Profile
+    );
+    let image = CoverageMember::from_root(&ctx.accounts.margin)?;
+    include(&mut ctx.accounts.body, image)
+}
+
+impl CoverageMember {
+    pub(super) fn from_root(margin: &MarginAccount) -> Result<Self> {
+        let row = engine::checked(Row::from_margin(&engine::account::model(margin)?))?;
+        Ok(Self {
+            id: margin.id,
+            cash: row.cash,
+            lots: row.lots,
+            fixed: row.fixed,
+        })
+    }
+}
+
+fn include(body: &mut CoverageLane, image: CoverageMember) -> Result<()> {
+    let row = Row {
+        cash: image.cash,
+        lots: image.lots,
+        fixed: image.fixed,
+    };
     let (sample, radius) = engine::checked(Bounds::at_anchor(row, body.anchor))?;
     let bounds = if body.members.is_empty() {
         sample
@@ -117,16 +152,10 @@ pub fn record(ctx: &mut Context<RecordCoverageRow>) -> Result<()> {
     for (floor, sample) in body.radius[class].iter_mut().zip(radius) {
         *floor = (*floor).min(sample);
     }
-    let image = CoverageMember {
-        id: margin.id,
-        cash: row.cash,
-        lots: row.lots,
-        fixed: row.fixed,
-    };
     if let Some(existing) = body
         .members
         .iter_mut()
-        .find(|member| member.id == margin.id)
+        .find(|member| member.id == image.id)
     {
         *existing = image;
     } else {
@@ -186,7 +215,12 @@ pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
         require!(
             lane.address() == &expected
                 && lane.venue == *accounts.venue.address()
-                && lane.membership_epoch == accounts.registry.membership_epoch
+                && lane.membership_epoch
+                    == if cfg!(feature = "maintained-coverage") {
+                        1
+                    } else {
+                        accounts.registry.membership_epoch
+                    }
                 && usize::from(lane.lane) == index
                 && lane.members.len() <= ROWS_PER_LANE,
             ClearingError::ExitCohort

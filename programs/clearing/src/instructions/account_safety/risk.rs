@@ -87,7 +87,7 @@ pub fn liquidate(
     lots: u64,
     price: u64,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(
         remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile

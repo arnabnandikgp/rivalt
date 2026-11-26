@@ -8,7 +8,7 @@ pub fn withdraw(
     guard: AccountGuard,
     amount: u64,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     guard.check(
@@ -117,7 +117,7 @@ pub fn transfer(
     guard: AccountGuard,
     amount: u64,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     let snapshot = begin(&accounts.identity)?;

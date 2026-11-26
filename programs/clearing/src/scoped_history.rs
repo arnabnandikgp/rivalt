@@ -31,6 +31,8 @@ pub(crate) trait Revisioned {
     fn revision(&self) -> u64;
     #[cfg(feature = "read-only-route-market")]
     fn venue_mode(&self) -> Option<u8> { None }
+    #[cfg(feature = "maintained-coverage")]
+    fn coverage_root(&self) -> Option<&MarginAccount> { None }
     fn set_revision(&mut self, revision: u64);
 }
 macro_rules! revisioned {
@@ -47,7 +49,7 @@ macro_rules! revisioned {
 }
 revisioned! {
     0 => Venue, 1 => Custody, 2 => VenueSafety; mode, 3 => VenueRegistry,
-    4 => Portfolio, 5 => MarginAccount, 6 => Market, 7 => MarketLedger,
+    4 => Portfolio, 6 => Market, 7 => MarketLedger,
     8 => CapitalBinding, 9 => SettlementCertificate, 10 => Resolution,
     // Kinds 11/12 are retired; never reuse their persisted identities.
     13 => RetirementCertificate,
@@ -55,6 +57,15 @@ revisioned! {
     17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
     20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
     24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone, 27 => StorageTombstone,
+}
+
+impl Revisioned for MarginAccount {
+    const KIND: u8 = 5;
+    fn schema(&self) -> u16 { self.schema_version }
+    fn revision(&self) -> u64 { self.revision }
+    fn set_revision(&mut self, revision: u64) { self.revision = revision; }
+    #[cfg(feature = "maintained-coverage")]
+    fn coverage_root(&self) -> Option<&MarginAccount> { Some(self) }
 }
 
 fn schema_for_kind(kind: u8) -> Result<u16> {
@@ -81,6 +92,8 @@ struct Entry {
 }
 
 pub(crate) struct Scope {
+    #[cfg(feature = "maintained-coverage")]
+    coverage: crate::shadow_coverage::maintenance::Changes,
     selected_makers: Option<MakerAccess>,
     #[cfg(feature = "read-only-route-market")]
     venue_mode: Option<u8>,
@@ -94,7 +107,10 @@ impl Scope {
     }
 
     fn with_limit(limit: usize) -> Self {
-        Self { entries: Vec::with_capacity(limit), limit, cursor: None, selected_makers: None,
+        Self {
+            #[cfg(feature = "maintained-coverage")]
+            coverage: Default::default(),
+            entries: Vec::with_capacity(limit), limit, cursor: None, selected_makers: None,
             #[cfg(feature = "read-only-route-market")] venue_mode: None }
     }
 
@@ -182,6 +198,12 @@ impl Scope {
         if self.cursor.is_none() {
             if let Some(mode) = account.venue_mode() { self.venue_mode = Some(mode); }
         }
+        #[cfg(feature = "maintained-coverage")]
+        if access != Access::Read {
+            if let Some(root) = account.coverage_root() {
+                self.coverage.capture(*account.address(), root, self.cursor.is_some())?;
+            }
+        }
         let revision = self.visit(
             account.address().to_owned(),
             T::KIND,
@@ -219,6 +241,10 @@ impl Scope {
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
         let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
         drop(bytes);
+        #[cfg(feature = "maintained-coverage")]
+        if T::KIND == MarginAccount::KIND && access == Access::Write {
+            self.coverage.capture_raw(account, self.cursor.is_some())?;
+        }
         let next = self.visit(*account.address(), T::KIND, schema, revision, access)?;
         if self.cursor.is_some() && access != Access::Read {
             account.try_borrow_mut()?[10..18].copy_from_slice(&next.to_le_bytes());
@@ -405,6 +431,8 @@ impl Scope {
                 Access::Read
             };
             require!(!writable || account.is_writable(), ClearingError::Profile);
+            #[cfg(feature = "maintained-coverage")]
+            if writable { self.coverage.capture_raw(account, self.cursor.is_some())?; }
             let next = self.visit(
                 *account.address(),
                 MarginAccount::KIND,
@@ -560,6 +588,19 @@ unsafe impl<'a> SchemaWrite<anchor_lang::BorshConfig> for TransitionView<'a> {
         ScopedRows::write(writer.by_ref(), &value.reads)?;
         ScopedRows::write(writer.by_ref(), &value.writes)
     }
+}
+
+/// Original business-account list, excluding the optional local coverage suffix.
+#[inline]
+pub(crate) fn economic_accounts<T: Bumps>(ctx: &mut Context<T>) -> Result<Vec<AccountView>> {
+    let accounts = ctx.remaining_accounts()?;
+    #[cfg(feature = "maintained-coverage")]
+    let accounts = {
+        let mut accounts = accounts;
+        accounts.truncate(crate::shadow_coverage::maintenance::trailing_lanes(&accounts)?);
+        accounts
+    };
+    Ok(accounts)
 }
 
 /// Implementations live beside the context coverage table. Visits are identical
@@ -738,6 +779,11 @@ fn run_with_remaining<'context, T: ScopedContext>(
 ) -> Result<()> {
     profile_cu!("scope-enter");
     let mut remaining = context.remaining_accounts()?;
+    #[cfg(feature = "maintained-coverage")]
+    let coverage_lanes = {
+        let start = crate::shadow_coverage::maintenance::trailing_lanes(&remaining)?;
+        remaining.split_off(start)
+    };
     #[cfg(feature = "book-inventory-qualification")]
     let mut scope = if matches!(access, Remaining::FrozenPlanPages) {
         Scope::inventory_pages(remaining.len())?
@@ -778,6 +824,8 @@ fn run_with_remaining<'context, T: ScopedContext>(
     context.accounts.visit(&mut scope)?;
     access.visit(&mut scope, &mut remaining)?;
     let (venue, domain) = context.accounts.venue();
+    #[cfg(feature = "maintained-coverage")]
+    scope.coverage.commit(venue, &coverage_lanes)?;
     let event = scope.finish(
         venue,
         domain,

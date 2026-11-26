@@ -64,7 +64,7 @@ pub fn manage(
     market_index: u8,
     operation: OrderAction,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     if matches!(
@@ -152,7 +152,7 @@ pub fn delegate(
     delegate: Address,
     expiry_slot: u64,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     // Revocation needs no source or maker, and remains available while paused.

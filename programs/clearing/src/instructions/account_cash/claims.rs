@@ -8,7 +8,7 @@ pub fn change(
     amount: u64,
     gain: bool,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(
         remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile
@@ -104,7 +104,7 @@ pub fn net(
     source_market: u8,
     amount: u64,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(
         remaining_accounts.is_empty() && source_market < 2,
         ClearingError::Profile
