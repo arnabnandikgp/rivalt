@@ -203,6 +203,21 @@ RIVALT_SETTLEMENT_PROBE=execution-router-shadow-coverage RIVALT_CASHOUT_ARM=work
 
 Each run provisions fresh local services and writes its own `shadow-coverage.json` and `cashout-result.json` in the ignored run directory. The first file contains per-fill compute, writable accounts and claim-time observations. The second contains the certified payments, withdrawals and replay result.
 
+### Verifying mandatory coverage updates
+
+Build the candidate at clean revision `eb1cb0e4250e7c4532207f9d7db7dbad135979be` with the qualified base artifacts installed. Use a fresh directory for each run. From the current harness checkout, set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the resulting directory and run the signed membership and financial controls.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=maintained-coverage \
+  RIVALT_ATTRIBUTION_DIR=.local/maintained-coverage/build-eb1cb0e4 bash ops/build-profit-attribution.sh
+
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/maintained-coverage/build-eb1cb0e4
+export RIVALT_ROUTER_REVISION=eb1cb0e4250e7c4532207f9d7db7dbad135979be
+RIVALT_SETTLEMENT_PROBE=execution-router-maintained-coverage bash ops/scalable-settlement-smoke.sh
+```
+
+The run checks rollback on missing and substituted writable accounts, compares all lane rows with finalized margin accounts, and replays the financial journal into a fresh PostgreSQL database. The ignored run directory retains the signed originals, receipts and `maintained-coverage.json`.
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.

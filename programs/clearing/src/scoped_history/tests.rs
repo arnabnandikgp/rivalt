@@ -603,3 +603,43 @@ fn inventory_page_scope_reserves_only_supplied_pages_and_fits_the_event() {
     assert!(Scope::inventory_pages(156).is_err());
     assert!(Scope::inventory_pages(usize::MAX).is_err());
 }
+
+#[cfg(feature = "maintained-coverage")]
+#[test]
+fn raw_margin_writes_require_coverage_for_changed_financial_values() {
+    use crate::test_support::TestAccount;
+    // The market-order extras and the older dynamic cohort path use different scope visitors.
+    for selected_maker in [false, true] {
+        let venue = Address::new_unique();
+        let key = Address::new_unique();
+        let mut root = MarginAccount {
+            schema_version: SCHEMA_VERSION, revision: 1, venue, id: 23, mode: MODE_CROSS,
+            isolated_market_index: CROSS_MARKET_SENTINEL, role: ROLE_TRADER, delegate_epoch: 1,
+            lifecycle: MEMBER_FINANCIAL, activation_generation: 1, cash: 100, ..Default::default()
+        };
+        let mut bytes = vec![0; MARGIN_ALLOCATION];
+        crate::wire::write_account(&root, &mut bytes).unwrap();
+        let mut backing = TestAccount::new(key, crate::ID, &bytes, true, false);
+        let mut view = backing.view();
+        let visit = |scope: &mut Scope, view: &mut AccountView| {
+            if selected_maker {
+                scope.raw::<MarginAccount>(view, Access::Write)
+            } else {
+                scope.remaining(std::slice::from_mut(view), true)
+            }
+        };
+        let mut scope = Scope::new();
+        visit(&mut scope, &mut view).unwrap();
+        root.cash = 99;
+        crate::wire::write_account(&root, &mut view.try_borrow_mut().unwrap()).unwrap();
+        scope.cursor = Some(0);
+        visit(&mut scope, &mut view).unwrap();
+        assert_eq!(scope.coverage.commit(venue, &[]), Err(ClearingError::ExitCohort.into()));
+
+        let mut unchanged = Scope::new();
+        visit(&mut unchanged, &mut view).unwrap();
+        unchanged.cursor = Some(0);
+        visit(&mut unchanged, &mut view).unwrap();
+        assert!(unchanged.coverage.commit(venue, &[]).is_ok());
+    }
+}

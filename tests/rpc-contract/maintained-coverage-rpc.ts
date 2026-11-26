@@ -97,7 +97,7 @@ try {
   audits.push(await audit([...active,child]));
   async function membership(enter:boolean) {
     await flush();
-    const state = await sdk.readMarginMembership(rpc,venue,owner.address,child);
+    const state = await sdk.readMarginMembership(rpc,venue,owner.address,child,true,setup.identity.marginLayout);
     const input = {...setup.common,...state,owner};
     const ix = enter?sdk.getActivateMarginInstruction(input):sdk.getDeactivateMarginInstruction(input);
     return {...ix,accounts:[...ix.accounts,...state.remaining]};
@@ -122,12 +122,13 @@ try {
   audits.push(await audit([...active,child]));
   await transport.send('leave after rejoining',[append(await membership(false),[members.get(child)!])],[owner]);
   await flush();
-  const retired = await sdk.readMarginMembership(rpc,venue,owner.address,child,false);
+  const retired = await sdk.readMarginMembership(rpc,venue,owner.address,child,false,setup.identity.marginLayout);
   await transport.send('retire registered identity',[sdk.getRetireMarginInstruction({...setup.common,...retired,owner})],[owner]);
   assert.equal(sdk.getMarginTombstoneDecoder().decode((await h.read(child))!).id,7n);
   audits.push(await audit(active));
 
   await setup.qualify();
+  const traderCash = (await root(trader)).cash;
   const buy = await route({trader,actor:owner,marketIndex:0,side:0,makers:[maker],lots:[10n],marketLane:true,minimalMarkets:true});
   const traderLane=members.get(trader)!, makerLane=members.get(maker.capital)!;
   assert.notEqual(traderLane,makerLane);
@@ -136,17 +137,28 @@ try {
     ...append(buy,[traderLane]).accounts!,{address:makerLane,role:AccountRole.READONLY}]}],[owner]);
   await transport.send('record both sides inside BTC fill',[append(buy,[traderLane,makerLane])],[owner]);
   assert.equal((await root(trader)).positions[0].lots,10n);
-  assert.equal((await root(maker.capital)).positions[0].lots,-10n);
+  const filled = await root(trader), provided = await root(maker.capital);
+  assert.equal(provided.positions[0].lots,-10n);
+  // Ten lots at 60,002 atoms/lot, charged once at 2 bps with ceiling rounding.
+  assert.equal(filled.cash,traderCash-121n);
+  assert.equal(filled.positions[0].virtualScaled,-600_020n*1_000_000_000n);
+  assert.equal(provided.positions[0].virtualScaled,600_020n*1_000_000_000n);
   audits.push(await audit(active));
   await setup.sample();
   const observation = observeCoverage(inputs,lanes,0);
-  await transport.send('observe covered BTC debt after join and exit',[observation]);
+  const observedLabel = 'observe covered BTC debt after join and exit';
+  await transport.send(observedLabel,[observation]);
+  await flush();
+  const observed = checks.find(row=>row.label===observedLabel)!;
+  const receipt = await rpc.call('getTransaction',[observed.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+  assert(receipt.meta.logMessages.some((log:string)=>/^Program log: coverage target=0 members=7 exact=\d+ covered=1$/.test(log)));
   const withdrawal = sdk.getWithdrawFundedAccountInstruction({...setup.common,btc:setup.markets[0],eth:setup.markets[1],
     btcLedger:setup.ledgers[0],ethLedger:setup.ledgers[1],owner,margin:trader,userToken:setup.traderToken.address,
     quoteMint:setup.mint.address,guard:await guard(trader),amount:100n});
   const prefixed = await withCheckpoints(withdrawal);
   await refuse('missing lane on withdrawal',prefixed,[owner]);
   await transport.send('withdraw 100 funded atoms with coverage',[...prefixed.slice(0,-1),append(withdrawal,[traderLane])],[owner]);
+  assert.equal((await root(trader)).cash,traderCash-221n);
   audits.push(await audit(active));
   const journal = await openSettlementJournal(rpc,setup,checks.map(receipt=>String(receipt.signature)),build);
   const replay = await journal.finish();
