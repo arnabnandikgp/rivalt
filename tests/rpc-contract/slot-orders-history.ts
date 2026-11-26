@@ -9,7 +9,7 @@ import type {WireRpc} from './wire.js';
 
 export const fingerprint = (s:string) => createHash('sha256').update(s).digest().subarray(0,8);
 const methods = ['open_trade_market','publish_trade_market','deposit_trade_cash','withdraw_trade_cash',
-  'place_trade_order','cancel_trade_order','fill_trade_order'] as const;
+  'place_trade_order','cancel_trade_order','fill_trade_order','transfer_trade_risk'] as const;
 const scale=1_000_000_000n;
 export function signed128(bytes:Buffer,start:number) {
   return bytes.readBigUInt64LE(start)+(bytes.readBigInt64LE(start+8)<<64n);
@@ -39,9 +39,29 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
   url.pathname='/rivalt_order_replay';
   const sql=new pg.Client({connectionString:url.href});
   const prices=new Map<Address,{id:number;price:bigint;funding:bigint;fees:bigint}>();
-  const orders=new Map<Address,{sell:boolean;prefix:bigint;remaining:bigint;market:number}>();
+  const orders=new Map<Address,{sell:boolean;prefix:bigint;remaining:bigint;market:number;limit:bigint;feeLeft:bigint;reduce:boolean;expiry:bigint}>();
   const observed=new Map<string,number>();
-  let fills=0;
+  let fills=0, transfers=0;
+  // Value every SQL-reconstructed position at its own current index. A flat
+  // negative basis remains debt. The rounded requirement is per market.
+  async function riskAt(root:Address) {
+    const cashRow=await sql.query('select coalesce(sum(cash),0) as cash from postings where root=$1',[root]);
+    const cash=BigInt(cashRow.rows[0].cash);
+    let equity=cash*scale, maintenance=0n, initial=0n;
+    const holdings=new Map<number,bigint>();
+    const rows=await sql.query('select market,sum(lots) as lots,sum(basis) as basis from postings where root=$1 and market is not null group by market',[root]);
+    for(const row of rows.rows) {
+      const market=[...prices.values()].find(m=>m.id===row.market)!;
+      const lots=BigInt(row.lots), size=lots<0n?-lots:lots;
+      holdings.set(row.market,lots);
+      const claim=BigInt(row.basis)+lots*(market.price-market.funding)*scale;
+      if(claim<0n) equity+=claim;
+      maintenance+=(size*market.price+19n)/20n;
+      initial+=(size*market.price+9n)/10n;
+    }
+    const shortfall=maintenance*scale-equity;
+    return {cash,equity,initial,holdings,deficit:shortfall>0n?shortfall:0n};
+  }
   try {
     await sql.connect();
     await sql.query('create table postings(signature text, root text, market int, cash numeric, lots numeric, basis numeric, primary key(signature,root))');
@@ -75,7 +95,7 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
           const market=prices.get(keys[2])!;
           market.price=bytes.readBigUInt64LE(16); market.funding=bytes.readBigInt64LE(24);
         }
-        if(name==='place_trade_order') orders.set(keys[2],{sell:bytes[18]===1,prefix:0n,remaining:bytes.readBigUInt64LE(19),market:bytes.readUInt16LE(16)});
+        if(name==='place_trade_order') orders.set(keys[2],{sell:bytes[18]===1,prefix:0n,remaining:bytes.readBigUInt64LE(19),market:bytes.readUInt16LE(16),limit:bytes.readBigUInt64LE(27),feeLeft:bytes.readBigUInt64LE(35),expiry:bytes.readBigUInt64LE(43),reduce:Boolean(bytes[51])});
         if(name==='cancel_trade_order') assert(orders.delete(keys[2]));
         if(name==='deposit_trade_cash'||name==='withdraw_trade_cash') {
           const amount=bytes.readBigUInt64LE(16),delta=name==='deposit_trade_cash'?amount:-amount;
@@ -92,12 +112,51 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
           const lots=bytes.readBigUInt64LE(32),gross=lots*market.price;
           assert.equal(market.id,order.market); assert(lots<=order.remaining);
           const fee=(order.prefix+gross+4999n)/5000n-(order.prefix+4999n)/5000n;
-          order.prefix+=gross; order.remaining-=lots;
+          order.prefix+=gross; order.remaining-=lots; order.feeLeft-=fee;
           if(order.remaining===0n) orders.delete(trader);
           const signed=order.sell?-lots:lots, basis=signed*(market.funding-market.price)*scale;
           await post(trader,market.id,-fee,signed,basis);
           await post(maker,market.id,0n,-signed,-basis);
           market.fees+=fee; fills++;
+        }
+        if(name==='transfer_trade_risk') {
+          const [,,marketKey,target,receiver]=keys, market=prices.get(marketKey)!;
+          const lots=bytes.readBigUInt64LE(32), execution=bytes.readBigUInt64LE(40);
+          const before=await riskAt(target), held=before.holdings.get(market.id)!;
+          assert(before.deficit>0n && lots>0n && lots<=(held<0n?-held:held));
+          assert(execution*10n>=market.price*9n && execution*10n<=market.price*11n);
+          const gross=lots*execution, rawFee=(gross+1999n)/2000n;
+          const fee=[rawFee,10_000n,before.cash].reduce((a,b)=>a<b?a:b);
+          const received=held>0n?lots:-lots;
+          const basis=received*(market.funding-execution)*scale;
+          await post(target,market.id,-fee,-received,-basis);
+          await post(receiver,market.id,fee,received,basis);
+          const after=await riskAt(target), receiving=await riskAt(receiver);
+          assert(after.deficit<before.deficit);
+          let receiverReserve=0n;
+          for(const [root,account] of [[target,after],[receiver,receiving]] as const) {
+            const order=orders.get(root);
+            if(!order) continue;
+            const position=account.holdings.get(order.market)??0n;
+            if(BigInt(tx.slot)>=order.expiry || (root===target && !order.reduce)
+              || (order.reduce && (position===0n || order.sell!==(position>0n)))) {
+              orders.delete(root); continue;
+            }
+            if(root===receiver) {
+              const source=[...prices.values()].find(m=>m.id===order.market)!;
+              const size=position<0n?-position:position;
+              const eligible=order.reduce && size<order.remaining?size:order.remaining;
+              const adverse=order.sell?source.price-order.limit:order.limit-source.price;
+              receiverReserve=order.feeLeft+eligible*((adverse>0n?adverse:0n)+(order.reduce?0n:(source.price+9n)/10n));
+            }
+          }
+          assert(receiving.equity>=(receiving.initial+receiverReserve)*scale);
+          assert.equal(tx.meta.returnData.programId,program);
+          const returned=Buffer.from(tx.meta.returnData.data[0],'base64');
+          assert.equal(returned.length,40);
+          assert.deepEqual([signed128(returned,0),signed128(returned,16),returned.readBigUInt64LE(32)],
+            [before.deficit,after.deficit,fee]);
+          transfers++;
         }
       }
     }
@@ -127,6 +186,6 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
       fees+=market.fees;
     }
     assert.equal(cashTotal+fees,vaultBalance);
-    return {receipts:observed.size,fills,cash:cashTotal.toString(),fees:fees.toString(),vault:vaultBalance.toString()};
+    return {receipts:observed.size,fills,transfers,cash:cashTotal.toString(),fees:fees.toString(),vault:vaultBalance.toString()};
   } finally {await sql.end();}
 }

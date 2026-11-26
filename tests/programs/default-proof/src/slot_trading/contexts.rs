@@ -75,3 +75,19 @@ pub struct MatchTrade {
         constraint=maker.isolated==market.id @ ProofError::TradeTerms)]
     pub maker: BorshAccount<TradingMargin>,
 }
+
+#[derive(Accounts)]
+pub struct TransferRisk {
+    pub receiver_owner: Signer,
+    pub custody: BorshAccount<SlotCustody>,
+    #[account(has_one=custody @ ProofError::CustodyBinding)]
+    pub market: BorshAccount<TradingMarket>,
+    #[account(mut,has_one=custody @ ProofError::CustodyBinding,
+        constraint=target.isolated==CROSS @ ProofError::TradeTerms)]
+    pub target: BorshAccount<TradingMargin>,
+    // Cross trader roots are a distinct role from this profile's isolated maker capitals.
+    #[account(mut,has_one=custody @ ProofError::CustodyBinding,
+        constraint=receiver.owner==*receiver_owner.address() && receiver.address()!=target.address() @ ProofError::CustodyBinding,
+        constraint=receiver.isolated==CROSS @ ProofError::TradeTerms)]
+    pub receiver: BorshAccount<TradingMargin>,
+}

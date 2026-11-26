@@ -7,6 +7,8 @@ use anchor_spl::token::{self, TransferChecked};
 use financial_core::{cash_add, cash_sub, fee_increment, fee_lanes, price_policy, SCALE};
 use risk_engine::withdrawal::MarketWindow;
 mod contexts;
+mod liquidation;
+pub use liquidation::{transfer, TransferOutcome};
 mod state;
 pub use contexts::*;
 pub use state::*;
@@ -61,17 +63,20 @@ pub fn publish(
 
 // The selected fill market also holds its fee buckets and is in the fixed context.
 // Authenticate every remaining market exactly once in increasing ID order.
+fn occupied(roots: &[&TradingMargin]) -> Vec<u16> {
+    roots
+        .iter()
+        .flat_map(|root| root.slots.iter().map(|row| row.market()))
+        .collect()
+}
+
 fn load(
     views: &[AccountView],
     custody: &Address,
-    roots: &[&TradingMargin],
+    mut ids: Vec<u16>,
     touched: Option<u16>,
     selected: Option<&TradingMarket>,
 ) -> Result<Vec<MarketWindow>> {
-    let mut ids: Vec<_> = roots
-        .iter()
-        .flat_map(|root| root.slots.iter().map(|row| row.market()))
-        .collect();
     ids.extend(touched);
     ids.sort_unstable();
     ids.dedup();
@@ -127,7 +132,13 @@ pub fn place(ctx: &mut Context<TraderOrder>, revision: u64, terms: OrderTerms) -
             && terms.fee_budget <= financial_core::MAX_CASH,
         ProofError::TradeTerms
     );
-    let windows = load(&views, &root.custody, &[root], Some(terms.market), None)?;
+    let windows = load(
+        &views,
+        &root.custody,
+        occupied(&[root]),
+        Some(terms.market),
+        None,
+    )?;
     let position = root.position(terms.market)?;
     let order = RestingOrder {
         remaining: terms.lots,
@@ -136,7 +147,10 @@ pub fn place(ctx: &mut Context<TraderOrder>, revision: u64, terms: OrderTerms) -
         generation: position.generation,
         terms,
     };
-    order.reduction(position)?;
+    require!(
+        order.eligible(position) == terms.lots,
+        ProofError::TradeTerms
+    );
     let required = root.transition(&windows, order, None)?;
     require!(
         i128::from(root.cash) * SCALE >= required.current_scaled,
@@ -178,11 +192,14 @@ pub fn execute(
             }),
         ProofError::TradeTerms
     );
-    order.reduction(a.trader.position(terms.market)?)?;
+    require!(
+        lots <= order.eligible(a.trader.position(terms.market)?),
+        ProofError::TradeTerms
+    );
     let windows = load(
         &views,
         a.custody.address(),
-        &[&a.trader, &a.maker],
+        occupied(&[&a.trader, &a.maker]),
         Some(terms.market),
         Some(&a.market),
     )?;
@@ -265,7 +282,13 @@ pub fn wallet(
     a.margin.guard(revision)?;
     require!(amount > 0, ProofError::TradeTerms);
     if withdraw {
-        let windows = load(&views, a.custody.address(), &[&a.margin], None, None)?;
+        let windows = load(
+            &views,
+            a.custody.address(),
+            occupied(&[&a.margin]),
+            None,
+            None,
+        )?;
         let order = a.margin.order;
         let required = a.margin.transition(&windows, order, None)?;
         a.margin.cash =

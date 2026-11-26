@@ -83,6 +83,11 @@ pub mod default_proof_probe {
         slot_trading::execute(ctx, trader_revision, maker_revision, price_revision, lots)
     }
 
+    pub fn transfer_trade_risk(ctx: &mut Context<TransferRisk>, target_revision: u64, receiver_revision: u64,
+        price_revision: u64, lots: u64, price: u64) -> Result<TransferOutcome> {
+        slot_trading::transfer(ctx, target_revision, receiver_revision, price_revision, lots, price)
+    }
+
     pub fn open_slot_custody(ctx: &mut Context<OpenSlotCustody>) -> Result<()> {
         slot_custody::open(ctx)
     }
@@ -244,4 +249,7 @@ pub enum ProofError {
     CustodyBinding,
     TradeTerms,
     TradeHealth,
+    HealthyTarget,
+    NoLiquidationProgress,
+    ReceiverHealth,
 }

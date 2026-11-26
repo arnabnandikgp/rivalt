@@ -44,17 +44,17 @@ impl RestingOrder {
         }
     }
 
-    pub fn reduction(&self, position: Position) -> Result<()> {
-        if self.terms.reduce_only {
-            require!(
-                position.generation == self.generation
-                    && position.lots != 0
-                    && (self.terms.side == 1) == (position.lots > 0)
-                    && self.remaining <= position.lots.unsigned_abs(),
-                ProofError::TradeTerms
-            );
+    pub fn eligible(&self, position: Position) -> u64 {
+        if !self.terms.reduce_only {
+            return self.remaining;
         }
-        Ok(())
+        if position.lots == 0
+            || self.generation != position.generation
+            || (self.terms.side == 1) != (position.lots > 0)
+        {
+            return 0;
+        }
+        self.remaining.min(position.lots.unsigned_abs())
     }
 }
 
@@ -108,7 +108,7 @@ pub struct FillLeg {
     pub gross: u64,
 }
 
-fn window(windows: &[MarketWindow], market: u16) -> Result<&MarketWindow> {
+pub(super) fn window(windows: &[MarketWindow], market: u16) -> Result<&MarketWindow> {
     windows
         .binary_search_by_key(&market, |w| w.market)
         .map(|i| &windows[i])
@@ -195,7 +195,7 @@ impl TradingMargin {
     pub fn transition(
         &mut self,
         windows: &[MarketWindow],
-        next_order: RestingOrder,
+        mut next_order: RestingOrder,
         fill: Option<FillLeg>,
     ) -> Result<CashRequired> {
         let book = self.directory()?;
@@ -217,8 +217,12 @@ impl TradingMargin {
             }
         }
         for image in &mut images {
-            let price = window(windows, image.market)?;
             let old = image.position;
+            let leg = fill.as_ref().filter(|leg| leg.market == image.market);
+            if leg.is_none() && old.lots == 0 {
+                continue;
+            }
+            let price = window(windows, image.market)?;
             let participant = Participant {
                 lots: old.lots,
                 virtual_scaled: old.virtual_scaled,
@@ -226,7 +230,7 @@ impl TradingMargin {
                 generation: old.generation,
                 ..Participant::default()
             };
-            let next = if let Some(leg) = fill.as_ref().filter(|leg| leg.market == image.market) {
+            let next = if let Some(leg) = leg {
                 let next = checked(participant.quoted_fill(
                     leg.side,
                     leg.lots,
@@ -235,10 +239,8 @@ impl TradingMargin {
                 ))?;
                 image.entry = checked(image.entry.fill(old.lots, next.lots, leg.gross))?;
                 next
-            } else if old.lots != 0 {
-                checked(participant.accrued(price.current.funding))?
             } else {
-                continue;
+                checked(participant.accrued(price.current.funding))?
             };
             image.position = Position {
                 lots: next.lots,
@@ -246,6 +248,16 @@ impl TradingMargin {
                 funding_checkpoint: next.funding_checkpoint,
                 generation: next.generation,
             };
+        }
+        let mut eligible = next_order.remaining;
+        if eligible > 0 && next_order.terms.reduce_only {
+            let offset = images
+                .binary_search_by_key(&next_order.terms.market, |image| image.market)
+                .map_err(|_| ProofError::Incomplete)?;
+            eligible = next_order.eligible(images[offset].position);
+            if eligible == 0 {
+                next_order = RestingOrder::default();
+            }
         }
         let next = checked(book.successor(&images, next_order.markets()))?;
         let mut slots = Vec::new();
@@ -270,7 +282,7 @@ impl TradingMargin {
             let terms = next_order.terms;
             let risk = window(windows, terms.market)?.current;
             reserve = checked(orders::reserve(
-                next_order.remaining,
+                eligible,
                 terms.limit,
                 next_order.fee_left,
                 terms.side,

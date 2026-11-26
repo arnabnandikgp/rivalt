@@ -4,8 +4,18 @@ use crate::margin::{Margin, Risk, MARKETS};
 pub const MAX_LIQUIDATION_LOTS: u64 = MAX_LOTS as u64;
 pub const MAX_LIQUIDATION_FEE: u64 = 10_000;
 
-fn receiver_fee(notional: u64, available_cash: u64) -> u64 {
+pub fn receiver_fee(notional: u64, available_cash: u64) -> u64 {
     notional.div_ceil(2_000).min(MAX_LIQUIDATION_FEE).min(available_cash)
+}
+
+/// Inclusive price band and exposure bound shared by fixed and sparse receivers.
+pub fn receiver_terms_valid(held: i64, lots: u64, price: u64, reference: u64) -> bool {
+    let denominator = u128::from(price_policy::EXECUTION_DENOMINATOR);
+    let scaled_price = u128::from(price) * denominator;
+    lots > 0 && lots <= MAX_LIQUIDATION_LOTS && lots <= held.unsigned_abs()
+        && (1..=MAX_PRICE).contains(&price) && (1..=MAX_PRICE).contains(&reference)
+        && scaled_price >= u128::from(reference) * u128::from(price_policy::EXECUTION_LOWER_NUMERATOR)
+        && scaled_price <= u128::from(reference) * u128::from(price_policy::EXECUTION_UPPER_NUMERATOR)
 }
 
 pub fn deficit(p: &Participant, lower: u64, upper: u64, funding: i128) -> Result<i128> {
@@ -31,16 +41,7 @@ pub fn candidate(
     target.validate()?;
     receiver.validate()?;
     if target.id == receiver.id
-        || target.lots == 0
-        || lots == 0
-        || lots > MAX_LIQUIDATION_LOTS
-        || lots > target.lots.unsigned_abs()
-        || reference == 0
-        || reference > MAX_PRICE
-        || price == 0
-        || price > MAX_PRICE
-        || u128::from(price) * u128::from(price_policy::EXECUTION_DENOMINATOR) < u128::from(reference) * u128::from(price_policy::EXECUTION_LOWER_NUMERATOR)
-        || u128::from(price) * u128::from(price_policy::EXECUTION_DENOMINATOR) > u128::from(reference) * u128::from(price_policy::EXECUTION_UPPER_NUMERATOR)
+        || !receiver_terms_valid(target.lots, lots, price, reference)
     {
         return Err(Error::Bounds);
     }
@@ -80,15 +81,7 @@ pub fn whole_account_candidate(
     if !target.allows(market)
         || !receiver.allows(market)
         || target.id == receiver.id
-        || lots == 0
-        || lots > liquidation::MAX_LIQUIDATION_LOTS
-        || lots > target.positions[market].lots.unsigned_abs()
-        || reference == 0
-        || reference > MAX_PRICE
-        || price == 0
-        || price > MAX_PRICE
-        || u128::from(price) * u128::from(price_policy::EXECUTION_DENOMINATOR) < u128::from(reference) * u128::from(price_policy::EXECUTION_LOWER_NUMERATOR)
-        || u128::from(price) * u128::from(price_policy::EXECUTION_DENOMINATOR) > u128::from(reference) * u128::from(price_policy::EXECUTION_UPPER_NUMERATOR)
+        || !receiver_terms_valid(target.positions[market].lots, lots, price, reference)
     {
         return Err(Error::Bounds);
     }

@@ -48,7 +48,7 @@ case "${RIVALT_PROOF_SCOPE:-selection}" in
     cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
     node --import tsx tests/rpc-contract/mirror-order-rpc.ts ;;
   coverage) node --import tsx tests/rpc-contract/payout-coverage-rpc.ts ;;
-  slot-orders) node --import tsx tests/rpc-contract/slot-orders-rpc.ts ;;
+  slot-orders|slot-liquidation) node --import tsx tests/rpc-contract/slot-orders-rpc.ts ;;
   slot-custody) node --import tsx tests/rpc-contract/slot-custody-rpc.ts ;;
   withdrawal-width) node --import tsx tests/rpc-contract/withdrawal-width-rpc.ts ;;
   attribution) node --import tsx tests/rpc-contract/attribution-storage-rpc.ts ;;
