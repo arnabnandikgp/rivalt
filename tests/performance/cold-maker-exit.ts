@@ -49,9 +49,23 @@ assert.equal(profit, BigInt(result.workerFlows[1].collected));
 assert.equal(after.roots[capital].cash, before.roots[capital].cash);
 assert.deepEqual([after.roots[capital].positions[1].lots, after.roots[capital].positions[1].virtualScaled], ['0', '0']);
 const stages = result.makerExit;
+const direct = result.deployment === 'direct-closed-credit';
+if (direct) {
+  assert.equal(stages.pages, 0);
+  assert(stages.receipts.length > 0);
+  let totalPaid = 0n;
+  for (const receipt of stages.receipts) {
+    assert(!receipt.initialize && !receipt.page && BigInt(receipt.paid) > 0n);
+    totalPaid += BigInt(receipt.paid);
+  }
+  assert.equal(totalPaid, profit);
+} else {
+  assert(stages.backingComplete && stages.pages > 0);
+}
 const exit = result.receipts.find((row: { signature: string }) => row.signature === stages.withdrawal.signature);
 assert(exit && exit.error === null && exit.label === 'withdraw closed ETH maker profit');
 console.log(json({ capital, makerSales, makerBuys, profit, proofTransactions: stages.pages,
-  flatClaimMs: stages.flatClaim.ms, fullPoolMs: stages.fundedPool.ms, completeMs: stages.backingComplete.ms,
+  flatClaimMs: stages.flatClaim.ms, fundingCompletedMs: stages.fundedPool.ms,
+  fullPoolMs: direct ? null : stages.fundedPool.ms, completeMs: stages.backingComplete?.ms ?? null,
   creditedMs: stages.credited.ms, walletMs: stages.wallet.ms, flatToWalletMs: stages.flatToWalletMs,
   btcWithdrawalsMs: result.rows.map((row: { withdrawalMs: number }) => row.withdrawalMs), events: result.events }));

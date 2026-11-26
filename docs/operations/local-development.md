@@ -252,6 +252,26 @@ RIVALT_SETTLEMENT_PROBE=execution-router-direct-credit bash ops/scalable-settlem
 
 The signed workload uses separate fee payers for BTC fills and ETH credits. Its ignored run directory contains `direct-credit.json`, signed originals, RPC receipts and local database data. [Acceptance checks](validation.md)
 
+### Comparing automatic direct and certificate payouts
+
+Use one clean harness revision for both worker runs. Run the arms sequentially on fresh local banks and databases with the same slot setting, six traders, six makers and 48 scheduled orders. Both runs start with funded BTC settlement cash, a warm BTC certificate and a cold ETH market. The initial BTC certificate is part of the matched setup. Each arm records the work performed by its worker separately.
+
+```sh
+export RIVALT_CASHOUT_ARM=worker-eth-exit
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-984f18f3 \
+  RIVALT_ROUTER_REVISION=984f18f3a4e1d6880926805bbf120f3cb1d41bfc \
+  RIVALT_SETTLEMENT_PROBE=execution-router-direct-cashout \
+  RIVALT_RUN_DIR=.local/direct-closed-credit/worker-repeat bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/bounded-entry/build-b7e4458b \
+  RIVALT_ROUTER_REVISION=b7e4458b57a3a9bbb0906929a936094c78393b47 \
+  RIVALT_SETTLEMENT_PROBE=execution-router-bounded-entry-cashout \
+  RIVALT_RUN_DIR=.local/close-to-wallet/certificate-repeat bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/cold-maker-exit.ts .local/direct-closed-credit/worker-repeat
+node --import tsx tests/performance/cold-maker-exit.ts .local/close-to-wallet/certificate-repeat
+```
+
+Use new output directories for each repeat. The independent report reconstructs the maker’s spread from finalized fill events and checks it against loss collection, payment and the owner’s token withdrawal.
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.

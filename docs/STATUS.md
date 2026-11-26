@@ -69,7 +69,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 4, atomic closed-profit credit on a fresh local deployment.** Clearing `984f18f3` and harness `ed673ae8` paid a maker directly after a ninth member joined. Its first credit used one transaction, 156,449 CU and zero certificate checks. When BTC moved against an idle ETH debtor, payment refused with nine atoms still in the pool. After recovery and a member exit, the maker received and withdrew all 40 earned atoms. Eight refusal controls rolled back. Four concurrent BTC fill and ETH credit pairs finalized in their respective slots despite four overlapping locks per pair. Fresh PostgreSQL replay matched 263 events. The direct path is available through the pinned local SDK. [Qualification and limits](operations/qualification-scorecard.md#direct-credit-with-membership-changes-and-competing-fills)
 
-**Next action.** Add direct credit to the settlement worker for the pinned local deployment and rerun the original 12-member, 48-order cold ETH exit. Compare time from close to wallet withdrawal, loss collection work and competing fills with the certificate run.
+**Finding 4, automatic direct credit.** On worker and harness `88625d28`, the ETH maker received its 480 atoms in its wallet 13.994 s after going flat on direct clearing `984f18f3`, compared with 115.232 s on certificate clearing `b7e4458b`. The direct worker submitted three credits and zero backing-check transactions. The certificate worker submitted 43 backing checks. Both venues filled all 48 orders, collected all covered losses and completed all three wallet exits. Fresh SQL replay reconciled 550 and 899 events respectively. [Matched results and limits](operations/performance.md#automatic-payout-on-the-same-12-member-book)
+
+**Next action.** Measure a complete direct payout at the eight-lane capacity boundary on a fresh local venue, including admission to a full lane, loss collection, credit CU and token withdrawal.
 
 | Open gate | What remains |
 |---|---|

@@ -317,6 +317,27 @@ The two BTC traders received 0.971799 test collateral each at 11.047 and 18.166 
 
 The 48 orders were a finite burst. Source and maker updates continued through the later backing checks and withdrawal. This measures one cold scan on a local 12-member venue with funded losses. [Run the qualification](local-development.md#closing-a-position-through-wallet-withdrawal-under-load)
 
+### Automatic payout on the same 12-member book
+
+The same worker and harness revision (`88625d28`) ran sequentially on two fresh Surfpool banks with 50 ms slots and zero priority fee. Each had six internal makers, six traders, a current BTC certificate and no ETH certificate at release. Four wallets submitted 48 scheduled ten-lot orders across BTC and ETH. The ETH maker earned 480 collateral atoms on 120 lots sold and 120 bought back. The credit put funded cash in its margin account. The maker signed a separate withdrawal to its SPL wallet. [Run both arms and reconstruct the spread](local-development.md#comparing-automatic-direct-and-certificate-payouts)
+
+| Observed outcome | Certificate (`b7e4458b`) | Direct credit (`984f18f3`) |
+|---|---:|---:|
+| ETH maker flat with the full spread earned → wallet receipt | 115.232 s | 13.994 s |
+| All 480 atoms collected → full margin credit | 96.752 s | 2.495 s |
+| ETH backing-check transactions | 43 | 0 |
+| ETH worker transactions for backing and credit, including initialization | 44 | 3 |
+| Fees for those transactions | 220,000 lamports | 15,000 lamports |
+| Loss collections, BTC / ETH | 4 / 4 | 4 / 4 |
+| Both markets clear of collectible losses after the last fill, measured from start | 43.981 s | 37.110 s |
+| Two BTC traders, confirmed close → wallet | 8.990 / 16.165 s | 16.933 / 21.655 s |
+| Competing fills / scheduled orders | 48/48 | 48/48 |
+| Events reconciled by fresh PostgreSQL replay | 899 | 550 |
+
+The direct worker paid 140, 100 and 240 atoms. The first 140 came from earlier closed quantity. At its last close the maker therefore had 140 atoms of funded cash above principal and 340 atoms still owed. The collection milestone counts both cash left in the ETH pool and cash already paid to the maker. Both workers collected 502,480 BTC-market atoms and 480 ETH-market atoms after release. Their final ETH pool and outstanding collectible losses were zero. Fees in the table exclude loss collections, BTC credits, setup and owner withdrawals.
+
+This is one pair of runs. It measures the effect of the deployed payout paths on this finite book. The direct worker still discovers candidates off chain, and clearing reads all eight coverage accounts for each payment. The next population test is the 16-member capacity of each lane. The 1,000-member workload and sustained contention remain open.
+
 ## Funding, costs and comparisons
 
 The funding publisher computes depth off chain. In three older 75-member runs on clearing `79724a5a`, 12 two-market publication transactions used 48,940–49,110 CU. Another 54 transactions that also checkpointed both markets used 89,682–99,550 CU. These are complete transactions on that binary. [Funding contract](../liquidity/funding.md) · [Receipt reader](../../tests/performance/funding-receipts.py)
