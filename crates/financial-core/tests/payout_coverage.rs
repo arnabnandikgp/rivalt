@@ -15,11 +15,11 @@ fn account(id: u64, cash: u64, lots: [i64; 2], fixed_atoms: [i64; 2]) -> Margin 
         cash,
         mode: Mode::Cross,
         reserved: 0,
-        positions: std::array::from_fn(|m| Position {
-            lots: lots[m],
-            virtual_scaled: i128::from(fixed_atoms[m]) * SCALE,
+        positions: std::array::from_fn(|market| Position {
+            lots: lots[market],
+            virtual_scaled: i128::from(fixed_atoms[market]) * SCALE,
             funding_checkpoint: 0,
-            generation: u64::from(lots[m] != 0),
+            generation: u64::from(lots[market] != 0),
         }),
     }
 }
@@ -167,9 +167,9 @@ fn fill_between_preparation_and_claim_uses_current_debt_and_held_inputs() {
         Verdict::Underfunded(0)
     );
 
-    let exit_risks = [70, 200].map(|p| Risk {
-        lower: p,
-        upper: p,
+    let exit_risks = [70, 200].map(|price| Risk {
+        lower: price,
+        upper: price,
         funding: 0,
     });
     let (recipient, after) = roots[2]
@@ -185,6 +185,8 @@ fn fill_between_preparation_and_claim_uses_current_debt_and_held_inputs() {
 fn matched_population_rechecks_every_reference_outcome() {
     let mut counts = [0; 2];
     for size in [12, 1000] {
+        let mut header_only = 0;
+        let mut most_rows = 0;
         let mut book = Book::new([100, 200]).unwrap();
         let mut roots: Vec<_> = (0..size)
             .map(|id| {
@@ -200,9 +202,9 @@ fn matched_population_rechecks_every_reference_outcome() {
             }
         }
         let mut held = point(100, 200);
-        for m in &mut held.markets {
-            m.funding_low = -SCALE / 2;
-            m.funding_high = SCALE / 2;
+        for market in &mut held.markets {
+            market.funding_low = -SCALE / 2;
+            market.funding_high = SCALE / 2;
         }
         queries.extend([held, point(59, 241)]);
         for cash in [0, 20, 50, 1000] {
@@ -212,9 +214,14 @@ fn matched_population_rechecks_every_reference_outcome() {
                 for target in 0..2 {
                     let check = compare(&book, &roots, region, target);
                     counts[usize::from(check.verdict == Verdict::Covered)] += 1;
+                    header_only += usize::from(check.required == 0);
+                    most_rows = most_rows.max(check.exact_rows);
                 }
             }
         }
+        println!(
+            "{size} members: {header_only}/112 headers-only checks, at most {most_rows} exact rows"
+        );
     }
     assert_eq!(counts, [60, 164]);
 }
@@ -263,7 +270,7 @@ fn headers_can_prove_a_thousand_distinct_rows_or_need_every_one() {
     let cross: Vec<_> = roots
         .iter()
         .map(|root| {
-            let mut lots = root.positions.map(|p| p.lots);
+            let mut lots = root.positions.map(|position| position.lots);
             let active = usize::from(lots[0] == 0);
             lots[1 - active] = lots[active].signum();
             account(
@@ -307,14 +314,19 @@ fn varied_state_changes_and_mixed_endpoints_match_both_references() {
                 -200 * lots[1] + draw(41) as i64 - 20,
             ];
             let mut long = account(pair * 2, draw(200), lots, fixed);
-            let mut short = account(pair * 2 + 1, draw(200), lots.map(|v| -v), fixed.map(|v| -v));
-            for m in 0..2 {
+            let mut short = account(
+                pair * 2 + 1,
+                draw(200),
+                lots.map(|value| -value),
+                fixed.map(|value| -value),
+            );
+            for market in 0..2 {
                 let checkpoint = i128::from(draw(9)) - 4;
                 let dust = i128::from(draw(3)) - 1;
                 for (root, dust) in [(&mut long, dust), (&mut short, -dust)] {
-                    root.positions[m].funding_checkpoint = checkpoint;
-                    root.positions[m].virtual_scaled +=
-                        dust - i128::from(root.positions[m].lots) * checkpoint;
+                    root.positions[market].funding_checkpoint = checkpoint;
+                    root.positions[market].virtual_scaled +=
+                        dust - i128::from(root.positions[market].lots) * checkpoint;
                 }
             }
             roots.extend([long, short]);

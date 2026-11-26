@@ -27,7 +27,7 @@ impl Row {
         }
         Ok(Self {
             cash: account.cash,
-            lots: account.positions.map(|p| p.lots),
+            lots: account.positions.map(|position| position.lots),
             fixed,
         })
     }
@@ -93,13 +93,13 @@ impl Bounds {
 
     fn include(self, next: Self) -> Self {
         Self {
-            claim: std::array::from_fn(|m| self.claim[m].min(next.claim[m])),
-            funded: std::array::from_fn(|m| self.funded[m].min(next.funded[m])),
+            claim: std::array::from_fn(|market| self.claim[market].min(next.claim[market])),
+            funded: std::array::from_fn(|market| self.funded[market].min(next.funded[market])),
             funded_both: self.funded_both.min(next.funded_both),
-            lots: std::array::from_fn(|m| {
+            lots: std::array::from_fn(|market| {
                 [
-                    self.lots[m][0].min(next.lots[m][0]),
-                    self.lots[m][1].max(next.lots[m][1]),
+                    self.lots[market][0].min(next.lots[market][0]),
+                    self.lots[market][1].max(next.lots[market][1]),
                 ]
             }),
         }
