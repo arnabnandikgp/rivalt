@@ -71,13 +71,25 @@ export async function reconcileMembershipStorage(key:string,kind:number,bytes:Bu
 
 export async function requireMembershipCoverage(state:AccountState,venue:string,program:string) {
   const venueKey=address(venue),programKey=address(program);
-  for(const [id,key]of Object.entries(state.identities)) {
-    const [page]=await sdk.deriveMemberPage(venueKey,BigInt(id)/64n,programKey);
+  const pages=new Set<bigint>();
+  let financial=new Set<bigint>();
+  for(const [id,key] of Object.entries(state.identities)){
+    const page=BigInt(id)/64n;
+    pages.add(page);
+    if(state.roots[key]?.lifecycle===2)financial.add(page);
+  }
+  // Every identity still needs its page and every active member its entire path.
+  // Within this reconciliation, derive and check each distinct address once.
+  for(const index of pages){
+    const [page]=await sdk.deriveMemberPage(venueKey,index,programKey);
     assert.equal(state.revisions[page]?.kind,20,'complete registered page coverage');
-    const member=state.roots[key];
-    if(member?.lifecycle===2)for(let level=0;level<15;level++) {
-      const [node]=await sdk.deriveMemberIndex(venueKey,level,(BigInt(id)/64n)>>BigInt(4*(level+1)),programKey);
+  }
+  for(let level=0;level<15;level++){
+    const parents=new Set(Array.from(financial,index=>index>>4n));
+    for(const prefix of parents){
+      const [node]=await sdk.deriveMemberIndex(venueKey,level,prefix,programKey);
       assert.equal(state.revisions[node]?.kind,19,'complete financial path coverage');
     }
+    financial=parents;
   }
 }

@@ -100,13 +100,13 @@ try {
   }
   await setup.qualify();
   const first=await closeClaim('ordinary');
-  // Independent owner and capital. Finite offers keep their original arrival times.
+  // A separate owner and capital submit sequential fills during each exit, until withdrawal or the measurement deadline.
   async function exitUnderFills(phase:string,closedAt:number,eligibleAt?:number){
     offer=true;
     let error:unknown;
     traffic=(async()=>{
-      for(let i=0;i<30 && offer;i++){
-        await trade('traffic '+phase+' '+i,37,0,0,1n,2);await delay(400);
+      for(let i=0;offer;i++){
+        await trade('traffic '+phase+' '+i,37+i%8,0,0,1n,2);await delay(400);
       }
     })().catch(cause=>{error=cause;});
     try { await autoExit(phase,closedAt,eligibleAt); }
@@ -174,9 +174,12 @@ try {
   const trafficResults=[];
   for(const [phase,startSlot] of [['ordinary',(await receipt('ordinary close')).slot],['recovered',recoverySlot]] as const){
     const exit=await receipt(phase+' withdraw');
+    const payment=paid[phase==='ordinary'?0:1];
+    const fundedSlot=phase==='ordinary'?receipts.find(row=>row.id.startsWith('keeper:loss:6:1:') && !row.error)?.slot:startSlot;
+    assert(fundedSlot!==undefined,'Missing funding collection for the closed ETH loss');
     const fills=await Promise.all(checks.filter(row=>String(row.label).startsWith('traffic '+phase+' ')).map(row=>receipt(String(row.label))));
-    assert(fills.some(tx=>!tx.meta.err && tx.slot>startSlot && tx.slot<exit.slot),'No competing fill between '+phase+' eligibility and exit');
-    trafficResults.push({phase,startSlot,exitSlot:exit.slot,fills:fills.map(tx=>({slot:tx.slot,error:tx.meta.err}))});
+    assert(fills.some(tx=>!tx.meta.err && tx.slot>fundedSlot && tx.slot<payment.slot),'No competing fill between '+phase+' funded eligibility and credit');
+    trafficResults.push({phase,startSlot,fundedSlot,paidSlot:payment.slot,exitSlot:exit.slot,fills:fills.map(tx=>({slot:tx.slot,error:tx.meta.err}))});
   }
   const refusal=await receipt('blocked payout');
   assert(refusal.meta.logMessages.some((line:string)=>line.includes('members='+population) && line.endsWith('covered=0')));

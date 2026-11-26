@@ -79,7 +79,10 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
     if(!covered||Date.now()-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS){this.healthy=false;this.metrics.pending++;return;}
     const candidate=await this.store.snapshot();
     const witness=await this.capture(candidate,target);
-    if(!await this.cover(witness.maxSlot,budget)){this.healthy=false;this.metrics.pending++;return;}
+    // Publishing requires the exact stored checkpoint digest. Retain every state
+    // transition in this interval; empty slots can share one journal commit.
+    const witnessFences=new Set<number>();
+    if(!await this.cover(witness.maxSlot,budget,witnessFences)){this.healthy=false;this.metrics.pending++;return;}
     // Every published entity must match the captured bytes at the SAME complete
     // historical revision fence. Forward-overwriting an old bad snapshot is not
     // proof of that old snapshot. Search only this finite captured interval.
@@ -87,9 +90,10 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
     const replayTo=async(last:number)=>{
       for await(const block of this.store.blocksAfter(Number(replay.checkpoint_slot),last)) {
         validateBlockChain([block],{slot:Number(replay.checkpoint_slot),blockhash:replay.checkpoint!},{slot:block.slot,blockhash:block.blockhash});
-        const state=this.store.projection.apply(replay.state,this.decodeBlock(block,row.binding),row.binding).state;
+        const invocations=this.decodeBlock(block,row.binding);
+        const state=invocations.length?this.store.projection.apply(replay.state,invocations,row.binding).state:replay.state;
         replay={...replay,state,checkpoint:block.blockhash,checkpoint_slot:String(block.slot)};
-        if(witness.matches(state))best=replay;
+        if(witnessFences.has(block.slot)&&witness.matches(state))best=replay;
       }
     };
     await replayTo(witness.maxSlot);
@@ -104,7 +108,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
         if(Date.now()-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS){this.healthy=false;this.metrics.pending++;return;}
         await delay(100);
       }
-      if(!await this.cover(extension,budget)){this.healthy=false;this.metrics.pending++;return;}
+      if(!await this.cover(extension,budget,witnessFences)){this.healthy=false;this.metrics.pending++;return;}
       await replayTo(extension);
     }
     if(!best||Date.now()-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS){this.healthy=false;this.metrics.pending++;return;}
@@ -122,6 +126,9 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
       }
     }
     if (this.ws!.error) throw this.ws!.error;
+    // Byte verification can itself use the remaining freshness window. An expired
+    // observation is routine catch-up: obtain a new witness on the next cycle.
+    if(Date.now()-capturedAt.getTime()>=PUBLICATION_MAX_AGE_MS){this.healthy=false;this.metrics.pending++;return;}
     await this.store.publish(best,capturedAt); this.healthy = true; this.metrics.cycles++;
   }
   private decodeBlock(block:FinalizedBlock,binding:Binding):JournalInvocation<Event>[] {
@@ -134,7 +141,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
   /** Keep whole blocks in canonical order; at most one bounded commit and RPC batch in
    * memory. The work budget may overshoot by one indivisible block, never reject
    * an otherwise valid historical prefix because the whole backlog is large. */
-  private async cover(target:number,budget:{transactions:number}) {
+  private async cover(target:number,budget:{transactions:number},witnessFences?:Set<number>) {
     let row=await this.store.snapshot();
     let fence:BlockFence|null=row.checkpoint?{slot:Number(row.checkpoint_slot),blockhash:row.checkpoint}:null;
     const start=fence?fence.slot+1:this.anchorSlot;
@@ -154,7 +161,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
         const started=performance.now();
         await this.store.commit(pending,pending.flatMap(block=>this.decodeBlock(block,row.binding)),next,fence?.blockhash??null);
         this.metrics.peakCommitMs=Math.max(this.metrics.peakCommitMs,performance.now()-started);
-        this.metrics.chunks++;fence=next;pending=[];
+        this.metrics.chunks++;fence=next;witnessFences?.add(tail.slot);pending=[];
       };
       for(let offset=0;offset<slots.length;offset+=FINALIZED_BLOCK_READ_WIDTH) {
         if(budget.transactions<=0)return false;
@@ -166,7 +173,7 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
           this.metrics.peakBlockTransactions=Math.max(this.metrics.peakBlockTransactions,block.transactions.length);
           this.metrics.fetched+=block.transactions.length;
           pending.push(block);budget.transactions-=Math.max(1,block.transactions.length);
-          if(pending.length>=this.blocksPerCommit || budget.transactions<=0)await persist();
+          if(pending.length>=this.blocksPerCommit || budget.transactions<=0 || (witnessFences && block.transactions.length>0))await persist();
         }
       }
       await persist();

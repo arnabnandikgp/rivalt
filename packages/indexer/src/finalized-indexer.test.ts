@@ -184,3 +184,20 @@ it('persists a partial grouped commit at the recovery budget and resumes from th
   expect(test.store.commit.mock.calls.map(([blocks])=>blocks.map(block=>block.slot))).toEqual([[2,3,4],[5,6],[7,8,9]]);
   expect(test.durable().published_state.cash).toBe(63);
 });
+
+it('retries a witness that expires during byte verification without publishing stale state',async()=>{
+  const test=fixture();
+  const clock=vi.spyOn(Date,'now');
+  try {
+    test.indexer.capture=async()=>({maxSlot:2,matches:()=>true,verify:async()=>{clock.mockReturnValue(new Date().getTime()+11_000);}});
+    await test.indexer.cycle();
+    expect(test.indexer.healthy).toBe(false);expect(test.indexer.metrics.pending).toBe(1);
+    expect(test.store.publish).not.toHaveBeenCalled();expect(test.store.health).not.toHaveBeenCalled();
+  }finally{clock.mockRestore();}
+});
+it('retains a publishable intermediate financial fence in a grouped witness interval',async()=>{
+  const test=fixture(50,32,16);
+  test.indexer.capture=async()=>{test.setHead(5);return {maxSlot:5,matches:state=>state.revisions.root.revision==='4',verify:async()=>{}};};
+  await test.indexer.cycle();expect(test.durable().published_checkpoint).toBe('block4');
+  expect(test.store.commit.mock.calls.map(call=>call[2].slot)).toContain(4);
+});
