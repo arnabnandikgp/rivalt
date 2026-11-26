@@ -33,7 +33,7 @@ impl Network {
         index
     }
 
-    fn balance(&mut self, source: usize, sink: usize, mut required: u64) -> Result<()> {
+    fn balance(&mut self, source: usize, sink: usize, mut required: u64) -> bool {
         for outgoing in &mut self.outgoing {
             outgoing.sort();
         }
@@ -56,7 +56,7 @@ impl Network {
                 }
             }
             if parents[sink] == usize::MAX {
-                return Err(Error::Invariant);
+                return false;
             }
             // Every non-auxiliary residual edge has unit capacity.
             let mut node = sink;
@@ -68,7 +68,7 @@ impl Network {
             }
             required -= 1;
         }
-        Ok(())
+        true
     }
 }
 
@@ -77,6 +77,7 @@ pub(super) fn finalize(
     results: &mut [RowResult],
     markets: &[Market; 3],
     spent: [u64; 3],
+    minimums: Option<&[[i128; 3]]>,
 ) -> Result<()> {
     let count = rows.len();
     let cash_sink = count + 3;
@@ -104,7 +105,12 @@ pub(super) fn finalize(
                     &row.collections[column] + &row.forwarded[column],
                 )
             };
-            if flow.is_zero() {
+            let minimum = if column < 3 && to == i {
+                minimums.map_or(0, |bounds| bounds[i][column])
+            } else {
+                0
+            };
+            if flow.is_zero() && minimum == 0 {
                 continue;
             }
             if flow < Amount::zero() {
@@ -112,11 +118,16 @@ pub(super) fn finalize(
             }
             // Claim setoff can exceed vault cash, so store signed claim movements as i128.
             let floor = flow.to_integer().to_i128().ok_or(Error::Overflow)?;
-            needs[from] -= floor;
-            needs[to] += floor;
             let remainder = flow - integer(floor);
-            let arc = graph.edge(from, to, u64::from(!remainder.is_zero()), 1, remainder);
-            edges.push((arc, from, to, floor, column, i));
+            let upper = floor + i128::from(!remainder.is_zero());
+            let lower = floor.max(minimum);
+            if lower > upper {
+                return Err(Error::Entitlement);
+            }
+            needs[from] -= lower;
+            needs[to] += lower;
+            let arc = graph.edge(from, to, (upper - lower) as u64, 1, remainder);
+            edges.push((arc, from, to, lower, column, i));
         }
     }
     let mut required = 0u64;
@@ -129,7 +140,13 @@ pub(super) fn finalize(
             graph.edge(node, sink, capacity, 0, Amount::zero());
         }
     }
-    graph.balance(source, sink, required)?;
+    if !graph.balance(source, sink, required) {
+        return Err(if minimums.is_some() {
+            Error::Entitlement
+        } else {
+            Error::Invariant
+        });
+    }
     for (arc, from, to, floor, column, i) in edges {
         let amount = floor + i128::from(graph.arcs[arc ^ 1].capacity);
         supplies[from] -= amount;
@@ -149,4 +166,54 @@ pub(super) fn finalize(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn protected_receipts_must_be_fundable_together() {
+        let markets = [3, 8, 38].map(|id| Market {
+            id,
+            pool: 0,
+            insurance: 0,
+            fees: 0,
+        });
+        let rows = [-3, 1, 1, 1]
+            .into_iter()
+            .enumerate()
+            .map(|(id, claim)| FrozenRow {
+                id: id as u64,
+                cash: u64::from(id == 0),
+                claims: [0, 0, claim * SCALE],
+            })
+            .collect::<Vec<_>>();
+        let (markets, members) = prepare(markets, &[0, 1, 2, 3], &rows, 1).unwrap();
+        let mut ordinary = settle_prepared(&markets, &members, 1, None).unwrap();
+        let mut minimums = [[0; 3]; 4];
+        minimums[2][2] = 1;
+        finalize(
+            &members,
+            &mut ordinary.rows,
+            &markets,
+            [0; 3],
+            Some(&minimums),
+        )
+        .unwrap();
+        assert_eq!(ordinary.rows[2].cash, 1);
+        // Each of the two minimums separately fits ceil(1/3). Together they
+        // would pay two cash atoms from the only atom in the vault.
+        minimums[3][2] = 1;
+        assert_eq!(
+            finalize(
+                &members,
+                &mut ordinary.rows,
+                &markets,
+                [0; 3],
+                Some(&minimums)
+            ),
+            Err(Error::Entitlement)
+        );
+    }
 }

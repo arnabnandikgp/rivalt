@@ -1,4 +1,4 @@
-//! Complete three-market residual book at one freeze, before any forced reduction.
+//! Complete three-market residual book and nominated close at one freeze.
 //! Native exact arithmetic. A caller supplies the independently frozen roster and vault.
 use crate::{Error, Result, MAX_CASH, SCALE};
 use num_rational::BigRational;
@@ -6,6 +6,7 @@ use num_traits::{One, ToPrimitive, Zero};
 use std::array::from_fn;
 
 mod rates;
+pub mod reduction;
 mod rounding;
 
 pub type Amount = BigRational;
@@ -65,12 +66,43 @@ struct Prepared {
     cash: u64,
     claims: Amounts,
     collections: Amounts,
-    debt: Amount,
-    /// Share of this debtor's total remaining debt in each destination market.
+    remaining: Amounts,
+    /// Original proportional shares of recovered proceeds, fixed at the freeze.
     weights: Amounts,
 }
 
 impl Prepared {
+    /// With three markets, a member receiving a recovery can owe at most two
+    /// destinations. Identify which debt fills first under its original shares.
+    fn uneven_caps(&self) -> Option<(usize, usize)> {
+        if self.claims.iter().all(Zero::is_zero) {
+            return None;
+        }
+        let mut destinations = (0..3).filter(|&m| !self.weights[m].is_zero());
+        let first = destinations.next()?;
+        let second = destinations.next()?;
+        match (&self.remaining[first] * &self.weights[second])
+            .cmp(&(&self.remaining[second] * &self.weights[first]))
+        {
+            std::cmp::Ordering::Less => Some((first, second)),
+            std::cmp::Ordering::Greater => Some((second, first)),
+            std::cmp::Ordering::Equal => None,
+        }
+    }
+
+    fn forward(&self, rates: &Amounts) -> Amounts {
+        let recovered = rates::dot(&self.claims, rates);
+        let mut amounts =
+            from_fn(|m| (&recovered * &self.weights[m]).min(self.remaining[m].clone()));
+        if let Some((first, second)) = self.uneven_caps() {
+            amounts[second] = amounts[second]
+                .clone()
+                .max(&recovered - &amounts[first])
+                .min(self.remaining[second].clone());
+        }
+        amounts
+    }
+
     fn new(row: FrozenRow, columns: &[usize; 3]) -> Result<Self> {
         if row.cash > MAX_CASH
             || row
@@ -89,12 +121,13 @@ impl Prepared {
             from_fn(|m| &owed[m] / &gross)
         };
         let collection = integer(row.cash).min(gross.floor());
+        let collections: Amounts = from_fn(|m| &collection * &weights[m]);
         Ok(Self {
             id: row.id,
             cash: row.cash,
             claims: net.map(|v| v.max(Amount::zero())),
-            collections: from_fn(|m| &collection * &weights[m]),
-            debt: gross - collection,
+            remaining: from_fn(|m| &owed[m] - &collections[m]),
+            collections,
             weights,
         })
     }
@@ -104,11 +137,21 @@ impl Prepared {
 /// The caller supplies frozen signed claims after funding and index valuation.
 /// Returns whole-atom terminal balances and exact claims in ascending ID order.
 pub fn settle(
-    mut markets: [Market; 3],
+    markets: [Market; 3],
     roster: &[u64],
     rows: &[FrozenRow],
     vault: u64,
 ) -> Result<Plan> {
+    let (markets, members) = prepare(markets, roster, rows, vault)?;
+    settle_prepared(&markets, &members, vault, None)
+}
+
+fn prepare(
+    mut markets: [Market; 3],
+    roster: &[u64],
+    rows: &[FrozenRow],
+    vault: u64,
+) -> Result<([Market; 3], Vec<Prepared>)> {
     let mut columns = [0, 1, 2];
     columns.sort_by_key(|&m| markets[m].id);
     markets = columns.map(|m| markets[m]);
@@ -149,6 +192,15 @@ pub fn settle(
         .into_iter()
         .map(|r| Prepared::new(r, &columns))
         .collect::<Result<Vec<_>>>()?;
+    Ok((markets, rows))
+}
+
+fn settle_prepared(
+    markets: &[Market; 3],
+    rows: &[Prepared],
+    vault: u64,
+    protection: Option<(&Plan, usize)>,
+) -> Result<Plan> {
     let face: Amounts = from_fn(|m| rows.iter().map(|r| &r.claims[m]).sum());
     let base: Amounts = from_fn(|m| {
         integer(markets[m].pool) + rows.iter().map(|r| &r.collections[m]).sum::<Amount>()
@@ -156,12 +208,12 @@ pub fn settle(
     let mut budgets = markets.map(|m| m.insurance);
     let mut clipped = [false; 3];
     let (rates, used) = loop {
-        let rates = rates::greatest(&rows, &face, &base, budgets)?;
+        let rates = rates::greatest(rows, &face, &base, budgets)?;
         let mut incoming = zeros();
-        for row in &rows {
-            let applied = rates::dot(&row.claims, &rates).min(row.debt.clone());
+        for row in rows {
+            let forwarded = row.forward(&rates);
             for m in 0..3 {
-                incoming[m] += &applied * &row.weights[m];
+                incoming[m] += &forwarded[m];
             }
         }
         let used: Amounts = from_fn(|m| &face[m] * &rates[m] - &base[m] - &incoming[m]);
@@ -189,12 +241,15 @@ pub fn settle(
     let spent = [whole(&used[0])?, whole(&used[1])?, whole(&used[2])?];
     let mut residual = zeros();
     let mut results = Vec::with_capacity(rows.len());
-    for row in &rows {
+    for row in rows {
         let recovered: Amounts = from_fn(|m| &row.claims[m] * &rates[m]);
         let total: Amount = recovered.iter().sum();
-        let applied = total.clone().min(row.debt.clone());
-        let forwarded = from_fn(|m| &applied * &row.weights[m]);
-        let writeoff = from_fn(|m| (&row.debt - &applied) * &row.weights[m]);
+        let forwarded = row.forward(&rates);
+        let applied: Amount = forwarded.iter().sum();
+        if applied != total.clone().min(row.remaining.iter().sum()) {
+            return Err(Error::Invariant);
+        }
+        let writeoff = from_fn(|m| &row.remaining[m] - &forwarded[m]);
         for m in 0..3 {
             residual[m] += &writeoff[m];
         }
@@ -227,7 +282,10 @@ pub fn settle(
             return Err(Error::Invariant);
         }
     }
-    rounding::finalize(&rows, &mut results, &markets, spent)?;
+    rounding::finalize(rows, &mut results, markets, spent, None)?;
+    if let Some((baseline, market)) = protection {
+        reduction::protect(rows, &mut results, markets, spent, baseline, market)?;
+    }
     let insurance_left = from_fn(|m| markets[m].insurance - spent[m]);
     let fees = markets.map(|m| m.fees);
     let remaining: u128 = results.iter().map(|r| u128::from(r.cash)).sum::<u128>()

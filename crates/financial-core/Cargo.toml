@@ -26,7 +26,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"
 
 
 [features]
-three-market-model = ["dep:num-rational", "dep:num-traits"]
+three-market-model = ["dep:num-rational", "dep:num-traits", "clearing-accounting/surviving-profit"]
 wide-atomic-routes = []
 parallel-market-prototype = []
 closed-quantity-model = ["clearing-accounting/surviving-profit"]

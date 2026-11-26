@@ -1,8 +1,8 @@
 //! Find the greatest recovery rates without seeding a cashless cycle with tokens.
-//! Each capped debtor flow is the minimum of two affine functions. Every upper
-//! supporting plane of the capacity map bounds all post-fixed rates. Add a
-//! violated plane, then maximize the sum of the three rates on the remaining
-//! polytope. There are finitely many distinct planes; no epsilon or retry limit.
+//! Within each allocation regime a capped debtor flow is the minimum of two
+//! affine functions. Its upper supporting planes bound the post-fixed rates in
+//! that regime. Add a violated plane, then maximize the sum of the three rates
+//! on the remaining polytope. There are finitely many distinct planes.
 //! The monotone capacity map has a greatest fixed point which dominates every
 //! post-fixed point. Once a maximizer passes all capacity checks, it must be
 //! that point: any strictly smaller coordinate would reduce the sum.
@@ -20,7 +20,7 @@ fn cross(a: &Amounts, b: &Amounts) -> Amounts {
     from_fn(|m| &a[(m + 1) % 3] * &b[(m + 2) % 3] - &a[(m + 2) % 3] * &b[(m + 1) % 3])
 }
 
-fn maximum(planes: &[Plane]) -> Result<Amounts> {
+fn maximum(planes: &[Plane]) -> Option<Amounts> {
     let mut best = None;
     let mut score = -Amount::one();
     for (i, a) in planes.iter().enumerate() {
@@ -43,7 +43,7 @@ fn maximum(planes: &[Plane]) -> Result<Amounts> {
             }
         }
     }
-    best.ok_or(Error::Invariant)
+    best
 }
 
 pub(super) fn greatest(
@@ -52,6 +52,39 @@ pub(super) fn greatest(
     base: &Amounts,
     budgets: [u64; 3],
 ) -> Result<Amounts> {
+    let mut spill = None;
+    for (member, row) in rows.iter().enumerate() {
+        if let Some((first, second)) = row.uneven_caps() {
+            // One proposed pair can lower the unpaid debt of only one member.
+            if spill.replace((member, first, second)).is_some() {
+                return Err(Error::Invariant);
+            }
+        }
+    }
+
+    let shared = rate_region(rows, face, base, budgets, None);
+    let Some(spill) = spill else {
+        return shared.ok_or(Error::Invariant);
+    };
+    // The second destination receives the larger of its frozen share and what
+    // is left once the first debt is paid, up to its own remaining debt.
+    // Its maximum is the union of two post-fixed polytopes. Each affine choice
+    // underestimates the true capacity everywhere, and one attains it at the
+    // greatest fixed point. Compare their exact maxima; either may be empty.
+    shared
+        .into_iter()
+        .chain(rate_region(rows, face, base, budgets, Some(spill)))
+        .max_by_key(|rates| rates.iter().sum::<Amount>())
+        .ok_or(Error::Invariant)
+}
+
+fn rate_region(
+    rows: &[Prepared],
+    face: &Amounts,
+    base: &Amounts,
+    budgets: [u64; 3],
+    spill: Option<(usize, usize, usize)>,
+) -> Option<Amounts> {
     let mut planes = Vec::new();
     for m in 0..3 {
         let mut unit = zeros();
@@ -75,12 +108,22 @@ pub(super) fn greatest(
             let mut normal = zeros();
             normal[m] = face[m].clone();
             let mut limit = &base[m] + integer(budgets[m]);
-            for row in rows.iter().filter(|r| !r.weights[m].is_zero()) {
-                if dot(&row.claims, &rates) >= row.debt {
-                    limit += &row.debt * &row.weights[m];
+            for (member, row) in rows.iter().enumerate() {
+                if row.weights[m].is_zero() {
+                    continue;
+                }
+                let (weight, offset) = match spill {
+                    Some((debtor, first, second)) if debtor == member && second == m => {
+                        (Amount::one(), -&row.remaining[first])
+                    }
+                    _ => (row.weights[m].clone(), Amount::zero()),
+                };
+                if dot(&row.claims, &rates) * &weight + &offset >= row.remaining[m] {
+                    limit += &row.remaining[m];
                 } else {
+                    limit += offset;
                     for (coef, claim) in normal.iter_mut().zip(&row.claims) {
-                        *coef -= claim * &row.weights[m];
+                        *coef -= claim * &weight;
                     }
                 }
             }
@@ -89,7 +132,7 @@ pub(super) fn greatest(
             }
         }
         if previous == planes.len() {
-            return Ok(rates);
+            return Some(rates);
         }
         rates = maximum(&planes)?;
     }

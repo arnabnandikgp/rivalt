@@ -1,5 +1,9 @@
 //! One newline-delimited JSON frozen book in, one independently comparable plan out.
-use financial_core::clearing::three_market::{settle, Amounts, FrozenRow, Market};
+use clearing_accounting::entry_cost::EntryCost;
+use financial_core::clearing::three_market::{
+    reduction::{compare, FrozenPositions, MarketPosition, Proposal},
+    settle, Amounts, FrozenRow, Market, Plan,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::io::{self, BufRead};
@@ -11,6 +15,24 @@ struct Book {
     roster: Vec<String>,
     rows: Vec<RowInput>,
     vault: String,
+    reduction: Option<ReductionInput>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReductionInput {
+    market: u16,
+    mark: String,
+    positions: Vec<PositionInput>,
+    debtor: String,
+    winner: String,
+    charge: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PositionInput {
+    member: String,
+    lots: String,
+    entry_bytes: Vec<u8>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -56,13 +78,54 @@ fn evaluate(input: &str) -> Result<Value, Box<dyn std::error::Error>> {
         .iter()
         .map(|v| v.parse())
         .collect::<Result<Vec<_>, _>>()?;
-    let plan = settle(
-        markets.try_into().map_err(|_| "market count")?,
+    let markets = markets.try_into().map_err(|_| "market count")?;
+    let vault = book.vault.parse()?;
+    let Some(input) = book.reduction else {
+        return Ok(plan_json(
+            &settle(markets, &roster, &rows, vault).map_err(|e| format!("{e:?}"))?,
+        ));
+    };
+    let mut positions = Vec::new();
+    for entry in input.positions {
+        let lots = entry.lots.parse()?;
+        if entry.entry_bytes.len() != EntryCost::BYTES {
+            return Err("invalid entry width".into());
+        }
+        positions.push(MarketPosition {
+            member: entry.member.parse()?,
+            lots,
+            entry: EntryCost::read(&entry.entry_bytes, lots).map_err(|e| format!("{e:?}"))?,
+        });
+    }
+    let compared = compare(
+        markets,
         &roster,
         &rows,
-        book.vault.parse()?,
+        vault,
+        FrozenPositions {
+            market: input.market,
+            mark: input.mark.parse()?,
+            positions: &positions,
+        },
+        Proposal {
+            debtor: input.debtor.parse()?,
+            winner: input.winner.parse()?,
+            charge: input.charge.parse()?,
+        },
     )
     .map_err(|e| format!("{e:?}"))?;
+    Ok(json!({
+        "matched": compared.schedule.matched.to_string(),
+        "baseTicks": compared.schedule.base_ticks.to_string(),
+        "extraTickLots": compared.schedule.extra_tick_lots.to_string(),
+        "debtorLotsAfter": compared.debtor_lots_after.to_string(),
+        "winnerLotsAfter": compared.winner_lots_after.to_string(),
+        "recovery": compared.recovery.to_string(),
+        "settlement": plan_json(&compared.settlement),
+    }))
+}
+
+fn plan_json(plan: &Plan) -> Value {
     let members: Vec<_> = plan
         .rows
         .iter()
@@ -80,14 +143,14 @@ fn evaluate(input: &str) -> Result<Value, Box<dyn std::error::Error>> {
             })
         })
         .collect();
-    Ok(json!({
+    json!({
         "markets": plan.markets,
         "rates": strings(&plan.rates),
         "spent": plan.spent.map(|value| value.to_string()),
         "left": plan.insurance_left.map(|value| value.to_string()),
         "fees": plan.fees.map(|value| value.to_string()),
         "rows": members,
-    }))
+    })
 }
 fn main() -> io::Result<()> {
     for line in io::stdin().lock().lines() {
