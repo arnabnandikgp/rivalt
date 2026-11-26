@@ -19,6 +19,14 @@ export async function readAccountSnapshot(rpc:Pick<UserRpc,'call'>,identity:Acco
   requireValue(margins.length>=1&&margins.length<=2&&new Set(margins).size===margins.length,'Select one or two distinct margin accounts.');
   return readSnapshot(rpc,identity,margins,commitment);
 }
+/** Worker discovery batches share the checked market and custody inputs at one bank.
+ * At most 40 roots, 40 portfolios and 16 shared keys fit in one RPC response. */
+export const SETTLEMENT_READ_BATCH = 40;
+export function readSettlementSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,margins:Address[]) {
+  requireValue(margins.length>0 && margins.length<=SETTLEMENT_READ_BATCH && new Set(margins).size===margins.length,
+    'Invalid settlement read batch.');
+  return readSnapshot(rpc,identity,margins,'confirmed',undefined,100);
+}
 /** Trading discovers every sealed registration, then authenticates the complete
  * financial and pricing dependency set in one final RPC context. */
 export async function readAccountTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,trader:Address,marketIndex:0|1,
@@ -27,7 +35,7 @@ export async function readAccountTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity
   return readSnapshot(rpc,identity,[trader],commitment,marketIndex);
 }
 async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,selectedMargins:Address[],
-  commitment:'confirmed'|'finalized',liquidityMarketIndex?:0|1) {
+  commitment:'confirmed'|'finalized',liquidityMarketIndex?:0|1,maxKeys=32) {
   requireValue(['confirmed','finalized'].includes(commitment),'Unsupported account commitment.');
   requireValue(/^[0-9a-f]{64}$/.test(identity.domain),'Invalid venue domain.');
   const venue=identity.venue,component=(name:Parameters<typeof deriveVenueComponent>[1])=>deriveVenueComponent(venue,name);
@@ -62,7 +70,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(new Set(keys).size===keys.length,'Aliased account dependencies.');
   // RPC dependency discovery includes all unselected makers and full code. This
   // read bound is separate from the signed transaction's loaded-account budget.
-  requireValue(keys.length<=(liquidityDiscovery?30+6*liquidityDiscovery.capitals.length:32),'Account snapshot exceeds bounded dependency set.');
+  requireValue(keys.length<=(liquidityDiscovery?30+6*liquidityDiscovery.capitals.length:maxKeys),'Account snapshot exceeds bounded dependency set.');
   const discoverySlot=rpcInteger(discovery.context.slot);
   requireValue(discoverySlot>=makerDiscoverySlot,'Account RPC predates maker discovery.');
   const response=await readCoherentAccounts(rpc,keys,commitment,discoverySlot);

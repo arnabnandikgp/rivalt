@@ -130,7 +130,8 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
       return keys.includes(this.deployment.clearing)?this.decodeTransaction(signature,tx,index,binding):[];
     });
   }
-  /** One complete block per SQL transaction; at most one bounded RPC batch in
+  protected get blocksPerCommit(): number { return 1; }
+  /** Keep whole blocks in canonical order; at most one bounded commit and RPC batch in
    * memory. The work budget may overshoot by one indivisible block, never reject
    * an otherwise valid historical prefix because the whole backlog is large. */
   private async cover(target:number,budget:{transactions:number}) {
@@ -145,24 +146,30 @@ export abstract class FinalizedIndexer<State extends {sequence:string;revisions:
       const slots=await this.rpc.call('getBlocks',[first,last,{commitment:'finalized'}]);this.metrics.pages++;
       if(!Array.isArray(slots)||slots.some((slot:unknown,index:number)=>integer(slot)<first||integer(slot)>last||(index>0&&integer(slot)<=slots[index-1])))
         throw new Error('Invalid finalized block range');
+      let pending:FinalizedBlock[]=[];
+      const persist=async()=>{
+        if(!pending.length)return;
+        const tail=pending[pending.length-1],next={slot:tail.slot,blockhash:tail.blockhash};
+        validateBlockChain(pending,fence,next);
+        const started=performance.now();
+        await this.store.commit(pending,pending.flatMap(block=>this.decodeBlock(block,row.binding)),next,fence?.blockhash??null);
+        this.metrics.peakCommitMs=Math.max(this.metrics.peakCommitMs,performance.now()-started);
+        this.metrics.chunks++;fence=next;pending=[];
+      };
       for(let offset=0;offset<slots.length;offset+=FINALIZED_BLOCK_READ_WIDTH) {
         if(budget.transactions<=0)return false;
         const responses=await Promise.allSettled(slots.slice(offset,offset+FINALIZED_BLOCK_READ_WIDTH).map((slot:number)=>
           readFinalizedBlock(this.rpc,slot,this.config.maxTransactionVersion??0)));
-        // Drain all reads even on error, preserving the network concurrency bound.
         const batch=responses.map(response=>{if(response.status==='rejected')throw response.reason;return response.value;});
         for(const block of batch) {
           if(budget.transactions<=0)return false;
-          const next={slot:block.slot,blockhash:block.blockhash};
-          validateBlockChain([block],fence,next);
           this.metrics.peakBlockTransactions=Math.max(this.metrics.peakBlockTransactions,block.transactions.length);
           this.metrics.fetched+=block.transactions.length;
-          const commitStarted=performance.now();
-          await this.store.commit([block],this.decodeBlock(block,row.binding),next,fence?.blockhash??null);
-          this.metrics.peakCommitMs=Math.max(this.metrics.peakCommitMs,performance.now()-commitStarted);
-          this.metrics.chunks++;budget.transactions-=Math.max(1,block.transactions.length);fence=next;
+          pending.push(block);budget.transactions-=Math.max(1,block.transactions.length);
+          if(pending.length>=this.blocksPerCommit || budget.transactions<=0)await persist();
         }
       }
+      await persist();
     }
     if(!fence||fence.slot!==target)throw new Error('Finalized head block unavailable');
     return true;

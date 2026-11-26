@@ -4,7 +4,7 @@ import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
 import {settlementInstructions} from './settlement-checkpoints.js';
-import {decodeAccountWorker} from './account-worker-state.js';
+import {accountWorkerKeys,decodeAccountWorker} from './account-worker-state.js';
 
 const SCALE=1_000_000_000n;
 const minimum=(...values:bigint[])=>values.reduce((left,right)=>left<right?left:right);
@@ -51,12 +51,32 @@ export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allo
   schedule: SettlementSchedule = { next: 'collection', collectionMarket: 0 }): Promise<AccountWorkerOutcome> {
   const budget = await runtime.budget('settlement', key);
   if (await runtime.pendingBudget(budget)) return { status: 'blocked', reason: 'original-settlement-intent-pending' };
-  const { binding, state } = await runtime.discovery();
-  const directCredit = binding.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET;
+  const discovery = await runtime.discovery();
+  const { binding, state } = discovery;
+  const grouped = binding.artifactSet === sdk.GROUPED_CREDIT_ARTIFACT_SET;
+  const directCredit = grouped || binding.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET;
+  async function* candidates() {
+    if (!grouped) {
+      for (const member of state.members) {
+        const margin=address(member);
+        yield {margin,snapshot:await runtime.snapshot([margin])};
+      }
+      return;
+    }
+    // A finalized, reconciled projection supplies discovery hints only. Open lots can
+    // acquire a debt without trading. Only a flat root with zero claims is skipped.
+    const members=state.members.filter(member=>state.roots[member].positions.some(
+      position=>BigInt(position.lots)!==0n || BigInt(position.virtualScaled)!==0n)).map(member=>address(member));
+    const keys=await accountWorkerKeys(discovery.identity.venue);
+    for(let start=0;start<members.length;start+=sdk.SETTLEMENT_READ_BATCH) {
+      const batch=members.slice(start,start+sdk.SETTLEMENT_READ_BATCH);
+      const snapshot={...await sdk.readSettlementSnapshot(runtime.rpc,discovery.identity,batch),...keys,marginLayout:discovery.identity.marginLayout};
+      for(const margin of batch) yield {margin,snapshot};
+    }
+  }
   const gains: Candidate[] = [], losses: [Address[], Address[]] = [[], []];
   let paymentOffset = 0;
-  for (const member of state.members) {
-    const margin = address(member), snapshot = await runtime.snapshot([margin]);
+  for await (const {margin,snapshot} of candidates()) {
     if (snapshot.safetyState.mode !== 1 || snapshot.safetyState.paused) return { status: 'blocked', reason: 'venue-mode' };
     for (const marketIndex of [0, 1] as const) {
       const amount = accountClaimAmount(snapshot, margin, marketIndex, false);

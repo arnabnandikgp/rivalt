@@ -1,5 +1,6 @@
 import {backingCheckpoint} from '../../sdk/src/backing-test-fixture.js';
 import {expect,it} from 'vitest';
+import {directCreditLimit} from './operator-enqueue.js';
 import {settlementInstructions} from './settlement-checkpoints.js';
 import {createNoopSigner,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
@@ -174,4 +175,11 @@ it('dispatches a cold direct claim and considers another claimant if preflight r
   expect(parsed.data.amount).toBe(2n);
   expect(payment.accounts!.slice(-8).map(meta=>meta.address)).toEqual(await sdk.deriveCoverageLanes(venue));
   expect(submitted[0].flatMap(ix=>ix.accounts??[]).some(meta=>meta.address===certificate)).toBe(false);
+});
+
+it('sizes grouped credit from measured compute while respecting the transaction ceiling',()=>{
+  expect(directCreditLimit(158_218)).toBe(400_000);
+  expect(directCreditLimit(510_001)).toBe(586_502);
+  expect(directCreditLimit(1_399_999)).toBe(1_400_000);
+  for(const units of [0,NaN,400_000.5,1_400_001])expect(()=>directCreditLimit(units)).toThrow();
 });

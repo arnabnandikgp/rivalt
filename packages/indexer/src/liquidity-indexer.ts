@@ -20,6 +20,7 @@ export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBin
     this.selected=accountDeployment(config.deployment??'selected');
     this.artifacts=new ArtifactVerifier(this.rpc,this.selected.artifacts);
   }
+  protected override get blocksPerCommit() { return this.config.deployment==='grouped-credit' ? 32 : 1; }
   protected get historyAddress(){return this.config.venue;}
   protected decodeTransaction(signature:string,transaction:any,transactionIndex:number,binding:LiquidityBinding) {
     return decodeAccountInvocations(signature,transaction,transactionIndex,{program:this.deployment.clearing,

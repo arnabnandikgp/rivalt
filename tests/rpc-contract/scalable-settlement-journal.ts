@@ -43,11 +43,11 @@ export async function openSettlementJournal(rpc:WireRpc,setup:Pick<Awaited<Retur
   const finish=async(auditTransactions?: (blocks: FinalizedBlock[], invocations: AccountInvocation[]) => void, maxBlocksPerCommit?:number)=>{
     const commit=async(target:LiquidityStore, fetched:Awaited<ReturnType<typeof history>>, checkpoint:string|null) => {
       if (maxBlocksPerCommit === undefined) return target.commit(fetched.blocks,fetched.invocations,fetched.head,checkpoint);
-      // Full-population qualifications start with an empty journal. Each commit
-      // keeps whole slots and authenticates its parent against the previous fence.
-      assert.equal(checkpoint,null);
+      // A live worker may have already indexed a verified prefix of this very chain.
+      const previous=checkpoint===null ? -1 : fetched.blocks.findIndex(block=>block.blockhash===checkpoint);
+      assert(checkpoint===null || previous>=0,'Prior journal fence missing from refetched chain');
       assert(Number.isSafeInteger(maxBlocksPerCommit) && maxBlocksPerCommit>0);
-      for (let start=0; start<fetched.blocks.length; start+=maxBlocksPerCommit) {
+      for (let start=previous+1; start<fetched.blocks.length; start+=maxBlocksPerCommit) {
         const blocks=fetched.blocks.slice(start,start+maxBlocksPerCommit);
         const firstSlot=blocks[0].slot, last=blocks[blocks.length-1];
         const invocations=fetched.invocations.filter(row=>Number(row.slot)>=firstSlot && Number(row.slot)<=last.slot);
