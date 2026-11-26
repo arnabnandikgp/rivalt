@@ -124,7 +124,9 @@ try {
       ...setup.instances.map(instance=>instance.registration), setup.vault, maker.token.address])];
     const before = await Promise.all(watched.map(h.read));
     let units = sdk.ROUTE_COMPUTE_UNITS, heap: number | undefined;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // Each refusal can advance only one resource: heap 32 -> 128 -> 256 KiB,
+    // or compute 400k -> 1.4M. Stop at the runtime limits.
+    for (;;) {
       const name = label+' ('+units+' CU, '+(heap??32768)/1024+' KiB)';
       attempts.set(name,{units,heap});
       await h.send(name, instructions);
@@ -132,6 +134,7 @@ try {
       const check = checks.find(row=>row.label===name)!;
       const tx = await rpc.call('getTransaction',[check.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
       assert.deepEqual(check.simulationError,tx.meta.err);
+      assert.deepEqual(check.signatureWsError,tx.meta.err);
       const logs: string[] = tx.meta.logMessages;
       let reason: string | null = null;
       if (tx.meta.err) {
@@ -143,7 +146,7 @@ try {
           const fault = /Access violation (?:writing|reading) (\d+) bytes at address (0x[0-9a-f]+) \(in unallocated region\)/i.exec(line);
           if (!fault) return false;
           const offset = BigInt(fault[2]) - 0x300000000n;
-          return offset >= 0n && offset < 256n*1024n && offset + BigInt(fault[1]) > BigInt(heap ?? 32768);
+          return offset >= 0n && offset <= 256n*1024n && offset + BigInt(fault[1]) > BigInt(heap ?? 32768);
         })) reason = 'heap';
         else assert.fail('Unexpected credit error: '+JSON.stringify(tx.meta.err)+' '+logs.slice(-8).join(' '));
         assert.deepEqual(await Promise.all(watched.map(h.read)),before);
@@ -151,7 +154,7 @@ try {
       results.push({label,units,heap:heap??32768,signature:String(check.signature),cu:tx.meta.computeUnitsConsumed,error:tx.meta.err,reason});
       writeFileSync(dir+'/credit-attempts.json',json(results));
       if (!reason) { completed.set(label,name); return; }
-      if (reason==='heap' && !heap) heap = 128*1024;
+      if (reason==='heap' && (heap ?? 0) < 256*1024) heap = heap ? 256*1024 : 128*1024;
       else if (reason==='compute' && units===sdk.ROUTE_COMPUTE_UNITS) units = 1_400_000;
       else break;
       // Refresh after a finalized refusal, preserving all balances and the original entitlement.
