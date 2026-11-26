@@ -91,6 +91,8 @@ impl Changes {
             .map_err(|_| ClearingError::ExitCohort)?;
             require_keys_eq!(expected, *view.address(), ClearingError::ExitCohort);
             present[index] = true;
+            #[cfg(feature = "verified-coverage")]
+            let mut totals = backing::Totals::read(view)?;
             let mut modified = false;
             for change in self
                 .0
@@ -106,6 +108,8 @@ impl Changes {
                     old.map(|pos| lane.members[pos]) == change.before,
                     ClearingError::ExitCohort
                 );
+                #[cfg(feature = "verified-coverage")]
+                totals.replace(change.before, change.after)?;
                 if let Some(image) = change.after {
                     include(&mut lane, image)?;
                 } else {
@@ -119,6 +123,8 @@ impl Changes {
                 modified = true;
             }
             if modified {
+                #[cfg(feature = "verified-coverage")]
+                totals.write(view)?;
                 crate::wire::write_account(&lane, &mut view.clone().try_borrow_mut()?[..])?;
             }
         }

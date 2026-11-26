@@ -1,5 +1,7 @@
 //! Observation only on a fresh local venue. The payment handler never reads these PDAs.
 //! Recording is permissionless and can only copy the canonical clearing-owned financial root.
+#[cfg(feature = "verified-coverage")]
+mod backing;
 #[cfg(feature = "maintained-coverage")]
 pub(crate) mod maintenance;
 use crate::{engine, instructions::account_cash::Snapshot, state::accounts::*, ClearingError};
@@ -37,8 +39,13 @@ pub struct CoverageLane {
 }
 
 impl CoverageLane {
-    const SPACE: usize =
+    const ROW_SPACE: usize =
         8 + 32 + 2 + 8 + 32 + 80 + 32 + 128 + 4 + ROWS_PER_LANE * CoverageMember::INIT_SPACE;
+
+    #[cfg(feature = "verified-coverage")]
+    const SPACE: usize = Self::ROW_SPACE + backing::Totals::INIT_SPACE;
+    #[cfg(not(feature = "verified-coverage"))]
+    const SPACE: usize = Self::ROW_SPACE;
 
     fn bounds(&self) -> Bounds {
         Bounds {
@@ -152,11 +159,7 @@ fn include(body: &mut CoverageLane, image: CoverageMember) -> Result<()> {
     for (floor, sample) in body.radius[class].iter_mut().zip(radius) {
         *floor = (*floor).min(sample);
     }
-    if let Some(existing) = body
-        .members
-        .iter_mut()
-        .find(|member| member.id == image.id)
-    {
+    if let Some(existing) = body.members.iter_mut().find(|member| member.id == image.id) {
         *existing = image;
     } else {
         require!(body.members.len() < ROWS_PER_LANE, ClearingError::Profile);
@@ -181,12 +184,27 @@ pub struct ObserveCoverage {
 /// This diagnostic's fixed cohort is additionally audited against the finalized journal.
 pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
     let target = usize::from(target);
-    let lanes = ctx.remaining_accounts()?;
+    let remaining = ctx.remaining_accounts()?;
     let accounts = &ctx.accounts;
     require!(
-        target < 2 && lanes.len() == LANES,
+        target < 2
+            && remaining.len()
+                == LANES
+                    + if cfg!(feature = "verified-coverage") {
+                        2
+                    } else {
+                        0
+                    },
         ClearingError::ExitCohort
     );
+    #[cfg(feature = "verified-coverage")]
+    let (lanes, pool, mut check) = (
+        &remaining[2..],
+        backing::pool(accounts, &remaining[..2], target)?,
+        backing::MarketCheck::default(),
+    );
+    #[cfg(not(feature = "verified-coverage"))]
+    let lanes = &remaining[..];
     let snapshot = Snapshot::new([&accounts.btc, &accounts.eth], &Clock::get()?)?;
     let region = Region {
         markets: std::array::from_fn(|market| MarketRegion {
@@ -225,6 +243,8 @@ pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
                 && lane.members.len() <= ROWS_PER_LANE,
             ClearingError::ExitCohort
         );
+        #[cfg(feature = "verified-coverage")]
+        check.add(backing::Totals::read(view)?, &lane.members, target, prices)?;
         members += lane.members.len() as u64;
         if lane.members.is_empty() {
             continue;
@@ -246,6 +266,8 @@ pub fn observe(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
         members != 0 && members == accounts.registry.financial_count,
         ClearingError::ExitCohort
     );
+    #[cfg(feature = "verified-coverage")]
+    check.finish(&snapshot, pool)?;
     msg!(
         "coverage target={} members={} exact={} covered={}",
         target,
