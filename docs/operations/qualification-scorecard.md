@@ -11,7 +11,7 @@ Use the numbered findings across revisions. **Open** means a measured bottleneck
 | 1 | **Position storage — Closed on integration of [#180](https://github.com/arnabnandikgp/rivalt/pull/180)** | On clearing `b7e4458b` and harness `d175285e`, 80/80 alternating increases and reductions fit fixed 40-byte market records. All 163 wallet routes landed. The maker withdrew principal plus gain, with 951 events reconciled. Exact-fraction checks cover a separate 4,101-fill history and the documented rounding differences. [Measured workload](performance.md#fixed-width-maker-entry) | The fixed-width deployment covers retained mixed-price inventory. Depth, concurrency and adverse-flow liquidity remain separate findings. |
 | 2 | **Published versus executable depth — Closed on integration of [#191](https://github.com/arnabnandikgp/rivalt/pull/191) for the bounded local workload ([clearing #189](https://github.com/arnabnandikgp/rivalt/pull/189), [wallet #190](https://github.com/arnabnandikgp/rivalt/pull/190))** | [Benchmark PR #181](https://github.com/arnabnandikgp/rivalt/pull/181). On clearing `b7e4458b` and harness `6ddfcaee`, 22/30 ordinary BTC orders filled across deep, fragmented and one-sided books. Three needed two makers. Six requests exceeded published depth and two required three makers. On ETH the router returned 6133 for a financially executable 3,334-lot buy. The alternative maker filled it in the signed explicit control. Across the ordinary BTC orders, 52.66% of requested dollars filled at the index. [Dollar fills and per-order cost](performance.md#dollar-sized-orders-and-executable-depth) | Clearing `e02e72a0` and harness `db964391` filled this ETH order at the exact $100.053343 limit and refused the tighter limit. At 16 and 32 makers, the matched trace filled 5/10, 6/10 and 7/10 requests at caps of two, four and eight. An eight-maker shortlist omitted deeper bids needed to fill a $10,000 sell. [Matched results](performance.md#matched-dollar-execution-across-16-and-32-makers). On `0edb3064` the eight-leg wallet filled both thin-bid sells at the independent bounded price and improved to 8/10 at each directory size. [Signed results](performance.md#wallet-selection-by-order-size). On curved BTC asks a signed alternative saved $1.720650. On ETH the wallet refused a $3,000 sale that two shortlisted makers filled in a signed control. Clearing `50bd8836` filled ETH at the control price and executed the best four-curve BTC control in 394,364 CU. SDK `7353f463` closed the $5.038591 BTC gap and preserved the funded ETH fill. Both signed ordinary orders reached the computed four-leg optimum. [Wallet results](performance.md#price-aware-wallet-execution). Integration is pending. [Curved and margin-bound results](performance.md#curved-quotes-and-binding-maker-margin). Historical order 109’s exact 6120 branch remains unknown. |
 | 3 | **Wallet count versus parallel throughput — Closed for the bounded local workload** | Surfpool filled 288/288 in matched wallet windows. Native wallet preparation limited delivery to 8.54 and 16.05 signed orders/s in two split windows scheduled at 25/s. In matched pre-signed bursts, all 50 BTC orders landed in one local slot, and so did 25 BTC plus 25 ETH. The split used two workers and halved the highest writable-account cost. [Wallet preparation](performance.md#where-the-wallet-spends-time-before-signing) · [Burst and slot timing](performance.md#fifty-already-signed-orders-in-one-slot) | SDK `402a6c03` reduced median Chrome verification from about 16 to 7.3 ms for one wallet and from 169–172 to 82 ms each for twelve. Integrated at `cf61ad81`. The 200 ms repeat is deferred. Sustained throughput and priority-fee competition remain unmeasured. [Browser replay](performance.md#browser-wallet-verification-with-the-default-decoder) · [PR](https://github.com/arnabnandikgp/rivalt/pull/198) |
-| 4 | **Closing versus getting cash out — [Automatic scheduling in review](https://github.com/arnabnandikgp/rivalt/pull/201) for the funded local workload** | Self-service exits took 0.800 and 1.236 s on `f873bfd1`. At `efff1af2`, worker-assisted exits took 11.674 and 18.752 s, down from 40.815 and 45.671 s in the matched control. All 48 competing orders filled and both markets collected every covered loss. [Timing and collection trade-off](performance.md#scheduling-payouts-while-losses-keep-arriving) | On `254404ef` the flat ETH maker received all 480 atoms in its wallet after 117.186 s with initially cold backing. [Cold exit](https://github.com/arnabnandikgp/rivalt/pull/203) · [Timing](performance.md#first-eth-maker-payout-with-cold-backing) The [payout work](#payout-and-cross-margin-work) now targets ordinary payment without traversing financial membership. An exhausted pool or debtor can still leave profit unpaid. |
+| 4 | **Closing versus getting cash out — [Automatic scheduling in review](https://github.com/arnabnandikgp/rivalt/pull/201) for the funded local workload** | Self-service exits took 0.800 and 1.236 s on `f873bfd1`. At `efff1af2`, worker-assisted exits took 11.674 and 18.752 s, down from 40.815 and 45.671 s in the matched control. All 48 competing orders filled and both markets collected every covered loss. [Timing and collection trade-off](performance.md#scheduling-payouts-while-losses-keep-arriving) | On `254404ef` the flat ETH maker received all 480 atoms in its wallet after 117.186 s with initially cold backing. [Cold exit](https://github.com/arnabnandikgp/rivalt/pull/203) · [Timing](performance.md#first-eth-maker-payout-with-cold-backing) The [exact coverage comparison](#exact-btceth-debtor-coverage) resolves prior solvent collisions. A fully crossed book can still require 1,000 exact rows. An exhausted pool or debtor can still leave profit unpaid. |
 | 5 | **Member count versus default complexity — Deferred to the shock exercise** | Three 75-member books needed 193, 285 and 327 finalized keeper transactions. A separate 128-member recovery needed 471 continuations for one payout calculation. [Recovery evidence](validation.md#evidence-by-deployment) | At fixed population, vary debt concentration, cross-market claims and eligible reductions. Report work to finish, restart progress and time to the last wallet exit. |
 | 6 | **Scripted flow versus actual wallet behavior — Open** | The burst assigned wallets round-robin. The 72-order trace covered eight sizes overall, yet each of its 16 wallets used one size throughout. The 24-wallet burst was BTC buy-only. [Generator](../../tests/rpc-contract/router-load-rpc.ts) | Vary arrival, size, side and market independently per wallet, keep a fixed comparison trace, and repeat on additional seeds. Include repeat traders, reductions, reversals and outstanding orders. |
 | 7 | **Coordinated makers and sources — Open for benchmark coverage** | The fixture can refresh six maker publications and synthetic oracle sources together. The funding report uses published depth and omits hypothetical financial admission. [Fixture](../../tests/rpc-contract/liquidity-execution-setup.ts) · [Funding](../liquidity/funding.md) | Vary maker update timing separately from oracle updates. Measure executable spread, refusals and funding coverage. The combined price jump and maker outage belongs to the deferred exercise. |
@@ -66,9 +66,47 @@ account change and the supplied exception accounts against current on-chain stat
 **Disposition.** Keep Finding 4 open. These counters cannot be the sole payout
 authority. A replacement must make progress on the two-account counterexample
 and on many different debtors behind one warning, without a membership walk.
-The next comparison should measure the size, update cost and freshness of an
-exact proof for that case. No transaction, CU, lock or wallet-latency measurement
-follows from the native model. [Executable comparison](../../tests/financial/test_payout_coverage_summary.py)
+The exact comparison below tests that case. [Counter comparison](../../tests/financial/test_payout_coverage_summary.py)
+
+### Exact BTC/ETH debtor coverage
+
+The native verifier models eight clearing-owned lanes, assigned by stable member
+ID modulo eight. It always reads their current summaries. Each fill records the
+new cash, signed lots and funding-adjusted fixed claims for both sides in the
+affected lanes. A claimant supplies a one-byte mask identifying additional lane
+bodies it can load. If a summary is inconclusive, the verifier checks the
+current rows of that lane. An omitted required lane returns “missing input.”
+An uncovered debt returns the debtor ID. A mask prepared before a trade confers
+no authority. [Model](../../crates/financial-core/tests/payout_coverage/lanes.rs) · [Independent cases](../../crates/financial-core/tests/payout_coverage.rs)
+
+For two markets, write `T` for a member’s target claim, `U` for its other
+claim and `C` for funded cash, all in scaled collateral atoms. Coverage holds
+if `T ≥ 0`, or if both `C + T ≥ 0` and `C + T + U ≥ 0`. The summaries bound
+those three inequalities at the current price and held-funding endpoints.
+They also retain how far prices can move from a common reference before a
+member could violate the inequalities. This distance uses that member’s own
+cash and lots. Flat positions have zero price sensitivity even when they retain
+a debt. The model records separate distances for BTC exposure, ETH exposure,
+both and neither. A move beyond a proven distance triggers more exact work.
+
+| Native comparison | Result |
+|---|---|
+| Two solvent accounts in the same lane, in each of the three prior collision cases | All three decisions cleared from the summaries alone. |
+| The 224 decisions from the 12- and 1,000-member controls | All 164 safe checks cleared and all 60 unsafe checks refused. Summaries alone decided 56 of 112 in each population. At most two rows were checked at 12 members and 125 at 1,000. |
+| 64 varied 16-member books, with intervening balance changes and mixed price/funding endpoints | All 384 decisions agreed with independent 16-corner arithmetic and the existing Rust backing kernel. Of those, 53 were covered and 331 underfunded. |
+| Admitted ten-lot BTC fill at 100, one-atom fee, then BTC at 70 | The old mask omitted a newly required lane. With that lane present, the verifier found 189 cash against 340 debt. Adding 151 cash covered it exactly. A one-unit increase in the scaled held funding endpoint again refused. At the covered point the native settlement engine paid the flat ETH creditor 50 atoms from a pool of 60 and the book reconciled. |
+| 1,000 members in matched pairs with sizes from 1 to 500 lots, BTC/ETH effective prices moving from 100/200 to 70/120 | With exposure to just one market per account, all eight summaries sufficed for both targets. With both markets open and cash just covering each member’s own losses, both targets required all 1,000 rows. Every account in this control was solvent. |
+
+**Resource limit.** Under a packed representation the fields require 241 bytes
+per lane summary and 64 bytes per member including its ID. Eight summaries are
+1,928 bytes. The worst observed case adds 64,000 bytes of account data. These
+counts exclude account framing and the transaction message. One updated member
+widens one summary and replaces one row. Historical extremes can continue to
+force exact reads after a debtor recovers. A claim reading all summaries would
+also conflict with a fill writing any of them. The model assumes clearing has
+tracked every admitted economic change from genesis. Signed account binding,
+SBF compute, contention, pool reconciliation and direct wallet exit under load
+still require qualification.
 
 ## Executable depth work
 

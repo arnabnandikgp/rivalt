@@ -57,7 +57,9 @@ With ordinary wallets preparing orders, final snapshot verification accounted fo
 
 **Finding 4, [native comparison in review](https://github.com/arnabnandikgp/rivalt/pull/205).** On `fc178c23` against [contract revision `4bc796ba`](https://github.com/arnabnandikgp/rivalt/pull/204), a bounded summary withheld four of 164 safe BTC/ETH checks after individual exceptions were rechecked. All 60 unsafe checks refused in the matched 12/1,000-member controls. Two solvent accounts can still block a backed payout indefinitely. This candidate does not meet the direct-claim requirement. [Comparison and limits](operations/qualification-scorecard.md#btceth-backing-summary-comparison)
 
-**Next action.** Compare an exact backing proof on the colliding solvent-account case against the exhaustive reference, including proof invalidation by an intervening fill. Keep the current certificate authoritative until signed safe payouts and unsafe refusals pass.
+**Finding 4, exact BTC/ETH coverage.** On model revision `e204f19f`, all 164 covered and 60 underfunded decisions in the matched controls agreed with the full reference. The three prior collision cases cleared without reading individual rows. After an admitted BTC fill and price drop, the verifier rejected a stale input set and identified the uncovered ETH debtor. One solvent 1,000-member cross book still needed every row. These are native results. [Comparison, working set and limits](operations/qualification-scorecard.md#exact-btceth-debtor-coverage)
+
+**Next action.** Meter a signed read-only Surfpool coverage check with zero, 125 and 1,000 exact rows, including an intervening fill or state change. Measure CU, loaded data and shared locks before wiring it into direct profit payment.
 
 | Open gate | What remains |
 |---|---|

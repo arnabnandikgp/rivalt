@@ -20,6 +20,13 @@ and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares
 native debtor-coverage decisions. Signed claim admission, authenticated account
 updates, wallet latency and fresh PostgreSQL replay remain integration gates.
 
+Run `cargo test --locked --offline -p financial-core --test payout_coverage -- --nocapture`
+for the [exact BTC/ETH comparison](qualification-scorecard.md#exact-btceth-debtor-coverage).
+It checks stale inputs after an admitted native fill, exact versus summary reads,
+and two independent ways of valuing the same cohort. The resulting row counts
+measure native financial work. The current clearing payout still requires its
+certificate.
+
 On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
 100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and
 445,226 CU (ETH, 32 makers, 32 loaded accounts). The later ETH quote from a
