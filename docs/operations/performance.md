@@ -400,6 +400,21 @@ The dense run used 994 trader accounts and six market-isolated maker capitals. A
 
 On the separate nine-member price-shock control, unchanged debtor balances and a lower BTC price forced one exact check and refused the ETH payout, leaving nine atoms in the pool. The owner ultimately withdrew 40 atoms. Fresh PostgreSQL replay matched 263 finalized events.
 
+### Automatic wallet payouts on a stressed 1,000-member book
+
+On clearing `e4aff314` and harness `11cb1b55`, 994 trader margin accounts and six internal maker capitals shared two markets, eight coverage lanes and 1,001 provisioned recovery seats. Each measurement starts with the same ten-lot ETH round trip. The flat maker earned 40 atoms and its owner withdrew exactly 40 SPL collateral atoms. The ordinary worker collected the first trader loss. For the price shock, a separate signed collection funded the second claim before the BTC move.
+
+| ETH payout | Individual debtor checks | Consumed / signed CU | Eligibility observed to wallet | Competing successful fills strictly between funding or recovery and credit |
+|---|---:|---:|---:|---:|
+| Ordinary covered claim | 0 | 158,387 / 400,000 | 3.891 s | 6 |
+| Recovered claim with 40 borderline groups | 640 | 640,410 / 736,472 | 0.556 s | 1 |
+
+Both payment originals finalized on their first submission. Each used 1,029 bytes, 25 accounts, six writable accounts, the default 32 KiB heap and 5,000 test lamports. Each payout required one credit and one separate owner withdrawal. The worker sent zero membership-walk transactions. All 24 competing fills landed across the two finite windows. The ordinary wallet exit took 13.124 s from close, including 9.233 s until the pool was first observed funded. The recovered case took 59.470 s from close, including deliberate fixture construction and the blocked interval.
+
+At a BTC index of 40,000, the idle trader had 31,968 cash atoms against adverse BTC and ETH debts of 40,804 and 302 atoms. A signed payment refused. The worker independently refused the funded claim before and after restarting and replacing one financial member. The idle account bytes stayed unchanged. With BTC at 48,000, the adverse debts were 24,964 and 302, leaving 6,702 atoms of headroom. Both unsigned payment probes that failed backing used 640 exact checks. The recovered payment checked those 640 rows within eight lane accounts. Fresh PostgreSQL replay matched 3,583 events and both owner wallet deltas.
+
+The earlier `765e0d81` run exposed an expired reconciliation witness under fills. The repeat retained the ten-second publication limit, checked distinct membership addresses once and retried expired observations. Fourteen worker turns waited for a fresh projection. These times describe a single local Surfpool run with paced signed fills and synthetic oracle updates. Worker discovery still reads its off-chain membership projection. Clearing can require up to 1,000 exact row checks if every group misses its bound. [Reproduction](local-development.md#incremental-debtor-groups-on-open-markets)
+
 ## Funding, costs and comparisons
 
 The funding publisher computes depth off chain. In three older 75-member runs on clearing `79724a5a`, 12 two-market publication transactions used 48,940–49,110 CU. Another 54 transactions that also checkpointed both markets used 89,682–99,550 CU. These are complete transactions on that binary. [Funding contract](../liquidity/funding.md) · [Receipt reader](../../tests/performance/funding-receipts.py)
