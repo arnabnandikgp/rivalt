@@ -53,7 +53,9 @@ With ordinary wallets preparing orders, final snapshot verification accounted fo
 
 **Finding 4, [cold ETH exit in Review](https://github.com/arnabnandikgp/rivalt/pull/203).** Harness `254404ef` followed one 480-atom maker profit from a flat ETH position to its owner’s wallet in 117.186 s. The worker completed 43 backing checks across 12 members. Both BTC traders withdrew during the run, and fresh SQL replay reconciled 903 events. [Measurements](operations/performance.md#first-eth-maker-payout-with-cold-backing)
 
-**Next action.** Repeat the same book with ETH backing verified before trading. Compare the maker’s wait, the upfront work and any backing checks repeated after fills.
+**Payout and cross-margin work.** [Finding 4 and new findings 10–11](operations/qualification-scorecard.md#payout-and-cross-margin-work) track direct BTC/ETH payouts, wider cross accounts and the default gate before third-market activation. On the `f2b2c70e` financial core, the native comparison rejected stale ETH backing when BTC moved with no intervening account change. The reference compares two allocations of fully collected SOL proceeds. The wider-market economics remain open. These checks establish contract examples only.
+
+**Next action.** Compare a BTC/ETH backing summary maintained from an empty venue against the exhaustive debtor check under price-only shocks and membership churn. Measure missed shortfalls and safe payments withheld before changing the clearing instruction.
 
 | Open gate | What remains |
 |---|---|

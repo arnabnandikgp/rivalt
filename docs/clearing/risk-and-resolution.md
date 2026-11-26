@@ -135,6 +135,33 @@ debt `d_i,m = max(-U_i,m,0)`. The clearing contract uses these priorities:
 
 ## Residual clearing equations
 
+### Gate for a third cross market
+
+The local protocol resolves BTC/ETH. A third cross market introduces a choice
+the two-market rules never have to make. Suppose a flat cross account has no
+cash, is owed 180 atoms on SOL and owes 150 on BTC and 120 on ETH. One flat
+creditor is owed each destination balance. SOL has collected all 180 atoms.
+The balances reconcile in all three markets before resolution.
+
+| Allocation of recovered SOL proceeds | BTC creditor | ETH creditor | BTC insurance spent |
+|---|---:|---:|---:|
+| Proportional to destination debts (150:120), no insurance | 100 | 80 | 0 |
+| ETH debt paid first, no insurance | 60 | 120 | 0 |
+| Proportional, with 150 atoms of BTC insurance available | 150 | 80 | 50 |
+| ETH debt paid first, same BTC insurance available | 150 | 120 | 90 |
+
+Both policies conserve cash. The proposed benchmark allocates recovered proceeds
+in proportion to frozen remaining debts before destination insurance. This makes
+the split independent of market labels, transaction order and reserve size.
+Letting destination insurance influence the split can increase aggregate recovery
+and spend more of one market's reserve. Approval of the work sequence does not
+select these economics. Before activation, settle the policy, including partial
+source recovery, cycles, multiple sources, fractional ownership and terminal
+rounding. Qualify forced reductions, insurance use and every final withdrawal
+against a complete independent book. [Finding 11](../operations/qualification-scorecard.md#payout-and-cross-margin-work)
+
+### Current two-market equations
+
 For the set of claims being settled, let `W_m` be the sum of positive claims in a market, and `B_m` its initial P plus
 own-cash collections. A mixed-sign account creates one link from its positive-claim
 market to its remaining-debt market. For a link with face `w` and debt cap `d`, its

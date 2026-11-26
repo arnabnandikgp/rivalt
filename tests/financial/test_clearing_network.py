@@ -13,6 +13,23 @@ from clearing_network_reference import clear_atom_cohort, clear_rational_cohort
 
 
 class ClearingNetworkContract(unittest.TestCase):
+    def test_three_market_policy_choices_on_one_fully_collected_source(self):
+        # Paper comparison only. Enumerate every admissible whole-atom split
+        # of SOL proceeds in this flat book, independently of the BTC/ETH solver.
+        recovered = 180
+        btc_debt, eth_debt = 150, 120
+        splits = [(btc, recovered - btc) for btc in range(btc_debt + 1)
+                  if 0 <= recovered - btc <= eth_debt]
+        proportional, = [split for split in splits if split[0]*eth_debt == split[1]*btc_debt]
+        eth_first = max(splits, key=lambda split: split[1])
+        self.assertEqual((proportional, eth_first), ((100, 80), (60, 120)))
+        for (btc, eth), reserve, expected in (
+                (proportional, 0, (100, 80, 0)), (eth_first, 0, (60, 120, 0)),
+                (proportional, 150, (150, 80, 50)), (eth_first, 150, (150, 120, 90))):
+            spent = min(reserve, btc_debt - btc)
+            self.assertEqual((btc + spent, eth, spent), expected)
+            self.assertEqual((btc + spent) + eth + (reserve - spent), recovered + reserve)
+
     def test_unrelated_market_does_not_share_a_blanket_haircut(self):
         accounts = (Account(100, (-100, 0)), Account(0, (100, 0)),
                     Account(0, (0, -100)), Account(0, (0, 100)))

@@ -64,6 +64,25 @@ Payment remains first-admissible landed order, not a FIFO/pro-rata queue, and
 already paid cash is not clawed back for a later gap. Funded exits use their own
 whole-account admission below, not this ordinary profit-payment certificate.
 
+### Acceptance contract for ordinary payouts
+
+The successor must preserve these outcomes while removing membership traversal
+from ordinary payment. This example uses whole collateral atoms, two flat ETH
+creditors owed 50 each and a solvent recipient with no reservations.
+
+| State immediately before the claim | Required outcome |
+|---|---|
+| ETH pool 60. Charlie owes ETH 40, has 40 cash and owes nothing elsewhere. | Either creditor can claim 50 directly. The landed payment leaves 10 in the pool. |
+| The first creditor has been paid. Charlie still covers the 40. | A request by the second creditor for the full 50 must wait for collection. Collect 40 from Charlie, then pay 50. Both creditors now hold 50 cash and the pool is empty. |
+| ETH pool again 60. Charlie still owns 40 cash and owes ETH 40, but now also owes BTC 30. | Ordinary ETH payment and selective collection from Charlie refuse. The missing 30 cannot be assigned to BTC by paying the first ETH caller. |
+
+The third state can arise from a BTC price change while Charlie is idle. Clearing
+must distinguish it at the first subsequent payout, before keeper intervention.
+A stale input or insufficient proof also blocks payment, but does not establish
+default. Record unsafe, unavailable, waiting for cash and paid outcomes separately.
+Preserve partial-payment ceilings, exact fractions, recipient health and the
+existing owner withdrawal of funded cash. [Qualification gates](../operations/qualification-scorecard.md#payout-and-cross-margin-work)
+
 ### When the trader closes against a different maker
 
 Suppose a trader buys one lot at 60,002 collateral atoms from A and sells it at

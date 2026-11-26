@@ -63,6 +63,30 @@ def encoded_summary(count, bad, quantity, positive, negative, required):
 
 
 class MaintainedBacking(unittest.TestCase):
+    def test_idle_btc_debt_changes_eth_coverage_without_a_fill(self):
+        # Same four roots and ETH pool at both observations. At BTC 100
+        # Charlie owes only ETH 40. At BTC 70 his gross debt is 70.
+        roots = [
+            row(0, (0, 0), (0, 50*SCALE)), row(0, (0, 0), (0, 50*SCALE)),
+            row(40, (1, 0), (-100*SCALE, -40*SCALE)),
+            row(100, (-1, 0), (100*SCALE, 0)),
+        ]
+        eth = (20, 20, 0, 0)
+        before = bounds(((100, 100, 0, 0), eth))
+        after = bounds(((70, 70, 0, 0), eth))
+        serialized = ';'.join(map(csv, roots))
+        steps = ';'.join(f'scan:{index}' for index in range(len(roots)))
+        healthy, stale, impaired = run([
+            f'sequence|1|{before}|{serialized}|{steps}|60',
+            f'contains|1|{before}|70,70,20,20|0,0,0,0',
+            f'sequence|1|{after}|{serialized}|{steps}|60',
+        ])
+        for actual, bad, ready in ((healthy, 0, 1), (impaired, 1, 0)):
+            final_step = actual.split(';')[-1]
+            expected = encoded_summary(4, bad, 0, 100*SCALE, 40*SCALE, (1, 0))
+            self.assertEqual(final_step, f'{expected},{ready}')
+        self.assertEqual(stale, '0')
+
     def test_contributions_match_complete_corner_enumeration(self):
         rng = Random(550501)
         examples = [row(100, (0, 0), (-60*SCALE, -60*SCALE)),

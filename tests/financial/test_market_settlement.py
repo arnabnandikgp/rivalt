@@ -6,6 +6,31 @@ from market_settlement_reference import MarketBook, FrozenCursor, collect, pay, 
 
 
 class MarketSettlementContract(unittest.TestCase):
+    def test_ready_claim_collection_delay_and_shared_shortfall(self):
+        # ETH owes two flat creditors 50 each. Their claims stay identical
+        # as the composition of the backing changes.
+        creditors = (Account(0, (0, 50)), Account(0, (0, 50)))
+        funded = MarketBook((*creditors, Account(40, (0, -40))), pools=(0, 60))
+        first = pay(funded, 0, 1, 50)
+        self.assertEqual((first.accounts[0].cash, first.pools[1]), (50, 10))
+        with self.assertRaises(InvalidTransition):
+            pay(first, 1, 1, 50)
+        collected = collect(first, 2, 1, 40)
+        last = pay(collected, 1, 1, 50)
+        self.assertEqual(last.pools, (0, 0))
+        self.assertEqual([account.cash for account in last.accounts], [50, 50, 0])
+        self.assertEqual(last.vault, funded.vault)
+
+        # Charlie now owes 30 BTC as well. Another account owns that BTC
+        # claim. Both market identities still balance, including the ETH 60.
+        short = MarketBook((*creditors, Account(40, (-30, -40)), Account(0, (30, 0))),
+                           pools=(0, 60))
+        for creditor in (0, 1):
+            with self.assertRaises(InvalidTransition):
+                pay(short, creditor, 1, 50)
+        with self.assertRaises(InvalidTransition):
+            collect(short, 2, 1, 40)
+
     def test_unrelated_insolvent_market_does_not_block_backed_payment(self):
         book = MarketBook((Account(100, (-100, 0)), Account(0, (100, 0)),
                            Account(0, (0, -100)), Account(0, (0, 100))))
