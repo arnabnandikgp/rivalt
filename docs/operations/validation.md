@@ -33,6 +33,8 @@ against PostgreSQL. It does not execute a clearing payout.
 
 For the [cold ETH coverage comparison](qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout), run the [shadow workload](local-development.md#comparing-debtor-coverage-during-the-cold-eth-payout) on its pinned binary. Require a signed incomplete-cohort refusal, an early covered reading strictly before the first complete ETH certificate, a matching reading beside each payment, all three SPL withdrawals and fresh PostgreSQL replay. Count every post-bootstrap margin write and its atomic coverage update before using the CU or contention results.
 
+For the [clearing-maintained coverage build](local-development.md#verifying-mandatory-coverage-updates), start with an empty registry and include its lane in each instruction that changes a financial member. Require signed rollback of membership, SPL and two-party writes with an omitted or incorrect lane. Compare the surviving rows after leaving and rejoining, exercise a two-sided fill, and reconcile finalized history into fresh PostgreSQL. The focused native tests in `scoped_history::tests` cover dynamic account lists, stale row images and two members sharing a lane.
+
 On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
 100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and
 445,226 CU (ETH, 32 makers, 32 loaded accounts). The later ETH quote from a

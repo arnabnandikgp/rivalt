@@ -63,7 +63,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 4, clearing-owned coverage on a fixed cohort.** On clearing `ce9e8e9c` and harness `fd5433fd`, a signed check found all 12 members covered one slot after the ETH pool held the maker’s full 480 atoms. The certificate authorized the credit after 43 checks. All five BTC/ETH credits agreed with the new check, all three wallets withdrew, and fresh PostgreSQL replay reconciled 915 events. Recording both sides added 10,270–11,249 CU per background fill. Funding the claim directly from these records still requires mandatory maintenance and larger, adverse workloads. [Results and bounds](operations/qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout)
 
-**Next action.** Make coverage updates mandatory in the local clearing build for every balance change, financial join and retirement. Submit signed transactions that omit a required update and verify clearing rejects them before a direct payout can trust these records.
+**Finding 4, mandatory coverage updates on a fresh local venue.** Program `eb1cb0e4` updated financial rows inside the signed instruction. Harness `fdc603cb` verified nine rollbacks across joins, deposits, a two-account transfer, deactivation, a fill and a withdrawal. An eighth member left, rejoined and retired. All eight finalized snapshots matched canonical margin accounts, and independent PostgreSQL replay reconciled 115 events. The ten-lot BTC fill used 173,703 CU in total. Payment still requires the existing certificate. [Results and scope](operations/qualification-scorecard.md#coverage-updates-enforced-by-clearing)
+
+**Next action.** Qualify the complete BTC/ETH backing decision on the maintained rows. Check market claim conservation against settlement cash and require fresh sources for exposed markets. Exercise an idle cross debtor through an adverse price move and recovery before enabling a direct credit.
 
 | Open gate | What remains |
 |---|---|
