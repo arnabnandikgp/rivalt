@@ -144,9 +144,9 @@ async function replayCash() {
           assert.equal(accounts[index],addr);
           const balance = (rows:{accountIndex:number;uiTokenAmount:{amount:string}}[]) => {
             const row = rows.find(r=>r.accountIndex === call.accounts[index]); assert(row);
-            return Number(row.uiTokenAmount.amount);
+            return BigInt(row.uiTokenAmount.amount);
           };
-          const delta = code ? 0 : (action === 'fund_slot_margin' ? amount : -amount);
+          const delta: bigint = code ? 0n : BigInt(action === 'fund_slot_margin' ? amount : -amount);
           assert.equal(balance(tx.meta.postTokenBalances)-balance(tx.meta.preTokenBalances),addr===vault ? delta : -delta);
         }
       }
