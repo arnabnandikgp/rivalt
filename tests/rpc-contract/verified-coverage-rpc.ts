@@ -56,8 +56,8 @@ try {
   assert.equal((await root(trader)).positions[1].virtualScaled,-30n*scale);
   await h.send('open legacy ETH certificate',[sdk.getInitializeMarketBackingInstruction({...common,payer,certificate,marketIndex:1})]);
   const samples = [];
-  async function measure(label: string, expected: boolean, target: 0|1 = 1) {
-    await setup.sample();
+  async function measure(label: string, expected: boolean, target: 0|1 = 1, refresh = true) {
+    if (refresh) await setup.sample();
     const book = await Promise.all(allRoots.map(root));
     const risks = await Promise.all([setup.marketState(0),setup.marketState(1)]);
     // The symmetric, unskewed book has zero premium at each observation.
@@ -138,7 +138,7 @@ try {
   for (let rounds=0; await setup.slot()<lastEth.validUntil && await setup.now()<lastEth.oracle.sourceDeadline; rounds++) {
     assert(rounds<25); await setup.sample([0]);
   }
-  await h.quote('unrelated stale ETH admits flat ETH book with current BTC',observation(1),1n);
+  samples.push(await measure('unrelated stale ETH admits flat ETH book with current BTC',true,1,false));
   const journal = await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   const replay = await journal.finish();
   writeFileSync(dir+'/verified-backing.json',json({program:build.revision,revision,samples,events:replay.events}));
