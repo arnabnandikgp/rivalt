@@ -80,8 +80,16 @@ impl LaneHeader {
         &self,
         bytes: &'a [u8],
     ) -> impl Iterator<Item = Result<CoverageMember>> + 'a {
-        let end = Self::ROWS_START + self.count() * CoverageMember::INIT_SPACE;
-        bytes[Self::ROWS_START..end]
+        self.rows(bytes, 0..self.count())
+    }
+
+    pub fn rows<'a>(
+        &self,
+        bytes: &'a [u8],
+        range: std::ops::Range<usize>,
+    ) -> impl Iterator<Item = Result<CoverageMember>> + 'a {
+        let offset = |index| Self::ROWS_START + index * CoverageMember::INIT_SPACE;
+        bytes[offset(range.start)..offset(range.end)]
             .chunks_exact(CoverageMember::INIT_SPACE)
             .map(crate::wire::read)
     }

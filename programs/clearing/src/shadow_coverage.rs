@@ -2,6 +2,8 @@
 //! Recording is permissionless and can only copy the canonical clearing-owned financial root.
 #[cfg(feature = "verified-coverage")]
 mod backing;
+#[cfg(feature = "grouped-credit")]
+mod groups;
 mod lane;
 use lane::LaneHeader;
 #[cfg(feature = "maintained-coverage")]
@@ -49,7 +51,9 @@ impl CoverageLane {
     const ROW_SPACE: usize =
         8 + 32 + 2 + 8 + 32 + 80 + 32 + 128 + 4 + ROWS_PER_LANE * CoverageMember::INIT_SPACE;
 
-    #[cfg(feature = "verified-coverage")]
+    #[cfg(feature = "grouped-credit")]
+    const SPACE: usize = Self::ROW_SPACE + backing::Totals::INIT_SPACE + groups::SPACE;
+    #[cfg(all(feature = "verified-coverage", not(feature = "grouped-credit")))]
     const SPACE: usize = Self::ROW_SPACE + backing::Totals::INIT_SPACE;
     #[cfg(not(feature = "verified-coverage"))]
     const SPACE: usize = Self::ROW_SPACE;
@@ -262,29 +266,53 @@ pub(crate) fn market_backed(
         };
         let lane = LaneHeader::authenticate(view, &bytes, venue, epoch)?;
         require!(usize::from(lane.lane) == index, ClearingError::ExitCohort);
-        #[cfg(feature = "verified-coverage")]
-        check.add(
-            backing::Totals::read(view)?,
-            lane.members(&bytes),
-            target,
-            prices,
-        )?;
         members += lane.count() as u64;
-        if lane.count() == 0 {
-            continue;
-        }
-        let moves = engine::checked(coverage::displacements(prices, lane.anchor))?;
-        if engine::checked(lane.bounds().proves(target, moves))?
-            || coverage::radius_proves(lane.radius, target, moves)
+        #[cfg(feature = "grouped-credit")]
         {
-            continue;
+            let both_open = check.include_totals(backing::Totals::read(view)?, target)?;
+            for start in (0..lane.count()).step_by(groups::WIDTH) {
+                let end = (start + groups::WIDTH).min(lane.count());
+                let group = groups::read(&bytes, start / groups::WIDTH, end - start)?;
+                if both_open && !group.cross_credit[target].contains(prices[target]) {
+                    check.require_sibling(target);
+                }
+                if group.covers(prices) {
+                    continue;
+                }
+                for row in lane.rows(&bytes, start..end) {
+                    let row = row?;
+                    exact += 1;
+                    covered &= engine::checked(financial_core::backing::projected::covers(
+                        row.cash, row.lots, row.fixed, target, prices,
+                    ))?;
+                }
+            }
         }
-        for row in lane.members(&bytes) {
-            let row = row?;
-            exact += 1;
-            covered &= engine::checked(financial_core::backing::projected::covers(
-                row.cash, row.lots, row.fixed, target, prices,
-            ))?;
+        #[cfg(not(feature = "grouped-credit"))]
+        {
+            #[cfg(feature = "verified-coverage")]
+            check.add(
+                backing::Totals::read(view)?,
+                lane.members(&bytes),
+                target,
+                prices,
+            )?;
+            if lane.count() == 0 {
+                continue;
+            }
+            let moves = engine::checked(coverage::displacements(prices, lane.anchor))?;
+            if engine::checked(lane.bounds().proves(target, moves))?
+                || coverage::radius_proves(lane.radius, target, moves)
+            {
+                continue;
+            }
+            for row in lane.members(&bytes) {
+                let row = row?;
+                exact += 1;
+                covered &= engine::checked(financial_core::backing::projected::covers(
+                    row.cash, row.lots, row.fixed, target, prices,
+                ))?;
+            }
         }
     }
     require!(

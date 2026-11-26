@@ -91,6 +91,8 @@ impl Changes {
             drop(data);
             #[cfg(feature = "verified-coverage")]
             let mut totals = backing::Totals::read(view)?;
+            #[cfg(feature = "grouped-credit")]
+            let mut dirty_groups = [false; groups::COUNT];
             for change in changes {
                 require!(
                     view.is_writable() && change.venue == venue,
@@ -106,6 +108,15 @@ impl Changes {
                 );
                 #[cfg(feature = "verified-coverage")]
                 totals.replace(change.before, change.after)?;
+                #[cfg(feature = "grouped-credit")]
+                {
+                    let index = old.unwrap_or(lane.members.len());
+                    require!(index < ROWS_PER_LANE, ClearingError::Profile);
+                    dirty_groups[index / groups::WIDTH] = true;
+                    if change.after.is_none() {
+                        dirty_groups[(lane.members.len() - 1) / groups::WIDTH] = true;
+                    }
+                }
                 if let Some(image) = change.after {
                     include(&mut lane, image)?;
                 } else {
@@ -119,6 +130,12 @@ impl Changes {
             }
             #[cfg(feature = "verified-coverage")]
             totals.write(view)?;
+            #[cfg(feature = "grouped-credit")]
+            groups::refresh(
+                &mut view.clone().try_borrow_mut()?,
+                &lane.members,
+                dirty_groups,
+            )?;
             crate::wire::write_account(&lane, &mut view.clone().try_borrow_mut()?[..])?;
         }
         require!(

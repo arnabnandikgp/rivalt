@@ -55,13 +55,17 @@ impl Totals {
             view.data_len() == CoverageLane::SPACE,
             ClearingError::ExitCohort
         );
-        crate::wire::read(&view.try_borrow()?[CoverageLane::ROW_SPACE..])
+        crate::wire::read(
+            &view.try_borrow()?
+                [CoverageLane::ROW_SPACE..CoverageLane::ROW_SPACE + Self::INIT_SPACE],
+        )
     }
 
     pub(super) fn write(&self, view: &AccountView) -> Result<()> {
         crate::wire::write(
             self,
-            &mut view.clone().try_borrow_mut()?[CoverageLane::ROW_SPACE..],
+            &mut view.clone().try_borrow_mut()?
+                [CoverageLane::ROW_SPACE..CoverageLane::ROW_SPACE + Self::INIT_SPACE],
         )
     }
 }
@@ -81,6 +85,32 @@ impl MarketCheck {
         target: usize,
         prices: [[i128; 2]; 2],
     ) -> Result<()> {
+        if self.include_totals(totals, target)? {
+            for row in rows {
+                let row = row?;
+                if row.lots.contains(&0) {
+                    continue;
+                }
+                let lots = row.lots[target];
+                let price = prices[target][usize::from(lots < 0)];
+                let marked = i128::from(lots)
+                    .checked_mul(price)
+                    .and_then(|value| value.checked_add(row.fixed[target]))
+                    .ok_or(ClearingError::Arithmetic)?;
+                if marked < 0 {
+                    self.require_sibling(target);
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn require_sibling(&mut self, target: usize) {
+        self.required |= 1 << (1 - target);
+    }
+
+    pub(super) fn include_totals(&mut self, totals: Totals, target: usize) -> Result<bool> {
         self.lots = self
             .lots
             .checked_add(totals.lots[target])
@@ -96,25 +126,7 @@ impl MarketCheck {
         if totals.flat_debt_with_sibling[target] > 0 {
             self.required |= sibling;
         }
-        if self.required & sibling == 0 && totals.both_open != 0 {
-            for row in rows {
-                let row = row?;
-                if row.lots.contains(&0) {
-                    continue;
-                }
-                let lots = row.lots[target];
-                let price = prices[target][usize::from(lots < 0)];
-                let marked = i128::from(lots)
-                    .checked_mul(price)
-                    .and_then(|value| value.checked_add(row.fixed[target]))
-                    .ok_or(ClearingError::Arithmetic)?;
-                if marked < 0 {
-                    self.required |= sibling;
-                    break;
-                }
-            }
-        }
-        Ok(())
+        Ok(self.required & sibling == 0 && totals.both_open != 0)
     }
 
     fn conserve(&self, pool: u64) -> Result<()> {
