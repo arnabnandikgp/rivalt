@@ -218,6 +218,21 @@ RIVALT_SETTLEMENT_PROBE=execution-router-maintained-coverage bash ops/scalable-s
 
 The run checks rollback on missing and substituted writable accounts, compares all lane rows with finalized margin accounts, and replays the financial journal into a fresh PostgreSQL database. The ignored run directory retains the signed originals, receipts and `maintained-coverage.json`.
 
+### Comparing market backing during a BTC price shock
+
+Build the local program at clean revision `8a239609af68ad063bf59bc4a554ae906cf5b70d` with the qualified base artifacts installed. From the harness checkout, point the supervisor at those binaries and a fresh run directory.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=verified-coverage \
+  RIVALT_ATTRIBUTION_DIR=.local/verified-coverage/build-8a239609 bash ops/build-profit-attribution.sh
+
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/verified-coverage/build-8a239609
+export RIVALT_ROUTER_REVISION=8a239609af68ad063bf59bc4a554ae906cf5b70d
+RIVALT_SETTLEMENT_PROBE=execution-router-verified-coverage bash ops/scalable-settlement-smoke.sh
+```
+
+The supervisor signs a cross trader’s fills and ETH loss collection. It compares the maintained backing result with margin-account arithmetic, the existing certificate and actual one-atom payment attempts as BTC falls and recovers. Signed receipts, the PostgreSQL replay and `verified-backing.json` stay in the ignored run directory.
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.

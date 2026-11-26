@@ -160,6 +160,18 @@ Fresh local clearing `eb1cb0e4`, with harness `fdc603cb`, maintained the coverag
 
 These are whole-transaction measurements on this local book. This run does not establish the cost of a certificate-free profit payment, an adverse market outcome, or sustained concurrent load. The 16-row limit per lane also applies to a skewed distribution of stable IDs. [Reproduction](local-development.md#verifying-mandatory-coverage-updates) · [Signed workload](../../tests/rpc-contract/maintained-coverage-rpc.ts)
 
+### Market backing during an idle BTC loss
+
+Clearing `8a239609` and harness `36765e1b` ran against seven financial accounts. One trader owed 30 ETH-market atoms after loss collection and still held a ten-lot BTC long. The debtor and all eight coverage accounts stayed byte-identical during each BTC price move. Each observation was a single 702-byte signed transaction. The comparison independently marked all seven canonical margin accounts, rebuilt the ETH certificate and attempted a one-atom payment to the flat maker.
+
+| BTC price in atoms per lot | ETH settlement balance before claim | Maintained ETH check | Certificate and actual payment |
+|---|---:|---|---|
+| 60,000 | 10 | Covered, 42,044 CU | 38 steps, paid one atom |
+| 40,000 | 9 | Underfunded, 42,036 CU | 38 steps, refused with both balances intact |
+| 60,000 after recovery | 9 | Covered, 42,035 CU | 38 steps, paid one atom |
+
+The adverse BTC-market check also returned underfunded. An expired required BTC source blocked the ETH check. After BTC recovered, an expired ETH source still allowed the check because every ETH position was flat. A substituted market ledger was rejected. Finalized RPC/WS receipts and fresh PostgreSQL replay reconciled 792 events. This book had zero funding premium. Direct credit, contention across the eight lanes and populations beyond the per-lane allocation remain open.
+
 ## Executable depth work
 
 | Deliverable | Acceptance |

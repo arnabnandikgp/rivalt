@@ -65,7 +65,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 4, mandatory coverage updates on a fresh local venue.** Program `eb1cb0e4` updated financial rows inside the signed instruction. Harness `fdc603cb` verified nine rollbacks across joins, deposits, a two-account transfer, deactivation, a fill and a withdrawal. An eighth member left, rejoined and retired. All eight finalized snapshots matched canonical margin accounts, and independent PostgreSQL replay reconciled 115 events. The ten-lot BTC fill used 173,703 CU in total. Payment still requires the existing certificate. [Results and scope](operations/qualification-scorecard.md#coverage-updates-enforced-by-clearing)
 
-**Next action.** Qualify the complete BTC/ETH backing decision on the maintained rows. Check market claim conservation against settlement cash and require fresh sources for exposed markets. Exercise an idle cross debtor through an adverse price move and recovery before enabling a direct credit.
+**Finding 4, complete market-backing comparison.** On clearing `8a239609` and harness `36765e1b`, the maintained check and three independently rebuilt ETH certificates agreed through a BTC price shock and recovery. With nine atoms in the pool, lowering BTC made the idle debtor underfunded and blocked a one-atom claim. Restoring BTC allowed that claim. The ETH observation used 42,035–42,044 CU at the three price points. Fresh PostgreSQL replay reconciled 792 events. The certificate authorized both actual payments. [Conditions and measured results](operations/qualification-scorecard.md#market-backing-during-an-idle-btc-loss)
+
+**Next action.** On the bounded local build, use the maintained check inside a permissionless closed-profit credit and repeat the cold payout with membership churn. Verify the cash transfer and all refusal paths in the same instruction, then measure contention under concurrent fills.
 
 | Open gate | What remains |
 |---|---|

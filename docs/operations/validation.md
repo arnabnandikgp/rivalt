@@ -35,6 +35,8 @@ For the [cold ETH coverage comparison](qualification-scorecard.md#clearing-owned
 
 For the [clearing-maintained coverage build](local-development.md#verifying-mandatory-coverage-updates), start with an empty registry and include its lane in each instruction that changes a financial member. Require signed rollback of membership, SPL and two-party writes with an omitted or incorrect lane. Compare the surviving rows after leaving and rejoining, exercise a two-sided fill, and reconcile finalized history into fresh PostgreSQL. The focused native tests in `scoped_history::tests` cover dynamic account lists, stale row images and two members sharing a lane.
 
+For the [idle-debtor comparison](local-development.md#comparing-market-backing-during-a-btc-price-shock), independently check net lots, net fixed claims and gross debtor losses at current risk bounds. Compare against a freshly completed certificate and a signed payment attempt at each of the initial, adverse and recovered prices. Verify the debtor and lane bytes across each reprice, reject a mismatched ledger and an expired required source, admit an expired unrelated source, and replay finalized effects into a fresh database.
+
 On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
 100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and
 445,226 CU (ETH, 32 makers, 32 loaded accounts). The later ETH quote from a
