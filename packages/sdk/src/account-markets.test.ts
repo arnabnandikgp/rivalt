@@ -77,3 +77,13 @@ it('builds a local direct credit with both price markets and only the ledgers th
   margin.positions[0].virtualScaled=-1n;
   expect(await build()).toHaveLength(5);
 });
+
+it('reads settlement candidates at the same bank and rejects duplicated margins',async()=>{
+  const fixture=await accountFixture();
+  const expected=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,fixture.margins);
+  const batch=await sdk.readSettlementSnapshot(fixture.rpc,fixture.config,fixture.margins);
+  expect(batch.roots).toEqual(expected.roots);
+  expect(batch.contextSlot).toEqual(expected.contextSlot);
+  expect(()=>sdk.readSettlementSnapshot(fixture.rpc,fixture.config,[fixture.margins[0],fixture.margins[0]])).toThrow();
+  expect(()=>sdk.readSettlementSnapshot(fixture.rpc,fixture.config,[])).toThrow();
+});

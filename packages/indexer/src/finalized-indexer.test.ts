@@ -6,7 +6,7 @@ import {publishedSnapshot,type JournalBinding,type JournalStore,type JournalInvo
 import {CLEARING_PROGRAM_ADDRESS} from '@rivalt/sdk';
 
 type State={sequence:string;cash:number;revisions:RevisionVector};
-function fixture(limit=20,pageSize=100) {
+function fixture(limit=20,pageSize=100,blocksPerCommit=1) {
   const binding:JournalBinding={schema:8,venue:'test',genesis:'local',domain:'test',anchor:'tx1',anchorHash:hash({signatures:['tx1']}),program:'test'};
   const state:State={sequence:'1',cash:7,revisions:{root:{kind:5,revision:'1'}}};
   let durable:any={binding,state,checkpoint:'block1',checkpoint_slot:'1',published_state:null,published_checkpoint:null,published_checkpoint_slot:null,synced_at:null,error:null};
@@ -25,6 +25,7 @@ function fixture(limit=20,pageSize=100) {
     publish:vi.fn(async(candidate:any,capturedAt:Date)=>{durable={...durable,published_state:candidate.state,published_checkpoint:candidate.checkpoint,
       published_checkpoint_slot:candidate.checkpoint_slot,synced_at:capturedAt,error:null};}),pool:{query:vi.fn(async()=>({rows:[]}))},projection};
   class Indexer extends FinalizedIndexer<State,JournalBinding,JournalEvent> {
+    protected override get blocksPerCommit(){return blocksPerCommit;}
     protected async initializeBinding(){return binding;}
     protected decodeTransaction(signature:string,transaction:any,transactionIndex:number) {
       const slot=transaction.slot;
@@ -172,4 +173,14 @@ it('expires an unfinalized witness without publishing or reading confirmed block
     expect(test.durable().checkpoint).toBe('block2');expect(test.store.publish).not.toHaveBeenCalled();expect(test.indexer.healthy).toBe(false);
     expect(test.rpc.mock.calls.filter(([method])=>method==='getBlocks').map(([,params])=>params!.slice(0,2))).toEqual([[2,2]]);
   }finally{vi.useRealTimers();}
+});
+
+it('persists a partial grouped commit at the recovery budget and resumes from that fence',async()=>{
+  const test=fixture(5,8,3);test.setHead(9);
+  await test.indexer.cycle();
+  expect(test.durable().checkpoint).toBe('block6');
+  expect(test.store.publish).not.toHaveBeenCalled();
+  await test.indexer.cycle();
+  expect(test.store.commit.mock.calls.map(([blocks])=>blocks.map(block=>block.slot))).toEqual([[2,3,4],[5,6],[7,8,9]]);
+  expect(test.durable().published_state.cash).toBe(63);
 });

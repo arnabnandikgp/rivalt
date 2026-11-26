@@ -28,6 +28,7 @@ assert.equal(build.artifactSet,sdk.GROUPED_CREDIT_ARTIFACT_SET);
 const payers=new Map<string,typeof payer>();
 const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(url,wsUrl,dir,{
   deferFinality:true,payerFor:label=>payers.get(label),heapSize:()=>128*1024,
+  observeOutcomes:label=>label.startsWith('traffic '),
   computeUnitLimit:label=>label.startsWith('cross ') ? 600_000 : label==='blocked payout' ? 1_400_000 : undefined});
 const {h,members}=coverageProvisioning(transport,payer);
 let worker:Awaited<ReturnType<typeof groupedWorkerDriver>>|undefined;
@@ -100,22 +101,23 @@ try {
   await setup.qualify();
   const first=await closeClaim('ordinary');
   // Independent owner and capital. Finite offers keep their original arrival times.
-  offer=true;
-  let trafficError:unknown;
-  traffic=(async()=>{
-    for(let i=0;i<30 && offer;i++){
-      await trade('traffic '+i,37,0,0,1n,2);await delay(400);
-    }
-  })().catch(error=>{trafficError=error;});
-  await autoExit('ordinary',first);offer=false;await traffic;if(trafficError)throw trafficError;
-  await flush();
+  async function exitUnderFills(phase:string,closedAt:number,eligibleAt?:number){
+    offer=true;
+    let error:unknown;
+    traffic=(async()=>{
+      for(let i=0;i<30 && offer;i++){
+        await trade('traffic '+phase+' '+i,37,0,0,1n,2);await delay(400);
+      }
+    })().catch(cause=>{error=cause;});
+    try { await autoExit(phase,closedAt,eligibleAt); }
+    finally {offer=false;await traffic;}
+    if(error)throw error;
+  }
+  await exitUnderFills('ordinary',first);
   const receipt=async(label:string)=>{
     const row=checks.find(check=>check.label===label);assert(row,label);
     return rpc.call('getTransaction',[row.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
   };
-  const opening=await receipt('ordinary close'),exit=await receipt('ordinary withdraw');
-  const fills=await Promise.all(checks.filter(row=>String(row.label).startsWith('traffic ')).map(row=>receipt(String(row.label))));
-  assert(fills.some(tx=>tx.meta.err===null && tx.slot>opening.slot && tx.slot<exit.slot),'No interior competing fill');
   const second=await closeClaim('shock');
   await h.send('fund shock claim',await finance(sdk.getCollectAccountLossInstruction({...common,actor:payer,margin:roots[0],
     marketIndex:1,amount:gain}),roots[0]));
@@ -160,8 +162,8 @@ try {
   assert.equal((await root(recipient)).cash,cashStart);assert.equal((await root(recipient)).positions[1].virtualScaled,gain*scale);
   assert(await pool()>=gain);assert.deepEqual(await h.read(idle),frozenDebtor);
   setup.sourcePrices.btc=48_000_000_000n;await setup.qualify();refreshed=Date.now();
-  const recoveredAt=Date.now();
-  await autoExit('recovered',second,recoveredAt);
+  const recoverySlot=Number(await setup.slot()),recoveredAt=Date.now();
+  await exitUnderFills('recovered',second,recoveredAt);
   timings[1].fundedAt=fundedAt;
   const receipts=await service.drain();await flush();
   const paid=receipts.filter(row=>row.amount===gain && !row.error).sort((a,b)=>a.slot-b.slot);
@@ -169,11 +171,18 @@ try {
   const exact=Number(/exact=(\d+) covered=1/.exec(paid[1].coverage??'')?.[1]);
   assert(paid[0].slot<paid[1].slot && exact>0);
   if(population===1000)assert(exact>128 && paid[1].cu>400_000 && Number(paid[1].limit)>400_000,'Many-group automatic sizing missing');
+  const trafficResults=[];
+  for(const [phase,startSlot] of [['ordinary',(await receipt('ordinary close')).slot],['recovered',recoverySlot]] as const){
+    const exit=await receipt(phase+' withdraw');
+    const fills=await Promise.all(checks.filter(row=>String(row.label).startsWith('traffic '+phase+' ')).map(row=>receipt(String(row.label))));
+    assert(fills.some(tx=>!tx.meta.err && tx.slot>startSlot && tx.slot<exit.slot),'No competing fill between '+phase+' eligibility and exit');
+    trafficResults.push({phase,startSlot,exitSlot:exit.slot,fills:fills.map(tx=>({slot:tx.slot,error:tx.meta.err}))});
+  }
   const refusal=await receipt('blocked payout');
   assert(refusal.meta.logMessages.some((line:string)=>line.includes('members='+population) && line.endsWith('covered=0')));
   assert.equal(await h.read(certificate),null);
   const results={revision,program:build.revision,population,groups:groups.size,timings,receipts,turns:service.turns,
-    probes:service.probes,metrics:service.metrics,competingSlots:fills.map(tx=>tx.slot),exact};
+    probes:service.probes,metrics:service.metrics,trafficResults,exact};
   writeFileSync(dir+'/worker-financial.json',json(results));
   await worker.close();worker=undefined;
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);

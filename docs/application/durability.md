@@ -95,3 +95,9 @@ An outstanding signed original holds the worker's budget until it is resolved. A
 ## Default recovery
 
 The database persists the episode, frozen membership, authenticated on-chain stage and exact signed original. Resume at the last verified stage after restart. A native helper can propose a plan and page descriptors. Clearing verifies each stage and controls every payout. An incomplete or unknown original cannot be replaced by an unrelated financial action. Verify terminal custody and all member movements before treating a withdrawal as available. [Default verification](../clearing/default-plan-verification.md) · [Indexer source](../../packages/indexer/src/) · [Worker source](../../packages/services/src/)
+
+### Automatic grouped payouts on the local qualification deployment
+
+The settlement worker uses the latest reconciled journal to discover candidate accounts. An open position can acquire debt while its owner is idle, so the worker includes every open candidate along with flat accounts showing a claim. It reads up to 40 candidates per batch against current market and custody accounts. The on-chain payment checks all eight coverage lanes and performs exact debtor checks wherever the grouped bounds are inconclusive.
+
+Before signing a grouped payment, the worker simulates with the full compute allowance. A successful simulation determines the signed limit, with a floor of 400,000 CU, 15% measured headroom and a ceiling of 1.4 million CU. A second simulation checks the signed bytes before PostgreSQL records the original for dispatch. A rejected backing check leaves the claim outstanding. The explicit local deployment selector is `grouped-credit`.
