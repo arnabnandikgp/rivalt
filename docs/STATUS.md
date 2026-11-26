@@ -77,7 +77,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 4, streamed local payout.** Clearing `99165b41` and harness `1d105af3` paid both 20-atom credits with the default 32 KiB heap. Summaries alone used 157,640 CU. Checking all 1,000 members required 922,864 CU and a larger compute request. The owner withdrew the full 40 atoms and fresh PostgreSQL replay reconciled 3,216 events. On the separate price-shock control, the nine-member book refused the one-atom ETH payout before the debtor recovered. [Matched results](operations/performance.md#streamed-coverage-on-the-same-1000-member-book)
 
-**Next action.** Qualify the settlement worker selecting a compute limit from simulation on these two 1,000-member books while fills compete. Measure first-attempt payments and confirm that a genuinely uncovered debtor still blocks payment.
+**Finding 4, incremental backing on open BTC/ETH books.** Clearing `e4aff314` and harness `796a16b0` paid three 20-atom ETH credits on a 1,000-member book. With 0, 10 and 1,000 members exposed, the transactions used 158,218, 158,384 and 164,585 CU and zero individual debtor checks. The owner withdrew 60 atoms. Fresh PostgreSQL replay matched 4,413 events. The nine-member control on `40691ed8` refused payment after BTC moved against an idle debtor and reconciled 263 events. A stressed book can still require every row. The fresh-genesis profile is local. [Workload and fill costs](operations/performance.md#payout-with-incremental-debtor-groups)
+
+**Next action.** Exercise the settlement worker on a 1,000-member mixed BTC/ETH book with borderline cross debtors and simultaneous fills. Measure exact checks, first-attempt payments, compute fallback, time to wallet and refusal of unbacked claims.
 
 | Open gate | What remains |
 |---|---|

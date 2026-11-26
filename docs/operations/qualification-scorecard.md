@@ -39,6 +39,8 @@ integrated results. A keeper restart or a new signup must not discard a safe
 claim's progress. Preserve the closed fixed-width entry finding and the separate
 external and endurance gates.
 
+On the fresh grouped payout build, the [signed 1,000-member workload](performance.md#payout-with-incremental-debtor-groups) paid a closed ETH gain with every member exposed. All 64 group bounds held at the current adverse endpoints. The verifier checked zero individual debtors. A price shock that made an idle debtor unable to pay forced an individual check and blocked payment. Finding 4 remains open for payout scheduling under competing fills and for the cost of books where many groups require exact checks.
+
 ### BTC/ETH backing summary comparison
 
 [Native comparison in review, #205](https://github.com/arnabnandikgp/rivalt/pull/205). This model starts with empty counters and records account

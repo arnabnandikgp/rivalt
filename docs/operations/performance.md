@@ -390,6 +390,16 @@ The maker withdrew all 40 funded atoms in a separate 150,232-CU transaction. At 
 
 On a separate nine-member bank with the same binary, a fall in BTC left an idle cross debtor unable to back an ETH payment. Clearing checked one individual row and refused one atom with nine still in the pool. The compared financial accounts were byte-identical after rollback. Once the debtor recovered, payment resumed and the maker ultimately withdrew its full 40 atoms. Fresh PostgreSQL replay reconciled 263 events for this control. [Reproduction](local-development.md#direct-payout-at-1000-financial-members)
 
+### Payout with incremental debtor groups
+
+Fresh local clearing `e4aff314` maintains 64 groups across eight coverage lanes. On full-workload harness `796a16b0`, the 20-atom ETH payment with eight trader longs and two maker shorts finalized at **158,384 CU with zero individual debtor checks**. The earlier streamed reader used **922,864 CU and 1,000 checks** on the corresponding book. Both used a 32 KiB heap. The new all-flat control used 158,218 CU, compared with 157,640. These are entire signed transactions, including checkpoints and the recipient update.
+
+On the eight corresponding 40-lot opening fills, the extra work was 6,926 CU for two fills and 13,244 CU for six. Median transaction cost rose from 187,418.5 to 200,662.5 CU. The makers charged the same spread. Both runs used the same six internal maker instances and synthetic sources. The new round trip produced 60 atoms so a third 20-atom claim could be tested.
+
+The dense run used 994 trader accounts and six market-isolated maker capitals. At the third payout 997 accounts had ETH exposure and six had BTC exposure, including three cross accounts with both. The recipient held an open ETH lot and had previously closed profitable quantity. Its 20-atom credit finalized at **164,585 CU**. All three payments read 64 group summaries, needed zero individual debtor checks and landed on the first 400,000-CU / 32 KiB attempt. The owner withdrew 60 atoms at 161,800 CU. The sparse stage changed eight group revisions and the dense stage changed all 64. The individual row count covers the backing decision. The financial write subsequently decodes the recipient’s lane to update its row and group. The finalized fill-event reader independently reconstructed the 1,000 exposed accounts, balanced signed lots in both markets and a minimum adverse-price cash headroom of 953,006 collateral atoms. Fresh PostgreSQL replay reconciled 4,413 events and the final wallet exit.
+
+On the separate nine-member price-shock control, unchanged debtor balances and a lower BTC price forced one exact check and refused the ETH payout, leaving nine atoms in the pool. The owner ultimately withdrew 40 atoms. Fresh PostgreSQL replay matched 263 finalized events.
+
 ## Funding, costs and comparisons
 
 The funding publisher computes depth off chain. In three older 75-member runs on clearing `79724a5a`, 12 two-market publication transactions used 48,940–49,110 CU. Another 54 transactions that also checkpointed both markets used 89,682–99,550 CU. These are complete transactions on that binary. [Funding contract](../liquidity/funding.md) · [Receipt reader](../../tests/performance/funding-receipts.py)
