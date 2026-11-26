@@ -120,3 +120,47 @@ fn complete_sorted_books_and_isolation_are_required() {
     assert_eq!(book.successor(&[stale_basis], &[]), Err(Error::Invariant));
     assert_eq!(book.records()[0].1, own);
 }
+
+#[test]
+fn restored_bindings_preserve_retired_numbers_and_reject_inconsistent_records() {
+    let empty = MarketSlots::new(Mode::Cross, 2);
+    let full = empty.successor(&[flat(3, -1), flat(43, 0)], &[43]).unwrap();
+    let retired = full.records()[1].0;
+    let live = full.successor(&[flat(3, -1), flat(43, 0)], &[]).unwrap();
+    let restored = MarketSlots::restore(
+        Mode::Cross,
+        2,
+        live.last_incarnation(),
+        live.records().to_vec(),
+        &[],
+    )
+    .unwrap();
+    assert_eq!(restored, live);
+    let reopened = restored
+        .successor(&[flat(3, -1), flat(43, 0)], &[43])
+        .unwrap();
+    assert_eq!(reopened.resolve(retired), Err(Error::Generation));
+    assert_eq!(reopened.last_incarnation(), 3);
+
+    let records = full.records().to_vec();
+    let restore = |records, counter, orders: &[u16]| {
+        MarketSlots::restore(Mode::Cross, 2, counter, records, orders)
+    };
+    assert!(restore(records.clone(), 1, &[43]).is_err());
+    assert!(restore(records.clone(), 2, &[3]).is_err());
+    assert!(restore(records.clone(), 2, &[43, 73]).is_err());
+    let mut duplicate = records.clone();
+    duplicate[1].0.incarnation = duplicate[0].0.incarnation;
+    assert!(restore(duplicate, 2, &[43]).is_err());
+    let mut reversed = records.clone();
+    reversed.reverse();
+    assert!(restore(reversed, 2, &[43]).is_err());
+    let mut foreign = records.clone();
+    foreign[1].0.market = 42;
+    assert!(restore(foreign, 2, &[43]).is_err());
+    let exhausted = restore(records, u64::MAX, &[43]).unwrap();
+    assert_eq!(
+        exhausted.successor(&[flat(3, -1), flat(43, 0), flat(99, 1)], &[]),
+        Err(Error::Overflow)
+    );
+}

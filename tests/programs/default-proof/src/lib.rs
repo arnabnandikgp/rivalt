@@ -6,6 +6,8 @@ mod coverage;
 use coverage::*;
 mod mirror;
 mod withdrawal;
+mod slot_custody;
+use slot_custody::*;
 use withdrawal::*;
 use basis::*;
 use default_plan_selection as selection;
@@ -53,6 +55,25 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    pub fn open_slot_custody(ctx: &mut Context<OpenSlotCustody>) -> Result<()> {
+        slot_custody::open(ctx)
+    }
+    pub fn create_slot_market(ctx: &mut Context<CreateSlotMarket>, market: u16) -> Result<()> {
+        slot_custody::market(ctx, market)
+    }
+    pub fn create_slot_margin(ctx: &mut Context<CreateSlotMargin>, width: u8, child: u8) -> Result<()> {
+        slot_custody::prepare(ctx, width, child)
+    }
+    pub fn fund_slot_margin(ctx: &mut Context<SlotWallet>, revision: u64, amount: u64) -> Result<()> {
+        slot_custody::fund(ctx, revision, amount)
+    }
+    pub fn withdraw_slot_cash(ctx: &mut Context<SlotWallet>, revision: u64, amount: u64) -> Result<()> {
+        slot_custody::withdraw(ctx, revision, amount)
+    }
+    pub fn transfer_slot_cash(ctx: &mut Context<SlotTransfer>, revision: u64, amount: u64) -> Result<()> {
+        slot_custody::transfer(ctx, revision, amount)
+    }
 
     pub fn prepare_width_book(ctx: &mut Context<PrepareWidthBook>, width: u8) -> Result<()> {
         withdrawal::prepare_book(ctx, width)
@@ -193,4 +214,5 @@ pub enum ProofError {
     WrongMirrorWinner,
     CoverageDebt,
     WithdrawalHealth,
+    CustodyBinding,
 }

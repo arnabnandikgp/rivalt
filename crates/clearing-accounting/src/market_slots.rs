@@ -38,6 +38,58 @@ impl MarketSlots {
         }
     }
 
+    /// Restore a directory from an authenticated account. The counter can exceed
+    /// every surviving incarnation after the most recently admitted slot is retired.
+    pub fn restore(
+        mode: Mode,
+        capacity: usize,
+        last_incarnation: u64,
+        records: Vec<(Binding, MarketImage)>,
+        live_order_markets: &[u16],
+    ) -> Result<Self> {
+        if records.len() > capacity {
+            return Err(Error::Bounds);
+        }
+        let mut prior_market = None;
+        for (index, (binding, image)) in records.iter().enumerate() {
+            if binding.market != image.market
+                || prior_market.is_some_and(|market| market >= binding.market)
+                || binding.incarnation == 0
+                || binding.incarnation > last_incarnation
+                || records[..index]
+                    .iter()
+                    .any(|(other, _)| other.incarnation == binding.incarnation)
+                || (image.position.lots == 0
+                    && image.position.virtual_scaled == 0
+                    && !live_order_markets.contains(&binding.market))
+                || matches!(mode, Mode::Isolated(market) if market != usize::from(binding.market))
+            {
+                return Err(Error::Invariant);
+            }
+            image.position.validate()?;
+            image.entry.validate(image.position.lots)?;
+            prior_market = Some(binding.market);
+        }
+        for market in live_order_markets {
+            if records
+                .binary_search_by_key(market, |(binding, _)| binding.market)
+                .is_err()
+            {
+                return Err(Error::Invariant);
+            }
+        }
+        Ok(Self {
+            mode,
+            capacity,
+            last_incarnation,
+            records,
+        })
+    }
+
+    pub fn last_incarnation(&self) -> u64 {
+        self.last_incarnation
+    }
+
     pub fn records(&self) -> &[(Binding, MarketImage)] {
         &self.records
     }

@@ -420,6 +420,8 @@ name = "default-proof-probe"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "anchor-spl",
+ "clearing-accounting",
  "default-plan-selection",
  "financial-core",
  "risk-engine",

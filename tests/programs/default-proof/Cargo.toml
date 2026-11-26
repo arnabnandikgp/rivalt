@@ -16,6 +16,8 @@ custom-heap = []
 custom-panic = []
 [dependencies]
 anchor-lang = { workspace = true }
+anchor-spl = { workspace = true }
+clearing-accounting = { path = "../../../crates/clearing-accounting", features = ["surviving-profit"] }
 default-plan-selection = { path = "../../../crates/default-plan-selection" }
 solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
 financial-core = { path = "../../../crates/financial-core" }
