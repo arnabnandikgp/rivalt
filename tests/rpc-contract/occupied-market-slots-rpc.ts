@@ -25,7 +25,7 @@ const {rpc, ws, h: transport, checks, flush} = await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, directory, {deferFinality:true});
 const {h, members, lanes} = coverageProvisioning(transport, payer);
 try {
-  const setup = await liquidityExecutionSetup(h, rpc, {traderCount:1, marketCheckpoints:true,
+  const setup = await liquidityExecutionSetup(h, rpc, {traderCount:1, recoveryCapacity:7, marketCheckpoints:true,
     marginLayout:'ledger-lanes', shape:symmetricPayoutShape, verifyRejections:false});
   const {root, guard, route, withCheckpoints} = executionTestHelpers(h, setup);
   const [trader] = setup.roots, owner = setup.traderOwner, maker = setup.instances[3];
@@ -41,6 +41,10 @@ try {
     for (const [index, account] of keys.entries()) {
       assert.equal(raw.value[index].owner, sdk.CLEARING_PROGRAM_ADDRESS);
       const bytes = Buffer.from(raw.value[index].data[0], 'base64');
+      const required = sdk.requiredAccountMarkets([sdk.getMarginAccountDecoder().decode(bytes)]);
+      const expectedMask = expected[index].split(',').filter(Boolean).reduce((mask, binding) =>
+        mask | (1 << Number(binding.split('=')[0])), 0);
+      assert.equal(required, expectedMask, label+' SDK market dependencies');
       const name = label + '-' + account + '.bin';
       writeFileSync(join(directory, name), bytes);
       manifests[index].push(name+'\t'+expected[index]);
@@ -76,10 +80,10 @@ try {
   }
   async function fill(side:0|1) {
     const ix = await route({trader, actor:owner, marketIndex:1, side, makers:[maker], lots:[10n],
-      marketLane:true, minimalMarkets:true, reduceOnly:side === 1,
+      minimalMarkets:true, reduceOnly:side === 1,
       generation:side === 1 ? (await root(trader)).positions[1].generation : undefined});
     await h.send(side === 0 ? 'open ten ETH lots' : 'reduce last ten ETH lots',
-      [appendCoverage(ix, [members.get(trader)!, members.get(maker.capital)!])], [owner]);
+      await financial(ix,[trader, maker.capital]), [owner]);
   }
   const liveChildren = async () => (await root(trader)).book.orders.filter(({order}) =>
     order.groupId > 0n && (order.state === 1 || order.state === 2)).length;
@@ -134,6 +138,7 @@ try {
     userToken:maker.token.address, quoteMint:setup.mint.address, guard:await guard(maker.capital), amount:40n});
   await h.send('withdraw credited cash with no market accounts', await financial(exit,[maker.capital]), [maker.owner]);
   assert.equal(await wallet(), initialTokens+40n);
+  await snapshot('wallet-exit','0=2','');
   await setup.sample();
   const reopened = await place(1);
   await snapshot('reopened','0=2,1=4','');

@@ -37,7 +37,8 @@ fn main() {
         if let Some((old_identity, revision, prior_bytes)) = previous {
             assert_eq!(old_identity, identity);
             assert!(
-                root.revision > revision || (root.revision == revision && bytes == prior_bytes)
+                root.revision.checked_sub(1) == Some(revision)
+                    || (root.revision == revision && bytes == prior_bytes)
             );
         }
         let mode = match root.mode {
