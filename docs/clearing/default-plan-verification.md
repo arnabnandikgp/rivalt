@@ -19,4 +19,14 @@ The earlier RVPROF01 deployment permitted open-price payments after fixed claims
 
 The local runtime selects an exhaustive or paged verifier from frozen inputs. A book that cannot be verified stays frozen. Tested recovery size, resources and restarts apply to the specific books in [validation](../operations/validation.md).
 
+## One proposed reduction on a three-market frozen book
+
+The native comparison starts with all frozen claims, cash, reserves and fees. It also requires one selected-market position record per financial member, including flat members, the frozen mark, and the 40-byte entry bounds. It recomputes the unadjusted settlement before testing the proposed debtor, winner and whole-atom charge.
+
+- The charge must fit the named debtor’s own uninsured writeoff, the winner’s positive net claim, and the gain on the opposite lots that can actually close. The fixed-entry implementation computes the fewest lots and the integer price concessions. Closing the pair reduces the winner’s claim and the debtor’s debt by the same amount at the frozen mark.
+- Each debtor retains its original exact division of funded cash. Recovered proceeds continue to follow the original destination shares until a debt is discharged. In three markets, a debtor owed proceeds in one market can owe at most two others. Once the first debt is fully paid, the other takes the remaining proceeds up to its own debt. Only the surplus goes to the debtor.
+- In **each** other market, compare the complete result against the no-action baseline. Total creditor impairment and insurance use cannot increase. Each creditor must retain its exact recovery and its prior whole-atom receipt from that market, including amounts it must forward to its own creditors. First try ordinary terminal rounding. If a creditor loses an atom, solve the conserving rounding again with every protected receipt as a lower bound. An infeasible set of minimums rules out the close.
+
+The result measures the target market’s actual impairment reduction, capped by the charge. It evaluates the feasibility of one proposed pair. Choosing among competing or joint plans and authenticating the result before withdrawal remain gates for wider trading. [Native comparison](../../crates/financial-core/src/clearing/three_market/reduction.rs) · [Qualification](../operations/qualification-scorecard.md#protected-three-market-forced-reduction)
+
 [Selection and ordering](../../crates/default-plan-selection/src/) · [Settlement verifier](../../crates/financial-core/src/clearing/) · [On-chain controller](../../programs/clearing/src/instructions/account_safety/settlement/) · [Detailed equations, ranking and proof families](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/clearing/default-plan-verification.md)

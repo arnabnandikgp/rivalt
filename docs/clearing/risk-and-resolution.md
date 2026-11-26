@@ -223,8 +223,7 @@ whole atoms over the complete flow graph using the existing residual rounding
 rule, with rows and markets in stable ID order. The model returns each creditor's
 exact impairment, each debtor's residual writeoff and each member's whole cash
 balance. Total writeoffs must equal impairments separately in every market.
-Signed freeze inputs, protected forced reductions and wallet withdrawals are
-separate acceptance gates. [Qualification results](../operations/qualification-scorecard.md#three-market-frozen-book-settlement)
+A native [forced-reduction comparison](default-plan-verification.md#one-proposed-reduction-on-a-three-market-frozen-book) checks a proposed pair against this baseline. Signed freeze inputs, plan selection and wallet withdrawals remain separate acceptance gates. [Qualification results](../operations/qualification-scorecard.md#three-market-frozen-book-settlement)
 
 ### Current two-market equations
 

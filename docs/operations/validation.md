@@ -41,6 +41,8 @@ python3 tests/financial/test_three_market_default.py
 
 Rust solves the simultaneous capacity constraints with exact rational arithmetic. The Python reference enumerates which debts and markets are paid in full, solves the resulting balance equations and checks candidate rates against the original cash flows. Compare all exact and rounded results, permute market columns and stable membership input order, and repeat two-market cases against the established atom contract. The comparison ends at terminal plan balances. Signed verification, application and custody exits require a separate Surfpool and PostgreSQL run.
 
+For the [protected reduction comparison](qualification-scorecard.md#protected-three-market-forced-reduction), use the same native binary. Run `python3 tests/financial/test_three_market_reduction.py` and `cargo test --locked -p financial-core --features three-market-model --lib three_market::rounding`. Compare both non-target markets’ exact recoveries, rounded receipts and reserve spend against the independently reconstructed no-action settlement. Check each matched lot against its frozen entry, the debtor’s attributable writeoff, capped onward payments, and a refusal when the minimum receipts cannot all be funded.
+
 For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
 build `cargo build --locked --offline -p financial-core --bin backing-driver`
 and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares

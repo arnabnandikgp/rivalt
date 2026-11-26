@@ -93,7 +93,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 11, complete frozen book before forced reductions.** On native revision `8b1e155f`, 153 three-market evaluations matched the independent fraction reference, 24 two-market projections matched the existing whole-atom contract and all ten invalid inputs refused. With 90 of 180 SOL-market atoms recovered, the cross debtor sent 50 to BTC and 40 to ETH. BTC insurance paid 100. The final creditors received 150 and 40. Wider trading stays gated on signed resolution and exits. [Results and bounds](operations/qualification-scorecard.md#three-market-frozen-book-settlement)
 
-**Next action.** Compare a three-market forced-reduction candidate with the no-action frozen book. Keep the debtor’s original cash allocation fixed, verify the other markets’ creditor payouts and insurance use, and reject any candidate that worsens a protected outcome. [Protection rules](clearing/default-plan-verification.md)
+**Finding 11, protected three-market forced reduction.** Native revision `1669a71b` admitted 178 of 270 proposed closes and refused 92. A 10-atom BTC charge preserved the ETH and SOL creditors’ 12 and 8 atoms. An 11-atom charge refused because both exact entitlements fell despite identical rounded receipts. A 20-atom charge also refused when paying those creditors would require additional foreign insurance. These results cover a nominated pair on a supplied frozen book. [Results and limits](operations/qualification-scorecard.md#protected-three-market-forced-reduction)
+
+**Next action.** Qualify one signed three-market default and wallet exit on the isolated local fixture. Start with a frozen book with one eligible pair and a demonstrably maximal protected charge. Bind the complete roster, positions, original cash and market balances, verify the selected charge, apply it once and reconcile SPL withdrawals from finalized history in fresh PostgreSQL. Competing and joint plans remain a separate wider-trading gate.
 
 | Open gate | What remains |
 |---|---|
