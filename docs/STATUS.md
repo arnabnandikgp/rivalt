@@ -55,7 +55,9 @@ With ordinary wallets preparing orders, final snapshot verification accounted fo
 
 **Payout and cross-margin work.** [Finding 4 and new findings 10–11](operations/qualification-scorecard.md#payout-and-cross-margin-work) track direct BTC/ETH payouts, wider cross accounts and the default gate before third-market activation. On the `f2b2c70e` financial core, the native comparison rejected stale ETH backing when BTC moved with no intervening account change. The reference compares two allocations of fully collected SOL proceeds. The approved wider-market rule allocates recovered proceeds proportionally to frozen destination debts before insurance. The partial-collection reference covers fractional shares and the debt cap. A complete three-market default and its signed exits remain unimplemented.
 
-**Next action.** Compare a BTC/ETH backing summary maintained from an empty venue against the exhaustive debtor check under price-only shocks and membership churn. Measure missed shortfalls and safe payments withheld before changing the clearing instruction.
+**Finding 4, native candidate.** Against the `bc36039d` baseline, a bounded summary withheld four of 164 safe BTC/ETH checks after individual exceptions were rechecked. All 60 unsafe checks refused in the matched 12/1,000-member controls. Two solvent accounts can still block a backed payout indefinitely. This candidate does not meet the direct-claim requirement. [Comparison and limits](operations/qualification-scorecard.md#btceth-backing-summary-comparison)
+
+**Next action.** Compare an exact backing proof on the colliding solvent-account case against the exhaustive reference, including proof invalidation by an intervening fill. Keep the current certificate authoritative until signed safe payouts and unsafe refusals pass.
 
 | Open gate | What remains |
 |---|---|

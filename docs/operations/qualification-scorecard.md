@@ -39,6 +39,37 @@ integrated results. A keeper restart or a new signup must not discard a safe
 claim's progress. Preserve the closed fixed-width entry finding and the separate
 external and endurance gates.
 
+### BTC/ETH backing summary comparison
+
+This native design comparison starts with empty counters and records account
+changes as they occur. It tests debtor coverage alone. The claimant's closed
+profit, the pool balance, current sources and authority still require separate
+checks. No clearing instruction uses this model.
+
+For each possible debtor, first cover every flat negative claim. Divide its
+remaining cash equally across its open positions for the purpose of the proof.
+For each market and position direction, count the accounts whose assigned share
+would fail at each of nine funding-adjusted prices. The axes are independent.
+At payout, read the counter at the next more adverse price on each relevant
+axis. A counter also retains the XOR of its member IDs. A count of one identifies
+one margin account to value exactly. A larger count cannot be resolved this way.
+Outside an axis, the model treats all exposed accounts of that direction as
+potential exceptions. A production instruction would have to authenticate every
+account change and the supplied exception accounts against current on-chain state.
+
+| Constructed workload | Result |
+|---|---|
+| Matched positions in 12 and 1,000 financial accounts. Each population repeats the same price, funding and one-debtor cash changes, then removes all members. | Of 224 market-level checks, the full reference marked 164 safe and 60 unsafe. Counters alone withheld 48 safe results. Rechecking identified accounts reduced that to four. All 60 unsafe checks refused. Population was varied by repeating portfolios; the rates describe this trace only. |
+| 64 varied eight-account books, including opposite directions, fractions and mixed funding endpoints | The independent exhaustive reference and the existing Rust backing kernel agreed on all 128 market-level decisions. The candidate admitted no reference-unsafe result. |
+| Two solvent accounts breach the same conservative threshold | Even when both accounts remain unchanged and cash is sufficient, the exception counter has two IDs and cannot identify both. Ordinary payout could wait indefinitely under this candidate. |
+
+**Disposition.** Keep Finding 4 open. These counters cannot be the sole payout
+authority. A replacement must make progress on the two-account counterexample
+and on many different debtors behind one warning, without a membership walk.
+The next comparison should measure the size, update cost and freshness of an
+exact proof for that case. No transaction, CU, lock or wallet-latency measurement
+follows from the native model. [Executable comparison](../../tests/financial/test_payout_coverage_summary.py)
+
 ## Executable depth work
 
 | Deliverable | Acceptance |

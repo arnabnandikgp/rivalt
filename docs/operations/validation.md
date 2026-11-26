@@ -14,6 +14,12 @@ Use the smallest check that exercises the changed behavior. For a financial tran
 | User-facing trade and payout | Verify wallet review and guards, actual fills, fees, inventory, funded and unpaid balances, vault movement and fresh SQL replay. [Wallet workload](local-development.md#wallet-load-comparison) |
 | CI scope | [Workflow](../../.github/workflows/pr-checks.yml) and [scope selector](../../ops/ci-scope.py). Broad regression belongs in the relevant CI jobs. |
 
+For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
+build `cargo build --locked --offline -p financial-core --bin backing-driver`
+and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares
+native debtor-coverage decisions. Signed claim admission, authenticated account
+updates, wallet latency and fresh PostgreSQL replay remain integration gates.
+
 On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
 100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and
 445,226 CU (ETH, 32 makers, 32 loaded accounts). The later ETH quote from a
