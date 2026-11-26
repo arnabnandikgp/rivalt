@@ -2,6 +2,8 @@
 //! restartable selection result. It has no clearing account or custody authority.
 use anchor_lang::prelude::*;
 mod basis;
+mod coverage;
+use coverage::*;
 mod mirror;
 use basis::*;
 use default_plan_selection as selection;
@@ -49,6 +51,18 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    pub fn prepare_coverage(ctx: &mut Context<PrepareCoverage>, lane: u8) -> Result<()> {
+        coverage::prepare(ctx, lane)
+    }
+
+    pub fn change_coverage(ctx: &mut Context<ChangeCoverage>, reduce: bool) -> Result<()> {
+        coverage::change(ctx, reduce)
+    }
+
+    pub fn read_coverage(ctx: &mut Context<ReadCoverage>, mask: u8) -> Result<u32> {
+        coverage::measure(ctx, mask)
+    }
 
     pub fn start_mirror(
         ctx: &mut Context<StartMirror>,
@@ -163,4 +177,5 @@ pub enum ProofError {
     Incomplete,
     StorageFunding,
     WrongMirrorWinner,
+    CoverageDebt,
 }

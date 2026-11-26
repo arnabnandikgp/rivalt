@@ -33,14 +33,7 @@ impl Row {
     }
 
     fn covers(self, target: usize, prices: [[i128; 2]; MARKETS]) -> Result<bool> {
-        let mut claims = self.fixed;
-        for (market, claim) in claims.iter_mut().enumerate() {
-            let lots = self.lots[market];
-            let adverse = prices[market][usize::from(lots < 0)];
-            *claim = add(*claim, mul(i128::from(lots), adverse)?)?;
-        }
-        Ok(claims[target] >= 0
-            || add(add(scaled(self.cash)?, claims[0].min(0))?, claims[1].min(0))? >= 0)
+        financial_core::backing::projected::covers(self.cash, self.lots, self.fixed, target, prices)
     }
 }
 
