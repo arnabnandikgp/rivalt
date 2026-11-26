@@ -19,6 +19,8 @@ import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
 import { backingStep } from './membership-scan-helper.js';
 import { openSettlementJournal } from './scalable-settlement-journal.js';
 import { ethSpreadGain, makerExitLabel, makerProofWork, readMakerExit, summarizeMakerExit, type ProofReceipt } from './cold-maker-exit.js';
+import { startShadow } from './shadow-coverage.js';
+import { checkShadowReceipts } from './shadow-coverage-receipts.js';
 import { eventually } from './wire.js';
 
 const arm = process.env.RIVALT_CASHOUT_ARM;
@@ -29,15 +31,30 @@ const database = process.env.RIVALT_DATABASE_URL!, runId = 'p55b2-application';
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim(), '');
 const build = routerBuild();
-assert.equal(build.artifactSet, sdk.BOUNDED_ENTRY_ARTIFACT_SET);
+const shadowRun = process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-shadow-coverage';
+const deployment = shadowRun ? 'shadow-coverage' : 'bounded-entry';
+assert.equal(build.artifactSet, shadowRun ? sdk.SHADOW_COVERAGE_ARTIFACT_SET : sdk.BOUNDED_ENTRY_ARTIFACT_SET);
+if (shadowRun) assert(followMaker, 'The shadow workload follows the cold ETH maker to SPL withdrawal');
+let shadow: Awaited<ReturnType<typeof startShadow>> | undefined;
 const owners = await Promise.all(['p32-trader', ...[1, 2, 3, 4, 5].map(i => 'p32-scale-trader-' + i)].map(fixtureKey));
 const payers = new Map<string, typeof owners[number]>();
 const broadcast = new Map<string, number>();
-const { rpc, ws, h, checks, flush } = await openCanonicalRpcHarness(url, wsUrl, dir, {
+const { rpc, ws, h: transport, checks, flush } = await openCanonicalRpcHarness(url, wsUrl, dir, {
   deferFinality: true, payerFor: label => payers.get(label), observeOutcomes: label => label.startsWith('traffic '),
   broadcastAccepted: label => { if (payers.has(label)) broadcast.set(label, performance.now()); },
 });
-const service = new AccountRuntime(database, runId, url, 4, 'bounded-entry');
+const h: typeof transport = {...transport, send(label, instructions, ...args) {
+  return transport.send(label, shadow?.decorate(instructions) ?? instructions, ...args);
+}};
+class ShadowWorker extends AccountRuntime {
+  override enqueue(...args: Parameters<AccountRuntime['enqueue']>) {
+    assert(shadow);
+    args[1] = shadow.decorate(args[1]);
+    return super.enqueue(...args);
+  }
+}
+const Worker = shadowRun ? ShadowWorker : AccountRuntime;
+const service = new Worker(database, runId, url, 4, deployment);
 let journal: Awaited<ReturnType<typeof openSettlementJournal>> | undefined, indexer: LiquidityIndexer | undefined;
 let running = true, polling = true, loopError: unknown;
 const tasks: Promise<void>[] = [];
@@ -59,6 +76,12 @@ try {
     shape: symmetricPayoutShape, marketCheckpoints: true, marginLayout: 'ledger-lanes', makerCash: 100_000_000n,
     traderCash: deposit, verifyRejections: false });
   assert.deepEqual(setup.traderOwners.map(key => key.address), owners.map(key => key.address));
+  if (shadowRun) {
+    shadow = await startShadow(transport, setup);
+    await flush();
+    await shadow.audit(rpc);
+    await setup.qualify();
+  }
   const common = { ...setup.common, btc: setup.markets[0], eth: setup.markets[1] };
   const { route, root, guard, withCheckpoints } = executionTestHelpers(h, setup);
   const creditors = setup.roots.slice(0, 2);
@@ -99,7 +122,7 @@ try {
   await service.open();
   const { binding } = await service.store.snapshot();
   indexer = new LiquidityIndexer({ rpcUrl: url, wsUrl, databaseUrl: database, runId, venue: setup.venue,
-    anchor: binding.anchor, deployment: 'bounded-entry', profile: 'liquidity-execution-qualification' });
+    anchor: binding.anchor, deployment, profile: 'liquidity-execution-qualification' });
   await indexer.open();
   await setup.qualify();
   // Attach registry and certificate to the SDK's account reads. Use the pair from the
@@ -234,11 +257,16 @@ try {
   });
   // Common withdrawal policy: withdraw exactly the net trading gain once fully credited.
   const exited = new Set<number>();
-  let makerExited = false;
+  let makerExited = false, observedCold = false;
   const followupEnd = Math.max(...closeTimes) + (followMaker ? 360_000 : 120_000);
   while (elapsed() < followupEnd) {
     healthy();
     const state = await record();
+    if (shadow && !observedCold && state.maker?.lots === 0n && state.maker.virtualScaled === ethSpreadGain * scale
+        && state.ethPool === ethSpreadGain && !state.maker.proof?.complete) {
+      await h.send('observe funded ETH before first certificate', [shadow.observe(1)]);
+      observedCold = true;
+    }
     for (let i = 0; i < creditors.length; i++) {
       const account = state.creditors[i];
       if (exited.has(i) || account.claimScaled !== 0n) continue;
@@ -302,7 +330,12 @@ try {
   if (arm === 'trader') assert.equal(workerReceipts.length, 0);
   const replayName = 'close-to-wallet';
   await journal.checkpoint(replayName, true);
-  const replay = await journal.finish();
+  const audit = shadow && await shadow.audit(rpc);
+  const replay = await journal.finish(shadow ? ((blocks, invocations) => {
+    assert(observedCold && shadow);
+    const report = checkShadowReceipts(blocks, invocations, checks, shadow);
+    writeFileSync(dir + '/shadow-coverage.json', json({revision, program:build.revision, audit, ...report}));
+  }) : undefined);
   observations.sort((a,b) => a.ms - b.ms);
   const ownerReceipts = [];
   for (const check of checks.filter(check => payers.has(String(check.label)))) {

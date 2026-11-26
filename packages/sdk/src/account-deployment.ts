@@ -3,7 +3,7 @@ import {LIQUIDITY_ARTIFACTS,LIQUIDITY_ARTIFACT_SET} from './liquidity-artifacts.
 
 /** API/budget policy 4 is separate from program profile 6. Both explicit names
  * bind the same qualified bytes; old journals keep their original artifact set. */
-export type AccountDeployment='price-limited-multi-maker'|'funded-multi-maker'|'multi-maker'|'funded-routing'|'bounded-entry'|'closed-quantity'|'bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
+export type AccountDeployment='price-limited-multi-maker'|'funded-multi-maker'|'multi-maker'|'funded-routing'|'shadow-coverage'|'bounded-entry'|'closed-quantity'|'bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'selected'|'account-scale-candidate'|'profit-attribution-candidate'|'sponsored-profit-candidate'|'verified-pair-candidate'|'btc-residual-candidate'|'btc-allocation-candidate'|'linked-pair-candidate'|'linked-flat-candidate'|'linked-allocation-candidate'|'integrated-recovery-candidate'|'paged-recovery-candidate'|'recovery-search-candidate'|'foreign-creditor-candidate'|'shared-inventory-candidate'|'partial-inventory-candidate'|'book-inventory-candidate'|'book-capacity-candidate'|'multi-lot-book-candidate'|'aggregate-fee-candidate'|'bounded-market-candidate'|'funding-prefix-candidate'|'read-only-market-candidate'|'read-only-ledger-candidate';
 export const SETTLEMENT_HELPER_REVISION='ed466030eccd485b8552b378815bf3f4e28fb658';
 export const VERIFIED_PAIR_HELPER_REVISION='447efef3d434496c483715c06cbc8e5341da10c1';
 export const VERIFIED_PAIR_ARTIFACT_SET='verified-pair-447efef';
@@ -29,13 +29,14 @@ export const FOREIGN_PROTECTION_ARTIFACT_SET='foreign-protection-7df9585e';
 export const WINNER_ALLOCATION_ARTIFACT_SET='winner-allocation-486d5818';
 export const JOINT_PAYMENT_ARTIFACT_SET='joint-payment-3acd4a4d';
 export const PAIR_SCHEDULE_ARTIFACT_SET='pair-schedule-34359552';
-export const usesExecutionRouter = (selection?: string): selection is 'price-limited-multi-maker'|'funded-multi-maker'|'multi-maker'|'funded-routing'|'bounded-entry'|'execution-router-candidate'|'bounded-router-candidate'|'closed-quantity' =>
+export const usesExecutionRouter = (selection?: string): selection is 'price-limited-multi-maker'|'funded-multi-maker'|'multi-maker'|'funded-routing'|'shadow-coverage'|'bounded-entry'|'execution-router-candidate'|'bounded-router-candidate'|'closed-quantity' =>
   usesBoundedEntry(selection) || selection === 'execution-router-candidate' || selection === 'bounded-router-candidate' || selection === 'closed-quantity';
 export const usesUnifiedRecovery = (selection?: AccountDeployment) => selection === 'unified-recovery-candidate' || usesExecutionRouter(selection);
 export const UNIFIED_RECOVERY_ARTIFACT_SET='unified-recovery-79724a5a';
 // The local runner binds this layout to its program hashes before indexing.
 // The new instruction uses unified recovery account and event layouts.
 export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
+export const SHADOW_COVERAGE_ARTIFACT_SET='shadow-coverage-ce9e8e9c';
 export const BOUNDED_ENTRY_ARTIFACT_SET='bounded-entry-settlement';
 export const WIDE_DIRECTORY_ARTIFACT_SET='wide-maker-directory';
 export const WIDE_ROUTING_ARTIFACT_SET='wide-maker-routing';
@@ -47,8 +48,8 @@ export const usesMultiMaker=(selection?:string):selection is 'multi-maker'|'fund
 export const hasMultiMaker=(set?:string)=>set===MULTI_ROUTING_ARTIFACT_SET||set===FUNDED_MULTI_ARTIFACT_SET||set===PRICE_LIMITED_MULTI_ARTIFACT_SET;
 export const hasWideDirectory=(set?:string)=>set===WIDE_DIRECTORY_ARTIFACT_SET||set===WIDE_ROUTING_ARTIFACT_SET||hasMultiMaker(set);
 export const FUNDED_ROUTING_ARTIFACT_SET='funded-maker-routing';
-export const usesBoundedEntry=(selection?:string)=>selection==='bounded-entry'||selection==='funded-routing'||usesMultiMaker(selection);
-export const hasBoundedEntry=(set?:string)=>set===BOUNDED_ENTRY_ARTIFACT_SET||set===FUNDED_ROUTING_ARTIFACT_SET||hasWideDirectory(set);
+export const usesBoundedEntry=(selection?:string)=>selection==='shadow-coverage'||selection==='bounded-entry'||selection==='funded-routing'||usesMultiMaker(selection);
+export const hasBoundedEntry=(set?:string)=>set===SHADOW_COVERAGE_ARTIFACT_SET||set===BOUNDED_ENTRY_ARTIFACT_SET||set===FUNDED_ROUTING_ARTIFACT_SET||hasWideDirectory(set);
 export const usesClosedQuantity=(selection?:string)=>usesBoundedEntry(selection)||selection==='closed-quantity';
 export const hasClosedQuantity=(set?:string)=>hasBoundedEntry(set)||set===CLOSED_QUANTITY_ARTIFACT_SET;
 export const CLOSED_QUANTITY_ARTIFACT_SET='closed-quantity-settlement';
@@ -71,7 +72,7 @@ export const isSharedInventoryArtifact=(value?:string)=>value===SHARED_INVENTORY
 export const PAGED_RECOVERY_ARTIFACT_SET='paged-recovery-37672622';
 export const RECOVERY_SEARCH_ARTIFACT_SET='recovery-search-efbaa02';
 export const hasPagedRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===LOCAL_SUCCESSOR_ARTIFACT_SET||hasPartitionedInputs(set);
-export type RecoveryDeployment='price-limited-multi-maker'|'funded-multi-maker'|'multi-maker'|'funded-routing'|'bounded-entry'|'closed-quantity'|'bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
+export type RecoveryDeployment='price-limited-multi-maker'|'funded-multi-maker'|'multi-maker'|'funded-routing'|'shadow-coverage'|'bounded-entry'|'closed-quantity'|'bounded-router-candidate'|'execution-router-candidate'|'unified-recovery-candidate'|'local-successor-candidate'|'paged-recovery-candidate'|'integrated-recovery-candidate'|'recovery-search-candidate';
 export const usesRecoverySearch=(selection?:AccountDeployment):selection is RecoveryDeployment=>
   usesUnifiedRecovery(selection)||selection==='local-successor-candidate'||selection==='paged-recovery-candidate'||selection==='integrated-recovery-candidate'||selection==='recovery-search-candidate';
 export const hasJointRecovery=(set?:string)=>set===PAGED_RECOVERY_ARTIFACT_SET||set===RECOVERY_SEARCH_ARTIFACT_SET||integratedLayout(set);
@@ -87,6 +88,16 @@ type DeploymentBinding = {
   helperRevision:string; artifacts:typeof LIQUIDITY_ARTIFACTS;
 };
 export function accountDeployment(selection:AccountDeployment):DeploymentBinding {
+  if (selection === 'shadow-coverage') {
+    const previous = accountDeployment('bounded-entry');
+    const pins: Record<string, {bytes: number; sha256: string}> = {
+      clearing: {bytes: 3764400, sha256: '0d4531e09f234c4fbda6d1b07894f3ef6e5c04c2ca0f64b292af4e6ccc9d7b3f'},
+      'maker-a': {bytes: 167520, sha256: '356b53f98b2e6a5ac4aeaf44100617e802ca9435470795ef36edc24ba9a1ff6d'},
+      'maker-b': {bytes: 167520, sha256: 'cb5bf04628f563011e9def55b488336f0271903e15ce7f1da99320f4ef0b67de'},
+    };
+    return {...previous, artifactSet: SHADOW_COVERAGE_ARTIFACT_SET, programRevision: 'ce9e8e9c82a4643abcd44135ed3a6214815ffb00',
+      artifacts: previous.artifacts.map(artifact => ({...artifact, ...pins[artifact.name]}))};
+  }
   if (selection === 'price-limited-multi-maker') {
     const prior = accountDeployment('funded-multi-maker');
     return { ...prior, artifactSet: PRICE_LIMITED_MULTI_ARTIFACT_SET,

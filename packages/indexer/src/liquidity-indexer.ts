@@ -23,7 +23,7 @@ export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBin
   protected get historyAddress(){return this.config.venue;}
   protected decodeTransaction(signature:string,transaction:any,transactionIndex:number,binding:LiquidityBinding) {
     return decodeAccountInvocations(signature,transaction,transactionIndex,{program:this.deployment.clearing,
-      eventAuthority:this.eventAuthority,venue:binding.venue,domain:binding.domain});
+      eventAuthority:this.eventAuthority,venue:binding.venue,domain:binding.domain,shadowCoverage:this.config.deployment==='shadow-coverage'});
   }
   protected async initializeBinding(anchor:any,genesis:string):Promise<LiquidityBinding> {
     const domain=eventDomain(this.config.anchor,anchor,this.eventAuthority,this.config.venue,this.deployment.clearing);

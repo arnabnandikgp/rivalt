@@ -19,6 +19,10 @@ const searchWork = new Map([
   ['open_search', 5, 80], ['capture_member', 5, 16], ['derive_pairs', 3, 8],
   ['verify_incumbent', 3, 48], ['cover_plan', 3, 64], ['cover_range', 3, 40], ['seal_search', 3, 8],
 ].map(([name, accounts, bytes]) => [createHash('sha256').update('global:'+name).digest('hex').slice(0,16), {accounts, bytes}]));
+// Local shadow writes have no effect on financial roots. Recognize them only on the pinned observer build.
+const coverageWork = new Map([
+  ['open_coverage_lane', 7, 9], ['record_coverage_row', 2, 8], ['observe_coverage', 12, 9],
+].map(([name, accounts, bytes]) => [createHash('sha256').update('global:'+name).digest('hex').slice(0,16), {accounts, bytes}]));
 const instructions = new Set(clearingIdl.instructions.map(instruction => Buffer.from(instruction.discriminator).toString('hex')));
 const payloadTags = new Set(clearingIdl.events.filter(event => event.name !== 'AccountTransition')
   .map(event => createHash('sha256').update(`event:${event.name}`).digest().subarray(0, 8).toString('hex')));
@@ -133,7 +137,7 @@ function compiledMessage(transaction: any) {
  * called through an external wrapper and multiple clearing calls in one message.
  * Invalid input returns no partial result. Failed transactions have no effects. */
 export function scopedInvocations(signature: string, transaction: any, transactionIndex: number,
-  binding: {program: string; eventAuthority: string; venue: string; domain: string}): ScopedInvocation[] {
+  binding: {program: string; eventAuthority: string; venue: string; domain: string; shadowCoverage?: boolean}): ScopedInvocation[] {
   if (!transaction?.meta || transaction.transaction?.signatures?.[0] !== signature)
     throw new Error('Missing transaction metadata/identity');
   integer(transaction.slot); integer(transactionIndex);
@@ -158,6 +162,12 @@ export function scopedInvocations(signature: string, transaction: any, transacti
       if(current.bytes.equals(grossView)){
         if(current.accounts.length!==5)throw new Error('Invalid read-only market view');
         return null; // Five read-only accounts, eight bytes of return data, zero financial effects.
+      }
+      const shadow = binding.shadowCoverage && coverageWork.get(current.bytes.subarray(0,8).toString('hex'));
+      if (shadow) {
+        if (current.bytes.length !== shadow.bytes || current.accounts.length !== shadow.accounts)
+          throw new Error('Invalid local coverage observation');
+        return null;
       }
       const scratch=searchWork.get(current.bytes.subarray(0,8).toString('hex'));
       if(scratch) {
