@@ -139,7 +139,9 @@ try {
   await h.send('withdraw credited cash with no market accounts', await financial(exit,[maker.capital]), [maker.owner]);
   assert.equal(await wallet(), initialTokens+40n);
   await snapshot('wallet-exit','0=2','');
-  await setup.sample();
+  // Finality waits during settlement can outlast the permitted source gap.
+  // Re-establish the full observation interval before admitting new exposure.
+  await setup.qualify();
   const reopened = await place(1);
   await snapshot('reopened','0=2,1=4','');
   await cancel(0,btc);
