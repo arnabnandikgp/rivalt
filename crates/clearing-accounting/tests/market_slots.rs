@@ -1,0 +1,122 @@
+#![cfg(feature = "surviving-profit")]
+
+use clearing_accounting::{
+    entry_cost::EntryCost,
+    market_slots::{MarketImage, MarketSlots},
+    Error, Mode, Position, SCALE,
+};
+
+fn flat(market: u16, claim: i128) -> MarketImage {
+    MarketImage {
+        market,
+        position: Position {
+            virtual_scaled: claim,
+            ..Position::default()
+        },
+        entry: EntryCost::default(),
+    }
+}
+
+#[test]
+fn fractions_and_each_remaining_order_keep_the_binding() {
+    for residue in [-1, 1] {
+        let empty = MarketSlots::new(Mode::Cross, 1);
+        let opened = MarketImage {
+            market: 50_000,
+            position: Position {
+                lots: 2,
+                virtual_scaled: -201 * SCALE,
+                generation: 1,
+                ..Position::default()
+            },
+            entry: EntryCost::default().fill(0, 2, 201).unwrap(),
+        };
+        let book = empty.successor(&[opened], &[]).unwrap();
+        let binding = book.records()[0].0;
+        let closed = flat(opened.market, residue);
+        let book = book.successor(&[closed], &[]).unwrap();
+        assert_eq!(book.resolve(binding).unwrap(), &closed);
+        assert_eq!(book.successor(&[], &[]), Err(Error::Invariant));
+        let cleared = flat(opened.market, 0);
+        let protected = book
+            .successor(&[cleared], &[opened.market, opened.market])
+            .unwrap();
+        let one_child = protected.successor(&[cleared], &[opened.market]).unwrap();
+        assert!(one_child.resolve(binding).is_ok());
+        let vacant = one_child.successor(&[cleared], &[]).unwrap();
+        assert_eq!(vacant.resolve(binding), Err(Error::Generation));
+        let reopened = vacant.successor(&[opened], &[]).unwrap();
+        assert_eq!(reopened.resolve(binding), Err(Error::Generation));
+        assert_eq!(reopened.records()[0].1, opened);
+    }
+}
+
+#[test]
+fn saturated_book_reuses_a_discharged_slot_in_either_market_order() {
+    for width in [2usize, 4, 8] {
+        let start: Vec<_> = (0..width).map(|i| flat(200 + 5 * i as u16, -1)).collect();
+        let full = MarketSlots::new(Mode::Cross, width)
+            .successor(&start, &[])
+            .unwrap();
+        for replacement in [3, 65_000] {
+            let mut input = start.clone();
+            input.push(flat(replacement, 0));
+            input.sort_by_key(|image| image.market);
+            assert_eq!(full.successor(&input, &[replacement]), Err(Error::Bounds));
+            let released = start[width / 2].market;
+            let old = full.records()[width / 2].0;
+            input
+                .iter_mut()
+                .find(|i| i.market == released)
+                .unwrap()
+                .position
+                .virtual_scaled = 0;
+            let next = full.successor(&input, &[replacement]).unwrap();
+            assert_eq!(next.records().len(), width);
+            assert_eq!(next.resolve(old), Err(Error::Generation));
+            assert_eq!(
+                next.records()
+                    .iter()
+                    .find(|(key, _)| key.market == replacement)
+                    .unwrap()
+                    .0
+                    .incarnation,
+                width as u64 + 1
+            );
+            for (binding, image) in full
+                .records()
+                .iter()
+                .filter(|(key, _)| key.market != released)
+            {
+                assert_eq!(next.resolve(*binding).unwrap(), image);
+            }
+        }
+    }
+}
+
+#[test]
+fn complete_sorted_books_and_isolation_are_required() {
+    let empty = MarketSlots::new(Mode::Isolated(427), 1);
+    let own = flat(427, -1);
+    assert_eq!(empty.successor(&[own], &[404]), Err(Error::Invariant));
+    assert_eq!(empty.successor(&[flat(428, 1)], &[]), Err(Error::Bounds));
+    assert_eq!(empty.successor(&[flat(428, 0)], &[428]), Err(Error::Bounds));
+    assert_eq!(empty.successor(&[own, own], &[]), Err(Error::Invariant));
+    assert_eq!(
+        empty.successor(&[own, flat(3, 0)], &[]),
+        Err(Error::Invariant)
+    );
+    let book = empty.successor(&[own], &[]).unwrap();
+    for missing in [3, 65_000] {
+        assert_eq!(
+            book.successor(&[flat(missing, 0)], &[]),
+            Err(Error::Invariant)
+        );
+    }
+    let stale_basis = MarketImage {
+        entry: EntryCost::default().fill(0, 1, 100).unwrap(),
+        ..flat(427, 0)
+    };
+    assert_eq!(book.successor(&[stale_basis], &[]), Err(Error::Invariant));
+    assert_eq!(book.records()[0].1, own);
+}

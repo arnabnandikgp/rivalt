@@ -75,3 +75,7 @@ maker-interface = { path = "../../crates/maker-interface" }
 solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
 
 oracle-fixture = { path = "../../tests/fixtures/oracle", features = ["state-only"] }
+
+[[example]]
+name = "occupied-markets"
+required-features = ["bounded-entry-settlement"]

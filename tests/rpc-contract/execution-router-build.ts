@@ -22,7 +22,7 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const probe = process.env.RIVALT_SETTLEMENT_PROBE;
   const streamed = probe === 'execution-router-streamed-capacity' || probe === 'execution-router-streamed-credit';
-  const grouped = probe === 'execution-router-grouped-worker' || probe === 'execution-router-grouped-capacity' || probe === 'execution-router-grouped-credit';
+  const grouped = probe === 'execution-router-grouped-slots' || probe === 'execution-router-grouped-worker' || probe === 'execution-router-grouped-capacity' || probe === 'execution-router-grouped-credit';
   if (grouped || streamed || probe === 'execution-router-thousand-member-credit') {
     const profile = grouped
       ? {revision:'e4aff314f037b5101f2d036785020e371762c48a',artifactSet:GROUPED_CREDIT_ARTIFACT_SET,

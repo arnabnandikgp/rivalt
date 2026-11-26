@@ -37,7 +37,7 @@ impl EntryCost {
         Ok(())
     }
 
-    fn validate(&self, lots: i64) -> Result<()> {
+    pub(crate) fn validate(&self, lots: i64) -> Result<()> {
         let reference = u128::from(self.reference_lots);
         if lots == 0 {
             return if *self == Self::default() {
