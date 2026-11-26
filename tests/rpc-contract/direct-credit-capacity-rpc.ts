@@ -19,7 +19,8 @@ import {auditCoverage} from './shadow-coverage.js';
 
 const dir = process.env.RIVALT_RUN_DIR!;
 const build = routerBuild();
-const large = [sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,sdk.STREAMED_CREDIT_ARTIFACT_SET].includes(build.artifactSet);
+const grouped = build.artifactSet === sdk.GROUPED_CREDIT_ARTIFACT_SET;
+const large = grouped || [sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,sdk.STREAMED_CREDIT_ARTIFACT_SET].includes(build.artifactSet);
 assert(large || build.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET);
 const population = large ? 1_000 : 128;
 const rowsPerLane = population / 8;
@@ -41,12 +42,13 @@ const {rpc, ws, h:transport, checks, flush} = await openCanonicalRpcHarness(
 const {h, lanes, members} = coverageProvisioning(transport, payer);
 const quietCredit = 'pay half the spread before other positions open';
 const exposedCredit = 'pay half the spread with open positions in every lane';
+const denseCredit = 'pay closed ETH spread with every member exposed';
 const collectLabel = 'collect closed ETH loss at full lane capacity';
 const exitLabel = 'owner withdraws credited ETH spread at full capacity';
 
 try {
   const setup = await liquidityExecutionSetup(h, rpc, {traderCount:population-6, recoveryCapacity:population+1,
-    marketCheckpoints:true, marginLayout:'ledger-lanes', shape:symmetricPayoutShape, verifyRejections:false});
+    isolatedTraderMarket:grouped ? 1 : 0, marketCheckpoints:true, marginLayout:'ledger-lanes', shape:symmetricPayoutShape, verifyRejections:false});
   const {venue, registry, markets, ledgers, roots} = setup;
   const {root, guard, route, withCheckpoints} = executionTestHelpers(h, setup);
   const active = new Set([...roots, ...setup.instances.map(maker => maker.capital)]);
@@ -57,7 +59,7 @@ try {
   const counts = () => lanes.map(lane => [...active].filter(member => members.get(member) === lane).length);
   const audit = async () => {
     await flush();
-    return auditCoverage(rpc, venue, registry, lanes, [...active], true, rowsPerLane);
+    return auditCoverage(rpc, venue, registry, lanes, [...active], true, rowsPerLane, grouped);
   };
   const fullBook = await audit();
   assert.deepEqual(counts(), Array(8).fill(rowsPerLane));
@@ -93,14 +95,15 @@ try {
   const initialCash = (await root(maker.capital)).cash;
   const initialTokens = await balance(maker.token.address);
   const initialVault = await balance(setup.vault);
-  const scale = 1_000_000_000n, spread = 10n * (2n+2n);
+  const scale = 1_000_000_000n, lots = grouped ? 15n : 10n, spread = lots * (2n+2n);
+  const payment = 20n;
   assert.equal(await pool(), 0n);
   assert.equal(await h.read(certificate), null);
   await setup.sample();
   for (const side of [0,1] as const) {
-    const fill = await route({trader:debtor, actor:trader, marketIndex:1, side, makers:[maker], lots:[10n],
+    const fill = await route({trader:debtor, actor:trader, marketIndex:1, side, makers:[maker], lots:[lots],
       marketLane:true, minimalMarkets:true});
-    await h.send(side === 0 ? 'buy ten ETH lots' : 'sell ten ETH lots', [
+    await h.send((side === 0 ? 'buy ' : 'sell ')+(grouped ? 'fifteen' : 'ten')+' ETH lots', [
       appendCoverage(fill, [members.get(debtor)!, members.get(maker.capital)!])], [trader]);
   }
   const earned = (await root(maker.capital)).positions[1];
@@ -112,9 +115,9 @@ try {
   await h.send(collectLabel, await finance(collection, debtor));
   assert.equal(await pool(), spread);
   assert.equal((await root(maker.capital)).cash, initialCash);
-  const payHalf = async (label:string) => {
+  const payCredit = async (label:string) => {
     const instructions = await sdk.directClosedProfitCredit({artifactSet:build.artifactSet, actor:payer,
-      margin:await root(maker.capital), marketIndex:1, amount:spread/2n});
+      margin:await root(maker.capital), marketIndex:1, amount:payment});
     if (!large) {
       await h.send(label, instructions);
       completed.set(label,label);
@@ -163,10 +166,10 @@ try {
     }
     assert.fail('No funded credit within the diagnostic envelope: '+label);
   };
-  await payHalf(quietCredit);
-  assert.equal(await pool(), spread/2n);
-  assert.equal((await root(maker.capital)).cash, initialCash + spread/2n);
-  assert.equal((await root(maker.capital)).positions[1].virtualScaled, spread/2n*scale);
+  await payCredit(quietCredit);
+  assert.equal(await pool(), spread-payment);
+  assert.equal((await root(maker.capital)).cash, initialCash + payment);
+  assert.equal((await root(maker.capital)).positions[1].virtualScaled, (spread-payment)*scale);
 
   // One solvent long in each lane creates a case where mixed lower bounds
   // fail at the genesis anchor. All exposures come from actual matched fills.
@@ -186,13 +189,52 @@ try {
   }
   assert.equal(exposures.size, 8);
   await setup.sample();
-  await payHalf(exposedCredit);
-  assert.equal(await pool(), 0n);
-  assert.equal((await root(maker.capital)).cash, initialCash + spread);
-  assert.equal((await root(maker.capital)).positions[1].virtualScaled, 0n);
+  const sparse = grouped ? await audit() : undefined;
+  if (sparse) assert.equal(sparse.openMembers,10);
+  await payCredit(exposedCredit);
+  assert.equal(await pool(), spread - 2n*payment);
+  assert.equal((await root(maker.capital)).cash, initialCash + 2n*payment);
+  const denseFills = new Map<Address,{provider:number;side:0|1}>();
+  let dense: Awaited<ReturnType<typeof audit>> | undefined;
+  async function trade(label:string, index:number, marketIndex:0|1, provider:number, side:0|1) {
+    const margin = roots[index], owner = setup.traderOwners[index], counterparty = setup.instances[provider];
+    const fill = await route({trader:margin,actor:owner,marketIndex,side,makers:[counterparty],lots:[1n],
+      marketLane:true,minimalMarkets:true});
+    await h.send(label,[appendCoverage(fill,[members.get(margin)!,members.get(counterparty.capital)!])],[owner]);
+  }
+  if (grouped) {
+    // Open the three BTC maker capitals against cross accounts that also hold ETH.
+    for (let provider=0; provider<3; provider++) {
+      const margin = [...exposures.values()][provider];
+      await trade('dense BTC cross fill '+provider,roots.indexOf(margin),0,provider,0);
+    }
+    const pending = roots.filter(margin=>![...exposures.values()].includes(margin));
+    for (const [ordinal,margin] of pending.entries()) {
+      if (ordinal%24===0) await setup.sample();
+      // Keep provider inventories bounded while placing real longs and shorts.
+      const provider = ordinal===pending.length-1 ? 3 : 4+ordinal%2;
+      const side = Math.floor(ordinal/2)%2 as 0|1;
+      await trade('dense ETH fill '+ordinal,roots.indexOf(margin),1,provider,side);
+      denseFills.set(margin,{provider,side});
+    }
+    dense = await audit();
+    assert.deepEqual([dense.members,dense.openMembers,...dense.openByMarket],[1000,1000,6,997]);
+    await setup.sample();
+    const before = (await root(maker.capital)).positions[1];
+    assert.notEqual(before.lots,0n);
+    await payCredit(denseCredit);
+    const after = (await root(maker.capital)).positions[1];
+    assert.equal(after.lots,before.lots);
+    assert.equal(after.virtualScaled,before.virtualScaled-payment*scale);
+  } else {
+    assert.equal((await root(maker.capital)).positions[1].virtualScaled,0n);
+  }
+  assert.equal(await pool(),0n);
+  assert.equal((await root(maker.capital)).cash,initialCash+spread);
   const withdraw = async (margin:Address, owner:typeof applicant, token:Address, amount:bigint) =>
     finance(sdk.getWithdrawFundedAccountInstruction({...common, owner, margin, userToken:token,
       quoteMint:setup.mint.address, guard:await guard(margin), amount}), margin);
+  if (grouped) await setup.sample();
   await h.send(exitLabel, await withdraw(maker.capital, maker.owner, maker.token.address, spread), [maker.owner]);
   assert.equal(await balance(maker.token.address), initialTokens + spread);
   assert.equal(await balance(setup.vault), initialVault - spread);
@@ -205,6 +247,14 @@ try {
   const idle = roots.slice(1, 17).filter(margin => ![...exposures.values()].includes(margin));
   assert(idle.every(margin => setup.traderOwners[roots.indexOf(margin)].address === trader.address));
   async function vacate(margin:Address) {
+    const opening = denseFills.get(margin);
+    if (opening) {
+      await setup.sample();
+      await trade('close dense ETH position before leaving',roots.indexOf(margin),1,opening.provider,opening.side===0 ? 1 : 0);
+      assert.deepEqual([(await root(margin)).positions[1].lots,(await root(margin)).positions[1].virtualScaled],[0n,-4n*scale]);
+      await h.send('settle departing member loss',await finance(sdk.getCollectAccountLossInstruction({
+        ...common,actor:payer,margin,marketIndex:1,amount:4n}),margin));
+    }
     const cash = (await root(margin)).cash;
     await h.send('withdraw idle trader collateral', await withdraw(margin, trader, setup.traderToken.address, cash), [trader]);
     const leave = await membership(margin, trader, false);
@@ -221,11 +271,11 @@ try {
   const finalBook = await audit();
   assert.equal(finalBook.members, population-1);
   assert.equal(counts()[lanes.indexOf(candidateLane)], rowsPerLane);
-  const measured = checks.filter(row => [completed.get(quietCredit),completed.get(exposedCredit),collectLabel,exitLabel,fullLaneRefusal,
+  const measured = checks.filter(row => [completed.get(quietCredit),completed.get(exposedCredit),completed.get(denseCredit),collectLabel,exitLabel,fullLaneRefusal,
     'reject full lane with a vacancy elsewhere','activate waiting member after a matching vacancy'].includes(String(row.label)));
-  assert.equal(measured.length, 7);
+  assert.equal(measured.length, grouped ? 8 : 7);
   const coverageLogs = [];
-  for (const [label, exact] of [[quietCredit,0],[exposedCredit,population]] as const) {
+  for (const [label, exact] of [[quietCredit,0],[exposedCredit,grouped ? 0 : population],...(grouped ? [[denseCredit,0] as const] : [])] as const) {
     const receipt = await rpc.call('getTransaction',[measured.find(row=>row.label===completed.get(label))!.signature,
       {encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
     const message = 'coverage target=1 members='+population+' exact='+exact+' covered=1';
@@ -233,7 +283,7 @@ try {
     coverageLogs.push(message);
   }
   const payments = {revision, program:build.revision, fullBook, finalBook, population, recoveryCapacity:population+1,
-    attempts:results, credited:spread, withdrawn:spread, coverageLogs, measured};
+    grouped, sparse, dense, attempts:results, credited:spread, withdrawn:spread, coverageLogs, measured};
   writeFileSync(dir+'/capacity-financial.json',json(payments));
   const journal = await openSettlementJournal(rpc, setup, checks.map(row => String(row.signature)), build);
   const replay = await journal.finish(undefined, large ? 128 : undefined);

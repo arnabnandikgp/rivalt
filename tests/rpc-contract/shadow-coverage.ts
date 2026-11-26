@@ -76,7 +76,7 @@ export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType
 type BankReader = {call(method: string, args: any[]): Promise<any>};
 
 // Each batch reads its roots, registry and eight lanes in the same finalized bank.
-export async function auditCoverage(rpc: BankReader, venue: Address, registry: Address, lanes: Address[], roots: Address[], maintained = false, rowsPerLane = 16) {
+export async function auditCoverage(rpc: BankReader, venue: Address, registry: Address, lanes: Address[], roots: Address[], maintained = false, rowsPerLane = 16, grouped = false) {
     const witnesses = [...lanes, registry];
     const chunkSize = 100 - witnesses.length;
     assert(lanes.length === 8 && new Set(roots).size === roots.length);
@@ -103,6 +103,10 @@ export async function auditCoverage(rpc: BankReader, venue: Address, registry: A
     const state = sdk.getVenueRegistryDecoder().decode(witnessBytes[lanes.length]);
     const epoch = state.membershipEpoch;
     assert.equal(state.financialCount, BigInt(roots.length));
+    const signed128 = (bytes: Buffer, offset: number) => (bytes.readBigInt64LE(offset+8)<<64n)+bytes.readBigUInt64LE(offset);
+    const groupRevisions: string[][] = [];
+    let openMembers = 0;
+    const openByMarket = [0,0];
     for (const [index] of lanes.entries()) {
       const bytes: Buffer = witnessBytes[index];
       assert(bytes.subarray(0,8).equals(createHash('sha256').update('account:CoverageLane').digest().subarray(0,8)));
@@ -111,21 +115,59 @@ export async function auditCoverage(rpc: BankReader, venue: Address, registry: A
       assert.equal(bytes.readBigUInt64LE(42), maintained ? 1n : epoch);
       const count = bytes.readUInt32LE(322);
       assert(count <= rowsPerLane);
-      if (rowsPerLane === 125) assert.equal(bytes.length, 326 + 64*rowsPerLane + 74);
+      if (rowsPerLane === 125) assert.equal(bytes.length, 326 + 64*rowsPerLane + 74 + (grouped ? 8*138 : 0));
+      if (grouped) {
+        const revisions: string[] = [];
+        for (let first=0; first<count; first+=16) {
+          const size = Math.min(16,count-first);
+          const start = 8400 + (first/16)*138;
+          const revision = bytes.readBigUInt64LE(start);
+          assert(revision>0n);
+          revisions.push(String(revision));
+          assert.equal(bytes[start+8], size);
+          const infinity = 1n<<127n;
+          const ranges = Array.from({length:4},()=>[-infinity,infinity-1n]);
+          let funded = true;
+          // Independently intersect integer solutions of lots * price >= -(cash budget + fixed claim).
+          const floor = (a:bigint,b:bigint) => a/b - (a%b<0n ? 1n : 0n);
+          for (let offset=first; offset<first+size; offset++) {
+            const row = bytes.subarray(326+64*offset);
+            const lots=[row.readBigInt64LE(16),row.readBigInt64LE(24)];
+            const fixed=[signed128(row,32),signed128(row,48)];
+            const free=row.readBigUInt64LE(8)*1_000_000_000n+fixed.reduce((sum,value,m)=>
+              sum+(lots[m]===0n && value<0n ? value : 0n),0n);
+            funded &&= free>=0n;
+            for(const [m,quantity] of lots.entries()) {
+              if(!quantity) continue;
+              const cross=lots.every(value=>value!==0n);
+              const budgets=cross ? [[m,m===0 ? free/2n : free-free/2n],[m+2,0n]] as const : [[m,free]] as const;
+              for(const [index,budget] of budgets) {
+                const limit=quantity>0n ? -floor(fixed[m]+budget,quantity) : floor(fixed[m]+budget,-quantity);
+                if(quantity>0n && limit>ranges[index][0]) ranges[index][0]=limit;
+                if(quantity<0n && limit<ranges[index][1]) ranges[index][1]=limit;
+              }
+            }
+          }
+          assert.equal(bytes[start+9], Number(funded));
+          ranges.flat().forEach((value,i)=>assert.equal(signed128(bytes,start+10+16*i),value));
+        }
+        groupRevisions.push(revisions);
+      }
       for (let n=0; n<count; n++) {
         const row = bytes.subarray(326+64*n,326+64*(n+1)), id=row.readBigUInt64LE();
         assert.equal(Number(id % 8n),index); assert(!decoded.has(id)); decoded.set(id,row);
       }
     }
     assert.equal(decoded.size,roots.length);
-    const signed128 = (bytes: Buffer, offset: number) => (bytes.readBigInt64LE(offset+8)<<64n)+bytes.readBigUInt64LE(offset);
     for (const [index] of roots.entries()) {
       const margin = sdk.getMarginAccountDecoder().decode(rootBytes[index]), row=decoded.get(margin.id)!;
+      if (margin.positions.some(pos=>pos.lots!==0n)) openMembers++;
       assert.equal(row.readBigUInt64LE(8),margin.cash);
       margin.positions.forEach((pos, market) => {
+        if (pos.lots!==0n) openByMarket[market]++;
         assert.equal(row.readBigInt64LE(16+market*8),pos.lots);
         assert.equal(signed128(row,32+16*market),pos.virtualScaled+pos.lots*pos.fundingCheckpointScaled);
       });
     }
-    return {slot, members:decoded.size, membershipEpoch:epoch, lanes};
+    return {slot, members:decoded.size, membershipEpoch:epoch, lanes, openMembers, openByMarket, ...(grouped ? {groupRevisions} : {})};
   }

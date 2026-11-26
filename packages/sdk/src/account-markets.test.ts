@@ -71,7 +71,7 @@ it('builds a local direct credit with both price markets and only the ledgers th
   };
   const ordinary = await build();
   expect(ordinary).toHaveLength(4);
-  for (const artifactSet of [sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,sdk.STREAMED_CREDIT_ARTIFACT_SET]) {
+  for (const artifactSet of [sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,sdk.STREAMED_CREDIT_ARTIFACT_SET,sdk.GROUPED_CREDIT_ARTIFACT_SET]) {
     expect(await sdk.directClosedProfitCredit({...input,artifactSet})).toEqual(ordinary);
   }
   margin.positions[0].virtualScaled=-1n;

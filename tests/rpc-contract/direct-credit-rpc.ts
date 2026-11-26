@@ -19,7 +19,8 @@ import {auditCoverage} from './shadow-coverage.js';
 
 const dir=process.env.RIVALT_RUN_DIR!, build=routerBuild();
 const streamed = build.artifactSet === sdk.STREAMED_CREDIT_ARTIFACT_SET;
-assert(streamed || build.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET);
+const grouped = build.artifactSet === sdk.GROUPED_CREDIT_ARTIFACT_SET;
+assert(grouped || streamed || build.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET);
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const fillPayer=await fixtureKey('p32-scale-trader-1'), payer=await payerKey();
@@ -79,7 +80,7 @@ try {
   }
   async function audit(roots:Address[]) {
     await flush();
-    return auditCoverage(rpc,venue,registry,lanes,roots,true,streamed ? 125 : 16);
+    return auditCoverage(rpc,venue,registry,lanes,roots,true,streamed || grouped ? 125 : 16,grouped);
   }
   async function leave() {
     const state=await sdk.readMarginMembership(rpc,venue,owner.address,child,true,setup.identity.marginLayout);

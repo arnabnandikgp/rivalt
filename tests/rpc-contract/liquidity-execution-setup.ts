@@ -16,7 +16,7 @@ import type { WireRpc } from './wire.js';
 const encoder = getAddressEncoder();
 const discriminator = (name: string) => createHash('sha256').update(`global:${name}`).digest().subarray(0, 8);
 export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<WireRpc,'call'>,
-  options: { recoveryCapacity?:number; makerCounts?:readonly [number,number]; marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean; refreshDuringSampleInterval?: boolean } = {}) {
+  options: { isolatedTraderMarket?:0|1; recoveryCapacity?:number; makerCounts?:readonly [number,number]; marketCheckpoints?:boolean; traderCount?:number; independentTraders?:boolean; anchorOffset?:(instance:number)=>bigint; marginLayout?:sdk.MarginLayout; shape?: sdk.makerA.LiquidityShapeArgs | ((instance: number) => sdk.makerA.LiquidityShapeArgs); makerCash?: bigint; traderCash?: bigint; traderDeposits?: readonly bigint[]; verifyRejections?: boolean; refreshDuringSampleInterval?: boolean } = {}) {
   const traderCount=options.traderCount??2;
   const makerCounts=options.makerCounts??[3,3];
   const population=traderCount+makerCounts[0]+makerCounts[1];
@@ -65,7 +65,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
         ...common,owner,portfolio,index})],[owner]);
       const [margin]=await sdk.deriveMarginAccount(portfolio,subaccountIndex);
       await registerFinancialTestMargin(h,common,payer,{owner,portfolio,margin,subaccountIndex,
-        mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:0,role:0});
+        mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:(options.isolatedTraderMarket??0),role:0});
       await h.send('deposit actual test trader collateral',[await sdk.getDepositAccountInstructionAsync({...common,
         owner,margin,quoteMint:fixture.mint.address,userToken:token.address,amount:deposit(first+local)})],[owner]);
       roots.push(margin);traderOwners.push(owner);
