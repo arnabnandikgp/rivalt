@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {verifyTestBuild} from './backing-artifacts.js';
-import {THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
+import {STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
 
 export function multiDeploymentFor(artifactSet: string) {
   if (artifactSet === PRICE_LIMITED_MULTI_ARTIFACT_SET) return 'price-limited-multi-maker';
@@ -20,13 +20,20 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   ['execution-router-closed-quantity','execution-router-mixed-storage'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'closed-quantity' : 'bounded-router-candidate',
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
-  if (process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-thousand-member-credit') {
-    assert.equal(revision,'213d394d748741ca60e1230a9bdbdab6596f86c9');
+  const probe = process.env.RIVALT_SETTLEMENT_PROBE;
+  const streamed = probe === 'execution-router-streamed-capacity' || probe === 'execution-router-streamed-credit';
+  if (streamed || probe === 'execution-router-thousand-member-credit') {
+    const profile = streamed
+      ? {revision:'99165b413d6c3b3fe0540ab0756861394324b5d8',artifactSet:STREAMED_CREDIT_ARTIFACT_SET,
+         clearing:{bytes:3883768,sha256:'7f9cf8a9a0c1c4197d721ebc856a2fccd4a20b661e0847de91c730ff9ff83c9c'}}
+      : {revision:'213d394d748741ca60e1230a9bdbdab6596f86c9',artifactSet:THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,
+         clearing:{bytes:3882472,sha256:'bb8780b55c1f5441b93964e7bea2bd36d5e88a27cc9207ebaae9755fccd1a671'}};
+    assert.equal(revision,profile.revision);
     const makers = accountDeployment('direct-closed-credit').artifacts.filter(row => row.name.startsWith('maker-'));
     const artifacts = Object.fromEntries(makers.map(({name,bytes,sha256})=>[name,{bytes,sha256}]));
-    artifacts.clearing = {bytes:3882472,sha256:'bb8780b55c1f5441b93964e7bea2bd36d5e88a27cc9207ebaae9755fccd1a671'};
+    artifacts.clearing = profile.clearing;
     verifyTestBuild(directory,revision,artifacts,'thousand-member-credit');
-    return {revision, artifacts, artifactSet:THOUSAND_MEMBER_CREDIT_ARTIFACT_SET};
+    return {revision, artifacts, artifactSet:profile.artifactSet};
   }
   const extended=['execution-router-multi-fills','execution-router-multi-width','execution-router-multi-price-limits','execution-router-wallet-contention','execution-router-matched-makers','execution-router-feasible-books'].includes(process.env.RIVALT_SETTLEMENT_PROBE??'');
   if (extended) {

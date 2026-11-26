@@ -18,7 +18,8 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 import {auditCoverage} from './shadow-coverage.js';
 
 const dir=process.env.RIVALT_RUN_DIR!, build=routerBuild();
-assert.equal(build.artifactSet,sdk.DIRECT_CREDIT_ARTIFACT_SET);
+const streamed = build.artifactSet === sdk.STREAMED_CREDIT_ARTIFACT_SET;
+assert(streamed || build.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET);
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 assert.equal(execFileSync('git',['status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim(),'');
 const fillPayer=await fixtureKey('p32-scale-trader-1'), payer=await payerKey();
@@ -78,7 +79,7 @@ try {
   }
   async function audit(roots:Address[]) {
     await flush();
-    return auditCoverage(rpc,venue,registry,lanes,roots,true);
+    return auditCoverage(rpc,venue,registry,lanes,roots,true,streamed ? 125 : 16);
   }
   async function leave() {
     const state=await sdk.readMarginMembership(rpc,venue,owner.address,child,true,setup.identity.marginLayout);
@@ -117,7 +118,13 @@ try {
     assert.deepEqual(await Promise.all(keys.map(h.read)),before);
   }
   await move(40_000_000_000n);
-  await refuse('idle BTC loss blocks funded ETH claim',await credit(1n),sdk.CLEARING_ERROR__EXIT_COHORT);
+  const idleLoss = 'idle BTC loss blocks funded ETH claim';
+  await refuse(idleLoss,await credit(1n),sdk.CLEARING_ERROR__EXIT_COHORT);
+  await flush();
+  const refusal = checks.find(check=>check.label===idleLoss)!;
+  const refused = await rpc.call('getTransaction',[refusal.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+  assert(refused.meta.logMessages.some((line:string)=>/^Program log: coverage target=1 members=9 exact=[1-9]\d* covered=0$/.test(line)));
+  assert.equal(await pool(),9n);
   await leave();
   const departed=await audit(active);
   await move(61_000_000_000n);

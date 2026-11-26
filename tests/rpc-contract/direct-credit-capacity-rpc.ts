@@ -19,7 +19,7 @@ import {auditCoverage} from './shadow-coverage.js';
 
 const dir = process.env.RIVALT_RUN_DIR!;
 const build = routerBuild();
-const large = build.artifactSet === sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET;
+const large = [sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,sdk.STREAMED_CREDIT_ARTIFACT_SET].includes(build.artifactSet);
 assert(large || build.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET);
 const population = large ? 1_000 : 128;
 const rowsPerLane = population / 8;

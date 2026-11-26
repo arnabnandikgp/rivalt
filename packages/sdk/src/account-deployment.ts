@@ -39,7 +39,8 @@ export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
 export const DIRECT_CREDIT_ARTIFACT_SET='direct-closed-credit-984f18f3';
 // Distinct lane allocation on a fresh qualification bank. No operator deployment selector.
 export const THOUSAND_MEMBER_CREDIT_ARTIFACT_SET='thousand-member-credit-213d394d';
-export const hasDirectCredit=(set?:string)=>set===DIRECT_CREDIT_ARTIFACT_SET||set===THOUSAND_MEMBER_CREDIT_ARTIFACT_SET;
+export const STREAMED_CREDIT_ARTIFACT_SET='streamed-coverage-credit-99165b41';
+export const hasDirectCredit=(set?:string)=>set===DIRECT_CREDIT_ARTIFACT_SET||set===THOUSAND_MEMBER_CREDIT_ARTIFACT_SET||set===STREAMED_CREDIT_ARTIFACT_SET;
 export const VERIFIED_COVERAGE_ARTIFACT_SET='verified-coverage-8a239609';
 export const MAINTAINED_COVERAGE_ARTIFACT_SET='maintained-coverage-eb1cb0e4';
 export const SHADOW_COVERAGE_ARTIFACT_SET='shadow-coverage-ce9e8e9c';

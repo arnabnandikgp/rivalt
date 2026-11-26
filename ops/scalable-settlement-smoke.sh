@@ -123,8 +123,8 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   execution-router-bounded-entry-inventory|execution-router-mixed-storage) node --import tsx tests/rpc-contract/maker-storage-rpc.ts ;;
   execution-router-feasible-books) node --import tsx tests/rpc-contract/feasible-book-rpc.ts ;;
   execution-router-matched-makers) node --import tsx tests/rpc-contract/comparison-rpc.ts ;;
-  execution-router-direct-capacity|execution-router-thousand-member-credit) node --import tsx tests/rpc-contract/direct-credit-capacity-rpc.ts ;;
-  execution-router-direct-credit) node --import tsx tests/rpc-contract/direct-credit-rpc.ts ;;
+  execution-router-direct-capacity|execution-router-thousand-member-credit|execution-router-streamed-capacity) node --import tsx tests/rpc-contract/direct-credit-capacity-rpc.ts ;;
+  execution-router-direct-credit|execution-router-streamed-credit) node --import tsx tests/rpc-contract/direct-credit-rpc.ts ;;
   execution-router-verified-coverage) node --import tsx tests/rpc-contract/verified-coverage-rpc.ts ;;
   execution-router-maintained-coverage) node --import tsx tests/rpc-contract/maintained-coverage-rpc.ts ;;
   execution-router-bounded-entry-cashout|execution-router-shadow-coverage|execution-router-direct-cashout) node --import tsx tests/rpc-contract/close-to-wallet-rpc.ts ;;
