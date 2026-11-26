@@ -27,7 +27,8 @@ const {rpc, ws, h:transport, checks, flush} = await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, dir, {deferFinality:true});
 const {h, lanes, members} = coverageProvisioning(transport, payer);
 const population = 128;
-const creditLabel = 'direct ETH credit at full lane capacity';
+const quietCredit = 'pay half the spread before other positions open';
+const exposedCredit = 'pay half the spread with open positions in every lane';
 const collectLabel = 'collect closed ETH loss at full lane capacity';
 const exitLabel = 'owner withdraws credited ETH spread at full capacity';
 
@@ -98,9 +99,35 @@ try {
   await h.send(collectLabel, await finance(collection, debtor));
   assert.equal(await pool(), spread);
   assert.equal((await root(maker.capital)).cash, initialCash);
-  const credit = await sdk.directClosedProfitCredit({artifactSet:build.artifactSet, actor:payer,
-    margin:await root(maker.capital), marketIndex:1, amount:spread});
-  await h.send(creditLabel, credit);
+  const payHalf = async (label:string) => {
+    const instructions = await sdk.directClosedProfitCredit({artifactSet:build.artifactSet, actor:payer,
+      margin:await root(maker.capital), marketIndex:1, amount:spread/2n});
+    await h.send(label, instructions);
+  };
+  await payHalf(quietCredit);
+  assert.equal(await pool(), spread/2n);
+  assert.equal((await root(maker.capital)).cash, initialCash + spread/2n);
+  assert.equal((await root(maker.capital)).positions[1].virtualScaled, spread/2n*scale);
+
+  // One solvent long in each lane creates a case where mixed lower bounds
+  // fail at the genesis anchor. All exposures come from actual matched fills.
+  const exposures = new Map<Address, Address>();
+  for (const [index, margin] of roots.entries()) {
+    const lane = members.get(margin)!;
+    if (exposures.has(lane) || (await root(margin)).mode !== 0) continue;
+    const counterparty = setup.instances[4 + exposures.size % 2];
+    const owner = setup.traderOwners[index];
+    const fill = await route({trader:margin, actor:owner, marketIndex:1, side:0,
+      makers:[counterparty], lots:[40n], marketLane:true, minimalMarkets:true});
+    await h.send('open forty ETH lots in lane '+lanes.indexOf(lane), [
+      appendCoverage(fill, [lane, members.get(counterparty.capital)!])], [owner]);
+    assert.equal((await root(margin)).positions[1].lots, 40n);
+    exposures.set(lane, margin);
+    if (exposures.size === 8) break;
+  }
+  assert.equal(exposures.size, 8);
+  await setup.sample();
+  await payHalf(exposedCredit);
   assert.equal(await pool(), 0n);
   assert.equal((await root(maker.capital)).cash, initialCash + spread);
   assert.equal((await root(maker.capital)).positions[1].virtualScaled, 0n);
@@ -116,7 +143,7 @@ try {
 
   // Free an idle seat elsewhere, then in the applicant's own lane. The first owner
   // controls enough consecutive stable IDs to supply both cases with one token account.
-  const idle = roots.slice(1, 17);
+  const idle = roots.slice(1, 17).filter(margin => ![...exposures.values()].includes(margin));
   assert(idle.every(margin => setup.traderOwners[roots.indexOf(margin)].address === trader.address));
   async function vacate(margin:Address) {
     const cash = (await root(margin)).cash;
@@ -135,20 +162,24 @@ try {
   const finalBook = await audit();
   assert.equal(finalBook.members, 127);
   assert.equal(counts()[lanes.indexOf(candidateLane)], 16);
-  const measured = checks.filter(row => [creditLabel,collectLabel,exitLabel,'reject seventeenth member in full lane',
+  const measured = checks.filter(row => [quietCredit,exposedCredit,collectLabel,exitLabel,'reject seventeenth member in full lane',
     'reject full lane with a vacancy elsewhere','activate waiting member after a matching vacancy'].includes(String(row.label)));
-  assert.equal(measured.length, 6);
-  const receipt = await rpc.call('getTransaction',[measured.find(row=>row.label===creditLabel)!.signature,
-    {encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
-  const coverageLog = receipt.meta.logMessages.find((line:string)=>line.includes('coverage target=1 members=128 '));
-  assert(coverageLog && coverageLog.endsWith('covered=1'));
+  assert.equal(measured.length, 7);
+  const coverageLogs = [];
+  for (const [label, exact] of [[quietCredit,0],[exposedCredit,128]] as const) {
+    const receipt = await rpc.call('getTransaction',[measured.find(row=>row.label===label)!.signature,
+      {encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
+    const message = 'coverage target=1 members=128 exact='+exact+' covered=1';
+    assert(receipt.meta.logMessages.includes('Program log: '+message), label+' expected '+message);
+    coverageLogs.push(message);
+  }
   const journal = await openSettlementJournal(rpc, setup, checks.map(row => String(row.signature)), build);
   const replay = await journal.finish();
   assert.equal(replay.state.members.length, finalBook.members);
   assert.equal(BigInt(replay.state.roots[maker.capital].cash), initialCash);
   writeFileSync(dir+'/capacity.json', json({revision, program:build.revision, fullBook, finalBook,
-    recoveryCapacity:129, credited:spread, withdrawn:spread, coverageLog, measured, events:replay.events}));
-  console.log('Capacity run verified', coverageLog, replay.events, 'replayed events.');
+    recoveryCapacity:129, credited:spread, withdrawn:spread, coverageLogs, measured, events:replay.events}));
+  console.log('Capacity run verified', coverageLogs, replay.events, 'replayed events.');
 } finally {
   await ws.close();
 }
