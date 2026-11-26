@@ -94,11 +94,24 @@ pub fn prepare_window(ctx: &mut Context<PrepareWidthWindow>, ordinal: u8) -> Res
 
 pub fn assess(ctx: &mut Context<CheckWidthExit>, amount: u64) -> Result<u64> {
     let book = &ctx.accounts.book;
+    let cash = book.cash;
+    let reserved = book.reserved;
+    let slots: Vec<_> = book
+        .legs
+        .iter()
+        .map(|leg| OccupiedSlot {
+            market: leg.market.into(),
+            position: Position {
+                lots: leg.lots,
+                virtual_scaled: i128::from(leg.virtual_atoms) * SCALE,
+                ..Position::default()
+            },
+        })
+        .collect();
     let accounts = ctx.remaining_accounts()?;
-    require!(accounts.len() == book.legs.len(), ProofError::Incomplete);
-    let mut slots = Vec::with_capacity(accounts.len());
+    require!(accounts.len() == slots.len(), ProofError::Incomplete);
     let mut windows = Vec::with_capacity(accounts.len());
-    for (ordinal, (leg, account)) in book.legs.iter().zip(accounts.iter()).enumerate() {
+    for (ordinal, account) in accounts.iter().enumerate() {
         require!(
             account.owner() == &crate::ID && !account.is_writable() && !account.executable(),
             ProofError::UnsupportedBook
@@ -110,14 +123,6 @@ pub fn assess(ctx: &mut Context<CheckWidthExit>, amount: u64) -> Result<u64> {
         )
         .map_err(|_| ProofError::UnsupportedBook)?;
         require_keys_eq!(expected, *account.address(), ProofError::UnsupportedBook);
-        slots.push(OccupiedSlot {
-            market: leg.market.into(),
-            position: Position {
-                lots: leg.lots,
-                virtual_scaled: i128::from(leg.virtual_atoms) * SCALE,
-                ..Position::default()
-            },
-        });
         windows.push(MarketWindow {
             market: window.market.into(),
             current: Risk {
@@ -130,9 +135,8 @@ pub fn assess(ctx: &mut Context<CheckWidthExit>, amount: u64) -> Result<u64> {
         });
     }
     let required =
-        cash_required(&slots, &windows, book.reserved).map_err(|_| ProofError::UnsupportedBook)?;
-    let remaining = book
-        .cash
+        cash_required(&slots, &windows, reserved).map_err(|_| ProofError::UnsupportedBook)?;
+    let remaining = cash
         .checked_sub(amount)
         .ok_or(ProofError::WithdrawalHealth)?;
     let remaining_scaled = i128::from(remaining) * SCALE;
