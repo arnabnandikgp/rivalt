@@ -1,119 +1,12 @@
 //! Native comparison of flat, clearing-owned coverage lanes. A caller selects
 //! which lane bodies to load. It never supplies balances, summaries or a verdict.
-use clearing_accounting::{add, mul, scaled, sub};
+use clearing_accounting::scaled;
+use financial_core::backing::coverage::{displacements, endpoints, radius_proves, Bounds, Row};
 use financial_core::{backing::Region, margin::Margin, Error, Result, MAX_PRICE};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const LANES: usize = 8;
 const MARKETS: usize = 2;
-
-#[derive(Clone, Copy)]
-struct Row {
-    cash: u64,
-    lots: [i64; MARKETS],
-    fixed: [i128; MARKETS],
-}
-
-impl Row {
-    fn from_margin(account: &Margin) -> Result<Self> {
-        account.validate()?;
-        let mut fixed = [0; MARKETS];
-        for (market, value) in fixed.iter_mut().enumerate() {
-            let position = account.positions[market];
-            *value = add(
-                position.virtual_scaled,
-                mul(i128::from(position.lots), position.funding_checkpoint)?,
-            )?;
-        }
-        Ok(Self {
-            cash: account.cash,
-            lots: account.positions.map(|position| position.lots),
-            fixed,
-        })
-    }
-
-    fn covers(self, target: usize, prices: [[i128; 2]; MARKETS]) -> Result<bool> {
-        financial_core::backing::projected::covers(self.cash, self.lots, self.fixed, target, prices)
-    }
-}
-
-// At the two anchor prices, keep lower bounds for each claim, cash plus
-// each claim, and cash plus both claims. Also enclose each position's slope.
-#[derive(Clone, Copy)]
-struct Bounds {
-    claim: [i128; MARKETS],
-    funded: [i128; MARKETS],
-    funded_both: i128,
-    lots: [[i64; 2]; MARKETS],
-}
-
-impl Bounds {
-    fn at_anchor(row: Row, anchor: [i128; MARKETS]) -> Result<(Self, [i128; MARKETS])> {
-        let cash = scaled(row.cash)?;
-        let mut claim = row.fixed;
-        for (market, amount) in claim.iter_mut().enumerate() {
-            *amount = add(*amount, mul(i128::from(row.lots[market]), anchor[market])?)?;
-        }
-        let funded = [add(cash, claim[0])?, add(cash, claim[1])?];
-        let funded_both = add(funded[0], claim[1])?;
-        let sizes = row.lots.map(|lots| i128::from(lots.unsigned_abs()));
-        // Last integer displacement for which headroom - size * distance >= 0.
-        // -1 means even the anchor fails; a nonnegative constant holds everywhere.
-        let through = |headroom: i128, size: i128| {
-            if headroom < 0 {
-                -1
-            } else if size == 0 {
-                i128::MAX
-            } else {
-                headroom / size
-            }
-        };
-        let both_radius = through(funded_both, add(sizes[0], sizes[1])?);
-        let radius = std::array::from_fn(|market| {
-            through(claim[market], sizes[market])
-                .max(through(funded[market], sizes[market]).min(both_radius))
-        });
-        Ok((
-            Self {
-                funded,
-                funded_both,
-                claim,
-                lots: row.lots.map(|quantity| [quantity, quantity]),
-            },
-            radius,
-        ))
-    }
-
-    fn include(self, next: Self) -> Self {
-        Self {
-            claim: std::array::from_fn(|market| self.claim[market].min(next.claim[market])),
-            funded: std::array::from_fn(|market| self.funded[market].min(next.funded[market])),
-            funded_both: self.funded_both.min(next.funded_both),
-            lots: std::array::from_fn(|market| {
-                [
-                    self.lots[market][0].min(next.lots[market][0]),
-                    self.lots[market][1].max(next.lots[market][1]),
-                ]
-            }),
-        }
-    }
-
-    fn proves(self, target: usize, moves: [[i128; 2]; MARKETS]) -> Result<bool> {
-        let mut worst = [i128::MAX; MARKETS];
-        for market in 0..MARKETS {
-            for lots in self.lots[market] {
-                for change in moves[market] {
-                    worst[market] = worst[market].min(mul(i128::from(lots), change)?);
-                }
-            }
-        }
-        // If a member owes the target, its gross debt is covered iff both
-        // cash + target and cash + target + sibling are nonnegative.
-        Ok(add(self.claim[target], worst[target])? >= 0
-            || (add(self.funded[target], worst[target])? >= 0
-                && add(add(self.funded_both, worst[0])?, worst[1])? >= 0))
-    }
-}
 
 struct Lane {
     // Classes: both flat, BTC lots only, ETH lots only, both open.
@@ -215,31 +108,14 @@ impl Book {
         if target >= MARKETS {
             return Err(Error::Bounds);
         }
-        let mut prices = [[0; 2]; MARKETS];
-        let mut moves = prices;
-        for (market, range) in region.markets.iter().enumerate() {
-            prices[market] = [
-                sub(scaled(range.price_low)?, range.funding_high)?,
-                sub(scaled(range.price_high)?, range.funding_low)?,
-            ];
-            moves[market] = [
-                sub(prices[market][0], self.anchor[market])?,
-                sub(prices[market][1], self.anchor[market])?,
-            ];
-        }
-        let [btc_move, eth_move] = moves.map(|[low, high]| low.abs().max(high.abs()));
-        let distances = [0, btc_move, eth_move, btc_move.max(eth_move)];
+        let prices = endpoints(region)?;
+        let moves = displacements(prices, self.anchor)?;
         let mut required = 0u8;
         let mut cleared_by_radius = 0u8;
         for (index, lane) in self.lanes.iter().enumerate() {
             if let Some(bounds) = lane.bounds {
                 if !bounds.proves(target, moves)? {
-                    if lane
-                        .radius
-                        .iter()
-                        .zip(distances)
-                        .all(|(radius, distance)| distance <= radius[target])
-                    {
+                    if radius_proves(lane.radius, target, moves) {
                         cleared_by_radius |= 1 << index;
                     } else {
                         required |= 1 << index;

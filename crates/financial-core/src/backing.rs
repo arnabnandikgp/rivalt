@@ -5,6 +5,7 @@
 //! oracle/held funding, safety/terms, available pool and recipient health. Region
 //! membership is an arithmetic fact, never source freshness or margin credit.
 pub mod projected;
+pub mod coverage;
 
 use crate::{
     clearing::scalable::snapshot::ClaimTotal, margin::Margin, Error, Result, MAX_CASH, MAX_FUNDING,
