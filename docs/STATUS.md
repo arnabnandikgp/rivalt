@@ -83,7 +83,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 10, withdrawal arithmetic qualified on a local fixture.** Native risk kernel `f57333f3` matched both cash thresholds on all 384 books and all 1,152 withdrawal decisions. Signed read-only fixture `e32e5d88` used 5,164, 8,733 and 15,871 CU with two, four and eight open markets. Each maximum passed, all nine refusals matched, and a fresh PostgreSQL receipt replay matched all 12 decisions. Wider trading, custody and resolution remain open. [Results and scope](operations/qualification-scorecard.md#withdrawal-risk-at-two-four-and-eight-markets)
 
-**Next action.** Qualify the market-keyed occupied-slot lifecycle against canonical margin and order state. Keep a slot while a position, claim, live order or protection survives. Exercise safe reuse and omitted dependencies before wiring the wider account into a cash transfer or withdrawal. [Qualification sequence](operations/qualification-scorecard.md#payout-and-cross-margin-work)
+**Finding 10, market slot retention and reuse qualified in native replay.** Harness `e131600c` recorded 15 finalized snapshots each for a cross trader and an isolated ETH maker on BTC/ETH clearing `e4aff314`. Omitting ETH during a live order and again after closing with a debt produced two signed refusals with unchanged financial state. The maker withdrew its 40 credited atoms. Reopening ETH issued a fresh binding in the native directory, and fresh PostgreSQL replay matched 150 events. The signed accounts still use fixed BTC/ETH storage. [Results and limits](operations/qualification-scorecard.md#market-slot-retention-and-reuse)
+
+**Next action.** Persist the market-keyed slots in a fresh local qualification account and use them to authorize a funded withdrawal and a transfer between two accounts. Verify the exact cash boundary and rollback when a required market is omitted or substituted. Opening a third cross market also requires wider liquidation and complete default qualification. [Qualification sequence](operations/qualification-scorecard.md#payout-and-cross-margin-work)
 
 | Open gate | What remains |
 |---|---|
