@@ -34,14 +34,14 @@ const completed = new Map<string,string>();
 const {rpc, ws, h:transport, checks, flush} = await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!, process.env.RIVALT_WS_URL!, dir, {
     deferFinality:true,
-    computeUnitLimit:label=>attempts.get(label)?.units,
+    computeUnitLimit:label=>attempts.get(label)?.units ?? (label.startsWith('dense BTC cross fill') ? 600_000 : undefined),
     heapSize:label=>attempts.has(label) ? attempts.get(label)?.heap : large ? 128*1024 : undefined,
     observeOutcomes:label=>attempts.has(label),
     measureComputeBoundary:label=>attempts.has(label),
   });
 const {h, lanes, members} = coverageProvisioning(transport, payer);
-const quietCredit = 'pay half the spread before other positions open';
-const exposedCredit = 'pay half the spread with open positions in every lane';
+const quietCredit = 'pay closed spread before other positions open';
+const exposedCredit = 'pay closed spread with open positions in every lane';
 const denseCredit = 'pay closed ETH spread with every member exposed';
 const collectLabel = 'collect closed ETH loss at full lane capacity';
 const exitLabel = 'owner withdraws credited ETH spread at full capacity';
@@ -199,8 +199,10 @@ try {
   async function trade(label:string, index:number, marketIndex:0|1, provider:number, side:0|1) {
     const margin = roots[index], owner = setup.traderOwners[index], counterparty = setup.instances[provider];
     const fill = await route({trader:margin,actor:owner,marketIndex,side,makers:[counterparty],lots:[1n],
-      marketLane:true,minimalMarkets:true});
-    await h.send(label,[appendCoverage(fill,[members.get(margin)!,members.get(counterparty.capital)!])],[owner]);
+      marketLane:marketIndex===1,minimalMarkets:true});
+    // These BTC trades also need the cross trader’s ETH liability and funding.
+    const checkpoints = marketIndex===0 ? (await withCheckpoints(fill)).slice(0,-1) : [];
+    await h.send(label,[...checkpoints,appendCoverage(fill,[members.get(margin)!,members.get(counterparty.capital)!])],[owner]);
   }
   if (grouped) {
     // Open the three BTC maker capitals against cross accounts that also hold ETH.

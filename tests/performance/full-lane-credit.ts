@@ -98,9 +98,12 @@ for (const file of files) {
   if (!opening && !denseFill && !/^(buy|sell) (ten|fifteen) ETH lots$/.test(wire.label)) continue;
   const receipt = read(file.replace('wire-', 'transaction-'));
   assert.equal(receipt.meta.err, null);
-  const matches = eventPayloads(wire.signature, receipt, authority).filter(row => row.payload.subarray(0,8).equals(tag));
+  const cross = wire.label.startsWith('dense BTC cross fill');
+  const fillTag = cross ? Buffer.from(sdk.LIQUIDITY_ROUTE_FEE_RECORDED_EVENT_DISCRIMINATOR) : tag;
+  const matches = eventPayloads(wire.signature, receipt, authority).filter(row => row.payload.subarray(0,8).equals(fillTag));
   assert.equal(matches.length, 1);
-  const fill = sdk.getLedgerLaneFilledEventDecoder().decode(matches[0].payload);
+  const fill = (cross ? sdk.getLiquidityRouteFeeRecordedEventDecoder() :
+    sdk.getLedgerLaneFilledEventDecoder()).decode(matches[0].payload);
   for (const root of fill.rootStates) latest.set(root.id,root);
   const market = fill.marketState;
   const interval = [market.lower,market.upper];
