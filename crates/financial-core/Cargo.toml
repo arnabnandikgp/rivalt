@@ -8,6 +8,10 @@ publish = false
 clearing-accounting = { path = "../clearing-accounting" }
 risk-engine = { path = "../risk-engine" }
 
+[target.'cfg(not(target_os = "solana"))'.dependencies]
+num-rational = { version = "=0.4.2", optional = true }
+num-traits = { version = "=0.2.19", optional = true }
+
 [lib]
 path = "src/lib.rs"
 
@@ -22,6 +26,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"
 
 
 [features]
+three-market-model = ["dep:num-rational", "dep:num-traits"]
 wide-atomic-routes = []
 parallel-market-prototype = []
 closed-quantity-model = ["clearing-accounting/surviving-profit"]
@@ -51,3 +56,7 @@ required-features = ["closed-quantity-model"]
 [[example]]
 name = "entry_cost_decisions"
 required-features = ["closed-quantity-model"]
+
+[[example]]
+name = "three_market_default"
+required-features = ["three-market-model"]

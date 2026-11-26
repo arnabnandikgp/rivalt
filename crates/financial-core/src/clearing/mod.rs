@@ -7,3 +7,7 @@ pub mod atoms;
 
 /// Successor scratch kernel; no program activation or payout authority.
 pub mod scalable;
+
+/// Native residual-settlement qualification. No program instruction selects this model.
+#[cfg(all(feature = "three-market-model", not(target_os = "solana")))]
+pub mod three_market;

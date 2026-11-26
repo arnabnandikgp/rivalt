@@ -10,6 +10,8 @@ cargo build --locked -p maker-interface --bin curve-reference-driver
 python3 tests/financial/check_maker_curve_parity.py --implementation rust
 python3 tests/financial/test_account_contract.py
 python3 tests/financial/test_clearing_network.py
+cargo build --locked -p financial-core --features three-market-model --example three_market_default
+python3 tests/financial/test_three_market_default.py
 python3 tests/financial/test_bounded_clearing.py
 python3 tests/financial/test_market_settlement.py
 cargo test --locked -p financial-core --features parallel-market-prototype
