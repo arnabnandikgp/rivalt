@@ -24,7 +24,7 @@ Use the numbered findings across revisions. **Open** means a measured bottleneck
 
 | Order | Finding | Deliverable and acceptance |
 |---|---|---|
-| 1 | 4, 11 | Specify [the three ordinary payout outcomes](../clearing/accounting.md#acceptance-contract-for-ordinary-payouts) and compare the three-market default alternatives on the same funded book. Preserve a reproducible reference for each. |
+| 1 | 4, 11 | [Contract and reference cases in review, #204](https://github.com/arnabnandikgp/rivalt/pull/204). Specify [the three ordinary payout outcomes](../clearing/accounting.md#acceptance-contract-for-ordinary-payouts) and compare the three-market default alternatives on the same funded book. |
 | 2 | 4 | On BTC/ETH, pay a fully backed, eligible closed claim in one permissionless transaction with **zero membership-walk transactions**. Include cold start, joins, exits, idle cross debt after a price shock, source expiry and recovery. Distinguish loss collection from backing work. Reject unsafe payouts and measure safe payouts delayed. |
 | 3 | 10 | Separate the number of listed markets from slots occupied by positions, outstanding claims, live orders or protections. Keep maker capital isolated. Compare a worst-endpoint-per-position withdrawal check against exhaustive mixed endpoints. Exercise fees, funding, transfers, liquidation after fees, slot reuse and refused omissions. |
 | 4 | 11 | Before opening a third cross market, qualify a whole frozen book with multiple debtor destinations, partial source recovery, simultaneous shocks and fractional rounding. Reconcile each market's insurance and each creditor's entitlement. Then qualify the wider account end to end. |
@@ -41,7 +41,7 @@ external and endurance gates.
 
 ### BTC/ETH backing summary comparison
 
-This native design comparison starts with empty counters and records account
+[Native comparison in review, #205](https://github.com/arnabnandikgp/rivalt/pull/205). This model starts with empty counters and records account
 changes as they occur. It tests debtor coverage alone. The claimant's closed
 profit, the pool balance, current sources and authority still require separate
 checks. No clearing instruction uses this model.
