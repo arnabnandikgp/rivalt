@@ -13,12 +13,26 @@ function instruction(name: string, accounts: Instruction['accounts'], args: numb
   return {programAddress: sdk.CLEARING_PROGRAM_ADDRESS, accounts, data: Buffer.concat([tag(name), Buffer.from(args)])};
 }
 
-export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>) {
-  const {venue, registry, markets} = setup;
-  const inputs = [venue, registry, ...markets].map(read);
-  const lanes = await Promise.all(Array.from({length: 8}, async (_, index) => (await getProgramDerivedAddress({
+export async function coverageLanes(venue: Address) {
+  return Promise.all(Array.from({length: 8}, async (_, index) => (await getProgramDerivedAddress({
     programAddress: sdk.CLEARING_PROGRAM_ADDRESS, seeds: [Buffer.from('coverage-lane'), getAddressEncoder().encode(venue), Uint8Array.of(index)],
   }))[0]));
+}
+
+export function openCoverageLane(payer: Address, inputs: Address[], key: Address, index: number) {
+  return instruction('open_coverage_lane', [
+    {address: payer, role: AccountRole.WRITABLE_SIGNER}, ...inputs.map(read), write(key), read(address('11111111111111111111111111111111')),
+  ], [index]);
+}
+
+export function observeCoverage(inputs: Address[], lanes: Address[], target: number) {
+  return instruction('observe_coverage', [...inputs.map(read), ...lanes.map(read)], [target]);
+}
+
+export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType<typeof liquidityExecutionSetup>>) {
+  const {venue, registry, markets} = setup;
+  const inputs = [venue, registry, ...markets];
+  const lanes = await coverageLanes(venue);
   const roots = [...setup.roots, ...setup.instances.map(maker => maker.capital)];
   const body = new Map<Address, Address>();
   for (const key of roots) {
@@ -28,11 +42,9 @@ export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType
   }
   assert.equal(BigInt(body.size), sdk.getVenueRegistryDecoder().decode((await h.read(registry))!).financialCount);
   const record = (key: Address) => instruction('record_coverage_row', [read(key), write(body.get(key)!)]);
-  const observe = (target: number) => instruction('observe_coverage', [...inputs, ...lanes.map(read)], [target]);
+  const observe = (target: number) => observeCoverage(inputs, lanes, target);
   for (const [index, key] of lanes.entries()) {
-    await h.send('open coverage lane ' + index, [instruction('open_coverage_lane', [
-      {address: setup.payer.address, role: AccountRole.WRITABLE_SIGNER}, ...inputs, write(key), read(address('11111111111111111111111111111111')),
-    ], [index])]);
+    await h.send('open coverage lane ' + index, [openCoverageLane(setup.payer.address, inputs, key, index)]);
   }
   // Nobody is trading while we copy the existing, completely provisioned financial set.
   // A signed observation must refuse until the last member is present.
@@ -57,8 +69,14 @@ export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType
       return [ix, ...observations, ...Array.from(keys, record)];
     });
   }
+  const audit = (rpc: BankReader) => auditCoverage(rpc, venue, registry, lanes, roots);
+  return {decorate, observe, audit, lanes, roots};
+}
+
+type BankReader = {call(method: string, args: any[]): Promise<any>};
+
   // Decode all eight lane bodies independently against the current canonical roots in one RPC bank.
-  async function audit(rpc: {call(method: string, args: any[]): Promise<any>}) {
+export async function auditCoverage(rpc: BankReader, venue: Address, registry: Address, lanes: Address[], roots: Address[], maintained = false) {
     const response = await rpc.call('getMultipleAccounts', [[...lanes, ...roots, registry], {encoding:'base64',commitment:'finalized'}]);
     const data = (index: number) => {
       const account = response.value[index];
@@ -66,13 +84,15 @@ export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType
       return Buffer.from(account.data[0],'base64');
     };
     const decoded = new Map<bigint, Buffer>();
-    const epoch = sdk.getVenueRegistryDecoder().decode(data(lanes.length + roots.length)).membershipEpoch;
+    const state = sdk.getVenueRegistryDecoder().decode(data(lanes.length + roots.length));
+    const epoch = state.membershipEpoch;
+    assert.equal(state.financialCount, BigInt(roots.length));
     for (const [index] of lanes.entries()) {
       const bytes = data(index);
       assert(bytes.subarray(0,8).equals(createHash('sha256').update('account:CoverageLane').digest().subarray(0,8)));
       assert(bytes.subarray(8,40).equals(Buffer.from(getAddressEncoder().encode(venue))));
       assert.equal(bytes[40],index);
-      assert.equal(bytes.readBigUInt64LE(42), epoch);
+      assert.equal(bytes.readBigUInt64LE(42), maintained ? 1n : epoch);
       const count = bytes.readUInt32LE(322);
       assert(count <= 16);
       for (let n=0; n<count; n++) {
@@ -92,5 +112,3 @@ export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType
     }
     return {slot:response.context.slot, members:decoded.size, membershipEpoch:epoch, lanes};
   }
-  return {decorate, observe, audit, lanes, roots};
-}
