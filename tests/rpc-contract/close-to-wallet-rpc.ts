@@ -13,13 +13,14 @@ import { AccountRuntime } from '../../packages/services/src/account-runtime.js';
 import { symmetricPayoutShape } from './canonical-maker-cases.js';
 import { openCanonicalRpcHarness } from './canonical-rpc-harness.js';
 import { routerBuild } from './execution-router-build.js';
-import { fixtureKey } from './harness.js';
+import { fixtureKey, payerKey } from './harness.js';
 import { executionTestHelpers } from './liquidity-execution-helpers.js';
 import { liquidityExecutionSetup } from './liquidity-execution-setup.js';
 import { backingStep } from './membership-scan-helper.js';
 import { openSettlementJournal } from './scalable-settlement-journal.js';
-import { ethSpreadGain, makerExitLabel, makerProofWork, readMakerExit, summarizeMakerExit, type ProofReceipt } from './cold-maker-exit.js';
-import { startShadow } from './shadow-coverage.js';
+import { ethSpreadGain, makerExitLabel, makerProofWork, readMakerExit, summarizeDirectMakerExit, summarizeMakerExit, type ProofReceipt } from './cold-maker-exit.js';
+import { coverageProvisioning, appendCoverage } from './coverage-provisioning.js';
+import { auditCoverage, startShadow } from './shadow-coverage.js';
 import { checkShadowReceipts } from './shadow-coverage-receipts.js';
 import { eventually } from './wire.js';
 
@@ -32,9 +33,10 @@ const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }
 assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim(), '');
 const build = routerBuild();
 const shadowRun = process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-shadow-coverage';
-const deployment = shadowRun ? 'shadow-coverage' : 'bounded-entry';
-assert.equal(build.artifactSet, shadowRun ? sdk.SHADOW_COVERAGE_ARTIFACT_SET : sdk.BOUNDED_ENTRY_ARTIFACT_SET);
-if (shadowRun) assert(followMaker, 'The shadow workload follows the cold ETH maker to SPL withdrawal');
+const directRun = process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-direct-cashout';
+const deployment = directRun ? 'direct-closed-credit' : shadowRun ? 'shadow-coverage' : 'bounded-entry';
+assert.equal(build.artifactSet, directRun ? sdk.DIRECT_CREDIT_ARTIFACT_SET : shadowRun ? sdk.SHADOW_COVERAGE_ARTIFACT_SET : sdk.BOUNDED_ENTRY_ARTIFACT_SET);
+if (shadowRun || directRun) assert(followMaker, 'The coverage workload follows the cold ETH maker to SPL withdrawal');
 let shadow: Awaited<ReturnType<typeof startShadow>> | undefined;
 const owners = await Promise.all(['p32-trader', ...[1, 2, 3, 4, 5].map(i => 'p32-scale-trader-' + i)].map(fixtureKey));
 const payers = new Map<string, typeof owners[number]>();
@@ -43,8 +45,18 @@ const { rpc, ws, h: transport, checks, flush } = await openCanonicalRpcHarness(u
   deferFinality: true, payerFor: label => payers.get(label), observeOutcomes: label => label.startsWith('traffic '),
   broadcastAccepted: label => { if (payers.has(label)) broadcast.set(label, performance.now()); },
 });
-const h: typeof transport = {...transport, send(label, instructions, ...args) {
-  return transport.send(label, shadow?.decorate(instructions) ?? instructions, ...args);
+const maintained = directRun ? coverageProvisioning(transport,await payerKey()) : undefined;
+const base = maintained?.h ?? transport;
+const writesCoverage = new Set([sdk.EXECUTE_LEDGER_LANE_DISCRIMINATOR,sdk.COLLECT_ACCOUNT_LOSS_DISCRIMINATOR,
+  sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR].map(sdk.hex));
+const h: typeof transport = {...base, send(label, instructions, ...args) {
+  const prepared = maintained ? instructions.map(ix=>{
+    if(ix.programAddress!==sdk.CLEARING_PROGRAM_ADDRESS || !writesCoverage.has(sdk.hex(ix.data?.slice(0,8)??[]))) return ix;
+    const lanes = (ix.accounts??[]).filter(meta=>(meta.role&1)!==0 && maintained.members.has(meta.address))
+      .map(meta=>maintained.members.get(meta.address)!);
+    return appendCoverage(ix,lanes);
+  }) : shadow?.decorate(instructions) ?? instructions;
+  return base.send(label,prepared,...args);
 }};
 class ShadowWorker extends AccountRuntime {
   override enqueue(...args: Parameters<AccountRuntime['enqueue']>) {
@@ -82,6 +94,9 @@ try {
     await shadow.audit(rpc);
     await setup.qualify();
   }
+  const verifyRows = () => auditCoverage(rpc,setup.venue,setup.registry,maintained!.lanes,
+    [...setup.roots,...setup.instances.map(maker=>maker.capital)],true);
+  if (maintained) { await flush(); assert.equal((await verifyRows()).members,12); }
   const common = { ...setup.common, btc: setup.markets[0], eth: setup.markets[1] };
   const { route, root, guard, withCheckpoints } = executionTestHelpers(h, setup);
   const creditors = setup.roots.slice(0, 2);
@@ -279,7 +294,7 @@ try {
       exited.add(i);
     }
     if (state.maker && trafficFinished && !makerExited && state.maker.cash === first.maker!.cash + ethSpreadGain) {
-      assert(state.maker.proof?.complete && state.maker.lots === 0n && state.maker.virtualScaled === 0n);
+      assert((directRun ? !state.maker.proof : state.maker.proof?.complete) && state.maker.lots === 0n && state.maker.virtualScaled === 0n);
       await sendAs(ethMaker.owner, makerExitLabel, await withCheckpoints(sdk.getWithdrawFundedAccountInstruction({
         ...common, owner: ethMaker.owner, margin: ethMaker.capital, userToken: ethMaker.token.address, quoteMint: setup.mint.address,
         guard: await guard(ethMaker.capital), amount: ethSpreadGain })));
@@ -308,12 +323,20 @@ try {
     if (receipt.meta.err === null) {
       const { message } = VersionedTransaction.deserialize(Buffer.from(row.wire, 'base64'));
       if (followMaker) {
-        const work = makerProofWork(message, ethCertificate, ethMaker.capital);
+        const work = makerProofWork(message, ethCertificate, ethMaker.capital, directRun);
         if (work) ethReceipts.push({ ...work, signature: row.signature, slot: receipt.slot, fee: BigInt(receipt.meta.fee) });
       }
       for (const ix of message.compiledInstructions) {
         if (message.staticAccountKeys[ix.programIdIndex].address !== sdk.CLEARING_PROGRAM_ADDRESS) continue;
         const tag = sdk.hex(ix.data.subarray(0, 8));
+        if (directRun) {
+          assert(tag!==sdk.hex(sdk.CHECK_MARKET_BACKING_DISCRIMINATOR) && tag!==sdk.hex(sdk.INITIALIZE_MARKET_BACKING_DISCRIMINATOR),'Worker used a certificate');
+          if(tag===sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR)) {
+            assert.equal(ix.accountKeyIndexes.length,12+8);
+            assert.deepEqual(Array.from(ix.accountKeyIndexes.slice(-8),i=>message.staticAccountKeys[i].address),maintained!.lanes);
+            assert.equal(message.staticAccountKeys[ix.accountKeyIndexes[9]].address,sdk.CLEARING_PROGRAM_ADDRESS);
+          }
+        }
         if (tag === sdk.hex(sdk.COLLECT_ACCOUNT_LOSS_DISCRIMINATOR)) {
           const { marketIndex, amount } = sdk.getCollectAccountLossInstructionDataDecoder().decode(ix.data);
           collections.push({ marketIndex, amount });
@@ -417,14 +440,18 @@ try {
     writeFileSync(dir + '/cold-eth-receipts.json', json(ethReceipts));
     const withdrawal = ownerReceipts.find(row => row.label === makerExitLabel);
     assert(makerExited && withdrawal && withdrawal.error === null, 'Cold ETH maker withdrawal did not land before cutoff');
-    makerExit = summarizeMakerExit(observations, ethReceipts, { signature: String(withdrawal.signature), slot: withdrawal.slot });
+    makerExit = (directRun ? summarizeDirectMakerExit : summarizeMakerExit)(observations, ethReceipts, { signature: String(withdrawal.signature), slot: withdrawal.slot });
     const finalRoot = replay.state.roots[ethMaker.capital], finalProof = replay.state.backing[ethCertificate];
-    assert(finalProof.complete && BigInt(finalProof.next) === 12n && BigInt(finalProof.count) === 12n);
+    if (directRun) {
+      assert.equal(finalProof,undefined);
+      assert.equal(await h.read(ethCertificate),null);
+      assert.equal((await verifyRows()).members,12);
+    } else assert(finalProof.complete && BigInt(finalProof.next) === 12n && BigInt(finalProof.count) === 12n);
     assert.deepEqual([BigInt(finalRoot.cash), BigInt(finalRoot.positions[1].lots), BigInt(finalRoot.positions[1].virtualScaled)],
       [first.maker!.cash, 0n, 0n]);
     assert.equal(last.ethPool, 0n);
   }
-  const result = { makerExit, revision, program: build.revision, arm, openingPool, backingReadyBeforeClose: true, releasedMs, firstObservedPoolCoveringRemainingClaimsMs: availableForBoth?.ms ?? null, rows,
+  const result = { makerExit, deployment, revision, program: build.revision, arm, openingPool, backingReadyBeforeClose: true, releasedMs, firstObservedPoolCoveringRemainingClaimsMs: availableForBoth?.ms ?? null, rows,
     traffic: { offered: trafficCount, filled: load.filter(row => row.error === null).length, gapMs: trafficGap, dueMs },
     exitsObserved: exited.size, observedThroughMs: cutoff.ms, events: replay.events, workerReceipts, workerFlows: flows, remainingLossAtoms: last.debt,
     receipts: ownerReceipts };

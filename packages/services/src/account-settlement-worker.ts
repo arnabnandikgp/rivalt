@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {address,type Address} from '@solana/kit';
+import {AccountRole,address,type Address} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import type {AccountRuntime,AccountWorkerOutcome} from './account-runtime.js';
@@ -51,7 +51,8 @@ export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allo
   schedule: SettlementSchedule = { next: 'collection', collectionMarket: 0 }): Promise<AccountWorkerOutcome> {
   const budget = await runtime.budget('settlement', key);
   if (await runtime.pendingBudget(budget)) return { status: 'blocked', reason: 'original-settlement-intent-pending' };
-  const { state } = await runtime.discovery();
+  const { binding, state } = await runtime.discovery();
+  const directCredit = binding.artifactSet === sdk.DIRECT_CREDIT_ARTIFACT_SET;
   const gains: Candidate[] = [], losses: [Address[], Address[]] = [[], []];
   let paymentOffset = 0;
   for (const member of state.members) {
@@ -88,6 +89,7 @@ export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allo
         }
       }
     } else {
+      if (directCredit && turn === 'maintenance') continue;
       const visited = new Set<MarketIndex>();
       for (const gain of orderedGains) {
         if (visited.has(gain.marketIndex)) continue;
@@ -95,7 +97,7 @@ export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allo
         if (result === 'needs-backing-work' || turn === 'maintenance') visited.add(gain.marketIndex);
         if (!result || result === 'needs-backing-work') continue;
         if (result.reason === 'background-page-interval') { pageDeferred = true; continue; }
-        if (result.reason === 'certified-market-gain' || result.reason === 'atomic-backing-page-and-gain') {
+        if (result.reason === 'direct-market-gain' || result.reason === 'certified-market-gain' || result.reason === 'atomic-backing-page-and-gain') {
           schedule.lastPayment = gain;
         }
         schedule.next = result.reason === 'certified-market-gain' ? 'maintenance' : 'collection';
@@ -110,10 +112,13 @@ export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allo
     Promise<AccountWorkerOutcome | undefined> {
     const root = snapshot.roots[margin];
     try {
+      const collection = sdk.getCollectAccountLossInstruction({ ...snapshot,
+        ...sdk.accountMarketMetas(snapshot.markets, [root], 1 << marketIndex),
+        ...sdk.accountLiabilityMetas(snapshot.ledgers, [root], 1 << marketIndex), actor: key, margin, marketIndex, amount });
+      const lane = directCredit ? (await sdk.deriveCoverageLanes(snapshot.venue))[Number(root.id % 8n)] : undefined;
+      const instruction = lane ? {...collection, accounts:[...collection.accounts, {address:lane,role:AccountRole.WRITABLE}]} : collection;
       const queued = await runtime.enqueue(`keeper:loss:${root.id}:${marketIndex}:${root.stateVersion}`,
-        await settlementInstructions(snapshot, sdk.routeComputeBudget(), sdk.getCollectAccountLossInstruction({ ...snapshot,
-          ...sdk.accountMarketMetas(snapshot.markets, [root], 1 << marketIndex),
-          ...sdk.accountLiabilityMetas(snapshot.ledgers, [root], 1 << marketIndex), actor: key, margin, marketIndex, amount })),
+        await settlementInstructions(snapshot, sdk.routeComputeBudget(), instruction),
         key, budget, { kind: 'accountStateVersion', venue: snapshot.venue, account: margin, value: root.stateVersion.toString() }, true);
       if (!queued) return;
     } catch (error) {
@@ -127,7 +132,23 @@ export async function settleAccounts(runtime: AccountRuntime, key: Keypair, allo
 
   async function scheduleGain({margin,marketIndex}:Candidate,turn:'payment'|'maintenance'):
     Promise<AccountWorkerOutcome|'needs-backing-work'|undefined>{
-    const snapshot=await runtime.snapshot([margin]),[certificate,bump]=await sdk.deriveSettlementCertificate(snapshot.venue,marketIndex);
+    const snapshot=await runtime.snapshot([margin]);
+    if (directCredit) {
+      const amount = accountClaimAmount(snapshot, margin, marketIndex, true);
+      if (!amount) return;
+      const root = snapshot.roots[margin];
+      const credit = await sdk.directClosedProfitCredit({artifactSet:binding.artifactSet, actor:key, margin:root, marketIndex, amount});
+      try {
+        const queued = await runtime.enqueue(`keeper:gain:${root.id}:${marketIndex}:${root.stateVersion}`,
+          [sdk.routeComputeBudget(), ...credit], key, budget,
+          {kind:'accountStateVersion',venue:snapshot.venue,account:margin,value:root.stateVersion.toString()}, true);
+        if (queued) return {status:'queued',reason:'direct-market-gain'};
+      } catch (error) {
+        if (!(error instanceof Error && error.message === 'Risk action presently unavailable')) throw error;
+      }
+      return;
+    }
+    const [certificate,bump]=await sdk.deriveSettlementCertificate(snapshot.venue,marketIndex);
     const response=await runtime.rpc.call('getMultipleAccounts',[[snapshot.registry,certificate],{encoding:'base64',commitment:'confirmed'}]);
     const registry=decodeAccountWorker(response.value[0],sdk.VENUE_REGISTRY_DISCRIMINATOR,sdk.getVenueRegistryDecoder());
     const [,registryBump]=await sdk.deriveVenueComponent(snapshot.venue,'registry');

@@ -26,7 +26,7 @@ export function readMakerExit(capital: Buffer, destination: Buffer, certificate:
     wallet: wallet.amount, proof: proof && { complete: proof.complete, members: proof.count, visited: proof.next } };
 }
 
-export function makerProofWork(message: VersionedTransaction['message'], certificate: Address, margin: Address) {
+export function makerProofWork(message: VersionedTransaction['message'], certificate: Address, margin: Address, direct = false) {
   let initialize = false, page = false, restart = false, paid = 0n;
   for (const ix of message.compiledInstructions) {
     if (message.staticAccountKeys[ix.programIdIndex].address !== sdk.CLEARING_PROGRAM_ADDRESS) continue;
@@ -47,7 +47,7 @@ export function makerProofWork(message: VersionedTransaction['message'], certifi
     } else if (tag === sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR)) {
       const parsed = sdk.parsePayAccountGainInstruction(instruction);
       if (parsed.data.marketIndex === 1) {
-        assert.equal(parsed.accounts.certificate?.address, certificate);
+        assert.equal(parsed.accounts.certificate?.address, direct ? undefined : certificate);
         assert.equal(parsed.accounts.margin.address, margin);
         paid += parsed.data.amount;
       }
@@ -87,4 +87,25 @@ export function summarizeMakerExit(samples: Sample[], receipts: ProofReceipt[], 
     flatToWalletMs: wallet.ms - flatClaim.ms, pages: pages.length, restartPages: pages.filter(row => row.restart).length,
     members: last.proof.members, paymentSharesPage: payments.some(row => row.page), withdrawal, receipts,
     workerFeesLamports: receipts.reduce((sum, row) => sum + row.fee, 0n) };
+}
+
+/** Some spread income can already be credited before the maker closes its last lot. */
+export function summarizeDirectMakerExit(samples: Sample[], receipts: ProofReceipt[], withdrawal: {signature:string; slot:number}) {
+  const initial = samples[0].maker!;
+  const paid = (maker: typeof initial) => maker.cash - initial.cash + maker.wallet - initial.wallet;
+  const find = (matches: (maker: typeof initial, sample: Sample) => boolean) => {
+    const row = samples.find(sample => sample.maker && matches(sample.maker,sample));
+    assert(row,'Missing direct ETH settlement milestone');
+    return {ms:row.ms,slot:row.slot};
+  };
+  assert(samples.every(sample=>sample.maker && sample.maker.proof===null));
+  assert(receipts.length>0 && receipts.every(row=>!row.initialize && !row.page && row.paid>0n && row.slot<=withdrawal.slot));
+  assert.equal(receipts.reduce((sum,row)=>sum+row.paid,0n),ethSpreadGain);
+  const flatClaim = find(maker=>maker.lots===0n && maker.virtualScaled+paid(maker)*scale===ethSpreadGain*scale);
+  const fundedPool = find((maker,sample)=>sample.ethPool+paid(maker)===ethSpreadGain);
+  const credited = find(maker=>paid(maker)===ethSpreadGain && maker.lots===0n && maker.virtualScaled===0n);
+  const wallet = find(maker=>maker.wallet-initial.wallet===ethSpreadGain && maker.cash===initial.cash);
+  assert(flatClaim.slot<=credited.slot && fundedPool.slot<=credited.slot && credited.slot<=wallet.slot);
+  return {expectedGain:ethSpreadGain,flatClaim,fundedPool,credited,wallet,flatToWalletMs:wallet.ms-flatClaim.ms,
+    pages:0,payments:receipts.length,withdrawal,receipts,workerFeesLamports:receipts.reduce((sum,row)=>sum+row.fee,0n)};
 }

@@ -42,7 +42,7 @@ it.each([0n,1n])('persists final coverage with payment only for a payable cohort
   const {test,margin,venue,root,keys,certificate}=await finalPageFixture(bad);
   const submissions:{instructions:Instruction[];authority:AccountAuthority|null}[]=[];
   const runtime={rpc:test.rpc,budget:async()=> 'settlement-budget',pendingBudget:async()=>false,
-    discovery:async()=>({state:{members:[margin]}}),
+    discovery:async()=>({binding:{artifactSet:sdk.BOUNDED_ENTRY_ARTIFACT_SET},state:{members:[margin]}}),
     snapshot:async()=>({...await sdk.readAccountSnapshot(test.rpc,test.config,[margin],'confirmed'),...keys}),
     enqueue:async(_id:string,instructions:Instruction[],_key:Keypair,_budget:string,authority:AccountAuthority|null)=>{submissions.push({instructions,authority});return {request_id:_id};}};
   // Spacing pure background scans must still admit the payable final page.
@@ -64,22 +64,26 @@ it.each([0n,1n])('persists final coverage with payment only for a payable cohort
     expect(instructions.slice(1).some(instruction=>instruction.accounts!.some(meta=>meta.address===key))).toBe(false);
 });
 
-async function recurringClaimsFixture() {
+async function recurringClaimsFixture(artifactSet: string = sdk.BOUNDED_ENTRY_ARTIFACT_SET) {
   const fixture = await finalPageFixture(0n);
   const { test, certificate, keys } = fixture;
   const proof = sdk.getSettlementCertificateDecoder().decode(Buffer.from(test.accounts.get(certificate).data[0], 'base64'));
   test.put(certificate, sdk.getSettlementCertificateEncoder().encode({ ...proof, complete: true }));
   const ids: string[] = [];
-  let pending = false, duplicate: string | undefined;
+  let pending = false, duplicate: string | undefined, refused: string | undefined;
+  const submitted: Instruction[][] = [];
   const runtime = {
     rpc: test.rpc, budget: async () => 'settlement', pendingBudget: async () => pending,
-    discovery: async () => ({ state: { members: test.margins } }),
+    discovery: async () => ({ binding: {artifactSet}, state: { members: test.margins } }),
     snapshot: async (members: typeof test.margins) => ({ ...await sdk.readAccountSnapshot(test.rpc, test.config, members, 'confirmed'), ...keys }),
-    enqueue: async (id: string) => { if (id !== duplicate) { ids.push(id); return { request_id: id }; } },
+    enqueue: async (id: string, instructions: Instruction[]) => {
+      if (id === refused) throw new Error('Risk action presently unavailable');
+      if (id !== duplicate) { ids.push(id); submitted.push(instructions); return {request_id:id}; }
+    },
   } as unknown as AccountRuntime;
   const schedule: SettlementSchedule = { next: 'collection', collectionMarket: 0 };
   const signer = createNoopSigner(test.owner) as Keypair;
-  return { ...fixture, ids, schedule, skipOriginal: (id: string) => { duplicate = id; }, setPending: (value: boolean) => { pending = value; },
+  return { ...fixture, ids, submitted, schedule, refuse: (id: string) => { refused=id; }, skipOriginal: (id: string) => { duplicate = id; }, setPending: (value: boolean) => { pending = value; },
     poll: () => settleAccounts(runtime, signer, false, schedule) };
 }
 
@@ -148,4 +152,26 @@ it('refreshes every supplied market and ledger again for the payment after a bac
   const observed=result.slice(1).map(ix=>ix===scan?'scan':ix===payment?'pay':[sdk.hex(ix.data!),ix.accounts![2].address]);
   expect(observed).toEqual([[fundingTag,markets[0]],[feeTag,ledgers[0]],[fundingTag,markets[1]],'scan',
     [fundingTag,markets[0]],[feeTag,ledgers[0]],[fundingTag,markets[1]],[feeTag,ledgers[1]],'pay']);
+});
+
+it('dispatches a cold direct claim and considers another claimant if preflight refuses the first',async()=>{
+  const {test,margin,root,venue,certificate,submitted,refuse,poll}=await recurringClaimsFixture(sdk.DIRECT_CREDIT_ARTIFACT_SET);
+  test.accounts.delete(certificate);
+  const other=test.margins[1];
+  const account=sdk.getMarginAccountDecoder().decode(Buffer.from(test.accounts.get(other).data[0],'base64'));
+  account.isolatedMarketIndex=0;
+  account.positions[0].virtualScaled=2_000_000_000n;
+  test.put(other,sdk.getMarginAccountEncoder().encode(account));
+  root.positions[0].virtualScaled=1_000_000_000n;
+  test.put(margin,sdk.getMarginAccountEncoder().encode(root));
+  refuse('keeper:gain:0:0:9');
+  expect(await poll()).toEqual({status:'queued',reason:'direct-market-gain'});
+  expect(submitted).toHaveLength(1);
+  const payment=submitted[0].at(-1)!;
+  const parsed=sdk.parsePayAccountGainInstruction({...payment,accounts:payment.accounts!,data:payment.data!});
+  expect(parsed.accounts.certificate).toBeUndefined();
+  expect(parsed.accounts.margin.address).toBe(other);
+  expect(parsed.data.amount).toBe(2n);
+  expect(payment.accounts!.slice(-8).map(meta=>meta.address)).toEqual(await sdk.deriveCoverageLanes(venue));
+  expect(submitted[0].flatMap(ix=>ix.accounts??[]).some(meta=>meta.address===certificate)).toBe(false);
 });
