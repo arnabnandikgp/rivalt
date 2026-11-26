@@ -8,11 +8,17 @@ pub fn change(
     amount: u64,
     gain: bool,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(
         remaining_accounts.is_empty() && market_index < 2,
         ClearingError::Profile
     );
+    #[cfg(feature = "direct-closed-credit")]
+    let direct_lanes = if gain && ctx.accounts.certificate.is_none() {
+        Some(ctx.remaining_accounts()?)
+    } else {
+        None
+    };
     let accounts = &mut ctx.accounts;
     let snapshot = begin(&accounts.identity)?;
     let selected = usize::from(market_index);
@@ -23,18 +29,25 @@ pub fn change(
     }
     .ok_or(ClearingError::OrderState)?;
     if gain {
-        let certificate = accounts
-            .certificate
-            .as_ref()
-            .ok_or(ClearingError::ExitCohort)?;
-        certificate::certified(
-            certificate,
-            &accounts.identity,
-            &accounts.registry,
-            &snapshot,
-            selected_ledger,
-            selected,
-        )?;
+        if let Some(certificate) = accounts.certificate.as_ref() {
+            certificate::certified(certificate, &accounts.identity, &accounts.registry, &snapshot, selected_ledger, selected)?;
+        } else {
+            #[cfg(not(feature = "direct-closed-credit"))]
+            return Err(ClearingError::ExitCohort.into());
+            #[cfg(feature = "direct-closed-credit")]
+            {
+                require!(
+                    accounts.margin.lifecycle == MEMBER_FINANCIAL && selected_ledger.schema_version == SCHEMA_VERSION
+                        && accounts.identity.btc.is_some() && accounts.identity.eth.is_some(),
+                    ClearingError::ExitCohort
+                );
+                crate::instructions::account_membership::members::registry(&accounts.registry)?;
+                require!(crate::shadow_coverage::market_backed(
+                    accounts.identity.venue.address(), &accounts.registry, &snapshot, selected,
+                    direct_lanes.as_deref().ok_or(ClearingError::ExitCohort)?, selected_ledger.settlement
+                )?, ClearingError::ExitCohort);
+            }
+        }
     } else {
         require!(accounts.certificate.is_none(), ClearingError::Profile);
     }
@@ -104,7 +117,7 @@ pub fn net(
     source_market: u8,
     amount: u64,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(
         remaining_accounts.is_empty() && source_market < 2,
         ClearingError::Profile

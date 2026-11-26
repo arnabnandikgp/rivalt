@@ -6,6 +6,8 @@ import {LiquidityStore} from '../../packages/indexer/src/liquidity-store.js';
 import {reconcileAccountSnapshot} from '../../packages/indexer/src/account-reconcile.js';
 import {fetchScopedHistory,journalBinding,initializationSignature} from './liquidity-journal.js';
 import {json} from '../../packages/indexer/src/events.js';
+import type {AccountInvocation} from '../../packages/indexer/src/account-events.js';
+import type {FinalizedBlock} from '../../packages/indexer/src/finalized-block.js';
 import type {WireRpc} from './wire.js';
 import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 
@@ -16,7 +18,7 @@ export async function openSettlementJournal(rpc:WireRpc,setup:Pick<Awaited<Retur
   const {artifactSet, artifacts: candidates} = build;
   await new sdk.ArtifactVerifier(rpc,sdk.LIQUIDITY_ARTIFACTS.map(artifact=>({...artifact,...candidates[artifact.name]}))).verify(setup.payer.address);
   const anchor=await initializationSignature(rpc,signatures,setup.deployment.eventAuthority);
-  const history=()=>fetchScopedHistory(rpc,anchor,setup.deployment.eventAuthority,setup.venue,setup.domain.toString('hex'));
+  const history=()=>fetchScopedHistory(rpc,anchor,setup.deployment.eventAuthority,setup.venue,setup.domain.toString('hex'),artifactSet);
   const initial=await history(),binding={...await journalBinding(rpc,anchor,initial,setup.venue,setup.domain.toString('hex')),artifactSet};
   let store:LiquidityStore|undefined;const captures:any[]=[];
   const open=async()=>{const result=new LiquidityStore(databaseUrl,'p55b2-application');await result.migrate();await result.bind(binding);return result;};
@@ -38,16 +40,31 @@ export async function openSettlementJournal(rpc:WireRpc,setup:Pick<Awaited<Retur
       writeFileSync(`${process.env.RIVALT_RUN_DIR}/application-sql-checkpoints.json`,json(captures));
     } finally {await store.close();store=undefined;}
   };
-  const finish=async()=>{
+  const finish=async(auditTransactions?: (blocks: FinalizedBlock[], invocations: AccountInvocation[]) => void, maxBlocksPerCommit?:number)=>{
+    const commit=async(target:LiquidityStore, fetched:Awaited<ReturnType<typeof history>>, checkpoint:string|null) => {
+      if (maxBlocksPerCommit === undefined) return target.commit(fetched.blocks,fetched.invocations,fetched.head,checkpoint);
+      // A live worker may have already indexed a verified prefix of this very chain.
+      const previous=checkpoint===null ? -1 : fetched.blocks.findIndex(block=>block.blockhash===checkpoint);
+      assert(checkpoint===null || previous>=0,'Prior journal fence missing from refetched chain');
+      assert(Number.isSafeInteger(maxBlocksPerCommit) && maxBlocksPerCommit>0);
+      for (let start=previous+1; start<fetched.blocks.length; start+=maxBlocksPerCommit) {
+        const blocks=fetched.blocks.slice(start,start+maxBlocksPerCommit);
+        const firstSlot=blocks[0].slot, last=blocks[blocks.length-1];
+        const invocations=fetched.invocations.filter(row=>Number(row.slot)>=firstSlot && Number(row.slot)<=last.slot);
+        await target.commit(blocks,invocations,{slot:last.slot,blockhash:last.blockhash},checkpoint);
+        checkpoint=last.blockhash;
+      }
+      assert.equal(checkpoint,fetched.head.blockhash);
+    };
     store=await open();let replay:LiquidityStore|undefined;
     try {
       const snapshot=await store.snapshot(),current=await history();
       // Final replay refetches all original RPC bytes into a fresh database.
-      await store.commit(current.blocks,current.invocations,current.head,snapshot.checkpoint);
+      await commit(store,current,snapshot.checkpoint);
       const final=await store.snapshot();await store.pool.query('CREATE DATABASE rivalt_p55b2_replay');
       const replayUrl=new URL(databaseUrl);replayUrl.pathname='/rivalt_p55b2_replay';
       replay=new LiquidityStore(replayUrl.toString(),'p55b2-replay');await replay.migrate();await replay.bind(binding);
-      const refetched=await history();await replay.commit(refetched.blocks,refetched.invocations,refetched.head,null);
+      const refetched=await history();auditTransactions?.(refetched.blocks, refetched.invocations);await commit(replay,refetched,null);
       const reproduced=await replay.snapshot();assert.deepEqual(reproduced.state,final.state);
       const rows=async(value:LiquidityStore)=>(await value.pool.query('SELECT sequence::text,signature,bytes FROM events WHERE run_id=$1 ORDER BY sequence',[value.runId])).rows;
       const events=await rows(store);assert.deepEqual(await rows(replay),events);

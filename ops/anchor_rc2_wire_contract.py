@@ -149,6 +149,8 @@ def check_domains():
     # D139 uses distinct header markers for the fixed and paged payout receipts.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVJOINT1', 'RVJOINT2', 'joint-payment', 'joint-payment-page', 'RVPAGED1', 'RVBOUND1', 'winner-proof', 'search', 'pair-schedule', 'pair-order',
         r'Rivalt/pair-fills/v1\0', r'Rivalt/pair-order-page/v1\0'})
+    # The local payout observer owns PDAs under [coverage-lane, venue, member_id % 8].
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'coverage-lane'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 

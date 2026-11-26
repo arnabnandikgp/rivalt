@@ -275,7 +275,7 @@ pub fn apply_plan_margin(
     ordinal: u64,
     revisions: [u64; 3],
 ) -> Result<()> {
-    let mut remaining = ctx.remaining_accounts()?;
+    let mut remaining = crate::scoped_history::economic_accounts(ctx)?;
     let accounts = &mut ctx.accounts;
     adopted(
         &accounts.source.frozen(),

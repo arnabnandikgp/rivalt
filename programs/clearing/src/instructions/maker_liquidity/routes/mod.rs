@@ -51,7 +51,7 @@ pub fn execute(
     args: LiquidityRouteIntent,
     forced: bool,
 ) -> Result<()> {
-    let remaining = ctx.remaining_accounts()?;
+    let remaining = crate::scoped_history::economic_accounts(ctx)?;
     let lane = explicit_lane(&ctx.accounts.registry, &ctx.accounts.first_registration, &remaining)?;
     execute_intent(&mut ctx.accounts.view(), events, args, forced, RoutePath::Serial, lane)
 }
@@ -62,14 +62,14 @@ pub fn execute_lane(
     args: LiquidityRouteIntent,
 ) -> Result<()> {
     require!(cfg!(feature = "read-only-route-market"), ClearingError::Profile);
-    let remaining = ctx.remaining_accounts()?;
+    let remaining = crate::scoped_history::economic_accounts(ctx)?;
     let lane = explicit_lane(&ctx.accounts.registry, &ctx.accounts.first_registration, &remaining)?;
     execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyMarket, lane)
 }
 
 pub fn execute_ledger_lane(ctx: &mut Context<ExecuteLedgerLane>, events: &mut crate::event_cpi::Payloads, args: LiquidityRouteIntent) -> Result<()> {
     require!(cfg!(feature = "read-only-route-ledger"), ClearingError::Profile);
-    let remaining = ctx.remaining_accounts()?;
+    let remaining = crate::scoped_history::economic_accounts(ctx)?;
     let lane = explicit_lane(&ctx.accounts.registry, &ctx.accounts.first_registration, &remaining)?;
     execute_intent(&mut ctx.accounts.view(), events, args, false, RoutePath::ReadOnlyLedger, lane)
 }
@@ -121,7 +121,7 @@ pub fn execute_order(
     events: &mut crate::event_cpi::Payloads,
     args: LiquidityOrderExecution,
 ) -> Result<()> {
-    let remaining = ctx.remaining_accounts()?;
+    let remaining = crate::scoped_history::economic_accounts(ctx)?;
     let lane = explicit_lane(&ctx.accounts.registry, &ctx.accounts.first_registration, &remaining)?;
     args.guard.check(
         &ctx.accounts.identity.venue,

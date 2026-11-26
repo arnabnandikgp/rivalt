@@ -552,7 +552,7 @@ pub fn cash(
     amount: u64,
     withdraw: bool,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     if !withdraw && ctx.accounts.safety.mode == ACTIVE {
         super::account_cash::profile(&ctx.accounts.venue, &ctx.accounts.safety)?;
@@ -652,7 +652,7 @@ pub fn transfer(
     events: &mut crate::event_cpi::Payloads,
     amount: u64,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
+    let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     super::account_trading::base_identity(&ctx.accounts.venue, &ctx.accounts.safety)?;
     require!(ctx.accounts.safety.mode == CUSTODY, ClearingError::Profile);

@@ -26,6 +26,10 @@ compile_error!("CU tracing requires the explicit bounded local qualification pro
 #[cfg(all(feature="aggregate-fee-qualification", feature="devnet-test-profile"))]
 compile_error!("aggregate fee qualification uses a fresh local deployment");
 
+#[cfg(feature = "shadow-coverage")]
+mod shadow_coverage;
+#[cfg(feature = "shadow-coverage")]
+pub use shadow_coverage::*;
 pub mod constants;
 pub mod engine;
 pub mod error;
@@ -113,6 +117,18 @@ macro_rules! local_recovery {
 #[program]
 pub mod clearing {
     use super::*;
+    #[cfg(feature = "shadow-coverage")]
+    pub fn open_coverage_lane(ctx: &mut Context<OpenCoverageLane>, lane: u8) -> Result<()> {
+        shadow_coverage::open(ctx, lane)
+    }
+    #[cfg(feature = "shadow-coverage")]
+    pub fn record_coverage_row(ctx: &mut Context<RecordCoverageRow>) -> Result<()> {
+        shadow_coverage::record(ctx)
+    }
+    #[cfg(feature = "shadow-coverage")]
+    pub fn observe_coverage(ctx: &mut Context<ObserveCoverage>, target: u8) -> Result<u64> {
+        shadow_coverage::observe(ctx, target)
+    }
     pub fn record_original_budgets(ctx: &mut Context<RecordOriginalBudgets>, epoch:u64, page_index:u64,
         attempt:u64, revision:u64, page_revisions:[u64;7]) -> Result<()> {
         #[cfg(feature="populated-recovery-qualification")]
@@ -1357,3 +1373,15 @@ pub mod clearing {
         )
     }
 }
+
+// RC2 emits client context re-exports even when the instruction dispatch is feature-gated.
+#[cfg(not(feature = "shadow-coverage"))]
+mod shadow_coverage;
+#[cfg(not(feature = "shadow-coverage"))]
+pub(crate) use shadow_coverage::{
+    __client_accounts_observecoverage, __client_accounts_opencoveragelane, __client_accounts_recordcoveragerow,
+};
+#[cfg(all(feature = "cpi", not(feature = "shadow-coverage")))]
+pub(crate) use shadow_coverage::{
+    __cpi_accounts_observecoverage, __cpi_accounts_opencoveragelane, __cpi_accounts_recordcoveragerow,
+};

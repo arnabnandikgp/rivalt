@@ -8,7 +8,7 @@ use financial_core::clearing::scalable::membership_update::Change;
 pub fn change(ctx: &mut Context<ChangeMarginMembership>, events: &mut crate::event_cpi::Payloads,
     activate: bool, revision: u64, membership_epoch: u64, safety_epoch: u64, index_revisions: [u64; 15],
 ) -> Result<()> {
-    let mut path = ctx.remaining_accounts()?;
+    let mut path = crate::scoped_history::economic_accounts(ctx)?;
     let accounts = &mut ctx.accounts;
     available(&accounts.venue, &accounts.safety, !activate)?;
     require!(accounts.safety.epoch == safety_epoch && accounts.registry.membership_epoch == membership_epoch

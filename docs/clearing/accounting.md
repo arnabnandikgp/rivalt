@@ -64,6 +64,25 @@ Payment remains first-admissible landed order, not a FIFO/pro-rata queue, and
 already paid cash is not clawed back for a later gap. Funded exits use their own
 whole-account admission below, not this ordinary profit-payment certificate.
 
+### Acceptance contract for ordinary payouts
+
+The successor must preserve these outcomes while removing membership traversal
+from ordinary payment. This example uses whole collateral atoms, two flat ETH
+creditors owed 50 each and a solvent recipient with no reservations.
+
+| State immediately before the claim | Required outcome |
+|---|---|
+| ETH pool 60. Charlie owes ETH 40, has 40 cash and owes nothing elsewhere. | Either creditor can claim 50 directly. The landed payment leaves 10 in the pool. |
+| The first creditor has been paid. Charlie still covers the 40. | A request by the second creditor for the full 50 must wait for collection. Collect 40 from Charlie, then pay 50. Both creditors now hold 50 cash and the pool is empty. |
+| ETH pool again 60. Charlie still owns 40 cash and owes ETH 40, but now also owes BTC 30. | Ordinary ETH payment and selective collection from Charlie refuse. The missing 30 cannot be assigned to BTC by paying the first ETH caller. |
+
+The third state can arise from a BTC price change while Charlie is idle. Clearing
+must distinguish it at the first subsequent payout, before keeper intervention.
+A stale input or insufficient proof also blocks payment, but does not establish
+default. Record unsafe, unavailable, waiting for cash and paid outcomes separately.
+Preserve partial-payment ceilings, exact fractions, recipient health and the
+existing owner withdrawal of funded cash. [Qualification gates](../operations/qualification-scorecard.md#payout-and-cross-margin-work)
+
 ### When the trader closes against a different maker
 
 Suppose a trader buys one lot at 60,002 collateral atoms from A and sells it at
@@ -112,8 +131,46 @@ already-applied debit. Materialize every consumed relevant market prefix in the
 same transaction. New valid negative premiums can legitimately lower the index.
 The reference checks both the rollback counterexample and signed fractional accrual.
 
-The owner can withdraw available funded cash when the result passes whole-account admission. A payout from the market settlement pool requires a valid backing certificate. Exposure in either market may require fresh funding and index inputs.
+The owner can withdraw available funded cash when the result passes whole-account admission. The default deployment requires a valid backing certificate for payment from the market settlement pool. Exposure in either market may require fresh funding and index inputs.
+
+On the local `shadow-coverage` build, clearing can also record a member’s funded cash, signed lots and funding-adjusted claims in a separate PDA. Eight PDAs partition members by stable ID modulo eight. Each observation prices these rows against the clearing program’s current BTC/ETH risk and held-funding endpoints. The comparison fixture updates every affected member in the financial transaction, checks bootstrap completeness against the registry and audits writes against finalized history. A change in financial membership invalidates the fixture’s observations. The certificate remains the sole backing authority for payouts. [Qualification and scope](../operations/qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout)
+
+### Clearing-maintained debtor coverage
+
+The fresh local `maintained-coverage` build opens eight clearing-owned accounts before the first financial member joins. A member’s stable ID selects its account modulo eight. Joining inserts the member’s row. Leaving removes it. Rejoining inserts a fresh row, even if membership changed several times in another lane. Terminal retirement replaces an already deactivated root with its tombstone and updates the identity registry. Its coverage row was removed at deactivation. Each lane has room for 16 members in this build. A full lane refuses another join until space becomes available in that same lane. A registered identity keeps its assigned lane when it retries. The [128-member run](../operations/performance.md#direct-payout-at-128-financial-members) exercised this with an unused recovery seat and a vacancy in another lane.
+
+For each margin account declared as written, clearing compares its financial state before and after the handler. It records funded cash, signed BTC/ETH lots, and each market’s virtual balance plus lots times the funding checkpoint. The instruction carries the required writable lanes after its normal accounts. Clearing authenticates each lane and the prior row, then writes the successor row inside the instruction. Omitting a required lane rolls back the entire operation, including token transfers. Two members in the same lane share one writable account. A revision change that leaves these values and financial membership intact needs no lane write. The separate row-copy instruction is disabled in this build.
+
+A coverage read authenticates all eight lanes, checks their total population against the live financial registry and values them using current risk and held-funding endpoints. Removal can leave a conservative summary in place, which can increase the number of exact row evaluations. The existing certificate authorizes payments during this qualification. [Clearing commit](../../programs/clearing/src/shadow_coverage/maintenance.rs) · [Qualification](../operations/qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout)
 
 ## Market totals
 
 The originating market owns its insurance and protocol-fee share. Local lane fills record the full fee and changes in exposure at the designated registration. Consumers that need materialized totals checkpoint all required lanes first. Classifying fees respects the 25% split and the exact carry across fills. A capacity generation binds the reserved lot capacity per lane. Account-local guards still cover both counterparties, inventory, signed terms and aggregate solvency. [Fee accounting](../../crates/financial-core/src/fee_lanes.rs) · [Routing](../liquidity/routing.md)
+
+### Market backing from maintained rows
+
+The fresh local `verified-coverage` comparison reads the venue, registry, BTC and ETH markets, safety account, selected market ledger and eight coverage lanes. It requires active clearing, a nonempty complete financial membership and the canonical accounts. For the selected market, signed lots must sum to zero and the sum of all fixed claims must equal the settlement balance times the fixed-point scale. Each financial write maintains these sums in its own lane. The build adds 74 bytes to each lane for the two markets’ sums and position counts.
+
+Clearing then checks each debtor against current index bounds and held funding endpoints. An open selected-market position requires that market’s source. An account that could owe the selected market and holds an open sibling position also requires the sibling source. A flat ETH debtor with open BTC exposure can therefore lose ETH backing when BTC falls, even while the ETH settlement balance stays constant.
+
+A successful observation returns one for covered and zero for underfunded. Unavailable required sources, incomplete membership and failed conservation return errors. The result is a read at the executing slot. The comparison grants no reusable payout permission. The ordinary credit instruction still checks the existing certificate, closed-quantity ceiling, available cash and recipient health.
+
+### Atomic credit of closed profit
+
+On the fresh local `direct-closed-credit` build, anyone can submit `pay_account_gain` with an absent certificate and all eight coverage lanes in canonical order. The recipient must be a financial member. Clearing reads both markets, authenticates the current member set and verifies market backing against the settlement balance at execution. The recipient’s lane must be writable. The remaining seven lanes can be read-only.
+
+The same instruction checks the closed-quantity entitlement, available settlement cash and the recipient’s post-payment margin. It debits the market pool, reduces the unpaid claim, credits the recipient’s funded cash and updates its coverage row. Failure rolls back the entire transaction, including its market and fee checkpoints. Cash enters the recipient’s own margin account. Only its authorized owner can withdraw it to a token account.
+
+The separate local `thousand-member-credit` build reserves 125 member rows in each of the same eight accounts (8,400 bytes per lane). It uses the same BTC/ETH backing and payout rules. This capacity counts financial margin accounts across the venue. Each margin account still has two market slots. [Qualification procedure](../operations/local-development.md#direct-payout-at-1000-financial-members)
+
+The streamed reader uses the same lane format and limits. It authenticates each lane’s owner, discriminator, allocation, venue, PDA, epoch and number of occupied rows. It reads the lane’s conservation totals and summary first. If a cross-market source dependency or a solvency check needs individual rows, it decodes them one at a time from the account. Every changed margin image still has to match its previous row. The update authenticates all supplied lanes and deserializes the member list for writing only in lanes whose financial rows changed. An ordinary direct profit credit changes the recipient’s lane. [Reader](../../programs/clearing/src/shadow_coverage/lane.rs) · [Update](../../programs/clearing/src/shadow_coverage/maintenance.rs)
+
+#### Incremental debtor checks on open books
+
+The fresh local `grouped-credit` profile divides the 125 physical rows in each lane into seven groups of 16 and one of 13. A group owns a revision, occupied count and two pairs of BTC/ETH price intervals. Each lane reserves 9,504 bytes. The financial instruction rebuilds only groups it changed and advances each affected revision once. A removal that moves the last row into a vacancy refreshes both groups. The revision identifies a change to the rows. A price or funding move can affect their value even at the same revision.
+
+For each account, clearing first reserves its funded cash against negative fixed claims on markets where it has no open lots. It uses the remaining cash to bound the loss from one open market, or divides that cash between two open markets for this calculation. For each market it solves `fixed claim + signed lots × funding-adjusted price ≥ −budget`. A group stores the intersection across its members. When the current adverse endpoints of both markets lie inside those intervals, every member can cover its own losses. Positive unpaid gains and other members’ money supply no budget. The equal division is a sufficient test. An account outside this bound still receives the ordinary exact target-market test.
+
+At payment, clearing reads the occupied summaries in all eight authenticated lanes and the existing conservation totals. Only groups that fail the bound require their individual debtor rows. Separate intervals record exactly when every dual-open member has a nonnegative target claim, preserving the sibling-oracle requirement without scanning those members. A frozen revision cannot substitute for current prices, conservation, oracle freshness or the recipient’s closed-profit entitlement.
+
+A full book has 64 groups. If all bounds fail, the exact path can still visit all 1,000 rows. The recipient update also decodes its writable lane (up to 125 rows) and rebuilds its own group. Each trade already writes its counterparties’ lanes. This profile adds computation to those writes and introduces no new shared writable account. It requires fresh lane allocations. [Group arithmetic](../../programs/clearing/src/shadow_coverage/groups.rs) · [Payment verifier](../../programs/clearing/src/shadow_coverage.rs)

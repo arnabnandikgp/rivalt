@@ -603,3 +603,125 @@ fn inventory_page_scope_reserves_only_supplied_pages_and_fits_the_event() {
     assert!(Scope::inventory_pages(156).is_err());
     assert!(Scope::inventory_pages(usize::MAX).is_err());
 }
+
+#[cfg(feature = "maintained-coverage")]
+#[test]
+fn raw_margin_writes_require_coverage_for_changed_financial_values() {
+    use crate::test_support::TestAccount;
+    // The market-order extras and the older dynamic cohort path use different scope visitors.
+    for selected_maker in [false, true] {
+        let venue = Address::new_unique();
+        let key = Address::new_unique();
+        let mut root = MarginAccount {
+            schema_version: SCHEMA_VERSION,
+            revision: 1,
+            venue,
+            id: 23,
+            mode: MODE_CROSS,
+            isolated_market_index: CROSS_MARKET_SENTINEL,
+            role: ROLE_TRADER,
+            delegate_epoch: 1,
+            lifecycle: MEMBER_FINANCIAL,
+            activation_generation: 1,
+            cash: 100,
+            ..Default::default()
+        };
+        let mut bytes = vec![0; MARGIN_ALLOCATION];
+        crate::wire::write_account(&root, &mut bytes).unwrap();
+        let mut backing = TestAccount::new(key, crate::ID, &bytes, true, false);
+        let mut view = backing.view();
+        let visit = |scope: &mut Scope, view: &mut AccountView| {
+            if selected_maker {
+                scope.raw::<MarginAccount>(view, Access::Write)
+            } else {
+                scope.remaining(std::slice::from_mut(view), true)
+            }
+        };
+        let mut scope = Scope::new();
+        visit(&mut scope, &mut view).unwrap();
+        root.cash = 99;
+        crate::wire::write_account(&root, &mut view.try_borrow_mut().unwrap()).unwrap();
+        scope.cursor = Some(0);
+        visit(&mut scope, &mut view).unwrap();
+        assert_eq!(
+            scope.coverage.commit(venue, &[]),
+            Err(ClearingError::ExitCohort.into())
+        );
+
+        let mut unchanged = Scope::new();
+        visit(&mut unchanged, &mut view).unwrap();
+        unchanged.cursor = Some(0);
+        visit(&mut unchanged, &mut view).unwrap();
+        assert!(unchanged.coverage.commit(venue, &[]).is_ok());
+    }
+}
+
+#[cfg(feature = "maintained-coverage")]
+#[test]
+fn shared_coverage_lane_verifies_prior_rows_and_removes_only_the_leaving_member() {
+    use crate::shadow_coverage::{maintenance::Changes, CoverageLane};
+    use crate::test_support::TestAccount;
+    let venue = Address::new_unique();
+    let (key, bump) = find_program_address(&[b"coverage-lane", venue.as_ref(), &[0]], &crate::ID);
+    let lane = CoverageLane {
+        venue,
+        lane: 0,
+        bump,
+        membership_epoch: 1,
+        anchor: [1, 1],
+        claim: [0; 2],
+        funded: [0; 2],
+        funded_both: 0,
+        lots: [[0; 2]; 2],
+        radius: [[i128::MAX; 2]; 4],
+        members: vec![],
+    };
+    let mut bytes = vec![0; 326 + 16 * 64];
+    crate::wire::write_account(&lane, &mut bytes).unwrap();
+    let mut backing = TestAccount::new(key, crate::ID, &bytes, true, false);
+    let view = backing.view();
+    let member = |id, cash| MarginAccount {
+        schema_version: SCHEMA_VERSION,
+        venue,
+        id,
+        cash,
+        mode: MODE_CROSS,
+        isolated_market_index: CROSS_MARKET_SENTINEL,
+        role: ROLE_TRADER,
+        delegate_epoch: 1,
+        lifecycle: MEMBER_FINANCIAL,
+        activation_generation: 1,
+        ..Default::default()
+    };
+    let first = Address::new_unique();
+    let second = Address::new_unique();
+    let mut joins = Changes::default();
+    joins.capture(first, &member(0, 30), true).unwrap();
+    joins.capture(second, &member(8, 20), true).unwrap();
+    joins.commit(venue, &[view.clone()]).unwrap();
+    let rows = || {
+        CoverageLane::try_deserialize(&mut &view.try_borrow().unwrap()[..])
+            .unwrap()
+            .members
+            .into_iter()
+            .map(|member| (member.id, member.cash))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(rows(), vec![(0, 30), (8, 20)]);
+
+    // A transition using an out-of-date preimage cannot erase the second member.
+    let mut stale = Changes::default();
+    stale.capture(second, &member(8, 19), false).unwrap();
+    assert_eq!(
+        stale.commit(venue, &[view.clone()]),
+        Err(ClearingError::ExitCohort.into())
+    );
+    assert_eq!(rows(), vec![(0, 30), (8, 20)]);
+
+    let mut batch = Changes::default();
+    batch.capture(first, &member(0, 30), false).unwrap();
+    batch.capture(second, &member(8, 20), false).unwrap();
+    batch.capture(second, &member(8, 24), true).unwrap();
+    batch.commit(venue, &[view.clone()]).unwrap();
+    assert_eq!(rows(), vec![(8, 24)]);
+}

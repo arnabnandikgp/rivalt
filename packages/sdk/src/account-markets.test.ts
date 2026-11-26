@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest';
-import {AccountRole} from '@solana/kit';
+import {AccountRole,createNoopSigner} from '@solana/kit';
 import * as sdk from './index.js';
 import {accountFixture,accountTradeFixture} from './account-test-fixture.js';
 
@@ -54,4 +54,36 @@ it('liability dependencies include even fractional claims but exclude inert orde
   expect(sdk.requiredAccountLiabilities([root])).toBe(1);
   root.positions[1].virtualScaled=1n;
   expect(sdk.requiredAccountLiabilities([root])).toBe(3);
+});
+
+it('builds a local direct credit with both price markets and only the ledgers the recipient needs',async()=>{
+  const fixture=await accountFixture(), snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,fixture.margins);
+  const margin=structuredClone(snapshot.roots[fixture.margins[0]]);
+  const actor=createNoopSigner(margin.owner);
+  const input={actor,margin,marketIndex:1 as const,amount:1n,artifactSet:sdk.DIRECT_CREDIT_ARTIFACT_SET};
+  await expect(sdk.directClosedProfitCredit({...input,artifactSet:sdk.VERIFIED_COVERAGE_ARTIFACT_SET})).rejects.toThrow(/deployment/);
+  const build=async()=>{
+    const instructions=await sdk.directClosedProfitCredit(input), credit=instructions.at(-1)!;
+    const lanes=await sdk.deriveCoverageLanes(margin.venue);
+    expect(credit.accounts!.slice(-8)).toEqual(lanes.map((address,index)=>({address,
+      role:index===Number(margin.id%8n)?AccountRole.WRITABLE:AccountRole.READONLY})));
+    return instructions;
+  };
+  const ordinary = await build();
+  expect(ordinary).toHaveLength(4);
+  for (const artifactSet of [sdk.THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,sdk.STREAMED_CREDIT_ARTIFACT_SET,sdk.GROUPED_CREDIT_ARTIFACT_SET]) {
+    expect(await sdk.directClosedProfitCredit({...input,artifactSet})).toEqual(ordinary);
+  }
+  margin.positions[0].virtualScaled=-1n;
+  expect(await build()).toHaveLength(5);
+});
+
+it('reads settlement candidates at the same bank and rejects duplicated margins',async()=>{
+  const fixture=await accountFixture();
+  const expected=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,fixture.margins);
+  const batch=await sdk.readSettlementSnapshot(fixture.rpc,fixture.config,fixture.margins);
+  expect(batch.roots).toEqual(expected.roots);
+  expect(batch.contextSlot).toEqual(expected.contextSlot);
+  expect(()=>sdk.readSettlementSnapshot(fixture.rpc,fixture.config,[fixture.margins[0],fixture.margins[0]])).toThrow();
+  expect(()=>sdk.readSettlementSnapshot(fixture.rpc,fixture.config,[])).toThrow();
 });

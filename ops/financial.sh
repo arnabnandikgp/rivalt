@@ -60,6 +60,7 @@ python3 tests/financial/test_scalable_clearing.py
 python3 tests/financial/test_incremental_backing.py
 cargo build --locked -p financial-core --bin backing-driver
 python3 tests/financial/test_maintained_backing.py
+python3 tests/financial/test_payout_coverage_summary.py
 
 cargo test --locked -p default-plan-selection --features native-search --test multi_lot
 cargo build --locked -p default-plan-selection --features native-search --example multi_lot_audit

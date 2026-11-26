@@ -135,6 +135,37 @@ debt `d_i,m = max(-U_i,m,0)`. The clearing contract uses these priorities:
 
 ## Residual clearing equations
 
+### Gate for a third cross market
+
+The local protocol resolves BTC/ETH. A third cross market introduces a choice
+the two-market rules never have to make. Suppose a flat cross account has no
+cash, is owed 180 atoms on SOL and owes 150 on BTC and 120 on ETH. One flat
+creditor is owed each destination balance. SOL has collected all 180 atoms.
+The balances reconcile in all three markets before resolution.
+
+| Allocation of recovered SOL proceeds | BTC creditor | ETH creditor | BTC insurance spent |
+|---|---:|---:|---:|
+| Proportional to destination debts (150:120), no insurance | 100 | 80 | 0 |
+| ETH debt paid first, no insurance | 60 | 120 | 0 |
+| Proportional, with 150 atoms of BTC insurance available | 150 | 80 | 50 |
+| ETH debt paid first, same BTC insurance available | 150 | 120 | 90 |
+
+The approved successor rule splits recovered proceeds in proportion to the
+debtor's frozen remaining destination debts, before destination insurance. The
+split is independent of market labels, transaction order and reserve size. In
+the same book, if SOL recovers only 90 atoms, BTC receives 50 and ETH 40 before
+insurance. If it recovers one atom, their exact shares are 5/9 and 4/9 of an
+atom. Preserve those fractions until the complete book is rounded. Cap total
+debt discharge at 270 even if more proceeds become available.
+
+Letting destination insurance influence the split can increase aggregate recovery
+and spend more of one market's reserve, as the alternative rows illustrate.
+Before activation, qualify cycles, multiple sources, fractional ownership,
+terminal rounding, forced reductions, insurance use and every final withdrawal
+against a complete independent book. [Finding 11](../operations/qualification-scorecard.md#payout-and-cross-margin-work)
+
+### Current two-market equations
+
 For the set of claims being settled, let `W_m` be the sum of positive claims in a market, and `B_m` its initial P plus
 own-cash collections. A mixed-sign account creates one link from its positive-claim
 market to its remaining-debt market. For a link with face `w` and debt cap `d`, its

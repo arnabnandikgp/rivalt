@@ -73,8 +73,8 @@ changed payer; rotating a key cannot reset its allowance or transfer a budget.
 ## Worker authority
 
 Maker updaters only reprice; publisher workers only submit bounded reports. Orders
-execute existing durable authority; settlement collects fully covered gross debt
-or pays through a valid selected-market certificate. It never silently nets an
+execute existing durable authority. Settlement collects covered losses or pays
+eligible profit using the backing check for the deployed program. It never silently nets an
 owner's opposite claims. Risk discovery considers at most two exposed roots per
 iteration, uses a configured consenting funded receiver and post-fee progress.
 Frozen work resumes chain stage/cursors; untrusted rate proposals grant no payout
@@ -86,6 +86,18 @@ operator actions, not automatically inferred from healthy observations.
 
 Loss collection and gain payment are separate landed instructions. A positive claim, available settlement cash and valid backing must coincide before payment. The worker can service a ready gain on one market while the other builds its backing certificate. Polls and successful submissions alone do not credit cash. Check the finalized holder and market changes, and report remaining claims and the pool balance. [Observed payout timing](../operations/performance.md)
 
+On certificate deployments the automatic worker starts with loss collection. After queuing a collection, it looks for a funded payout. After a payment against an existing certificate, it offers the next turn to certificate work, then returns to collection. A final page and payment can share one transaction. If a class has no admissible work, the worker tries the next class in the same poll. Each queued collection gives the other market first consideration on the next collection turn. Each queued payment moves the next payout search past that account and market in discovery order, wrapping to the beginning. A maker that earns again therefore waits its turn alongside other ready creditors.
+
+On the `direct-closed-credit` deployment the worker uses the authenticated artifact binding to select direct payment. A loss collection supplies the debtor’s writable coverage lane. A profit payment includes both price markets and all eight coverage lanes through the SDK. The worker alternates funded collections and eligible payments and resumes after the previous payee. It can skip a candidate whose current transaction fails preflight. Both actions keep the ordinary fee budget, recipient state-version guard and persisted signed original. Clearing verifies the complete backing and entitlement again at execution. Off-chain discovery still reads financial members while looking for work.
+
+An outstanding signed original holds the worker's budget until it is resolved. A restart resets the scheduling preference and resumes the durable original. Clearing verifies the same funded-cash, backing, price and account checks for every submitter. A trader can submit the collection or payout directly and sign their own withdrawal. Time to a particular wallet still depends on competing creditors, available cash, backing and confirmation.
+
 ## Default recovery
 
 The database persists the episode, frozen membership, authenticated on-chain stage and exact signed original. Resume at the last verified stage after restart. A native helper can propose a plan and page descriptors. Clearing verifies each stage and controls every payout. An incomplete or unknown original cannot be replaced by an unrelated financial action. Verify terminal custody and all member movements before treating a withdrawal as available. [Default verification](../clearing/default-plan-verification.md) · [Indexer source](../../packages/indexer/src/) · [Worker source](../../packages/services/src/)
+
+### Automatic grouped payouts on the local qualification deployment
+
+The settlement worker uses the latest reconciled journal to discover candidate accounts. An open position can acquire debt while its owner is idle, so the worker includes every open candidate along with flat accounts showing a claim. It reads up to 40 candidates per batch against current market and custody accounts. The on-chain payment checks all eight coverage lanes and performs exact debtor checks wherever the grouped bounds are inconclusive.
+
+Before signing a grouped payment, the worker simulates with the full compute allowance. A successful simulation determines the signed limit, with a floor of 400,000 CU, 15% measured headroom and a ceiling of 1.4 million CU. A second simulation checks the signed bytes before PostgreSQL records the original for dispatch. A rejected backing check leaves the claim outstanding. The explicit local deployment selector is `grouped-credit`.

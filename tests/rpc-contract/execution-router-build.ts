@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {verifyTestBuild} from './backing-artifacts.js';
-import {accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
+import {GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
 
 export function multiDeploymentFor(artifactSet: string) {
   if (artifactSet === PRICE_LIMITED_MULTI_ARTIFACT_SET) return 'price-limited-multi-maker';
@@ -10,12 +10,35 @@ export function multiDeploymentFor(artifactSet: string) {
 }
 
 /** Explicit local binary identity shared by the launcher and finalized journal. */
-export function routerBuild(selection:'funded-routing'|'bounded-entry'|'closed-quantity'|'bounded-router-candidate' =
+export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'|'maintained-coverage'|'shadow-coverage'|'funded-routing'|'bounded-entry'|'closed-quantity'|'bounded-router-candidate' =
+  ['execution-router-direct-credit','execution-router-direct-cashout','execution-router-direct-capacity'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'direct-closed-credit' :
+  process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-verified-coverage' ? 'verified-coverage' :
+  process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-maintained-coverage' ? 'maintained-coverage' :
+  process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-shadow-coverage' ? 'shadow-coverage' :
   process.env.RIVALT_SETTLEMENT_PROBE === 'execution-router-funded-benchmark' ? 'funded-routing' :
   process.env.RIVALT_SETTLEMENT_PROBE?.startsWith('execution-router-bounded-entry')?'bounded-entry':
   ['execution-router-closed-quantity','execution-router-mixed-storage'].includes(process.env.RIVALT_SETTLEMENT_PROBE ?? '') ? 'closed-quantity' : 'bounded-router-candidate',
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
+  const probe = process.env.RIVALT_SETTLEMENT_PROBE;
+  const streamed = probe === 'execution-router-streamed-capacity' || probe === 'execution-router-streamed-credit';
+  const grouped = probe === 'execution-router-grouped-worker' || probe === 'execution-router-grouped-capacity' || probe === 'execution-router-grouped-credit';
+  if (grouped || streamed || probe === 'execution-router-thousand-member-credit') {
+    const profile = grouped
+      ? {revision:'e4aff314f037b5101f2d036785020e371762c48a',artifactSet:GROUPED_CREDIT_ARTIFACT_SET,
+         clearing:{bytes:3890336,sha256:'9879916fe82f2062b000fb2e53c69b038ddac054fd6b1dbf985b6bf541c2c1ad'}}
+      : streamed
+      ? {revision:'99165b413d6c3b3fe0540ab0756861394324b5d8',artifactSet:STREAMED_CREDIT_ARTIFACT_SET,
+         clearing:{bytes:3883768,sha256:'7f9cf8a9a0c1c4197d721ebc856a2fccd4a20b661e0847de91c730ff9ff83c9c'}}
+      : {revision:'213d394d748741ca60e1230a9bdbdab6596f86c9',artifactSet:THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,
+         clearing:{bytes:3882472,sha256:'bb8780b55c1f5441b93964e7bea2bd36d5e88a27cc9207ebaae9755fccd1a671'}};
+    assert.equal(revision,profile.revision);
+    const makers = accountDeployment('direct-closed-credit').artifacts.filter(row => row.name.startsWith('maker-'));
+    const artifacts = Object.fromEntries(makers.map(({name,bytes,sha256})=>[name,{bytes,sha256}]));
+    artifacts.clearing = profile.clearing;
+    verifyTestBuild(directory,revision,artifacts,grouped ? 'grouped-credit' : 'thousand-member-credit');
+    return {revision, artifacts, artifactSet:profile.artifactSet};
+  }
   const extended=['execution-router-multi-fills','execution-router-multi-width','execution-router-multi-price-limits','execution-router-wallet-contention','execution-router-matched-makers','execution-router-feasible-books'].includes(process.env.RIVALT_SETTLEMENT_PROBE??'');
   if (extended) {
     const verified = (['price-limited-multi-maker','funded-multi-maker','multi-maker'] as const)
@@ -42,6 +65,6 @@ export function routerBuild(selection:'funded-routing'|'bounded-entry'|'closed-q
   const artifacts = Object.fromEntries(deployment.artifacts
     .filter(artifact => artifact.name !== 'oracle-fixture')
     .map(({name, bytes, sha256}) => [name, {bytes, sha256}]));
-  verifyTestBuild(directory, revision, artifacts, selection==='bounded-entry'||selection==='funded-routing'?'bounded-entry-settlement':selection==='closed-quantity'?'closed-quantity-settlement':'execution-router-qualification');
+  verifyTestBuild(directory, revision, artifacts, selection==='direct-closed-credit'||selection==='verified-coverage'||selection==='maintained-coverage'||selection==='shadow-coverage'?selection:selection==='bounded-entry'||selection==='funded-routing'?'bounded-entry-settlement':selection==='closed-quantity'?'closed-quantity-settlement':'execution-router-qualification');
   return {artifactSet: deployment.artifactSet, artifacts, revision};
 }

@@ -96,7 +96,7 @@ pub fn execute_multi(ctx: &mut Context<ExecuteBestRoute>, args: MultiRouteIntent
 fn execute_selected(ctx: &mut Context<ExecuteBestRoute>, args: BestRouteIntent, multi: bool, epochs:&[MakerEpochs]) -> Result<()> {
     require!(cfg!(feature = "execution-router-qualification"), ClearingError::Profile);
     let clock = Clock::get()?;
-    let remaining = ctx.remaining_accounts()?;
+    let remaining = crate::scoped_history::economic_accounts(ctx)?;
     let boundary = epochs.len().checked_mul(6).ok_or(ClearingError::Profile)?;
     require!(remaining.len()>=boundary && remaining.len()<=boundary+3, ClearingError::MakerBinding);
     let (bundles,lanes)=remaining.split_at(boundary);

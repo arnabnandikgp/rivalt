@@ -256,6 +256,165 @@ For the remaining refusal, wallet 14's three-lot order 109 simulated successfull
 
 In the separate 16-wallet mixed-market workload the BTC creditor started flat with all 996 atoms already in the pool. The original worker left the claim unpaid for more than 191 seconds while servicing other work. The revised worker paid all 996 after 93.041 seconds on harness `c615ba2f`, with 72/72 trader fills and 83 successful settlement originals. The first ETH payment was observed at 238.158 seconds. A reconciled projection and a trader fill are distinct from a cash payout. [Worker comparison](https://github.com/arnabnandikgp/rivalt/pull/168)
 
+### From a profitable close to tokens in the wallet
+
+Two fresh Surfpool 1.7.0 venues at clearing `b7e4458b` ran the same workload on harness `f873bfd1`. Each of two traders bought 1,000 BTC lots at 60,002 atoms per lot and closed at 60,998. Each earned 996,000 atoms, paid 24,201 in fees and could withdraw 971,799 atoms (0.971799 test collateral). The market started with a current backing certificate and 1,494,000 atoms collected from a funded maker, enough for one and a half of the two claims. Four other wallets submitted 48 BTC/ETH trades on a fixed schedule. All 48 filled on each venue. [Run the comparison](local-development.md#closing-a-position-through-wallet-withdrawal-under-load)
+
+| Payout submitter | Creditor | First credit | Full credit | Tokens in wallet | Other fills in slots strictly between close and withdrawal |
+|---|---|---:|---:|---:|---:|
+| Trader | First | 0.494 s | 0.494 s | 0.800 s | 11 |
+| Trader | Second | 0.623 s | 1.102 s | 1.236 s | 8 |
+| Settlement worker | First | 38.573 s | 38.573 s | 38.648 s | 44 |
+| Settlement worker | Second | 43.404 s | 43.404 s | 43.455 s | 44 |
+
+Times start when the harness observed that trader's confirmed close. It sampled the margin, settlement pool, vault and both wallet destinations together at confirmed commitment, then checked finalized receipts and fresh PostgreSQL replay (489 and 551 events). Both paths began submitting payouts after both closes confirmed. Each owner withdrew the net gain once their full claim was credited. The two trader-directed claims used a fixed submission order and a known debtor. The worker used ordinary discovery and its durable queue. These are two creditors per venue on one local host with synthetic prices and internal makers.
+
+At one second, the first self-service trader had withdrawn. The second had received 498,000 atoms of funded credit, with 498,000 still unpaid. That trader submitted a permissionless loss collection against the maker, claimed the remainder and withdrew. Both had their tokens by five seconds. On the worker venue neither trader had a credit or a withdrawal at the 1, 5, 15 or 30 second cutoffs. All 1,992,000 claim atoms were still owed to them at 30 seconds.
+
+On the worker venue the observed pool first covered both remaining claims 0.970 s after the second close. All 122 backing checks sampled through the last wallet exit were payable. The finalized worker receipts show twelve loss collections before its first gain payment, which went to a maker. The two designated creditors were paid later. Once credited, their tokens arrived another 75 ms and 51 ms later. That worker selected a covered loss before scheduling a gain and waited for the outstanding original. This workload exposes the cost of that scheduling order when the pool can already fund the claims. [Worker selection](../../packages/services/src/account-settlement-worker.ts) · [Cutoff report](../../tests/performance/close-to-wallet-report.py)
+
+An earlier paced control at `1bbc36e4` filled 32/32 orders per venue. The self-service exits landed at 0.303 and 0.388 s, before the second scheduled background fill. Worker exits took 37.382 and 42.221 s. The burst comparison above requires at least one competing fill in a strictly intervening slot for each measured exit. Cold backing, debtor discovery by an ordinary wallet, exhausted debtor collateral and production latency require separate evidence.
+
+### Scheduling payouts while losses keep arriving
+
+All three workers ran the same signed 48-order schedule on fresh local venues with the same clearing binary (`b7e4458b`) and observation code. Each designated BTC trader closed a 996,000-atom gain and withdrew 971,799 test-collateral atoms after fees. All 48 background orders filled in each run.
+
+| Worker | First trader withdrew | Second trader withdrew | Zero remaining loss after the last fill (from later close) | Replayed events |
+|---|---:|---:|---:|---:|
+| Collection first (`08645cd0`) | 40.815 s | 45.671 s | 33.043 s | 558 |
+| Rotate work, fixed payee order (`6434dafa`) | 33.831 s | 41.011 s | 51.109 s | 576 |
+| Rotate work and payees (`efff1af2`) | 11.674 s | 18.752 s | 45.915 s | 562 |
+
+Withdrawal times start at each trader’s confirmed close. The collection column starts at the later close and ends at the first zero-debt sample in a slot strictly after the last traffic fill. Turning between collections and payments alone let one maker earn again and receive four payouts before either trader. Continuing the payout search after the last creditor gave the two traders a turn while that maker kept trading.
+
+| After close | Wallets with tokens, previous → revised | BTC / ETH still collectible, previous | BTC / ETH still collectible, revised |
+|---:|---:|---:|---:|
+| 1 s | 0 → 0 | 160 / 160 | 160 / 160 |
+| 5 s | 0 → 0 | 220 / 200 | 220 / 200 |
+| 15 s | 0 → 1 | 180 / 200 | 340 / 220 |
+| 30 s | 0 → 2 | 240 / 240 | 300 / 260 |
+
+Wallet counts use each trader’s own cutoff. Debt uses a single confirmed bank at the second trader’s cutoff and includes losses already incurred by that point. Across all three runs, finalized collections after release were **502,480 collateral atoms on BTC and 480 on ETH**. The opening maker owed 502,000 more atoms after seeding the BTC pool. Each market’s two traffic wallets lost another 480 atoms over twelve round trips. The reporter includes each market’s pool, outstanding debt and collections in strictly earlier slots. The terminal pools reconcile to the opening pools plus collections less payments. All three ended with 4,000 atoms in the BTC pool and 480 in the ETH pool. The flat ETH maker still had a 480-atom claim and ETH backing was incomplete when observation stopped.
+
+These measurements cover two BTC creditors, a current backing certificate, four active trading wallets, six internal makers and an initially partly funded pool. The worker’s scheduling preference resets on restart. A larger population, cold backing and insufficient collectible collateral have separate timing limits. [Worker policy](../application/durability.md#settlement-during-trading) · [Reproduce the comparison](local-development.md#closing-a-position-through-wallet-withdrawal-under-load)
+
+### First ETH maker payout with cold backing
+
+On clearing `b7e4458b`, harness `254404ef` ran the six-wallet schedule with a current BTC certificate and no ETH certificate. The ordinary worker from `efff1af2` handled both markets. All 48 scheduled trades filled. The ETH maker sold 120 lots for 3,600,240 collateral atoms and bought back 120 for 3,599,760. Its 480-atom spread was 0.000480 test collateral. [Receipt report](../../tests/performance/cold-maker-exit.ts)
+
+| First confirmed observation | Seconds from start of trading |
+|---|---:|
+| ETH certificate created | 13.695 |
+| Maker flat with all 480 atoms unpaid | 25.611 |
+| ETH pool holds all 480 atoms | 46.118 |
+| ETH certificate covers all 12 members | 142.721 |
+| Maker margin credited by 480 atoms | 142.721 |
+| Owner wallet received 480 atoms | 142.797 |
+
+The maker waited 117.186 s from the observed flat claim to wallet receipt. Its pool held the full amount 96.603 s before the credit. The worker submitted 43 successful backing-check transactions across 12 members. The scan visits the membership index and its pages as well as the financial accounts. Clearing completed the final backing check and credited all 480 atoms in the same finalized transaction. ETH certificate initialization, checks and payment used 44 distinct successful worker transactions and 220,000 lamports in transaction fees. The owner signed and paid for a separate withdrawal. Its finalized SPL balances moved exactly 480 atoms from the vault to the maker wallet, leaving the original 100 test collateral in the margin account.
+
+The two BTC traders received 0.971799 test collateral each at 11.047 and 18.166 s after their respective closes. The BTC and ETH markets collected 502,480 and 480 atoms after release. The first zero-debt sample after the last fill was 45.590 s after the later BTC close. The ETH pool ended at zero. Fresh PostgreSQL replay reconciled 903 events.
+
+The 48 orders were a finite burst. Source and maker updates continued through the later backing checks and withdrawal. This measures one cold scan on a local 12-member venue with funded losses. [Run the qualification](local-development.md#closing-a-position-through-wallet-withdrawal-under-load)
+
+### Automatic payout on the same 12-member book
+
+The same worker and harness revision (`88625d28`) ran sequentially on two fresh Surfpool banks with 50 ms slots and zero priority fee. Each had six internal makers, six traders, a current BTC certificate and no ETH certificate at release. Four wallets submitted 48 scheduled ten-lot orders across BTC and ETH. The ETH maker earned 480 collateral atoms on 120 lots sold and 120 bought back. The credit put funded cash in its margin account. The maker signed a separate withdrawal to its SPL wallet. [Run both arms and reconstruct the spread](local-development.md#comparing-automatic-direct-and-certificate-payouts)
+
+| Observed outcome | Certificate (`b7e4458b`) | Direct credit (`984f18f3`) |
+|---|---:|---:|
+| ETH maker flat with the full spread earned → wallet receipt | 115.232 s | 13.994 s |
+| All 480 atoms collected → full margin credit | 96.752 s | 2.495 s |
+| ETH backing-check transactions | 43 | 0 |
+| ETH worker transactions for backing and credit, including initialization | 44 | 3 |
+| Fees for those transactions | 220,000 lamports | 15,000 lamports |
+| Loss collections, BTC / ETH | 4 / 4 | 4 / 4 |
+| Both markets clear of collectible losses after the last fill, measured from start | 43.981 s | 37.110 s |
+| Two BTC traders, confirmed close → wallet | 8.990 / 16.165 s | 16.933 / 21.655 s |
+| Competing fills / scheduled orders | 48/48 | 48/48 |
+| Events reconciled by fresh PostgreSQL replay | 899 | 550 |
+
+The direct worker paid 140, 100 and 240 atoms. The first 140 came from earlier closed quantity. At its last close the maker therefore had 140 atoms of funded cash above principal and 340 atoms still owed. The collection milestone counts both cash left in the ETH pool and cash already paid to the maker. Both workers collected 502,480 BTC-market atoms and 480 ETH-market atoms after release. Their final ETH pool and outstanding collectible losses were zero. Fees in the table exclude loss collections, BTC credits, setup and owner withdrawals.
+
+This is one pair of runs. It measures the effect of the deployed payout paths on this finite book. The direct worker still discovers candidates off chain, and clearing reads all eight coverage accounts for each payment. The [128-member test](#direct-payout-at-128-financial-members) exercises the 16-member capacity of each lane. The 1,000-member workload and sustained contention remain open.
+
+### Direct payout at 128 financial members
+
+On clearing `984f18f3`, harness `53317975` filled eight lanes with 16 members each. Six were internal maker capitals and 122 were trader margin accounts. Recovery had 129 funded seats. The same flat ETH maker earned 40 collateral atoms on a ten-lot round trip, then received two equal credits from the collected loss. No ETH certificate was created. [Reproduction and independent receipt check](local-development.md#direct-payout-at-full-coverage-capacity)
+
+| Finalized transaction | Individual rows checked for backing | Whole transaction CU | Wire bytes | Accounts | Fee, lamports |
+|---|---:|---:|---:|---:|---:|
+| Collect 40 ETH-market loss atoms | — | 131,475 | 849 | 19 | 5,000 |
+| Credit 20 atoms with all positions flat | 0 | 161,532 | 1,029 | 25 | 5,000 |
+| Credit 20 atoms with open ETH positions in every lane | 128 | 260,646 | 1,029 | 25 | 5,000 |
+| Withdraw the 40 funded atoms to the owner's SPL account | — | 144,545 | 1,107 | 24 | 10,000 |
+
+Between credits, eight margin accounts with two trader authorities bought 40 ETH lots each against two other maker capitals. An independent reader reconstructed the fills and marked the ten exposed accounts at their adverse bounds of 29,700 or 30,300 collateral atoms per lot. Each could cover its losses. Eight changed trader positions were sufficient to make clearing check every row. The second credit used 99,114 more CU and remained within the ordinary 400,000-CU limit. Both credits had the same wire size and fee. The withdrawal had two signatures because the fixture supplied a separate fee payer.
+
+The 129th identity registered. Its attempt to activate in a full lane rolled back in 53,666 CU. After an account left a different lane, a second attempt at 127 active members still rolled back. Freeing a seat in the candidate’s own lane allowed that same identity to activate in 63,815 CU. Finalized membership, margin cash and the token exit reconciled in fresh PostgreSQL replay (499 events). An earlier quiet run on harness `96cacd73` paid all 40 atoms in one 161,539-CU transaction and replayed 483 events.
+
+The paired run used 50 ms local slots, zero priority fees and a fixed synthetic price. It measures payout execution on a full book with ten open positions. The larger population is measured below.
+
+### Direct payout at 1,000 financial members
+
+On clearing `213d394d` and harness `e4105ea0`, 994 funded trader margin accounts and six internal maker capitals occupied eight lanes of 125 members. A ten-lot ETH round trip earned a flat maker 40 collateral atoms. Clearing collected the trader’s 40-atom loss before paying two equal 20-atom credits. Eight other margin accounts opened 40-lot ETH longs between credits, one per lane against two makers. Those ten open positions made clearing check all 1,000 rows. [Reproduction](local-development.md#direct-payout-at-1000-financial-members)
+
+| Book | Requested CU | Heap | Finalized outcome | Transaction CU reported |
+|---|---:|---:|---|---:|
+| All flat | 400,000 | 32 KiB | Heap exhausted | 400,000 |
+| All flat | 400,000 | 128 KiB | Backing verified, then heap exhausted | 400,000 |
+| All flat | 400,000 | 256 KiB | Paid 20 atoms, zero individual solvency checks | **204,674** |
+| Open ETH positions in every lane | 400,000 | 32 KiB | Heap exhausted | 400,000 |
+| Open ETH positions in every lane | 400,000 | 128 KiB | Compute exhausted | 400,000 |
+| Open ETH positions in every lane | 1,400,000 | 128 KiB | Backing verified, then heap exhausted | 1,400,000 |
+| Open ETH positions in every lane | 1,400,000 | 256 KiB | Paid 20 atoms, 1,000 individual solvency checks | **964,970** |
+
+All seven signed payments used 25 transaction accounts, six writable including the fee payer. Each used 1,029 wire bytes with the default heap or 1,037 with an explicit request. All five refusals rolled back and cost 5,000 lamports apiece. The two successful credits also cost 5,000 each, for 35,000 lamports across the seven attempts at zero priority fee. Surfpool reported the full requested compute limit after a fatal heap fault. Only the successful rows measure the cost to complete a payment. Both succeeded at the largest tested heap. The run did not locate the minimum between 128 and 256 KiB.
+
+Collecting the loss used 136,890 CU. The maker owner then withdrew all 40 funded atoms in 149,984 CU, with two signatures and a 10,000-lamport fee. The wallet gained the same 40 atoms the vault released. No certificate was created. There were 287 local slots from the maker going flat to the withdrawal (14 seconds by block timestamps). This interval includes deliberate retries, intervening fills and refreshed sources. It measures this scripted run only.
+
+Recovery had 1,001 funded seats. A new identity registered but its financial activation rolled back both when all lanes were full and after a different lane opened up. It joined after a member in its assigned lane left. Final membership was 999. Fresh PostgreSQL replay reproduced 3,232 events and reconciled the final margin accounts, membership and custody. The qualification harness committed up to 128 complete finalized blocks per SQL transaction. An earlier identical payout run reached the SPL exit, but its single database transaction hit the 15-second idle limit before reconciliation.
+
+Each lane reserves 8,400 bytes compared with 1,424 at 128 members. The backing read decodes every lane’s member list even when a summary proves solvency. The final coverage update also decodes the supplied lanes. Both passes matter when sizing heap. Sustained concurrent fills, automatic worker delivery on the larger build and wider cross-market accounts require separate qualification. [Backing read](../../programs/clearing/src/shadow_coverage.rs) · [Coverage update](../../programs/clearing/src/shadow_coverage/maintenance.rs)
+
+### Streamed coverage on the same 1,000-member book
+
+Clearing `99165b41` and harness `1d105af3` repeated the two 20-atom ETH payments from the [prior run](#direct-payout-at-1000-financial-members). Both runs used the same eight 8,400-byte coverage accounts, six maker capitals, 994 trader margin accounts, program instruction and 400,000-CU / 32 KiB initial request. Each successful transaction included the same 25 accounts. Only the recipient’s coverage lane was writable. The new reader uses the ordinary 1,029-byte payment even for the diagnostic compute retry.
+
+| Book and individual checks | Prior successful CU / requested heap | Streamed successful CU / requested heap | Change in successful CU | Outcome of first streamed attempt |
+|---|---:|---:|---:|---|
+| All positions flat, zero individual checks | 204,674 / 256 KiB | **157,640 / 32 KiB** | −47,034 (23.0%) | Paid |
+| ETH positions in every lane, 1,000 individual checks | 964,970 / 256 KiB | **922,864 / 32 KiB** | −42,106 (4.4%) | Compute exhausted and rolled back. Paid on retry requesting 1,400,000 CU. |
+
+The maker withdrew all 40 funded atoms in a separate 150,232-CU transaction. At zero priority fee the three payment attempts cost 15,000 lamports altogether, compared with 35,000 across seven prior attempts. This comparison excludes collection, source refreshes and withdrawal fees. Ten accounts had open ETH exposure during the second payment. The observed compute cost is specific to that book. Fresh PostgreSQL replay reconciled 3,216 events with 999 members after two exits and one admission.
+
+On a separate nine-member bank with the same binary, a fall in BTC left an idle cross debtor unable to back an ETH payment. Clearing checked one individual row and refused one atom with nine still in the pool. The compared financial accounts were byte-identical after rollback. Once the debtor recovered, payment resumed and the maker ultimately withdrew its full 40 atoms. Fresh PostgreSQL replay reconciled 263 events for this control. [Reproduction](local-development.md#direct-payout-at-1000-financial-members)
+
+### Payout with incremental debtor groups
+
+Fresh local clearing `e4aff314` maintains 64 groups across eight coverage lanes. On full-workload harness `796a16b0`, the 20-atom ETH payment with eight trader longs and two maker shorts finalized at **158,384 CU with zero individual debtor checks**. The earlier streamed reader used **922,864 CU and 1,000 checks** on the corresponding book. Both used a 32 KiB heap. The new all-flat control used 158,218 CU, compared with 157,640. These are entire signed transactions, including checkpoints and the recipient update.
+
+On the eight corresponding 40-lot opening fills, the extra work was 6,926 CU for two fills and 13,244 CU for six. Median transaction cost rose from 187,418.5 to 200,662.5 CU. The makers charged the same spread. Both runs used the same six internal maker instances and synthetic sources. The new round trip produced 60 atoms so a third 20-atom claim could be tested.
+
+The dense run used 994 trader accounts and six market-isolated maker capitals. At the third payout 997 accounts had ETH exposure and six had BTC exposure, including three cross accounts with both. The recipient held an open ETH lot and had previously closed profitable quantity. Its 20-atom credit finalized at **164,585 CU**. All three payments read 64 group summaries, needed zero individual debtor checks and landed on the first 400,000-CU / 32 KiB attempt. The owner withdrew 60 atoms at 161,800 CU. The sparse stage changed eight group revisions and the dense stage changed all 64. The individual row count covers the backing decision. The financial write subsequently decodes the recipient’s lane to update its row and group. The finalized fill-event reader independently reconstructed the 1,000 exposed accounts, balanced signed lots in both markets and a minimum adverse-price cash headroom of 953,006 collateral atoms. Fresh PostgreSQL replay reconciled 4,413 events and the final wallet exit.
+
+On the separate nine-member price-shock control, unchanged debtor balances and a lower BTC price forced one exact check and refused the ETH payout, leaving nine atoms in the pool. The owner ultimately withdrew 40 atoms. Fresh PostgreSQL replay matched 263 finalized events.
+
+### Automatic wallet payouts on a stressed 1,000-member book
+
+On clearing `e4aff314` and harness `11cb1b55`, 994 trader margin accounts and six internal maker capitals shared two markets, eight coverage lanes and 1,001 provisioned recovery seats. Each measurement starts with the same ten-lot ETH round trip. The flat maker earned 40 atoms and its owner withdrew exactly 40 SPL collateral atoms. The ordinary worker collected the first trader loss. For the price shock, a separate signed collection funded the second claim before the BTC move.
+
+| ETH payout | Individual debtor checks | Consumed / signed CU | Eligibility observed to wallet | Competing successful fills strictly between funding or recovery and credit |
+|---|---:|---:|---:|---:|
+| Ordinary covered claim | 0 | 158,387 / 400,000 | 3.891 s | 6 |
+| Recovered claim with 40 borderline groups | 640 | 640,410 / 736,472 | 0.556 s | 1 |
+
+Both payment originals finalized on their first submission. Each used 1,029 bytes, 25 accounts, six writable accounts, the default 32 KiB heap and 5,000 test lamports. Each payout required one credit and one separate owner withdrawal. The worker sent zero membership-walk transactions. All 24 competing fills landed across the two finite windows. The ordinary wallet exit took 13.124 s from close, including 9.233 s until the pool was first observed funded. The recovered case took 59.470 s from close, including deliberate fixture construction and the blocked interval.
+
+At a BTC index of 40,000, the idle trader had 31,968 cash atoms against adverse BTC and ETH debts of 40,804 and 302 atoms. A signed payment refused. The worker independently refused the funded claim before and after restarting and replacing one financial member. The idle account bytes stayed unchanged. With BTC at 48,000, the adverse debts were 24,964 and 302, leaving 6,702 atoms of headroom. Both unsigned payment probes that failed backing used 640 exact checks. The recovered payment checked those 640 rows within eight lane accounts. Fresh PostgreSQL replay matched 3,583 events and both owner wallet deltas.
+
+The earlier `765e0d81` run exposed an expired reconciliation witness under fills. The repeat retained the ten-second publication limit, checked distinct membership addresses once and retried expired observations. Fourteen worker turns waited for a fresh projection. These times describe a single local Surfpool run with paced signed fills and synthetic oracle updates. Worker discovery still reads its off-chain membership projection. Clearing can require up to 1,000 exact row checks if every group misses its bound. [Reproduction](local-development.md#incremental-debtor-groups-on-open-markets)
+
 ## Funding, costs and comparisons
 
 The funding publisher computes depth off chain. In three older 75-member runs on clearing `79724a5a`, 12 two-market publication transactions used 48,940–49,110 CU. Another 54 transactions that also checkpointed both markets used 89,682–99,550 CU. These are complete transactions on that binary. [Funding contract](../liquidity/funding.md) · [Receipt reader](../../tests/performance/funding-receipts.py)

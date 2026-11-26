@@ -12,7 +12,7 @@ import type {WireRpc} from './wire.js';
 
 export const digestEvents=(events:Pick<JournalEvent,'bytes'>[])=>events.reduce((digest,event)=>createHash('sha256')
   .update(Buffer.from(digest,'hex')).update(Buffer.from(event.bytes,'base64')).digest('hex'),'0'.repeat(64));
-export async function fetchScopedHistory(rpc:WireRpc,anchor:string,authority:string,venue:string,domain:string) {
+export async function fetchScopedHistory(rpc:WireRpc,anchor:string,authority:string,venue:string,domain:string,artifactSet?:string) {
   const original=await rpc.call('getTransaction',[anchor,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
   assert(original,'Actual initialization receipt');
   const end=await rpc.call('getSlot',[{commitment:'finalized'}]),blocks:FinalizedBlock[]=[],invocations:AccountInvocation[]=[];
@@ -24,7 +24,7 @@ export async function fetchScopedHistory(rpc:WireRpc,anchor:string,authority:str
       for(const [index,{signature,tx}] of block.transactions.entries()) {
         const keys=[...tx.transaction.message.accountKeys,...(tx.meta.loadedAddresses?.writable??[]),...(tx.meta.loadedAddresses?.readonly??[])];
         if(keys.includes(sdk.CLEARING_PROGRAM_ADDRESS))invocations.push(...decodeAccountInvocations(signature,tx,index,
-          {program:sdk.CLEARING_PROGRAM_ADDRESS,eventAuthority:authority,venue,domain}));
+          {program:sdk.CLEARING_PROGRAM_ADDRESS,eventAuthority:authority,venue,domain,artifactSet}));
       }
     }
   }

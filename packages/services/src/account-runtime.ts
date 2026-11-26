@@ -3,7 +3,7 @@ import type {Keypair} from '@solana/web3.js';
 import * as sdk from '@rivalt/sdk';
 import {AccountExecution} from './account-execution.js';
 import {accountWorkerKeys} from './account-worker-state.js';
-import {settleAccounts} from './account-settlement-worker.js';
+import {settleAccounts,type SettlementSchedule} from './account-settlement-worker.js';
 import {accountRiskWork} from './account-risk-worker.js';
 import {defaultBatchSteps} from './account-default-batch.js';
 import {publishLiquidityFunding,repriceLiquidity,quoteLiquidity} from './liquidity-workers.js';
@@ -79,13 +79,9 @@ export class AccountRuntime extends AccountExecution {
     if(intervalSeconds<2n||intervalSeconds>5n)throw new Error('Local funding cadence must be 2–5 seconds');
     return publishLiquidityFunding(this,marketIndex,key,intervalSeconds);
   }
-  private settlementMaintenanceTurn=false;
-  async settle(key:Keypair,allowBackgroundPage=true){
-    const result=await settleAccounts(this,key,allowBackgroundPage,this.settlementMaintenanceTurn);
-    if(result.status==='queued' && result.reason!=='funded-account-loss'){
-      this.settlementMaintenanceTurn=result.reason==='certified-market-gain';
-    }
-    return result;
+  private readonly settlementSchedule: SettlementSchedule = { next: 'collection', collectionMarket: 0 };
+  settle(key: Keypair, allowBackgroundPage = true) {
+    return settleAccounts(this, key, allowBackgroundPage, this.settlementSchedule);
   }
   riskWork(key:Keypair,receiver?:Address){return accountRiskWork(this,key,receiver);}
 }

@@ -3,7 +3,7 @@
 ## Follow a deposit
 
 1. An owner creates a portfolio and registers a child margin-account PDA. The owner, portfolio index and child index identify actual accounts. The portfolio holds the namespace. Cash, positions, orders and obligations belong to the margin account.
-2. Financial activation inserts the root into paged membership and requires provisioned recovery capacity. A registered identity can exist without financial exposure. The local launcher provisions 128 Financial roots. This is distinct from the number of identities that can be registered.
+2. Financial activation inserts the root into paged membership and requires provisioned recovery capacity. On the local grouped-payout deployment, activation also needs a free row in the lane assigned by stable member ID modulo eight. Each lane has 125 rows. Vacating a different lane releases recovery capacity but does not create room in the assigned lane. A registered identity can exist without financial exposure. The local launcher provisions 128 Financial roots. This is distinct from the number of identities that can be registered.
 3. A signed deposit transfers the six-decimal collateral token into the venue vault and credits the selected root. A permitted transfer between two roots of the same owner changes their clearing balances. Only a token deposit or withdrawal moves SPL tokens across the vault boundary.
 4. Deactivation requires all obligations discharged. A retired child leaves a permanent tombstone. Discovery distinguishes registered, active Financial and retired roots, including their stable member IDs and activation generations.
 

@@ -62,11 +62,38 @@ python3 tests/performance/compare-router-load.py .local/load-control .local/load
 
 The control waits for the trader originals to drain before starting settlement. The active arm overlaps settlement with the scheduled offers. To reproduce the 24-wallet comparison, use 120 offers, 35 ms gaps, 100% BTC, rotating asks, one shallow maker lot, a three-lot order maximum, 2,100 ms refresh and seed 117. Compare independent wallet preparation with confirmed predecessors, then repeat the confirmed arm with maker 1 storage sponsorship. The [harness](../../tests/rpc-contract/router-load-rpc.ts) defines the environment knobs. [Observed results](performance.md) · [Exact comparison commands](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/local-development.md#match-trading-load-with-and-without-profit-settlement)
 
+### Closing a position through wallet withdrawal under load
+
+Use the bounded-entry test deployment and baseline artifacts described under [Fixed-width entry qualification](#fixed-width-entry-qualification). Run the two arms sequentially on the same machine with fresh supervised Surfpool and PostgreSQL instances.
+
+```bash
+source ops/env.sh
+export RIVALT_SETTLEMENT_PROBE=execution-router-bounded-entry-cashout
+export RIVALT_ROUTER_REVISION=b7e4458b57a3a9bbb0906929a936094c78393b47
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/bounded-entry/build-b7e4458b
+run=".local/close-to-wallet/$(date -u +%Y%m%dT%H%M%SZ)"
+for arm in trader worker; do
+  RIVALT_CASHOUT_ARM="$arm" RIVALT_RUN_DIR="$run/$arm" bash ops/scalable-settlement-smoke.sh || exit 1
+done
+python3 tests/performance/close-to-wallet-report.py "$run/trader" "$run/worker"
+```
+
+Each venue starts with a current BTC backing certificate and two independently funded traders holding 1,000 lots each. A signed collection funds 1.5 of their two equal claims before the close. Four other wallets submit 48 ten-lot BTC and ETH orders. Four waves of four start at 160 ms intervals, then 32 offers arrive at 750 ms intervals starting at 2.3 seconds. The report counts fills in slots strictly between each close and token withdrawal. In the trader arm each owner submits their own payout and can collect the remaining cash from the known debtor. In the worker arm the settlement service chooses what to collect and whom to pay. In both arms the owner withdraws the net profit once their entire claim is credited. Confirmed account reads time the stages. The harness separately checks signed originals over RPC and WebSocket and reconciles the final state and event history in fresh PostgreSQL. The report includes every designated creditor at each cutoff.
+
+To compare worker policies, run the `worker` arm at each revision with the same observation harness. The collection-first control used the tree of `257ba582` with only `tests/rpc-contract/close-to-wallet-rpc.ts` from `6434dafa`. The final worker ran at `efff1af2`. Compare the two completed run directories with `python3 tests/performance/close-to-wallet-report.py --workers BEFORE_RUN AFTER_RUN`. The worker arm continues observing after wallet exit until the 48 orders have completed and covered losses on both markets have drained, subject to the 120-second follow-up.
+
+To follow the ETH maker through its first complete backing check, use the same exports above and a fresh run directory. The worker keeps polling after the 48 offers, with a six-minute observation limit from the later BTC close. The report reads the original finalized fill events and reconciles the ETH spread to the maker’s payment and ending position.
+
+```bash
+RIVALT_CASHOUT_ARM=worker-eth-exit RIVALT_RUN_DIR="$run/worker-eth-exit" bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/cold-maker-exit.ts "$run/worker-eth-exit"
+```
+
 ## Fixed-width entry qualification
 
 First provision the four P56 baseline binaries in `.local/anchor-rc2/current` in the program checkout. On a new machine, build them at `657a255` with `bash ops/install-anchor-rc2.sh` and `bash ops/build.sh`, then make that artifact directory available in the harness checkout too. Both the builder and the signed smoke check verify the baseline hashes. [Pinned toolchain and P56 build recipe](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/operations/local-development.md#pinned-toolchain)
 
-Build from a clean checkout of program revision `b7e4458b57a3a9bbb0906929a936094c78393b47` with `RIVALT_ATTRIBUTION_PROFILE=bounded-entry-settlement` and `bash ops/build-profit-attribution.sh`. From the harness checkout set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that output directory and `RIVALT_ROUTER_REVISION` to the full program revision. Use a fresh `RIVALT_RUN_DIR` or leave it unset for each invocation.
+Build from a clean checkout of program revision `b7e4458b57a3a9bbb0906929a936094c78393b47` with `RIVALT_ATTRIBUTION_DIR=.local/bounded-entry/build-b7e4458b RIVALT_ATTRIBUTION_PROFILE=bounded-entry-settlement bash ops/build-profit-attribution.sh`. From the harness checkout set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that output directory and `RIVALT_ROUTER_REVISION` to the full program revision. Use a fresh `RIVALT_RUN_DIR` or leave it unset for each invocation.
 
 ```sh
 RIVALT_SETTLEMENT_PROBE=execution-router-bounded-entry bash ops/scalable-settlement-smoke.sh
@@ -160,6 +187,150 @@ originals and `wide-fills.json` under the ignored run directory.
 For wider atomic fills use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a`, build profile `wide-atomic-routes` and harness `c5d51f9c` or its compatible stack head. Run the same supervisor with probes `execution-router-multi-fills` and `execution-router-multi-width` in separate fresh directories. The first checks the fragmented fill, final-maker rollback and insurance allocation. The second checks four and eight real maker fills and journal replay.
 
 For the price-collar and aggregate-fee regressions, build `wide-atomic-routes` at `b0e1a43f22699bb67335011ef7acfb2edf48b0d2`. Set `RIVALT_ROUTER_REVISION` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that revision and its build directory. Run the supervisor once with `RIVALT_SETTLEMENT_PROBE=execution-router-multi-price-limits` and once with `execution-router-multi-width`, each in a fresh run directory. The first verifies signed fills and one-atom refusals. The second requires both widths to fill and replay.
+
+### Comparing debtor coverage during the cold ETH payout
+
+Build the local observation profile from clean clearing revision `ce9e8e9c82a4643abcd44135ed3a6214815ffb00` with the qualified base artifacts present. The program files also reproduce byte-for-byte from `3c7c6fe7`. Run the workload from the harness revision recorded in [the scorecard](qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout).
+
+```bash
+RIVALT_ATTRIBUTION_PROFILE=shadow-coverage \
+  RIVALT_ATTRIBUTION_DIR=.local/shadow-coverage/build-ce9e8e9c bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/shadow-coverage/build-ce9e8e9c
+export RIVALT_ROUTER_REVISION=ce9e8e9c82a4643abcd44135ed3a6214815ffb00
+RIVALT_SETTLEMENT_PROBE=execution-router-shadow-coverage RIVALT_CASHOUT_ARM=worker-eth-exit \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+Each run provisions fresh local services and writes its own `shadow-coverage.json` and `cashout-result.json` in the ignored run directory. The shadow harness withholds ETH certificate work until its funded cold observation has finalized in an earlier slot. Other settlement continues during this observation. The first file contains per-fill compute, writable accounts and claim-time observations. The second contains the certified payments, withdrawals and replay result.
+
+### Verifying mandatory coverage updates
+
+Build the candidate at clean revision `eb1cb0e4250e7c4532207f9d7db7dbad135979be` with the qualified base artifacts installed. Use a fresh directory for each run. From the current harness checkout, set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the resulting directory and run the signed membership and financial controls.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=maintained-coverage \
+  RIVALT_ATTRIBUTION_DIR=.local/maintained-coverage/build-eb1cb0e4 bash ops/build-profit-attribution.sh
+
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/maintained-coverage/build-eb1cb0e4
+export RIVALT_ROUTER_REVISION=eb1cb0e4250e7c4532207f9d7db7dbad135979be
+RIVALT_SETTLEMENT_PROBE=execution-router-maintained-coverage bash ops/scalable-settlement-smoke.sh
+```
+
+The run checks rollback on missing and substituted writable accounts, compares all lane rows with finalized margin accounts, and replays the financial journal into a fresh PostgreSQL database. The ignored run directory retains the signed originals, receipts and `maintained-coverage.json`.
+
+### Comparing market backing during a BTC price shock
+
+Build the local program at clean revision `8a239609af68ad063bf59bc4a554ae906cf5b70d` with the qualified base artifacts installed. From the harness checkout, point the supervisor at those binaries and a fresh run directory.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=verified-coverage \
+  RIVALT_ATTRIBUTION_DIR=.local/verified-coverage/build-8a239609 bash ops/build-profit-attribution.sh
+
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/verified-coverage/build-8a239609
+export RIVALT_ROUTER_REVISION=8a239609af68ad063bf59bc4a554ae906cf5b70d
+RIVALT_SETTLEMENT_PROBE=execution-router-verified-coverage bash ops/scalable-settlement-smoke.sh
+```
+
+The supervisor signs a cross trader’s fills and ETH loss collection. It compares the maintained backing result with margin-account arithmetic, the existing certificate and actual one-atom payment attempts as BTC falls and recovers. Signed receipts, the PostgreSQL replay and `verified-backing.json` stay in the ignored run directory.
+
+### Qualifying direct profit credits
+
+Build from clean program revision `984f18f3a4e1d6880926805bbf120f3cb1d41bfc` with the qualified base artifacts installed.
+
+```sh
+RIVALT_ATTRIBUTION_PROFILE=direct-closed-credit \
+  RIVALT_ATTRIBUTION_DIR=.local/direct-closed-credit/build-984f18f3 bash ops/build-profit-attribution.sh
+```
+
+From the qualification checkout, start fresh local services using those artifacts.
+
+```sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-984f18f3
+export RIVALT_ROUTER_REVISION=984f18f3a4e1d6880926805bbf120f3cb1d41bfc
+RIVALT_SETTLEMENT_PROBE=execution-router-direct-credit bash ops/scalable-settlement-smoke.sh
+```
+
+The signed workload uses separate fee payers for BTC fills and ETH credits. Its ignored run directory contains `direct-credit.json`, signed originals, RPC receipts and local database data. [Acceptance checks](validation.md)
+
+### Comparing automatic direct and certificate payouts
+
+Use one clean harness revision for both worker runs. Run the arms sequentially on fresh local banks and databases with the same slot setting, six traders, six makers and 48 scheduled orders. Both runs start with funded BTC settlement cash, a warm BTC certificate and a cold ETH market. The initial BTC certificate is part of the matched setup. Each arm records the work performed by its worker separately.
+
+```sh
+export RIVALT_CASHOUT_ARM=worker-eth-exit
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-984f18f3 \
+  RIVALT_ROUTER_REVISION=984f18f3a4e1d6880926805bbf120f3cb1d41bfc \
+  RIVALT_SETTLEMENT_PROBE=execution-router-direct-cashout \
+  RIVALT_RUN_DIR=.local/direct-closed-credit/worker-repeat bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/bounded-entry/build-b7e4458b \
+  RIVALT_ROUTER_REVISION=b7e4458b57a3a9bbb0906929a936094c78393b47 \
+  RIVALT_SETTLEMENT_PROBE=execution-router-bounded-entry-cashout \
+  RIVALT_RUN_DIR=.local/close-to-wallet/certificate-repeat bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/cold-maker-exit.ts .local/direct-closed-credit/worker-repeat
+node --import tsx tests/performance/cold-maker-exit.ts .local/close-to-wallet/certificate-repeat
+```
+
+Use new output directories for each repeat. The independent report reconstructs the maker’s spread from finalized fill events and checks it against loss collection, payment and the owner’s token withdrawal.
+
+### Direct payout at full coverage capacity
+
+Use the same pinned direct-credit artifacts as the cold-payout check. Run from a clean checkout and choose a fresh result directory.
+
+```sh
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-984f18f3 \
+  RIVALT_ROUTER_REVISION=984f18f3a4e1d6880926805bbf120f3cb1d41bfc \
+  RIVALT_SETTLEMENT_PROBE=execution-router-direct-capacity \
+  RIVALT_RUN_DIR=.local/direct-closed-credit/capacity-repeat bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/capacity-repeat
+```
+
+Six maker capitals and 122 trader margin accounts occupy the eight coverage lanes. Recovery storage has a separate 129th seat. The test signs the extra registration and activation attempts, a ten-lot ETH round trip and loss collection. It pays the same flat maker in two equal credits. Between payments, eight trader margin accounts open ETH longs, one per lane. The owner withdraws the full credited amount. It then opens vacancies in two lanes and retries the same registered ID. The fill-event reporter independently reconstructs the spread and checks each exposed account at its adverse ETH price. The ignored `capacity.json` records the selected finalized receipts, compute units, coverage work and SQL event count.
+
+### Direct payout at 1,000 financial members
+
+Build the separate clearing profile from clean program revision `213d394d748741ca60e1230a9bdbdab6596f86c9`. Use a fresh directory for the build. From the qualification checkout, run the signed workload and independent fill-event reader with the pinned artifacts.
+
+```sh
+# Program checkout
+RIVALT_ATTRIBUTION_PROFILE=thousand-member-credit \
+  RIVALT_ATTRIBUTION_DIR=.local/direct-closed-credit/build-213d394d bash ops/build-profit-attribution.sh
+
+# Qualification checkout with the build directory available at this path
+RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-213d394d \
+  RIVALT_ROUTER_REVISION=213d394d748741ca60e1230a9bdbdab6596f86c9 \
+  RIVALT_SETTLEMENT_PROBE=execution-router-thousand-member-credit \
+  RIVALT_RUN_DIR=.local/direct-closed-credit/thousand-repeat bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/thousand-repeat
+```
+
+The eight coverage lanes have 125 rows each. The matched credit attempts start at 400,000 CU with the default 32 KiB heap. After each finalized resource refusal, the harness checks rollback and retries the same payment. A heap fault advances the request from 32 to 128 to 256 KiB. Compute exhaustion raises the limit to 1,400,000 CU. Each retry changes one resource setting. `credit-attempts.json` records each finalized signature and resource setting. Provisioning and the other financial actions in this run request 128 KiB of heap.
+
+To compare the streamed reader, build the same `thousand-member-credit` profile from clean program revision `99165b413d6c3b3fe0540ab0756861394324b5d8` into `.local/direct-closed-credit/build-99165b41`. On the qualification checkout run the following commands. Each probe starts its own fresh venue and database.
+
+```sh
+export RIVALT_ROUTER_REVISION=99165b413d6c3b3fe0540ab0756861394324b5d8
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-99165b41
+RIVALT_SETTLEMENT_PROBE=execution-router-streamed-credit RIVALT_RUN_DIR=.local/direct-closed-credit/streamed-risk bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=execution-router-streamed-capacity RIVALT_RUN_DIR=.local/direct-closed-credit/streamed-capacity bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/streamed-capacity
+```
+
+### Incremental debtor groups on open markets
+
+Build from clearing revision `e4aff314f037b5101f2d036785020e371762c48a` with `RIVALT_ATTRIBUTION_PROFILE=grouped-credit`. Each probe needs a fresh output directory. From the qualification checkout, use the pinned binaries:
+
+```sh
+export RIVALT_ROUTER_REVISION=e4aff314f037b5101f2d036785020e371762c48a
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-grouped
+RIVALT_SETTLEMENT_PROBE=execution-router-grouped-credit RIVALT_RUN_DIR=.local/direct-closed-credit/grouped-risk bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=execution-router-grouped-capacity RIVALT_RUN_DIR=.local/direct-closed-credit/grouped-full bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/grouped-full
+RIVALT_SETTLEMENT_PROBE=execution-router-grouped-worker RIVALT_RUN_DIR=.local/direct-closed-credit/grouped-worker bash ops/scalable-settlement-smoke.sh
+# Repeat the independent debtor and token-delta checks using retained receipts:
+node --import tsx tests/performance/grouped-worker-credit.ts .local/direct-closed-credit/grouped-worker
+```
+
+The capacity workload creates the positions with signed BTC and ETH fills. It checks the margin roots against the lane bytes, recomputes every occupied group interval independently, and checks the actual payout instruction’s row count in the finalized receipt. The full-account audit runs outside the payment. The receipt reader independently reconstructs open positions and compute use. The separate control changes the BTC price while the cross debtor is idle and the ETH pool holds cash.
 
 ### Matched dollar comparison
 

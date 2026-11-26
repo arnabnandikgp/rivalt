@@ -103,7 +103,9 @@ export class AccountExecution {
       .some(discriminator=>sdk.hex(discriminator)===sdk.hex(instruction.data?.slice(0,8)??[])));
     const explicit=instructions.find(instruction=>instruction.programAddress==='ComputeBudget111111111111111111111111111111'&&instruction.data?.[0]===2);
     const computeUnitLimit=route?800_000:explicit?Buffer.from(explicit.data!).readUInt32LE(1):200_000;
-    return enqueueOperator(this,id,economic,payer,budget,authority,preflight,{computeUnitLimit,loadedAccountsDataSizeLimit:8*1024*1024,heapSize:sdk.inventoryBookHeap(this.deploymentSelection,economic)},inputs);
+    return enqueueOperator(this,id,economic,payer,budget,authority,preflight,{computeUnitLimit,loadedAccountsDataSizeLimit:8*1024*1024,heapSize:sdk.inventoryBookHeap(this.deploymentSelection,economic)},inputs,
+      this.deploymentSelection==='grouped-credit' && id.startsWith('keeper:gain:') && economic.some(ix=>
+        ix.programAddress===sdk.CLEARING_PROGRAM_ADDRESS && sdk.hex(ix.data?.slice(0,8)??[])===sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR)));
   }
   async execute() {await this.environment();await boundedDispatch(await this.queue.pending(),id=>this.queue.step(id));}
   async close() {await this.store.close();}

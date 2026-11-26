@@ -2,7 +2,8 @@ import {expect,it} from 'vitest';
 import {getAddressDecoder,getAddressEncoder,type Address,type ReadonlyUint8Array} from '@solana/kit';
 import * as sdk from '@rivalt/sdk';
 import {emptyLiquidity} from './liquidity-projection.js';
-import {accountFields} from './account-projection.js';
+import {requireMembershipCoverage} from './membership-reconcile.js';
+import {accountFields,type AccountState} from './account-projection.js';
 import {captureAccountReconciliation,reconcileAccountSnapshot} from './account-reconcile.js';
 import {ReconciliationAhead} from './reconciliation-progress.js';
 
@@ -116,4 +117,30 @@ it('reconciles the unchanged freeze source separately from partial plan ownershi
     expect(()=>reconcileFrozenSourceDuringApply({...header,...patch},expected)).toThrow(/Adopted frozen source/);
   const omitted=structuredClone(expected);delete omitted.rows['65'];
   expect(()=>reconcileFrozenSourceDuringApply(header,omitted)).toThrow(/Complete original cohort/);
+});
+
+it('requires every distinct registered page and every financial ancestor across sparse IDs',async()=>{
+  const [venue]=await sdk.deriveAccountVenue(Buffer.alloc(32,91)),program=sdk.CLEARING_PROGRAM_ADDRESS;
+  const state:{identities:Record<string,string>;roots:Record<string,{lifecycle:number}>;revisions:AccountState['revisions']}={
+    identities:{},roots:{},revisions:{}};
+
+  const expected=new Map<string,number>();
+  for(const [id,financial] of [[0n,true],[1n,true],[1024n,true],[1n<<40n,true],[1n<<46n,false]] as const){
+    const key='member-'+id;
+    state.identities[String(id)]=key;
+    state.roots[key]={lifecycle:financial?2:1};
+    const pageIndex=id/64n;
+    const [page]=await sdk.deriveMemberPage(venue,pageIndex,program);expected.set(page,20);
+    if(financial)for(let level=0;level<15;level++){
+      const [node]=await sdk.deriveMemberIndex(venue,level,pageIndex >> BigInt(4*(level+1)),program);
+      expected.set(node,19);
+    }
+  }
+  for(const [key,kind] of expected)state.revisions[key]={kind,revision:'1'};
+  await requireMembershipCoverage(state,venue,program);
+  for(const [key,kind] of expected){
+    delete state.revisions[key];
+    await expect(requireMembershipCoverage(state,venue,program)).rejects.toThrow(/coverage/);
+    state.revisions[key]={kind,revision:'1'};
+  }
 });

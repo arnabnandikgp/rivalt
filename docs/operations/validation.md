@@ -14,6 +14,35 @@ Use the smallest check that exercises the changed behavior. For a financial tran
 | User-facing trade and payout | Verify wallet review and guards, actual fills, fees, inventory, funded and unpaid balances, vault movement and fresh SQL replay. [Wallet workload](local-development.md#wallet-load-comparison) |
 | CI scope | [Workflow](../../.github/workflows/pr-checks.yml) and [scope selector](../../ops/ci-scope.py). Broad regression belongs in the relevant CI jobs. |
 
+For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
+build `cargo build --locked --offline -p financial-core --bin backing-driver`
+and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares
+native debtor-coverage decisions. Signed claim admission, authenticated account
+updates, wallet latency and fresh PostgreSQL replay remain integration gates.
+
+Run `cargo test --locked --offline -p financial-core --test payout_coverage -- --nocapture`
+for the [exact BTC/ETH comparison](qualification-scorecard.md#exact-btceth-debtor-coverage).
+It checks stale inputs after an admitted native fill, exact versus summary reads,
+and two independent ways of valuing the same cohort. The resulting row counts
+measure native financial work. The current clearing payout still requires its
+certificate. For signed exact-read costs, run
+`RIVALT_PROOF_SCOPE=coverage bash ops/default-proof-smoke.sh` on the local
+stack. This fixture meters the row predicate on selected program-owned accounts.
+It verifies the one-atom refusal, the repair and six finalized read outcomes
+against PostgreSQL. It does not execute a clearing payout.
+
+For the [cold ETH coverage comparison](qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout), run the [shadow workload](local-development.md#comparing-debtor-coverage-during-the-cold-eth-payout) on its pinned binary. Require a signed incomplete-cohort refusal, an early covered reading strictly before the first complete ETH certificate, a matching reading beside each payment, all three SPL withdrawals and fresh PostgreSQL replay. Count every post-bootstrap margin write and its atomic coverage update before using the CU or contention results.
+
+For the [clearing-maintained coverage build](local-development.md#verifying-mandatory-coverage-updates), start with an empty registry and include its lane in each instruction that changes a financial member. Require signed rollback of membership, SPL and two-party writes with an omitted or incorrect lane. Compare the surviving rows after leaving and rejoining, exercise a two-sided fill, and reconcile finalized history into fresh PostgreSQL. The focused native tests in `scoped_history::tests` cover dynamic account lists, stale row images and two members sharing a lane.
+
+For the [idle-debtor comparison](local-development.md#comparing-market-backing-during-a-btc-price-shock), independently check net lots, net fixed claims and gross debtor losses at current risk bounds. Compare against a freshly completed certificate and a signed payment attempt at each of the initial, adverse and recovered prices. Verify the debtor and lane bytes across each reprice, reject a mismatched ledger and an expired required source, admit an expired unrelated source, and replay finalized effects into a fresh database.
+
+For the [direct-credit workload](local-development.md#qualifying-direct-profit-credits), start with a fresh market and zero settlement certificates. Confirm a funded credit after a new member joins, repeat after an idle debtor recovers and a member leaves, and trace the credited profit through the owner’s SPL withdrawal. Refused requests must preserve the recipient, debtors, pool, checkpoints and coverage rows. Compare sequential and simultaneous fill/credit pairs with distinct fee payers, verify the overlapping locks from the actual transactions, and reconcile finalized effects through a fresh PostgreSQL replay.
+
+For the [coverage-capacity workload](local-development.md#direct-payout-at-full-coverage-capacity), fill all eight lanes with canonical financial accounts and provision an extra recovery seat. Compare all 128 margin roots with their lane records, carry the closed ETH spread from its debtor to the maker’s SPL wallet, and compare whole-transaction CU for equal credits with zero and 128 individually checked rows. Require clearing’s signed execution logs to identify each branch. A refused activation must preserve the writable financial and membership accounts. Retry the same identity after freeing a seat elsewhere and again after freeing a seat in its own lane. Reconcile the final membership and cash by replaying finalized transactions into fresh PostgreSQL.
+
+For the [1,000-member qualification](local-development.md#direct-payout-at-1000-financial-members), authenticate the separate binary and verify 125 rows in each lane against canonical roots. Start both equal credits at the ordinary 400,000 CU and 32 KiB heap. For every refused original, compare simulation with the finalized error, check the credit dependencies for rollback, and record its signature and fee. A diagnostic success qualifies its own resource settings. Trace the full funded spread into the owner’s SPL balance and independently reconcile the resulting membership in PostgreSQL. The streamed reader repeats both cases on the same account layout. Decode the signed account list and verify only the recipient’s coverage lane is writable. On the same binary, require the price-shock control to reach the individual debtor check, reject the backed-pool request with `covered=0`, and complete payment after recovery.
+
 On wide routing clearing `5e32c124` with harness `951adeea`, two ordinary
 100-lot buys used 405,464 CU (BTC, 16 makers, 27 loaded accounts) and
 445,226 CU (ETH, 32 makers, 32 loaded accounts). The later ETH quote from a
@@ -71,3 +100,14 @@ Harness `97523cdf` compared two fully prepared 50-wallet bursts on the same nati
 Offline harness `36b6b256` restored bank 406 from the `9369c98d` split ledger with Agave 4.2.2 and matched its original bank hash. In two Node processes the baseline and candidate decoders agreed with an independent byte decoder on all 655 bank accounts, produced the same serializable snapshot for all twelve wallets, and both detected a changed maker binary. This qualifies the profiling input and local decoder comparison. [Stage attribution, timings and scope](performance.md#wallet-snapshot-decoding-and-verification)
 
 The SDK default at `402a6c03` passed the same bank replay under Node and in two fresh Chrome processes. Browser coverage includes all 655 decoded payloads, twelve verified wallet states, malformed inputs and quarantine of a modified maker program on BTC and ETH. The measured SDK and harness are integrated at `cf61ad81`. [Browser timings and scope](performance.md#browser-wallet-verification-with-the-default-decoder)
+
+At `f873bfd1` the [close-to-wallet comparison](performance.md#from-a-profitable-close-to-tokens-in-the-wallet) verified four BTC closes and four owner-signed SPL exits across two bounded-entry venues. All 96 scheduled background orders filled. Every successful exit had competing fills in strictly intervening slots; finalized RPC/WS and PostgreSQL replay agreed on both venues. The observation began with a current BTC backing certificate and a partially funded pool.
+
+The [worker scheduling comparison](performance.md#scheduling-payouts-while-losses-keep-arriving) at clearing `b7e4458b` reconciled 558, 576 and 562 finalized events across the collection-first control, the work-class rotation and the creditor rotation. Each run verified both signed token exits, all 48 competing fills, the exact post-release collections on BTC and ETH and both closing pool balances.
+
+The [cold ETH exit](performance.md#first-eth-maker-payout-with-cold-backing) on harness `254404ef` checked all 48 original fills, the worker’s first complete ETH backing scan, signed payments and three owner-signed token exits. Fresh PostgreSQL replay reconciled 903 events. The ETH maker ended flat with its original 100 test collateral in margin and its 480-atom profit in its wallet.
+
+The [automatic direct-credit comparison](performance.md#automatic-payout-on-the-same-12-member-book) used harness `88625d28` against two pinned clearing binaries. Finalized originals matched websocket outcomes, each arm completed all three owner-signed token exits, and fresh PostgreSQL replay reconciled 550 events on direct clearing and 899 on the control. The independent fill-event report reconstructed the same 480-atom ETH maker spread on each. The direct worker credited it without an ETH certificate. This qualification covers twelve financial members.
+
+
+The [grouped open-book qualification](performance.md#payout-with-incremental-debtor-groups) ties the three signed payouts to decoded fill events, margin roots, source values, token exit and 4,413 replayed PostgreSQL events on harness `796a16b0`. Coverage maintenance and the exact fallback also have a separate idle cross-debtor shock control on `40691ed8`. Both used clearing `e4aff314`. The [stressed worker qualification](performance.md#automatic-wallet-payouts-on-a-stressed-1000-member-book) on `11cb1b55` matches queue originals to RPC/WS and both wallet exits to finalized token deltas. Independent fill and price receipts reproduce the idle debtor’s 9,138-atom shortfall and 6,702-atom recovered headroom. Fresh replay matched 3,583 events.
