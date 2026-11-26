@@ -1,7 +1,7 @@
 import {expect, it} from 'vitest';
 import {createHash} from 'node:crypto';
 import {getAddressDecoder, getBase58Decoder} from '@solana/kit';
-import {getAccountTransitionEventDecoder, getAccountTransitionEventEncoder, SHADOW_COVERAGE_ARTIFACT_SET} from '@rivalt/sdk';
+import {getAccountTransitionEventDecoder, getAccountTransitionEventEncoder, SHADOW_COVERAGE_ARTIFACT_SET, VERIFIED_COVERAGE_ARTIFACT_SET} from '@rivalt/sdk';
 import clearingIdl from '../../sdk/idl/clearing.json' with {type: 'json'};
 import {decodeAccountInvocations} from './account-events.js';
 import {decodeTransition, scopedInvocations} from './scoped-events.js';
@@ -170,5 +170,19 @@ it('binds coverage bookkeeping to the selected binary during independent block r
   expect(() => replay()).toThrow(/Unknown clearing entrypoint/);
   expect(replay(SHADOW_COVERAGE_ARTIFACT_SET)).toEqual([]);
   accounts.push(3);
+  expect(() => replay(SHADOW_COVERAGE_ARTIFACT_SET)).toThrow(/Invalid local coverage observation/);
+});
+
+it('uses the pinned account list for the read-only market backing check', () => {
+  const transaction = tx();
+  const discriminator = createHash('sha256').update('global:observe_coverage').digest().subarray(0,8);
+  const accounts = Array<number>(12).fill(1);
+  transaction.transaction.message.instructions = [{...call(),accounts,data:encoded(Buffer.concat([discriminator,Buffer.from([1])]))}];
+  transaction.meta.innerInstructions = [];
+  const replay = (artifactSet: string) => decodeAccountInvocations('original',transaction,0,{...binding,artifactSet});
+  expect(replay(SHADOW_COVERAGE_ARTIFACT_SET)).toEqual([]);
+  expect(() => replay(VERIFIED_COVERAGE_ARTIFACT_SET)).toThrow(/Invalid local coverage observation/);
+  accounts.push(0,2);
+  expect(replay(VERIFIED_COVERAGE_ARTIFACT_SET)).toEqual([]);
   expect(() => replay(SHADOW_COVERAGE_ARTIFACT_SET)).toThrow(/Invalid local coverage observation/);
 });

@@ -21,8 +21,8 @@ const searchWork = new Map([
 ].map(([name, accounts, bytes]) => [createHash('sha256').update('global:'+name).digest('hex').slice(0,16), {accounts, bytes}]));
 // Local shadow writes have no effect on financial roots. Recognize them only on the pinned observer build.
 const coverageWork = new Map([
-  ['open_coverage_lane', 7, 9], ['record_coverage_row', 2, 8], ['observe_coverage', 12, 9],
-].map(([name, accounts, bytes]) => [createHash('sha256').update('global:'+name).digest('hex').slice(0,16), {accounts, bytes}]));
+  ['open_coverage_lane', 7, 9, 7], ['record_coverage_row', 2, 8, 2], ['observe_coverage', 12, 9, 14],
+].map(([name, accounts, bytes, verifiedAccounts]) => [createHash('sha256').update('global:'+name).digest('hex').slice(0,16), {accounts, bytes, verifiedAccounts}]));
 const instructions = new Set(clearingIdl.instructions.map(instruction => Buffer.from(instruction.discriminator).toString('hex')));
 const payloadTags = new Set(clearingIdl.events.filter(event => event.name !== 'AccountTransition')
   .map(event => createHash('sha256').update(`event:${event.name}`).digest().subarray(0, 8).toString('hex')));
@@ -165,7 +165,7 @@ export function scopedInvocations(signature: string, transaction: any, transacti
       }
       const shadow = (binding.shadowCoverage || binding.verifiedCoverage) && coverageWork.get(current.bytes.subarray(0,8).toString('hex'));
       if (shadow) {
-        const accounts = binding.verifiedCoverage && shadow.accounts === 12 ? 14 : shadow.accounts;
+        const accounts = binding.verifiedCoverage ? shadow.verifiedAccounts : shadow.accounts;
         if (current.bytes.length !== shadow.bytes || current.accounts.length !== accounts)
           throw new Error('Invalid local coverage observation');
         return null;

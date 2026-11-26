@@ -146,3 +146,11 @@ A coverage read authenticates all eight lanes, checks their total population aga
 ## Market totals
 
 The originating market owns its insurance and protocol-fee share. Local lane fills record the full fee and changes in exposure at the designated registration. Consumers that need materialized totals checkpoint all required lanes first. Classifying fees respects the 25% split and the exact carry across fills. A capacity generation binds the reserved lot capacity per lane. Account-local guards still cover both counterparties, inventory, signed terms and aggregate solvency. [Fee accounting](../../crates/financial-core/src/fee_lanes.rs) · [Routing](../liquidity/routing.md)
+
+### Market backing from maintained rows
+
+The fresh local `verified-coverage` comparison reads the venue, registry, BTC and ETH markets, safety account, selected market ledger and eight coverage lanes. It requires active clearing, a nonempty complete financial membership and the canonical accounts. For the selected market, signed lots must sum to zero and the sum of all fixed claims must equal the settlement balance times the fixed-point scale. Each financial write maintains these sums in its own lane. The build adds 74 bytes to each lane for the two markets’ sums and position counts.
+
+Clearing then checks each debtor against current index bounds and held funding endpoints. An open selected-market position requires that market’s source. An account that could owe the selected market and holds an open sibling position also requires the sibling source. A flat ETH debtor with open BTC exposure can therefore lose ETH backing when BTC falls, even while the ETH settlement balance stays constant.
+
+A successful observation returns one for covered and zero for underfunded. Unavailable required sources, incomplete membership and failed conservation return errors. The result is a read at the executing slot. The comparison grants no reusable payout permission. The ordinary credit instruction still checks the existing certificate, closed-quantity ceiling, available cash and recipient health.

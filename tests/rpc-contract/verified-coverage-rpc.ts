@@ -39,8 +39,10 @@ try {
   function withLanes(ix: Instruction, keys: Address[]) {return appendCoverage(ix,keys.map(key=>members.get(key)!));}
   async function trade(market: 0|1, side: 0|1) {
     const maker = market === 0 ? setup.instances[0] : ethMaker;
-    const fill = await route({trader,actor:owner,marketIndex:market,side,makers:[maker],lots:[10n],marketLane:true,minimalMarkets:true});
-    await h.send('trade ten lots '+market+' '+side,[withLanes(fill,[trader,maker.capital])],[owner]);
+    const fill = await route({trader,actor:owner,marketIndex:market,side,makers:[maker],lots:[10n],marketLane:market===1,minimalMarkets:true});
+    // The BTC leg sees the trader’s ETH liability and takes the ordinary checkpointed route.
+    const prefix = market===0 ? (await withCheckpoints(fill)).slice(0,-1) : [];
+    await h.send('trade ten lots '+market+' '+side,[...prefix,withLanes(fill,[trader,maker.capital])],[owner]);
   }
   await trade(1,0);
   await trade(1,1);
@@ -54,7 +56,7 @@ try {
   assert.equal((await root(trader)).positions[1].virtualScaled,-30n*scale);
   await h.send('open legacy ETH certificate',[sdk.getInitializeMarketBackingInstruction({...common,payer,certificate,marketIndex:1})]);
   const samples = [];
-  async function measure(label: string, expected: boolean) {
+  async function measure(label: string, expected: boolean, target: 0|1 = 1) {
     await setup.sample();
     const book = await Promise.all(allRoots.map(root));
     const risks = await Promise.all([setup.marketState(0),setup.marketState(1)]);
@@ -63,19 +65,19 @@ try {
       assert.equal(market.oracle.premiumScaled,0n);
       assert.equal(market.fundingIndexScaled,0n);
     }
-    const pool = (await ledger()).settlement;
+    const pool = sdk.getMarketLedgerDecoder().decode((await h.read(ledgers[target]))!).settlement;
     let lots = 0n, fixed = 0n, bad = 0;
     for (const member of book) {
       const claims = member.positions.map((p,i) => {
         const intercept = p.virtualScaled + p.lots*p.fundingCheckpointScaled;
-        if (i===1) {lots += p.lots; fixed += intercept;}
+        if (i===target) {lots += p.lots; fixed += intercept;}
         return intercept + p.lots*(p.lots<0n ? risks[i].upper : risks[i].lower)*scale;
       });
       const loss = claims.reduce((sum,claim)=>sum+(claim<0n?-claim:0n),0n);
-      if (claims[1]<0n && member.cash*scale<loss) bad++;
+      if (claims[target]<0n && member.cash*scale<loss) bad++;
     }
     assert.equal(lots,0n); assert.equal(fixed,pool*scale); assert.equal(bad,expected?0:1);
-    await h.send(label,[observation(1)]);
+    await h.send(label,[observation(target)]);
     await flush();
     const check = checks.find(item=>item.label===label)!;
     const tx = await rpc.call('getTransaction',[check.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
@@ -120,6 +122,7 @@ try {
   await h.send('reject BTC ledger on ETH check',[observation(1,ledgers[0])],[],sdk.CLEARING_ERROR__EXIT_COHORT);
   samples.push({...await measure('initial ETH backing',true),legacySteps:await legacy('initial',true)});
   await move(40_000_000_000n);
+  samples.push(await measure('BTC backing during idle BTC loss',false,0));
   samples.push({...await measure('ETH backing during idle BTC loss',false),legacySteps:await legacy('loss',false)});
   await move(60_000_000_000n);
   samples.push({...await measure('ETH backing after BTC recovery',true),legacySteps:await legacy('recovery',true)});
@@ -131,6 +134,11 @@ try {
   await h.send('stale BTC blocks ETH backing',[observation(1)],[],sdk.CLEARING_ERROR__ORACLE_POLICY);
   await setup.qualify();
   samples.push(await measure('ETH backing after BTC source resumes',true));
+  const lastEth = await setup.marketState(1);
+  for (let rounds=0; await setup.slot()<lastEth.validUntil && await setup.now()<lastEth.oracle.sourceDeadline; rounds++) {
+    assert(rounds<25); await setup.sample([0]);
+  }
+  await h.quote('unrelated stale ETH admits flat ETH book with current BTC',observation(1),1n);
   const journal = await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   const replay = await journal.finish();
   writeFileSync(dir+'/verified-backing.json',json({program:build.revision,revision,samples,events:replay.events}));
