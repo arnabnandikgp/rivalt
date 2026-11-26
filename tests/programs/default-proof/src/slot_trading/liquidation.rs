@@ -134,3 +134,80 @@ pub fn transfer(
         receiver_fee: fee,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn surviving_short_protection_caps_its_reserve_then_releases_on_flat() {
+        let mut root = TradingMargin {
+            owner: Address::default(),
+            custody: Address::default(),
+            isolated: CROSS,
+            revision: 0,
+            cash: 10_000,
+            last_incarnation: 0,
+            order: RestingOrder::default(),
+            slots: Vec::new(),
+        };
+        let market = 7;
+        let windows = [MarketWindow {
+            market,
+            current: risk_engine::Risk {
+                lower: 100,
+                upper: 100,
+                funding: 0,
+            },
+            funding_low: 0,
+            funding_high: 0,
+        }];
+        let sell = FillLeg {
+            market,
+            side: 1,
+            lots: 10,
+            gross: 1000,
+        };
+        root.transition(&windows, RestingOrder::default(), Some(sell))
+            .unwrap();
+        let protection = RestingOrder {
+            terms: OrderTerms {
+                market,
+                side: 0,
+                lots: 10,
+                limit: 103,
+                fee_budget: 1,
+                expires: 100,
+                reduce_only: true,
+            },
+            remaining: 10,
+            fee_left: 1,
+            generation: root.position(market).unwrap().generation,
+            gross: 0,
+        };
+        root.transition(&windows, protection, None).unwrap();
+        let order = surviving_order(&root, 99, true);
+        let buy_back = FillLeg {
+            market,
+            side: 0,
+            lots: 8,
+            gross: 800,
+        };
+        let cash = root.transition(&windows, order, Some(buy_back)).unwrap();
+        // Two remaining shorts require 20 IM; two eligible buys reserve 2*3 + 1.
+        assert_eq!(cash.current_scaled, 27 * SCALE);
+        assert_eq!(root.order.remaining, 10);
+        assert_eq!(root.order.eligible(root.position(market).unwrap()), 2);
+        assert_eq!(surviving_order(&root, 100, false).remaining, 0);
+        let final_buy = FillLeg {
+            market,
+            side: 0,
+            lots: 2,
+            gross: 200,
+        };
+        root.transition(&windows, root.order, Some(final_buy))
+            .unwrap();
+        assert_eq!(root.order.remaining, 0);
+        assert!(root.slots.is_empty());
+    }
+}
