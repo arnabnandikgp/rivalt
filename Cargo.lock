@@ -422,6 +422,7 @@ dependencies = [
  "anchor-lang",
  "default-plan-selection",
  "financial-core",
+ "risk-engine",
  "solana-sha256-hasher",
 ]
 

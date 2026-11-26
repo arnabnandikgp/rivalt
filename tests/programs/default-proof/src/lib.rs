@@ -5,6 +5,8 @@ mod basis;
 mod coverage;
 use coverage::*;
 mod mirror;
+mod withdrawal;
+use withdrawal::*;
 use basis::*;
 use default_plan_selection as selection;
 use mirror::*;
@@ -51,6 +53,18 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    pub fn prepare_width_book(ctx: &mut Context<PrepareWidthBook>, width: u8) -> Result<()> {
+        withdrawal::prepare_book(ctx, width)
+    }
+
+    pub fn prepare_width_window(ctx: &mut Context<PrepareWidthWindow>, ordinal: u8) -> Result<()> {
+        withdrawal::prepare_window(ctx, ordinal)
+    }
+
+    pub fn check_width_exit(ctx: &mut Context<CheckWidthExit>, amount: u64) -> Result<u64> {
+        withdrawal::assess(ctx, amount)
+    }
 
     pub fn prepare_coverage(ctx: &mut Context<PrepareCoverage>, lane: u8) -> Result<()> {
         coverage::prepare(ctx, lane)
@@ -178,4 +192,5 @@ pub enum ProofError {
     StorageFunding,
     WrongMirrorWinner,
     CoverageDebt,
+    WithdrawalHealth,
 }

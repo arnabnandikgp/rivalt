@@ -8,6 +8,7 @@ use clearing_accounting::{
 };
 
 pub mod orders;
+pub mod withdrawal;
 
 pub const IM_BPS: u64 = 1_000;
 pub const MM_BPS: u64 = 500;
