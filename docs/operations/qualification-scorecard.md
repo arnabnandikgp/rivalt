@@ -17,7 +17,7 @@ Use the numbered findings across revisions. **Open** means a measured bottleneck
 | 7 | **Coordinated makers and sources — Open for benchmark coverage** | The fixture can refresh six maker publications and synthetic oracle sources together. The funding report uses published depth and omits hypothetical financial admission. [Fixture](../../tests/rpc-contract/liquidity-execution-setup.ts) · [Funding](../liquidity/funding.md) | Vary maker update timing separately from oracle updates. Measure executable spread, refusals and funding coverage. The combined price jump and maker outage belongs to the deferred exercise. |
 | 8 | **Willing liquidation capital — Deferred to the shock exercise** | The signed case sold ten lots to a maker. A consenting operator-owned receiver could take five more only after it was funded. [Liquidation qualification](validation.md#evidence-by-deployment) | Exercise several unhealthy accounts competing for limited receiver capital. Measure deficit after fees, remaining exposure and recovery time. Independent participation is a separate external gate. |
 | 9 | **Local costs versus sustainable participation — Open for cost reporting** | The wallet uses zero priority fee and the maker kit labels hedge cost as an assumption. The 119 fills earned 2,963 collateral atoms in aggregate taker fees before insurance. [Wallet budget](../liquidity/routing.md) · [Maker economics](../../packages/maker-kit/src/liquidity-economics.ts) | Report actual costs per role in lamports, retained fees after insurance, funded and unpaid maker P&L, and explicitly assumed hedge and priority-fee scenarios. Independent maker economics remain open. |
-| 10 | **Markets sharing a margin account — Open** | Local clearing has two fixed slots. A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | Connect persistent slots to changing orders, fills, sources and liquidation in the wider account. Wider default is a separate gate. |
+| 10 | **Markets sharing a margin account — Open** | Local clearing has two fixed slots. A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | [Signed orders and fills](#signed-orders-on-eight-markets) build eight positions from empty. Qualify liquidation with other markets still open, then integrate with the venue. Wider default is a separate gate. |
 | 11 | **Default across three or more markets — Open, blocks wider cross trading** | A BTC/ETH debtor has at most one other market where recovered proceeds can be applied. A third market creates competing destinations. [Three-market example](../clearing/risk-and-resolution.md#gate-for-a-third-cross-market) | Verify the approved proportional allocation before insurance in complete, order-independent settlement, including insurance and final cash exits. Finding 5 separately tracks the cost of running recovery. |
 
 ## Payout and cross-margin work
@@ -78,6 +78,27 @@ Each receiver holds a position in one shared market and a standing order in a ma
 On fixture and harness `c7325087`, all three maximum withdrawals and transfers landed. With two, four and eight sender markets, withdrawals used 17,900, 23,903 and 36,326 CU. Transfers used 14,161, 20,420 and 32,922 CU. The widest withdrawal loaded 17 accounts in 718 wire bytes. The widest transfer loaded 15 accounts in 652 bytes. These costs include the fixture risk checks and the withdrawal’s SPL CPI. They exclude live order matching and production source updates.
 
 The 52 signed transactions included 35 cash instructions. Twenty refusals covered one atom over each sender limit, missing or substituted markets on both operations, a foreign signer and a stale revision. Every refused operation preserved the roots, windows, wallet and vault byte-for-byte. Fresh PostgreSQL replay of finalized history matched 35 receipts, the six final funded balances and the 4,042 atoms remaining in the SPL vault. The held observations and exposures were synthetic. [Reproduction](validation.md#checks-by-change)
+
+### Signed orders on eight markets
+
+On fixture and harness `a10888c9`, one trader deposited 20,000 collateral atoms into an empty cross account. A separate local operator funded eight isolated maker accounts with 4,000 atoms each. The trader bought 100 lots in each of eight markets at 100 atoms per lot. Two fills of 25 and 75 lots completed the first order for two fee atoms in total. Nine markets were listed. An order in the ninth refused when all eight slots were occupied.
+
+After the trader signed a sell limit of 100, the source authority changed the first market’s index to 95 and the eighth to 98, and increased each cumulative funding index by one atom per lot. The update wrote neither counterparty’s margin account. The old revision and the old sell limit each refused. The trader signed a replacement at 98 and closed the eighth position in fills of 40 and 60 lots. The closed trader owed 300 atoms in that market. The isolated maker held the corresponding unpaid gain. The other seven trader positions stayed open.
+
+| Signed fixture operation | CU | Loaded accounts | Wire bytes |
+|---|---:|---:|---:|
+| Fill the second market | 16,545 | 9 | 533 |
+| Fill the fourth market | 24,249 | 11 | 599 |
+| Fill the eighth market | 40,257 | 15 | 731 |
+| Close 40 of 100 lots with eight occupied markets | 41,925 | 15 | 731 |
+| Close the remaining 60 lots | 38,433 | 15 | 731 |
+| Withdraw the trader’s surplus with seven open positions and one flat debt | 40,115 | 18 | 814 |
+
+After fees the trader held 19,982 funded atoms. The current cash floor was 6,950 initial margin plus 900 debt. The held funding endpoints required 2,300. Withdrawing 12,133 atoms refused, and 12,132 landed in the trader’s SPL account, leaving 7,850. The maker withdrew its 4,000 funded atoms and retained the 300-atom unpaid claim. A withdrawal of 4,001 refused.
+
+There were 72 finalized signed transactions including setup. All 13 expected refusals preserved both token wallets, vault, markets and margin accounts byte-for-byte. Separate PostgreSQL replay discovered 59 market, order, fill and custody receipts from finalized program history. It reconstructed all 11 fills and reconciled all nine margin accounts and nine market fee records. The vault held 35,868 atoms, comprising 35,850 funded balances, 17 retained fees and one insurance atom. The older two-, four- and eight-market custody trace also reconciled all 35 cash receipts and 4,042 remaining vault atoms on this revision.
+
+These measurements use synthetic index and funding updates, one resting order per trader and one consenting maker per fill. The profile omits production price discovery, routed maker execution and liquidation. [Account contract](../clearing/accounts.md#signed-orders-on-a-sparse-cross-account) · [Reproduction](validation.md#checks-by-change)
 
 ### BTC/ETH backing summary comparison
 

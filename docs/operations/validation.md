@@ -27,6 +27,8 @@ For market-slot retention, run `cargo test --locked --offline -p clearing-accoun
 
 For [funded custody at increasing widths](qualification-scorecard.md#funded-custody-across-persisted-markets), run `RIVALT_PROOF_SCOPE=slot-custody bash ops/default-proof-smoke.sh`. Derive both cash floors independently, enumerate every funding corner, verify the persisted funding checkpoints on both roots and compare wallet/vault token balances. Refusals must preserve the full account bytes. Rebuild cash changes in fresh PostgreSQL from finalized program history and reconcile them to each margin PDA and the vault.
 
+For [signed orders on a sparse account](../clearing/accounts.md#signed-orders-on-a-sparse-cross-account), run `RIVALT_PROOF_SCOPE=slot-orders bash ops/default-proof-smoke.sh`. Start with empty roots and real test-token deposits. Split one opening order and one reduce-only close across fills, reprice two markets between signing and execution, check both counterparties’ entries and claims, and withdraw the independently calculated maximum. Verify that an omitted sibling, a stale revision, a breached limit, insufficient maker cash and an extra atom of withdrawal all refuse without modifying financial state. Re-fetch finalized instructions into a fresh PostgreSQL database. Reconcile signed lot changes, funding-adjusted claims, cumulative fees, per-market insurance and SPL balances.
+
 For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
 build `cargo build --locked --offline -p financial-core --bin backing-driver`
 and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares
