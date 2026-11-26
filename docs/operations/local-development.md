@@ -315,6 +315,20 @@ RIVALT_SETTLEMENT_PROBE=execution-router-streamed-capacity RIVALT_RUN_DIR=.local
 node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/streamed-capacity
 ```
 
+### Incremental debtor groups on open markets
+
+Build from clearing revision `e4aff314f037b5101f2d036785020e371762c48a` with `RIVALT_ATTRIBUTION_PROFILE=grouped-credit`. Each probe needs a fresh output directory. From the qualification checkout, use the pinned binaries:
+
+```sh
+export RIVALT_ROUTER_REVISION=e4aff314f037b5101f2d036785020e371762c48a
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-grouped
+RIVALT_SETTLEMENT_PROBE=execution-router-grouped-credit RIVALT_RUN_DIR=.local/direct-closed-credit/grouped-risk bash ops/scalable-settlement-smoke.sh
+RIVALT_SETTLEMENT_PROBE=execution-router-grouped-capacity RIVALT_RUN_DIR=.local/direct-closed-credit/grouped-full bash ops/scalable-settlement-smoke.sh
+node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/grouped-full
+```
+
+The capacity workload creates the positions with signed BTC and ETH fills. It checks the margin roots against the lane bytes, recomputes every occupied group interval independently, and checks the actual payout instruction’s row count in the finalized receipt. The full-account audit runs outside the payment. The receipt reader independently reconstructs open positions and compute use. The separate control changes the BTC price while the cross debtor is idle and the ETH pool holds cash.
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.

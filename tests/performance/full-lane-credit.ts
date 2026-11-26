@@ -165,6 +165,18 @@ if (population === 1_000) {
   assert.equal(attemptsSeen.size,result.attempts.length);
   assert.deepEqual([...paidByCase.values()],expectedRows.map(()=>20n));
 }
-if (result.grouped) assert(denseSnapshot);
+if (result.grouped) {
+  assert(denseSnapshot);
+  // Eight forty-lot fills touch at most sixteen groups. The preceding round trip,
+  // collection and first credit can touch at most two additional groups.
+  const revisions = (book: {groupRevisions:string[][]})=>book.groupRevisions.flat().map(BigInt);
+  const first = revisions(result.fullBook), sparse = revisions(result.sparse), dense = revisions(result.dense);
+  assert.deepEqual([first.length,sparse.length,dense.length],[64,64,64]);
+  const sparseChanges=sparse.filter((value,index)=>value>first[index]).length;
+  assert(sparseChanges>=8 && sparseChanges<=18);
+  assert(sparse.every((value,index)=>value>=first[index]));
+  // Every group has a previously flat trader who opened a position in the dense workload.
+  assert(dense.every((value,index)=>value>sparse[index]));
+}
 console.log(json({denseSnapshot, sparseFillCu, creditAttemptFees: attempts.size ? payerFees : undefined, spread, occupiedLanes:lanes.size, exposedAccounts:margins.size, exposedTraderOwners:owners.size,
   lower:bounds[0], upper:bounds[1], minimumCoveredCashScaled:headroom.reduce((lowest,value) => value < lowest ? value : lowest)}));

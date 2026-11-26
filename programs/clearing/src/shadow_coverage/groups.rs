@@ -202,6 +202,42 @@ mod tests {
     }
 
     #[test]
+    fn an_unequal_cross_loss_only_reopens_its_own_group() {
+        let funded = CoverageMember {
+            id: 0,
+            cash: 100,
+            lots: [1, 1],
+            fixed: [-100 * UNIT; 2],
+        };
+        let mut bytes = vec![0u8; CoverageLane::SPACE];
+        let mut members = vec![funded; ROWS_PER_LANE];
+        // At prices 100/100 this account owes BTC 60 and ETH 0. Its cash of
+        // 100 covers the total, although the BTC loss exceeds its 50-atom budget.
+        members[34].fixed[0] = -160 * UNIT;
+        refresh(&mut bytes, &members, [true; COUNT]).unwrap();
+        for (price, expected_covered) in [(100, true), (70, false)] {
+            // BTC 70 / ETH 70 makes the respective debts 90 and 30.
+            let prices = [[price * UNIT; 2]; 2];
+            let mut examined = 0;
+            let mut covered = true;
+            for (index, rows) in members.chunks(WIDTH).enumerate() {
+                if read(&bytes, index, rows.len()).unwrap().covers(prices) {
+                    continue;
+                }
+                assert_eq!(index, 2);
+                for row in rows {
+                    examined += 1;
+                    covered &= financial_core::backing::projected::covers(
+                        row.cash, row.lots, row.fixed, 0, prices,
+                    )
+                    .unwrap();
+                }
+            }
+            assert_eq!((examined, covered), (16, expected_covered));
+        }
+    }
+
+    #[test]
     fn thousand_open_rows_and_rebuild_after_swap_removal() {
         let mut bytes = vec![0u8; CoverageLane::SPACE];
         for lane in 0..LANES {
