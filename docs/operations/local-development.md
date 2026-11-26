@@ -326,6 +326,8 @@ RIVALT_SETTLEMENT_PROBE=execution-router-grouped-credit RIVALT_RUN_DIR=.local/di
 RIVALT_SETTLEMENT_PROBE=execution-router-grouped-capacity RIVALT_RUN_DIR=.local/direct-closed-credit/grouped-full bash ops/scalable-settlement-smoke.sh
 node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/grouped-full
 RIVALT_SETTLEMENT_PROBE=execution-router-grouped-worker RIVALT_RUN_DIR=.local/direct-closed-credit/grouped-worker bash ops/scalable-settlement-smoke.sh
+# Repeat the independent debtor and token-delta checks using retained receipts:
+node --import tsx tests/performance/grouped-worker-credit.ts .local/direct-closed-credit/grouped-worker
 ```
 
 The capacity workload creates the positions with signed BTC and ETH fills. It checks the margin roots against the lane bytes, recomputes every occupied group interval independently, and checks the actual payout instruction’s row count in the finalized receipt. The full-account audit runs outside the payment. The receipt reader independently reconstructs open positions and compute use. The separate control changes the BTC price while the cross debtor is idle and the ETH pool holds cash.
