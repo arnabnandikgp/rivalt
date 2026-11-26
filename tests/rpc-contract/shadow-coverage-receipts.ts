@@ -65,18 +65,18 @@ export function checkShadowReceipts(blocks:FinalizedBlock[], invocations:Account
       const changed = writes.get(signature+'/'+index);
       if (changed?.length) {
         const copied:string[]=[];
-        for(let next=index+1; tags[next]===record; next++) copied.push(instructions[next].accounts[0]);
+        for(let next=index+1+Number(tags[index+1]===observe); tags[next]===record; next++) copied.push(instructions[next].accounts[0]);
         assert(changed.every(key=>copied.includes(key)), 'Financial write without an atomic mirror: '+signature);
         verifiedRootWrites += changed.length;
       }
       if (tags[index] === observe) {
         const verdict = meters![index].logs.join('');
         assert.match(verdict,/members=12 exact=\d+ covered=1$/);
-        const paid = tags[index+1]===sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR);
-        if(paid) assert.equal(ix.data[8],instructions[index+1].data[8]);
-        decisions.push({label,signature,slot:block.slot,target:ix.data[8],verdict,units:meters![index].units,paid});
+        const paid = tags[index-1]===sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR);
+        if(paid) assert.equal(ix.data[8],instructions[index-1].data[8]);
+        decisions.push({label,signature,slot:block.slot,target:ix.data[8],verdict,units:meters![index].units,transactionCU:tx.meta.computeUnitsConsumed,paid});
       }
-      if(tags[index] === sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR)) assert.equal(tags[index-1],observe);
+      if(tags[index] === sdk.hex(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR)) assert.equal(tags[index+1],observe);
     }
     if(fill) {
       const records=tags.flatMap((value,index)=>value===record?[index]:[]);

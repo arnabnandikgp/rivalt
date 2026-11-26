@@ -26,10 +26,10 @@ compile_error!("CU tracing requires the explicit bounded local qualification pro
 #[cfg(all(feature="aggregate-fee-qualification", feature="devnet-test-profile"))]
 compile_error!("aggregate fee qualification uses a fresh local deployment");
 
-// RC2 emits client account re-exports even for feature-gated instructions.
+#[cfg(feature = "shadow-coverage")]
 mod shadow_coverage;
-pub(crate) use shadow_coverage::{__client_accounts_observecoverage, __client_accounts_opencoveragelane, __client_accounts_recordcoveragerow};
-pub use shadow_coverage::{ObserveCoverage, OpenCoverageLane, RecordCoverageRow};
+#[cfg(feature = "shadow-coverage")]
+pub use shadow_coverage::*;
 pub mod constants;
 pub mod engine;
 pub mod error;
@@ -1374,7 +1374,14 @@ pub mod clearing {
     }
 }
 
-#[cfg(feature = "cpi")]
+// RC2 emits client context re-exports even when the instruction dispatch is feature-gated.
+#[cfg(not(feature = "shadow-coverage"))]
+mod shadow_coverage;
+#[cfg(not(feature = "shadow-coverage"))]
+pub(crate) use shadow_coverage::{
+    __client_accounts_observecoverage, __client_accounts_opencoveragelane, __client_accounts_recordcoveragerow,
+};
+#[cfg(all(feature = "cpi", not(feature = "shadow-coverage")))]
 pub(crate) use shadow_coverage::{
     __cpi_accounts_observecoverage, __cpi_accounts_opencoveragelane, __cpi_accounts_recordcoveragerow,
 };

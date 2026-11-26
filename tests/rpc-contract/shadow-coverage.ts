@@ -47,11 +47,14 @@ export async function startShadow(h: CanonicalHarness, setup: Awaited<ReturnType
     return instructions.flatMap(ix => {
       if (ix.programAddress !== sdk.CLEARING_PROGRAM_ADDRESS) return [ix];
       const keys = new Set(ix.accounts?.filter(meta => body.has(meta.address) && (meta.role & 1) !== 0).map(meta => meta.address));
-      const prefix: Instruction[] = [];
+      // Clearing requires contiguous market/ledger checkpoints immediately before the payout.
+      // Observe after the payment and before copying its new root. The lanes still contain
+      // the pre-payment book, and the instruction uses the same slot and checkpointed markets.
+      const observations: Instruction[] = [];
       if (Buffer.from(ix.data ?? []).subarray(0,8).equals(Buffer.from(sdk.PAY_ACCOUNT_GAIN_DISCRIMINATOR))) {
-        prefix.push(observe(sdk.getPayAccountGainInstructionDataDecoder().decode(ix.data!).marketIndex));
+        observations.push(observe(sdk.getPayAccountGainInstructionDataDecoder().decode(ix.data!).marketIndex));
       }
-      return [...prefix, ix, ...Array.from(keys, record)];
+      return [ix, ...observations, ...Array.from(keys, record)];
     });
   }
   // Decode all eight lane bodies independently against the current canonical roots in one RPC bank.

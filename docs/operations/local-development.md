@@ -188,6 +188,21 @@ For wider atomic fills use clearing `f0b8a599c24bde303d7ce9a8eb74bd1ffd86a85a`, 
 
 For the price-collar and aggregate-fee regressions, build `wide-atomic-routes` at `b0e1a43f22699bb67335011ef7acfb2edf48b0d2`. Set `RIVALT_ROUTER_REVISION` and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that revision and its build directory. Run the supervisor once with `RIVALT_SETTLEMENT_PROBE=execution-router-multi-price-limits` and once with `execution-router-multi-width`, each in a fresh run directory. The first verifies signed fills and one-atom refusals. The second requires both widths to fill and replay.
 
+### Comparing debtor coverage during the cold ETH payout
+
+Build the local observation profile from clean clearing revision `ce9e8e9c82a4643abcd44135ed3a6214815ffb00` with the qualified base artifacts present. The program files also reproduce byte-for-byte from `3c7c6fe7`. Run the workload from the harness revision recorded in [the scorecard](qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout).
+
+```bash
+RIVALT_ATTRIBUTION_PROFILE=shadow-coverage \
+  RIVALT_ATTRIBUTION_DIR=.local/shadow-coverage/build-ce9e8e9c bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/shadow-coverage/build-ce9e8e9c
+export RIVALT_ROUTER_REVISION=ce9e8e9c82a4643abcd44135ed3a6214815ffb00
+RIVALT_SETTLEMENT_PROBE=execution-router-shadow-coverage RIVALT_CASHOUT_ARM=worker-eth-exit \
+  bash ops/scalable-settlement-smoke.sh
+```
+
+Each run provisions fresh local services and writes its own `shadow-coverage.json` and `cashout-result.json` in the ignored run directory. The first file contains per-fill compute, writable accounts and claim-time observations. The second contains the certified payments, withdrawals and replay result.
+
 ### Matched dollar comparison
 
 Use the same `wide-atomic-routes` program revision and artifact directory as the wider-fill check. Use wallet and harness revision `0edb3064` to reproduce depth-aware shortlisting. The previous comparison used `22814361` on the same clearing program. Each cell starts a fresh BTC book and PostgreSQL database. From the repository root, with the pinned artifact paths configured, run the following sequentially. Set a fresh result directory for each comparison.

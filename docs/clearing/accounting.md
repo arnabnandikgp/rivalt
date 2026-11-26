@@ -133,6 +133,8 @@ The reference checks both the rollback counterexample and signed fractional accr
 
 The owner can withdraw available funded cash when the result passes whole-account admission. A payout from the market settlement pool requires a valid backing certificate. Exposure in either market may require fresh funding and index inputs.
 
+On the local `shadow-coverage` build, clearing can also record a member’s funded cash, signed lots and funding-adjusted claims in a separate PDA. Eight PDAs partition members by stable ID modulo eight. Each observation prices these rows against the clearing program’s current BTC/ETH risk and held-funding endpoints. The comparison fixture updates every affected member in the financial transaction, checks bootstrap completeness against the registry and audits writes against finalized history. A change in financial membership invalidates the fixture’s observations. The certificate remains the sole backing authority for payouts. [Qualification and scope](../operations/qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout)
+
 ## Market totals
 
 The originating market owns its insurance and protocol-fee share. Local lane fills record the full fee and changes in exposure at the designated registration. Consumers that need materialized totals checkpoint all required lanes first. Classifying fees respects the 25% split and the exact carry across fills. A capacity generation binds the reserved lot capacity per lane. Account-local guards still cover both counterparties, inventory, signed terms and aggregate solvency. [Fee accounting](../../crates/financial-core/src/fee_lanes.rs) · [Routing](../liquidity/routing.md)
