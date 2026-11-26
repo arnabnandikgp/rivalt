@@ -25,6 +25,8 @@ independent amount, and rebuild the receipt table from finalized program history
 
 For market-slot retention, run `cargo test --locked --offline -p clearing-accounting --features surviving-profit --test market_slots`. For signed replay, select `RIVALT_SETTLEMENT_PROBE=execution-router-grouped-slots` with the [pinned grouped-credit build](local-development.md#incremental-debtor-groups-on-open-markets) and run `bash ops/scalable-settlement-smoke.sh` with a new run directory. Require the same sparse bindings through live protection orders and both signs of flat claims, signed rollback on each omitted ETH dependency, release after final discharge, stale-reference rejection after reuse, a matching SPL wallet delta and fresh PostgreSQL reconciliation. Only the native test varies the market count.
 
+For [funded custody at increasing widths](qualification-scorecard.md#funded-custody-across-persisted-markets), run `RIVALT_PROOF_SCOPE=slot-custody bash ops/default-proof-smoke.sh`. Derive both cash floors independently, enumerate every funding corner, verify the persisted funding checkpoints on both roots and compare wallet/vault token balances. Refusals must preserve the full account bytes. Rebuild cash changes in fresh PostgreSQL from finalized program history and reconcile them to each margin PDA and the vault.
+
 For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
 build `cargo build --locked --offline -p financial-core --bin backing-driver`
 and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares

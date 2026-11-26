@@ -71,11 +71,7 @@ contributes zero. This lets one pass over the occupied markets calculate both
 cash requirements. The argument depends on the current additive risk rule and
 independent windows.
 
-The candidate takes canonical slots in market-ID order. It checks the supplied
-windows against each open position. Clearing must still derive the complete
-slot list from account state, authenticate price and funding inputs, refresh
-reservations including order-only markets, and enforce authority and custody.
-The signed width fixture has synthetic inputs and read-only accounts.
+The risk kernel takes occupied slots in market-ID order. Its funding windows cover every open position. The original signed width comparison uses read-only synthetic inputs. The [funded custody qualification](accounts.md#funded-custody-qualification) derives the required observations from persisted slots on both roots, including order-only markets, before applying the same kernel and moving test collateral. The production oracle adapter and general order lifecycle still need wider integration.
 [Risk calculation](../../crates/risk-engine/src/withdrawal.rs) · [Qualification](../operations/qualification-scorecard.md#withdrawal-risk-at-two-four-and-eight-markets)
 
 ## Orders and protection
