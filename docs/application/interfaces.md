@@ -112,3 +112,7 @@ shared. A payment becomes funded account cash only when clearing applies it.
 Show pending, confirmed and finalized separately. Display the fill only when its transaction executes successfully.
 
 The operator API exposes status and economics separately from the wallet. A healthy worker heartbeat provides no evidence that a quoted order can clear. The normal wallet submits over RPC. Journal-backed submission, workers and replay are described in [durability](durability.md).
+
+### Direct local profit credit
+
+For the `direct-closed-credit` deployment, pass the decoded recipient margin account, selected market, amount, actor and pinned artifact set to `directClosedProfitCredit`. The SDK derives the recipient from its portfolio and subaccount, includes both markets, selects the ledger dependencies and marks the recipient’s coverage lane writable. Sign and send all returned instructions together. Anyone can pay the transaction fee. Credited cash belongs to the margin account owner. [Clearing contract](../clearing/accounting.md#atomic-credit-of-closed-profit)

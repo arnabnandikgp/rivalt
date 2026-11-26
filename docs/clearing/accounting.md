@@ -131,7 +131,7 @@ already-applied debit. Materialize every consumed relevant market prefix in the
 same transaction. New valid negative premiums can legitimately lower the index.
 The reference checks both the rollback counterexample and signed fractional accrual.
 
-The owner can withdraw available funded cash when the result passes whole-account admission. A payout from the market settlement pool requires a valid backing certificate. Exposure in either market may require fresh funding and index inputs.
+The owner can withdraw available funded cash when the result passes whole-account admission. The default deployment requires a valid backing certificate for payment from the market settlement pool. Exposure in either market may require fresh funding and index inputs.
 
 On the local `shadow-coverage` build, clearing can also record a member’s funded cash, signed lots and funding-adjusted claims in a separate PDA. Eight PDAs partition members by stable ID modulo eight. Each observation prices these rows against the clearing program’s current BTC/ETH risk and held-funding endpoints. The comparison fixture updates every affected member in the financial transaction, checks bootstrap completeness against the registry and audits writes against finalized history. A change in financial membership invalidates the fixture’s observations. The certificate remains the sole backing authority for payouts. [Qualification and scope](../operations/qualification-scorecard.md#clearing-owned-coverage-during-a-cold-eth-payout)
 
@@ -154,3 +154,9 @@ The fresh local `verified-coverage` comparison reads the venue, registry, BTC an
 Clearing then checks each debtor against current index bounds and held funding endpoints. An open selected-market position requires that market’s source. An account that could owe the selected market and holds an open sibling position also requires the sibling source. A flat ETH debtor with open BTC exposure can therefore lose ETH backing when BTC falls, even while the ETH settlement balance stays constant.
 
 A successful observation returns one for covered and zero for underfunded. Unavailable required sources, incomplete membership and failed conservation return errors. The result is a read at the executing slot. The comparison grants no reusable payout permission. The ordinary credit instruction still checks the existing certificate, closed-quantity ceiling, available cash and recipient health.
+
+### Atomic credit of closed profit
+
+On the fresh local `direct-closed-credit` build, anyone can submit `pay_account_gain` with an absent certificate and all eight coverage lanes in canonical order. The recipient must be a financial member. Clearing reads both markets, authenticates the current member set and verifies market backing against the settlement balance at execution. The recipient’s lane must be writable. The remaining seven lanes can be read-only.
+
+The same instruction checks the closed-quantity entitlement, available settlement cash and the recipient’s post-payment margin. It debits the market pool, reduces the unpaid claim, credits the recipient’s funded cash and updates its coverage row. Failure rolls back the entire transaction, including its market and fee checkpoints. Cash enters the recipient’s own margin account. Only its authorized owner can withdraw it to a token account.

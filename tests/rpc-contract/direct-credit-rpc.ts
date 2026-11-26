@@ -97,6 +97,7 @@ try {
   await setup.sample();
   await refuse('request exceeds funded pool',await credit(11n),sdk.CLEARING_ERROR__AMOUNT);
   const cold=await credit(1n), metas=cold.at(-1)!.accounts!, suffix=metas.slice(-8);
+  await refuse('credit requires its market checkpoints',[cold.at(-1)!],sdk.CLEARING_ERROR__MARKET_CHECKPOINT);
   assert.deepEqual(suffix.map(meta=>meta.address),lanes);
   assert.deepEqual(suffix.filter(meta=>meta.role===AccountRole.WRITABLE).map(meta=>meta.address),[members.get(recipient)]);
   await refuse('omit one coverage lane',replaceLast(cold,metas.slice(0,-1)),sdk.CLEARING_ERROR__EXIT_COHORT);
