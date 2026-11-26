@@ -40,6 +40,11 @@ export function checkShadowReceipts(blocks:FinalizedBlock[], invocations:Account
   for (const invocation of invocations) writes.set(invocation.signature+'/'+invocation.outer,
     invocation.writes.filter(write=>write.kind===5).map(write=>write.account).sort());
   const fills = [], decisions = [];
+  const completedEth = invocations.flatMap(invocation => invocation.events.filter(event =>
+    event.type === 'AccountBackingChangedV3' && event.data.state.marketIndex === 1 && event.data.state.complete)
+    .map(() => Number(invocation.slot)));
+  assert(completedEth.length);
+  const firstCompleteEthSlot = Math.min(...completedEth);
   let seeded = false, verifiedRootWrites = 0;
   for (const block of blocks) for (const {tx,signature} of block.transactions) {
     if (tx.meta.err !== null) continue;
@@ -84,19 +89,21 @@ export function checkShadowReceipts(blocks:FinalizedBlock[], invocations:Account
       const writable=keys.filter((_,index)=>index<header.numRequiredSignatures
         ? index<header.numRequiredSignatures-header.numReadonlySignedAccounts : index<keys.length-header.numReadonlyUnsignedAccounts);
       assert(lanes.every(key=>writable.includes(key)));
+      const priorKeys = keys.filter(key=>!lanes.includes(key));
       fills.push({label,signature,slot:block.slot,totalCU:tx.meta.computeUnitsConsumed,addedCU,
-        otherCU:tx.meta.computeUnitsConsumed-addedCU,addedWritable:lanes,priorWritable:writable.filter(key=>!lanes.includes(key))});
+        otherCU:tx.meta.computeUnitsConsumed-addedCU,addedWritable:lanes,priorKeys,priorWritable:writable.filter(key=>!lanes.includes(key))});
     }
   }
   assert.equal(fills.length,52);
-  assert(decisions.some(row=>row.label==='observe funded ETH before first certificate'));
+  assert(decisions.some(row=>row.label==='observe funded ETH before first certificate' && row.slot < firstCompleteEthSlot),
+    'Require a finalized cold observation strictly before the first complete ETH certificate');
   assert(decisions.some(row=>row.paid && row.target===1));
   const traffic = fills.filter(row=>row.label!.startsWith('traffic '));
   let disjointOriginal=0, newConflicts=0;
   for(const [index,left] of traffic.entries()) for(const right of traffic.slice(index+1)) {
-    if(left.priorWritable.some(key=>right.priorWritable.includes(key))) continue;
+    if(left.priorWritable.some(key=>right.priorKeys.includes(key)) || right.priorWritable.some(key=>left.priorKeys.includes(key))) continue;
     disjointOriginal++;
     if(left.addedWritable.some(key=>right.addedWritable.includes(key))) newConflicts++;
   }
-  return {fills,decisions,verifiedRootWrites,disjointOriginal,newConflicts};
+  return {fills,decisions,firstCompleteEthSlot,verifiedRootWrites,disjointOriginal,newConflicts};
 }

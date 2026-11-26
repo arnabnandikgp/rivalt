@@ -18,7 +18,7 @@ export async function openSettlementJournal(rpc:WireRpc,setup:Pick<Awaited<Retur
   const {artifactSet, artifacts: candidates} = build;
   await new sdk.ArtifactVerifier(rpc,sdk.LIQUIDITY_ARTIFACTS.map(artifact=>({...artifact,...candidates[artifact.name]}))).verify(setup.payer.address);
   const anchor=await initializationSignature(rpc,signatures,setup.deployment.eventAuthority);
-  const history=()=>fetchScopedHistory(rpc,anchor,setup.deployment.eventAuthority,setup.venue,setup.domain.toString('hex'),artifactSet===sdk.SHADOW_COVERAGE_ARTIFACT_SET);
+  const history=()=>fetchScopedHistory(rpc,anchor,setup.deployment.eventAuthority,setup.venue,setup.domain.toString('hex'),artifactSet);
   const initial=await history(),binding={...await journalBinding(rpc,anchor,initial,setup.venue,setup.domain.toString('hex')),artifactSet};
   let store:LiquidityStore|undefined;const captures:any[]=[];
   const open=async()=>{const result=new LiquidityStore(databaseUrl,'p55b2-application');await result.migrate();await result.bind(binding);return result;};

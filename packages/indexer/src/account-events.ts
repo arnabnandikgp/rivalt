@@ -75,8 +75,8 @@ export function eventDomain(signature:string,transaction:any,authority:string,ve
   return [...domains][0];
 }
 export function decodeAccountInvocations(signature:string,transaction:any,transactionIndex:number,
-  binding:{program:string;eventAuthority:string;venue:string;domain:string;shadowCoverage?:boolean}):AccountInvocation[] {
-  return scopedInvocations(signature,transaction,transactionIndex,binding).map(invocation=>{
+  binding:{program:string;eventAuthority:string;venue:string;domain:string;artifactSet?:string}):AccountInvocation[] {
+  return scopedInvocations(signature,transaction,transactionIndex,{...binding,shadowCoverage:binding.artifactSet===sdk.SHADOW_COVERAGE_ARTIFACT_SET}).map(invocation=>{
     const events:AccountEvent[]=invocation.payloads.map(({inner,bytes},ordinal)=>{
       const payload=Buffer.from(bytes,'base64');
       const entry=decoders.find(([,tag])=>payload.subarray(0,8).equals(Buffer.from(tag)));

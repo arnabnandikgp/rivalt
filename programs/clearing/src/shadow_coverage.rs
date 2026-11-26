@@ -11,7 +11,7 @@ const LANES: usize = 8;
 // Rent and serialization bound for this twelve-member experiment, not an admission limit.
 const ROWS_PER_LANE: usize = 16;
 
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy)]
+#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Clone, Copy, IdlType)]
 pub struct CoverageMember {
     pub id: u64,
     pub cash: u64,
