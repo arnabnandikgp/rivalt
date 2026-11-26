@@ -40,16 +40,31 @@ export async function openSettlementJournal(rpc:WireRpc,setup:Pick<Awaited<Retur
       writeFileSync(`${process.env.RIVALT_RUN_DIR}/application-sql-checkpoints.json`,json(captures));
     } finally {await store.close();store=undefined;}
   };
-  const finish=async(auditTransactions?: (blocks: FinalizedBlock[], invocations: AccountInvocation[]) => void)=>{
+  const finish=async(auditTransactions?: (blocks: FinalizedBlock[], invocations: AccountInvocation[]) => void, maxBlocksPerCommit?:number)=>{
+    const commit=async(target:LiquidityStore, fetched:Awaited<ReturnType<typeof history>>, checkpoint:string|null) => {
+      if (maxBlocksPerCommit === undefined) return target.commit(fetched.blocks,fetched.invocations,fetched.head,checkpoint);
+      // Full-population qualifications start with an empty journal. Each commit
+      // keeps whole slots and authenticates its parent against the previous fence.
+      assert.equal(checkpoint,null);
+      assert(Number.isSafeInteger(maxBlocksPerCommit) && maxBlocksPerCommit>0);
+      for (let start=0; start<fetched.blocks.length; start+=maxBlocksPerCommit) {
+        const blocks=fetched.blocks.slice(start,start+maxBlocksPerCommit);
+        const firstSlot=blocks[0].slot, last=blocks[blocks.length-1];
+        const invocations=fetched.invocations.filter(row=>Number(row.slot)>=firstSlot && Number(row.slot)<=last.slot);
+        await target.commit(blocks,invocations,{slot:last.slot,blockhash:last.blockhash},checkpoint);
+        checkpoint=last.blockhash;
+      }
+      assert.equal(checkpoint,fetched.head.blockhash);
+    };
     store=await open();let replay:LiquidityStore|undefined;
     try {
       const snapshot=await store.snapshot(),current=await history();
       // Final replay refetches all original RPC bytes into a fresh database.
-      await store.commit(current.blocks,current.invocations,current.head,snapshot.checkpoint);
+      await commit(store,current,snapshot.checkpoint);
       const final=await store.snapshot();await store.pool.query('CREATE DATABASE rivalt_p55b2_replay');
       const replayUrl=new URL(databaseUrl);replayUrl.pathname='/rivalt_p55b2_replay';
       replay=new LiquidityStore(replayUrl.toString(),'p55b2-replay');await replay.migrate();await replay.bind(binding);
-      const refetched=await history();auditTransactions?.(refetched.blocks, refetched.invocations);await replay.commit(refetched.blocks,refetched.invocations,refetched.head,null);
+      const refetched=await history();auditTransactions?.(refetched.blocks, refetched.invocations);await commit(replay,refetched,null);
       const reproduced=await replay.snapshot();assert.deepEqual(reproduced.state,final.state);
       const rows=async(value:LiquidityStore)=>(await value.pool.query('SELECT sequence::text,signature,bytes FROM events WHERE run_id=$1 ORDER BY sequence',[value.runId])).rows;
       const events=await rows(store);assert.deepEqual(await rows(replay),events);

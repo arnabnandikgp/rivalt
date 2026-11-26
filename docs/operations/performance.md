@@ -353,7 +353,27 @@ Between credits, eight margin accounts with two trader authorities bought 40 ETH
 
 The 129th identity registered. Its attempt to activate in a full lane rolled back in 53,666 CU. After an account left a different lane, a second attempt at 127 active members still rolled back. Freeing a seat in the candidate’s own lane allowed that same identity to activate in 63,815 CU. Finalized membership, margin cash and the token exit reconciled in fresh PostgreSQL replay (499 events). An earlier quiet run on harness `96cacd73` paid all 40 atoms in one 161,539-CU transaction and replayed 483 events.
 
-The paired run used 50 ms local slots, zero priority fees and a fixed synthetic price. It measures payout execution on a full book with ten open positions. Saturated fill traffic and a 1,000-member payout remain open.
+The paired run used 50 ms local slots, zero priority fees and a fixed synthetic price. It measures payout execution on a full book with ten open positions. The larger population is measured below.
+
+### Direct payout at 1,000 financial members
+
+On clearing `213d394d` and harness `930011ed`, 994 funded trader margin accounts and six internal maker capitals occupied eight lanes of 125 members. A ten-lot ETH round trip earned a flat maker 40 collateral atoms. Clearing collected the trader’s 40-atom loss before paying two equal 20-atom credits. Eight other margin accounts opened 40-lot ETH longs between credits, one per lane against two makers. Those ten open positions made clearing check all 1,000 rows. [Reproduction](local-development.md#direct-payout-at-1000-financial-members)
+
+| Book | Requested CU | Heap | Finalized outcome | Transaction CU reported |
+|---|---:|---:|---|---:|
+| All flat | 400,000 | 32 KiB | Heap exhausted | 400,000 |
+| All flat | 400,000 | 128 KiB | Backing verified, then heap exhausted | 400,000 |
+| All flat | 400,000 | 256 KiB | Paid 20 atoms, zero individual solvency checks | **204,674** |
+| Open ETH positions in every lane | 400,000 | 32 KiB | Heap exhausted | 400,000 |
+| Open ETH positions in every lane | 400,000 | 128 KiB | Compute exhausted | 400,000 |
+| Open ETH positions in every lane | 1,400,000 | 128 KiB | Backing verified, then heap exhausted | 1,400,000 |
+| Open ETH positions in every lane | 1,400,000 | 256 KiB | Paid 20 atoms, 1,000 individual solvency checks | **964,970** |
+
+All seven signed payments used 25 transaction accounts, six writable including the fee payer. Each used 1,029 wire bytes with the default heap or 1,037 with an explicit request. All five refusals rolled back and cost 5,000 lamports apiece. The two successful credits also cost 5,000 each, for 35,000 lamports across the seven attempts at zero priority fee. Surfpool reported the full requested compute limit after a fatal heap fault. Only the successful rows measure the cost to complete a payment. Both succeeded at the largest tested heap. The run did not locate the minimum between 128 and 256 KiB.
+
+Collecting the loss used 136,890 CU. The maker owner then withdrew all 40 funded atoms in 149,984 CU, with two signatures and a 10,000-lamport fee. The wallet gained the same 40 atoms the vault released. No certificate was created. There were 287 local slots from the maker going flat to the withdrawal (14 seconds by block timestamps). This interval includes deliberate retries, intervening fills and refreshed sources. It measures this scripted run only.
+
+Each lane reserves 8,400 bytes compared with 1,424 at 128 members. The backing read decodes every lane’s member list even when a summary proves solvency. The final coverage update also decodes the supplied lanes. Both passes matter when sizing heap. Sustained concurrent fills, automatic worker delivery on the larger build and wider cross-market accounts require separate qualification. [Backing read](../../programs/clearing/src/shadow_coverage.rs) · [Coverage update](../../programs/clearing/src/shadow_coverage/maintenance.rs)
 
 ## Funding, costs and comparisons
 

@@ -232,12 +232,14 @@ try {
     assert(receipt.meta.logMessages.includes('Program log: '+message), label+' expected '+message);
     coverageLogs.push(message);
   }
+  const payments = {revision, program:build.revision, fullBook, finalBook, population, recoveryCapacity:population+1,
+    attempts:results, credited:spread, withdrawn:spread, coverageLogs, measured};
+  writeFileSync(dir+'/capacity-financial.json',json(payments));
   const journal = await openSettlementJournal(rpc, setup, checks.map(row => String(row.signature)), build);
-  const replay = await journal.finish();
+  const replay = await journal.finish(undefined, large ? 128 : undefined);
   assert.equal(replay.state.members.length, finalBook.members);
   assert.equal(BigInt(replay.state.roots[maker.capital].cash), initialCash);
-  writeFileSync(dir+'/capacity.json', json({revision, program:build.revision, fullBook, finalBook,
-    population, recoveryCapacity:population+1, attempts:results, credited:spread, withdrawn:spread, coverageLogs, measured, events:replay.events}));
+  writeFileSync(dir+'/capacity.json', json({...payments, events:replay.events}));
   console.log('Capacity run verified', coverageLogs, replay.events, 'replayed events.');
 } finally {
   await ws.close();

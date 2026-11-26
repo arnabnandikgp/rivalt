@@ -303,7 +303,7 @@ RIVALT_SETTLEMENT_ARTIFACT_DIR=.local/direct-closed-credit/build-213d394d \
 node --import tsx tests/performance/full-lane-credit.ts .local/direct-closed-credit/thousand-repeat
 ```
 
-The eight coverage lanes have 125 rows each. The matched credit attempts start at 400,000 CU with the default 32 KiB heap. After an observed resource refusal, the harness checks rollback and retries the same entitlement with a larger heap or compute limit as required. `credit-attempts.json` records each finalized signature and resource setting. Provisioning and the other financial actions in this run request 128 KiB of heap.
+The eight coverage lanes have 125 rows each. The matched credit attempts start at 400,000 CU with the default 32 KiB heap. After each finalized resource refusal, the harness checks rollback and retries the same payment. A heap fault advances the request from 32 to 128 to 256 KiB. Compute exhaustion raises the limit to 1,400,000 CU. Each retry changes one resource setting. `credit-attempts.json` records each finalized signature and resource setting. Provisioning and the other financial actions in this run request 128 KiB of heap.
 
 ### Matched dollar comparison
 
