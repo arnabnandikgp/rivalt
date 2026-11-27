@@ -153,6 +153,8 @@ def check_domains():
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'coverage-lane'})
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) |
         {'market-listing', 'listed-symbol', 'listing-index', '/USD', 'BTC', 'ETH'})
+    # The finalized SDK reader independently authenticates the existing on-chain registry hash.
+    expected['sdk_hash_domains'] = sorted(set(expected['sdk_hash_domains']) | {'rivalt-financial-membership-v1'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
