@@ -65,6 +65,16 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   if(state.membershipVersion!==null)await expect(registry,component('registry'),sdk.getVenueRegistryDecoder(),sdk.VENUE_REGISTRY_DISCRIMINATOR,
     {schemaVersion:10,revision:state.revisions[registry]?.revision,venue,membershipEpoch:state.membershipVersion,nextId:state.nextMemberId,
       registeredCount:state.registeredCount,financialCount:String(state.members.length),liveIndex:(await sdk.deriveMemberIndex(venue,14,0n,program))[0]});
+  for(const [key,value] of Object.entries(state.listings??{})) {
+    await expect(key,sdk.findListingPda({venue,marketId:value.marketId},{programAddress:program}),
+      sdk.getMarketListingDecoder(),sdk.MARKET_LISTING_DISCRIMINATOR,value);
+    const symbol=Buffer.from(value.symbol,'hex');
+    const [bindingKey]=await sdk.findSymbolBindingPda({venue,symbol},{programAddress:program});
+    const binding=state.listedSymbols?.[bindingKey];
+    assert.equal(binding?.listing,key,'Canonical listing symbol');
+    await expect(bindingKey,sdk.findSymbolBindingPda({venue,symbol},{programAddress:program}),
+      sdk.getListedSymbolDecoder(),sdk.LISTED_SYMBOL_DISCRIMINATOR,binding);
+  }
   for(const [key,value] of Object.entries(state.markets))await expect(key,sdk.deriveAccountMarket(venue,value.index,program),sdk.getMarketDecoder(),sdk.MARKET_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.ledgers))await expect(key,sdk.deriveMarketLedger(address(value.market),program),sdk.getMarketLedgerDecoder(),sdk.MARKET_LEDGER_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioDecoder(),sdk.PORTFOLIO_DISCRIMINATOR,value);
@@ -101,7 +111,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     null,null,
     [sdk.RETIREMENT_CERTIFICATE_DISCRIMINATOR,636],[sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,181],
     [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148],
-    ...settlementDescriptors,...membershipDescriptors
+    ...settlementDescriptors,...membershipDescriptors,
+    [sdk.MARKET_LISTING_DISCRIMINATOR,sdk.getMarketListingSize()],[sdk.LISTED_SYMBOL_DISCRIMINATOR,sdk.getListedSymbolSize()]
   ] as const;
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();

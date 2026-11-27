@@ -35,6 +35,8 @@ export type AccountState = {
   identities:Record<string,string>; tombstones:Record<string,Fields<sdk.MarginTombstone>>;
   storageTombstones:Record<string,Fields<sdk.StorageTombstone>>; members:string[]; portfolios:Record<string,Fields<sdk.Portfolio>>;
   roots:Record<string,AccountRoot>; markets:Record<string,AccountMarket>;
+  listings?:Record<string,Fields<sdk.MarketListing>>;
+  listedSymbols?:Record<string,Fields<sdk.ListedSymbol>>;
   ledgers:Record<string,Fields<sdk.MarketLedger>>;
   backing:Record<string,Fields<sdk.SettlementCertificate>>;
   retirement:Fields<sdk.RetirementCertificate>|null; resolution:AccountResolution|null;
@@ -103,6 +105,20 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     values.forEach(value=>market(value));
   };
   switch(event.type) {
+    case 'MarketListingRegistered': {
+      accountCheck(artifactSet===sdk.INACTIVE_LISTING_ARTIFACT_SET && change.status===0 &&
+        change.marketId>=2 && change.quoteMint===currentVenue().quoteMint && BigInt(change.lotsPerUnit)>0n,
+        'inactive market listing identity');
+      state.listings??={};
+      state.listedSymbols??={};
+      accountCheck(!state.listings[change.listing] && !state.listedSymbols[change.symbolBinding], 'duplicate market listing');
+      const header={schemaVersion:1,revision:'0'};
+      state.listings[change.listing]={...header,venue,marketId:change.marketId,symbol:change.symbol,
+        lotsPerUnit:change.lotsPerUnit,quoteMint:change.quoteMint,oraclePublisher:change.oraclePublisher,
+        oracleFeed:change.oracleFeed,status:change.status};
+      state.listedSymbols[change.symbolBinding]={...header,listing:change.listing};
+      break;
+    }
     case 'MakerFillContinuation':
       // The invocation decoder joins these maker entries onto the first receipt.
       accountCheck(sdk.hasMultiMaker(artifactSet),'multi-maker deployment');

@@ -17,8 +17,8 @@ export const settlementDescriptors=[
   [sdk.SETTLEMENT_PLAN_DISCRIMINATOR,1181,sdk.getSettlementPlanDecoder()],
 ] as const;
 export function scopedSchema(kind:number) {
-  assert(Number.isInteger(kind)&&kind>=0&&kind<=27&&kind!==11&&kind!==12,'Known scoped kind');
-  return sdk.ACCOUNT_SCHEMA;
+  assert(Number.isInteger(kind)&&kind>=0&&kind<=29&&kind!==11&&kind!==12,'Known scoped kind');
+  return kind>=28 ? 1 : sdk.ACCOUNT_SCHEMA;
 }
 const le64=(value:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(value);return bytes;};
 const le32=(value:number)=>{const bytes=Buffer.alloc(4);bytes.writeUInt32LE(value);return bytes;};

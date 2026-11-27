@@ -12,6 +12,7 @@ export * from './test-deployment.js';
 export * from './wallet-client.js';
 export * from './artifacts.js';
 export * from './account-addresses.js';
+export * from './market-listing.js';
 export * from './account-membership.js';
 export * from './account-membership-scan.js';
 export * from './account-snapshot.js';

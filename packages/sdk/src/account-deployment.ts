@@ -39,10 +39,11 @@ export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
 export const DIRECT_CREDIT_ARTIFACT_SET='direct-closed-credit-984f18f3';
 // Distinct lane allocations on fresh local qualification banks.
 export const THOUSAND_MEMBER_CREDIT_ARTIFACT_SET='thousand-member-credit-213d394d';
+export const INACTIVE_LISTING_ARTIFACT_SET='inactive-market-listing-1adaf018';
 export const INDEXED_WITHDRAWAL_ARTIFACT_SET='venue-indexed-withdrawal-4e11ef94';
 export const GROUPED_CREDIT_ARTIFACT_SET='grouped-coverage-credit-e4aff314';
 export const STREAMED_CREDIT_ARTIFACT_SET='streamed-coverage-credit-99165b41';
-export const hasDirectCredit=(set?:string)=>set===DIRECT_CREDIT_ARTIFACT_SET||set===THOUSAND_MEMBER_CREDIT_ARTIFACT_SET||set===STREAMED_CREDIT_ARTIFACT_SET||set===GROUPED_CREDIT_ARTIFACT_SET||set===INDEXED_WITHDRAWAL_ARTIFACT_SET;
+export const hasDirectCredit=(set?:string)=>set===DIRECT_CREDIT_ARTIFACT_SET||set===THOUSAND_MEMBER_CREDIT_ARTIFACT_SET||set===STREAMED_CREDIT_ARTIFACT_SET||set===GROUPED_CREDIT_ARTIFACT_SET||set===INDEXED_WITHDRAWAL_ARTIFACT_SET||set===INACTIVE_LISTING_ARTIFACT_SET;
 export const VERIFIED_COVERAGE_ARTIFACT_SET='verified-coverage-8a239609';
 export const MAINTAINED_COVERAGE_ARTIFACT_SET='maintained-coverage-eb1cb0e4';
 export const SHADOW_COVERAGE_ARTIFACT_SET='shadow-coverage-ce9e8e9c';
