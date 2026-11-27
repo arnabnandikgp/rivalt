@@ -16,6 +16,7 @@ export * from './market-listing.js';
 export * from './account-membership.js';
 export * from './account-membership-scan.js';
 export * from './account-snapshot.js';
+export * from './venue-settlement-book.js';
 export * from './account-client.js';
 export * from './account-markets.js';
 export * from './account-balance.js';

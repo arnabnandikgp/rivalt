@@ -21,7 +21,7 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const probe = process.env.RIVALT_SETTLEMENT_PROBE;
-  if (probe === 'execution-router-listed-maker') {
+  if (probe === 'execution-router-listed-maker' || probe === 'execution-router-venue-book') {
     assert.equal(revision,'5929eb48f2963499bc0a5316a9a22c2b99dcdd3d');
     const artifacts={
       'clearing':{bytes:3988696,sha256:'6093180c296f800f4b1f88d75db79c73bc85dbd27ff0fd4996789dc983db0a85'},

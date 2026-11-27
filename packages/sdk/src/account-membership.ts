@@ -21,13 +21,17 @@ export function decodeMembershipMargin(raw:any,layout?:MarginLayout) {
   requireValue(raw?.owner===protocol.CLEARING_PROGRAM_ADDRESS&&!raw.executable&&raw.data?.[1]==='base64','Missing or foreign membership account.');
   return decodeMarginForLayout(fromBase64(raw.data[0]),layout);
 }
-export async function readMembershipRegistry(rpc:Pick<UserRpc,'call'>,venue:Address) {
-  const [registry,bump]=await deriveVenueComponent(venue,'registry'),[liveIndex]=await deriveMemberIndex(venue,14,0n);
-  const response=await rpc.call('getAccountInfo',[registry,{encoding:'base64',commitment:'finalized'}]);
-  const state=decodeMembershipAccount(response.value,protocol.VENUE_REGISTRY_DISCRIMINATOR,protocol.getVenueRegistryDecoder());
+export function decodeVenueMembershipRegistry(raw:unknown,venue:Address,bump:number,liveIndex:Address) {
+  const state=decodeMembershipAccount(raw,protocol.VENUE_REGISTRY_DISCRIMINATOR,protocol.getVenueRegistryDecoder());
   requireValue(state.schemaVersion===ACCOUNT_SCHEMA&&state.venue===venue&&state.bump===bump&&state.liveIndex===liveIndex
     &&state.revision>0n&&state.membershipEpoch>0n&&state.financialCount<=state.registeredCount&&state.registeredCount<=state.nextId,
     'Invalid membership registry.');
+  return state;
+}
+export async function readMembershipRegistry(rpc:Pick<UserRpc,'call'>,venue:Address) {
+  const [registry,bump]=await deriveVenueComponent(venue,'registry'),[liveIndex]=await deriveMemberIndex(venue,14,0n);
+  const response=await rpc.call('getAccountInfo',[registry,{encoding:'base64',commitment:'finalized'}]);
+  const state=decodeVenueMembershipRegistry(response.value,venue,bump,liveIndex);
   return {registry,state,contextSlot:rpcInteger(response.context.slot)};
 }
 

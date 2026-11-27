@@ -1,3 +1,5 @@
+import {decodeVenueMembershipRegistry} from './account-membership.js';
+import {deriveMemberIndex} from './account-addresses.js';
 import {isListedMakerCapital} from './market-listing.js';
 import {readCoherentAccounts} from './coherent-accounts.js';
 import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
@@ -35,8 +37,22 @@ export async function readAccountTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity
   requireValue(marketIndex===0||marketIndex===1,'Unsupported liquidity market.');
   return readSnapshot(rpc,identity,[trader],commitment,marketIndex);
 }
+/** Registry and every nominated financial root are authenticated at the same bank.
+ * Completeness follows from unique active member IDs and the registry count. */
+export async function readCompleteFinancialSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,margins:Address[]) {
+  requireValue(margins.length>0 && margins.length<=SETTLEMENT_READ_BATCH && new Set(margins).size===margins.length,
+    'Invalid complete settlement roster.');
+  const [registry,bump]=await deriveVenueComponent(identity.venue,'registry');
+  const [liveIndex]=await deriveMemberIndex(identity.venue,14,0n);
+  const snapshot=await readSnapshot(rpc,identity,margins,'finalized',undefined,100,{registry,bump,liveIndex});
+  const state=snapshot.membership;
+  const roots=Object.values(snapshot.roots);
+  requireValue(state && BigInt(roots.length)===state.financialCount && new Set(roots.map(root=>root.id)).size===roots.length &&
+    roots.every(root=>root.id<state.nextId),'Incomplete financial membership at settlement bank.');
+  return {...snapshot,membership:state};
+}
 async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,selectedMargins:Address[],
-  commitment:'confirmed'|'finalized',liquidityMarketIndex?:0|1,maxKeys=32) {
+  commitment:'confirmed'|'finalized',liquidityMarketIndex?:0|1,maxKeys=32,complete?:{registry:Address;bump:number;liveIndex:Address}) {
   requireValue(['confirmed','finalized'].includes(commitment),'Unsupported account commitment.');
   requireValue(/^[0-9a-f]{64}$/.test(identity.domain),'Invalid venue domain.');
   const venue=identity.venue,component=(name:Parameters<typeof deriveVenueComponent>[1])=>deriveVenueComponent(venue,name);
@@ -67,7 +83,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(discovery.value?.length===margins.length,'Incomplete account discovery.');
   const discovered=discovery.value.map((account:any)=>decodeMarginForLayout(raw(account),identity.marginLayout)) as protocol.MarginAccount[];
   const portfolioKeys=[...new Set(discovered.map(root=>root.portfolio))];
-  const keys=[venue,custody,safety,vault,identity.mint,ACCOUNT_CLOCK,...markets,...ledgers,...margins,...portfolioKeys,...new Set(makerKeys)];
+  const keys=[venue,custody,safety,vault,identity.mint,ACCOUNT_CLOCK,...markets,...ledgers,...margins,...portfolioKeys,...new Set(makerKeys),...(complete?[complete.registry]:[])];
   requireValue(new Set(keys).size===keys.length,'Aliased account dependencies.');
   // RPC dependency discovery includes all unselected makers and full code. This
   // read bound is separate from the signed transaction's loaded-account budget.
@@ -78,6 +94,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const contextSlot=rpcInteger(response.context.slot);requireValue(contextSlot>=discoverySlot,'Account RPC predates discovery.');
   requireValue(response.value?.length===keys.length,'Incomplete account snapshot.');
   const accounts=new Map<Address,any>(keys.map((key,index)=>[key,response.value[index]]));
+  const membership=complete?decodeVenueMembershipRegistry(accounts.get(complete.registry),venue,complete.bump,complete.liveIndex):undefined;
   const venueState=decode(accounts.get(venue),protocol.VENUE_DISCRIMINATOR,protocol.getVenueDecoder());
   requireValue(venueState.schemaVersion===10&&venueState.profileVersion===6&&venueState.marketCount===2&&venueState.bump===venueBump&&venueState.vaultBump===vaultBump&&
     hex(venueState.domain)===identity.domain&&venueState.quoteMint===identity.mint&&venueState.vault===vault&&venueState.insuranceFeeShareBps===2500&&
@@ -145,7 +162,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,marginLayout:identity.marginLayout,
     market:markets[liquidityMarketIndex],marketIndex:liquidityMarketIndex,domain:venueState.domain,slot,now,contextSlot},accounts);
   return {marginLayout:identity.marginLayout,commitment,venue,custody,safety,vault,markets,btc:markets[0],eth:markets[1],ledgers,btcLedger:ledgers[0],ethLedger:ledgers[1],
-    venueState,custodyState,safetyState,marketStates,ledgerStates,feeEscrow,roots,closedEntries,portfolios,actualVault:token.amount,liquidity,
+    venueState,custodyState,safetyState,marketStates,ledgerStates,feeEscrow,membership,roots,closedEntries,portfolios,actualVault:token.amount,liquidity,
     slot,now,contextSlot};
 }
 export type AccountSnapshot=Awaited<ReturnType<typeof readAccountSnapshot>>;
