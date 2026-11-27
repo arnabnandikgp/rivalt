@@ -36,6 +36,32 @@ a caller omit a losing market; empty unrelated slots need no fresh price. Shared
 collateral sources remain relevant to exposed collateral-denominated positions.
 Cancellation outside frozen ownership needs no source or maker quote.
 
+### Observing the index of an inactive listing
+
+On the local listing profile, the venue authority binds four read-only sources
+for each listing. The asset's primary feed comes from registration. Both
+collateral feeds come from the venue's existing oracle configuration. The guard
+asset PDA uses the same underlying symbol and the independent collateral guard's
+publisher. Binding requires the listing's publisher to match the primary
+collateral publisher. The bindings are permanent for this listing-index PDA.
+
+Anyone can call `observe_listing_index`. Clearing authenticates the feeds, checks
+verification level and sequence, then applies the existing `market_bounds` policy
+at the listing's lot scale. The current policy supports 100,000 and 1,000,000
+lots per whole asset. A listing with another scale cannot record an observation.
+The reference is the primary asset/collateral ratio
+rounded down in collateral atoms per lot. The lower and upper values include both
+sources' confidence intervals and the existing one-percent risk envelope. The
+earliest source expiry sets the observation deadline. At least one feed must have
+advanced and at least two seconds must separate accepted observations.
+
+Only a fully qualified four-source observation is recorded. A failed refresh
+leaves the previous values and their original deadline in place. A nonzero
+reference is therefore a historical sample; consumers must inspect the deadline
+and the listing's admission state. The inactive listing has no funding rate,
+trading permission or effect on any account's margin.
+[Price arithmetic](../../crates/financial-core/src/oracle.rs) · [On-chain source checks](../../programs/clearing/src/instructions/listing_index.rs)
+
 ### Risk equations in code
 
 | Question | Calculation and source |

@@ -12,6 +12,13 @@ show these rows as *registered, trading disabled*. The order form and router use
 the separately admitted trading markets. A venue authority can build the local
 registration with `getRegisterMarketListingInstructionAsync`. [Account rules](../clearing/accounts.md#registering-an-inactive-market)
 
+Derive the observation PDA with `findListingIndexPda({listing})` and decode it
+with `getListingIndexDecoder()`. A zero deadline means no sample has qualified.
+The `reference`, `lower` and `upper` fields are collateral atoms per lot. At or
+after `deadline` (chain Unix seconds), the sample has expired. The generated
+`getObserveListingIndexInstructionAsync` builder needs the four bound feeds and
+requires no venue or oracle signature.
+
 ## Account discovery
 
 Owner discovery reads the portfolio and its nine currently supported child PDAs

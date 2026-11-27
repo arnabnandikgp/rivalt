@@ -33,6 +33,14 @@ duplicate ID and ticker rollback, oracle substitution, authority, and both the
 order and fill boundaries. Compare the registered accounts with independent
 Anchor decoders and reconcile both records through fresh PostgreSQL replay.
 
+For the listing index workload, use the same build profile at the clearing commit
+recorded in [the scorecard](qualification-scorecard.md#inactive-sol-index-observation). Set `RIVALT_ROUTER_REVISION` to that
+commit and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to its build, then run
+`RIVALT_SETTLEMENT_PROBE=execution-router-listing-index bash ops/scalable-settlement-smoke.sh`.
+Compare per-lot bounds at 99-cent and $1.01 collateral with independent arithmetic.
+Verify source substitutions, stale and conflicting reports, expired sample recovery,
+the transaction signer, unchanged balances and the final state in fresh SQL replay.
+
 To qualify the occupied-market cash floor on the venue, build program commit
 `4e11ef9488b3c2205a1fa1bad02c0215cae8d976` with
 `RIVALT_ATTRIBUTION_PROFILE=indexed-withdrawal bash ops/build-profit-attribution.sh`.

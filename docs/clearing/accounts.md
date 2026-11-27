@@ -16,6 +16,10 @@ do not grow when a market is registered. A listing has no market ledger, funded
 maker capital or position slot and cannot authorize an order. The two admitted
 markets still come from the venue's trading configuration.
 
+A separate `ListingIndex` PDA keyed by the listing stores the bound sources and
+the last qualified price observation. The authority funds it at binding. A sample
+writes only this clearing account. [Index rules](risk-and-resolution.md#observing-the-index-of-an-inactive-listing)
+
 ## Follow a deposit
 
 1. An owner creates a portfolio and registers a child margin-account PDA. The owner, portfolio index and child index identify actual accounts. The portfolio holds the namespace. Cash, positions, orders and obligations belong to the margin account.

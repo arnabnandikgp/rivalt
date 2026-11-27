@@ -73,7 +73,7 @@ fn schema_for_kind(kind: u8) -> Result<u16> {
     match kind {
         0..=10 | 13..=16 => Ok(SCHEMA_VERSION),
         17..=27 => Ok(SETTLEMENT_SCHEMA),
-        28 | 29 => Ok(LISTING_SCHEMA),
+        28..=30 => Ok(LISTING_SCHEMA),
         _ => Err(ClearingError::Profile.into()),
     }
 }

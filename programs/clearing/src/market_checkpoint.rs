@@ -94,10 +94,13 @@ pub(crate) fn require_financial_checkpoints(instruction: [u8;8], entries: impl I
     const MARKET: [u8;8]=[234,231,222,47,209,237,138,64];
     const LEDGER: [u8;8]=[119,160,87,122,107,187,203,113];
     const MARKET_LANE: [u8;8]=[154,97,38,114,234,143,70,85];
+    // Binding reads only the two immutable collateral feed addresses. It never
+    // consumes market totals, funding or fees and does not write the market.
+    const BIND_LISTING_INDEX: [u8;8]=[130,194,213,225,127,24,57,109];
     let mut required=[None;4];
     let mut count=0;
     for (kind,address) in entries {
-        let needs_market=kind==6 && instruction!=MARKET && instruction!=MARKET_LANE;
+        let needs_market=kind==6 && instruction!=MARKET && instruction!=MARKET_LANE && instruction!=BIND_LISTING_INDEX;
         let needs_ledger=kind==7 && instruction!=LEDGER;
         if needs_market||needs_ledger {
             require!(count<required.len(),ClearingError::Profile);

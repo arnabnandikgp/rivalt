@@ -17,6 +17,14 @@ This register summarizes choices enforced by the local protocol. The [original d
 
 Record future material choices here with a date, alternatives considered, consequences for users, and the current contract. [Project status](STATUS.md) tracks open questions separately.
 
+**27 November 2026 — Reuse the venue's collateral oracle for inactive listings.**
+The local venue authority binds the listing's index once. Clearing derives the
+independent asset guard from the publisher of the existing collateral guard.
+This gives a new underlying the same collateral valuation as BTC and ETH and
+lets anyone submit an observation without selecting the feeds. Rejections retain
+the original expiry of the last qualified sample. Market admission remains a
+separate financial decision. [Index rules](clearing/risk-and-resolution.md#observing-the-index-of-an-inactive-listing)
+
 **27 November 2026 — Give each inactive listing a stable ID and a unique ticker.**
 The local venue authority reserves both names atomically in two small PDAs.
 This lets clients discover a proposed market without rewriting a shared directory
