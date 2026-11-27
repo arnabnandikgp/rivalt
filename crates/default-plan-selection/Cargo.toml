@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [features]
+indexed-settlement = ["compact-book", "dep:financial-core"]
 keeper = ["native-joint", "dep:serde", "dep:serde_json"]
 compact-book = ["dep:clearing-accounting"]
 native-search = ["compact-book", "dep:num-bigint", "dep:num-integer", "dep:num-traits"]

@@ -5,10 +5,33 @@ use crate::slot_custody::checked;
 use anchor_lang::{AccountDeserialize, BorshConfig};
 use anchor_spl::token::TokenAccount;
 use clearing_accounting::attribution::FrozenCapacity;
+use default_plan_selection::market_indexed as verifier;
 use financial_core::SCALE;
 use solana_sha256_hasher::hashv;
-mod verifier;
-pub use verifier::RatesProof;
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct RatesProof {
+    pub denominator: u32,
+    pub selected: u8,
+    pub numerators: Vec<u32>,
+}
+impl RatesProof {
+    fn domain(self) -> verifier::RatesProof {
+        verifier::RatesProof {
+            denominator: self.denominator,
+            selected: self.selected,
+            numerators: self.numerators,
+        }
+    }
+}
+fn verification(error: verifier::Error) -> ProgramError {
+    match error {
+        verifier::Error::DefaultCharge => ProofError::DefaultCharge,
+        verifier::Error::Incomplete => ProofError::Incomplete,
+        verifier::Error::DefaultRoster => ProofError::DefaultRoster,
+        verifier::Error::UnsupportedBook => ProofError::UnsupportedBook,
+    }
+    .into()
+}
 use verifier::{Cell, Member, MEMBERS, WIDTH};
 
 #[account(borsh)]
@@ -250,12 +273,21 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
         .map(|(index, root)| member(index, root, ids, &markets, &mut capacities))
         .collect::<Result<Vec<_>>>()?;
     let reserves: Vec<_> = markets.iter().map(|m| m.insurance).collect();
+    let selected = proof.selected;
+    let membership: Vec<_> = (0..count as u64).collect();
     let plan = verifier::verify_book(
         &rows,
+        &[0; WIDTH][..ids.len()],
         &reserves,
-        &proof,
-        Some((domain.address(), &capacities)),
-    )?;
+        &proof.domain(),
+        Some(verifier::Episode {
+            venue: domain.address().as_array(),
+            ordinal: 1,
+            member_ids: &membership,
+            capacities: &capacities,
+        }),
+    )
+    .map_err(verification)?;
     for (m, market) in markets
         .iter_mut()
         .enumerate()
@@ -281,9 +313,13 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
     {
         if let Some((_, split)) = plan.splits.iter().find(|(index, _)| *index == m) {
             domain.matched[m] = split.lots.iter().sum();
-            let mut receipt = split.clone();
-            receipt.market = domain.ids[m];
-            domain.splits.push(receipt);
+            let market=domain.ids[m];
+            domain.splits.push(WinnerSplit {
+                market,
+                members: split.members,
+                charges: split.charges,
+                lots: split.lots,
+            });
             continue;
         }
         let (_, _, terms) = capacities
@@ -303,7 +339,7 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
             .map_err(|_| ProgramError::InvalidAccountData)?;
     }
     domain.commitment = hash;
-    domain.selected = proof.selected;
+    domain.selected = selected;
     domain.phase = 2;
     Ok(())
 }
@@ -342,5 +378,10 @@ pub fn inspect(width: u8, input: Vec<ProbeMember>, proof: RatesProof) -> Result<
         })
         .collect::<Vec<_>>();
     require!(usize::from(width) <= WIDTH, ProofError::UnsupportedBook);
-    Ok(verifier::verify(&rows, &[0; WIDTH][..usize::from(width)], &proof)?.cash)
+    let zeros = &[0; WIDTH][..usize::from(width)];
+    Ok(
+        verifier::verify_book(&rows, zeros, zeros, &proof.domain(), None)
+            .map_err(verification)?
+            .cash,
+    )
 }

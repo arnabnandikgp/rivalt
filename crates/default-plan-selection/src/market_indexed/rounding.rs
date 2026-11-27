@@ -11,7 +11,7 @@ fn rounded(rows: &[Member], flow: &Flow, floors: Option<&[Columns]>) -> Result<R
     let width = rows[0].cells.len();
     let sink = count + width;
     let mut supplies: Vec<i128> = rows.iter().map(|row| i128::from(row.cash)).collect();
-    supplies.extend(flow.spent[..width].iter().copied().map(i128::from));
+    supplies.extend((0..width).map(|m| i128::from(flow.spent[m]) + i128::from(flow.pools[m])));
     supplies.push(-supplies.iter().sum::<i128>());
     let mut graph = AtomNetwork::new(supplies);
     let mut edges = Vec::new();
@@ -47,7 +47,7 @@ fn rounded(rows: &[Member], flow: &Flow, floors: Option<&[Columns]>) -> Result<R
         payments: vec![[0; WIDTH]; count],
     };
     for ((i, m), amount) in edges.into_iter().zip(checked(graph.finish())?) {
-        let atoms = u64::try_from(amount).map_err(|_| ProofError::UnsupportedBook)?;
+        let atoms = u64::try_from(amount).map_err(|_| Error::UnsupportedBook)?;
         if m == width {
             result.cash[i] = atoms;
         } else {

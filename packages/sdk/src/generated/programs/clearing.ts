@@ -260,6 +260,7 @@ import {
   getVerifyForeignCreditorsInstructionAsync,
   getVerifyFrozenPairInstructionAsync,
   getVerifyIncumbentInstruction,
+  getVerifyIndexedDefaultInstructionAsync,
   getVerifyInventoryBookInstructionAsync,
   getVerifyRecoveryAllocationInstructionAsync,
   getVerifySharedInventoryInstructionAsync,
@@ -384,6 +385,7 @@ import {
   parseVerifyForeignCreditorsInstruction,
   parseVerifyFrozenPairInstruction,
   parseVerifyIncumbentInstruction,
+  parseVerifyIndexedDefaultInstruction,
   parseVerifyInventoryBookInstruction,
   parseVerifyRecoveryAllocationInstruction,
   parseVerifySharedInventoryInstruction,
@@ -593,6 +595,7 @@ import {
   type ParsedVerifyForeignCreditorsInstruction,
   type ParsedVerifyFrozenPairInstruction,
   type ParsedVerifyIncumbentInstruction,
+  type ParsedVerifyIndexedDefaultInstruction,
   type ParsedVerifyInventoryBookInstruction,
   type ParsedVerifyRecoveryAllocationInstruction,
   type ParsedVerifySharedInventoryInstruction,
@@ -632,6 +635,7 @@ import {
   type VerifyForeignCreditorsAsyncInput,
   type VerifyFrozenPairAsyncInput,
   type VerifyIncumbentInput,
+  type VerifyIndexedDefaultAsyncInput,
   type VerifyInventoryBookAsyncInput,
   type VerifyRecoveryAllocationAsyncInput,
   type VerifySharedInventoryAsyncInput,
@@ -1865,6 +1869,7 @@ export enum ClearingInstruction {
   VerifyForeignCreditors,
   VerifyFrozenPair,
   VerifyIncumbent,
+  VerifyIndexedDefault,
   VerifyInventoryBook,
   VerifyRecoveryAllocation,
   VerifySharedInventory,
@@ -3169,6 +3174,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([146, 128, 63, 82, 26, 4, 201, 6]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.VerifyIndexedDefault;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([144, 97, 136, 219, 210, 27, 178, 218]),
       ),
       0,
@@ -3602,6 +3618,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.VerifyIncumbent;
     } & ParsedVerifyIncumbentInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.VerifyIndexedDefault;
+    } & ParsedVerifyIndexedDefaultInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.VerifyInventoryBook;
     } & ParsedVerifyInventoryBookInstruction<TProgram>)
@@ -4448,6 +4467,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseVerifyIncumbentInstruction(instruction),
       };
     }
+    case ClearingInstruction.VerifyIndexedDefault: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.VerifyIndexedDefault,
+        ...parseVerifyIndexedDefaultInstruction(instruction),
+      };
+    }
     case ClearingInstruction.VerifyInventoryBook: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -5168,6 +5194,11 @@ export type ClearingPluginInstructions = {
     input: VerifyIncumbentInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getVerifyIncumbentInstruction> &
+    SelfPlanAndSendFunctions;
+  verifyIndexedDefault: (
+    input: VerifyIndexedDefaultAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getVerifyIndexedDefaultInstructionAsync> &
     SelfPlanAndSendFunctions;
   verifyInventoryBook: (
     input: VerifyInventoryBookAsyncInput,
@@ -6328,6 +6359,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getVerifyIncumbentInstruction(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verifyIndexedDefault: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyIndexedDefaultInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

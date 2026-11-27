@@ -1,9 +1,9 @@
 //! Attaining every market's physical recovery bound fixes both the maximum
 //! total and the recovery fractions. Only the splits of those totals can tie.
 use super::*;
+use crate::member_priority;
 use clearing_accounting::attribution::LotRate;
 use core::cmp::Ordering;
-use default_plan_selection::member_priority;
 
 pub(super) struct Contest {
     pub market: usize,
@@ -42,13 +42,13 @@ impl Contest {
             let (_, _, terms) = capacities
                 .iter()
                 .find(|(member, market, _)| *member == winner && *market == self.market)
-                .ok_or(ProofError::DefaultCharge)?;
+                .ok_or(Error::DefaultCharge)?;
             let original = book.rows[winner].cells[self.market].lots.unsigned_abs();
             let rate = checked(terms.lot_rate(original))?;
             let weight = terms
                 .eligible
                 .min(checked(rate.capacity(available.min(original)))?);
-            require!(weight > 0, ProofError::UnsupportedBook);
+            require!(weight > 0, Error::UnsupportedBook);
             Ok((weight, rate))
         };
         let (first_weight, first_rate) = capacity(self.first)?;
@@ -65,13 +65,13 @@ impl Contest {
         let total = self.budget.min(
             first_weight
                 .checked_add(second_weight)
-                .ok_or(ProofError::DefaultCharge)?,
+                .ok_or(Error::DefaultCharge)?,
         );
         let lower = total.saturating_sub(second_weight);
         let upper = total.min(first_weight);
         require!(
             lower <= upper && upper - lower < (PLANS - 1) as u64,
-            ProofError::UnsupportedBook
+            Error::UnsupportedBook
         );
         let mut options = Vec::with_capacity((upper - lower + 1) as usize);
         for first in lower..=upper {
@@ -136,7 +136,7 @@ fn order(dimensions: &[Dimension], members: &[usize], a: usize, b: usize) -> Res
         require!(
             first.deviation == second.deviation
                 && first.lots.iter().sum::<u64>() == second.lots.iter().sum::<u64>(),
-            ProofError::UnsupportedBook
+            Error::UnsupportedBook
         );
     }
     for &member in members {
@@ -166,21 +166,21 @@ pub(super) fn verify(
     charges: &mut Columns,
     proof: &RatesProof,
     words: &mut &[u32],
-    (venue, capacities): (&Address, &[(usize, usize, FrozenCapacity)]),
+    episode: Episode,
 ) -> Result<(Flow, Vec<(usize, WinnerSplit)>)> {
     let mut dimensions = Vec::with_capacity(contests.len());
     let mut count = 1;
     for contest in contests {
-        let dimension = contest.dimension(book, capacities, count)?;
+        let dimension = contest.dimension(book, episode.capacities, count)?;
         count *= dimension.options.len();
-        require!(count < PLANS, ProofError::UnsupportedBook);
+        require!(count < PLANS, Error::UnsupportedBook);
         charges[contest.market] = dimension.total;
         dimensions.push(dimension);
     }
     let selected = usize::from(proof.selected)
         .checked_sub(1)
-        .ok_or(ProofError::DefaultCharge)?;
-    require!(selected < count, ProofError::DefaultCharge);
+        .ok_or(Error::DefaultCharge)?;
+    require!(selected < count, Error::DefaultCharge);
     let mut scratch = Flow::empty(book.rows.len());
     let mut terminal = Flow::empty(book.rows.len());
     let mut contenders = Vec::with_capacity(count);
@@ -215,16 +215,21 @@ pub(super) fn verify(
             }
         }
     }
-    require!(words.is_empty(), ProofError::Incomplete);
+    require!(words.is_empty(), Error::Incomplete);
     require!(
         contenders.contains(&selected)
             && !contenders
                 .iter()
                 .any(|&other| dominates(&dimensions, other, selected)),
-        ProofError::DefaultCharge
+        Error::DefaultCharge
     );
     let mut members: Vec<_> = (0..book.rows.len()).collect();
-    members.sort_by_key(|&id| (member_priority(venue.as_ref(), 1, id as u64), id));
+    members.sort_by_key(|&id| {
+        (
+            member_priority(episode.venue, episode.ordinal, episode.member_ids[id]),
+            episode.member_ids[id],
+        )
+    });
     for &other in &contenders {
         if other != selected
             && !contenders
@@ -233,21 +238,18 @@ pub(super) fn verify(
         {
             require!(
                 order(&dimensions, &members, selected, other)?.is_gt(),
-                ProofError::DefaultCharge
+                Error::DefaultCharge
             );
         }
     }
     let mut receipts = Vec::new();
     for dimension in dimensions {
-        let split = dimension
-            .choice(selected)
-            .ok_or(ProofError::DefaultCharge)?;
+        let split = dimension.choice(selected).ok_or(Error::DefaultCharge)?;
         if dimension.has_second {
             pairs[dimension.market].second = Some((dimension.winners[1], split.charges[1]));
             receipts.push((
                 dimension.market,
                 WinnerSplit {
-                    market: 0,
                     members: dimension.winners.map(|m| m as u8),
                     charges: split.charges,
                     lots: split.lots,
@@ -282,7 +284,7 @@ mod tests {
         let capacities = [(2, 0, terms.clone()), (3, 0, terms)];
         let mut preferred_members = [false; 2];
         for seed in 0..16 {
-            let venue = Address::new_from_array([seed; 32]);
+            let venue = [seed; 32];
             let preferred = usize::from(
                 member_priority(venue.as_ref(), 1, 3) < member_priority(venue.as_ref(), 1, 2),
             );
@@ -293,8 +295,20 @@ mod tests {
                 selected: choice,
                 numerators: vec![1, 2, 2],
             };
-            let verify =
-                |choice| verify_book(&rows, &[0], &proof(choice), Some((&venue, &capacities)));
+            let verify = |choice| {
+                verify_book(
+                    &rows,
+                    &[0],
+                    &[0],
+                    &proof(choice),
+                    Some(Episode {
+                        venue: &venue,
+                        ordinal: 1,
+                        member_ids: &[0, 1, 2, 3],
+                        capacities: &capacities,
+                    }),
+                )
+            };
             let plan = verify(selected).unwrap();
             let (_, split) = &plan.splits[0];
             assert_eq!(

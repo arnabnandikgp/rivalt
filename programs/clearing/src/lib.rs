@@ -1059,6 +1059,14 @@ pub mod clearing {
             },
         )
     }
+    /// Read-only complete-book verification before any change to custody or frozen balances.
+    pub fn verify_indexed_default(ctx:&mut Context<PreparedSourceIdentity>, epoch:u64, selected:u8,
+        denominator:u32, rates:Vec<u32>) -> Result<Vec<u64>> {
+        #[cfg(feature="venue-default-verifier")]
+        { account_safety::settlement::indexed::preview(ctx,epoch,selected,denominator,rates) }
+        #[cfg(not(feature="venue-default-verifier"))]
+        { let _=(ctx,epoch,selected,denominator,rates); Err(ClearingError::Profile.into()) }
+    }
     pub fn admit_listed_maker(ctx: &mut Context<AdmitListedMaker>, instance: u8) -> Result<()> {
         require!(cfg!(feature = "listed-maker-admission"), ClearingError::Profile);
         scoped_history::run(ctx, [159, 93, 238, 177, 144, 184, 33, 39], false,

@@ -148,19 +148,23 @@ pub(crate) fn frozen_btc_history(root:&BorshAccount<MarginAccount>) -> Result<At
 #[cfg(feature="single-pair-default-qualification")]
 pub fn frozen_history(root:&BorshAccount<MarginAccount>, market:usize) -> Result<Attribution> {
     require!(market < 2, ClearingError::Resolution);
-    let account=root.account();
-    require!(valid_margin_size(account.data_len()),ClearingError::Profile);
+    frozen_account_basis(root.account(), &root.positions, market)
+}
+
+#[cfg(feature = "single-pair-default-qualification")]
+pub(crate) fn frozen_account_basis(account:&AccountView, positions:&[crate::state::records::Position;2], market:usize) -> Result<Attribution> {
+    require!(market<positions.len() && valid_margin_size(account.data_len()),ClearingError::Profile);
     let data=account.try_borrow()?;
     let bytes=&data[MARGIN_PREFIX..];
     require!(bytes.starts_with(MAGIC),ClearingError::Profile);
     let width=(slots_end(bytes)-8)/2;
     let start=8+width*market;
     #[cfg(feature = "bounded-entry-settlement")]
-    return EntryCost::read(&bytes[start..start+width], root.positions[market].lots)
-        .and_then(|entry| entry.frozen_basis(root.positions[market].lots))
+    return EntryCost::read(&bytes[start..start+width], positions[market].lots)
+        .and_then(|entry| entry.frozen_basis(positions[market].lots))
         .map_err(|_| ClearingError::Resolution.into());
     #[cfg(not(feature = "bounded-entry-settlement"))]
-    Attribution::read(&bytes[start..start+width],root.positions[market].lots)
+    Attribution::read(&bytes[start..start+width],positions[market].lots)
         .map_err(|_| ClearingError::Resolution.into())
 }
 

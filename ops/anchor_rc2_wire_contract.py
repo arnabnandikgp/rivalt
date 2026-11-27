@@ -554,6 +554,18 @@ def undo_liquidation_delta(actual, program):
 
 
 def before_window_extensions(actual, program):
+    if program == 'clearing':
+        actual = deepcopy(actual)
+        matches = [row for row in actual['instructions'] if row['name'] == 'verify_indexed_default']
+        assert len(matches) == 1
+        instruction, = matches
+        assert instruction['discriminator'] == list(hashlib.sha256(b'global:verify_indexed_default').digest()[:8])
+        assert [a['name'] for a in instruction['accounts']] == 'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault'.split()
+        assert not any(a.get('writable') or a.get('signer') or a.get('optional') for a in instruction['accounts'])
+        assert [(a['name'], a['type']) for a in instruction['args']] == [
+            ('epoch', 'u64'), ('selected', 'u8'), ('denominator', 'u32'), ('rates', {'vec':'u32'})]
+        assert instruction['returns'] == {'vec':'u64'}
+        actual['instructions'].remove(instruction)
     return undo_liquidation_delta(undo_listed_maker_delta(actual, program), program)
 
 

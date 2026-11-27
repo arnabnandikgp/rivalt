@@ -123,6 +123,7 @@ export * from "./valuePreparedMember.js";
 export * from "./verifyForeignCreditors.js";
 export * from "./verifyFrozenPair.js";
 export * from "./verifyIncumbent.js";
+export * from "./verifyIndexedDefault.js";
 export * from "./verifyInventoryBook.js";
 export * from "./verifyRecoveryAllocation.js";
 export * from "./verifySharedInventory.js";

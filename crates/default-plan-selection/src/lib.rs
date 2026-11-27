@@ -4,6 +4,8 @@
 use core::cmp::Ordering;
 #[cfg(feature = "compact-book")]
 pub mod compact_book;
+#[cfg(feature = "indexed-settlement")]
+pub mod market_indexed;
 pub mod foreign_creditor;
 pub mod inventory_book;
 pub mod inventory_choice;

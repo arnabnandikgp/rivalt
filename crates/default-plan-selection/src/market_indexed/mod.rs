@@ -1,12 +1,51 @@
 //! Exact bounded rate certificates with frozen principal weights, market-local
 //! insurance and protected whole-atom settlement. Each pass uses a common unit.
-use super::*;
-pub(super) const WIDTH: usize = 8;
-pub(super) const MEMBERS: usize = 12;
+extern crate alloc;
+use alloc::{vec, vec::Vec};
+use clearing_accounting::attribution::FrozenCapacity;
+#[cfg(test)]
+use financial_core::SCALE;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Error {
+    DefaultCharge,
+    DefaultRoster,
+    Incomplete,
+    UnsupportedBook,
+}
+
+pub type Result<T> = core::result::Result<T, Error>;
+macro_rules! require {
+    ($condition:expr, $error:expr $(,)?) => {
+        if !$condition {
+            return Err($error);
+        }
+    };
+}
+fn checked<T>(value: clearing_accounting::Result<T>) -> Result<T> {
+    value.map_err(|_| Error::UnsupportedBook)
+}
+
+#[derive(Clone, Copy)]
+pub struct Episode<'a> {
+    pub venue: &'a [u8; 32],
+    pub ordinal: u64,
+    pub member_ids: &'a [u64],
+    pub capacities: &'a [(usize, usize, FrozenCapacity)],
+}
+#[derive(Clone)]
+pub struct WinnerSplit {
+    pub members: [u8; 2],
+    pub charges: [u64; 2],
+    pub lots: [u64; 2],
+}
+
+pub const WIDTH: usize = 8;
+pub const MEMBERS: usize = 12;
 const PLANS: usize = 16;
 type Columns = [u64; WIDTH];
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(Clone)]
 pub struct RatesProof {
     /// Zero selects a distinct denominator before the rates of each insurance pass.
     pub denominator: u32,
@@ -16,12 +55,12 @@ pub struct RatesProof {
 }
 
 #[derive(Default, Clone, Copy)]
-pub(super) struct Cell {
+pub struct Cell {
     pub claim: i32,
     pub lots: i64,
     pub eligible: u32,
 }
-pub(super) struct Member {
+pub struct Member {
     pub cash: u32,
     pub cells: Vec<Cell>,
 }
@@ -50,6 +89,7 @@ struct Flow {
     unit: u64,
     loss: Columns,
     spent: Columns,
+    pools: Columns,
     // Magnitudes. The original claim sign distinguishes a collection from a receipt.
     payments: Vec<Columns>,
     cash: [u64; MEMBERS],
@@ -60,6 +100,7 @@ struct Book<'a> {
     rows: &'a [Member],
     principal: [u64; MEMBERS],
     reserves: Columns,
+    pools: Columns,
 }
 
 fn exact_share(amount: u64, weight: u64, total: u64) -> Result<u64> {
@@ -67,10 +108,7 @@ fn exact_share(amount: u64, weight: u64, total: u64) -> Result<u64> {
         return Ok(amount);
     }
     let numerator = u128::from(amount) * u128::from(weight);
-    require!(
-        numerator % u128::from(total) == 0,
-        ProofError::DefaultCharge
-    );
+    require!(numerator % u128::from(total) == 0, Error::DefaultCharge);
     Ok((numerator / u128::from(total)) as u64)
 }
 
@@ -80,6 +118,7 @@ impl Flow {
             unit: 0,
             loss: [0; WIDTH],
             spent: [0; WIDTH],
+            pools: [0; WIDTH],
             payments: vec![[0; WIDTH]; count],
             cash: [0; MEMBERS],
         }
@@ -87,25 +126,28 @@ impl Flow {
 }
 
 impl<'a> Book<'a> {
-    fn new(rows: &'a [Member], width: usize, reserves: &[u64]) -> Result<Self> {
+    fn new(rows: &'a [Member], pools: &[u64], reserves: &[u64]) -> Result<Self> {
+        let width = pools.len();
         require!(
             (1..=WIDTH).contains(&width)
                 && reserves.len() == width
                 && (1..=MEMBERS).contains(&rows.len()),
-            ProofError::UnsupportedBook
+            Error::UnsupportedBook
         );
         let mut book = Self {
             width,
             rows,
             principal: [0; MEMBERS],
             reserves: [0; WIDTH],
+            pools: [0; WIDTH],
         };
         book.reserves[..width].copy_from_slice(reserves);
+        book.pools[..width].copy_from_slice(pools);
         let mut net = [0i64; WIDTH];
         let mut inventory = [0i128; WIDTH];
-        let mut gross: u128 = reserves.iter().map(|&v| u128::from(v)).sum();
+        let mut gross: u128 = reserves.iter().chain(pools).map(|&v| u128::from(v)).sum();
         for (i, row) in rows.iter().enumerate() {
-            require!(row.cells.len() == width, ProofError::DefaultRoster);
+            require!(row.cells.len() == width, Error::DefaultRoster);
             gross += u128::from(row.cash);
             for (m, cell) in row.cells.iter().enumerate() {
                 net[m] += i64::from(cell.claim);
@@ -118,8 +160,13 @@ impl<'a> Book<'a> {
             }
         }
         require!(
-            gross <= u128::from(u32::MAX) && net == [0; WIDTH] && inventory == [0; WIDTH],
-            ProofError::UnsupportedBook
+            gross <= u128::from(u32::MAX)
+                && net
+                    .iter()
+                    .zip(book.pools)
+                    .all(|(&claim, pool)| i128::from(claim) == i128::from(pool))
+                && inventory == [0; WIDTH],
+            Error::UnsupportedBook
         );
         Ok(book)
     }
@@ -152,7 +199,7 @@ impl<'a> Book<'a> {
             let charge = if pairs[m].debtor == i { charges[m] } else { 0 };
             remaining[m] = ((owed - charge) * flow.unit)
                 .checked_sub(collection)
-                .ok_or(ProofError::DefaultCharge)?;
+                .ok_or(Error::DefaultCharge)?;
             flow.payments[i][m] = collection;
             if remaining[m] > 0 {
                 open |= 1 << m;
@@ -198,10 +245,11 @@ impl<'a> Book<'a> {
         let unit = flow.unit;
         require!(
             rates.iter().all(|&rate| u64::from(rate) <= unit),
-            ProofError::DefaultCharge
+            Error::DefaultCharge
         );
         let mut face = [0u64; WIDTH];
-        let mut backing = [0u64; WIDTH];
+        flow.pools = self.pools;
+        let mut backing = self.pools.map(|atoms| atoms * unit);
         let mut open = [0u16; MEMBERS];
         for (i, row) in self.rows.iter().enumerate() {
             let mut incoming = 0;
@@ -223,11 +271,9 @@ impl<'a> Book<'a> {
             require!(
                 paid == (backing[m] + budgets[m] * unit).min(face[m] * unit)
                     && (face[m] != 0 || u64::from(rate) == unit),
-                ProofError::DefaultCharge
+                Error::DefaultCharge
             );
-            let used = paid
-                .checked_sub(backing[m])
-                .ok_or(ProofError::DefaultCharge)?;
+            let used = paid.checked_sub(backing[m]).ok_or(Error::DefaultCharge)?;
             flow.spent[m] = used / unit;
             if used % unit != 0 {
                 clipped[m] = used / unit;
@@ -256,7 +302,7 @@ impl<'a> Book<'a> {
                 break;
             }
         }
-        require!(drains == (1 << self.width) - 1, ProofError::DefaultCharge);
+        require!(drains == (1 << self.width) - 1, Error::DefaultCharge);
         Ok(clipped)
     }
 
@@ -271,17 +317,17 @@ impl<'a> Book<'a> {
         let mut budgets = self.reserves;
         for _ in 0..=self.width {
             let unit = if global_unit == 0 {
-                let (next, rest) = words.split_first().ok_or(ProofError::Incomplete)?;
+                let (next, rest) = words.split_first().ok_or(Error::Incomplete)?;
                 *words = rest;
                 *next
             } else {
                 global_unit
             };
-            require!(unit > 0, ProofError::DefaultCharge);
+            require!(unit > 0, Error::DefaultCharge);
             flow.unit = u64::from(unit);
             let (rates, rest) = words
                 .split_at_checked(self.width)
-                .ok_or(ProofError::Incomplete)?;
+                .ok_or(Error::Incomplete)?;
             *words = rest;
             let clipped = self.evaluate(rates, pairs, charges, &budgets, flow)?;
             if budgets == clipped {
@@ -289,7 +335,7 @@ impl<'a> Book<'a> {
             }
             budgets = clipped;
         }
-        Err(ProofError::UnsupportedBook.into())
+        Err(Error::UnsupportedBook.into())
     }
 
     fn pairs(&self, baseline: &Flow) -> Result<([Pair; WIDTH], usize, Vec<competition::Contest>)> {
@@ -324,7 +370,7 @@ impl<'a> Book<'a> {
                     let maximum = budget
                         .min(u64::from(cell.eligible))
                         .min(cell.claim.max(0) as u64);
-                    require!(maximum > 0, ProofError::UnsupportedBook);
+                    require!(maximum > 0, Error::UnsupportedBook);
                     if pair.maximum == 0 {
                         *pair = Pair {
                             debtor: d,
@@ -340,10 +386,10 @@ impl<'a> Book<'a> {
                             budget,
                         });
                     } else {
-                        let group = opportunities.last_mut().ok_or(ProofError::DefaultCharge)?;
+                        let group = opportunities.last_mut().ok_or(Error::DefaultCharge)?;
                         require!(
                             group.market == m && group.debtor == d && group.second.is_none(),
-                            ProofError::UnsupportedBook
+                            Error::UnsupportedBook
                         );
                         group.second = Some(w);
                         single_only = false;
@@ -355,15 +401,18 @@ impl<'a> Book<'a> {
                     .last()
                     .is_some_and(|g| g.market == m && g.second.is_none())
             {
-                require!(occupied == 2, ProofError::UnsupportedBook);
+                require!(occupied == 2, Error::UnsupportedBook);
             }
         }
         if single_only {
             // The original one-winner proof enumerates all totals, including zero.
             for pair in pairs.iter().take(self.width) {
-                require!(pair.maximum < PLANS as u64, ProofError::UnsupportedBook);
+                // For a large search, try only the proof that every market reaches its
+                // upper bound. A smaller total cannot overtake such a recovery.
+                if pair.maximum >= PLANS as u64 || count > PLANS / (pair.maximum as usize + 1) {
+                    return Ok((pairs, 0, opportunities));
+                }
                 count *= pair.maximum as usize + 1;
-                require!(count <= PLANS, ProofError::UnsupportedBook);
             }
             opportunities.clear();
         }
@@ -420,7 +469,7 @@ fn allocation(mut index: usize, pairs: &[Pair]) -> Columns {
     charges
 }
 
-pub(super) struct Verified {
+pub struct Verified {
     pub cash: Vec<u64>,
     pub spent: Columns,
     pub repaired: bool,
@@ -433,18 +482,27 @@ mod competition;
 mod rounding;
 use rounding::protected_cash;
 
-pub(super) fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> Result<Verified> {
-    verify_book(rows, reserves, proof, None)
+#[cfg(test)]
+fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> Result<Verified> {
+    verify_book(rows, &[0; WIDTH][..reserves.len()], reserves, proof, None)
 }
 
-pub(super) fn verify_book(
+pub fn verify_book(
     rows: &[Member],
+    pools: &[u64],
     reserves: &[u64],
     proof: &RatesProof,
-    context: Option<(&Address, &[(usize, usize, FrozenCapacity)])>,
+    context: Option<Episode>,
 ) -> Result<Verified> {
-    let width = reserves.len();
-    let book = Book::new(rows, width, reserves)?;
+    let book = Book::new(rows, pools, reserves)?;
+    if let Some(episode) = context {
+        require!(
+            episode.ordinal > 0
+                && episode.member_ids.len() == rows.len()
+                && episode.member_ids.windows(2).all(|ids| ids[0] < ids[1]),
+            Error::DefaultRoster
+        );
+    }
     let mut words = proof.numerators.as_slice();
     let mut baseline = Flow::empty(rows.len());
     book.read_plan(
@@ -467,7 +525,7 @@ pub(super) fn verify_book(
             &mut charges,
             proof,
             &mut words,
-            context.ok_or(ProofError::UnsupportedBook)?,
+            context.ok_or(Error::UnsupportedBook)?,
         )?;
         let (cash, repaired) = protected_cash(rows, &baseline, &terminal, &pairs, &charges)?;
         splits = result;
@@ -477,9 +535,9 @@ pub(super) fn verify_book(
         // actual post-insurance creditor loss can authorize a terminal write.
         require!(
             selected == 0 && baseline.loss.iter().any(|&loss| loss > 0),
-            ProofError::DefaultCharge
+            Error::DefaultCharge
         );
-        require!(words.is_empty(), ProofError::Incomplete);
+        require!(words.is_empty(), Error::Incomplete);
         (
             rounding::baseline_cash(rows, &baseline)?,
             false,
@@ -501,8 +559,10 @@ pub(super) fn verify_book(
     };
     require!(
         cash.iter().sum::<u64>()
-            == rows.iter().map(|r| u64::from(r.cash)).sum::<u64>() + spent.iter().sum::<u64>(),
-        ProofError::UnsupportedBook
+            == rows.iter().map(|r| u64::from(r.cash)).sum::<u64>()
+                + spent.iter().sum::<u64>()
+                + pools.iter().sum::<u64>(),
+        Error::UnsupportedBook
     );
     Ok(Verified {
         cash,
@@ -524,7 +584,7 @@ fn verify_reduction(
     denominator: u32,
     words: &mut &[u32],
 ) -> Result<Flow> {
-    require!(selected > 0 && selected < count, ProofError::DefaultCharge);
+    require!(selected > 0 && selected < count, Error::DefaultCharge);
     let mut scratch = Flow::empty(book.rows.len());
     let mut terminal = Flow::empty(book.rows.len());
     let mut best = None;
@@ -542,15 +602,15 @@ fn verify_reduction(
             }
         }
     }
-    require!(words.is_empty(), ProofError::Incomplete);
+    require!(words.is_empty(), Error::Incomplete);
     require!(
         greater(
-            best.ok_or(ProofError::DefaultCharge)?,
+            best.ok_or(Error::DefaultCharge)?,
             terminal.unit,
             rival.0,
             rival.1
         )?,
-        ProofError::DefaultCharge
+        Error::DefaultCharge
     );
     Ok(terminal)
 }
@@ -559,15 +619,71 @@ fn verify_reduction(
 fn greater(left: i128, left_unit: u64, right: i128, right_unit: u64) -> Result<bool> {
     Ok(left
         .checked_mul(right_unit.into())
-        .ok_or(ProofError::UnsupportedBook)?
+        .ok_or(Error::UnsupportedBook)?
         > right
             .checked_mul(left_unit.into())
-            .ok_or(ProofError::UnsupportedBook)?)
+            .ok_or(Error::UnsupportedBook)?)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn precollected_cash_and_one_large_charge_reconcile_without_enumerating_atoms() {
+        let rows = [
+            (11_504, -19_002, -1),
+            (12_500, 19_002, 1),
+            (999_974, 996, 0),
+        ]
+        .map(|(cash, claim, lots)| Member {
+            cash,
+            cells: vec![
+                Cell {
+                    claim,
+                    lots,
+                    eligible: if lots == 1 { 19_002 } else { 0 },
+                },
+                Cell::default(),
+            ],
+        });
+        let basis = clearing_accounting::attribution::Attribution::default()
+            .fill(0, 1, 60_998)
+            .unwrap();
+        let capacities = [(
+            1,
+            0,
+            basis.frozen_capacity(1, 80_000, 19_002 * SCALE, 1).unwrap(),
+        )];
+        let episode = Episode {
+            venue: &[7; 32],
+            ordinal: 3,
+            member_ids: &[2, 91, 1024],
+            capacities: &capacities,
+        };
+        let proof = RatesProof {
+            selected: 1,
+            denominator: 0,
+            numerators: vec![9999, 6253, 9999, 1, 1, 1],
+        };
+        let plan = verify_book(&rows, &[996, 0], &[6, 0], &proof, Some(episode)).unwrap();
+        assert_eq!(plan.cash, [0, 24_010, 1_000_970]);
+        assert_eq!(&plan.charges[..2], &[7492, 0]);
+        assert_eq!(&plan.spent[..2], &[6, 0]);
+        assert!(verify_book(&rows, &[0, 996], &[6, 0], &proof, Some(episode)).is_err());
+        assert!(verify_book(&rows, &[995, 0], &[6, 0], &proof, Some(episode)).is_err());
+        assert!(verify_book(
+            &rows,
+            &[996, 0],
+            &[6, 0],
+            &proof,
+            Some(Episode {
+                member_ids: &[2, 2, 3],
+                ..episode
+            })
+        )
+        .is_err());
+    }
 
     #[test]
     fn residual_requires_post_insurance_loss_and_no_available_reduction() {
@@ -620,7 +736,7 @@ mod tests {
                 .to_vec(),
         })
         .collect::<Vec<_>>();
-        let book = Book::new(&rows, 3, &[0, 0, 0]).unwrap();
+        let book = Book::new(&rows, &[0; 3], &[0, 0, 0]).unwrap();
         let mut flow = Flow::empty(rows.len());
         flow.unit = 1;
         let mut pairs = [Pair::default(); WIDTH];
@@ -653,7 +769,7 @@ mod tests {
                     }],
                 }
             });
-        let book = Book::new(&rows, 1, &[2]).unwrap();
+        let book = Book::new(&rows, &[0], &[2]).unwrap();
         let mut baseline = Flow::empty(rows.len());
         book.read_plan(
             &mut &[1u32][..],

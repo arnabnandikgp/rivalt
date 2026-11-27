@@ -9,7 +9,7 @@ name = "default_proof_probe"
 [features]
 default = []
 signed-three-market-default = []
-signed-indexed-default = ["signed-three-market-default"]
+signed-indexed-default = ["signed-three-market-default", "default-plan-selection/indexed-settlement"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
