@@ -21,7 +21,7 @@ fn root(cash: u64, claims: [i128; 2]) -> MarginAccount {
     }
 }
 
-pub(super) fn fixture_snapshot() -> Snapshot {
+pub(crate) fn fixture_snapshot() -> Snapshot {
     let markets = [0u8, 1].map(|index| Market {
         schema_version: crate::state::accounts::SCHEMA_VERSION,
         index,
