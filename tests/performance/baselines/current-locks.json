@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "024e7c389ff24e45312fb7769a8e72049b80b5f2f0ee767a2f6c087a80b6c5a4",
+    "clearing": "5b482e7e9b4a4c78a5fe3b6de3cddb529130207edb76c9630674e95fdbf2f00c",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -2324,6 +2324,27 @@
       ],
       "signers": [
         "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "register_market_listing",
+      "write": [
+        "authority",
+        "listing",
+        "symbol_binding"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "oracle_feed",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
       ],
       "optional": []
     },
