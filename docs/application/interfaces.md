@@ -140,3 +140,16 @@ The operator API exposes status and economics separately from the wallet. A heal
 ### Direct local profit credit
 
 For the `direct-closed-credit` deployment, pass the decoded recipient margin account, selected market, amount, actor and pinned artifact set to `directClosedProfitCredit`. The SDK derives the recipient from its portfolio and subaccount, includes both markets, selects the ledger dependencies and marks the recipient’s coverage lane writable. Sign and send all returned instructions together. Anyone can pay the transaction fee. Credited cash belongs to the margin account owner. [Clearing contract](../clearing/accounting.md#atomic-credit-of-closed-profit)
+
+### Complete default inputs
+
+`readVenueSettlementBook(rpc, identity, roster, phase)` reads up to 40 distinct
+Financial roots on the current ledger-lane venue. All roots, market checkpoints,
+registry, vault and recovery state come from one finalized bank. Unique member
+IDs and the registry's Financial count establish completeness. The reader keeps
+signed claims at full precision, classifies pending insurance, checks each
+market's net and gross inventory, and separates allocated cash from unsolicited
+vault surplus. With `active-preview` it uses the current market state. With
+`frozen` it requires the newly valued episode and uses its immutable prices and
+funding. The output supplies the native settlement engine with decimal-string
+amounts. Clearing still verifies any transaction that changes balances.

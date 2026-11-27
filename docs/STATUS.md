@@ -151,9 +151,18 @@ Five wallets withdrew their full balances, leaving eight fee atoms. Fresh
 PostgreSQL replay matched 66 program receipts.
 [Signed result and limits](operations/qualification-scorecard.md#competing-winners-in-two-distressed-markets)
 
-**Next action.** Reconcile a complete book from the real clearing venue,
-including its settlement pools, fee classification and full-precision claims,
-as inputs to wider-market recovery.
+**Finding 11, complete real-venue default inputs (Review).** On clearing
+`5929eb48` and harness `e44cad4e`, two BTC fills and a 996-atom loss collection
+produced a funded settlement pool. A price increase then made a maker insolvent.
+The signed freeze pinned a 1,075,000-atom allocated vault, seven margin accounts,
+six BTC insurance atoms and 20 fee atoms. Rust and an independent exact-rational
+model produced identical ordinary settlement balances. PostgreSQL replay matched
+117 events. The wider settlement has yet to pay wallets on this venue.
+[Signed frozen inputs](operations/qualification-scorecard.md#complete-settlement-inputs-from-venue-clearing)
+
+**Next action.** Verify the maximal protected reduction against this funded
+settlement pool on chain, using the venue's frozen member IDs and episode.
+The rule for economically distinct finalists in asymmetric markets awaits a decision.
 
 | Open gate | What remains |
 |---|---|

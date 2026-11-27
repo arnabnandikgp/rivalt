@@ -659,3 +659,27 @@ vector as the previous optional single record and failed after the wallets had
 exited. The successful run repeated the entire workload on a fresh bank and
 database. This establishes a bounded test-program settlement. Finding 11
 requires the real clearing program to settle positions from the wider venue.
+
+### Complete settlement inputs from venue clearing
+
+On clearing `5929eb48` and harness `e44cad4e`, seven Financial accounts used
+the deployed SPL vault and maker programs. A trader bought one BTC lot for
+60,002 atoms and sold it to another maker for 60,998. The two 13-atom fees
+contributed six atoms to BTC insurance and 20 to retained fees. Collecting
+996 atoms of the short maker's loss moved cash into the BTC settlement pool.
+Both the native settlement engine and the independent rational reference
+gave identical terminal balances before and after this collection.
+
+A signed price shock to 80,000 atoms per lot then froze the short maker
+with 11,504 funded atoms and a 19,002-atom debt. The frozen roster, market
+inventory, claims, settlement pools, fee split and 1,075,000 allocated vault
+atoms reconciled. Before forced reductions, the BTC recovery rate was
+6,253/9,999 with six atoms of BTC insurance and zero ETH insurance. The SDK
+refused an omitted or duplicate member, an active book presented as frozen,
+and a frozen book presented as active. Fresh PostgreSQL replay matched 117
+events from 236 signed transactions. Those terminal values are calculations.
+The signed on-chain effects in this workload end at freeze.
+
+The preceding funded-book rehearsal at `58ec5340` reconciled 112 events without a
+freeze. An earlier launch stopped before the workload because the native reference
+example was built without its required Cargo feature.
