@@ -31,6 +31,17 @@ For [signed orders on a sparse account](../clearing/accounts.md#signed-orders-on
 
 For the [sparse funded-receiver check](../clearing/risk-and-resolution.md#funded-receiver-on-a-sparse-cross-account), run `RIVALT_PROOF_SCOPE=slot-liquidation bash ops/default-proof-smoke.sh`. Build the positions with signed orders, leave a debt in a flat market, then shock a different market from the one being liquidated. Test zero progress after the receiver fee, a receiver one atom short after reserving its own order, absent consent and omitted markets. Verify the exact signers, both account revisions, order cancellation or retention, final SPL withdrawal and post-recovery refusal. Recompute both deficits and the receiver’s initial margin from finalized history in a fresh PostgreSQL database.
 
+For the [market-indexed settlement](qualification-scorecard.md#one-settlement-engine-across-market-widths), run:
+
+```sh
+source ops/env.sh
+cargo build --locked --offline -p financial-core --features market-settlement-model --example market_settlement
+cargo test --locked --offline -p financial-core --features market-settlement-model --lib market_settlement::
+python3 tests/financial/test_market_indexed_default.py
+```
+
+Exercise independently supplied market and member rosters, several source and destination markets, exact joint versus standalone protection, mixed fractional books, a cashless cycle and a cycle with an unpaid outside creditor. Compare permutations of both the market columns and member roster. The twelve-market chain limits each member to two occupied markets. Run the existing three-market, protected-pair and competing-winner comparisons below when the shared kernel or Python reference changes.
+
 For the [three-market frozen book](qualification-scorecard.md#three-market-frozen-book-settlement), run the native fixture from the repository root:
 
 ```sh
@@ -41,7 +52,7 @@ python3 tests/financial/test_three_market_default.py
 
 Rust solves the simultaneous capacity constraints with exact rational arithmetic. The Python reference enumerates which debts and markets are paid in full, solves the resulting balance equations and checks candidate rates against the original cash flows. Compare all exact and rounded results, permute market columns and stable membership input order, and repeat two-market cases against the established atom contract. The comparison ends at terminal plan balances. Signed verification, application and custody exits require a separate Surfpool and PostgreSQL run.
 
-For the [protected reduction comparison](qualification-scorecard.md#protected-three-market-forced-reduction), use the same native binary. Run `python3 tests/financial/test_three_market_reduction.py` and `cargo test --locked -p financial-core --features three-market-model --lib three_market::rounding`. Compare both non-target markets’ exact recoveries, rounded receipts and reserve spend against the independently reconstructed no-action settlement. Check each matched lot against its frozen entry, the debtor’s attributable writeoff, capped onward payments, and a refusal when the minimum receipts cannot all be funded.
+For the [protected reduction comparison](qualification-scorecard.md#protected-three-market-forced-reduction), use the same native binary. Run `python3 tests/financial/test_three_market_reduction.py` and `cargo test --locked -p financial-core --features three-market-model --lib market_settlement::rounding`. Compare both non-target markets’ exact recoveries, rounded receipts and reserve spend against the independently reconstructed no-action settlement. Check each matched lot against its frozen entry, the debtor’s attributable writeoff, capped onward payments, and a refusal when the minimum receipts cannot all be funded.
 
 For the [signed single-pair default](../clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair), run `RIVALT_PROOF_SCOPE=three-market-default bash ops/default-proof-smoke.sh`. The script builds the dedicated local program, checks the deployed bytes, sends signed deposits and fills, freezes all five accounts, resolves and withdraws from SPL custody. Independently hash the original financial accounts, check rollback after every refusal, and replay finalized transactions in fresh PostgreSQL. Feed the reconstructed frozen book and entry into the exact-fraction reference and enumerate every whole charge through the debtor’s original uninsured writeoff. Compare the chosen charge, matched lots, market insurance, each wallet and the remainder in the vault.
 

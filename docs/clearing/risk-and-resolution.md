@@ -191,39 +191,19 @@ Before activation, qualify cycles, multiple sources, fractional ownership,
 terminal rounding, forced reductions, insurance use and every final withdrawal
 against a complete independent book. [Finding 11](../operations/qualification-scorecard.md#payout-and-cross-margin-work)
 
-### Three-market settlement before forced reductions
+### Settlement across a frozen set of markets
 
-The native model takes the frozen roster, each member's funded cash and three
-signed claims after index valuation and funding, and each market's pool, reserve
-and retained fees. It checks that every member appears exactly once, that each
-market's net claims match its settlement pool and that funded balances reconcile
-to the supplied vault balance.
+The native engine takes the expected market IDs and member roster, the market snapshots, and each member’s funded cash and signed market claims after index valuation and funding. It checks both rosters for completeness, orders by stable ID, checks that each market's net claim equals its settlement pool, and reconciles cash, pools, reserves and retained fees to the vault. An on-chain caller still has to authenticate these inputs at the same freeze.
 
-First collect each debtor's own cash up to its total debt rounded down to whole
-atoms. Split that collection in proportion to its frozen debts. Then, at a
-candidate set of market recovery rates, work out what the account can pass on:
+First collect each debtor’s own cash up to its total debt rounded down to whole atoms. Split that collection by the original exact debt proportions. At a given set of market recovery rates, sum everything the account actually recovers. Forward those proceeds by the frozen proportions among destinations that still have unpaid debt. Whenever a destination reaches its cap, the remaining destinations divide the next proceeds by their relative original weights. The debtor keeps any excess once all debts are paid.
 
-```text
-recovered = sum(positive_claim[m] × recovery_rate[m])
-applied   = min(recovered, total_remaining_debt)
-to[m]     = applied × remaining_debt[m] / total_remaining_debt
-```
+For example, with debts of 150, 120 and 30 in three markets, 150 recovered atoms from a fourth market cover 75, 60 and 15. If the first destination holds 25 insurance atoms, its creditor receives 100. Each destination’s reserve covers only its own shortfall.
 
-An account with zero remaining debt keeps its recovery. An account owed money
-in two markets combines both recoveries before applying the debt cap once.
-Solve the three market rates together, choosing the greatest rates consistent
-with all three balances. Reciprocal claims can discharge in a cashless cycle.
-Any outside creditor still participates at its market's rate.
+**How the native solver verifies the rates.** Each market pays at most its face claims and the resources available from its pool, own-cash collections, incoming recoveries and insurance. The engine finds the greatest rates satisfying those constraints simultaneously. This permits reciprocal claims to offset in a cashless cycle while every outside creditor still participates at its market’s rate. With the original debt proportions, one linear allocation per linked debtor suffices. Unequal debt caps after reductions can create several successive allocations per debtor. The engine checks the feasible combinations using exact rational linear programs, then verifies the winning rates against the original cash flows. Runtime can grow with the product of those choices. The present implementation uses a dense matrix in host memory. [Rate calculation](../../crates/financial-core/src/clearing/market_settlement/rates.rs)
 
-Each reserve covers only its own market's shortfall. If its required contribution
-is fractional, round that budget down and solve the entire book again. A lower
-budget can reduce incoming funds in another market. Each reserve can be clipped
-once, giving at most four rate evaluations for three markets. Allocate terminal
-whole atoms over the complete flow graph using the existing residual rounding
-rule, with rows and markets in stable ID order. The model returns each creditor's
-exact impairment, each debtor's residual writeoff and each member's whole cash
-balance. Total writeoffs must equal impairments separately in every market.
-A native [forced-reduction comparison](default-plan-verification.md#one-proposed-reduction-on-a-three-market-frozen-book) checks a proposed pair against this baseline. The signed five-member fixture verifies the [maximum safe charge for one pair](default-plan-verification.md#signed-three-market-default-with-one-eligible-pair) and the [protected split between two BTC winners](default-plan-verification.md#signed-settlement-with-a-second-btc-winner) through SPL withdrawals. Joint reductions across distressed markets and venue integration remain open. [Qualification results](../operations/qualification-scorecard.md#three-market-frozen-book-settlement)
+Each fractional reserve draw reduces that market’s budget to its whole-atom floor and triggers a fresh solve. A reserve can be clipped once, so a book with `M` markets needs at most `M + 1` budget passes. Round terminal cash flows over the complete member-and-market network in stable ID order. Reconcile each market's residual writeoffs to its creditor impairments and the complete whole-atom settlement to the original vault. [Native qualification](../operations/qualification-scorecard.md#one-settlement-engine-across-market-widths)
+
+For simultaneous forced reductions, clearing must evaluate all concessions against the same original lot and debtor budgets, preserve the division of funded cash and verify all protected payouts before application. The native engine can compare a nominated package. The signed local verifier covers its previously qualified five-member cases. Wider plan selection, verification and venue activation remain open. [Default comparisons](default-plan-verification.md#comparing-reductions-in-several-markets)
 
 ### Current two-market equations
 

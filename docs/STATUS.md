@@ -101,7 +101,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 11, signed settlement with two BTC winners.** On fixture `4348427c`, the cross trader and isolated maker each had 120 atoms of eligible BTC gain. Clearing accepted charges of four and six, rejected 5/5 because it would impair foreign creditors and rejected the safe but less proportional 3/7. Three owners withdrew 1,174, 7,000 and 5,000 test atoms. Eleven remained in the vault. Fresh PostgreSQL replay matched 64 program receipts, and independent enumeration found 29 protected splits among 66 physically possible allocations. Venue trading remains BTC/ETH. [Signed outcomes and budgets](operations/qualification-scorecard.md#signed-two-winner-settlement-and-withdrawals)
 
-**Next action.** Compare a joint BTC/ETH forced reduction on a frozen three-market book with taking no action or acting in each distressed market alone. Verify the exact and rounded receipts of the third market and its insurance use against independent enumeration before extending the signed custody fixture.
+**Finding 11, market-indexed settlement.** Native revision `d2e1ca09` settled books at two, three, four, eight and twelve markets. A four-market joint reduction increased both outside creditors’ cash from eight to nine while both standalone two-atom reductions refused. In a twelve-market chain, no member occupied more than two markets and all 25 funded atoms reached the last creditor. These are host calculations. Signed repeats on the existing three-market fixture reproduced both sets of wallet withdrawals, with 59 and 64 program receipts reconciled. [Results and limits](operations/qualification-scorecard.md#one-settlement-engine-across-market-widths)
+
+**Next action.** Qualify a bounded on-chain verifier against the four-market joint book. Bind the complete frozen market and member rosters, prove the recovery rates and winning charges, reject an inferior or incomplete proof, and reconcile all wallet exits. Measure resources separately by number of members and connected markets before promoting wider accounts into the venue and clients.
 
 | Open gate | What remains |
 |---|---|
