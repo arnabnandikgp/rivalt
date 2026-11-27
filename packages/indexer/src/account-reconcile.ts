@@ -116,7 +116,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     [sdk.RETIREMENT_CERTIFICATE_DISCRIMINATOR,636],[sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,181],
     [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148],
     ...settlementDescriptors,...membershipDescriptors,
-    [sdk.MARKET_LISTING_DISCRIMINATOR,sdk.getMarketListingSize()],[sdk.LISTED_SYMBOL_DISCRIMINATOR,sdk.getListedSymbolSize()]
+    [sdk.MARKET_LISTING_DISCRIMINATOR,sdk.getMarketListingSize()],[sdk.LISTED_SYMBOL_DISCRIMINATOR,sdk.getListedSymbolSize()],
+    [sdk.LISTING_INDEX_DISCRIMINATOR,sdk.getListingIndexSize()]
   ] as const;
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
