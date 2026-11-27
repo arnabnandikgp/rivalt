@@ -55,17 +55,27 @@ def probe(width, padding, cycle):
         return dict(rows=rows, positions=positions, proof=certificate(frozen(rows), positions))
     book = linked_book(width)
     rows = [[int(row['cash']), [int(claim)//SCALE for claim in row['claims']]] for row in book['rows']]
-    if cycle:
-        for _, claims in rows:
-            claims.extend([0, 0])
-        rows.extend([[0, [0]*width+[10, -10]], [0, [0]*width+[-10, 10]]])
-        width += 2
     rows.extend([[0, [0]*width] for _ in range(padding)])
     positions = [[(0, 0) for _ in range(width)] for _ in rows]
     for m, (debtor, winner) in enumerate([(0, 1), (2, 3)]):
         positions[debtor][m] = (-1, 0)
         positions[winner][m] = (1, 2)
-    return dict(rows=rows, positions=positions, proof=certificate(frozen(rows), positions))
+    proof = certificate(frozen(rows), positions)
+    if cycle:
+        # This disconnected component has two offsetting 10-atom debts.
+        # Both par and zero are fixed points. Par is the greatest, and neither
+        # member has cash after the offset, for every candidate in the other component.
+        for (_, claims), inventory in zip(rows, positions):
+            claims.extend([0, 0])
+            inventory.extend([(0, 0), (0, 0)])
+        rows.extend([[0, [0]*width+[10, -10]], [0, [0]*width+[-10, 10]]])
+        positions.extend([[(0, 0)]*(width+2) for _ in range(2)])
+        rates = proof['numerators']
+        proof['numerators'] = [rate for start in range(0, len(rates), width)
+                               for rate in rates[start:start+width] + [proof['denominator']]*2]
+        proof['cash'].extend([0, 0])
+        proof['charges'].extend([0, 0])
+    return dict(rows=rows, positions=positions, proof=proof)
 
 
 if __name__ == '__main__':
