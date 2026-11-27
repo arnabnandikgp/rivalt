@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "5b482e7e9b4a4c78a5fe3b6de3cddb529130207edb76c9630674e95fdbf2f00c",
+    "clearing": "4cf283182428b7c304c3ce56158aa45b96710516af2c55082b08d171cf351a25",
     "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
     "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
   },
@@ -466,6 +466,29 @@
         "program"
       ],
       "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "bind_listing_index",
+      "write": [
+        "authority",
+        "listing_index"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "listing",
+        "market",
+        "primary_collateral",
+        "guard_collateral",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
       "optional": []
     },
     {
@@ -1928,6 +1951,26 @@
         "btc",
         "eth"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "observe_listing_index",
+      "write": [
+        "listing_index"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "listing",
+        "primary_asset",
+        "primary_collateral",
+        "guard_asset",
+        "guard_collateral",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
     },
     {
       "program": "clearing",

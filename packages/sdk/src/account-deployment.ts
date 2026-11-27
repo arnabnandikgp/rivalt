@@ -39,7 +39,7 @@ export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
 export const DIRECT_CREDIT_ARTIFACT_SET='direct-closed-credit-984f18f3';
 // Distinct lane allocations on fresh local qualification banks.
 export const THOUSAND_MEMBER_CREDIT_ARTIFACT_SET='thousand-member-credit-213d394d';
-export const LISTING_INDEX_ARTIFACT_SET='listing-index-e8482f59';
+export const LISTING_INDEX_ARTIFACT_SET='listing-index-aa205484';
 export const INACTIVE_LISTING_ARTIFACT_SET='inactive-market-listing-1adaf018';
 export const INDEXED_WITHDRAWAL_ARTIFACT_SET='venue-indexed-withdrawal-4e11ef94';
 export const GROUPED_CREDIT_ARTIFACT_SET='grouped-coverage-credit-e4aff314';

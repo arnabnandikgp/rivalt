@@ -24,8 +24,8 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   if (probe === 'execution-router-indexed-withdrawal' || probe === 'execution-router-inactive-listing' || probe === 'execution-router-listing-index') {
     const listing = probe === 'execution-router-inactive-listing';
     const profile = probe === 'execution-router-listing-index' ? {
-      name:'inactive-market-listing',revision:'e8482f59fa0df854845b7ea073e038b0d8366ccc',artifactSet:LISTING_INDEX_ARTIFACT_SET,
-      clearing:{bytes:3965232,sha256:'96392594c5db738cd32dde372b7948b0e3d1fc0bb6fa4c968da081ceed19fea2'},
+      name:'inactive-market-listing',revision:'aa205484afa247360a60d6a01767be23d9ce6a98',artifactSet:LISTING_INDEX_ARTIFACT_SET,
+      clearing:{bytes:3965952,sha256:'85ba9d753966c338a241379245c255c07ee2c6fdbeeef3d3620ab6285643e36d'},
     } : listing ? {
       name:'inactive-market-listing',revision:'1adaf018353172e446820a04597b45b97bcbac23',artifactSet:INACTIVE_LISTING_ARTIFACT_SET,
       clearing:{bytes:3922424,sha256:'0d66986f9173d89439d05d899be40870a179b0f9191629259155f4cbbc3e8b81'},
