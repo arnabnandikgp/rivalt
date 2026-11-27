@@ -154,7 +154,7 @@ try {
   }
   const digest=await bookHash();
   const accounts=[...roots.map(rw),...markets.map((m,i)=>proof.spent[i]?rw(m):ro(m))];
-  const settle=(label:string,p=proof,error?:number,metas=accounts,hash=digest)=>send('keeper '+label,'settle_indexed_book',
+  const settle=(label:string,p=proof,error?:number,metas=accounts,hash:Buffer=digest)=>send('keeper '+label,'settle_indexed_book',
     [rw(custody),ro(vault),...metas],[hash,encodeProof(p)],operator,error);
   await settle('refuse stale signed state',proof,6017,accounts,stale);
   await settle('refuse missing market',proof,6015,accounts.slice(0,-1));

@@ -495,6 +495,73 @@ mod tests {
     use super::*;
 
     #[test]
+    fn frozen_cash_stays_split_when_a_charge_caps_one_destination() {
+        let rows = [
+            (50, [-100, -100, 200]),
+            (100, [0, 0, -200]),
+            (0, [100, 0, 0]),
+            (0, [0, 100, 0]),
+        ]
+        .into_iter()
+        .map(|(cash, claims)| Member {
+            cash,
+            cells: claims
+                .map(|claim| Cell {
+                    claim,
+                    ..Cell::default()
+                })
+                .to_vec(),
+        })
+        .collect::<Vec<_>>();
+        let book = Book::new(&rows, 3, &[0, 0, 0]).unwrap();
+        let mut flow = Flow::empty(rows.len());
+        flow.unit = 1;
+        let mut pairs = [Pair::default(); WIDTH];
+        pairs[0] = Pair {
+            debtor: 0,
+            winner: 2,
+            maximum: 40,
+        };
+        let charges = allocation(40, &pairs);
+        // Own cash remains 25/25. Of the next 100 atoms, only 35 fit the
+        // first destination after the charge. The second receives the other 65.
+        assert_eq!(
+            book.forward(0, &charges, &pairs, &mut flow, 100).unwrap(),
+            0b010
+        );
+        assert_eq!(&flow.payments[0][..2], &[60, 90]);
+    }
+
+    #[test]
+    fn individual_charge_budget_uses_the_insured_share_of_each_debt() {
+        let rows =
+            [(2, -8, -1, 0), (2, -4, 0, 0), (0, 12, 1, 12)].map(|(cash, claim, lots, eligible)| {
+                Member {
+                    cash,
+                    cells: vec![Cell {
+                        claim,
+                        lots,
+                        eligible,
+                    }],
+                }
+            });
+        let book = Book::new(&rows, 1, &[2]).unwrap();
+        let mut baseline = Flow::empty(rows.len());
+        book.read_plan(
+            &mut &[1u32][..],
+            2,
+            &[Pair::default(); WIDTH],
+            &[0; WIDTH],
+            &mut baseline,
+        )
+        .unwrap();
+        let (pairs, count) = book.pairs(&baseline).unwrap();
+        // Six of eight residual debt atoms belong to the first debtor. Its
+        // uninsured writeoff is 6 * (8 - 2) / 8 = 4.5, admitting four whole atoms.
+        assert_eq!((pairs[0].maximum, count), (4, 5));
+    }
+
+    #[test]
     fn a_fractional_reserve_draw_requires_verified_rates_before_and_after_clipping() {
         // The source pays 3/4. The linked member collects 3 of its own cash
         // and forwards 9/4 received, split equally. Each downstream owes 3.
