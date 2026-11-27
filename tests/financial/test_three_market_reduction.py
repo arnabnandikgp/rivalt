@@ -58,6 +58,17 @@ def compare_reference(source):
         claims = data["rows"][member]["claims"]
         claims[target] = str(int(claims[target]) + sign * gross_concession * SCALE)
 
+    adjusted = protected_settlement(source, data, baseline, target)
+    if adjusted is None:
+        return None
+    def loss(plan):
+        return sum(Fraction(row["loss"][target]) for row in plan["rows"])
+    return dict(settlement=adjusted, matched=str(matched), baseTicks=str(ticks), extraTickLots=str(extra),
+                debtorLotsAfter=str(debtor_lots + direction * matched), winnerLotsAfter=str(lots - direction * matched),
+                recovery=str(min(charge, loss(baseline) - loss(adjusted))))
+
+
+def protected_settlement(source, data, baseline, target):
     adjusted = expected(data, frozen=source)
     floors = {}
     for market in range(3):
@@ -76,11 +87,7 @@ def compare_reference(source):
             adjusted = expected(data, frozen=source, minimums=floors)
         except InfeasiblePayoutFloor:
             return None
-    def loss(plan):
-        return sum(Fraction(row["loss"][target]) for row in plan["rows"])
-    return dict(settlement=adjusted, matched=str(matched), baseTicks=str(ticks), extraTickLots=str(extra),
-                debtorLotsAfter=str(debtor_lots + direction * matched), winnerLotsAfter=str(lots - direction * matched),
-                recovery=str(min(charge, loss(baseline) - loss(adjusted))))
+    return adjusted
 
 
 def linked(debts=(12, 8), insurance=(0, 0, 0)):

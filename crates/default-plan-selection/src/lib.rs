@@ -18,6 +18,8 @@ pub mod mirror;
 pub mod pair_prefix;
 #[cfg(feature = "native-search")]
 pub mod multi_lot;
+#[cfg(all(feature = "three-market-search", not(target_arch = "bpf")))]
+pub mod three_market;
 pub mod proportional;
 pub mod single_lot;
 pub mod two_debtors;

@@ -8,6 +8,7 @@ publish = false
 keeper = ["native-joint", "dep:serde", "dep:serde_json"]
 compact-book = ["dep:clearing-accounting"]
 native-search = ["compact-book", "dep:num-bigint", "dep:num-integer", "dep:num-traits"]
+three-market-search = ["native-joint", "financial-core/three-market-model"]
 native-joint = ["native-search", "dep:financial-core"]
 sbf-joint-probe = ["compact-book", "dep:num-bigint", "dep:num-integer", "dep:num-traits", "financial-core/sbf-settlement-measurement"]
 
@@ -37,3 +38,7 @@ required-features = ["native-joint"]
 name = "rivalt-recovery-selector"
 path = "src/bin/recovery_selector.rs"
 required-features = ["keeper"]
+
+[[example]]
+name = "three_market_competition"
+required-features = ["three-market-search"]

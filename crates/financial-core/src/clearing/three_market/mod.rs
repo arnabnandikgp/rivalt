@@ -61,6 +61,7 @@ pub struct Plan {
     pub rows: Vec<RowResult>,
 }
 
+#[derive(Clone)]
 struct Prepared {
     id: u64,
     cash: u64,
