@@ -10,7 +10,7 @@ import unittest
 
 from account_contract_reference import Account
 from clearing_network_reference import clear_atom_cohort
-from three_market_reference import expected
+from market_indexed_reference import expected
 
 SCALE = 10**9
 MAX_CASH = 10**15

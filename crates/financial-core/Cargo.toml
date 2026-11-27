@@ -26,7 +26,8 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"
 
 
 [features]
-three-market-model = ["dep:num-rational", "dep:num-traits", "clearing-accounting/surviving-profit"]
+three-market-model = ["market-settlement-model"]
+market-settlement-model = ["dep:num-rational", "dep:num-traits", "clearing-accounting/surviving-profit"]
 wide-atomic-routes = []
 parallel-market-prototype = []
 closed-quantity-model = ["clearing-accounting/surviving-profit"]
@@ -60,3 +61,7 @@ required-features = ["closed-quantity-model"]
 [[example]]
 name = "three_market_default"
 required-features = ["three-market-model"]
+
+[[example]]
+name = "market_settlement"
+required-features = ["market-settlement-model"]

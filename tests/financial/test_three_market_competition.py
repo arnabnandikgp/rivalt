@@ -11,7 +11,7 @@ import unittest
 from frozen_plan_selection import FrozenIdentity
 from test_three_market_default import SCALE, book, permute
 from test_three_market_reduction import protected_settlement
-from three_market_reference import expected
+from market_indexed_reference import expected
 
 BINARY = os.getenv("RIVALT_THREE_MARKET_COMPETITION", "target/debug/examples/three_market_competition")
 

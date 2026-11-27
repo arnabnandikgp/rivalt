@@ -1,4 +1,4 @@
-"""Independent three-market oracle. Enumerate debtor/market saturation regimes
+"""Independent frozen-book oracle. Enumerate debtor/market saturation regimes
 and solve simultaneous cash balances with Python Fraction and Gaussian elimination.
 Inputs and outputs are canonically ordered here; the caller permutes the Rust input.
 """
@@ -6,9 +6,6 @@ from fractions import Fraction as F
 from itertools import combinations, product
 
 from clearing_network_reference import _round_circulation, recovered_debt_shares
-
-MARKETS = range(3)
-ONE = (F(1),) * 3
 
 
 def dot(a, b):
@@ -18,13 +15,13 @@ def dot(a, b):
 def point(equations):
     """Unique intersection; a singular regime is handled by its boundary vertices."""
     matrix = [list(map(F, row)) for row in equations]
-    for column in MARKETS:
-        pivot = next((i for i in range(column, 3) if matrix[i][column]), None)
+    for column in range(len(matrix)):
+        pivot = next((i for i in range(column, len(matrix)) if matrix[i][column]), None)
         if pivot is None:
             return None
         matrix[column], matrix[pivot] = matrix[pivot], matrix[column]
         matrix[column] = [x / matrix[column][column] for x in matrix[column]]
-        for i in MARKETS:
+        for i in range(len(matrix)):
             if i != column:
                 factor = matrix[i][column]
                 matrix[i] = [x - factor * y for x, y in zip(matrix[i], matrix[column])]
@@ -33,7 +30,7 @@ def point(equations):
 
 def allocation_segments(owed, original):
     """Split successive proceeds among still-unpaid destinations at their frozen weights."""
-    paid = [F(0)] * 3
+    paid = [F(0)] * len(owed)
     start = F(0)
     segments = []
     while sum(paid) < sum(owed):
@@ -47,7 +44,7 @@ def allocation_segments(owed, original):
         start += step
         paid = [balance + slope * step for balance, slope in zip(paid, slopes)]
         segments.append((start, slopes, intercept))
-    return segments + [(None, [F(0)] * 3, owed)]
+    return segments + [(None, [F(0)] * len(owed), owed)]
 
 
 def allocate(segments, recovered):
@@ -58,6 +55,7 @@ def allocate(segments, recovered):
 
 
 def rates_for(claims, segments, bases, face, insurance):
+    markets = range(len(face))
     links = [(win, regimes) for win, regimes in zip(claims, segments) if any(win) and len(regimes) > 1]
     if not links:
         return tuple(min(F(1), (base + reserve) / weight) if weight else F(1)
@@ -66,43 +64,50 @@ def rates_for(claims, segments, bases, face, insurance):
     def evaluate(rates):
         incoming = [allocate(regimes, dot(win, rates)) for win, regimes in links]
         return tuple(min(F(1), (bases[m] + insurance[m] + sum(row[m] for row in incoming)) / face[m])
-                     if face[m] else F(1) for m in MARKETS)
+                     if face[m] else F(1) for m in markets)
 
-    if evaluate(ONE) == ONE:
-        return ONE
+    # Acyclic transfers stabilize after at most one pass per market. For a
+    # cycle that has not stabilized exactly, solve all relevant linear regimes.
+    upper = (F(1),) * len(face)
+    for _ in range(len(face) + 1):
+        next_rates = evaluate(upper)
+        if next_rates == upper:
+            return upper
+        upper = next_rates
     solutions = set()
-    units = [tuple(F(i == m) for i in MARKETS) for m in MARKETS]
+    units = [tuple(F(i == m) for i in markets) for m in markets]
     boundaries = [(*unit, n) for unit in units for n in (0, 1)]
     boundaries += [(*win, end) for win, regimes in links for end, _, _ in regimes if end is not None]
     for segments in product(*(regimes for _, regimes in links)):
         equations = []
-        for m in MARKETS:
-            coeff = [units[m][i] * face[m] for i in MARKETS]
+        for m in markets:
+            coeff = [units[m][i] * face[m] for i in markets]
             rhs = bases[m] + insurance[m]
             for (win, _), (_, slopes, intercept) in zip(links, segments):
                 rhs += intercept[m]
                 coeff = [value - slopes[m] * claim for value, claim in zip(coeff, win)]
             equations.append((*coeff, rhs))
-        for full in product((False, True), repeat=3):
-            active = [(*units[m], 1) if full[m] or not face[m] else equations[m] for m in MARKETS]
+        for full in product((False, True), repeat=len(face)):
+            active = [(*units[m], 1) if full[m] or not face[m] else equations[m] for m in markets]
             unique = point(active)
             if unique is None:
                 # A greatest point on a nontrivial fixed face has an active
                 # market cap, debtor threshold or rate bound at the endpoint.
-                candidates = (point(e) for e in combinations(set(active + boundaries + equations), 3))
+                candidates = (point(e) for e in combinations(set(active + boundaries + equations), len(face)))
             else:
                 candidates = (unique,)
             for value in candidates:
                 if value is not None and all(0 <= v <= 1 for v in value) and value == evaluate(value):
                     solutions.add(value)
     assert solutions
-    greatest = tuple(max(s[m] for s in solutions) for m in MARKETS)
+    greatest = tuple(max(s[m] for s in solutions) for m in markets)
     assert greatest in solutions
     return greatest
 
 
 def expected(book, *, frozen=None, minimums=None):
     market_ids = [item["id"] for item in book["markets"]]
+    markets = range(len(market_ids))
     assert market_ids == sorted(market_ids)
     rows = sorted(book["rows"], key=lambda row: int(row["id"]))
     cash = [int(row["cash"]) for row in rows]
@@ -122,15 +127,15 @@ def expected(book, *, frozen=None, minimums=None):
     ]
     debts = [tuple(x - y for x, y in zip(owed, paid)) for owed, paid in zip(debts, own)]
     segments = [allocation_segments(owed, weights) for owed, weights in zip(debts, original_debts)]
-    bases = [F(pools[m]) + sum(row[m] for row in own) for m in MARKETS]
-    face = [sum(row[m] for row in gains) for m in MARKETS]
+    bases = [F(pools[m]) + sum(row[m] for row in own) for m in markets]
+    face = [sum(row[m] for row in gains) for m in markets]
 
     budgets = list(reserves)
-    for _ in range(4):
+    for _ in range(len(markets) + 1):
         rates = rates_for(gains, segments, bases, face, budgets)
         recovered = [tuple(claim * rate for claim, rate in zip(row, rates)) for row in gains]
         forwarded = [allocate(regimes, sum(src)) for src, regimes in zip(recovered, segments)]
-        spent = [face[m] * rates[m] - bases[m] - sum(row[m] for row in forwarded) for m in MARKETS]
+        spent = [face[m] * rates[m] - bases[m] - sum(row[m] for row in forwarded) for m in markets]
         assert all(0 <= use <= budget for use, budget in zip(spent, budgets))
         if all(use.denominator == 1 for use in spent):
             break
@@ -142,12 +147,12 @@ def expected(book, *, frozen=None, minimums=None):
 
     spent = [int(use) for use in spent]
     remaining = [tuple(x - y for x, y in zip(owed, paid)) for owed, paid in zip(debts, forwarded)]
-    total_owed = [sum(row[m] for row in remaining) for m in MARKETS]
+    total_owed = [sum(row[m] for row in remaining) for m in markets]
     supply = cash + [pool + use for pool, use in zip(pools, spent)]
     supply.append(-sum(supply))
     count = len(cash)
     edges, claim_edges = [], {}
-    for market in MARKETS:
+    for market in markets:
         for member in range(count):
             if net[member][market] == 0:
                 continue
@@ -162,7 +167,7 @@ def expected(book, *, frozen=None, minimums=None):
         balance - sum(collection) + sum(win) - sum(pay)
         for balance, collection, win, pay in zip(cash, own, recovered, forwarded)
     ]
-    edges.extend((member, count + 3, amount) for member, amount in enumerate(entitlement))
+    edges.extend((member, count + len(markets), amount) for member, amount in enumerate(entitlement))
     edge_floors = {claim_edges[key]: value for key, value in (minimums or {}).items() if value > 0}
     rounded, _ = _round_circulation(supply, edges, edge_floors)
     result = []
@@ -172,8 +177,8 @@ def expected(book, *, frozen=None, minimums=None):
             debt * (1 - spent[m] / total_owed[m]) if total_owed[m] else F(0)
             for m, debt in enumerate(remaining[member])
         ]
-        movements = [0, 0, 0]
-        for market in MARKETS:
+        movements = [0] * len(markets)
+        for market in markets:
             if (member, market) in claim_edges:
                 direction = 1 if net[member][market] > 0 else -1
                 movements[market] = direction * rounded[claim_edges[member, market]]

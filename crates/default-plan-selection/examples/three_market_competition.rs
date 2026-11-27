@@ -1,5 +1,5 @@
 //! Native diagnostic inputs, in JSON lines. The complete book determines the eligible pairings.
-#[path = "../../financial-core/examples/three_market_default/wire.rs"]
+#[path = "../../financial-core/examples/market_settlement/wire.rs"]
 mod wire;
 use default_plan_selection::three_market::select;
 use financial_core::clearing::three_market::reduction::{competition::Contest, FrozenPositions};
@@ -27,7 +27,7 @@ struct Competition {
 
 fn evaluate(input: &str) -> Result<Value, Box<dyn std::error::Error>> {
     let input: Input = serde_json::from_str(input)?;
-    let (markets, roster, rows, vault) = wire::frozen(input.book)?;
+    let (markets, roster, rows, vault) = wire::frozen(input.book, Some(3))?;
     let terms = input.competition;
     let positions = wire::positions(terms.positions)?;
     let book = Contest::freeze(

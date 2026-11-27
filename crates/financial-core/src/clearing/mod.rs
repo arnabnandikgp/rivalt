@@ -9,5 +9,7 @@ pub mod atoms;
 pub mod scalable;
 
 /// Native residual-settlement qualification. No program instruction selects this model.
+#[cfg(all(feature = "market-settlement-model", not(target_os = "solana")))]
+pub mod market_settlement;
 #[cfg(all(feature = "three-market-model", not(target_os = "solana")))]
-pub mod three_market;
+pub use market_settlement as three_market;

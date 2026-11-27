@@ -7,7 +7,7 @@ import unittest
 
 from clearing_network_reference import InfeasiblePayoutFloor
 from test_three_market_default import SCALE, book, permute, run
-from three_market_reference import expected
+from market_indexed_reference import expected
 
 
 def proposal(data, charge, gain=20, lots=1, target=0, debtor=0, winner=1):

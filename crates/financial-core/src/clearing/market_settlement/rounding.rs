@@ -75,12 +75,13 @@ impl Network {
 pub(super) fn finalize(
     rows: &[Prepared],
     results: &mut [RowResult],
-    markets: &[Market; 3],
-    spent: [u64; 3],
-    minimums: Option<&[[i128; 3]]>,
+    markets: &[Market],
+    spent: &[u64],
+    minimums: Option<&[Vec<i128>]>,
 ) -> Result<()> {
     let count = rows.len();
-    let cash_sink = count + 3;
+    let width = markets.len();
+    let cash_sink = count + width;
     let source = cash_sink + 1;
     let sink = source + 1;
     let mut graph = Network {
@@ -88,13 +89,13 @@ pub(super) fn finalize(
         outgoing: vec![vec![]; sink + 1],
     };
     let mut supplies: Vec<i128> = rows.iter().map(|row| i128::from(row.cash)).collect();
-    supplies.extend((0..3).map(|m| i128::from(markets[m].pool) + i128::from(spent[m])));
+    supplies.extend((0..width).map(|m| i128::from(markets[m].pool) + i128::from(spent[m])));
     supplies.push(-supplies.iter().sum::<i128>());
     let mut needs = supplies.clone();
     let mut edges = Vec::new();
-    for column in 0..4 {
+    for column in 0..=width {
         for (i, row) in results.iter().enumerate() {
-            let (from, to, flow) = if column == 3 {
+            let (from, to, flow) = if column == width {
                 (i, cash_sink, row.cash_entitlement.clone())
             } else if !rows[i].claims[column].is_zero() {
                 (count + column, i, row.recovered[column].clone())
@@ -105,7 +106,7 @@ pub(super) fn finalize(
                     &row.collections[column] + &row.forwarded[column],
                 )
             };
-            let minimum = if column < 3 && to == i {
+            let minimum = if column < width && to == i {
                 minimums.map_or(0, |bounds| bounds[i][column])
             } else {
                 0
@@ -151,7 +152,7 @@ pub(super) fn finalize(
         let amount = floor + i128::from(graph.arcs[arc ^ 1].capacity);
         supplies[from] -= amount;
         supplies[to] += amount;
-        if column == 3 {
+        if column == width {
             results[i].cash = u64::try_from(amount).map_err(|_| Error::Overflow)?;
         } else {
             results[i].movements[column] = if to == i { amount } else { -amount };
@@ -186,18 +187,24 @@ mod tests {
             .map(|(id, claim)| FrozenRow {
                 id: id as u64,
                 cash: u64::from(id == 0),
-                claims: [0, 0, claim * SCALE],
+                claims: vec![0, 0, claim * SCALE],
             })
             .collect::<Vec<_>>();
-        let (markets, members) = prepare(markets, &[0, 1, 2, 3], &rows, 1).unwrap();
+        let (markets, members) = prepare(
+            FrozenMarkets::new(&[3, 8, 38], markets.to_vec()).unwrap(),
+            &[0, 1, 2, 3],
+            &rows,
+            1,
+        )
+        .unwrap();
         let mut ordinary = settle_prepared(&markets, &members, 1, None).unwrap();
-        let mut minimums = [[0; 3]; 4];
+        let mut minimums = vec![vec![0; 3]; 4];
         minimums[2][2] = 1;
         finalize(
             &members,
             &mut ordinary.rows,
             &markets,
-            [0; 3],
+            &[0; 3],
             Some(&minimums),
         )
         .unwrap();
@@ -210,7 +217,7 @@ mod tests {
                 &members,
                 &mut ordinary.rows,
                 &markets,
-                [0; 3],
+                &[0; 3],
                 Some(&minimums)
             ),
             Err(Error::Entitlement)

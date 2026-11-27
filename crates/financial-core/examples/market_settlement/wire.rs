@@ -1,7 +1,7 @@
-//! Shared JSON test format for the native three-market comparison drivers.
+//! Shared JSON test format for the native frozen-book comparison drivers.
 use clearing_accounting::entry_cost::EntryCost;
-use financial_core::clearing::three_market::{
-    reduction::MarketPosition, Amounts, FrozenRow, Market, Plan,
+use financial_core::clearing::market_settlement::{
+    reduction::MarketPosition, Amounts, FrozenMarkets, FrozenRow, Market, Plan,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -9,7 +9,8 @@ use serde_json::{json, Value};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Book {
-    markets: [MarketInput; 3],
+    markets: Vec<MarketInput>,
+    market_roster: Option<Vec<u16>>,
     roster: Vec<String>,
     rows: Vec<RowInput>,
     vault: String,
@@ -34,14 +35,20 @@ struct MarketInput {
 struct RowInput {
     id: String,
     cash: String,
-    claims: [String; 3],
+    claims: Vec<String>,
 }
 
-fn strings(v: &Amounts) -> [String; 3] {
-    v.each_ref().map(ToString::to_string)
+fn strings(v: &Amounts) -> Vec<String> {
+    v.iter().map(ToString::to_string).collect()
 }
-pub type FrozenInputs = ([Market; 3], Vec<u64>, Vec<FrozenRow>, u64);
-pub fn frozen(book: Book) -> Result<FrozenInputs, Box<dyn std::error::Error>> {
+pub type FrozenInputs = (FrozenMarkets, Vec<u64>, Vec<FrozenRow>, u64);
+pub fn frozen(
+    book: Book,
+    required_width: Option<usize>,
+) -> Result<FrozenInputs, Box<dyn std::error::Error>> {
+    if required_width.is_some_and(|width| book.markets.len() != width) {
+        return Err("market count".into());
+    }
     let mut markets = Vec::new();
     for m in book.markets {
         markets.push(Market {
@@ -53,11 +60,14 @@ pub fn frozen(book: Book) -> Result<FrozenInputs, Box<dyn std::error::Error>> {
     }
     let mut rows = Vec::new();
     for row in book.rows {
-        let [a, b, c] = row.claims;
         rows.push(FrozenRow {
             id: row.id.parse()?,
             cash: row.cash.parse()?,
-            claims: [a.parse()?, b.parse()?, c.parse()?],
+            claims: row
+                .claims
+                .iter()
+                .map(|c| c.parse())
+                .collect::<Result<_, _>>()?,
         });
     }
     let roster = book
@@ -65,7 +75,12 @@ pub fn frozen(book: Book) -> Result<FrozenInputs, Box<dyn std::error::Error>> {
         .iter()
         .map(|v| v.parse())
         .collect::<Result<Vec<_>, _>>()?;
-    let markets = markets.try_into().map_err(|_| "market count")?;
+    let expected = match (required_width, book.market_roster) {
+        (None, Some(ids)) => ids,
+        (Some(_), None) => markets.iter().map(|m| m.id).collect(),
+        _ => return Err("market roster".into()),
+    };
+    let markets = FrozenMarkets::new(&expected, markets).map_err(|e| format!("{e:?}"))?;
     let vault = book.vault.parse()?;
     Ok((markets, roster, rows, vault))
 }
@@ -102,16 +117,16 @@ pub fn plan_json(plan: &Plan) -> Value {
                 "writeoff": strings(&row.writeoff),
                 "entitlement": row.cash_entitlement.to_string(),
                 "cash": row.cash.to_string(),
-                "movements": row.movements.map(|movement| movement.to_string()),
+                "movements": row.movements.iter().map(ToString::to_string).collect::<Vec<_>>(),
             })
         })
         .collect();
     json!({
         "markets": plan.markets,
         "rates": strings(&plan.rates),
-        "spent": plan.spent.map(|value| value.to_string()),
-        "left": plan.insurance_left.map(|value| value.to_string()),
-        "fees": plan.fees.map(|value| value.to_string()),
+        "spent": plan.spent.iter().map(ToString::to_string).collect::<Vec<_>>(),
+        "left": plan.insurance_left.iter().map(ToString::to_string).collect::<Vec<_>>(),
+        "fees": plan.fees.iter().map(ToString::to_string).collect::<Vec<_>>(),
         "rows": members,
     })
 }

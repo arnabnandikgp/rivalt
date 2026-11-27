@@ -3,7 +3,7 @@
 use super::*;
 
 pub struct Contest {
-    markets: [Market; 3],
+    markets: Vec<Market>,
     target: usize,
     members: Vec<Prepared>,
     vault: u64,
@@ -24,7 +24,7 @@ pub struct Allocation {
 
 impl Contest {
     pub fn freeze(
-        markets: [Market; 3],
+        markets: FrozenMarkets,
         roster: &[u64],
         rows: &[FrozenRow],
         vault: u64,
@@ -113,7 +113,7 @@ impl Contest {
             &self.markets,
             &members,
             self.vault,
-            Some((&self.baseline, self.target)),
+            Some((&self.baseline, &[self.target])),
         )?;
         let recovery = integer(total).min(
             market_loss(&self.baseline.rows, self.target)

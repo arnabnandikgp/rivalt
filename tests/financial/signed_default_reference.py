@@ -6,7 +6,7 @@ from fractions import Fraction
 
 from test_three_market_competition import reference as competing_reference
 from test_three_market_reduction import compare_reference, protected_settlement
-from three_market_reference import expected
+from market_indexed_reference import expected
 
 
 def select(book):
