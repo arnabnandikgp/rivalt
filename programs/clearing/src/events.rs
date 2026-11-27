@@ -931,3 +931,18 @@ pub struct MarketListingRegistered {
     pub oracle_feed: Address,
     pub status: u8,
 }
+
+#[event]
+pub struct ListingIndexChanged {
+    pub venue: Address,
+    pub slot: u64,
+    pub index: Address,
+    pub listing: Address,
+    pub sources: [Address; 4],
+    pub source_sequences: [u64; 4],
+    pub sampled_at: i64,
+    pub deadline: i64,
+    pub reference: u64,
+    pub lower: u64,
+    pub upper: u64,
+}

@@ -30,3 +30,21 @@ pub struct ListedSymbol {
     pub listing: Address,
     pub bump: u8,
 }
+
+/// Last qualified local index for an inactive listing. A zero deadline means
+/// that no observation has qualified since the sources were bound.
+#[account(borsh)]
+#[derive(InitSpace, Default)]
+pub struct ListingIndex {
+    pub schema_version: u16,
+    pub revision: u64,
+    pub listing: Address,
+    pub sources: [Address; 4],
+    pub source_sequences: [u64; 4],
+    pub sampled_at: i64,
+    pub deadline: i64,
+    pub reference: u64,
+    pub lower: u64,
+    pub upper: u64,
+    pub bump: u8,
+}

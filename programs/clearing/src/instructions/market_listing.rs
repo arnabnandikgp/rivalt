@@ -27,7 +27,7 @@ pub struct RegisterMarketListing {
 
 // Local test feeds identify the USD index by its canonical symbol, for example
 // SOL/USD followed by zero padding. The signed publisher and feed ID select one PDA.
-fn feed_id(symbol: &[u8; 8]) -> Result<[u8; 32]> {
+pub(super) fn feed_id(symbol: &[u8; 8]) -> Result<[u8; 32]> {
     let len = symbol
         .iter()
         .position(|byte| *byte == 0)
@@ -46,6 +46,16 @@ fn feed_id(symbol: &[u8; 8]) -> Result<[u8; 32]> {
     id[..len].copy_from_slice(&symbol[..len]);
     id[len..len + 4].copy_from_slice(b"/USD");
     Ok(id)
+}
+
+pub(super) fn fixture_feed(account: &AccountView, expected: Address) -> Result<Feed> {
+    crate::engine::sources::binding(account, expected, 0)?;
+    let bytes = account.try_borrow()?;
+    require!(
+        bytes.len() == 8 + Feed::INIT_SPACE,
+        ClearingError::OracleSource
+    );
+    Feed::try_deserialize(&mut &bytes[..])
 }
 
 pub fn register(
@@ -79,14 +89,7 @@ pub fn register(
         &[b"feed", oracle_publisher.as_ref(), &id],
         &oracle_fixture::ID,
     );
-    let account = accounts.oracle_feed.account();
-    crate::engine::sources::binding(account, expected, 0)?;
-    let bytes = account.try_borrow()?;
-    require!(
-        bytes.len() == 8 + Feed::INIT_SPACE,
-        ClearingError::OracleSource
-    );
-    let feed = Feed::try_deserialize(&mut &bytes[..])?;
+    let feed = fixture_feed(accounts.oracle_feed.account(), expected)?;
     require!(
         feed.authority == oracle_publisher && feed.feed_id == id && feed.bump == bump,
         ClearingError::OracleSource

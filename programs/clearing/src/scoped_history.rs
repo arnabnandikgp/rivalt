@@ -57,7 +57,7 @@ revisioned! {
     17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
     20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
     24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone, 27 => StorageTombstone,
-    28 => MarketListing, 29 => ListedSymbol,
+    28 => MarketListing, 29 => ListedSymbol, 30 => ListingIndex,
 }
 
 impl Revisioned for MarginAccount {

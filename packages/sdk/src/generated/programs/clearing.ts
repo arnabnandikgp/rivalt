@@ -44,6 +44,7 @@ import {
   getJointPaymentProofCodec,
   getLiquidityRegistryCodec,
   getListedSymbolCodec,
+  getListingIndexCodec,
   getMakerRegistrationCodec,
   getMarginAccountCodec,
   getMarginTombstoneCodec,
@@ -86,6 +87,8 @@ import {
   type LiquidityRegistryArgs,
   type ListedSymbol,
   type ListedSymbolArgs,
+  type ListingIndex,
+  type ListingIndexArgs,
   type MakerRegistration,
   type MakerRegistrationArgs,
   type MarginAccount,
@@ -159,6 +162,7 @@ import {
   getBeginSettlementPlanOrderInstructionAsync,
   getBeginSettlementRateProposalInstructionAsync,
   getBindJointPaymentInstructionAsync,
+  getBindListingIndexInstructionAsync,
   getBindRecoverySelectionInstructionAsync,
   getCancelRecoveryProvisionInstructionAsync,
   getCaptureJointPaymentInstructionAsync,
@@ -218,6 +222,7 @@ import {
   getManageProfitCapacityInstructionAsync,
   getMatchPairPageInstruction,
   getNetAccountClaimsInstructionAsync,
+  getObserveListingIndexInstructionAsync,
   getOpenJointPaymentInstructionAsync,
   getOpenPairScheduleInstructionAsync,
   getOpenSearchInstructionAsync,
@@ -280,6 +285,7 @@ import {
   parseBeginSettlementPlanOrderInstruction,
   parseBeginSettlementRateProposalInstruction,
   parseBindJointPaymentInstruction,
+  parseBindListingIndexInstruction,
   parseBindRecoverySelectionInstruction,
   parseCancelRecoveryProvisionInstruction,
   parseCaptureJointPaymentInstruction,
@@ -339,6 +345,7 @@ import {
   parseManageProfitCapacityInstruction,
   parseMatchPairPageInstruction,
   parseNetAccountClaimsInstruction,
+  parseObserveListingIndexInstruction,
   parseOpenJointPaymentInstruction,
   parseOpenPairScheduleInstruction,
   parseOpenSearchInstruction,
@@ -401,6 +408,7 @@ import {
   type BeginSettlementPlanOrderAsyncInput,
   type BeginSettlementRateProposalAsyncInput,
   type BindJointPaymentAsyncInput,
+  type BindListingIndexAsyncInput,
   type BindRecoverySelectionAsyncInput,
   type CancelRecoveryProvisionAsyncInput,
   type CaptureJointPaymentAsyncInput,
@@ -460,6 +468,7 @@ import {
   type ManageProfitCapacityAsyncInput,
   type MatchPairPageInput,
   type NetAccountClaimsAsyncInput,
+  type ObserveListingIndexAsyncInput,
   type OpenJointPaymentAsyncInput,
   type OpenPairScheduleAsyncInput,
   type OpenSearchAsyncInput,
@@ -483,6 +492,7 @@ import {
   type ParsedBeginSettlementPlanOrderInstruction,
   type ParsedBeginSettlementRateProposalInstruction,
   type ParsedBindJointPaymentInstruction,
+  type ParsedBindListingIndexInstruction,
   type ParsedBindRecoverySelectionInstruction,
   type ParsedCancelRecoveryProvisionInstruction,
   type ParsedCaptureJointPaymentInstruction,
@@ -542,6 +552,7 @@ import {
   type ParsedManageProfitCapacityInstruction,
   type ParsedMatchPairPageInstruction,
   type ParsedNetAccountClaimsInstruction,
+  type ParsedObserveListingIndexInstruction,
   type ParsedOpenJointPaymentInstruction,
   type ParsedOpenPairScheduleInstruction,
   type ParsedOpenSearchInstruction,
@@ -639,6 +650,7 @@ import {
   findFundingPublisherPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
+  findListingIndexPda,
   findListingPda,
   findMarginAccountPda,
   findMarketLedgerPda,
@@ -671,6 +683,7 @@ export enum ClearingAccount {
   JointPaymentProof,
   LiquidityRegistry,
   ListedSymbol,
+  ListingIndex,
   MakerRegistration,
   MarginAccount,
   MarginTombstone,
@@ -790,6 +803,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.ListedSymbol;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([211, 36, 22, 0, 193, 129, 33, 45]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.ListingIndex;
   }
   if (
     containsBytes(
@@ -1121,6 +1145,7 @@ export enum ClearingEvent {
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
   LiquidityRouteFeeRecorded,
+  ListingIndexChanged,
   MakerFillContinuation,
   MarginMembershipChanged,
   MarketCheckpointed,
@@ -1551,6 +1576,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([214, 167, 248, 45, 34, 169, 54, 161]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.ListingIndexChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([89, 242, 181, 243, 143, 228, 128, 230]),
       ),
       0,
@@ -1715,6 +1751,7 @@ export enum ClearingInstruction {
   BeginSettlementPlanOrder,
   BeginSettlementRateProposal,
   BindJointPayment,
+  BindListingIndex,
   BindRecoverySelection,
   CancelRecoveryProvision,
   CaptureJointPayment,
@@ -1774,6 +1811,7 @@ export enum ClearingInstruction {
   ManageProfitCapacity,
   MatchPairPage,
   NetAccountClaims,
+  ObserveListingIndex,
   OpenJointPayment,
   OpenPairSchedule,
   OpenSearch,
@@ -2031,6 +2069,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.BindJointPayment;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([130, 194, 213, 225, 127, 24, 57, 109]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.BindListingIndex;
   }
   if (
     containsBytes(
@@ -2685,6 +2734,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([58, 11, 151, 19, 51, 121, 166, 85]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ObserveListingIndex;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([240, 15, 176, 109, 180, 53, 106, 68]),
       ),
       0,
@@ -3221,6 +3281,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.BindJointPayment;
     } & ParsedBindJointPaymentInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.BindListingIndex;
+    } & ParsedBindListingIndexInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.BindRecoverySelection;
     } & ParsedBindRecoverySelectionInstruction<TProgram>)
   | ({
@@ -3397,6 +3460,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.NetAccountClaims;
     } & ParsedNetAccountClaimsInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.ObserveListingIndex;
+    } & ParsedObserveListingIndexInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.OpenJointPayment;
     } & ParsedOpenJointPaymentInstruction<TProgram>)
@@ -3663,6 +3729,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.BindJointPayment,
         ...parseBindJointPaymentInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.BindListingIndex: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.BindListingIndex,
+        ...parseBindListingIndexInstruction(instruction),
       };
     }
     case ClearingInstruction.BindRecoverySelection: {
@@ -4078,6 +4151,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseNetAccountClaimsInstruction(instruction),
       };
     }
+    case ClearingInstruction.ObserveListingIndex: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ObserveListingIndex,
+        ...parseObserveListingIndexInstruction(instruction),
+      };
+    }
     case ClearingInstruction.OpenJointPayment: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4413,6 +4493,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<LiquidityRegistryArgs, LiquidityRegistry>;
   listedSymbol: ReturnType<typeof getListedSymbolCodec> &
     SelfFetchFunctions<ListedSymbolArgs, ListedSymbol>;
+  listingIndex: ReturnType<typeof getListingIndexCodec> &
+    SelfFetchFunctions<ListingIndexArgs, ListingIndex>;
   makerRegistration: ReturnType<typeof getMakerRegistrationCodec> &
     SelfFetchFunctions<MakerRegistrationArgs, MakerRegistration>;
   marginAccount: ReturnType<typeof getMarginAccountCodec> &
@@ -4562,6 +4644,11 @@ export type ClearingPluginInstructions = {
     input: BindJointPaymentAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getBindJointPaymentInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  bindListingIndex: (
+    input: BindListingIndexAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getBindListingIndexInstructionAsync> &
     SelfPlanAndSendFunctions;
   bindRecoverySelection: (
     input: BindRecoverySelectionAsyncInput,
@@ -4855,6 +4942,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getNetAccountClaimsInstructionAsync> &
     SelfPlanAndSendFunctions;
+  observeListingIndex: (
+    input: ObserveListingIndexAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getObserveListingIndexInstructionAsync> &
+    SelfPlanAndSendFunctions;
   openJointPayment: (
     input: MakeOptional<OpenJointPaymentAsyncInput, "payer">,
     config?: { programAddress?: Address | HasAddress },
@@ -5084,6 +5176,7 @@ export type ClearingPluginPdas = {
   venueVault: typeof findVenueVaultPda;
   eventAuthority: typeof findEventAuthorityPda;
   liquidityController: typeof findLiquidityControllerPda;
+  listingIndex: typeof findListingIndexPda;
   deltaPage: typeof findDeltaPagePda;
   firstMakerRegistration: typeof findFirstMakerRegistrationPda;
   secondMakerRegistration: typeof findSecondMakerRegistrationPda;
@@ -5147,6 +5240,7 @@ export function clearingProgram(
             getLiquidityRegistryCodec(),
           ),
           listedSymbol: addSelfFetchFunctions(client, getListedSymbolCodec()),
+          listingIndex: addSelfFetchFunctions(client, getListingIndexCodec()),
           makerRegistration: addSelfFetchFunctions(
             client,
             getMakerRegistrationCodec(),
@@ -5371,6 +5465,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getBindJointPaymentInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          bindListingIndex: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getBindListingIndexInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -5871,6 +5973,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          observeListingIndex: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getObserveListingIndexInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           openJointPayment: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6286,6 +6396,11 @@ export function clearingProgram(
             }),
           liquidityController: (seeds, pdaConfig) =>
             findLiquidityControllerPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          listingIndex: (seeds, pdaConfig) =>
+            findListingIndexPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

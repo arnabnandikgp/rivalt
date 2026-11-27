@@ -152,7 +152,7 @@ def check_domains():
     # The local payout observer owns PDAs under [coverage-lane, venue, member_id % 8].
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'coverage-lane'})
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) |
-        {'market-listing', 'listed-symbol', '/USD', 'BTC', 'ETH'})
+        {'market-listing', 'listed-symbol', 'listing-index', '/USD', 'BTC', 'ETH'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -179,8 +179,24 @@ def undo_liquidation_delta(actual, program):
     assert [(row['name'],row['type']) for row in listing['args']] == args
     actual['instructions'].remove(listing)
     prefix = [('schema_version','u16'),('revision','u64')]
+    index_fields = [('listing','pubkey'),('sources',{'array':['pubkey',4]}),
+                    ('source_sequences',{'array':['u64',4]}),('sampled_at','i64'),('deadline','i64'),
+                    ('reference','u64'),('lower','u64'),('upper','u64')]
+    for name, names in [
+        ('bind_listing_index','authority venue safety listing market listing_index primary_collateral guard_collateral system_program event_authority program'),
+        ('observe_listing_index','venue safety listing listing_index primary_asset primary_collateral guard_asset guard_collateral event_authority program')]:
+        ix = unique(name)
+        assert ix['discriminator'] == list(hashlib.sha256(f'global:{name}'.encode()).digest()[:8])
+        assert not ix['args']
+        assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in ix['accounts']] == [
+            (key,key in ('authority','listing_index'),key=='authority') for key in names.split()]
+        index = next(row for row in ix['accounts'] if row['name']=='listing_index')
+        assert index['pda']['seeds'] == [{'kind':'const','value':list(b'listing-index')},{'kind':'account','path':'listing'}]
+        actual['instructions'].remove(ix)
     terms = args[:3] + [('quote_mint','pubkey'),args[3],('oracle_feed','pubkey'),('status','u8')]
     for name, category, namespace, fields in [
+        ('ListingIndex','accounts','account',prefix+index_fields+[('bump','u8')]),
+        ('ListingIndexChanged','events','event',[('venue','pubkey'),('slot','u64'),('index','pubkey')]+index_fields),
         ('MarketListing','accounts','account',prefix+[('venue','pubkey')]+terms+[('bump','u8')]),
         ('ListedSymbol','accounts','account',prefix+[('listing','pubkey'),('bump','u8')]),
         ('MarketListingRegistered','events','event',[('venue','pubkey'),('slot','u64'),('listing','pubkey'),

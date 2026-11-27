@@ -14,6 +14,7 @@ export * from "./jointPaymentPage.js";
 export * from "./jointPaymentProof.js";
 export * from "./liquidityRegistry.js";
 export * from "./listedSymbol.js";
+export * from "./listingIndex.js";
 export * from "./makerRegistration.js";
 export * from "./marginAccount.js";
 export * from "./marginTombstone.js";
