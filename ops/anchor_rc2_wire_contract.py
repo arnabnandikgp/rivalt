@@ -156,6 +156,45 @@ def check_domains():
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
+def undo_listed_maker_delta(actual, program):
+    """Check the opt-in listing extension without altering any legacy instruction."""
+    actual = deepcopy(actual)
+    def remove(category, name):
+        row, = [row for row in actual[category] if row['name'] == name]
+        actual[category].remove(row)
+        return row
+    def disc(namespace, name):
+        return list(hashlib.sha256(f'{namespace}:{name}'.encode()).digest()[:8])
+    if program not in ('clearing', 'maker_a', 'maker_b'):
+        return actual
+    if program == 'clearing':
+        ix = remove('instructions', 'admit_listed_maker')
+        names = 'owner authority venue safety listing capital registration capital_binding config price pricing_program program_data system_program event_authority program'
+        assert ix['args'] == [dict(name='instance', type='u8')]
+        assert remove('events','ListedMakerAdmitted')['discriminator'] == disc('event','ListedMakerAdmitted')
+        fields = remove('types','ListedMakerAdmitted')['type']['fields']
+        assert [(f['name'],f['type']) for f in fields] == [('venue','pubkey'),('slot','u64'),('registration','pubkey'),
+            ('capital_binding','pubkey'),('state',{'defined':{'name':'MakerRegistrationPayload'}})]
+        writes = {'owner','registration','capital_binding'}
+        signers = {'owner','authority'}
+    else:
+        ix = remove('instructions', 'initialize_listed_curve')
+        names = 'owner venue listing capital config price system_program event_authority program'
+        ordinary = next(row for row in actual['instructions'] if row['name']=='initialize_curve')
+        assert ix['args'] == ordinary['args']
+        assert remove('accounts','MarketListing')['discriminator'] == disc('account','MarketListing')
+        fields = remove('types','MarketListing')['type']['fields']
+        assert [(f['name'],f['type']) for f in fields] == [('schema_version','u16'),('revision','u64'),('venue','pubkey'),
+            ('market_id','u16'),('symbol',{'array':['u8',8]}),('lots_per_unit','u64'),('quote_mint','pubkey'),
+            ('oracle_publisher','pubkey'),('oracle_feed','pubkey'),('status','u8'),('bump','u8')]
+        writes = {'owner','config','price'}
+        signers = {'owner'}
+    assert ix['discriminator'] == disc('global',ix['name'])
+    assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in ix['accounts']] == [
+        (key,key in writes,key in signers) for key in names.split()]
+    return actual
+
+
 def undo_liquidation_delta(actual, program):
     """Check the new keeper route before comparing older interface layers."""
     if program != 'clearing':
@@ -516,6 +555,7 @@ def undo_liquidation_delta(actual, program):
 
 def comparable_program(program, actual):
     """Validate every explicit extension before comparing the retained D90 ABI."""
+    actual = undo_listed_maker_delta(actual, program)
     actual = undo_liquidation_delta(actual, program)
     actual = undo_window_delta(actual, program)
     actual = undo_backing_delta(actual, program)

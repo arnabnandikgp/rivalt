@@ -165,7 +165,7 @@ pub use account_trading::AccountRouteIdentity;
 pub(crate) use maker_liquidity::__client_accounts_controlliquidity;
 pub(crate) use maker_liquidity::__client_accounts_initializeliquidity;
 pub(crate) use maker_liquidity::__client_accounts_quarantineliquidity;
-pub(crate) use maker_liquidity::__client_accounts_registerliquidity;
+pub(crate) use maker_liquidity::{__client_accounts_registerliquidity, __client_accounts_admitlistedmaker};
 pub(crate) use maker_liquidity::__client_accounts_sealliquidity;
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::__cpi_accounts_controlliquidity;
@@ -174,7 +174,7 @@ pub(crate) use maker_liquidity::__cpi_accounts_initializeliquidity;
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::__cpi_accounts_quarantineliquidity;
 #[cfg(feature = "cpi")]
-pub(crate) use maker_liquidity::__cpi_accounts_registerliquidity;
+pub(crate) use maker_liquidity::{__cpi_accounts_registerliquidity, __cpi_accounts_admitlistedmaker};
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::__cpi_accounts_sealliquidity;
 pub(crate) use maker_liquidity::publisher::__client_accounts_configurefundingpublisher;
@@ -204,7 +204,7 @@ pub(crate) use maker_liquidity::routes::__cpi_accounts_executebestroute;
 pub use maker_liquidity::ControlLiquidity;
 pub use maker_liquidity::InitializeLiquidity;
 pub use maker_liquidity::QuarantineLiquidity;
-pub use maker_liquidity::RegisterLiquidity;
+pub use maker_liquidity::{AdmitListedMaker, RegisterLiquidity};
 pub use maker_liquidity::SealLiquidity;
 
 pub mod listing_index;

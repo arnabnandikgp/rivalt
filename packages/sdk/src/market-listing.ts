@@ -6,6 +6,11 @@ import {fromBase64, requireValue, type UserRpc} from './wallet-client.js';
 
 const encoder=new TextEncoder();
 
+export const LISTED_CAPITAL_TAG=254;
+export function isListedMakerCapital(root:{mode:number;role:number;isolatedMarketIndex:number}) {
+  return root.mode===1 && root.role===1 && root.isolatedMarketIndex===LISTED_CAPITAL_TAG;
+}
+
 /** The listing namespace uses a canonical, zero-padded eight-byte ASCII ticker. */
 export function listingSymbol(ticker:string):Uint8Array {
   requireValue(/^[A-Z][A-Z0-9]{0,7}$/.test(ticker) && ticker!=='BTC' && ticker!=='ETH','Invalid inactive market ticker.');

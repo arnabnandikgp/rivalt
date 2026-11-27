@@ -71,7 +71,7 @@ pub const RETIRED: u8 = 4;
 
 /// Identity indices have the same user meaning as V2, but distinct PDA roots.
 pub use crate::state::identity::{
-    valid_identity, CROSS_MARKET_SENTINEL, MAX_PORTFOLIOS, MAX_SUBACCOUNT, MODE_CROSS,
+    valid_identity, CROSS_MARKET_SENTINEL, LISTED_CAPITAL_TAG, MAX_PORTFOLIOS, MAX_SUBACCOUNT, MODE_CROSS,
     MODE_ISOLATED, ROLE_MAKER, ROLE_RECEIVER, ROLE_TRADER,
 };
 

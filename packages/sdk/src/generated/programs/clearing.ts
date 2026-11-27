@@ -148,6 +148,7 @@ import {
   getAcceptSettlementRateRowInstructionAsync,
   getActivateLiquidityInstructionAsync,
   getActivateMarginInstructionAsync,
+  getAdmitListedMakerInstructionAsync,
   getAdoptSettlementPlanInstructionAsync,
   getAdvanceBtcAllocationInstructionAsync,
   getAdvanceJointPaymentInstruction,
@@ -271,6 +272,7 @@ import {
   parseAcceptSettlementRateRowInstruction,
   parseActivateLiquidityInstruction,
   parseActivateMarginInstruction,
+  parseAdmitListedMakerInstruction,
   parseAdoptSettlementPlanInstruction,
   parseAdvanceBtcAllocationInstruction,
   parseAdvanceJointPaymentInstruction,
@@ -394,6 +396,7 @@ import {
   type AcceptSettlementRateRowAsyncInput,
   type ActivateLiquidityAsyncInput,
   type ActivateMarginAsyncInput,
+  type AdmitListedMakerAsyncInput,
   type AdoptSettlementPlanAsyncInput,
   type AdvanceBtcAllocationAsyncInput,
   type AdvanceJointPaymentInput,
@@ -478,6 +481,7 @@ import {
   type ParsedAcceptSettlementRateRowInstruction,
   type ParsedActivateLiquidityInstruction,
   type ParsedActivateMarginInstruction,
+  type ParsedAdmitListedMakerInstruction,
   type ParsedAdoptSettlementPlanInstruction,
   type ParsedAdvanceBtcAllocationInstruction,
   type ParsedAdvanceJointPaymentInstruction,
@@ -1145,6 +1149,7 @@ export enum ClearingEvent {
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
   LiquidityRouteFeeRecorded,
+  ListedMakerAdmitted,
   ListingIndexChanged,
   MakerFillContinuation,
   MarginMembershipChanged,
@@ -1576,6 +1581,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([215, 95, 209, 158, 217, 57, 117, 208]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.ListedMakerAdmitted;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([214, 167, 248, 45, 34, 169, 54, 161]),
       ),
       0,
@@ -1737,6 +1753,7 @@ export enum ClearingInstruction {
   AcceptSettlementRateRow,
   ActivateLiquidity,
   ActivateMargin,
+  AdmitListedMaker,
   AdoptSettlementPlan,
   AdvanceBtcAllocation,
   AdvanceJointPayment,
@@ -1915,6 +1932,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.ActivateMargin;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([159, 93, 238, 177, 144, 184, 33, 39]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.AdmitListedMaker;
   }
   if (
     containsBytes(
@@ -3239,6 +3267,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ActivateMargin;
     } & ParsedActivateMarginInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.AdmitListedMaker;
+    } & ParsedAdmitListedMakerInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.AdoptSettlementPlan;
     } & ParsedAdoptSettlementPlanInstruction<TProgram>)
   | ({
@@ -3631,6 +3662,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.ActivateMargin,
         ...parseActivateMarginInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.AdmitListedMaker: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.AdmitListedMaker,
+        ...parseAdmitListedMakerInstruction(instruction),
       };
     }
     case ClearingInstruction.AdoptSettlementPlan: {
@@ -4575,6 +4613,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getActivateMarginInstructionAsync> &
     SelfPlanAndSendFunctions;
+  admitListedMaker: (
+    input: AdmitListedMakerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getAdmitListedMakerInstructionAsync> &
+    SelfPlanAndSendFunctions;
   adoptSettlementPlan: (
     input: AdoptSettlementPlanAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5175,6 +5218,7 @@ export type ClearingPluginPdas = {
   ethLedger: typeof findEthLedgerPda;
   venueVault: typeof findVenueVaultPda;
   eventAuthority: typeof findEventAuthorityPda;
+  capitalBinding: typeof findCapitalBindingPda;
   liquidityController: typeof findLiquidityControllerPda;
   listingIndex: typeof findListingIndexPda;
   deltaPage: typeof findDeltaPagePda;
@@ -5192,7 +5236,6 @@ export type ClearingPluginPdas = {
   openPairScheduleCertificate: typeof findOpenPairScheduleCertificatePda;
   search: typeof findSearchPda;
   proof: typeof findProofPda;
-  capitalBinding: typeof findCapitalBindingPda;
   marginAccount: typeof findMarginAccountPda;
   listing: typeof findListingPda;
   symbolBinding: typeof findSymbolBindingPda;
@@ -5350,6 +5393,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getActivateMarginInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          admitListedMaker: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAdmitListedMakerInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6394,6 +6445,11 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
+          capitalBinding: (seeds, pdaConfig) =>
+            findCapitalBindingPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           liquidityController: (seeds, pdaConfig) =>
             findLiquidityControllerPda(seeds, {
               programAddress:
@@ -6476,11 +6532,6 @@ export function clearingProgram(
             }),
           proof: (seeds, pdaConfig) =>
             findProofPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          capitalBinding: (seeds, pdaConfig) =>
-            findCapitalBindingPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

@@ -106,9 +106,23 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     values.forEach(value=>market(value));
   };
   switch(event.type) {
+    case 'ListedMakerAdmitted': {
+      const maker=change.state,liquidity=present(state.liquidity,'liquidity');
+      const capital=present(state.roots[maker.capital],'listed maker capital');
+      accountCheck(artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET && state.listings?.[maker.market]?.status===0
+        && maker.venue===venue && maker.schemaVersion===10 && sdk.isListedMakerCapital(capital)
+        && capital.lifecycle===2 && BigInt(capital.cash)>0n && capital.owner===maker.owner
+        && state.revisions[change.capitalBinding]?.kind===8 && state.revisions[change.registration]?.kind===15
+        && !liquidity.makers[change.registration] && !Object.values(liquidity.makers).some(previous=>previous.capital===maker.capital)
+        && [sdk.makerA.MAKER_A_PROGRAM_ADDRESS,sdk.makerB.MAKER_B_PROGRAM_ADDRESS].includes(maker.pricingProgram)
+        && maker.authorityEpoch==='1' && maker.depthEpoch==='1' && maker.buyConsumed==='0' && maker.sellConsumed==='0'
+        && !maker.quarantined,'listed maker admission');
+      liquidity.makers[change.registration]=accountFields<sdk.MakerRegistration>(maker);
+      break;
+    }
     case 'ListingIndexChanged': {
       const listing=state.listings?.[change.listing];
-      accountCheck(artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET && listing?.status===0 &&
+      accountCheck((artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET || artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET) && listing?.status===0 &&
         change.sources[0]===listing.oracleFeed && new Set(change.sources).size===4,'listed index sources');
       state.listingIndices??={};
       const previous=state.listingIndices[change.index];
@@ -130,7 +144,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       break;
     }
     case 'MarketListingRegistered': {
-      accountCheck((artifactSet===sdk.INACTIVE_LISTING_ARTIFACT_SET || artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET) && change.status===0 &&
+      accountCheck((artifactSet===sdk.INACTIVE_LISTING_ARTIFACT_SET || artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET || artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET) && change.status===0 &&
         change.marketId>=2 && change.quoteMint===currentVenue().quoteMint && BigInt(change.lotsPerUnit)>0n,
         'inactive market listing identity');
       state.listings??={};
@@ -179,6 +193,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
         if(change.kind===3) {
           const portfolio=present(state.portfolios[member.portfolio],'portfolio');
           accountCheck(member.id===state.nextMemberId&&!state.identities[member.id]&&margin===change.subject&&!state.roots[margin],'stable root ID');
+          if(sdk.isListedMakerCapital(member)) accountCheck(artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET,'listed maker deployment');
           accountCheck(member.owner===portfolio.owner&&member.subaccountIndex<=8&&member.lifecycle===1&&member.activationGeneration==='0'
             &&!Object.values(state.roots).some(root=>root.portfolio===member.portfolio&&root.subaccountIndex===member.subaccountIndex),'child identity');
           portfolio.activeChildren++;
@@ -399,7 +414,7 @@ export function reconcileAccountLedger(state:AccountState) {
   roots.forEach((root)=>{
     accountCheck(root.schemaVersion===10&&state.identities[root.id]!==undefined&&root.lifecycle===2&&BigInt(root.activationGeneration)>0n&&root.positions.length===2&&root.book.orders.length===4&&root.book.protections.length===2,'bounded root');
     accountCheck([0,1].includes(root.mode)&&(root.mode===0?root.subaccountIndex===0&&root.isolatedMarketIndex===255&&root.role!==1:
-      root.subaccountIndex>=1&&root.subaccountIndex<=8&&[0,1].includes(root.isolatedMarketIndex)),'margin mode');
+      root.subaccountIndex>=1&&root.subaccountIndex<=8&&([0,1].includes(root.isolatedMarketIndex)||sdk.isListedMakerCapital(root))),'margin mode');
     if(root.mode===1)root.positions.forEach((position,index)=>{
       if(index!==root.isolatedMarketIndex)accountCheck(Object.values(position).every(value=>value==='0'),'foreign isolated position');
     });

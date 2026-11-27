@@ -15,6 +15,15 @@ pub mod maker_a {
     ) -> Result<()> {
         super::initialize_curve(context, shape, updater, expiry, instance)
     }
+    pub fn initialize_listed_curve(
+        context: &mut Context<InitializeListedCurve>,
+        shape: LiquidityShape,
+        updater: Address,
+        expiry: u64,
+        instance: u8,
+    ) -> Result<()> {
+        super::initialize_listed_curve(context, shape, updater, expiry, instance)
+    }
     pub fn reprice(
         context: &mut Context<RepriceCurve>,
         expected_control: u64,

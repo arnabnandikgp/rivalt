@@ -59,6 +59,30 @@ pub struct InitializeCurve {
 
 #[event_cpi]
 #[derive(Accounts)]
+pub struct InitializeListedCurve {
+    #[account(mut)]
+    pub owner: Signer,
+    #[account(seeds = [b"venue-v3", &venue.domain], bump = venue.bump, seeds::program = CLEARING_ID)]
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(seeds = [b"market-listing", venue.address().as_ref(), &listing.market_id.to_le_bytes()],
+        bump = listing.bump, seeds::program = CLEARING_ID, has_one = venue)]
+    pub listing: Box<BorshAccount<MarketListing>>,
+    #[account(seeds = [b"margin-v3", capital.portfolio.as_ref(), &capital.subaccount_index.to_le_bytes()],
+        bump = capital.bump, seeds::program = CLEARING_ID,
+        constraint = capital.owner == owner.address().to_owned() @ MakerError::Authority,
+        constraint = capital.venue == venue.address().to_owned() @ MakerError::Binding)]
+    pub capital: Box<BorshAccount<MarginAccount>>,
+    #[account(init, payer = owner, space = 8 + MakerCurve::INIT_SPACE,
+        seeds = [b"curve-v4", capital.address().as_ref()], bump)]
+    pub config: Box<BorshAccount<MakerCurve>>,
+    #[account(init, payer = owner, space = 8 + MakerPrice::INIT_SPACE,
+        seeds = [b"price-v4", config.address().as_ref()], bump)]
+    pub price: Box<BorshAccount<MakerPrice>>,
+    pub system_program: Program<System>,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
 pub struct RepriceCurve {
     pub actor: Signer,
     #[account(seeds = [b"curve-v4", config.state.capital.as_ref()], bump = config.state.bump)]
@@ -97,37 +121,26 @@ fn canonical_profile() -> Result<()> {
     Ok(())
 }
 
-fn initialize_curve(
-    ctx: &mut Context<InitializeCurve>,
-    shape: LiquidityShape,
-    updater: Address,
-    expiry: u64,
-    instance: u8,
+// Both profiles publish the same curve and price wire format.
+fn initialize_publication(
+    venue: &BorshAccount<Venue>, market: Address, capital: &BorshAccount<MarginAccount>,
+    config: &mut BorshAccount<MakerCurve>, price: &mut BorshAccount<MakerPrice>,
+    config_bump: u8, price_bump: u8, shape: LiquidityShape, updater: Address,
+    expiry: u64, instance: u8,
 ) -> Result<()> {
-    let mut remaining_accounts = ctx.remaining_accounts()?;
     canonical_profile()?;
-    require!(remaining_accounts.is_empty(), MakerError::Binding);
     shape.validate().map_err(|_| ProgramError::from(MakerError::Quote))?;
-    let venue = &ctx.accounts.venue;
-    let market = &ctx.accounts.market;
-    let capital = &ctx.accounts.capital;
-    let clock = Clock::get()?;
     require!(
         venue.schema_version == clearing::state::accounts::SCHEMA_VERSION
             && venue.profile_version == clearing::state::accounts::PROFILE_VERSION
             && venue.market_count == 2
-            && market.schema_version == clearing::state::accounts::SCHEMA_VERSION
-            && market.index < 2
-            && venue.markets[usize::from(market.index)] == market.address().to_owned()
             && capital.schema_version == clearing::state::accounts::SCHEMA_VERSION
             && capital.lifecycle == clearing::state::accounts::MEMBER_FINANCIAL
-            && capital.activation_generation > 0
-            && capital.mode == MODE_ISOLATED
-            && capital.role == ROLE_MAKER
-            && capital.isolated_market_index == market.index
-            && instance < canonical::REGISTRATION_LIMIT,
+            && capital.activation_generation > 0 && capital.mode == MODE_ISOLATED
+            && capital.role == ROLE_MAKER && instance < canonical::REGISTRATION_LIMIT,
         MakerError::Binding
     );
+    let clock = Clock::get()?;
     require!(
         (updater == Address::default() && expiry == 0)
             || (updater != Address::default() && expiry > clock.slot),
@@ -142,13 +155,13 @@ fn initialize_curve(
         &CLEARING_ID,
     )
     .0;
-    ctx.accounts.config.state = CurveState {
+    config.state = CurveState {
         schema_version: canonical::ACCOUNT_SCHEMA,
         venue: venue.address().to_owned(),
-        market: market.address().to_owned(),
+        market,
         capital: capital.address().to_owned(),
         controller,
-        owner: ctx.accounts.owner.address().to_owned(),
+        owner: capital.owner,
         updater,
         updater_expiry_slot: expiry,
         control_epoch: 1,
@@ -157,18 +170,66 @@ fn initialize_curve(
         instance,
         capability: canonical::CAPABILITY,
         shape,
-        bump: ctx.bumps.config,
+        bump: config_bump,
     };
-    ctx.accounts.price.state = PriceState {
+    price.state = PriceState {
         schema_version: canonical::ACCOUNT_SCHEMA,
-        config: ctx.accounts.config.address().to_owned(),
+        config: *config.address(),
         control_epoch: 1,
         sequence: 0,
         anchor: 0,
         updated_slot: 0,
         updated_time: 0,
-        bump: ctx.bumps.price,
+        bump: price_bump,
     };
+    Ok(())
+}
+
+fn initialize_curve(
+    ctx: &mut Context<InitializeCurve>,
+    shape: LiquidityShape,
+    updater: Address,
+    expiry: u64,
+    instance: u8,
+) -> Result<()> {
+    require!(ctx.remaining_accounts()?.is_empty(), MakerError::Binding);
+    let accounts = &mut ctx.accounts;
+    let market = &accounts.market;
+    require!(market.schema_version == clearing::state::accounts::SCHEMA_VERSION
+        && market.index < 2 && accounts.venue.markets[usize::from(market.index)] == *market.address()
+        && accounts.capital.isolated_market_index == market.index, MakerError::Binding);
+    initialize_publication(&accounts.venue, *accounts.market.address(), &accounts.capital,
+        &mut accounts.config, &mut accounts.price, ctx.bumps.config, ctx.bumps.price,
+        shape, updater, expiry, instance)?;
+    emit_cpi!(MakerShapeUpdated {
+        config: ctx.accounts.config.address().to_owned(),
+        state: ctx.accounts.config.state.clone(),
+        action: 4
+    });
+    emit_cpi!(price_event(
+        ctx.accounts.config.address().to_owned(),
+        &ctx.accounts.price.state
+    ));
+    Ok(())
+}
+
+fn initialize_listed_curve(
+    ctx: &mut Context<InitializeListedCurve>,
+    shape: LiquidityShape,
+    updater: Address,
+    expiry: u64,
+    instance: u8,
+) -> Result<()> {
+    require!(cfg!(feature = "listed-maker-admission") && ctx.remaining_accounts()?.is_empty(), MakerError::Binding);
+    let accounts = &mut ctx.accounts;
+    require!(accounts.listing.schema_version == clearing::state::accounts::LISTING_SCHEMA
+        && accounts.listing.status == clearing::state::accounts::LISTING_INACTIVE
+        && usize::from(accounts.listing.market_id) >= clearing::state::accounts::MARKET_COUNT
+        && accounts.capital.isolated_market_index == clearing::state::accounts::LISTED_CAPITAL_TAG,
+        MakerError::Binding);
+    initialize_publication(&accounts.venue, *accounts.listing.address(), &accounts.capital,
+        &mut accounts.config, &mut accounts.price, ctx.bumps.config, ctx.bumps.price,
+        shape, updater, expiry, instance)?;
     emit_cpi!(MakerShapeUpdated {
         config: ctx.accounts.config.address().to_owned(),
         state: ctx.accounts.config.state.clone(),

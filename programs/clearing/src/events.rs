@@ -11,6 +11,15 @@ pub struct LiquidityRegistryChanged {
 }
 
 #[event]
+pub struct ListedMakerAdmitted {
+    pub venue: Address,
+    pub slot: u64,
+    pub registration: Address,
+    pub capital_binding: Address,
+    pub state: crate::state::liquidity::MakerRegistrationPayload,
+}
+
+#[event]
 pub struct LiquidityMakerChanged {
     pub venue: Address,
     pub slot: u64,

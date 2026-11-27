@@ -73,12 +73,14 @@ impl Account<'_> {
             && match self.mode {
                 Mode::Isolated(index) => index == market,
                 Mode::Cross => true,
+                Mode::CashOnly => false,
             }
     }
 
     pub fn validate(self) -> Result<()> {
         if self.cash > MAX_CASH
             || self.reserved > MAX_CASH
+            || (self.mode == Mode::CashOnly && self.reserved != 0)
             || matches!(self.mode, Mode::Isolated(index) if index >= MARKETS)
         {
             return Err(Error::Bounds);
@@ -167,5 +169,25 @@ impl Account<'_> {
             return Err(Error::Health);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod cash_only_tests {
+    use super::*;
+
+    #[test]
+    fn custody_cash_cannot_back_an_inline_position_or_order() {
+        let mut positions = [Position::default(); MARKETS];
+        let account = Account { id: 8, mode: Mode::CashOnly, cash: 10, reserved: 0, positions: &positions };
+        assert_eq!(account.validate(), Ok(()));
+        assert!(!account.allows(0) && !account.allows(1));
+        assert_eq!(Account { reserved: 1, ..account }.validate(), Err(Error::Bounds));
+        for market in 0..MARKETS {
+            positions[market].virtual_scaled = -1;
+            let owing = Account { id: 8, mode: Mode::CashOnly, cash: 10, reserved: 0, positions: &positions };
+            assert_eq!(owing.validate(), Err(Error::Invariant));
+            positions[market] = Position::default();
+        }
     }
 }

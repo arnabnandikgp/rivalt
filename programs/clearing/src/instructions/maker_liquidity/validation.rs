@@ -80,7 +80,7 @@ pub(crate) fn config_and_price(
     program: Address,
     instance: u8,
     venue: &BorshAccount<Venue>,
-    market: &BorshAccount<Market>,
+    market: Address,
     capital: &BorshAccount<MarginAccount>,
 ) -> Result<(CurveState, PriceState)> {
     require!(
@@ -124,7 +124,7 @@ pub(crate) fn config_and_price(
     require!(
         curve.schema_version == canonical::ACCOUNT_SCHEMA
             && curve.venue == venue.address().to_owned()
-            && curve.market == market.address().to_owned()
+            && curve.market == market
             && curve.capital == capital.address().to_owned()
             && curve.owner == capital.owner
             && curve.controller == controller
@@ -184,7 +184,7 @@ pub(crate) fn authenticated_control(
         accounts.pricing_program.address().to_owned(),
         accounts.registration.instance,
         &accounts.venue,
-        &accounts.market,
+        *accounts.market.address(),
         &accounts.capital,
     )?;
     if check_hash {

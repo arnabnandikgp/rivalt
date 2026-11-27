@@ -1059,6 +1059,11 @@ pub mod clearing {
             },
         )
     }
+    pub fn admit_listed_maker(ctx: &mut Context<AdmitListedMaker>, instance: u8) -> Result<()> {
+        require!(cfg!(feature = "listed-maker-admission"), ClearingError::Profile);
+        scoped_history::run(ctx, [159, 93, 238, 177, 144, 184, 33, 39], false,
+            |ctx, events| maker_liquidity::listed::admit(ctx, events, instance))
+    }
     pub fn bind_listing_index(ctx: &mut Context<BindListingIndex>) -> Result<()> {
         require!(cfg!(feature = "inactive-market-listing"), ClearingError::Profile);
         scoped_history::run(ctx, [130, 194, 213, 225, 127, 24, 57, 109], false, listing_index::bind)

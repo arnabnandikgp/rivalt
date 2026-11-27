@@ -1593,6 +1593,175 @@
       ]
     },
     {
+      "name": "admit_listed_maker",
+      "discriminator": [
+        159,
+        93,
+        238,
+        177,
+        144,
+        184,
+        33,
+        39
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "capital"
+          ]
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "venue"
+          ]
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "listing",
+            "capital"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "listing"
+        },
+        {
+          "name": "capital"
+        },
+        {
+          "name": "registration",
+          "writable": true
+        },
+        {
+          "name": "capital_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  112,
+                  105,
+                  116,
+                  97,
+                  108,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "capital"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "docs": [
+            "CHECK: exact maker owner, discriminator, size, PDA and identity checked below."
+          ]
+        },
+        {
+          "name": "price",
+          "docs": [
+            "CHECK: exact maker owner, discriminator, size, PDA and binding checked below."
+          ]
+        },
+        {
+          "name": "pricing_program",
+          "docs": [
+            "CHECK: executable identity is bound to its loader metadata and approved hash."
+          ]
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "instance",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "adopt_settlement_plan",
       "discriminator": [
         84,
@@ -28651,6 +28820,19 @@
       ]
     },
     {
+      "name": "ListedMakerAdmitted",
+      "discriminator": [
+        215,
+        95,
+        209,
+        158,
+        217,
+        57,
+        117,
+        208
+      ]
+    },
+    {
       "name": "ListingIndexChanged",
       "discriminator": [
         214,
@@ -32889,6 +33071,38 @@
                 },
                 8
               ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedMakerAdmitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "registration",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital_binding",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MakerRegistrationPayload"
+              }
             }
           }
         ]

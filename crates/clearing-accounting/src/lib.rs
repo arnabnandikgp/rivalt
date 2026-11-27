@@ -67,6 +67,8 @@ pub struct Position {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
+    /// Custody with no position or reservation in this account view.
+    CashOnly,
     Isolated(usize),
     Cross,
 }

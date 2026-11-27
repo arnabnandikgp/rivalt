@@ -62,6 +62,7 @@ impl MarketSlots {
                 || (image.position.lots == 0
                     && image.position.virtual_scaled == 0
                     && !live_order_markets.contains(&binding.market))
+                || mode == Mode::CashOnly
                 || matches!(mode, Mode::Isolated(market) if market != usize::from(binding.market))
             {
                 return Err(Error::Invariant);
@@ -146,6 +147,7 @@ impl MarketSlots {
                 continue;
             }
             if next.records.len() == self.capacity
+                || self.mode == Mode::CashOnly
                 || matches!(self.mode, Mode::Isolated(index) if index != usize::from(image.market))
             {
                 return Err(Error::Bounds);

@@ -175,7 +175,7 @@ impl<'account> View<'account> {
             self.program.address().to_owned(),
             self.registration.instance,
             venue,
-            market,
+            *market.address(),
             self.capital,
         )?;
         cache.check(

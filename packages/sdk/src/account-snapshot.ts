@@ -1,3 +1,4 @@
+import {isListedMakerCapital} from './market-listing.js';
 import {readCoherentAccounts} from './coherent-accounts.js';
 import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
 import {ledgerFromExecutionLanes} from './ledger-lanes.js';
@@ -130,11 +131,11 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.lifecycle===2&&value.activationGeneration>0n&&value.portfolio===discovered[index].portfolio&&key===canonical&&value.bump===bump&&
       portfolio?.owner===value.owner&&portfolio.activeChildren>0&&[0,1,2].includes(value.role)&&
       (value.mode===0?value.subaccountIndex===0&&value.isolatedMarketIndex===255&&value.role!==1:
-        value.mode===1&&value.subaccountIndex>=1&&[0,1].includes(value.isolatedMarketIndex)),'Margin identity/mode mismatch.');
-    if(value.mode===1) {
-      const unused=value.positions[1-value.isolatedMarketIndex];
-      requireValue(unused.lots===0n&&unused.virtualScaled===0n&&unused.fundingCheckpointScaled===0n&&unused.generation===0n,'Foreign isolated position.');
-    }
+        value.mode===1&&value.subaccountIndex>=1&&([0,1].includes(value.isolatedMarketIndex)||isListedMakerCapital(value))),'Margin identity/mode mismatch.');
+    if(value.mode===1) value.positions.forEach((position,index)=>{
+      if(index!==value.isolatedMarketIndex)
+        requireValue(position.lots===0n&&position.virtualScaled===0n&&position.fundingCheckpointScaled===0n&&position.generation===0n,'Foreign isolated position.');
+    });
     roots[key]=value;
   }
   const mintBytes=raw(accounts.get(identity.mint),TOKEN_PROGRAM_ADDRESS),mint=getMintDecoder().decode(mintBytes);

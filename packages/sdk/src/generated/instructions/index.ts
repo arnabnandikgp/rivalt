@@ -11,6 +11,7 @@ export * from "./acceptSettlementPlanRow.js";
 export * from "./acceptSettlementRateRow.js";
 export * from "./activateLiquidity.js";
 export * from "./activateMargin.js";
+export * from "./admitListedMaker.js";
 export * from "./adoptSettlementPlan.js";
 export * from "./advanceBtcAllocation.js";
 export * from "./advanceJointPayment.js";

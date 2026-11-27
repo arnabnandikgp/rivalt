@@ -17,6 +17,8 @@ use anchor_lang::solana_program::program::invoke_signed;
 use maker_interface::canonical::{self, CurveControl, CurveState, PriceState};
 use solana_sha256_hasher::hash;
 
+pub mod listed;
+pub use listed::*;
 mod contexts;
 pub use contexts::*;
 mod validation;
@@ -127,7 +129,7 @@ fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<(
         accounts.pricing_program.address().to_owned(),
         instance,
         &accounts.venue,
-        &accounts.market,
+        *accounts.market.address(),
         &accounts.capital,
     )?;
     require!(
@@ -142,6 +144,41 @@ fn validate_registration(accounts: &RegisterLiquidity, instance: u8) -> Result<(
     Ok(())
 }
 
+fn initialize_registration(
+    registration: &mut BorshAccount<MakerRegistration>, binding: &mut BorshAccount<CapitalBinding>,
+    venue: Address, market: Address, capital: &BorshAccount<MarginAccount>, pricing_program: Address,
+    program_data: &BorshAccount<crate::ProgramData>, config: Address, price: Address, instance: u8, bump: u8,
+) -> Result<()> {
+    **registration = MakerRegistration {
+        revision: 0,
+        schema_version: crate::state::accounts::SCHEMA_VERSION,
+        venue,
+        market,
+        capital: *capital.address(),
+        owner: capital.owner,
+        pricing_program,
+        program_data: *program_data.address(),
+        config,
+        price,
+        approved_hash: module_hash(program_data)?,
+        instance,
+        authority_epoch: 1,
+        depth_epoch: 1,
+        buy_consumed: 0,
+        sell_consumed: 0,
+        quarantined: false,
+        bump,
+    };
+    **binding = CapitalBinding {
+        revision: 0,
+        schema_version: SCHEMA_VERSION,
+        venue,
+        capital: *capital.address(),
+        registration: *registration.address(),
+    };
+    Ok(())
+}
+
 pub fn register(
     ctx: &mut Context<RegisterLiquidity>,
     events: &mut crate::event_cpi::Payloads,
@@ -151,33 +188,9 @@ pub fn register(
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
     validate_registration(accounts, instance)?;
-    **accounts.registration = MakerRegistration {
-        revision: 0,
-        schema_version: crate::state::accounts::SCHEMA_VERSION,
-        venue: accounts.venue.address().to_owned(),
-        market: accounts.market.address().to_owned(),
-        capital: accounts.capital.address().to_owned(),
-        owner: accounts.owner.address().to_owned(),
-        pricing_program: accounts.pricing_program.address().to_owned(),
-        program_data: accounts.program_data.address().to_owned(),
-        config: accounts.config.address().to_owned(),
-        price: accounts.price.address().to_owned(),
-        approved_hash: module_hash(&accounts.program_data)?,
-        instance,
-        authority_epoch: 1,
-        depth_epoch: 1,
-        buy_consumed: 0,
-        sell_consumed: 0,
-        quarantined: false,
-        bump: ctx.bumps.registration,
-    };
-    **accounts.capital_binding = CapitalBinding {
-        revision: 0,
-        schema_version: SCHEMA_VERSION,
-        venue: accounts.venue.address().to_owned(),
-        capital: accounts.capital.address().to_owned(),
-        registration: accounts.registration.address().to_owned(),
-    };
+    initialize_registration(&mut accounts.registration, &mut accounts.capital_binding, *accounts.venue.address(),
+        *accounts.market.address(), &accounts.capital, *accounts.pricing_program.address(), &accounts.program_data,
+        *accounts.config.address(), *accounts.price.address(), instance, ctx.bumps.registration)?;
     // The three stored addresses are also the market's accounting lanes.
     // Further members are uniquely derived from (market, instance) and count.
     if let Some(key) = accounts.registry.registrations.get_mut(usize::from(instance)) {
