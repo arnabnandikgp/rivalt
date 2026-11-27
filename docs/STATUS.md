@@ -176,7 +176,9 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, listed fill admission (in development).** Native clearing revision `38f25daf` passed 30 focused cash and route tests. With one BTC and one ETH position already open, buying ten listed lots at 152 against an index of 150 required 226 cash atoms including the fee. At 225 the fill refused. A separate two-maker case charged one aggregate fee, admitted both funded makers, and refused the candidate when one maker was an atom short. These are native results. The last signed venue run is [PR #246](https://github.com/arnabnandikgp/rivalt/pull/246), with an empty listed directory on the trader.
 
-**Next action.** Wire the listed quote and admission to the gated venue instruction, then land a signed SOL fill on the funded BTC/ETH root. Complete wider default, creditor withdrawals and independent replay before enabling general SOL order entry.
+**Finding 11, venue integration in progress.** Clearing `edc0d21a` built for SBF and its signed local activation landed. On harness `46d0dba9`, a seven-second sampling gap reset SOL oracle recovery. Harness `c5fee4af` maintained continuous BTC, ETH and SOL observations and reached Normal on all three. The first SOL order then failed simulation before execution because the listed-margin loader accessed an Anchor account while its borrow guard was released. The failed simulation supplies no fill or payout evidence.
+
+**Next action.** Repeat the funded three-market order on the corrected loader, compare the landed trader, maker and fee accounts with independent PostgreSQL replay, then qualify wider cash access, default and creditor exits before general SOL order entry.
 
 | Open gate | What remains |
 |---|---|

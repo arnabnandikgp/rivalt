@@ -30,12 +30,17 @@ export function decodeListedMargin(bytes:Uint8Array) {
   const capacity = listedMarginCapacity(root);
   requireValue(root.schemaVersion===10 && capacity>0 &&
     bytes.length===INLINE_MARGIN_BYTES+headerBytes+capacity*recordBytes,'Invalid listed margin capacity.');
-  const directory = bytes.subarray(INLINE_MARGIN_BYTES);
+  return {root,inlineEntries,capacity,...decodeListedRecords(bytes.subarray(INLINE_MARGIN_BYTES),capacity,false)};
+}
+
+export function decodeListedRecords(directory:Uint8Array,capacity:number,packed:boolean) {
+  requireValue(Number.isInteger(capacity) && capacity>0 && directory.length>=headerBytes
+    && marker.every((byte,i)=>directory[i]===byte),'Invalid listed directory header.');
   const view = new DataView(directory.buffer,directory.byteOffset,directory.byteLength);
   const signedWide = (offset:number)=>view.getBigUint64(offset,true)+(view.getBigInt64(offset+8,true)<<64n);
   const lastIncarnation = view.getBigUint64(8,true);
   const count = view.getUint16(16,true);
-  requireValue(count<=capacity && directory.subarray(headerBytes+count*recordBytes).every(byte=>byte===0),'Invalid listed margin occupancy.');
+  requireValue(count<=capacity && directory.length===headerBytes+(packed?count:capacity)*recordBytes && directory.subarray(headerBytes+count*recordBytes).every(byte=>byte===0),'Invalid listed margin occupancy.');
   const records = [];
   const incarnations = new Set<bigint>();
   let priorMarket = 1;
@@ -54,5 +59,5 @@ export function decodeListedMargin(bytes:Uint8Array) {
     incarnations.add(incarnation);
     priorMarket=market;
   }
-  return {root,inlineEntries,capacity,lastIncarnation,records};
+  return {lastIncarnation,records};
 }

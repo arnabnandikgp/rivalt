@@ -84,6 +84,10 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   for(const [key,value] of Object.entries(state.listedFunding??{})) {
     await expect(key,sdk.findFundingPda({listing:address(value.listing)},{programAddress:program}),sdk.getListedFundingDecoder(),sdk.LISTED_FUNDING_DISCRIMINATOR,value);
   }
+  for(const [key,value] of Object.entries(state.listedVenues??{}))
+    await expect(key,sdk.findDirectoryPda({venue},{programAddress:program}),sdk.getListedVenueDecoder(),sdk.LISTED_VENUE_DISCRIMINATOR,value);
+  for(const [key,value] of Object.entries(state.listedBooks??{}))
+    await expect(key,sdk.findBookPda({listing:address(value.listing)},{programAddress:program}),sdk.getListedMarketBookDecoder(),sdk.LISTED_MARKET_BOOK_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioDecoder(),sdk.PORTFOLIO_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.roots))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.subaccountIndex,program),sdk.getMarginAccountDecoder(),sdk.MARGIN_ACCOUNT_DISCRIMINATOR,value);
   for(const [key,value]of Object.entries(state.tombstones))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.child,program),sdk.getMarginTombstoneDecoder(),sdk.MARGIN_TOMBSTONE_DISCRIMINATOR,value);
@@ -97,7 +101,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   }
   await requireMembershipCoverage(state,venue,program);
   if(state.liquidity) {
-    assert.equal(state.venue!.profileVersion,sdk.ACCOUNT_PROFILE);
+    assert(sdk.qualifiedTradingProfile(state.venue!.profileVersion,binding.artifactSet),'Qualified venue profile');
     for(const [key,value] of Object.entries(state.liquidity.registries))await expect(key,sdk.findLiquidityRegistryPda({market:address(value.market)},{programAddress:program}),sdk.getLiquidityRegistryDecoder(),sdk.LIQUIDITY_REGISTRY_DISCRIMINATOR,value);
     for(const [key,value] of Object.entries(state.liquidity.makers))await expect(key,getProgramDerivedAddress({programAddress:program,
       seeds:[Buffer.from('maker-v4'),getAddressEncoder().encode(address(value.market)),Uint8Array.of(value.instance)]}),sdk.getMakerRegistrationDecoder(),sdk.MAKER_REGISTRATION_DISCRIMINATOR,value);
@@ -120,7 +124,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148],
     ...settlementDescriptors,...membershipDescriptors,
     [sdk.MARKET_LISTING_DISCRIMINATOR,sdk.getMarketListingSize()],[sdk.LISTED_SYMBOL_DISCRIMINATOR,sdk.getListedSymbolSize()],
-    [sdk.LISTING_INDEX_DISCRIMINATOR,sdk.getListingIndexSize()],[sdk.LISTED_FUNDING_DISCRIMINATOR,sdk.getListedFundingSize()]
+    [sdk.LISTING_INDEX_DISCRIMINATOR,sdk.getListingIndexSize()],[sdk.LISTED_FUNDING_DISCRIMINATOR,sdk.getListedFundingSize()],
+    [sdk.LISTED_VENUE_DISCRIMINATOR,sdk.getListedVenueSize()],[sdk.LISTED_MARKET_BOOK_DISCRIMINATOR,sdk.getListedMarketBookSize()]
   ] as const;
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
@@ -147,11 +152,21 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
         const feeLane=sdk.hasAggregateFees(binding.artifactSet) && (entity.kind===7||entity.kind===15);
         assert(descriptor && bytes.subarray(0,8).equals(Buffer.from(descriptor[0])),`Scoped discriminator ${key}`);
         if(entity.kind===5 && (sponsored||binding.artifactSet===sdk.PROFIT_ATTRIBUTION_ARTIFACT_SET)) {
-          const attribution=sdk.decodeProfitAttribution(bytes,sponsored);
+          const wide=sdk.hasListedMargin(binding.artifactSet);
+          const attribution=sdk.decodeProfitAttribution(wide?bytes.subarray(0,sdk.INLINE_MARGIN_BYTES):bytes,sponsored);
           if(attribution.entryBounds) {
-            const capacity=binding.artifactSet===sdk.LISTED_MARGIN_ARTIFACT_SET ? sdk.listedMarginCapacity(attribution.root) : 0;
+            const capacity=wide ? sdk.listedMarginCapacity(attribution.root) : 0;
             if(capacity>0) {
-              assert.equal(sdk.decodeListedMargin(bytes).capacity,capacity,`Funded margin directory ${key}`);
+              const directory=sdk.decodeListedMargin(bytes);
+              assert.equal(directory.capacity,capacity,`Funded margin directory ${key}`);
+              const payload=state.listedPositions?.[key];
+              if(payload!==undefined) {
+                assert.deepEqual(sdk.decodeListedRecords(Buffer.from(payload,'hex'),capacity,true),
+                  {lastIncarnation:directory.lastIncarnation,records:directory.records},`Finalized listed positions ${key}`);
+              } else {
+                assert.equal(directory.records.length,0,'Listed positions without a financial event');
+                assert.equal(directory.lastIncarnation,0n,'Unjournaled listed position history');
+              }
             } else {
               assert.equal(bytes.length,sdk.INLINE_MARGIN_BYTES,`Inline-only margin layout ${key}`);
             }

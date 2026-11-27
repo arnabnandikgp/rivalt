@@ -13,7 +13,7 @@ export function projectedEntities(state:AccountState) {
     accountCheck(keys.length===1,`singleton revision coverage ${kind}`);values.set(keys[0],value);
   }
   for(const [kind,collection] of [[4,state.portfolios],[5,state.roots],[6,state.markets],[7,state.ledgers],[9,state.backing],
-    [28,state.listings??{}],[29,state.listedSymbols??{}],[30,state.listingIndices??{}],[31,state.listedFunding??{}],[26,state.tombstones],[27,state.storageTombstones],[14,state.liquidity?.registries??{}],[15,state.liquidity?.makers??{}],[16,state.liquidity?.publishers??{}]] as const)
+    [28,state.listings??{}],[29,state.listedSymbols??{}],[30,state.listingIndices??{}],[31,state.listedFunding??{}],[32,state.listedVenues??{}],[33,state.listedBooks??{}],[26,state.tombstones],[27,state.storageTombstones],[14,state.liquidity?.registries??{}],[15,state.liquidity?.makers??{}],[16,state.liquidity?.publishers??{}]] as const)
     for(const [account,value] of Object.entries(collection)) {
       accountCheck(state.revisions[account]?.kind===kind,`snapshot entity kind ${account}`);values.set(account,value);
     }
@@ -40,7 +40,8 @@ export function projectScopedBatch(initial:AccountState,invocations:readonly Acc
     // immutable values, preserving array order and all financial fields.
     const before=new Map([...projectedEntities(state)].map(([key,value])=>[key,structuredClone(storedFields(state,key,value))]));
     for(const write of invocation.writes)state.revisions[write.account]={kind:write.kind,revision:write.before};
-    for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4,binding.artifactSet);
+    for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4,binding.artifactSet,
+      event.type==='ListedMarginChanged' && invocation.events.at(-1)?.type==='ListedRouteFilled');
     const represented=projectedEntities(state),writes=new Map(invocation.writes.map(write=>[write.account,write]));
     for(const [key,value] of represented) {
       const expected=state.revisions[key];

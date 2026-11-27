@@ -8,6 +8,9 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['ListedVenueOpened',sdk.LISTED_VENUE_OPENED_EVENT_DISCRIMINATOR,sdk.getListedVenueOpenedEventDecoder()],
+  ['ListedMarginChanged',sdk.LISTED_MARGIN_CHANGED_EVENT_DISCRIMINATOR,sdk.getListedMarginChangedEventDecoder()],
+  ['ListedRouteFilled',sdk.LISTED_ROUTE_FILLED_EVENT_DISCRIMINATOR,sdk.getListedRouteFilledEventDecoder()],
   ['ListedFundingChanged',sdk.LISTED_FUNDING_CHANGED_EVENT_DISCRIMINATOR,sdk.getListedFundingChangedEventDecoder()],
   ['ListedLiquiditySealed',sdk.LISTED_LIQUIDITY_SEALED_EVENT_DISCRIMINATOR,sdk.getListedLiquiditySealedEventDecoder()],
   ['ListedMakerAdmitted',sdk.LISTED_MAKER_ADMITTED_EVENT_DISCRIMINATOR,sdk.getListedMakerAdmittedEventDecoder()],
@@ -96,6 +99,18 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
       return {signature,outer:invocation.outer,inner,ordinal,slot:transaction.slot,
         blockTime:transaction.blockTime===null?null:integer(transaction.blockTime),type,data,bytes};
     });
+    const listedFill=invocation.instruction===sdk.hex(sdk.EXECUTE_LISTED_MARKET_ORDER_DISCRIMINATOR);
+    if(listedFill || events.some(event=>event.type==='ListedMarginChanged'||event.type==='ListedRouteFilled')) {
+      const last=events.at(-1);
+      if(!listedFill || binding.artifactSet!==sdk.LISTED_EXECUTION_ARTIFACT_SET || last?.type!=='ListedRouteFilled')
+        throw new Error('Missing funded listed fill receipt');
+      const legs=last.data.legs;
+      if(legs.length<1||legs.length>2||events.length!==legs.length+2)throw new Error('Incomplete listed fill receipt');
+      const roots=[last.data.trader,...legs.map((leg:{capital:string})=>leg.capital)];
+      if(new Set(roots).size!==roots.length || roots.some((key,i)=>events[i].type!=='ListedMarginChanged' ||
+        events[i].data.margin!==key || !invocation.writes.some(write=>write.kind===5 && write.account===key)))
+        throw new Error('Invalid listed fill account effects');
+    }
     const continuations=events.filter(event=>event.type==='MakerFillContinuation');
     if(continuations.length) {
       const first=events[0], trade=first.data;

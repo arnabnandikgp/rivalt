@@ -153,6 +153,10 @@ it('decodes a fractional listed-market debt and refuses a two-market view of it'
   directory.writeBigUInt64LE(3n,20);
   directory.fill(255,36,52); // -1 scaled atom
   expect(sdk.decodeListedMargin(bytes()).records[0]).toMatchObject({market:65535,incarnation:3n,lots:0n,virtualScaled:-1n});
+  const occupied=directory.subarray(0,18+98);
+  expect(sdk.decodeListedRecords(occupied,6,true).records).toEqual(sdk.decodeListedMargin(bytes()).records);
+  expect(()=>sdk.decodeListedRecords(occupied.subarray(0,-1),6,true)).toThrow();
+  expect(()=>sdk.decodeListedRecords(directory,6,true)).toThrow();
   expect(()=>sdk.decodeProfitAttribution(bytes())).toThrow(/two-market reader/);
   directory.writeUInt16LE(1,18);
   expect(()=>sdk.decodeListedMargin(bytes())).toThrow();

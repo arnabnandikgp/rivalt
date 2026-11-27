@@ -2,6 +2,7 @@ import {address, getAddressEncoder, getBase58Decoder, getProgramDerivedAddress, 
 import * as clearing from './generated/index.js';
 import {deriveAccountVenue} from './account-addresses.js';
 import {LOCAL_ORACLE_FIXTURE} from './funding-sources.js';
+import {LISTED_EXECUTION_ARTIFACT_SET,qualifiedTradingProfile} from './account-deployment.js';
 import {fromBase64, requireValue, type UserRpc} from './wallet-client.js';
 
 const encoder=new TextEncoder();
@@ -32,6 +33,11 @@ export async function listingOracle(ticker:string,publisher:Address) {
 /** Discover registered, inactive contracts on a finalized local venue. Live market
  * routing continues to use the venue's admitted market accounts. */
 export async function readInactiveMarketListings(rpc:Pick<UserRpc,'call'>,venue:Address) {
+  return readMarketListings(rpc,venue);
+}
+
+/** Include qualification-only active listings when reading the pinned execution artifact. */
+export async function readMarketListings(rpc:Pick<UserRpc,'call'>,venue:Address,artifactSet?:string) {
   const program=clearing.CLEARING_PROGRAM_ADDRESS;
   const accountBytes=(account:any,size:number,tag:ArrayLike<number>)=>{
     requireValue(account?.owner===program && account.executable===false && account.data?.[1]==='base64','Invalid listing account owner or encoding.');
@@ -42,7 +48,7 @@ export async function readInactiveMarketListings(rpc:Pick<UserRpc,'call'>,venue:
   const bank=await rpc.call('getAccountInfo',[venue,{encoding:'base64',commitment:'finalized'}]);
   const deployment=clearing.getVenueDecoder().decode(accountBytes(bank.value,clearing.getVenueSize(),clearing.VENUE_DISCRIMINATOR));
   const [canonical,bump]=await deriveAccountVenue(Uint8Array.from(deployment.domain));
-  requireValue(venue===canonical && deployment.bump===bump && deployment.schemaVersion===10 && deployment.profileVersion===6,
+  requireValue(venue===canonical && deployment.bump===bump && deployment.schemaVersion===10 && qualifiedTradingProfile(deployment.profileVersion,artifactSet),
     'Invalid listing venue.');
   const entries=await rpc.call('getProgramAccounts',[program,{commitment:'finalized',encoding:'base64',minContextSlot:bank.context.slot,
     filters:[{dataSize:clearing.getMarketListingSize()},{memcmp:{offset:0,bytes:getBase58Decoder().decode(clearing.MARKET_LISTING_DISCRIMINATOR)}},
@@ -56,7 +62,8 @@ export async function readInactiveMarketListings(rpc:Pick<UserRpc,'call'>,venue:
     const [[expected,listingBump],{feed}]=await Promise.all([
       clearing.findListingPda({venue,marketId:record.marketId}),listingOracle(ticker,record.oraclePublisher)]);
     requireValue(key===expected && record.bump===listingBump && record.venue===venue && record.schemaVersion===1 &&
-      ((record.status===0 && record.revision===1n) || (record.status===1 && record.revision===2n)) &&
+      ((record.status===0 && record.revision===1n) || (record.status===1 && record.revision===2n) ||
+        (artifactSet===LISTED_EXECUTION_ARTIFACT_SET && deployment.profileVersion===7 && record.status===2 && record.revision===3n)) &&
       record.marketId>=2 && symbol.every((byte,i)=>byte===record.symbol[i]) &&
       record.lotsPerUnit>0n && record.quoteMint===deployment.quoteMint && record.oracleFeed===feed,'Invalid inactive market binding.');
     return {address:key,ticker,record};

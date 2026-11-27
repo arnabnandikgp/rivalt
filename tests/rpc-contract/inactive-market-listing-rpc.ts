@@ -133,8 +133,8 @@ try {
     keys.push({program:sdk.CLEARING_PROGRAM_ADDRESS,name:'liquidityRegistry',key:sealed.registry});
     const discovered=await sdk.discoverLiquidityAccounts(rpc,venue,listing,'finalized','ledger-lanes');
     assert.deepEqual(discovered.capitals,sealed.capitals);
-    const listings=await sdk.readInactiveMarketListings(rpc,venue);
-    assert.deepEqual(listings.map(({record})=>[record.marketId,record.status]),[[2,1],[258,0]]);
+    const listings=await sdk.readMarketListings(rpc,venue,build.artifactSet);
+    assert.deepEqual(listings.map(({record})=>[record.marketId,record.status]),[[2,execution?2:1],[258,0]]);
   }
   if(published) {
     for(const [label,ix] of published.accepted) {
@@ -143,6 +143,15 @@ try {
     }
     keys.push({program:sdk.CLEARING_PROGRAM_ADDRESS,name:'listedFunding',key:published.funding},
       {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'fundingPublisher',key:published.configuration});
+  }
+  if(executed) {
+    for(const [label,ix] of [['open funded wider venue for qualification',executed.begin],
+      ['listed trade signed SOL buy beside BTC and ETH',executed.fill]] as const) {
+      const landed=checks.find(row=>row.label===label)!;
+      parity.record([ix],await rpc.call('getTransaction',[landed.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]));
+    }
+    keys.push({program:sdk.CLEARING_PROGRAM_ADDRESS,name:'listedVenue',key:executed.directory},
+      {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'listedMarketBook',key:executed.book});
   }
   await parity.finish(directory,keys,h.read);
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
@@ -172,6 +181,14 @@ try {
   if(wider) {
     assert.equal(replay.state.roots[trader].cash,(wider.minimumCash+extraCash-(executed?.fee??0n)).toString());
     assert.deepEqual(replay.state.roots[trader].positions.map(position=>position.lots),['1','-10']);
+  }
+  if(executed) {
+    const account=replay.state.roots[trader];
+    const payload=replay.state.listedPositions?.[trader];
+    assert(payload);
+    const slots=sdk.decodeListedRecords(Buffer.from(payload,'hex'),sdk.listedMarginCapacity(account),true);
+    assert.deepEqual(slots.records.map(({market,lots,virtualScaled})=>[market,lots,virtualScaled]),[[2,10n,-1520n*1_000_000_000n]]);
+    assert.equal(replay.state.listedBooks?.[executed.book]?.grossLots,'20');
   }
   const result={executed,wider,published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
     bytes:(await h.read(indexProbe.listingIndex))!.length,receipts:checks.filter(row=>!row.error &&

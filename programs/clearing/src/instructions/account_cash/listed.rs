@@ -51,16 +51,17 @@ impl ListedMargin {
         increase: bool,
     ) -> Result<Self> {
         let view = root.account().clone();
+        let size = initial_margin_size(root.mode, root.isolated_market_index);
+        require!(view.data_len() == size, ClearingError::Profile);
         root.release_borrow()?;
-        let result = {
+        let directory = {
             let bytes = view.try_borrow()?;
-            let tail = bytes
-                .get(MARGIN_ALLOCATION..)
-                .ok_or(ClearingError::Profile)?;
-            Self::prepare(root, tail, maker_market, base, increase)
+            bytes[MARGIN_ALLOCATION..].to_vec()
         };
+        // Anchor forbids even read-only dereference of the Borsh prefix while
+        // its guard is released. Only the independently sized tail is copied.
         root.reacquire_guard_only()?;
-        result
+        Self::prepare(root, &directory, maker_market, base, increase)
     }
 
     /// The Borsh writer owns the fixed prefix. Writing only the directory above

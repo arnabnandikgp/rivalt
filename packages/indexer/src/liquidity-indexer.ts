@@ -1,5 +1,5 @@
 import {address} from '@solana/kit';
-import {ArtifactVerifier,accountDeployment,type AccountDeployment} from '@rivalt/sdk';
+import {ArtifactVerifier,accountDeployment,qualifiedTradingProfile,type AccountDeployment} from '@rivalt/sdk';
 import {FinalizedIndexer,type TransportConfig} from './finalized-indexer.js';
 import {LiquidityStore,type LiquidityBinding} from './liquidity-store.js';
 import {decodeAccountInvocations,eventDomain,type AccountEvent} from './account-events.js';
@@ -38,13 +38,13 @@ export class LiquidityIndexer extends FinalizedIndexer<AccountState,LiquidityBin
   }
   async reconcile(snapshot?:{state:AccountState;binding:LiquidityBinding}) {
     const row=snapshot??await this.store.snapshot();
-    if(row.binding.artifactSet!==this.selected.artifactSet||row.state.venue?.profileVersion!==6||!row.state.liquidity)
+    if(row.binding.artifactSet!==this.selected.artifactSet||!row.state.venue||!qualifiedTradingProfile(row.state.venue.profileVersion,row.binding.artifactSet)||!row.state.liquidity)
       throw new Error('Unqualified liquidity journal deployment');
     await this.artifacts.verify(address(row.state.venue.authority));
     return reconcileAccountSnapshot(row.state,row.binding,keys=>this.rpc.call('getMultipleAccounts',[keys,{encoding:'base64',commitment:'finalized'}]));
   }
   protected async capture(snapshot:{state:AccountState;binding:LiquidityBinding},minimumSlot:number) {
-    if(snapshot.binding.artifactSet!==this.selected.artifactSet||snapshot.state.venue?.profileVersion!==6||!snapshot.state.liquidity)
+    if(snapshot.binding.artifactSet!==this.selected.artifactSet||!snapshot.state.venue||!qualifiedTradingProfile(snapshot.state.venue.profileVersion,snapshot.binding.artifactSet)||!snapshot.state.liquidity)
       throw new Error('Unqualified liquidity journal deployment');
     await this.artifacts.verify(address(snapshot.state.venue.authority));
     const witness=await captureAccountReconciliation(snapshot.state,snapshot.binding,keys=>this.rpc.call('getMultipleAccounts',

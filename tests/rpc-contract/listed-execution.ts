@@ -68,5 +68,5 @@ export async function qualifyListedExecution(h:CanonicalHarness,setup:Awaited<Re
   await h.send('listed trade rejects omitted ETH source',await withCheckpoints({...foreign,accounts:foreign.accounts!.map(meta=>
     meta.address===markets[1]?{address:sdk.CLEARING_PROGRAM_ADDRESS,role:0 as const}:meta)}),[actor],sdk.CLEARING_ERROR__ORDER_STATE);
   assert.deepEqual(await watch(),fundedImage);
-  return {trader,listing,fee,book,directory,cash:funded.root.cash,lots:10n,gross:1520n,inlineLots:[1n,-10n]};
+  return {trader,listing,fee,book,directory,cash:funded.root.cash,lots:10n,gross:1520n,inlineLots:[1n,-10n],begin,fill};
 }

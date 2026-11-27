@@ -24,7 +24,7 @@ const fields = (value:any,names:string[]) => names.map(name=>value[name]);
  * external inputs, never silently substituted for finalized clearing state. */
 export function projectLiquidity(state:AccountState,event:AccountEvent,financial:FinancialProjection,artifactSet?:string) {
   const liquidity=present(state.liquidity,'liquidity profile'),venue=present(state.venue,'venue');
-  check(venue.profileVersion===6,'liquidity profile');
+  check(sdk.qualifiedTradingProfile(venue.profileVersion,artifactSet),'liquidity profile');
   const makerLimit = sdk.hasWideDirectory(artifactSet) ? sdk.MAX_REGISTERED_MAKERS : 3;
   const change=event.data;
   const marketIndex=venue.markets.indexOf(change.market??change.state?.market);
