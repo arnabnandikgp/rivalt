@@ -196,6 +196,22 @@ impl Scope {
         account: &mut SerializedAccount<T, S>,
         access: Access,
     ) -> Result<()> {
+        #[cfg(feature = "listed-margin-storage")]
+        if T::KIND == MarginAccount::KIND && (access != Access::Create || self.cursor.is_some()) {
+            let view = account.account().clone();
+            if view.data_len() != MARGIN_ALLOCATION {
+                // Read-only wrappers already allow a shared read. RC2 writable
+                // wrappers hold an exclusive Borsh guard across the handler.
+                let shared = view.try_borrow();
+                if let Ok(bytes) = shared {
+                    legacy_margin_bytes(&bytes)?;
+                } else {
+                    account.release_borrow()?;
+                    legacy_margin_bytes(&view.try_borrow()?)?;
+                    account.reacquire_guard_only()?;
+                }
+            }
+        }
         #[cfg(feature = "read-only-route-market")]
         if self.cursor.is_none() {
             if let Some(mode) = account.venue_mode() { self.venue_mode = Some(mode); }
@@ -240,6 +256,8 @@ impl Scope {
             (if T::KIND == MarginAccount::KIND { crate::state::accounts::valid_margin_size(bytes.len()) } else if T::KIND == MakerRegistration::KIND { bytes.len() == 8 + T::INIT_SPACE + crate::market_fees::LANE_EXTRA } else { bytes.len() == 8 + T::INIT_SPACE }) && bytes[..8] == *T::DISCRIMINATOR,
             ClearingError::Profile
         );
+        #[cfg(feature = "listed-margin-storage")]
+        if T::KIND == MarginAccount::KIND { legacy_margin_bytes(&bytes)?; }
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
         let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
         drop(bytes);
@@ -320,6 +338,8 @@ impl Scope {
             (if after { bytes.len() == length } else { crate::state::accounts::valid_margin_size(bytes.len()) }) && bytes[..8] == *discriminator,
             ClearingError::Profile
         );
+        #[cfg(feature = "listed-margin-storage")]
+        if !after { legacy_margin_bytes(&bytes)?; }
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
         let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
         drop(bytes);
@@ -424,6 +444,8 @@ impl Scope {
                     && data[..8] == *MarginAccount::DISCRIMINATOR,
                 ClearingError::Profile
             );
+            #[cfg(feature = "listed-margin-storage")]
+            legacy_margin_bytes(&data)?;
             let schema = u16::from_le_bytes(data[8..10].try_into().unwrap());
             let revision = u64::from_le_bytes(data[10..18].try_into().unwrap());
             drop(data);

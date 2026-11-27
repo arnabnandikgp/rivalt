@@ -2,8 +2,8 @@
 // readers select their own fixed layout and deployment allowlist.
 import {getAddressDecoder} from '@solana/kit';
 import {getMarginAccountDecoder,getMarginAccountSize,MARGIN_ACCOUNT_DISCRIMINATOR} from './generated/index.js';
-import {MAX_POSITION_LOTS} from './quantity-limits.js';
-import {MAX_PRICE} from './price-policy-constants.js';
+import {readEntryBounds} from './entry-bounds.js';
+import {decodeListedMargin,INLINE_MARGIN_BYTES} from './listed-margin.js';
 import {requireValue} from './wallet-client.js';
 
 export const PROFIT_ATTRIBUTION_ARTIFACT_SET='profit-attribution-33361d9';
@@ -15,21 +15,10 @@ const boundedMarker=new TextEncoder().encode('RVPROF03');
 const slotBytes=128;
 const boundedBytes=40;
 
-export type EntryCostBounds = {lower:bigint; upper:bigint; referenceLots:bigint};
+export type {EntryCostBounds} from './entry-bounds.js';
 function gcd(left:bigint,right:bigint) {
   while(right!==0n) [left,right]=[right,left%right];
   return left;
-}
-function readBounds(bytes:Uint8Array,lots:bigint):EntryCostBounds {
-  const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
-  const wide=(offset:number)=>view.getBigUint64(offset,true)+(view.getBigUint64(offset+8,true)<<64n);
-  const lower=wide(0), upper=wide(16), referenceLots=view.getBigUint64(32,true);
-  const minimum=referenceLots*1_000_000_000n;
-  const valid=lots===0n ? lower===0n && upper===0n && referenceLots===0n :
-    referenceLots>=(lots<0n?-lots:lots) && referenceLots<=MAX_POSITION_LOTS &&
-    lower>=minimum && upper>=lower && upper<=minimum*MAX_PRICE && upper-lower<=2n*referenceLots;
-  requireValue(valid,'Invalid bounded entry cost.');
-  return {lower,upper,referenceLots};
 }
 function perLot(total:bigint, quantity:bigint):PerLotProfit {
   if(quantity===0n) return {entryScaled:0n,paidScaled:0n,denominator:1n};
@@ -81,6 +70,11 @@ function slot(bytes:Uint8Array,lots:bigint):PerLotProfit {
 
 export function decodeProfitAttribution(bytes:Uint8Array,allowSponsored=false) {
   const prefix=getMarginAccountSize();
+  if(bytes.length>INLINE_MARGIN_BYTES && boundedMarker.every((byte,i)=>bytes[prefix+i]===byte)) {
+    const directory=decodeListedMargin(bytes);
+    requireValue(directory.records.length===0,'A two-market reader cannot value occupied listed markets.');
+    bytes=bytes.subarray(0,INLINE_MARGIN_BYTES);
+  }
   const minimum=prefix+marker.length+2*slotBytes;
   const bounded=boundedMarker.every((byte,index)=>bytes[prefix+index]===byte);
   const expanded=!bounded && bytes.length!==minimum;
@@ -95,7 +89,7 @@ export function decodeProfitAttribution(bytes:Uint8Array,allowSponsored=false) {
     const start=prefix+marker.length+index*width;
     return bytes.subarray(start,start+width);
   });
-  const entryBounds=bounded?slots.map((bytes,index)=>readBounds(bytes,root.positions[index].lots)):null;
+  const entryBounds=bounded?slots.map((bytes,index)=>readEntryBounds(bytes,root.positions[index].lots)):null;
   // Existing default callers consume the endpoint with the least seizable gain.
   const positions=entryBounds?entryBounds.map((entry,index)=>
     perLot(root.positions[index].lots>0n?entry.upper:entry.lower,entry.referenceLots)):

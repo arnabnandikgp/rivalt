@@ -164,3 +164,64 @@ fn restored_bindings_preserve_retired_numbers_and_reject_inconsistent_records() 
         Err(Error::Overflow)
     );
 }
+
+#[test]
+fn listed_wire_keeps_full_market_ids_and_fractional_debts_in_the_original_root() {
+    use clearing_accounting::market_slots::storage::{require_empty, HEADER_BYTES, RECORD_BYTES};
+    let mut bytes = vec![0xa5; HEADER_BYTES + 2 * RECORD_BYTES];
+    let first = flat(258, -1);
+    let last = MarketImage {
+        market: u16::MAX,
+        position: Position {
+            lots: -2,
+            virtual_scaled: 201 * SCALE,
+            funding_checkpoint: -9,
+            generation: 4,
+        },
+        entry: EntryCost::default().fill(0, -2, 201).unwrap(),
+    };
+    let start = MarketSlots::new(Mode::Cross, 2);
+    let book = start.successor(&[first, last], &[]).unwrap();
+    book.write_listed_bytes(&mut bytes).unwrap();
+    assert_eq!(bytes.len(), 214);
+    assert_eq!(&bytes[..18], b"RVMKTS01\x02\0\0\0\0\0\0\0\x02\0");
+    assert_eq!(&bytes[18..20], &[2, 1]);
+    assert_eq!(&bytes[36..52], &[255; 16]);
+    assert_eq!(&bytes[116..118], &[255, 255]);
+    assert_eq!(
+        MarketSlots::from_listed_bytes(&bytes, Mode::Cross, &[]).unwrap(),
+        book
+    );
+    assert!(require_empty(&bytes).is_err());
+    assert!(MarketSlots::from_listed_bytes(&bytes, Mode::Isolated(258), &[]).is_err());
+    for (offset, replacement) in [
+        (0, &[0][..]),
+        (16, &[3]),
+        (18, &[1, 0]),
+        (20, &[3]),
+        (118, &[1]),
+        (174, &[0; 40]),
+    ] {
+        let mut bad = bytes.clone();
+        bad[offset..offset + replacement.len()].copy_from_slice(replacement);
+        assert!(
+            MarketSlots::from_listed_bytes(&bad, Mode::Cross, &[]).is_err(),
+            "offset {offset}"
+        );
+    }
+    let empty = book
+        .successor(&[flat(258, 0), flat(u16::MAX, 0)], &[])
+        .unwrap();
+    empty.write_listed_bytes(&mut bytes).unwrap();
+    require_empty(&bytes).unwrap();
+    assert_eq!(
+        MarketSlots::from_listed_bytes(&bytes, Mode::Cross, &[])
+            .unwrap()
+            .last_incarnation(),
+        2
+    );
+    assert!(bytes[16..].iter().all(|&byte| byte == 0));
+    *bytes.last_mut().unwrap() = 1;
+    assert!(require_empty(&bytes).is_err());
+    assert!(MarketSlots::from_listed_bytes(&bytes, Mode::Cross, &[]).is_err());
+}

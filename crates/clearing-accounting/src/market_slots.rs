@@ -2,6 +2,7 @@
 //! complete post-transition positions and live order markets from canonical state.
 //! Stored orders refer to market IDs. A physical offset cannot identify a market.
 extern crate alloc;
+pub mod storage;
 use crate::{entry_cost::EntryCost, Error, Mode, Position, Result};
 use alloc::vec::Vec;
 

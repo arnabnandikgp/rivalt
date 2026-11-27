@@ -19,6 +19,8 @@ fn read_member(
             && valid_margin_size(account.data_len()),
         ClearingError::Resolution
     );
+    #[cfg(feature = "listed-margin-storage")]
+    legacy_margin_bytes(&account.try_borrow()?)?;
     let root = Box::new(MarginAccount::try_deserialize(
         &mut &account.try_borrow()?[..],
     )?);
