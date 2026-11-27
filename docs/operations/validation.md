@@ -230,3 +230,5 @@ The joint competing indexed workload also checks [frozen market priority](qualif
 
 
 Use the `venue-default-application` program artifact and `RIVALT_SETTLEMENT_PROBE=execution-router-venue-application` with `ops/scalable-settlement-smoke.sh` for [venue application and owner withdrawals](qualification-scorecard.md#applying-the-verified-payouts-on-the-venue). Set `RIVALT_ROUTER_REVISION` to the exact program source revision. The supervisor requires the pinned unified settlement page helper. It verifies real wallet and vault deltas, refused bindings, and independently reconstructed financial events in a fresh PostgreSQL database.
+
+The same signed workload repeats the [unequal forced-volume comparison](qualification-scorecard.md#forced-volume-by-market) across both episodes. Check the amount paid to each creditor, which allocation was refused and the per-market lot counts in the independent reference.

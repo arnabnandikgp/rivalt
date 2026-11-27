@@ -709,3 +709,10 @@ Both opposite nominations refused. The three-market inputs for these inspections
 On clearing `bba16a8d` and harness `17e45cc1`, the signed venue binder charged 7,492 atoms of BTC open profit and committed seven reconciled postings to the original frozen pages. It used 70,345 CU, 759 bytes and 17 loaded accounts. A skipped charge, stale revision, trailing rates, missing page and replay all refused. The binder left all seven margin balances and the vault unchanged until application.
 
 The existing settlement controller took 234 successful transactions including binding, applying each account and verifying the terminal balances. Six owner-signed transfers paid 24,010 atoms to the opposing maker, 12,500 each to four other maker accounts and 1,000,970 to the trader. The debtor received zero. Each transfer used 40,275–40,351 CU. The vault fell from 1,075,000 to 20 atoms, exactly the retained fees. BTC used six insurance atoms and ETH used zero. Fresh PostgreSQL replay reproduced 148 financial events from 488 signed transactions. Both venue markets participated in settlement. Trading on this frozen book occurred in BTC.
+
+
+### Forced volume by market
+
+On program and harness `8b23c8f1`, three BTC lots supplied one atom of eligible gain each. Independent enumeration found 100 physical allocations and 70 protected allocations. Two finalists recovered three atoms in each distressed market and each spent one BTC and one ETH insurance atom. Both closed three BTC lots. Closing one ETH lot paid the two flat creditors 9 and 8 atoms. Closing two ETH lots would pay them 10 and 7. In each of two episodes the signed verifier accepted the former and refused the latter. It used 325,516 and 319,979 CU in 841-byte transactions. The original equal-volume case continued selecting opposite winners in the two episodes.
+
+These four comparisons used synthetic frozen balances. A separate funded four-market book on the same binary executed eight fills, settled in 201,691 CU, and transferred 10,588 collateral atoms to five owners, leaving eight fee atoms. PostgreSQL replay matched 74 program receipts across both workloads.

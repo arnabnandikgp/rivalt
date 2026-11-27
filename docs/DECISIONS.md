@@ -69,3 +69,8 @@ second listing. [Account contract](clearing/accounts.md#isolated-maker-capital-f
 ### 28 November 2026 · Use frozen market priority for asymmetric protected finalists
 
 Two plans can reach every market's recovery ceiling and draw identical market insurance while sharing losses more proportionally in different markets. When they also close the same total number of lots and satisfy each protected whole-atom receipt, prefer the smaller proportional deviation in the first distinguishing market. Sort market IDs by SHA-256 of the domain `Rivalt/frozen-market-order/v1` followed by a zero byte, the venue's 32 bytes, the frozen episode as little-endian u64 and the market ID as little-endian u16. Break a hash collision by numeric market ID. The caller and the slot of submission have no input. Equal sharing and equal per-market lot counts retain frozen member priority. [Default contract](clearing/risk-and-resolution.md#settlement-across-a-frozen-set-of-markets)
+
+
+### 28 November 2026 · Eliminate unnecessary forced volume within each market
+
+After maximizing protected recovery, compare proportional sharing in each market. If the surviving wider-market plans have identical insurance spending and pass exact and whole-atom creditor protection, discard a plan when a rival closes no more lots in any market and fewer in at least one. Rank the survivors by proportional deviation in frozen market order, then by lots in that order if their deviations tie. Stable frozen member priority resolves an exact tie. The previous equal-total-lot restriction is superseded. Lots in different markets have different units. [Worked example](operations/qualification-scorecard.md#forced-volume-by-market)

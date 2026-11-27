@@ -166,6 +166,8 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, real venue settlement and withdrawal (Review).** Clearing `bba16a8d` and harness `17e45cc1` applied the verified 7,492-atom reduction to seven frozen margin accounts. Six owner-signed withdrawals transferred 1,074,980 atoms from the venue vault and left its 20 retained fee atoms. Fresh PostgreSQL replay matched 148 financial events. The two-market controller took 234 successful continuation steps from freeze through resolution. [Signed costs and scope](operations/qualification-scorecard.md#applying-the-verified-payouts-on-the-venue)
 
+**Finding 11, forced volume by market (Review).** On `8b23c8f1`, both frozen episodes chose three BTC lots and one ETH lot over three BTC lots and two ETH lots, recovering six atoms with equal insurance. All four signed equal- and unequal-volume comparisons matched the independent model. Five owners on the separate funded fixture withdrew their full balances. PostgreSQL replay matched 74 receipts. [Costs and scope](operations/qualification-scorecard.md#forced-volume-by-market)
+
 **Next action.** Bind wider positions and custody to the venue so every risk check and default reads the same occupied market IDs. Qualify an actual listed-market fill followed by whole-book settlement and owner withdrawal before enabling wider trading.
 
 | Open gate | What remains |
