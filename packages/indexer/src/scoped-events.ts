@@ -3,6 +3,7 @@
 import {createHash} from 'node:crypto';
 import {address, getAddressDecoder, getBase58Encoder} from '@solana/kit';
 import {BIND_RECOVERY_SELECTION_DISCRIMINATOR,PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR} from '@rivalt/sdk/paged-recovery';
+import {VERIFY_INDEXED_DEFAULT_DISCRIMINATOR} from '@rivalt/sdk';
 import clearingIdl from '../../sdk/idl/clearing.json' with {type: 'json'};
 import {integer} from './rpc.js';
 import {inventoryInstruction, isValidTransitionScope, type ScopedEnvelope, type ScopedRead, type ScopedWrite} from './scoped-history.js';
@@ -137,7 +138,7 @@ function compiledMessage(transaction: any) {
  * called through an external wrapper and multiple clearing calls in one message.
  * Invalid input returns no partial result. Failed transactions have no effects. */
 export function scopedInvocations(signature: string, transaction: any, transactionIndex: number,
-  binding: {program: string; eventAuthority: string; venue: string; domain: string; shadowCoverage?: boolean; verifiedCoverage?: boolean}): ScopedInvocation[] {
+  binding: {program: string; eventAuthority: string; venue: string; domain: string; shadowCoverage?: boolean; verifiedCoverage?: boolean; indexedDefault?: boolean}): ScopedInvocation[] {
   if (!transaction?.meta || transaction.transaction?.signatures?.[0] !== signature)
     throw new Error('Missing transaction metadata/identity');
   integer(transaction.slot); integer(transactionIndex);
@@ -162,6 +163,16 @@ export function scopedInvocations(signature: string, transaction: any, transacti
       if(current.bytes.equals(grossView)){
         if(current.accounts.length!==5)throw new Error('Invalid read-only market view');
         return null; // Five read-only accounts, eight bytes of return data, zero financial effects.
+      }
+      if (binding.indexedDefault && current.bytes.subarray(0, 8).equals(Buffer.from(VERIFY_INDEXED_DEFAULT_DISCRIMINATOR))) {
+        // Eleven fixed read accounts, followed by the frozen members. Only the fee payer
+        // or a sibling instruction can make fixed accounts writable in the outer message.
+        const headerBytes = 25;
+        if (current.bytes.length < headerBytes ||
+            current.bytes.length !== headerBytes + 4 * current.bytes.readUInt32LE(headerBytes - 4) ||
+            current.accounts.length <= 11 || current.accounts.length > 23)
+          throw new Error('Invalid indexed default preview');
+        return null;
       }
       const shadow = (binding.shadowCoverage || binding.verifiedCoverage) && coverageWork.get(current.bytes.subarray(0,8).toString('hex'));
       if (shadow) {
