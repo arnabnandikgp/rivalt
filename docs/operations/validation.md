@@ -45,6 +45,16 @@ For the [protected reduction comparison](qualification-scorecard.md#protected-th
 
 For the [signed single-pair default](../clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair), run `RIVALT_PROOF_SCOPE=three-market-default bash ops/default-proof-smoke.sh`. The script builds the dedicated local program, checks the deployed bytes, sends signed deposits and fills, freezes all five accounts, resolves and withdraws from SPL custody. Independently hash the original financial accounts, check rollback after every refusal, and replay finalized transactions in fresh PostgreSQL. Feed the reconstructed frozen book and entry into the exact-fraction reference and enumerate every whole charge through the debtor’s original uninsured writeoff. Compare the chosen charge, matched lots, market insurance, each wallet and the remainder in the vault.
 
+For the [two-winner selection](qualification-scorecard.md#competing-winners-in-a-three-market-default), run the native driver and comparison:
+
+```sh
+cargo build --locked --offline -p default-plan-selection --features three-market-search --example three_market_competition
+python3 tests/financial/test_three_market_competition.py
+cargo test --locked --offline -p default-plan-selection --features three-market-search --lib three_market::tests
+```
+
+Compare every selected charge, matched lot, integer price concession and exact and rounded terminal flow against the independent whole-lot enumeration. Include a genuinely scarce debtor lot, different per-lot capacities, another market’s exact receipt, a zero-action optimum, an episode-order tie and an exhausted search. Re-run the two prior three-market Python comparisons when changing their shared frozen inputs or rounding checks.
+
 For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
 build `cargo build --locked --offline -p financial-core --bin backing-driver`
 and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares

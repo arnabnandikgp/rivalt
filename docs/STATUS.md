@@ -97,7 +97,9 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 11, signed default and wallet exits for one eligible pair.** On local revision `eed48e38`, one cross trader and four isolated makers built a three-market book in five signed fills. The program verified a maximum BTC charge of 100 atoms on one lot. Charging 99 or 101 both refused. The flat BTC creditor withdrew 1,400 atoms, the ETH and SOL creditors withdrew 2,800 and 2,200, and five fee atoms remained in the vault. Fresh PostgreSQL replay matched 58 program receipts. The exact-fraction comparison enumerated 400 charges and admitted 100. This qualification covers a five-member, integral terminal settlement. [Results, budgets and limits](operations/qualification-scorecard.md#signed-three-market-default-and-wallet-exit)
 
-**Next action.** On a frozen three-market book with two eligible winners competing for the same debtor lots, compare the selected charges, proportional sharing and resulting creditor receipts with exhaustive independent enumeration. Joint reductions and end-to-end integration remain gates for wider venue trading.
+**Finding 11, two winners competing for a debtor’s lots.** On native revision `1f6f1e6a`, all 67 selections agreed with independent enumeration on 31 books and episode variants. Two equal winners shared a ten-atom charge 5/5 when two debtor lots were available. With one lot, only one winner could take the charge. On a linked book, the selected 4/6 split preserved five ETH and three SOL atoms owed to other creditors. All 602 physically feasible allocations were checked in the independent small-book comparison. [Complete outcomes and limits](operations/qualification-scorecard.md#competing-winners-in-a-three-market-default)
+
+**Next action.** Qualify the two-winner allocation on signed local custody. Build the linked-winner book from trades, reject an inferior or unsafe split against the same freeze, apply the winning allocation once and reconcile each SPL withdrawal through fresh PostgreSQL replay. Cross-market joint selection and wider venue integration remain open.
 
 | Open gate | What remains |
 |---|---|
