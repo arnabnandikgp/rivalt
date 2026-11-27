@@ -39,10 +39,12 @@ export const EXECUTION_ROUTER_ARTIFACT_SET='standing-maker-routing';
 export const DIRECT_CREDIT_ARTIFACT_SET='direct-closed-credit-984f18f3';
 // Distinct lane allocations on fresh local qualification banks.
 export const THOUSAND_MEMBER_CREDIT_ARTIFACT_SET='thousand-member-credit-213d394d';
+export const LISTED_FUNDING_ARTIFACT_SET='listed-funding';
+export const hasListedDirectory=(set?:string)=>set===LISTED_DIRECTORY_ARTIFACT_SET||set===LISTED_FUNDING_ARTIFACT_SET;
 export const LISTED_DIRECTORY_ARTIFACT_SET='listed-market-directory';
 export const INDEXED_APPLICATION_ARTIFACT_SET='venue-default-application';
 export const INDEXED_DEFAULT_ARTIFACT_SET='venue-default-verifier';
-export const hasListedMaker=(set?:string)=>set===LISTED_MAKER_ARTIFACT_SET||set===INDEXED_DEFAULT_ARTIFACT_SET||set===INDEXED_APPLICATION_ARTIFACT_SET||set===LISTED_DIRECTORY_ARTIFACT_SET;
+export const hasListedMaker=(set?:string)=>set===LISTED_MAKER_ARTIFACT_SET||set===INDEXED_DEFAULT_ARTIFACT_SET||set===INDEXED_APPLICATION_ARTIFACT_SET||hasListedDirectory(set);
 export const LISTED_MAKER_ARTIFACT_SET='listed-maker-admission';
 export const LISTING_INDEX_ARTIFACT_SET='listing-index-aa205484';
 export const INACTIVE_LISTING_ARTIFACT_SET='inactive-market-listing-1adaf018';

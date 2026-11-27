@@ -8,6 +8,7 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['ListedFundingChanged',sdk.LISTED_FUNDING_CHANGED_EVENT_DISCRIMINATOR,sdk.getListedFundingChangedEventDecoder()],
   ['ListedLiquiditySealed',sdk.LISTED_LIQUIDITY_SEALED_EVENT_DISCRIMINATOR,sdk.getListedLiquiditySealedEventDecoder()],
   ['ListedMakerAdmitted',sdk.LISTED_MAKER_ADMITTED_EVENT_DISCRIMINATOR,sdk.getListedMakerAdmittedEventDecoder()],
   ['ListingIndexChanged',sdk.LISTING_INDEX_CHANGED_EVENT_DISCRIMINATOR,sdk.getListingIndexChangedEventDecoder()],
@@ -81,7 +82,7 @@ export function eventDomain(signature:string,transaction:any,authority:string,ve
 }
 export function decodeAccountInvocations(signature:string,transaction:any,transactionIndex:number,
   binding:{program:string;eventAuthority:string;venue:string;domain:string;artifactSet?:string}):AccountInvocation[] {
-  return scopedInvocations(signature,transaction,transactionIndex,{...binding,indexedDefault:binding.artifactSet===sdk.INDEXED_DEFAULT_ARTIFACT_SET||binding.artifactSet===sdk.INDEXED_APPLICATION_ARTIFACT_SET||binding.artifactSet===sdk.LISTED_DIRECTORY_ARTIFACT_SET,verifiedCoverage:sdk.hasDirectCredit(binding.artifactSet)||binding.artifactSet===sdk.VERIFIED_COVERAGE_ARTIFACT_SET,shadowCoverage:binding.artifactSet===sdk.SHADOW_COVERAGE_ARTIFACT_SET||binding.artifactSet===sdk.MAINTAINED_COVERAGE_ARTIFACT_SET}).map(invocation=>{
+  return scopedInvocations(signature,transaction,transactionIndex,{...binding,indexedDefault:binding.artifactSet===sdk.INDEXED_DEFAULT_ARTIFACT_SET||binding.artifactSet===sdk.INDEXED_APPLICATION_ARTIFACT_SET||sdk.hasListedDirectory(binding.artifactSet),verifiedCoverage:sdk.hasDirectCredit(binding.artifactSet)||binding.artifactSet===sdk.VERIFIED_COVERAGE_ARTIFACT_SET,shadowCoverage:binding.artifactSet===sdk.SHADOW_COVERAGE_ARTIFACT_SET||binding.artifactSet===sdk.MAINTAINED_COVERAGE_ARTIFACT_SET}).map(invocation=>{
     const events:AccountEvent[]=invocation.payloads.map(({inner,bytes},ordinal)=>{
       const payload=Buffer.from(bytes,'base64');
       const entry=decoders.find(([,tag])=>payload.subarray(0,8).equals(Buffer.from(tag)));

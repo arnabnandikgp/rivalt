@@ -11,6 +11,18 @@ pub struct LiquidityRegistryChanged {
 }
 
 #[event]
+pub struct ListedFundingChanged {
+    pub venue: Address,
+    pub slot: u64,
+    pub listing: Address,
+    pub funding: Address,
+    pub configuration: Address,
+    pub values: crate::state::accounts::ListedFundingValues,
+    pub publisher: crate::state::liquidity::FundingPublisherPayload,
+    pub report: Option<crate::state::liquidity::FundingReport>,
+}
+
+#[event]
 pub struct ListedLiquiditySealed {
     pub venue: Address,
     pub slot: u64,

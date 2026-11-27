@@ -1075,6 +1075,21 @@ pub mod clearing {
         #[cfg(not(feature="venue-default-verifier"))]
         { let _=(ctx,epoch,selected,denominator,rates); Err(ClearingError::Profile.into()) }
     }
+    pub fn initialize_listed_funding(ctx: &mut Context<InitializeListedFunding>, publisher: Address) -> Result<()> {
+        require!(cfg!(feature = "listed-funding"), ClearingError::Profile);
+        scoped_history::run(ctx, [74, 12, 6, 83, 92, 247, 201, 176], false,
+            |ctx, events| maker_liquidity::publisher::listed::initialize(ctx, events, publisher))
+    }
+    pub fn configure_listed_funding(ctx: &mut Context<ConfigureListedFunding>, epoch: u64, publisher: Address) -> Result<()> {
+        require!(cfg!(feature = "listed-funding"), ClearingError::Profile);
+        scoped_history::run(ctx, [232, 46, 84, 226, 54, 86, 246, 37], false,
+            |ctx, events| maker_liquidity::publisher::listed::configure(ctx, events, epoch, publisher))
+    }
+    pub fn publish_listed_funding(ctx: &mut Context<PublishListedFunding>, report: crate::state::liquidity::FundingReport) -> Result<()> {
+        require!(cfg!(feature = "listed-funding"), ClearingError::Profile);
+        scoped_history::run(ctx, [74, 221, 17, 23, 121, 23, 69, 210], false,
+            |ctx, events| maker_liquidity::publisher::listed::publish(ctx, events, report))
+    }
     pub fn seal_listed_liquidity(ctx: &mut Context<SealListedLiquidity>) -> Result<()> {
         require!(cfg!(feature="listed-market-directory"), ClearingError::Profile);
         scoped_history::run_listed_directory(ctx, [173, 174, 253, 223, 148, 109, 43, 101], maker_liquidity::listed_directory::seal)

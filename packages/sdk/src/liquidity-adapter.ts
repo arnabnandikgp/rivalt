@@ -1,3 +1,4 @@
+import {LISTED_CAPITAL_TAG} from './market-listing.js';
 import {registeredMakerPdas, MAX_REGISTERED_MAKERS} from './market-capacity.js';
 import {decodeMakerFeeLane} from './market-fees.js';
 import {feeLaneLayout,hasFeeLayout,decodeMarginForLayout,type MarginLayout} from './profit-attribution.js';
@@ -18,7 +19,7 @@ export const LIQUIDITY_MAKER_COUNT = 3;
 export type LiquidityUnavailable = 'quarantined' | 'unapproved-code' | 'disabled' | 'stale-publication' | 'invalid-publication';
 export type LiquidityAccountMap = ReadonlyMap<Address, { owner: string; executable: boolean; data: [string, string] } | null>;
 export type LiquiditySnapshotIdentity = Readonly<{
-  marginLayout?: MarginLayout; venue: Address; market: Address; marketIndex: 0 | 1; domain: ReadonlyUint8Array;
+  marginLayout?: MarginLayout; venue: Address; market: Address; marketIndex: number; domain: ReadonlyUint8Array;
   slot: bigint; now: bigint; contextSlot: bigint;
 }>;
 
@@ -112,6 +113,13 @@ export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venu
  */
 export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIdentity, accounts: LiquidityAccountMap) {
   snapshot = freezeState({ ...snapshot,domain: Uint8Array.from(snapshot.domain) });
+  const listed=snapshot.marketIndex>=2;
+  if(listed) {
+    const listing=decode(bytes(accounts,snapshot.market,clearing.CLEARING_PROGRAM_ADDRESS),clearing.MARKET_LISTING_DISCRIMINATOR,clearing.getMarketListingDecoder());
+    const [key,bump]=await clearing.findListingPda({venue:snapshot.venue,marketId:snapshot.marketIndex});
+    requireValue(listing.status===1 && listing.revision===2n && listing.schemaVersion===1 && listing.venue===snapshot.venue
+      && listing.marketId===snapshot.marketIndex && listing.bump===bump && key===snapshot.market,'Invalid sealed listing.');
+  } else requireValue(snapshot.marketIndex===0 || snapshot.marketIndex===1,'Invalid market index.');
   const [registryKey, registryBump] = await clearing.findLiquidityRegistryPda({ market: snapshot.market });
   const registry = decode(bytes(accounts,registryKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.LIQUIDITY_REGISTRY_DISCRIMINATOR,
     clearing.getLiquidityRegistryDecoder());
@@ -122,7 +130,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
   const seenCapital = new Set<Address>();
   const seenRootIds = new Set<bigint>();
   const codeHashes = new Map<Address, string>();
-  const adapters: LiquidityAdapter[] = [];
+  const adapters: (LiquidityAdapter & {readonly inventory: bigint})[] = [];
   const pdas = await registeredMakerPdas(snapshot.market, registry.count);
   requireValue(registry.registrations.every((key,index) => key === pdas[index][0]), 'Foreign accounting lane registration.');
   for (const [instance, [registrationKey, registrationBump]] of pdas.entries()) {
@@ -139,12 +147,12 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
     const [capitalKey, capitalBump] = await deriveMarginAccount(capital.portfolio,capital.subaccountIndex);
     requireValue(capitalKey === registration.capital && capital.bump === capitalBump && capital.schemaVersion === 10
       && capital.venue === snapshot.venue && capital.owner === registration.owner && capital.role === 1 && capital.mode === 1
-      && capital.isolatedMarketIndex === snapshot.marketIndex && capital.subaccountIndex >= 1 && capital.subaccountIndex <= 8
+      && capital.isolatedMarketIndex === (listed?LISTED_CAPITAL_TAG:snapshot.marketIndex) && capital.subaccountIndex >= 1 && capital.subaccountIndex <= 8
       && capital.lifecycle === 2 && capital.activationGeneration > 0n && !seenRootIds.has(capital.id), 'Invalid isolated maker capital.');
     seenRootIds.add(capital.id);
-    const foreignPosition = capital.positions[1-snapshot.marketIndex];
-    requireValue(foreignPosition.lots === 0n && foreignPosition.virtualScaled === 0n && foreignPosition.fundingCheckpointScaled === 0n
-      && foreignPosition.generation === 0n, 'Foreign isolated maker position.');
+    const foreignPositions = listed?capital.positions:[capital.positions[1-snapshot.marketIndex]];
+    requireValue(foreignPositions.every(position=>position.lots===0n && position.virtualScaled===0n &&
+      position.fundingCheckpointScaled===0n && position.generation===0n), 'Foreign isolated maker position.');
     const [bindingKey] = await getProgramDerivedAddress({ programAddress: clearing.CLEARING_PROGRAM_ADDRESS,
       seeds: [new TextEncoder().encode('capital-v3'), KEY.encode(registration.capital)] });
     const binding = decode(bytes(accounts,bindingKey,clearing.CLEARING_PROGRAM_ADDRESS), clearing.CAPITAL_BINDING_DISCRIMINATOR,
@@ -188,12 +196,12 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
       : snapshot.slot >= validUntilSlot || snapshot.now >= validUntilTime ? 'stale-publication' : null;
     freezeState(capital);freezeState(registration);freezeState(config);freezeState(shape);freezeState(price);
     const requestDomain = Uint8Array.from(snapshot.domain);
-    const inventory = capital.positions[snapshot.marketIndex].lots;
+    const inventory = listed?0n:capital.positions[snapshot.marketIndex].lots;
     const consumed = (side: 0|1) => side === 0 ? registration.buyConsumed : registration.sellConsumed;
     const request = (side: 0|1, lots: bigint): canonical.MakerQuoteRequestArgs => ({ version: 4, domain: Uint8Array.from(requestDomain),
       market: snapshot.market, capital: registration.capital, instance, authorityEpoch: registration.authorityEpoch,
       controlEpoch: config.controlEpoch, shapeEpoch: config.shapeEpoch, depthEpoch: registration.depthEpoch, side, lots, inventory, consumed: consumed(side) });
-    adapters.push(Object.freeze({ capability: LIQUIDITY_CAPABILITY, registration: registrationKey, registrationState: registration, capital,
+    adapters.push(Object.freeze({ capability: LIQUIDITY_CAPABILITY, inventory, registration: registrationKey, registrationState: registration, capital,
       config, price, shape, snapshot, unavailable, validUntilSlot, validUntilTime, request,
       quote(side: 0|1,lots: bigint) { requireValue(unavailable === null, `Maker unavailable: ${unavailable}`);
         return quoteCanonical(shape,price.anchor,side,lots,inventory,consumed(side)); },

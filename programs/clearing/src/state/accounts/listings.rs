@@ -50,3 +50,68 @@ pub struct ListingIndex {
     pub upper: u64,
     pub bump: u8,
 }
+
+/// The market identity comes from the full listing PDA. These fields are the
+/// inputs and outputs of the common causal funding transition.
+#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, IdlType, Clone, Default)]
+pub struct ListedFundingValues {
+    pub observation_sequence: u64,
+    pub funding_index_scaled: i128,
+    pub funding_time: i64,
+    pub reference_price: u64,
+    pub lower: u64,
+    pub upper: u64,
+    pub valid_from: u64,
+    pub valid_until: u64,
+    pub oracle: crate::state::OracleState,
+}
+
+#[account(borsh)]
+#[derive(InitSpace, Default)]
+pub struct ListedFunding {
+    pub schema_version: u16,
+    pub revision: u64,
+    pub listing: Address,
+    pub values: ListedFundingValues,
+    pub bump: u8,
+}
+
+impl ListedFundingValues {
+    pub(crate) fn market(&self, listing: &MarketListing) -> super::Market {
+        super::Market {
+            schema_version: super::SCHEMA_VERSION,
+            venue: listing.venue,
+            index: u8::MAX,
+            symbol: listing.symbol,
+            lots_per_unit: listing.lots_per_unit,
+            terms_epoch: 1,
+            config_epoch: 1,
+            observation_sequence: self.observation_sequence,
+            funding_index_scaled: self.funding_index_scaled,
+            funding_time: self.funding_time,
+            reference_price: self.reference_price,
+            lower: self.lower,
+            upper: self.upper,
+            valid_from: self.valid_from,
+            valid_until: self.valid_until,
+            oracle: self.oracle,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&super::Market> for ListedFundingValues {
+    fn from(m: &super::Market) -> Self {
+        Self {
+            observation_sequence: m.observation_sequence,
+            funding_index_scaled: m.funding_index_scaled,
+            funding_time: m.funding_time,
+            reference_price: m.reference_price,
+            lower: m.lower,
+            upper: m.upper,
+            valid_from: m.valid_from,
+            valid_until: m.valid_until,
+            oracle: m.oracle,
+        }
+    }
+}

@@ -57,7 +57,7 @@ revisioned! {
     17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
     20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
     24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone, 27 => StorageTombstone,
-    28 => MarketListing, 29 => ListedSymbol, 30 => ListingIndex,
+    28 => MarketListing, 29 => ListedSymbol, 30 => ListingIndex, 31 => ListedFunding,
 }
 
 impl Revisioned for MarginAccount {
@@ -73,7 +73,7 @@ fn schema_for_kind(kind: u8) -> Result<u16> {
     match kind {
         0..=10 | 13..=16 => Ok(SCHEMA_VERSION),
         17..=27 => Ok(SETTLEMENT_SCHEMA),
-        28..=30 => Ok(LISTING_SCHEMA),
+        28..=31 => Ok(LISTING_SCHEMA),
         _ => Err(ClearingError::Profile.into()),
     }
 }

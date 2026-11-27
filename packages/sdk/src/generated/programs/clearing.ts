@@ -43,6 +43,7 @@ import {
   getJointPaymentPageCodec,
   getJointPaymentProofCodec,
   getLiquidityRegistryCodec,
+  getListedFundingCodec,
   getListedSymbolCodec,
   getListingIndexCodec,
   getMakerRegistrationCodec,
@@ -85,6 +86,8 @@ import {
   type JointPaymentProofArgs,
   type LiquidityRegistry,
   type LiquidityRegistryArgs,
+  type ListedFunding,
+  type ListedFundingArgs,
   type ListedSymbol,
   type ListedSymbolArgs,
   type ListingIndex,
@@ -179,6 +182,7 @@ import {
   getCompleteSettlementApplicationInstructionAsync,
   getCompleteSettlementPlanInstructionAsync,
   getConfigureFundingPublisherInstructionAsync,
+  getConfigureListedFundingInstructionAsync,
   getContinueSettlementDenominatorInstructionAsync,
   getContinueSettlementPlanInstructionAsync,
   getContinueSettlementPlanWindowInstructionAsync,
@@ -209,6 +213,7 @@ import {
   getInitializeLiquidityInstructionAsync,
   getInitializeLiquidityOracleInstructionAsync,
   getInitializeLiquidityVenueInstructionAsync,
+  getInitializeListedFundingInstructionAsync,
   getInitializeMarketBackingInstructionAsync,
   getInitializeMarketInstructionAsync,
   getInitializePreparedSettlementInstructionAsync,
@@ -233,6 +238,7 @@ import {
   getPayAccountGainInstructionAsync,
   getPrepareSettlementRateScratchInstructionAsync,
   getPublishFundingReportInstructionAsync,
+  getPublishListedFundingInstructionAsync,
   getQuarantineLiquidityInstructionAsync,
   getReactivateAccountsInstructionAsync,
   getReadMarketGrossInstructionAsync,
@@ -306,6 +312,7 @@ import {
   parseCompleteSettlementApplicationInstruction,
   parseCompleteSettlementPlanInstruction,
   parseConfigureFundingPublisherInstruction,
+  parseConfigureListedFundingInstruction,
   parseContinueSettlementDenominatorInstruction,
   parseContinueSettlementPlanInstruction,
   parseContinueSettlementPlanWindowInstruction,
@@ -336,6 +343,7 @@ import {
   parseInitializeLiquidityInstruction,
   parseInitializeLiquidityOracleInstruction,
   parseInitializeLiquidityVenueInstruction,
+  parseInitializeListedFundingInstruction,
   parseInitializeMarketBackingInstruction,
   parseInitializeMarketInstruction,
   parseInitializePreparedSettlementInstruction,
@@ -360,6 +368,7 @@ import {
   parsePayAccountGainInstruction,
   parsePrepareSettlementRateScratchInstruction,
   parsePublishFundingReportInstruction,
+  parsePublishListedFundingInstruction,
   parseQuarantineLiquidityInstruction,
   parseReactivateAccountsInstruction,
   parseReadMarketGrossInstruction,
@@ -433,6 +442,7 @@ import {
   type CompleteSettlementApplicationAsyncInput,
   type CompleteSettlementPlanAsyncInput,
   type ConfigureFundingPublisherAsyncInput,
+  type ConfigureListedFundingAsyncInput,
   type ContinueSettlementDenominatorAsyncInput,
   type ContinueSettlementPlanAsyncInput,
   type ContinueSettlementPlanWindowAsyncInput,
@@ -463,6 +473,7 @@ import {
   type InitializeLiquidityAsyncInput,
   type InitializeLiquidityOracleAsyncInput,
   type InitializeLiquidityVenueAsyncInput,
+  type InitializeListedFundingAsyncInput,
   type InitializeMarketAsyncInput,
   type InitializeMarketBackingAsyncInput,
   type InitializePreparedSettlementAsyncInput,
@@ -519,6 +530,7 @@ import {
   type ParsedCompleteSettlementApplicationInstruction,
   type ParsedCompleteSettlementPlanInstruction,
   type ParsedConfigureFundingPublisherInstruction,
+  type ParsedConfigureListedFundingInstruction,
   type ParsedContinueSettlementDenominatorInstruction,
   type ParsedContinueSettlementPlanInstruction,
   type ParsedContinueSettlementPlanWindowInstruction,
@@ -549,6 +561,7 @@ import {
   type ParsedInitializeLiquidityInstruction,
   type ParsedInitializeLiquidityOracleInstruction,
   type ParsedInitializeLiquidityVenueInstruction,
+  type ParsedInitializeListedFundingInstruction,
   type ParsedInitializeMarketBackingInstruction,
   type ParsedInitializeMarketInstruction,
   type ParsedInitializePreparedSettlementInstruction,
@@ -573,6 +586,7 @@ import {
   type ParsedPayAccountGainInstruction,
   type ParsedPrepareSettlementRateScratchInstruction,
   type ParsedPublishFundingReportInstruction,
+  type ParsedPublishListedFundingInstruction,
   type ParsedQuarantineLiquidityInstruction,
   type ParsedReactivateAccountsInstruction,
   type ParsedReadMarketGrossInstruction,
@@ -614,6 +628,7 @@ import {
   type PayAccountGainAsyncInput,
   type PrepareSettlementRateScratchAsyncInput,
   type PublishFundingReportAsyncInput,
+  type PublishListedFundingAsyncInput,
   type QuarantineLiquidityAsyncInput,
   type ReactivateAccountsAsyncInput,
   type ReadMarketGrossAsyncInput,
@@ -663,9 +678,11 @@ import {
   findEthPda,
   findEventAuthorityPda,
   findFirstMakerRegistrationPda,
+  findFundingPda,
   findFundingPublisherPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
+  findListedFundingPublisherPda,
   findListedLiquidityRegistryPda,
   findListingIndexPda,
   findListingPda,
@@ -699,6 +716,7 @@ export enum ClearingAccount {
   JointPaymentPage,
   JointPaymentProof,
   LiquidityRegistry,
+  ListedFunding,
   ListedSymbol,
   ListingIndex,
   MakerRegistration,
@@ -809,6 +827,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.LiquidityRegistry;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([12, 233, 178, 243, 206, 103, 53, 206]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.ListedFunding;
   }
   if (
     containsBytes(
@@ -1163,6 +1192,7 @@ export enum ClearingEvent {
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
   LiquidityRouteFeeRecorded,
+  ListedFundingChanged,
   ListedLiquiditySealed,
   ListedMakerAdmitted,
   ListingIndexChanged,
@@ -1607,6 +1637,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([144, 255, 185, 36, 144, 183, 16, 110]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.ListedFundingChanged;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([21, 241, 238, 26, 63, 44, 52, 29]),
       ),
       0,
@@ -1821,6 +1862,7 @@ export enum ClearingInstruction {
   CompleteSettlementApplication,
   CompleteSettlementPlan,
   ConfigureFundingPublisher,
+  ConfigureListedFunding,
   ContinueSettlementDenominator,
   ContinueSettlementPlan,
   ContinueSettlementPlanWindow,
@@ -1851,6 +1893,7 @@ export enum ClearingInstruction {
   InitializeLiquidity,
   InitializeLiquidityOracle,
   InitializeLiquidityVenue,
+  InitializeListedFunding,
   InitializeMarket,
   InitializeMarketBacking,
   InitializePreparedSettlement,
@@ -1875,6 +1918,7 @@ export enum ClearingInstruction {
   PayAccountGain,
   PrepareSettlementRateScratch,
   PublishFundingReport,
+  PublishListedFunding,
   QuarantineLiquidity,
   ReactivateAccounts,
   ReadMarketGross,
@@ -2318,6 +2362,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([232, 46, 84, 226, 54, 86, 246, 37]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.ConfigureListedFunding;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([160, 108, 231, 235, 16, 93, 96, 125]),
       ),
       0,
@@ -2648,6 +2703,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([74, 12, 6, 83, 92, 247, 201, 176]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.InitializeListedFunding;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([35, 35, 189, 193, 155, 48, 170, 203]),
       ),
       0,
@@ -2907,6 +2973,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.PublishFundingReport;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([74, 221, 17, 23, 121, 23, 69, 210]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.PublishListedFunding;
   }
   if (
     containsBytes(
@@ -3433,6 +3510,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.ConfigureFundingPublisher;
     } & ParsedConfigureFundingPublisherInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.ConfigureListedFunding;
+    } & ParsedConfigureListedFundingInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.ContinueSettlementDenominator;
     } & ParsedContinueSettlementDenominatorInstruction<TProgram>)
   | ({
@@ -3523,6 +3603,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.InitializeLiquidityVenue;
     } & ParsedInitializeLiquidityVenueInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.InitializeListedFunding;
+    } & ParsedInitializeListedFundingInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.InitializeMarket;
     } & ParsedInitializeMarketInstruction<TProgram>)
   | ({
@@ -3594,6 +3677,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.PublishFundingReport;
     } & ParsedPublishFundingReportInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.PublishListedFunding;
+    } & ParsedPublishListedFundingInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.QuarantineLiquidity;
     } & ParsedQuarantineLiquidityInstruction<TProgram>)
@@ -3963,6 +4049,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseConfigureFundingPublisherInstruction(instruction),
       };
     }
+    case ClearingInstruction.ConfigureListedFunding: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.ConfigureListedFunding,
+        ...parseConfigureListedFundingInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ContinueSettlementDenominator: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4173,6 +4266,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseInitializeLiquidityVenueInstruction(instruction),
       };
     }
+    case ClearingInstruction.InitializeListedFunding: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.InitializeListedFunding,
+        ...parseInitializeListedFundingInstruction(instruction),
+      };
+    }
     case ClearingInstruction.InitializeMarket: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4339,6 +4439,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.PublishFundingReport,
         ...parsePublishFundingReportInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.PublishListedFunding: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.PublishListedFunding,
+        ...parsePublishListedFundingInstruction(instruction),
       };
     }
     case ClearingInstruction.QuarantineLiquidity: {
@@ -4632,6 +4739,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<JointPaymentProofArgs, JointPaymentProof>;
   liquidityRegistry: ReturnType<typeof getLiquidityRegistryCodec> &
     SelfFetchFunctions<LiquidityRegistryArgs, LiquidityRegistry>;
+  listedFunding: ReturnType<typeof getListedFundingCodec> &
+    SelfFetchFunctions<ListedFundingArgs, ListedFunding>;
   listedSymbol: ReturnType<typeof getListedSymbolCodec> &
     SelfFetchFunctions<ListedSymbolArgs, ListedSymbol>;
   listingIndex: ReturnType<typeof getListingIndexCodec> &
@@ -4871,6 +4980,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getConfigureFundingPublisherInstructionAsync> &
     SelfPlanAndSendFunctions;
+  configureListedFunding: (
+    input: ConfigureListedFundingAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getConfigureListedFundingInstructionAsync> &
+    SelfPlanAndSendFunctions;
   continueSettlementDenominator: (
     input: ContinueSettlementDenominatorAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5018,6 +5132,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeLiquidityVenueInstructionAsync> &
     SelfPlanAndSendFunctions;
+  initializeListedFunding: (
+    input: InitializeListedFundingAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeListedFundingInstructionAsync> &
+    SelfPlanAndSendFunctions;
   initializeMarket: (
     input: InitializeMarketAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5137,6 +5256,11 @@ export type ClearingPluginInstructions = {
     input: PublishFundingReportAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getPublishFundingReportInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  publishListedFunding: (
+    input: PublishListedFundingAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getPublishListedFundingInstructionAsync> &
     SelfPlanAndSendFunctions;
   quarantineLiquidity: (
     input: QuarantineLiquidityAsyncInput,
@@ -5344,12 +5468,15 @@ export type ClearingPluginPdas = {
   secondMakerRegistration: typeof findSecondMakerRegistrationPda;
   thirdMakerRegistration: typeof findThirdMakerRegistrationPda;
   fundingPublisher: typeof findFundingPublisherPda;
+  funding: typeof findFundingPda;
+  listedFundingPublisher: typeof findListedFundingPublisherPda;
   portfolio: typeof findPortfolioPda;
   marketLedger: typeof findMarketLedgerPda;
   receipt: typeof findReceiptPda;
   certificate: typeof findCertificatePda;
   liquidityRegistry: typeof findLiquidityRegistryPda;
   venue: typeof findVenuePda;
+  listedLiquidityRegistry: typeof findListedLiquidityRegistryPda;
   payment: typeof findPaymentPda;
   openPairScheduleCertificate: typeof findOpenPairScheduleCertificatePda;
   search: typeof findSearchPda;
@@ -5357,7 +5484,6 @@ export type ClearingPluginPdas = {
   marginAccount: typeof findMarginAccountPda;
   listing: typeof findListingPda;
   symbolBinding: typeof findSymbolBindingPda;
-  listedLiquidityRegistry: typeof findListedLiquidityRegistryPda;
 };
 
 export type ClearingPluginRequirements = ClientWithRpc<
@@ -5401,6 +5527,7 @@ export function clearingProgram(
             client,
             getLiquidityRegistryCodec(),
           ),
+          listedFunding: addSelfFetchFunctions(client, getListedFundingCodec()),
           listedSymbol: addSelfFetchFunctions(client, getListedSymbolCodec()),
           listingIndex: addSelfFetchFunctions(client, getListingIndexCodec()),
           makerRegistration: addSelfFetchFunctions(
@@ -5770,6 +5897,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          configureListedFunding: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getConfigureListedFundingInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           continueSettlementDenominator: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6025,6 +6160,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          initializeListedFunding: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeListedFundingInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           initializeMarket: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6231,6 +6374,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getPublishFundingReportInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          publishListedFunding: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPublishListedFundingInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
@@ -6628,6 +6779,16 @@ export function clearingProgram(
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
+          funding: (seeds, pdaConfig) =>
+            findFundingPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          listedFundingPublisher: (seeds, pdaConfig) =>
+            findListedFundingPublisherPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
           portfolio: (seeds, pdaConfig) =>
             findPortfolioPda(seeds, {
               programAddress:
@@ -6655,6 +6816,11 @@ export function clearingProgram(
             }),
           venue: (seeds, pdaConfig) =>
             findVenuePda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          listedLiquidityRegistry: (seeds, pdaConfig) =>
+            findListedLiquidityRegistryPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),
@@ -6690,11 +6856,6 @@ export function clearingProgram(
             }),
           symbolBinding: (seeds, pdaConfig) =>
             findSymbolBindingPda(seeds, {
-              programAddress:
-                pdaConfig?.programAddress ?? config.programAddress,
-            }),
-          listedLiquidityRegistry: (seeds, pdaConfig) =>
-            findListedLiquidityRegistryPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

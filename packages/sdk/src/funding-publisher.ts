@@ -1,3 +1,4 @@
+import {listingOracle} from './market-listing.js';
 import {readCoherentAccounts} from './coherent-accounts.js';
 import {hasCapacityLayout,hasFundingLayout,type MarginLayout} from './profit-attribution.js';
 import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
@@ -83,13 +84,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
   requireValue(configurationState.schemaVersion === 10 && configurationState.venue === venue && configurationState.market === market
     && configurationState.bump === configurationBump && configurationState.enabled && configurationState.authorityEpoch > 0n,
     'Funding publisher is not authorized.');
-  const rawClock = accounts.get(ACCOUNT_CLOCK);
-  requireValue(rawClock?.owner === 'Sysvar1111111111111111111111111111111111111' && !rawClock.executable
-    && rawClock.data[1] === 'base64', 'Invalid funding Clock owner.');
-  const clockBytes = fromBase64(rawClock.data[0]);
-  requireValue(clockBytes.length === 40, 'Invalid funding Clock layout.');
-  const clock = new DataView(clockBytes.buffer, clockBytes.byteOffset, clockBytes.byteLength);
-  const slot = clock.getBigUint64(0, true), now = clock.getBigInt64(32, true);
+  const {slot,now}=fundingClock(accounts);
   if(marginLayout==='market-lanes'||marginLayout==='ledger-lanes'){
     const marketBytes=fromBase64(accounts.get(market)!.data[0]);
     const registrations=registrationPdas.map(([key,bump])=>{
@@ -99,6 +94,38 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
     });
     marketState=marketFromExecutionLanes(market,marketBytes,registrations,slot,safetyState.mode===1,marginLayout==='ledger-lanes');
   }
+  const calculated=await publishedReport({venueState,venue,market,marketIndex,configurationState,marketState,
+    contextSlot,accounts,slot,now,marginLayout,discovery,coverageReason});
+  return { ...calculated, checkpointAccounts, configuration, configurationState, marketState, contextSlot, accounts,
+    instructionAccounts: { venue, market, custody, safety, configuration,
+      primaryAsset: marketState.oracle.sources[0], primaryCollateral: marketState.oracle.sources[1],
+      guardAsset: marketState.oracle.sources[2], guardCollateral: marketState.oracle.sources[3] } };
+}
+
+/** Funding checkpoints follow the fixed publication accounts in market instance order. */
+export function withFundingCheckpoints(instruction:Instruction,addresses:readonly Address[]):Instruction {
+  if(!addresses.length)return instruction;
+  return {...instruction,accounts:[...instruction.accounts??[],...addresses.map(address=>({address,role:AccountRole.READONLY}))]};
+}
+
+function fundingClock(accounts:LiquidityAccountMap) {
+  const rawClock = accounts.get(ACCOUNT_CLOCK);
+  requireValue(rawClock?.owner === 'Sysvar1111111111111111111111111111111111111' && !rawClock.executable
+    && rawClock.data[1] === 'base64', 'Invalid funding Clock owner.');
+  const clockBytes = fromBase64(rawClock.data[0]);
+  requireValue(clockBytes.length === 40, 'Invalid funding Clock layout.');
+  const clock = new DataView(clockBytes.buffer, clockBytes.byteOffset, clockBytes.byteLength);
+  const slot = clock.getBigUint64(0, true), now = clock.getBigInt64(32, true);
+  return {slot,now};
+}
+
+type FundingMarket=Pick<clearing.Market,'index'|'lotsPerUnit'|'oracle'|'observationSequence'|'configEpoch'|'termsEpoch'>;
+async function publishedReport({venue,market,marketIndex,venueState,configurationState,marketState,contextSlot,accounts,
+  slot,now,marginLayout,discovery,coverageReason,listedAssetId}:{
+  venue:Address;market:Address;marketIndex:number;venueState:clearing.Venue;configurationState:clearing.FundingPublisher;
+  marketState:FundingMarket;contextSlot:bigint;accounts:LiquidityAccountMap;slot:bigint;now:bigint;marginLayout:MarginLayout;
+  discovery:Awaited<ReturnType<typeof discoverLiquidityAccounts>>|null;coverageReason:string|null;listedAssetId?:Uint8Array;
+}) {
   // RPC context orders reads; the authenticated Clock supplies report time/slot.
   // Surfpool 1.6.1 returns Clock.slot=context.slot+1 in the same batch. Do not
   // replace Clock with RPC metadata. Clearing still rejects future observations.
@@ -112,7 +139,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
     referencePrice: 0n, quantity: 0n, bid: 0n, ask: 0n, outcome: 1,
     inputDigest: await fundingSnapshotDigest(contextSlot, accounts),
   };
-  const reference = await fundingReference(marketState, accounts, now);
+  const reference = await fundingReference(marketState, accounts, now,listedAssetId);
   let allocations: { bid: ReturnType<typeof allocateFundingSide>; ask: ReturnType<typeof allocateFundingSide> } | null = null;
   if (reference !== null) {
     report.outcome = 2;
@@ -124,7 +151,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
         else {
           const quantity = (FUNDING_REFERENCE_NOTIONAL + reference - 1n) / reference;
           const curves = adapters.map(maker => ({ shape: maker.shape, anchor: maker.price.anchor,
-            inventory: maker.capital.positions[marketIndex].lots,
+            inventory: maker.inventory,
             buyConsumed: maker.registrationState.buyConsumed, sellConsumed: maker.registrationState.sellConsumed }));
           allocations = { bid: allocateFundingSide(curves, reference, quantity, 1), ask: allocateFundingSide(curves, reference, quantity, 0) };
           report.outcome = 3;
@@ -139,14 +166,56 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
       } catch { coverageReason = 'invalid-maker-snapshot'; }
     }
   }
-  return { report, checkpointAccounts, configuration, configurationState, marketState, contextSlot, accounts, allocations, coverageReason,
-    instructionAccounts: { venue, market, custody, safety, configuration,
-      primaryAsset: marketState.oracle.sources[0], primaryCollateral: marketState.oracle.sources[1],
-      guardAsset: marketState.oracle.sources[2], guardCollateral: marketState.oracle.sources[3] } };
+  return {report,allocations,coverageReason};
 }
 
-/** Funding checkpoints follow the fixed publication accounts in market instance order. */
-export function withFundingCheckpoints(instruction:Instruction,addresses:readonly Address[]):Instruction {
-  if(!addresses.length)return instruction;
-  return {...instruction,accounts:[...instruction.accounts??[],...addresses.map(address=>({address,role:AccountRole.READONLY}))]};
+/** Read the registered sources, restricted publisher, and every configured maker in one bank. */
+export async function readListedFundingReport(rpc:Pick<UserRpc,'call'>,venue:Address,marketId:number,
+  commitment:'confirmed'|'finalized'='confirmed') {
+  requireValue(Number.isInteger(marketId) && marketId>=2 && marketId<=65535,'Invalid listed market ID.');
+  const [listing,listingBump]=await clearing.findListingPda({venue,marketId});
+  const [[safety,safetyBump],[configuration,configurationBump],[funding,fundingBump],[listingIndex,indexBump],[registry]]=
+    await Promise.all([deriveVenueComponent(venue,'safety'),clearing.findListedFundingPublisherPda({listing}),
+      clearing.findFundingPda({listing}),clearing.findListingIndexPda({listing}),clearing.findLiquidityRegistryPda({market:listing})]);
+  const sourceDiscovery=await rpc.call('getAccountInfo',[listingIndex,{encoding:'base64',commitment}]);
+  const decodeIndex=(account:Parameters<typeof decode>[0])=>decode(account,clearing.LISTING_INDEX_DISCRIMINATOR,clearing.getListingIndexDecoder());
+  const sourceKeys=decodeIndex(sourceDiscovery.value).sources;
+  let discovery:Awaited<ReturnType<typeof discoverLiquidityAccounts>>|null=null;
+  let coverageReason:string|null=null;
+  try {discovery=await discoverLiquidityAccounts(rpc,venue,listing,commitment,'ledger-lanes');}
+  catch {coverageReason='invalid-maker-discovery';}
+  const keys=[...new Set([venue,listing,listingIndex,funding,safety,configuration,registry,ACCOUNT_CLOCK,
+    ...sourceKeys,...discovery?.keys??[],...discovery?.capitals??[]])];
+  const sourceSlot=rpcInteger(sourceDiscovery.context.slot);
+  const minimum=discovery && discovery.contextSlot>sourceSlot?discovery.contextSlot:sourceSlot;
+  const response=await readCoherentAccounts(rpc,keys,commitment,minimum);
+  const contextSlot=rpcInteger(response.context.slot);
+  requireValue(response.value?.length===keys.length && contextSlot>=minimum,'Incomplete listed funding snapshot.');
+  const accounts:LiquidityAccountMap=new Map(keys.map((key,i)=>[key,response.value[i]]));
+  const record=decode(accounts.get(listing)??null,clearing.MARKET_LISTING_DISCRIMINATOR,clearing.getMarketListingDecoder());
+  const venueState=decode(accounts.get(venue)??null,clearing.VENUE_DISCRIMINATOR,clearing.getVenueDecoder());
+  const [venueKey,venueBump]=await deriveAccountVenue(Uint8Array.from(venueState.domain));
+  const index=decodeIndex(accounts.get(listingIndex)??null);
+  const state=decode(accounts.get(funding)??null,clearing.LISTED_FUNDING_DISCRIMINATOR,clearing.getListedFundingDecoder());
+  const safetyState=decode(accounts.get(safety)??null,clearing.VENUE_SAFETY_DISCRIMINATOR,clearing.getVenueSafetyDecoder());
+  const configurationState=decode(accounts.get(configuration)??null,clearing.FUNDING_PUBLISHER_DISCRIMINATOR,clearing.getFundingPublisherDecoder());
+  requireValue(venueKey===venue && venueState.bump===venueBump && venueState.schemaVersion===10 && venueState.profileVersion===6
+    && venueState.marketCount===2 && venueState.insuranceFeeShareBps===2500 && record.schemaVersion===1 && record.bump===listingBump
+    && record.marketId===marketId && record.venue===venue && record.quoteMint===venueState.quoteMint && record.status===1,'Invalid funding listing.');
+  const ticker=new TextDecoder().decode(Uint8Array.from(record.symbol)).replace(/\0+$/,'');
+  const {feed,feedId}=await listingOracle(ticker,record.oraclePublisher);
+  requireValue(index.schemaVersion===1 && index.listing===listing && index.bump===indexBump && index.sources[0]===feed
+    && record.oracleFeed===feed && state.schemaVersion===1 && state.listing===listing && state.bump===fundingBump
+    && index.sources.every((key,i)=>key===sourceKeys[i] && key===state.values.oracle.sources[i]),'Invalid listed source binding.');
+  requireValue(safetyState.schemaVersion===10 && safetyState.venue===venue && safetyState.bump===safetyBump && !safetyState.paused
+    && [0,1].includes(safetyState.mode) && configurationState.schemaVersion===10 && configurationState.venue===venue
+    && configurationState.market===listing && configurationState.bump===configurationBump && configurationState.enabled
+    && configurationState.authorityEpoch>0n,'Listed funding publication is suspended.');
+  const {slot,now}=fundingClock(accounts);
+  const marketState={...state.values,index:marketId,lotsPerUnit:record.lotsPerUnit,termsEpoch:1n,configEpoch:1n,
+    oracle:{...state.values.oracle,sourceSequences:state.values.oracle.sourceSequences.map((seq,i)=>seq>index.sourceSequences[i]?seq:index.sourceSequences[i])}};
+  const calculated=await publishedReport({venueState,venue,market:listing,marketIndex:marketId,configurationState,marketState,
+    contextSlot,accounts,slot,now,marginLayout:'ledger-lanes',discovery,coverageReason,listedAssetId:feedId});
+  return {...calculated,configurationState,contextSlot,accounts,instructionAccounts:{venue,safety,listing,listingIndex,funding,configuration,
+    primaryAsset:sourceKeys[0],primaryCollateral:sourceKeys[1],guardAsset:sourceKeys[2],guardCollateral:sourceKeys[3]}};
 }

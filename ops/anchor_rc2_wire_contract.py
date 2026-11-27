@@ -152,7 +152,7 @@ def check_domains():
     # The local payout observer owns PDAs under [coverage-lane, venue, member_id % 8].
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'coverage-lane'})
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) |
-        {'market-listing', 'listed-symbol', 'listing-index', '/USD', 'BTC', 'ETH'})
+        {'market-listing', 'listed-symbol', 'listing-index', 'listed-funding', '/USD', 'BTC', 'ETH'})
     # The finalized SDK reader independently authenticates the existing on-chain registry hash.
     expected['sdk_hash_domains'] = sorted(set(expected['sdk_hash_domains']) | {'rivalt-financial-membership-v1'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
@@ -170,6 +170,29 @@ def undo_listed_maker_delta(actual, program):
     if program not in ('clearing', 'maker_a', 'maker_b'):
         return actual
     if program == 'clearing':
+        for name, keys, writes, signer, arguments in [
+            ('initialize_listed_funding', 'authority venue safety listing listing_index registry funding configuration system_program event_authority program',
+             {'authority','funding','configuration'},'authority',[('publisher','pubkey')]),
+            ('configure_listed_funding', 'authority venue safety listing funding configuration event_authority program',
+             {'funding','configuration'},'authority',[('epoch','u64'),('publisher','pubkey')]),
+            ('publish_listed_funding', 'publisher venue safety listing listing_index funding configuration primary_asset primary_collateral guard_asset guard_collateral event_authority program',
+             {'funding','configuration'},'publisher',[('report',{'defined':{'name':'FundingReport'}})])]:
+            entry=remove('instructions',name)
+            assert entry['discriminator']==disc('global',name) and [(a['name'],a['type']) for a in entry['args']]==arguments
+            assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in entry['accounts']]==[
+                (key,key in writes,key==signer) for key in keys.split()]
+        assert remove('accounts','ListedFunding')['discriminator']==disc('account','ListedFunding')
+        assert remove('events','ListedFundingChanged')['discriminator']==disc('event','ListedFundingChanged')
+        def exact_fields(name, fields):
+            assert [(f['name'],f['type']) for f in remove('types',name)['type']['fields']]==fields
+        def defined(name):
+            return {'defined':{'name':name}}
+        exact_fields('ListedFunding',[('schema_version','u16'),('revision','u64'),('listing','pubkey'),
+            ('values',defined('ListedFundingValues')),('bump','u8')])
+        exact_fields('ListedFundingValues',[('observation_sequence','u64'),('funding_index_scaled','i128'),('funding_time','i64'),
+            *[(name,'u64') for name in ['reference_price','lower','upper','valid_from','valid_until']],('oracle',defined('OracleState'))])
+        exact_fields('ListedFundingChanged',[('venue','pubkey'),('slot','u64'),('listing','pubkey'),('funding','pubkey'),('configuration','pubkey'),
+            ('values',defined('ListedFundingValues')),('publisher',defined('FundingPublisherPayload')),('report',{'option':defined('FundingReport')})])
         seal = remove('instructions','seal_listed_liquidity')
         assert seal['args'] == [] and seal['discriminator'] == disc('global',seal['name'])
         assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in seal['accounts']] == [

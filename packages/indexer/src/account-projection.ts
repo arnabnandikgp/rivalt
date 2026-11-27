@@ -36,6 +36,7 @@ export type AccountState = {
   storageTombstones:Record<string,Fields<sdk.StorageTombstone>>; members:string[]; portfolios:Record<string,Fields<sdk.Portfolio>>;
   roots:Record<string,AccountRoot>; markets:Record<string,AccountMarket>;
   listings?:Record<string,Fields<sdk.MarketListing>>;
+  listedFunding?:Record<string,Fields<sdk.ListedFunding>>;
   listingIndices?:Record<string,Fields<sdk.ListingIndex>>;
   listedSymbols?:Record<string,Fields<sdk.ListedSymbol>>;
   ledgers:Record<string,Fields<sdk.MarketLedger>>;
@@ -106,13 +107,49 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     values.forEach(value=>market(value));
   };
   switch(event.type) {
+    case 'ListedFundingChanged': {
+      const listing=present(state.listings?.[change.listing],'funding listing');
+      const liquidity=present(state.liquidity,'liquidity');
+      const index=present(Object.values(state.listingIndices??{}).find(value=>value.listing===change.listing),'listed sources');
+      const configuration=change.publisher, values=change.values;
+      const previous=liquidity.publishers[change.configuration];
+      state.listedFunding??={};
+      const prior=state.listedFunding[change.funding];
+      accountCheck(artifactSet===sdk.LISTED_FUNDING_ARTIFACT_SET && listing.status===1 && configuration.schemaVersion===10
+        && configuration.venue===venue && configuration.market===change.listing && configuration.revision===(previous?.revision??'0')
+        && Object.values(liquidity.registries).some(value=>value.market===change.listing && value.sealed)
+        && !!previous===!!prior && values.fundingIndexScaled==='0' && values.fundingTime==='0','inactive listed funding state');
+      equal(values.oracle.sources,index.sources,'immutable listed funding sources');
+      const sequence=BigInt(previous?.lastSequence??'0'),epoch=BigInt(previous?.authorityEpoch??'0');
+      const report=change.report.__option==='Some'?change.report.value:null;
+      if(report) {
+        accountCheck(previous?.enabled && configuration.publisher===previous.publisher && configuration.enabled
+          && BigInt(configuration.authorityEpoch)===epoch && report.authorityEpoch===previous.authorityEpoch
+          && report.version===1 && report.domain===domain && report.market===change.listing
+          && BigInt(configuration.lastSequence)===sequence+1n && report.sequence===configuration.lastSequence
+          && report.expectedObservationSequence===prior?.values.observationSequence
+          && report.expectedConfigEpoch==='1' && report.expectedTermsEpoch==='1'
+          && configuration.lastObservedSlot===report.observedSlot && BigInt(report.observedSlot)>BigInt(previous.lastObservedSlot)
+          && configuration.lastObservedTime===report.observedTime && BigInt(report.observedTime)>=BigInt(previous.lastObservedTime)
+          && (report.outcome!==0 || (values.referencePrice===report.referencePrice && values.oracle.quantity===report.quantity
+            && values.oracle.bid===report.bid && values.oracle.ask===report.ask)),'attested listed funding report');
+        liquidity.reports[change.listing]={publisher:configuration.publisher,slot:String(event.slot),report:accountFields<sdk.FundingReport>(report)};
+      } else {
+        accountCheck(BigInt(configuration.authorityEpoch)===epoch+1n && BigInt(configuration.lastSequence)===sequence
+          && configuration.lastObservedSlot===change.slot && values.oracle.quantity==='0','listed publisher control');
+      }
+      accountCheck(BigInt(values.observationSequence)===(prior?BigInt(prior.values.observationSequence)+1n:0n),'listed observation sequence');
+      state.listedFunding[change.funding]={schemaVersion:1,revision:prior?.revision??'0',listing:change.listing,values};
+      liquidity.publishers[change.configuration]=accountFields<sdk.FundingPublisher>(configuration);
+      break;
+    }
     case 'ListedLiquiditySealed': {
       const listing=present(state.listings?.[change.listing],'listed market');
       const liquidity=present(state.liquidity,'liquidity');
       const directory=change.state;
       const members=Object.entries(liquidity.makers).filter(([,maker])=>maker.market===change.listing)
         .sort(([,left],[,right])=>left.instance-right.instance);
-      accountCheck(artifactSet===sdk.LISTED_DIRECTORY_ARTIFACT_SET && listing.status===0 && directory.venue===venue
+      accountCheck(sdk.hasListedDirectory(artifactSet) && listing.status===0 && directory.venue===venue
         && directory.market===change.listing && directory.schemaVersion===10 && directory.sealed===true
         && !liquidity.registries[change.registry] && directory.count===members.length && members.length===3
         && members.every(([key,maker],index)=>maker.instance===index && key===directory.registrations[index])
@@ -138,7 +175,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     }
     case 'ListingIndexChanged': {
       const listing=state.listings?.[change.listing];
-      accountCheck((artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET || sdk.hasListedMaker(artifactSet)) && listing && (listing.status===0 || (listing.status===1 && artifactSet===sdk.LISTED_DIRECTORY_ARTIFACT_SET)) &&
+      accountCheck((artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET || sdk.hasListedMaker(artifactSet)) && listing && (listing.status===0 || (listing.status===1 && sdk.hasListedDirectory(artifactSet))) &&
         change.sources[0]===listing.oracleFeed && new Set(change.sources).size===4,'listed index sources');
       state.listingIndices??={};
       const previous=state.listingIndices[change.index];

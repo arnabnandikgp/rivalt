@@ -81,6 +81,9 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     await expect(key,sdk.findListingIndexPda({listing:address(value.listing)},{programAddress:program}),
       sdk.getListingIndexDecoder(),sdk.LISTING_INDEX_DISCRIMINATOR,value);
   }
+  for(const [key,value] of Object.entries(state.listedFunding??{})) {
+    await expect(key,sdk.findFundingPda({listing:address(value.listing)},{programAddress:program}),sdk.getListedFundingDecoder(),sdk.LISTED_FUNDING_DISCRIMINATOR,value);
+  }
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioDecoder(),sdk.PORTFOLIO_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.roots))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.subaccountIndex,program),sdk.getMarginAccountDecoder(),sdk.MARGIN_ACCOUNT_DISCRIMINATOR,value);
   for(const [key,value]of Object.entries(state.tombstones))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.child,program),sdk.getMarginTombstoneDecoder(),sdk.MARGIN_TOMBSTONE_DISCRIMINATOR,value);
@@ -117,7 +120,7 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     [sdk.MAKER_REGISTRATION_DISCRIMINATOR,341],[sdk.FUNDING_PUBLISHER_DISCRIMINATOR,148],
     ...settlementDescriptors,...membershipDescriptors,
     [sdk.MARKET_LISTING_DISCRIMINATOR,sdk.getMarketListingSize()],[sdk.LISTED_SYMBOL_DISCRIMINATOR,sdk.getListedSymbolSize()],
-    [sdk.LISTING_INDEX_DISCRIMINATOR,sdk.getListingIndexSize()]
+    [sdk.LISTING_INDEX_DISCRIMINATOR,sdk.getListingIndexSize()],[sdk.LISTED_FUNDING_DISCRIMINATOR,sdk.getListedFundingSize()]
   ] as const;
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();

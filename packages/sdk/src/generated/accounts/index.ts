@@ -13,6 +13,7 @@ export * from "./fundingPublisher.js";
 export * from "./jointPaymentPage.js";
 export * from "./jointPaymentProof.js";
 export * from "./liquidityRegistry.js";
+export * from "./listedFunding.js";
 export * from "./listedSymbol.js";
 export * from "./listingIndex.js";
 export * from "./makerRegistration.js";

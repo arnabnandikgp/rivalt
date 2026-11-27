@@ -10,18 +10,18 @@ type Source = { value: bigint; confidence: bigint; published: bigint };
 /** Local profile only. Decode the authenticated fixture schema from the same RPC
  * snapshot as makers. Clearing independently repeats source authentication and
  * bounds; an off-chain valid result never authorizes risk valuation by itself. */
-export async function fundingReference(market: Market, accounts: LiquidityAccountMap, now: bigint): Promise<bigint | null> {
+export async function fundingReference(market: Pick<Market,"index"|"lotsPerUnit"|"oracle">, accounts: LiquidityAccountMap, now: bigint, listedAssetId?:Uint8Array): Promise<bigint | null> {
   const discriminator = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('account:Feed'))).slice(0, 8);
   const indexes = market.index === 0 ? [0, 1, 2, 3] : market.index === 1 ? [4, 1, 5, 3] : [];
   const multiplier = policy.priceSourceMultiplier(market.lotsPerUnit);
-  if (indexes.length !== 4 || multiplier === null) return null;
+  if ((!listedAssetId && indexes.length !== 4) || (listedAssetId && listedAssetId.length!==32) || multiplier === null) return null;
   const sources: Source[] = [];
   for (const [position, key] of market.oracle.sources.entries()) {
     const account = accounts.get(key as Address);
     if (!account || account.owner !== LOCAL_ORACLE_FIXTURE || account.executable || account.data[1] !== 'base64') return null;
     const raw = fromBase64(account.data[0]);
     if (raw.length !== 142 || hex(raw.slice(0, 8)) !== hex(discriminator)
-      || raw.slice(40, 72).some(byte => byte !== indexes[position] + 1)
+      || raw.slice(40, 72).some((byte,offset) => byte !== (listedAssetId ? (position%2===0?listedAssetId[offset]:position+1) : indexes[position]+1))
       || getAddressDecoder().decode(raw.slice(80, 112)) !== LOCAL_ORACLE_FIXTURE || raw[112] !== 2) return null;
     const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
     const sequence = view.getBigUint64(72, true), collateral = position % 2 === 1;

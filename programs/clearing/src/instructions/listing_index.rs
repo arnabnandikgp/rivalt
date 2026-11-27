@@ -129,6 +129,47 @@ pub fn bind(ctx: &mut Context<BindListingIndex>, events: &mut Payloads) -> Resul
     )
 }
 
+pub(crate) fn source_observation(
+    listing: &MarketListing,
+    sources: &[Address; 4],
+    floors: [u64; 4],
+    feeds: [&UncheckedAccount; 4],
+    now: i64,
+) -> Result<(Option<policy::Bounds>, [u64; 4])> {
+    let mut sequences = [0; 4];
+    let mut prices = [policy::Price {
+        value: 0,
+        confidence: 0,
+        exponent: 0,
+        published: 0,
+    }; 4];
+    for (position, source) in feeds.into_iter().enumerate() {
+        let feed = fixture_feed(source.account(), sources[position])?;
+        require!(
+            feed.value.verifier == oracle_fixture::ID
+                && feed.value.level == 2
+                && feed.sequence > 0
+                && feed.sequence >= floors[position],
+            ClearingError::OracleSource
+        );
+        sequences[position] = feed.sequence;
+        prices[position] = policy::Price {
+            value: feed.value.price,
+            confidence: feed.value.confidence,
+            exponent: feed.value.exponent,
+            published: feed.value.published,
+        };
+    }
+    let bounds = policy::market_bounds(
+        listing.lots_per_unit,
+        [prices[0], prices[1]],
+        Some([prices[2], prices[3]]),
+        now,
+    )
+    .ok();
+    Ok((bounds, sequences))
+}
+
 pub fn observe(ctx: &mut Context<ObserveListingIndex>, events: &mut Payloads) -> Result<()> {
     require!(ctx.remaining_accounts()?.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
@@ -144,38 +185,15 @@ pub fn observe(ctx: &mut Context<ObserveListingIndex>, events: &mut Payloads) ->
         &accounts.guard_asset,
         &accounts.guard_collateral,
     ];
-    let mut sequences = [0; 4];
-    let mut prices = [policy::Price {
-        value: 0,
-        confidence: 0,
-        exponent: 0,
-        published: 0,
-    }; 4];
-    for (position, source) in feeds.into_iter().enumerate() {
-        let feed = fixture_feed(source.account(), index.sources[position])?;
-        require!(
-            feed.value.verifier == oracle_fixture::ID
-                && feed.value.level == 2
-                && feed.sequence > 0
-                && feed.sequence >= index.source_sequences[position],
-            ClearingError::OracleSource
-        );
-        sequences[position] = feed.sequence;
-        prices[position] = policy::Price {
-            value: feed.value.price,
-            confidence: feed.value.confidence,
-            exponent: feed.value.exponent,
-            published: feed.value.published,
-        };
-    }
     let now = Clock::get()?.unix_timestamp;
-    let bounds = policy::market_bounds(
-        accounts.listing.lots_per_unit,
-        [prices[0], prices[1]],
-        Some([prices[2], prices[3]]),
+    let (bounds, sequences) = source_observation(
+        &accounts.listing,
+        &index.sources,
+        index.source_sequences,
+        feeds,
         now,
-    )
-    .map_err(|_| ClearingError::OraclePolicy)?;
+    )?;
+    let bounds = bounds.ok_or(ClearingError::OraclePolicy)?;
     require!(
         bounds.normal
             && now < bounds.deadline
