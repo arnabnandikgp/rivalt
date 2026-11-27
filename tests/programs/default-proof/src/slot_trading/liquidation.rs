@@ -62,6 +62,8 @@ pub fn transfer(
     lots: u64,
     price: u64,
 ) -> Result<TransferOutcome> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.trading()?;
     let views = ctx.remaining_accounts()?;
     let accounts = &mut ctx.accounts;
     accounts.target.guard(target_revision)?;

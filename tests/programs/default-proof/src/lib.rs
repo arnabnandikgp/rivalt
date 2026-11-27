@@ -8,6 +8,8 @@ mod mirror;
 mod withdrawal;
 mod slot_custody;
 mod slot_trading;
+mod three_market_default;
+use three_market_default::*;
 use slot_trading::*;
 use slot_custody::*;
 use withdrawal::*;
@@ -57,6 +59,16 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    pub fn configure_default(ctx: &mut Context<ConfigureDefault>, owners: [Address; 5], ids: [u16; 3]) -> Result<()> {
+        three_market_default::configure(ctx, owners, ids)
+    }
+    pub fn freeze_default(ctx: &mut Context<ResolveDefault>) -> Result<()> {
+        three_market_default::freeze(ctx)
+    }
+    pub fn apply_default(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charge: u64) -> Result<()> {
+        three_market_default::apply(ctx, commitment, charge)
+    }
 
     pub fn open_trade_root(ctx: &mut Context<OpenTradeRoot>, isolated: u16) -> Result<()> {
         slot_trading::open_root(ctx, isolated)
@@ -252,4 +264,8 @@ pub enum ProofError {
     HealthyTarget,
     NoLiquidationProgress,
     ReceiverHealth,
+    DefaultPhase,
+    DefaultRoster,
+    DefaultCharge,
+    DefaultCommitment,
 }

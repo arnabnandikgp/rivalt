@@ -14,6 +14,8 @@ pub use contexts::*;
 pub use state::*;
 
 pub fn open_root(ctx: &mut Context<OpenTradeRoot>, isolated: u16) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.allow_root(ctx.accounts.margin.address())?;
     let root = &mut ctx.accounts.margin;
     root.owner = *ctx.accounts.owner.address();
     root.custody = *ctx.accounts.custody.address();
@@ -29,6 +31,8 @@ fn deadline() -> Result<u64> {
 }
 
 pub fn open_market(ctx: &mut Context<OpenTradeMarket>, id: u16) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.allow_market(id)?;
     require!(id != CROSS, ProofError::TradeTerms);
     let market = &mut ctx.accounts.market;
     market.custody = *ctx.accounts.custody.address();
@@ -45,6 +49,8 @@ pub fn publish(
     price: u64,
     funding_atoms: i64,
 ) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.trading()?;
     let market = &mut ctx.accounts.market;
     require!(revision == market.revision, ProofError::WrongCursor);
     let funding = i128::from(funding_atoms) * SCALE;
@@ -118,6 +124,8 @@ fn load(
 }
 
 pub fn place(ctx: &mut Context<TraderOrder>, revision: u64, terms: OrderTerms) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.trading()?;
     let views = ctx.remaining_accounts()?;
     let root = &mut ctx.accounts.margin;
     root.guard(revision)?;
@@ -160,6 +168,8 @@ pub fn place(ctx: &mut Context<TraderOrder>, revision: u64, terms: OrderTerms) -
 }
 
 pub fn cancel(ctx: &mut Context<TraderOrder>, revision: u64) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.trading()?;
     require!(ctx.remaining_accounts()?.is_empty(), ProofError::Incomplete);
     ctx.accounts.margin.guard(revision)?;
     ctx.accounts.margin.cancel()
@@ -172,6 +182,8 @@ pub fn execute(
     price_revision: u64,
     lots: u64,
 ) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.trading()?;
     let views = ctx.remaining_accounts()?;
     let a = &mut ctx.accounts;
     a.trader.guard(trader_revision)?;
@@ -277,6 +289,8 @@ pub fn wallet(
     amount: u64,
     withdraw: bool,
 ) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.allow_wallet(withdraw)?;
     let views = ctx.remaining_accounts()?;
     let a = &mut ctx.accounts;
     a.margin.guard(revision)?;

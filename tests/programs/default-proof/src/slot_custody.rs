@@ -22,6 +22,10 @@ const PRICE: u64 = 100;
 const MAX_SLOTS: usize = 8;
 const RECEIVER_ORDER_MARKET: u16 = 43;
 
+#[cfg(feature = "signed-three-market-default")]
+pub use crate::three_market_default::ResolutionCustody as SlotCustody;
+
+#[cfg(not(feature = "signed-three-market-default"))]
 #[account(borsh)]
 #[derive(InitSpace)]
 pub struct SlotCustody {
@@ -220,6 +224,9 @@ pub fn market(ctx: &mut Context<CreateSlotMarket>, market: u16) -> Result<()> {
 }
 
 pub fn prepare(ctx: &mut Context<CreateSlotMargin>, width: u8, child: u8) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.reject_static_margin()?;
+
     require!(
         matches!(width, 2 | 4 | 8) && child <= 1,
         ProofError::UnsupportedBook
@@ -409,6 +416,9 @@ fn advance(root: &mut SlotMargin) -> Result<()> {
 }
 
 pub fn fund(ctx: &mut Context<SlotWallet>, revision: u64, amount: u64) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.reject_static_margin()?;
+
     require!(ctx.remaining_accounts()?.is_empty(), ProofError::Incomplete);
     let a = &mut ctx.accounts;
     guard(&a.margin, revision, amount)?;
@@ -430,6 +440,9 @@ pub fn fund(ctx: &mut Context<SlotWallet>, revision: u64, amount: u64) -> Result
 }
 
 pub fn withdraw(ctx: &mut Context<SlotWallet>, revision: u64, amount: u64) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.reject_static_margin()?;
+
     let views = ctx.remaining_accounts()?;
     let markets = windows(
         &views,
@@ -464,6 +477,9 @@ pub fn withdraw(ctx: &mut Context<SlotWallet>, revision: u64, amount: u64) -> Re
 }
 
 pub fn transfer(ctx: &mut Context<SlotTransfer>, revision: u64, amount: u64) -> Result<()> {
+    #[cfg(feature = "signed-three-market-default")]
+    ctx.accounts.custody.reject_static_margin()?;
+
     let views = ctx.remaining_accounts()?;
     let markets = windows(
         &views,

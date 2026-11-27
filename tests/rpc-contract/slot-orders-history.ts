@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {getBase58Encoder, type Address} from '@solana/kit';
+import {DefaultReplay, type DefaultJournal} from './three-market-default-history.js';
 import type {WireRpc} from './wire.js';
 
 export const fingerprint = (s:string) => createHash('sha256').update(s).digest().subarray(0,8);
@@ -29,7 +30,10 @@ export function readRoot(bytes:Buffer) {
 }
 
 export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],vault:Address,vaultBalance:bigint,
-  expected:Map<string,number>) {
+  expected:Map<string,number>, configuration?:DefaultJournal) {
+  const resolution=configuration && new DefaultReplay(configuration);
+  const replayMethods:readonly string[]=resolution?[...methods,'open_slot_custody','open_trade_root','configure_default','freeze_default','apply_default']:methods;
+  let appliedCommitment:Buffer|undefined, cutoff:bigint|undefined;
   const url=new URL(process.env.RIVALT_DATABASE_URL!);
   assert.equal(url.hostname,'127.0.0.1');
   const pg=createRequire(new URL('../../packages/indexer/package.json',import.meta.url))('pg');
@@ -64,7 +68,7 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
   }
   try {
     await sql.connect();
-    await sql.query('create table postings(signature text, root text, market int, cash numeric, lots numeric, basis numeric, primary key(signature,root))');
+    await sql.query('create table postings(signature text, root text, market int, cash numeric, lots numeric, basis numeric, unique nulls not distinct(signature,root,market))');
     const history:string[]=[];
     for(;;) {
       const page=await rpc.call('getSignaturesForAddress',[program,{limit:100,commitment:'finalized',before:history.at(-1)}]);
@@ -80,7 +84,7 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
       for(const call of msg.instructions) {
         if(msg.accountKeys[call.programIdIndex]!==program) continue;
         const bytes=Buffer.from(getBase58Encoder().encode(call.data));
-        const name=methods.find(method=>bytes.subarray(0,8).equals(fingerprint('global:'+method)));
+        const name=replayMethods.find(method=>bytes.subarray(0,8).equals(fingerprint('global:'+method)));
         if(!name) continue;
         assert(tx.slot>lastSlot,'ambiguous financial receipt order'); lastSlot=tx.slot;
         const code=tx.meta.err?.InstructionError[1].Custom??0;
@@ -90,6 +94,33 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
         const keys:Address[]=call.accounts.map((index:number)=>msg.accountKeys[index]);
         const post=(root:Address,market:number|null,cash:bigint,lots:bigint,basis:bigint)=>
           sql.query('insert into postings values($1,$2,$3,$4,$5,$6)',[signature,root,market,cash.toString(),lots.toString(),basis.toString()]);
+        if(configuration && resolution) {
+          const signers:Address[]=msg.accountKeys.slice(0,msg.header.numRequiredSignatures);
+          if(name==='configure_default') {
+            assert.equal(keys[1],configuration.custody); assert(signers.includes(keys[0]));
+            for(const [i,owner] of configuration.owners.entries()) {
+              assert.deepEqual(bytes.subarray(8+i*32,40+i*32),Buffer.from(getBase58Encoder().encode(owner)));
+            }
+            assert.deepEqual(configuration.ids.map((_,i)=>bytes.readUInt16LE(168+i*2)),configuration.ids);
+          }
+          if(name==='freeze_default' || name==='apply_default') {
+            assert.deepEqual(signers,[configuration.keeper]);
+            assert.deepEqual(keys,[configuration.custody,vault,...roots,...prices.keys()]);
+            assert.equal(orders.size,0);
+            if(name==='freeze_default') {
+              assert.equal(cutoff,undefined); cutoff=BigInt(tx.slot);
+              await resolution.freeze(sql,roots,prices);
+            } else {
+              appliedCommitment=bytes.subarray(8,40);
+              await resolution.apply(sql,roots,bytes.readBigUInt64LE(40),post);
+            }
+          }
+          if(name==='withdraw_trade_cash' || name==='deposit_trade_cash') {
+            const member=roots.indexOf(keys[2]); assert(member>=0);
+            assert.equal(keys[0],configuration.owners[member]); assert(signers.includes(keys[0]));
+            assert.equal(keys[3],configuration.mint); assert.equal(keys[5],configuration.wallets[member]);
+          }
+        }
         if(name==='open_trade_market') prices.set(keys[2],{id:bytes.readUInt16LE(8),price:100n,funding:0n,fees:0n});
         if(name==='publish_trade_market') {
           const market=prices.get(keys[2])!;
@@ -117,6 +148,7 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
           const signed=order.sell?-lots:lots, basis=signed*(market.funding-market.price)*scale;
           await post(trader,market.id,-fee,signed,basis);
           await post(maker,market.id,0n,-signed,-basis);
+          if(resolution) { assert.equal(trader,roots[0]); resolution.fill(market.id,signed,market.price); }
           market.fees+=fee; fills++;
         }
         if(name==='transfer_trade_risk') {
@@ -176,16 +208,28 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
         assert.equal(slot.virtual+slot.lots*slot.funding,BigInt(row.b));
       }
     }
+    const settlement=resolution?.outcome();
+    if(configuration && settlement) {
+      const custody=await read(configuration.custody);
+      assert.deepEqual(custody.subarray(0,8),fingerprint('account:ResolutionCustody'));
+      assert.equal(custody[73],3);
+      assert.deepEqual(custody.subarray(336,368),appliedCommitment);
+      assert.equal(custody.readBigUInt64LE(368),cutoff);
+      assert.equal(custody.readBigUInt64LE(384),BigInt(settlement.charge));
+      assert.equal(custody.readBigUInt64LE(392),BigInt(settlement.matched));
+      assert.deepEqual(roots.map((_,i)=>String(custody.readBigUInt64LE(400+8*i))),settlement.payouts);
+    }
     for(const [address,market] of prices) {
       const bytes=await read(address);
       assert.deepEqual(bytes.subarray(0,8),fingerprint('account:TradingMarket'));
       assert.equal(bytes.readBigUInt64LE(50),market.price);
       assert.equal(signed128(bytes,58),market.funding*scale);
       assert.equal(bytes.readBigUInt64LE(82),market.fees-market.fees/4n);
-      assert.equal(bytes.readBigUInt64LE(90),market.fees/4n); assert.equal(bytes[98],Number(market.fees%4n));
-      fees+=market.fees;
+      const spent=settlement && configuration?BigInt(settlement.spent[configuration.ids.indexOf(market.id)]):0n;
+      assert.equal(bytes.readBigUInt64LE(90),market.fees/4n-spent); assert.equal(bytes[98],Number(market.fees%4n));
+      fees+=market.fees-spent;
     }
     assert.equal(cashTotal+fees,vaultBalance);
-    return {receipts:observed.size,fills,transfers,cash:cashTotal.toString(),fees:fees.toString(),vault:vaultBalance.toString()};
+    return {...(settlement?{settlement}:{}),receipts:observed.size,fills,transfers,cash:cashTotal.toString(),fees:fees.toString(),vault:vaultBalance.toString()};
   } finally {await sql.end();}
 }

@@ -8,6 +8,7 @@ crate-type = ["cdylib", "lib"]
 name = "default_proof_probe"
 [features]
 default = []
+signed-three-market-default = []
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
