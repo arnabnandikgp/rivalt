@@ -100,6 +100,14 @@ For the [market-indexed settlement](qualification-scorecard.md#signed-market-ind
 
 For the [signed single-pair default](../clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair), run `RIVALT_PROOF_SCOPE=three-market-default bash ops/default-proof-smoke.sh`. The script builds the dedicated local program, checks the deployed bytes, sends signed deposits and fills, freezes all five accounts, resolves and withdraws from SPL custody. Independently hash the original financial accounts, check rollback after every refusal, and replay finalized transactions in fresh PostgreSQL. Feed the reconstructed frozen book and entry into the exact-fraction reference and enumerate every whole charge through the debtor’s original uninsured writeoff. Compare the chosen charge, matched lots, market insurance, each wallet and the remainder in the vault.
 
+For the capacity-limited competing-winner case, run
+`RIVALT_PROOF_SCOPE=partial-indexed-default bash ops/default-proof-smoke.sh`.
+Require two separately earned one-atom open gains on a default with eleven
+uninsured atoms. Check all four physically possible allocations, the nine-atom
+residual, each wallet exit, the retained fees and a fresh journal replay.
+Repeat `competing-indexed-default` on the same revision for the full recovery
+with binding foreign-creditor protection.
+
 For the [signed competing-winner default](qualification-scorecard.md#signed-two-winner-settlement-and-withdrawals), run `RIVALT_PROOF_SCOPE=competing-three-market-default bash ops/default-proof-smoke.sh`. Six signed fills must generate both winning BTC entries, their realized claims and the cross trader’s debts to ETH and SOL. Against one freeze, submit 5/5, 3/7, an incorrect total and the legacy aggregate instruction. Each refusal must preserve every watched financial account. Compare the accepted charges and lot schedules with independent enumeration from finalized fills. Reconcile all five balances, the three owner-authorized withdrawals and the reserve balance of each market. Repeat the single-pair command above after changing the shared verifier or replay.
 
 For the [two-winner selection](qualification-scorecard.md#competing-winners-in-a-three-market-default), run the native driver and comparison:

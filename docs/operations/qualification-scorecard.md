@@ -617,3 +617,26 @@ refused to bind the same capital twice. Unfunded admission, a SOL order and
 a SOL listing substituted into a BTC fill also refused. A control BTC fill
 landed. The two independent clients decoded the new instructions and accounts,
 and fresh PostgreSQL replay reconciled 103 events from 255 signed transactions.
+
+### Partial recovery with competing winners
+
+At `95df43f7` the four-market fixture recorded six signed fills. One trader
+closed two winning lots and reopened one against a second maker. At the final
+index, the debtor owed 300 atoms and held 289. The trader owned a 299-atom
+claim, of which one atom belonged to the still-open lot. The second winner
+owned one atom of open gain. Ordinary default began with eleven unpaid atoms.
+
+Independent enumeration found four feasible allocations. The signed verifier
+charged one atom to each winner, recovered two and settled the remaining
+nine-atom loss under the existing rule. It refused to skip the reductions,
+to charge an unavailable split and to use forged rates. Settlement took
+62,949 CU, 716 bytes and 15 loaded accounts. The five solvent owners withdrew
+8,180, 1,000, 2,000, 2,000 and 2,000 atoms. Six fee atoms remained in custody.
+Fresh PostgreSQL replay reconciled 56 program receipts. This result covers a
+partial recovery limited by the winners' eligible gain. Lot or creditor
+constraints can still prevent a split from attaining that upper bound.
+
+
+The same program repeated the full-recovery case. It refused 5/5 and 3/7,
+accepted 4/6, and reproduced 62 program receipts and the original wallets.
+The settlement used 226,597 CU in a 977-byte transaction.
