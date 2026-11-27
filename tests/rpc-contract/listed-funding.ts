@@ -84,5 +84,14 @@ export async function qualifyListedFunding(h:CanonicalHarness,rpc:Pick<sdk.UserR
   assert.deepEqual([tilted.referencePrice,tilted.oracle.quantity,tilted.oracle.bid,tilted.oracle.ask,tilted.oracle.premiumScaled,
     tilted.oracle.coveredSeconds,tilted.fundingIndexScaled],[150n,40_000n,5_960_000n,6_120_000n,750_000_000n,0n,0n]);
   assert.deepEqual(await read(money),before,'pre-trading funding touched market membership, index or cash');
-  return {funding,configuration,accepted};
+  async function sampleActive() {
+    const previous=await state();
+    await setup.waitUntil(previous.oracle.sampledAt+3n);
+    await refresh(150n);
+    const input=await snapshot();
+    assert.equal(input.report.outcome,0,input.coverageReason??'full SOL depth');
+    await h.send('sample active SOL funding',[await publish(input,owner)],[owner]);
+    return state();
+  }
+  return {funding,configuration,accepted,sampleActive};
 }

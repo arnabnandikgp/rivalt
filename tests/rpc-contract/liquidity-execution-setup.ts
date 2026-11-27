@@ -45,7 +45,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   const traderOwner = await fixtureKey('p32-trader'), traderToken = await fixtureKey('p32-trader-token');
   await h.send('fund local test participants', [primary, guard, traderOwner].map(signer => getTransferSolInstruction({
     source: payer, destination: signer.address, amount: 1_000_000_000n })));
-  const roots:Address[]=[], traderOwners:(typeof traderOwner)[]=[];
+  const roots:Address[]=[], traderOwners:(typeof traderOwner)[]=[], traderTokens:(typeof traderToken)[]=[];
   const identityCapacity=options.independentTraders?1:4*9; // An independent owner starts at its own cross account.
   for(let first=0;first<traderCount;first+=identityCapacity) {
     const owner=first===0?traderOwner:await fixtureKey('p32-scale-trader-'+first);
@@ -68,7 +68,7 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
         mode:subaccountIndex===0?0:1,isolatedMarketIndex:subaccountIndex===0?255:(options.isolatedTraderMarket??0),role:0});
       await h.send('deposit actual test trader collateral',[await sdk.getDepositAccountInstructionAsync({...common,
         owner,margin,quoteMint:fixture.mint.address,userToken:token.address,amount:deposit(first+local)})],[owner]);
-      roots.push(margin);traderOwners.push(owner);
+      roots.push(margin);traderOwners.push(owner);traderTokens.push(token);
     }
   }
   const feeds: { index: number; feed: Address; authority: typeof primary }[] = [];
@@ -185,6 +185,6 @@ export async function liquidityExecutionSetup(h: CanonicalHarness, rpc: Pick<Wir
   await qualify();
   const identity = { venue, marginLayout:options.marginLayout, mint: fixture.mint.address, domain: fixture.domain.toString('hex') };
   const snapshot = (root = roots[0], marketIndex: 0 | 1 = 0) => sdk.readAccountTradeSnapshot(rpc, identity, root, marketIndex);
-  return { ...fixture, primary, guard, traderOwner, traderToken, roots, traderOwners, feeds, configurations, resolution, storage,
+  return { ...fixture, primary, guard, traderOwner, traderToken, roots, traderOwners, traderTokens, feeds, configurations, resolution, storage,
     safetyCommon, sourcePrices, now, slot, waitUntil, marketState, sourceInstructions, fresh, freshSources, sample, checkpoint, qualify, identity, snapshot };
 }

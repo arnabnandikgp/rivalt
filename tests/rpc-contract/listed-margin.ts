@@ -8,7 +8,7 @@ import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 
 export async function qualifyListedMargin(h:CanonicalHarness,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,
-  members:Map<Address,Address>,capitals:Address[]) {
+  members:Map<Address,Address>,capitals:Address[],extraCash=0n) {
   const {traderOwner:owner,markets,vault}=setup,[trader]=setup.roots,wallet=setup.traderToken.address;
   const {route,guard,withCheckpoints}=executionTestHelpers(h,setup);
   const covered=(ix:Instruction,...roots:Address[])=>appendCoverage(ix,roots.map(key=>members.get(key)!));
@@ -48,10 +48,11 @@ export async function qualifyListedMargin(h:CanonicalHarness,setup:Awaited<Retur
   await h.send('refuse excess exit from wider root',await withCheckpoints(await withdraw(maximum+1n)),[owner],sdk.CLEARING_ERROR__ARITHMETIC);
   assert.deepEqual(await raw(trader),after);
   assert.deepEqual(await balances(),[vaultBefore,walletBefore]);
-  await h.send('exit maximum from wider root',await withCheckpoints(await withdraw(maximum)),[owner]);
+  const withdrawn=maximum-extraCash;
+  await h.send(extraCash===0n?'exit maximum from wider root':'reserve cash for listed trade',await withCheckpoints(await withdraw(withdrawn)),[owner]);
   const final=await raw(trader);
   assert.deepEqual(final.subarray(sdk.INLINE_MARGIN_BYTES),before.subarray(sdk.INLINE_MARGIN_BYTES));
-  assert.equal(sdk.decodeListedMargin(final).root.cash,minimumCash);
-  assert.deepEqual(await balances(),[vaultBefore-maximum,walletBefore+maximum]);
-  return {minimumCash,withdrawn:maximum,crossBytes:before.length,listedMakerBytes:1215,inlineMakerBytes:1099};
+  assert.equal(sdk.decodeListedMargin(final).root.cash,minimumCash+extraCash);
+  assert.deepEqual(await balances(),[vaultBefore-withdrawn,walletBefore+withdrawn]);
+  return {minimumCash,withdrawn,crossBytes:before.length,listedMakerBytes:1215,inlineMakerBytes:1099};
 }

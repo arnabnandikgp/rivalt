@@ -1,3 +1,4 @@
+import {decodeListedMargin} from './listed-margin.js';
 import {LISTED_CAPITAL_TAG} from './market-listing.js';
 import {registeredMakerPdas, MAX_REGISTERED_MAKERS} from './market-capacity.js';
 import {decodeMakerFeeLane} from './market-fees.js';
@@ -114,10 +115,12 @@ export async function discoverLiquidityAccounts(rpc: Pick<UserRpc, 'call'>, venu
 export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIdentity, accounts: LiquidityAccountMap) {
   snapshot = freezeState({ ...snapshot,domain: Uint8Array.from(snapshot.domain) });
   const listed=snapshot.marketIndex>=2;
+  let activeListing = false;
   if(listed) {
     const listing=decode(bytes(accounts,snapshot.market,clearing.CLEARING_PROGRAM_ADDRESS),clearing.MARKET_LISTING_DISCRIMINATOR,clearing.getMarketListingDecoder());
     const [key,bump]=await clearing.findListingPda({venue:snapshot.venue,marketId:snapshot.marketIndex});
-    requireValue(listing.status===1 && listing.revision===2n && listing.schemaVersion===1 && listing.venue===snapshot.venue
+    activeListing = listing.status===2 && listing.revision===3n;
+    requireValue(((listing.status===1 && listing.revision===2n) || activeListing) && listing.schemaVersion===1 && listing.venue===snapshot.venue
       && listing.marketId===snapshot.marketIndex && listing.bump===bump && key===snapshot.market,'Invalid sealed listing.');
   } else requireValue(snapshot.marketIndex===0 || snapshot.marketIndex===1,'Invalid market index.');
   const [registryKey, registryBump] = await clearing.findLiquidityRegistryPda({ market: snapshot.market });
@@ -143,7 +146,10 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
       && registration.buyConsumed <= MAX_MAKER_DEPTH_LOTS && registration.sellConsumed <= MAX_MAKER_DEPTH_LOTS,
       'Invalid maker registration binding.');
     requireValue(!seenCapital.has(registration.capital), 'Aliased maker capital.'); seenCapital.add(registration.capital);
-    const capital = decodeMarginForLayout(bytes(accounts,registration.capital,clearing.CLEARING_PROGRAM_ADDRESS),snapshot.marginLayout);
+    const capitalBytes = bytes(accounts,registration.capital,clearing.CLEARING_PROGRAM_ADDRESS);
+    const directory = activeListing ? decodeListedMargin(capitalBytes) : undefined;
+    if (directory) requireValue(directory.capacity===1 && directory.records.every(record=>record.market===snapshot.marketIndex),'Maker holds an unrelated listing.');
+    const capital = directory?.root ?? decodeMarginForLayout(capitalBytes,snapshot.marginLayout);
     const [capitalKey, capitalBump] = await deriveMarginAccount(capital.portfolio,capital.subaccountIndex);
     requireValue(capitalKey === registration.capital && capital.bump === capitalBump && capital.schemaVersion === 10
       && capital.venue === snapshot.venue && capital.owner === registration.owner && capital.role === 1 && capital.mode === 1
@@ -196,7 +202,7 @@ export async function authenticateLiquidityMarket(snapshot: LiquiditySnapshotIde
       : snapshot.slot >= validUntilSlot || snapshot.now >= validUntilTime ? 'stale-publication' : null;
     freezeState(capital);freezeState(registration);freezeState(config);freezeState(shape);freezeState(price);
     const requestDomain = Uint8Array.from(snapshot.domain);
-    const inventory = listed?0n:capital.positions[snapshot.marketIndex].lots;
+    const inventory = listed?(directory?.records[0]?.lots ?? 0n):capital.positions[snapshot.marketIndex].lots;
     const consumed = (side: 0|1) => side === 0 ? registration.buyConsumed : registration.sellConsumed;
     const request = (side: 0|1, lots: bigint): canonical.MakerQuoteRequestArgs => ({ version: 4, domain: Uint8Array.from(requestDomain),
       market: snapshot.market, capital: registration.capital, instance, authorityEpoch: registration.authorityEpoch,

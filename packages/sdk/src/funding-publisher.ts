@@ -74,7 +74,7 @@ export async function readFundingReport(rpc: Pick<UserRpc, 'call'>, venue: Addre
     clearing.getFundingPublisherDecoder());
   const [venueKey, venueBump] = await deriveAccountVenue(Uint8Array.from(venueState.domain));
   requireValue(venueKey === venue && venueState.bump === venueBump && venueState.schemaVersion === 10
-    && venueState.profileVersion === 6 && venueState.marketCount === 2 && venueState.insuranceFeeShareBps === 2500
+    && [6,7].includes(venueState.profileVersion) && venueState.marketCount === 2 && venueState.insuranceFeeShareBps === 2500
     && venueState.markets[marketIndex] === market && marketState.schemaVersion === 10 && marketState.venue === venue
     && marketState.index === marketIndex && marketState.bump === marketBump && marketState.crossEligible
     && marketState.lotsPerUnit === [BTC_LOTS_PER_UNIT, ETH_LOTS_PER_UNIT][marketIndex], 'Invalid funding venue/market identity.');
@@ -199,9 +199,9 @@ export async function readListedFundingReport(rpc:Pick<UserRpc,'call'>,venue:Add
   const state=decode(accounts.get(funding)??null,clearing.LISTED_FUNDING_DISCRIMINATOR,clearing.getListedFundingDecoder());
   const safetyState=decode(accounts.get(safety)??null,clearing.VENUE_SAFETY_DISCRIMINATOR,clearing.getVenueSafetyDecoder());
   const configurationState=decode(accounts.get(configuration)??null,clearing.FUNDING_PUBLISHER_DISCRIMINATOR,clearing.getFundingPublisherDecoder());
-  requireValue(venueKey===venue && venueState.bump===venueBump && venueState.schemaVersion===10 && venueState.profileVersion===6
+  requireValue(venueKey===venue && venueState.bump===venueBump && venueState.schemaVersion===10 && ((venueState.profileVersion===6 && record.status===1) || (venueState.profileVersion===7 && record.status===2))
     && venueState.marketCount===2 && venueState.insuranceFeeShareBps===2500 && record.schemaVersion===1 && record.bump===listingBump
-    && record.marketId===marketId && record.venue===venue && record.quoteMint===venueState.quoteMint && record.status===1,'Invalid funding listing.');
+    && record.marketId===marketId && record.venue===venue && record.quoteMint===venueState.quoteMint,'Invalid funding listing.');
   const ticker=new TextDecoder().decode(Uint8Array.from(record.symbol)).replace(/\0+$/,'');
   const {feed,feedId}=await listingOracle(ticker,record.oraclePublisher);
   requireValue(index.schemaVersion===1 && index.listing===listing && index.bump===indexBump && index.sources[0]===feed

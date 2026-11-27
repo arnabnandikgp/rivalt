@@ -16,6 +16,7 @@ import type {ExpectedInstructionError} from './instruction-errors.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {initializeFixtureFeed} from './oracle-fixture.js';
+import {qualifyListedExecution} from './listed-execution.js';
 import {qualifyListedMargin} from './listed-margin.js';
 import {qualifyListedFunding} from './listed-funding.js';
 import {qualifyListedDirectory} from './listed-maker-directory.js';
@@ -23,15 +24,15 @@ import {qualifyListedMaker} from './listed-maker-admission.js';
 import {qualifyListingIndex} from './listing-index-qualification.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
-const build=routerBuild(),directory=process.env.RIVALT_RUN_DIR!;
+const build=routerBuild(),execution=build.artifactSet===sdk.LISTED_EXECUTION_ARTIFACT_SET,directory=process.env.RIVALT_RUN_DIR!;
 let observer:Awaited<ReturnType<typeof payerKey>>|undefined;
 const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(
-  process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,payerFor:label=>label.startsWith('SOL sample ')?observer:undefined});
+  process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:label=>label.startsWith('listed trade ')?1_400_000:undefined,heapSize:label=>label.startsWith('listed trade ')?256*1024:undefined,payerFor:label=>label.startsWith('SOL sample ')?observer:undefined});
 try {
   const payer=await payerKey(),{h,members,lanes}=coverageProvisioning(transport,payer);
   const testFunding=sdk.hasListedFunding(build.artifactSet);
   const sealDirectory=sdk.hasListedDirectory(build.artifactSet);
-  const setup=await liquidityExecutionSetup(h,rpc,{traderCount:1,recoveryCapacity:sealDirectory?10:build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?8:7,marketCheckpoints:true,
+  const setup=await liquidityExecutionSetup(h,rpc,{traderCount:execution?2:1,independentTraders:execution,recoveryCapacity:execution?11:sealDirectory?10:build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?8:7,marketCheckpoints:true,
     marginLayout:'ledger-lanes',shape:symmetricPayoutShape,verifyRejections:false});
   const {venue,primary,traderOwner:owner}=setup, [trader]=setup.roots;
   const {route,root,guard,withCheckpoints}=executionTestHelpers(h,setup);
@@ -72,8 +73,9 @@ try {
   assert.deepEqual([key,ticker,record.marketId,record.oracleFeed,record.oraclePublisher,record.lotsPerUnit,
     record.quoteMint,record.status],[listing,'SOL',2,feed,primary.address,lotsPerUnit,setup.mint.address,0]);
 
-  const listedMaker=sealDirectory||build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?await qualifyListedMaker(h,setup,listing,members):undefined;
-  const sealed=sealDirectory && listedMaker?await qualifyListedDirectory(h,setup,listing,listedMaker.listing,listedMaker.capital,testFunding?22_000n:undefined):undefined;
+  const makerSetup=execution?{...setup,traderOwner:setup.traderOwners[1],traderToken:setup.traderTokens[1]}:setup;
+  const listedMaker=sealDirectory||build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?await qualifyListedMaker(h,makerSetup,listing,members):undefined;
+  const sealed=sealDirectory && listedMaker?await qualifyListedDirectory(h,makerSetup,listing,listedMaker.listing,listedMaker.capital,testFunding?22_000n:undefined):undefined;
   observer=owner;
   const indexProbe=sealDirectory||build.artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET
     ? await qualifyListingIndex(h,setup,listing,feed,financialKeys) : undefined;
@@ -93,8 +95,10 @@ try {
   await reject('refuse listing PDA as routed market',await withCheckpoints(substitution),[owner],'InvalidAccountData');
   await h.send('fill one BTC lot after listing',await withCheckpoints(fill),[owner]);
   assert.equal((await root(trader)).positions[0].lots,1n);
-  const wider=build.artifactSet===sdk.LISTED_MARGIN_ARTIFACT_SET && sealed
-    ? await qualifyListedMargin(h,setup,members,sealed.capitals) : undefined;
+  const extraCash=execution?3_000n:0n;
+  const wider=sdk.hasListedMargin(build.artifactSet) && sealed
+    ? await qualifyListedMargin(h,setup,members,sealed.capitals,extraCash) : undefined;
+  const executed=execution && sealed && published ? await qualifyListedExecution(h,setup,listing,sealed,published) : undefined;
   await flush();
   const accepted=checks.find(row=>row.label==='register inactive SOL market')!;
   const receipt=await rpc.call('getTransaction',[accepted.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
@@ -158,18 +162,18 @@ try {
   }
   if(sealed) {
     assert.deepEqual(replay.state.liquidity?.registries[sealed.registry]?.registrations,sealed.registrations);
-    assert.equal(replay.state.listings?.[listing]?.status,1);
+    assert.equal(replay.state.listings?.[listing]?.status,execution?2:1);
     for(const capital of sealed.capitals)assert.equal(replay.state.roots[capital].cash,'100000');
   }
-  if(published) {
+  if(published && !execution) {
     assert.equal(replay.state.listedFunding?.[published.funding]?.values.oracle.bid,'5960000');
     assert.equal(replay.state.liquidity?.publishers[published.configuration].lastSequence,'3');
   }
   if(wider) {
-    assert.equal(replay.state.roots[trader].cash,wider.minimumCash.toString());
+    assert.equal(replay.state.roots[trader].cash,(wider.minimumCash+extraCash-(executed?.fee??0n)).toString());
     assert.deepEqual(replay.state.roots[trader].positions.map(position=>position.lots),['1','-10']);
   }
-  const result={wider,published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
+  const result={executed,wider,published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
     bytes:(await h.read(indexProbe.listingIndex))!.length,receipts:checks.filter(row=>!row.error &&
       (row.label==='bind SOL index'||String(row.label).startsWith('SOL sample ')))}:undefined,program:build.revision,harness:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     transactions:checks.length,events:replay.events,registration:accepted,listingBytes:(await h.read(listing))!.length,
