@@ -44,14 +44,21 @@ def certificate(book, positions, framed=False):
             ranking.append((sum(map(Fraction, outcome['recovery'])), index, charges, outcome, ordinary))
     ranking.sort(reverse=True)
     best, selected, charges, outcome, ordinary = ranking[0]
-    assert best > ranking[1][0]
+    baseline_loss = [sum(Fraction(row['loss'][market]) for row in baseline['rows'])
+                     for market in range(len(options))]
+    total_plans = len(vectors) // len(book['markets'])
+    if total_plans == 1:
+        assert selected == best == 0
+    else:
+        assert selected > 0 and best > ranking[1][0]
     unit = lcm(*(rate.denominator for rate in vectors))
     return dict(denominator=0 if framed else unit, selected=selected,
                 numerators=framed_words if framed else [int(rate*unit) for rate in vectors],
+                baselineLoss=list(map(str, baseline_loss)),
                 spent=list(map(int, outcome['settlement']['spent'])),
                 repaired=ordinary['rows'] != outcome['settlement']['rows'],
                 charges=charges, cash=[int(row['cash']) for row in outcome['settlement']['rows']],
-                protectedPlans=len(ranking), totalPlans=len(vectors)//len(book['markets']))
+                protectedPlans=len(ranking), totalPlans=total_plans)
 
 
 def probe(width, padding, cycle):
@@ -82,6 +89,7 @@ def probe(width, padding, cycle):
         proof['cash'].extend([0, 0])
         proof['charges'].extend([0, 0])
         proof['spent'].extend([0, 0])
+        proof['baselineLoss'].extend(['0', '0'])
     return dict(rows=rows, positions=positions, proof=proof)
 
 

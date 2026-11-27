@@ -408,24 +408,66 @@ pub(super) fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> R
     )?;
     let (pairs, count) = book.pairs(&baseline)?;
     let selected = usize::from(proof.selected);
+    let charges = allocation(selected, &pairs);
+    let (cash, repaired, spent) = if count == 1 {
+        // The complete roster has no whole-atom charge available. Only an
+        // actual post-insurance creditor loss can authorize a terminal write.
+        require!(
+            selected == 0 && baseline.loss.iter().any(|&loss| loss > 0),
+            ProofError::DefaultCharge
+        );
+        require!(words.is_empty(), ProofError::Incomplete);
+        (
+            rounding::baseline_cash(rows, &baseline)?,
+            false,
+            baseline.spent,
+        )
+    } else {
+        let terminal = verify_reduction(
+            &book,
+            &baseline,
+            &pairs,
+            count,
+            selected,
+            proof.denominator,
+            &mut words,
+        )?;
+        let (cash, repaired) = protected_cash(rows, &baseline, &terminal, &pairs, &charges)?;
+        (cash, repaired, terminal.spent)
+    };
     require!(
-        count > 1 && selected > 0 && selected < count,
-        ProofError::DefaultCharge
+        cash.iter().sum::<u64>()
+            == rows.iter().map(|r| u64::from(r.cash)).sum::<u64>() + spent.iter().sum::<u64>(),
+        ProofError::UnsupportedBook
     );
-    let mut scratch = Flow::empty(rows.len());
-    let mut terminal = Flow::empty(rows.len());
+    Ok(Verified {
+        cash,
+        spent,
+        repaired,
+        charges,
+        winners: pairs.map(|p| p.winner),
+    })
+}
+
+#[inline(never)]
+fn verify_reduction(
+    book: &Book<'_>,
+    baseline: &Flow,
+    pairs: &[Pair],
+    count: usize,
+    selected: usize,
+    denominator: u32,
+    words: &mut &[u32],
+) -> Result<Flow> {
+    require!(selected > 0 && selected < count, ProofError::DefaultCharge);
+    let mut scratch = Flow::empty(book.rows.len());
+    let mut terminal = Flow::empty(book.rows.len());
     let mut best = None;
     let mut rival = (0i128, 1u64); // No action recovers zero.
     for index in 1..count {
-        let charges = allocation(index, &pairs);
-        book.read_plan(
-            &mut words,
-            proof.denominator,
-            &pairs,
-            &charges,
-            &mut scratch,
-        )?;
-        let score = book.rank(&baseline, &scratch, &pairs, &charges);
+        let charges = allocation(index, pairs);
+        book.read_plan(words, denominator, pairs, &charges, &mut scratch)?;
+        let score = book.rank(baseline, &scratch, pairs, &charges);
         if index == selected {
             best = score;
             core::mem::swap(&mut terminal, &mut scratch);
@@ -445,21 +487,7 @@ pub(super) fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> R
         )?,
         ProofError::DefaultCharge
     );
-    let charges = allocation(selected, &pairs);
-    let (cash, repaired) = protected_cash(rows, &baseline, &terminal, &pairs, &charges)?;
-    require!(
-        cash.iter().sum::<u64>()
-            == rows.iter().map(|r| u64::from(r.cash)).sum::<u64>()
-                + terminal.spent.iter().sum::<u64>(),
-        ProofError::UnsupportedBook
-    );
-    Ok(Verified {
-        cash,
-        spent: terminal.spent,
-        repaired,
-        charges,
-        winners: pairs.map(|p| p.winner),
-    })
+    Ok(terminal)
 }
 
 // Scores have a common baseline denominator which cancels on comparison.
@@ -475,6 +503,38 @@ fn greater(left: i128, left_unit: u64, right: i128, right_unit: u64) -> Result<b
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn residual_requires_post_insurance_loss_and_no_available_reduction() {
+        let rows = |cash, winning_capacity| {
+            [(cash, -6, -1, 0), (10, 6, 1, winning_capacity)].map(
+                |(cash, claim, lots, eligible)| Member {
+                    cash,
+                    cells: vec![Cell {
+                        claim,
+                        lots,
+                        eligible,
+                    }],
+                },
+            )
+        };
+        let baseline = |paid| RatesProof {
+            denominator: 6,
+            selected: 0,
+            numerators: vec![paid],
+        };
+        // A reset winning entry leaves the six-atom claim outstanding but no
+        // open profit to charge. Four debtor atoms plus one reserve atom pay five.
+        let plan = verify(&rows(4, 0), &[1], &baseline(5)).unwrap();
+        assert_eq!(plan.cash, [0, 15]);
+        assert_eq!(plan.spent[0], 1);
+        assert_eq!(plan.charges, [0; WIDTH]);
+        assert!(!plan.repaired);
+        assert!(verify(&rows(4, 0), &[1], &baseline(4)).is_err());
+        assert!(verify(&rows(6, 0), &[0], &baseline(6)).is_err());
+        assert!(verify(&rows(4, 0), &[2], &baseline(6)).is_err());
+        assert!(verify(&rows(4, 1), &[1], &baseline(5)).is_err());
+    }
 
     #[test]
     fn frozen_cash_stays_split_when_a_charge_caps_one_destination() {

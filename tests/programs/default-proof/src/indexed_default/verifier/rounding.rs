@@ -57,6 +57,26 @@ fn rounded(rows: &[Member], flow: &Flow, floors: Option<&[Columns]>) -> Result<R
     Ok(result)
 }
 
+fn integral_cash(flow: &Flow, count: usize, width: usize) -> Option<Vec<u64>> {
+    let cash = &flow.cash[..count];
+    if cash.iter().all(|v| v % flow.unit == 0)
+        && flow
+            .payments
+            .iter()
+            .all(|r| r[..width].iter().all(|v| v % flow.unit == 0))
+    {
+        return Some(cash.iter().map(|v| v / flow.unit).collect());
+    }
+    None
+}
+
+pub(super) fn baseline_cash(rows: &[Member], baseline: &Flow) -> Result<Vec<u64>> {
+    if let Some(cash) = integral_cash(baseline, rows.len(), rows[0].cells.len()) {
+        return Ok(cash);
+    }
+    Ok(rounded(rows, baseline, None)?.cash)
+}
+
 pub(super) fn protected_cash(
     rows: &[Member],
     baseline: &Flow,
@@ -68,14 +88,8 @@ pub(super) fn protected_cash(
     // A whole winning receipt that passes exact protection already covers the
     // ceiling of the protected baseline less its whole direct charge. There is
     // only one rounding when all market movements and cash are already integral.
-    let cash = &terminal.cash[..rows.len()];
-    if cash.iter().all(|v| v % terminal.unit == 0)
-        && terminal
-            .payments
-            .iter()
-            .all(|r| r[..width].iter().all(|v| v % terminal.unit == 0))
-    {
-        return Ok((cash.iter().map(|v| v / terminal.unit).collect(), false));
+    if let Some(cash) = integral_cash(terminal, rows.len(), width) {
+        return Ok((cash, false));
     }
     let base = rounded(rows, baseline, None)?;
     let mut result = rounded(rows, terminal, None)?;

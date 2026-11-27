@@ -1,4 +1,4 @@
-// Signed positions connect the two defaulted markets to two further creditors.
+// Build frozen books from signed orders, then reconcile their terminal SPL withdrawals.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {writeFileSync} from 'node:fs';
@@ -12,10 +12,20 @@ import {encodeProof,IndexedReplay,reference,u32,type Probe,type Certificate} fro
 
 const program=address('sDPXvpEPwCzVKHdpxntiM1khVvtCj2V6ozCr5euajBi'),system=address('11111111111111111111111111111111');
 const operator=await payerKey(),keeper=await fixtureKey('indexed-keeper'),mint=await fixtureKey('indexed-mint');
+const residual=process.env.RIVALT_PROOF_SCOPE==='residual-indexed-default';
 const insured=process.env.RIVALT_PROOF_SCOPE==='insured-indexed-default';
-const ids=insured?[13,18,23]:[13,18,23,28], traderCount=insured?3:2;
+const twoDestinations=residual || insured;
+const ids=twoDestinations?[13,18,23]:[13,18,23,28], traderCount=twoDestinations?3:2;
 const modes=[...Array<number>(traderCount).fill(65535),...ids];
-const deposits=insured?[425,2003,2006,396,1200,1200]:[1004,1004,548,548,300,300];
+const deposits=twoDestinations?[425,2003,2006,396,1200,1200]:[1004,1004,548,548,300,300];
+const expectedOutcomes={
+  'residual-indexed-default':{cash:[0,2068,2156,196,1226,1573],retained:11,fills:12,alterRateAt:2},
+  'insured-indexed-default':{cash:[0,2263,2155,0,1227,1573],retained:12,fills:13,alterRateAt:5},
+  'indexed-default':{cash:[348,348,0,0,1500,1500],retained:8,fills:8,alterRateAt:4},
+};
+const scope=process.env.RIVALT_PROOF_SCOPE;
+assert(scope==='residual-indexed-default' || scope==='insured-indexed-default' || scope==='indexed-default');
+const outcome=expectedOutcomes[scope];
 const owners=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-owner-'+i)));
 const wallets=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-wallet-'+i)));
 const key=(a:Address)=>Buffer.from(getAddressEncoder().encode(a));
@@ -73,6 +83,9 @@ async function bookHash() {
   for(const addr of complete) digest=hash(digest,key(addr),(await h.read(addr))!);
   return digest;
 }
+async function settleBook(label:string,proof:Certificate,hash:Buffer,accounts:NonNullable<Instruction['accounts']>,error?:number) {
+  return send('keeper '+label,'settle_indexed_book',[rw(custody),ro(vault),...accounts],[hash,encodeProof(proof)],operator,error);
+}
 async function probe(width:number,padding:number,cycle=false) {
   const data=reference<Probe>({probe:[width,padding,cycle]});
   const columns=data.rows[0][1].length;
@@ -121,13 +134,24 @@ try {
     await wallet(i,deposits[i]);
   }
   let stale:Buffer, proof:Certificate;
-  if(insured) {
-    // The first trader realizes 200 on the source, the second keeps an open gain.
-    await trade(0,0,1000); await trade(0,0,1200,true); await trade(1,0,1000);
+  if(twoDestinations) {
+    await trade(0,0,1000); await trade(0,0,1200,true);
+    if(insured) await trade(1,0,1000); // Only the forced-close book has an open source gain.
     // Two flat creditors earn 135 and 315 against the insured maker.
     await trade(1,1,1000); await trade(1,1,1135,true); await trade(2,1,1000); await trade(2,1,1315,true);
     await trade(0,1,2000); await trade(0,2,2000);
-    stale=await bookHash(); await publish(0,1200);
+    stale=await bookHash();
+    if(residual) {
+      // At these prices all debts are funded. Supply the correct all-par
+      // baseline against the current digest, with full write access.
+      const healthy=reference<Certificate>({rows:[[421,[200,0,0]],[2001,[0,135,0]],[2004,[0,315,0]],
+        [396,[-200,0,0]],[1200,[0,-450,0]],[1200,[0,0,0]]],
+        positions:[[[0,0],[1,0],[1,0]],[[0,0],[0,0],[0,0]],[[0,0],[0,0],[0,0]],
+          [[0,0],[0,0],[0,0]],[[0,0],[-1,0],[0,0]],[[0,0],[0,0],[-1,0]]],fees:[2,5,1]});
+      assert.deepEqual([healthy.numerators,healthy.baselineLoss],[[1,1,1,1],['0','0','0']]);
+      await settleBook('refuse terminal settlement of solvent book',healthy,stale,complete.map(rw),6016);
+    }
+    await publish(0,1200);
     for(const [market,price] of [[1,1496],[2,1244]]) {
       // A solvent trader sells and buys back at the shocked mark. The isolated
       // maker realizes its old short and reopens at this same mark with zero
@@ -138,8 +162,16 @@ try {
       [396,[-400,0,0]],[1200,[0,54,0]],[1200,[0,0,756]]];
     const positions=[[[0,0],[1,0],[1,0]],[[1,200],[0,0],[0,0]],[[0,0],[0,0],[0,0]],
       [[-1,0],[0,0],[0,0]],[[0,0],[-1,0],[0,0]],[[0,0],[0,0],[-1,0]]];
-    proof=reference<Certificate>({rows,positions,fees:[3,7,3]});
-    assert.deepEqual([proof.charges,proof.spent,proof.repaired],[[4,0,0],[0,1,0],true]);
+    if(residual) {
+      rows[1]=[2001,[0,135,0]]; rows[3]=[396,[-200,0,0]];
+      positions[1][0]=[0,0]; positions[3][0]=[0,0];
+    }
+    proof=reference<Certificate>({rows,positions,fees:[residual?2:3,7,3]});
+    assert.deepEqual([proof.charges,proof.spent,proof.repaired],[[residual?0:4,0,0],[0,1,0],insured]);
+    if(residual) {
+      assert.deepEqual([proof.totalPlans,proof.selected,proof.numerators],[1,0,[2520,2520,1247,1242]]);
+      assert.deepEqual(proof.baselineLoss,['0','1273/5','1917/5']);
+    }
   } else {
     await trade(0,1,1000); await trade(0,1,1050,true); await trade(1,0,1000); await trade(1,0,1050,true);
     await trade(0,0,1000); await trade(1,1,1000); await trade(0,2,2000); await trade(1,3,2000);
@@ -154,15 +186,21 @@ try {
   }
   const digest=await bookHash();
   const accounts=[...roots.map(rw),...markets.map((m,i)=>proof.spent[i]?rw(m):ro(m))];
-  const settle=(label:string,p=proof,error?:number,metas=accounts,hash:Buffer=digest)=>send('keeper '+label,'settle_indexed_book',
-    [rw(custody),ro(vault),...metas],[hash,encodeProof(p)],operator,error);
+  const settle=(label:string,p=proof,error?:number,metas=accounts,hash:Buffer=digest)=>settleBook(label,p,hash,metas,error);
   await settle('refuse stale signed state',proof,6017,accounts,stale);
   await settle('refuse missing market',proof,6015,accounts.slice(0,-1));
   await settle('refuse substituted member',proof,6015,[accounts[1],...accounts.slice(1)]);
-  await settle('refuse missing candidate',{...proof,numerators:proof.numerators.slice(0,-4)},6003);
-  await settle('refuse forged rate',{...proof,numerators:proof.numerators.map((n,i)=>n-Number(i===(insured?5:4)))},6016);
-  await settle('refuse inferior allocation',{...proof,selected:insured?2:4},6016);
-  if(insured) {
+  await settle('refuse incomplete rate proof',{...proof,numerators:proof.numerators.slice(0,-4)},6003);
+  await settle('refuse forged rate',{...proof,numerators:proof.numerators.map((n,i)=>n-Number(i===outcome.alterRateAt))},6016);
+  if(residual) {
+    await settle('refuse nonexistent reduction',{...proof,selected:1},6016);
+    await settle('refuse trailing rate pass',{...proof,numerators:[...proof.numerators,...proof.numerators]},6003);
+    await settle('refuse erasing the uninsured shortfall',{...proof,numerators:[1,1,1,1]},6016);
+  } else {
+    await settle('refuse inferior allocation',{...proof,selected:insured?2:4},6016);
+    await settle('refuse bypass of eligible reduction',{...proof,selected:0},6016);
+  }
+  if(twoDestinations) {
     await settle('refuse read-only insurance source',proof,6015,[...roots.map(rw),...markets.map(ro)]);
     const altered=[...proof.numerators], end=altered.length;
     // Keep total proposed cash constant and divert three atoms from the
@@ -173,7 +211,7 @@ try {
   }
   await settle('settle funded book'); await settle('refuse replay',proof,6014);
   await publish(0,1500,6014);
-  assert.deepEqual(proof.cash,insured?[0,2263,2155,0,1227,1573]:[348,348,0,0,1500,1500]);
+  assert.deepEqual(proof.cash,outcome.cash);
   for(const [i,amount] of proof.cash.entries()) {
     const state=await root(i);
     assert.deepEqual([state.cash,state.slots.length],[BigInt(amount),0]);
@@ -182,11 +220,11 @@ try {
   await wallet(paid,proof.cash[paid]+1,true,6007); await wallet(paid,proof.cash[paid],true,6008,paid+1);
   for(const [i,amount] of proof.cash.entries()) if(amount) await wallet(i,amount,true);
   assert.deepEqual(await Promise.all(wallets.map(w=>balance(w.address))),proof.cash.map(BigInt));
-  assert.equal(await balance(vault),insured?12n:8n);
-  if(!insured) { await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true); }
+  assert.equal(await balance(vault),BigInt(outcome.retained));
+  if(!twoDestinations) { await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true); }
   const replay=new IndexedReplay(custody,keeper.address,mint.address,owners.map(o=>o.address),wallets.map(w=>w.address),ids,modes);
   const journal=await replayOrders(rpc,program,roots,vault,await balance(vault),expected,undefined,replay);
-  assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],insured?[13,'0','12','12']:[8,'0','8','8']);
+  assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],[outcome.fills,'0',String(outcome.retained),String(outcome.retained)]);
   const measurements=checks.map(({label,signature,computeUnits,bytes,loadedAccounts,error})=>({label,signature,computeUnits,bytes,loadedAccounts,error}));
   writeFileSync(dir+'/indexed-default.json',JSON.stringify({proof,journal,measurements},null,2));
   console.log('Reconciled indexed default',journal,'wallets',proof.cash,'insurance',proof.spent,'repaired',proof.repaired);
