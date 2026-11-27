@@ -81,6 +81,7 @@ def probe(width, padding, cycle):
                                for rate in rates[start:start+width] + [proof['denominator']]*2]
         proof['cash'].extend([0, 0])
         proof['charges'].extend([0, 0])
+        proof['spent'].extend([0, 0])
     return dict(rows=rows, positions=positions, proof=proof)
 
 

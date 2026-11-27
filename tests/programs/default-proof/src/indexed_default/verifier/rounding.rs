@@ -1,12 +1,12 @@
 use super::*;
 use financial_core::clearing::atom_rounding::AtomNetwork;
 
-pub(super) struct Rounded {
+struct Rounded {
     pub cash: Vec<u64>,
     pub payments: Vec<Columns>,
 }
 
-pub(super) fn rounded(rows: &[Member], flow: &Flow, floors: Option<&[Columns]>) -> Result<Rounded> {
+fn rounded(rows: &[Member], flow: &Flow, floors: Option<&[Columns]>) -> Result<Rounded> {
     let count = rows.len();
     let width = rows[0].cells.len();
     let sink = count + width;
@@ -55,4 +55,46 @@ pub(super) fn rounded(rows: &[Member], flow: &Flow, floors: Option<&[Columns]>) 
         }
     }
     Ok(result)
+}
+
+pub(super) fn protected_cash(
+    rows: &[Member],
+    baseline: &Flow,
+    terminal: &Flow,
+    pairs: &[Pair],
+    charges: &Columns,
+) -> Result<(Vec<u64>, bool)> {
+    let width = rows[0].cells.len();
+    // A whole winning receipt that passes exact protection already covers the
+    // ceiling of the protected baseline less its whole direct charge. There is
+    // only one rounding when all market movements and cash are already integral.
+    let cash = &terminal.cash[..rows.len()];
+    if cash.iter().all(|v| v % terminal.unit == 0)
+        && terminal
+            .payments
+            .iter()
+            .all(|r| r[..width].iter().all(|v| v % terminal.unit == 0))
+    {
+        return Ok((cash.iter().map(|v| v / terminal.unit).collect(), false));
+    }
+    let base = rounded(rows, baseline, None)?;
+    let mut result = rounded(rows, terminal, None)?;
+    let mut floors = vec![[0; WIDTH]; rows.len()];
+    let targets = charges.iter().filter(|&&c| c != 0).count();
+    let mut repaired = false;
+    for m in (0..width).filter(|&m| targets > usize::from(charges[m] != 0)) {
+        for (i, _) in rows
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| r.cells[m].claim > 0)
+        {
+            let direct = if pairs[m].winner == i { charges[m] } else { 0 };
+            floors[i][m] = base.payments[i][m].saturating_sub(direct);
+            repaired |= result.payments[i][m] < floors[i][m];
+        }
+    }
+    if repaired {
+        result = rounded(rows, terminal, Some(&floors))?;
+    }
+    Ok((result.cash, repaired))
 }

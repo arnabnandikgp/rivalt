@@ -392,7 +392,7 @@ pub(super) struct Verified {
 }
 
 mod rounding;
-use rounding::rounded;
+use rounding::protected_cash;
 
 pub(super) fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> Result<Verified> {
     let width = reserves.len();
@@ -446,33 +446,15 @@ pub(super) fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> R
         ProofError::DefaultCharge
     );
     let charges = allocation(selected, &pairs);
-    let base = rounded(rows, &baseline, None)?;
-    let mut result = rounded(rows, &terminal, None)?;
-    let mut floors = vec![[0; WIDTH]; rows.len()];
-    let targets = charges.iter().filter(|&&c| c != 0).count();
-    let mut repaired = false;
-    for m in (0..width).filter(|&m| targets > usize::from(charges[m] != 0)) {
-        for (i, _) in rows
-            .iter()
-            .enumerate()
-            .filter(|(_, r)| r.cells[m].claim > 0)
-        {
-            let direct = if pairs[m].winner == i { charges[m] } else { 0 };
-            floors[i][m] = base.payments[i][m].saturating_sub(direct);
-            repaired |= result.payments[i][m] < floors[i][m];
-        }
-    }
-    if repaired {
-        result = rounded(rows, &terminal, Some(&floors))?;
-    }
+    let (cash, repaired) = protected_cash(rows, &baseline, &terminal, &pairs, &charges)?;
     require!(
-        result.cash.iter().sum::<u64>()
+        cash.iter().sum::<u64>()
             == rows.iter().map(|r| u64::from(r.cash)).sum::<u64>()
                 + terminal.spent.iter().sum::<u64>(),
         ProofError::UnsupportedBook
     );
     Ok(Verified {
-        cash: result.cash,
+        cash,
         spent: terminal.spent,
         repaired,
         charges,
