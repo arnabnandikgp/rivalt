@@ -113,7 +113,18 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 10, withdrawal on venue clearing.** Local clearing `4e11ef94` and SDK/harness `356293da` applied the occupied-market cash floor to an owner with ten BTC lots long and ten ETH lots short. The owner transferred one atom, then withdrew exactly 899,878 atoms to their wallet, retaining 99,940. Omissions, a market substitution and both one-atom overdraws rolled back. Fresh PostgreSQL replay reconciled 116 events. [Signed results and limits](operations/qualification-scorecard.md#occupied-market-withdrawal-on-venue-clearing)
 
-**Next action.** Qualify a versioned, venue-owned market listing for a third market on a fresh local deployment. Verify venue authority, market and oracle identity, and rejection by trading while broader recovery remains gated.
+**Finding 10, third market registered inactive on venue clearing (Review).** On
+local clearing `1adaf018` and harness `d470168b`, the venue authority registered
+SOL under ID 2. The SDK discovered it from finalized RPC. All eight signed
+refusals preserved the watched accounts, including both attempts to trade SOL.
+A subsequent BTC fill succeeded. The full setup and check fetched 230 signed
+transactions and reproduced 81 events through fresh PostgreSQL replay.
+[Listing qualification](operations/qualification-scorecard.md#inactive-sol-listing-on-venue-clearing)
+
+**Next action.** Bind the inactive SOL listing to the primary and guard price
+sources for the underlying and collateral on local clearing. Qualify an index
+observation and signed stale, conflicting and substituted-source refusals before
+admitting SOL maker capital or opening trading.
 
 | Open gate | What remains |
 |---|---|

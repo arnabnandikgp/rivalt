@@ -2,6 +2,16 @@
 
 The fresh-local wallet selects `bounded-entry`. Clients bind the exact deployment, program hashes, genesis, initialization signature and domain. Transport version 4, clearing schema 10/profile 6 and SQL journal format 3 are separate identifiers. `selected` is an explicit earlier P56 deployment. Existing signed originals remain bound to their original executor. [SDK deployment table](../../packages/sdk/src/account-deployment.ts)
 
+## Finding an inactive market
+
+`readInactiveMarketListings(rpc, venue)` returns the venue's finalized inactive
+listings in market-ID order. Each result contains the address, ticker and decoded
+record, including the lot scale, collateral mint and bound primary oracle. The SDK
+checks the deployment, discriminator, PDA seeds, identity and schema. Clients can
+show these rows as *registered, trading disabled*. The order form and router use
+the separately admitted trading markets. A venue authority can build the local
+registration with `getRegisterMarketListingInstructionAsync`. [Account rules](../clearing/accounts.md#registering-an-inactive-market)
+
 ## Account discovery
 
 Owner discovery reads the portfolio and its nine currently supported child PDAs

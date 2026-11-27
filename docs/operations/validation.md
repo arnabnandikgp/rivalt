@@ -23,6 +23,16 @@ extra atom to refuse, and missing and substituted markets to refuse. Check
 fixture accounts before and after, compare the returned remaining cash with the
 independent amount, and rebuild the receipt table from finalized program history.
 
+For the local market-listing check, build clearing at `1adaf018` with
+`RIVALT_ATTRIBUTION_PROFILE=inactive-market-listing bash ops/build-profit-attribution.sh`.
+Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to its manifest directory,
+`RIVALT_ROUTER_REVISION=1adaf018353172e446820a04597b45b97bcbac23` and
+`RIVALT_SETTLEMENT_PROBE=execution-router-inactive-listing`, then run
+`bash ops/scalable-settlement-smoke.sh`. Check discovery on finalized RPC,
+duplicate ID and ticker rollback, oracle substitution, authority, and both the
+order and fill boundaries. Compare the registered accounts with independent
+Anchor decoders and reconcile both records through fresh PostgreSQL replay.
+
 To qualify the occupied-market cash floor on the venue, build program commit
 `4e11ef9488b3c2205a1fa1bad02c0215cae8d976` with
 `RIVALT_ATTRIBUTION_PROFILE=indexed-withdrawal bash ops/build-profit-attribution.sh`.

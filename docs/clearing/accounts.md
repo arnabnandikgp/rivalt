@@ -1,5 +1,21 @@
 # Accounts, custody and authority
 
+## Registering an inactive market
+
+On the `inactive-market-listing` local profile the venue authority can reserve a
+market ID and ticker before taking any orders. One signed instruction creates a
+`MarketListing` PDA keyed by venue and little-endian `u16` ID, and a
+`ListedSymbol` PDA keyed by venue and the eight-byte zero-padded ticker. Both
+must be free. BTC/ETH and IDs 0/1 are reserved. The listing fixes its lot scale,
+the venue's collateral mint, and the publisher and feed address for the underlying
+USD index. Clearing checks the local oracle program's ownership, the feed's
+address and its stored publisher and feed ID. Registration does not read its price.
+
+The authority pays rent for these two accounts. Existing trader and maker accounts
+do not grow when a market is registered. A listing has no market ledger, funded
+maker capital or position slot and cannot authorize an order. The two admitted
+markets still come from the venue's trading configuration.
+
 ## Follow a deposit
 
 1. An owner creates a portfolio and registers a child margin-account PDA. The owner, portfolio index and child index identify actual accounts. The portfolio holds the namespace. Cash, positions, orders and obligations belong to the margin account.

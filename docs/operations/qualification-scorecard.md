@@ -17,7 +17,7 @@ Use the numbered findings across revisions. **Open** means a measured bottleneck
 | 7 | **Coordinated makers and sources — Open for benchmark coverage** | The fixture can refresh six maker publications and synthetic oracle sources together. The funding report uses published depth and omits hypothetical financial admission. [Fixture](../../tests/rpc-contract/liquidity-execution-setup.ts) · [Funding](../liquidity/funding.md) | Vary maker update timing separately from oracle updates. Measure executable spread, refusals and funding coverage. The combined price jump and maker outage belongs to the deferred exercise. |
 | 8 | **Willing liquidation capital — Deferred to the shock exercise** | The signed case sold ten lots to a maker. A consenting operator-owned receiver could take five more only after it was funded. [Liquidation qualification](validation.md#evidence-by-deployment) | Exercise several unhealthy accounts competing for limited receiver capital. Measure deficit after fees, remaining exposure and recovery time. Independent participation is a separate external gate. |
 | 9 | **Local costs versus sustainable participation — Open for cost reporting** | The wallet uses zero priority fee and the maker kit labels hedge cost as an assumption. The 119 fills earned 2,963 collateral atoms in aggregate taker fees before insurance. [Wallet budget](../liquidity/routing.md) · [Maker economics](../../packages/maker-kit/src/liquidity-economics.ts) | Report actual costs per role in lamports, retained fees after insurance, funded and unpaid maker P&L, and explicitly assumed hedge and priority-fee scenarios. Independent maker economics remain open. |
-| 10 | **Markets sharing a margin account — Open** | Local clearing has two fixed slots. A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | [Signed fills](#signed-orders-on-eight-markets) and [receiver liquidation](#funded-receiver-liquidation-across-markets) qualify the sparse fixture. [Venue withdrawals](#occupied-market-withdrawal-on-venue-clearing) use the indexed check at two markets. Wider venue accounts and default activation remain open. |
+| 10 | **Markets sharing a margin account — Open** | Local clearing has two fixed slots. A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | [Signed fills](#signed-orders-on-eight-markets) and [receiver liquidation](#funded-receiver-liquidation-across-markets) qualify the sparse fixture. [Venue withdrawals](#occupied-market-withdrawal-on-venue-clearing) use the indexed check at two markets. The venue also [registers an inactive SOL listing](#inactive-sol-listing-on-venue-clearing). Wider venue accounts and default activation remain open. |
 | 11 | **Default across three or more markets — Open, blocks wider cross trading** | A native complete-book calculation at `8b1e155f` matched independent exact settlement across three markets, including partial recovery, cycles, insurance and terminal whole atoms. [Workload](#three-market-frozen-book-settlement) | The [signed five-member book](#signed-three-market-default-and-wallet-exit) verifies the maximal protected charge for a single eligible pair and reconciles the wallet exits. The [signed two-winner settlement](#signed-two-winner-settlement-and-withdrawals) checks competing charges on the same BTC debtor. The [market-indexed engine](#one-settlement-engine-across-market-widths) compares simultaneous reductions against the original book. The [signed four-market book](#signed-market-indexed-settlement) verifies nine allocations and wallet exits. The [insured settlement](#insured-settlement-with-two-debt-destinations) pays a debtor’s two destinations and protects a creditor through rounding. Residual-only default, competing winners in the indexed verifier and venue integration remain open. Finding 5 tracks the operating cost of recovery. |
 
 ## Payout and cross-margin work
@@ -40,6 +40,26 @@ claim's progress. Preserve the closed fixed-width entry finding and the separate
 external and endurance gates.
 
 On the fresh grouped payout build, the [signed 1,000-member workload](performance.md#payout-with-incremental-debtor-groups) paid a closed ETH gain with every member exposed. All 64 group bounds held at the current adverse endpoints. The verifier checked zero individual debtors. A price shock that made an idle debtor unable to pay forced an individual check and blocked payment. The [stressed worker run](performance.md#automatic-wallet-payouts-on-a-stressed-1000-member-book) covers scheduling under competing fills and measures a payment with 40 groups requiring exact checks.
+
+### Inactive SOL listing on venue clearing
+
+Clearing `1adaf018` and harness `d470168b` ran on a fresh local venue. The
+authority registered SOL as ID 2 with 1,000,000 lots per whole SOL, the existing
+test collateral mint and a local SOL/USD feed. Finalized SDK discovery returned
+one listing. The 522-byte transaction used 18,534 CU and loaded ten accounts.
+The listing occupies 166 bytes and its ticker binding 51. No margin account or
+active market changed during registration.
+
+Clearing rejected eight signed attempts covering an unauthorized signer, a BTC
+feed substituted for SOL, a different publisher, reserved ETH ID 1, duplicate ID, duplicate
+ticker, an order on ID 2 and an attempted fill using the listing as an active
+market. The financial accounts and both listing accounts matched their pre-attempt
+bytes after each refusal. A one-lot BTC fill succeeded afterward. The 230 signed
+transactions include venue provisioning. Fresh PostgreSQL replay reproduced 81
+events and reconciled both listing accounts against RPC. The isolated legacy
+and RC2 Anchor clients agreed with the generated SDK on the signed instruction,
+its two account layouts and both events. SOL index observations, maker admission,
+live positions and default remain outside this run.
 
 ### Occupied-market withdrawal on venue clearing
 

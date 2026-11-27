@@ -17,6 +17,14 @@ This register summarizes choices enforced by the local protocol. The [original d
 
 Record future material choices here with a date, alternatives considered, consequences for users, and the current contract. [Project status](STATUS.md) tracks open questions separately.
 
+**27 November 2026 — Give each inactive listing a stable ID and a unique ticker.**
+The local venue authority reserves both names atomically in two small PDAs.
+This lets clients discover a proposed market without rewriting a shared directory
+or reallocating existing margin accounts. Registration authenticates the primary
+feed's identity and leaves the market inactive. Price observation, maker admission
+and the complete default and exit paths each require separate qualification
+before trading can open. [Listing contract](clearing/accounts.md#registering-an-inactive-market)
+
 **27 November 2026 — Verify a bounded wider default in the settlement transaction.** In the local qualification build, accept permissionless proposals for the registered roster. Authenticate current account bytes, verify greatest recovery rates and compare every candidate before committing the terminal balances. This avoids a persistent freeze that could strand a book outside the verifier’s supported class. The first local certificate required a strictly best allocation with whole terminal flows. Its successor checks the same strict recovery priority, verifies whole insurance budgets from the original reserves and runs protected circulation over fractional terminal flows. If the complete book has no eligible whole-atom reduction, permit terminal settlement only for a verified post-insurance loss. This lets owners withdraw the funded remainder while preventing a keeper from terminating a fully covered book. For two winners in a single charged market, a certified full recovery bounds the search to rival splits of the same total. Retain frozen member priority and shared lot limits. A proposal that cannot establish the full recovery is outside this certificate. Wider trading still requires the full venue settlement contract. [Certificate and bounds](clearing/risk-and-resolution.md#signed-verification-across-market-ids)
 
 **27 November 2026 — Qualify wider default through one market-indexed engine.** The successor accepts frozen market IDs and member obligations at runtime. The two- and three-market examples remain financial regressions. Wider accounts can link more markets across the frozen book than any one member occupies, so qualify those two dimensions independently. Reuse the frozen debt proportions, market-specific insurance and protected rounding rules. Wider trading requires signed verification of the complete settlement and wallet exits on the venue profile. [Settlement contract](clearing/risk-and-resolution.md#settlement-across-a-frozen-set-of-markets)
