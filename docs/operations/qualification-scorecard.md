@@ -274,6 +274,22 @@ The successful transaction used **54,409 CU, 659 signed bytes and 14 loaded acco
 
 On a separate signed book with an eligible four-atom concession, zero-charge settlement refused. The same binary accepted the winning reduction, preserved the creditor’s 27th atom and reproduced all four prior withdrawals. That settlement used 126,597 CU and 724 bytes. PostgreSQL reconciled 77 program receipts. A focused native test also refused residual settlement when insurance alone could cover the entire gap. Competing winners within a charged market and the wider venue path remain open. [Scoped run commands](validation.md#checks-by-change)
 
+### Two winners on a four-market book
+
+Seven signed fills on a fresh local Surfpool venue left a market maker short two lots, owing 300 atoms against 289 cash and one atom of its own market’s insurance. A cross trader and another maker each held one opposing lot with 120 atoms of eligible gain. The cross trader also owed three foreign markets 5,000, 2,000 and 1,000 atoms. At baseline those creditors were fully covered. The target market’s ten-atom writeoff was the largest possible recovery from a forced reduction.
+
+| Charge to cross trader / second maker | Target loss removed | Effect on the three foreign claims | Result |
+|---|---:|---|---|
+| 5 / 5 | 10 | Exact receipts fall by ⅝, ¼ and ⅛ of an atom. The first creditor loses a whole atom after rounding. | Refused |
+| 3 / 7 | 10 | All three claims stay paid in full. | Refused because 4 / 6 shares the charge more proportionally. |
+| 4 / 6 | 10 | All three claims stay paid in full. | Accepted. Each winner concedes one lot. |
+
+The independent Python reference and the native Rust financial engine agreed on all 66 physically possible allocations, including zero action. Twenty-nine preserved the creditors. The on-chain verifier checked the baseline and all eleven full-charge splits, since a charge below ten cannot recover ten. The signed transaction used **225,399 CU, 977 bytes and 15 loaded accounts** on `70ac71f5`. It recorded the two charges, lots and member identities, and debited one originating-market insurance atom. Four owners withdrew 1,174, 7,000, 4,000 and 3,000 test atoms. Two members had zero cash. Of the 15,186 deposited atoms, 12 remained in custody as ten retained fee atoms and two unspent foreign insurance atoms. Fresh PostgreSQL replay reconciled 62 program receipts. All fourteen signed refusal controls preserved the watched accounts.
+
+On the same binary, the signed single-winner insured case reproduced the protected 27-atom receipt and all four withdrawals, reconciling 77 program receipts. Its settlement used 128,382 CU and 724 bytes. The two-market joint charge reproduced the 348, 348, 1,500 and 1,500 withdrawals on its four-market book, reconciling 73 receipts. Its settlement used 162,516 CU and 821 bytes.
+
+A native scarce-lot case gave the debtor one lot even though two opposing winners could each absorb the whole charge. Across sixteen custody identities the verifier refused a split that spent the same lot twice, and both winners were selected in different final member-priority ties. The signed book exercised two available lots and a tie on recovery decided by proportionality. This local certificate covers full recovery with one competing pair of winners. Partial recoveries with competing winners, simultaneous competing markets and wider venue activation remain open. [Verification contract](../clearing/risk-and-resolution.md#signed-verification-across-market-ids) · [Reproduction](validation.md#checks-by-change)
+
 ### BTC/ETH backing summary comparison
 
 [Native comparison in review, #205](https://github.com/arnabnandikgp/rivalt/pull/205). This model starts with empty counters and records account
