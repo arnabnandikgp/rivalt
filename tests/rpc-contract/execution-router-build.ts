@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {verifyTestBuild} from './backing-artifacts.js';
-import {GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
+import {INDEXED_WITHDRAWAL_ARTIFACT_SET,GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
 
 export function multiDeploymentFor(artifactSet: string) {
   if (artifactSet === PRICE_LIMITED_MULTI_ARTIFACT_SET) return 'price-limited-multi-maker';
@@ -21,6 +21,16 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const probe = process.env.RIVALT_SETTLEMENT_PROBE;
+  if (probe === 'execution-router-indexed-withdrawal') {
+    assert.equal(revision,'4e11ef9488b3c2205a1fa1bad02c0215cae8d976');
+    const artifacts = {
+      clearing:{bytes:3896184,sha256:'7e1a18ac655c9d9876b2cbdb151c89af70605589732e57e196e5918c2b390b76'},
+      'maker-a':{bytes:167520,sha256:'356b53f98b2e6a5ac4aeaf44100617e802ca9435470795ef36edc24ba9a1ff6d'},
+      'maker-b':{bytes:167520,sha256:'cb5bf04628f563011e9def55b488336f0271903e15ce7f1da99320f4ef0b67de'},
+    };
+    verifyTestBuild(directory,revision,artifacts,'indexed-withdrawal');
+    return {revision,artifacts,artifactSet:INDEXED_WITHDRAWAL_ARTIFACT_SET};
+  }
   const streamed = probe === 'execution-router-streamed-capacity' || probe === 'execution-router-streamed-credit';
   const grouped = probe === 'execution-router-grouped-slots' || probe === 'execution-router-grouped-worker' || probe === 'execution-router-grouped-capacity' || probe === 'execution-router-grouped-credit';
   if (grouped || streamed || probe === 'execution-router-thousand-member-credit') {

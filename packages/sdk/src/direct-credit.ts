@@ -7,11 +7,15 @@ import {requiredAccountLiabilities} from './account-markets.js';
 import {marketCheckpointsFor, venueMarketCheckpoints} from './market-checkpoints.js';
 import {requireValue} from './wallet-client.js';
 
-export async function deriveCoverageLanes(venue: Address): Promise<Address[]> {
-  const seed = new TextEncoder().encode('coverage-lane'), parent = getAddressEncoder().encode(venue);
-  return Promise.all(Array.from({length:8}, async (_,index) => (await getProgramDerivedAddress({
-    programAddress:clearing.CLEARING_PROGRAM_ADDRESS,seeds:[seed,parent,Uint8Array.of(index)],
-  }))[0]));
+export async function deriveCoverageLane(venue: Address, index: number): Promise<Address> {
+  requireValue(Number.isInteger(index) && index >= 0 && index < 8, 'Invalid coverage lane.');
+  const [lane] = await getProgramDerivedAddress({programAddress:clearing.CLEARING_PROGRAM_ADDRESS,
+    seeds:[new TextEncoder().encode('coverage-lane'),getAddressEncoder().encode(venue),Uint8Array.of(index)]});
+  return lane;
+}
+
+export function deriveCoverageLanes(venue: Address): Promise<Address[]> {
+  return Promise.all(Array.from({length:8}, (_,index) => deriveCoverageLane(venue,index)));
 }
 
 /** Permissionless local credit. Submit the complete returned instruction list in one transaction. */
