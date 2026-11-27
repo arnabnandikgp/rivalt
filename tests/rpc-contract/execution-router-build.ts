@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {verifyTestBuild} from './backing-artifacts.js';
-import {LISTED_MAKER_ARTIFACT_SET,LISTING_INDEX_ARTIFACT_SET,INACTIVE_LISTING_ARTIFACT_SET,INDEXED_WITHDRAWAL_ARTIFACT_SET,GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
+import {INDEXED_DEFAULT_ARTIFACT_SET,LISTED_MAKER_ARTIFACT_SET,LISTING_INDEX_ARTIFACT_SET,INACTIVE_LISTING_ARTIFACT_SET,INDEXED_WITHDRAWAL_ARTIFACT_SET,GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
 
 export function multiDeploymentFor(artifactSet: string) {
   if (artifactSet === PRICE_LIMITED_MULTI_ARTIFACT_SET) return 'price-limited-multi-maker';
@@ -21,15 +21,17 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const probe = process.env.RIVALT_SETTLEMENT_PROBE;
-  if (probe === 'execution-router-listed-maker' || probe === 'execution-router-venue-book') {
-    assert.equal(revision,'5929eb48f2963499bc0a5316a9a22c2b99dcdd3d');
+  if (probe === 'execution-router-listed-maker' || probe === 'execution-router-venue-book' || probe === 'execution-router-venue-default') {
+    const verifier=probe==='execution-router-venue-default';
+    assert.equal(revision,verifier?'a094f62cd4192b2b00f845660b281c613698986d':'5929eb48f2963499bc0a5316a9a22c2b99dcdd3d');
     const artifacts={
-      'clearing':{bytes:3988696,sha256:'6093180c296f800f4b1f88d75db79c73bc85dbd27ff0fd4996789dc983db0a85'},
+      'clearing':verifier?{bytes:4186984,sha256:'0e0cfd094ebd757cffaa3e4e75c461c5c28bf9c34390c4b3308640d8f750ebd9'}:{bytes:3988696,sha256:'6093180c296f800f4b1f88d75db79c73bc85dbd27ff0fd4996789dc983db0a85'},
       'maker-a':{bytes:187208,sha256:'1c8d021a8dc0947606f96ac18d1a2a61b0c2185ec9f862c097d52a3bce302e62'},
       'maker-b':{bytes:187208,sha256:'65412a25adb9e98bd793878ba016648026529169c36c028a51bab592c1e824e8'}
     };
-    verifyTestBuild(directory,revision,artifacts,'listed-maker-admission');
-    return {revision,artifacts,artifactSet:LISTED_MAKER_ARTIFACT_SET};
+    const artifactSet=verifier?INDEXED_DEFAULT_ARTIFACT_SET:LISTED_MAKER_ARTIFACT_SET;
+    verifyTestBuild(directory,revision,artifacts,artifactSet);
+    return {revision,artifacts,artifactSet};
   }
   if (probe === 'execution-router-indexed-withdrawal' || probe === 'execution-router-inactive-listing' || probe === 'execution-router-listing-index') {
     const listing = probe === 'execution-router-inactive-listing';

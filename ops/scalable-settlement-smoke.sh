@@ -6,7 +6,7 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
-if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router-venue-book ]]; then
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router-venue-book || "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router-venue-default ]]; then
   cargo build --locked --offline -p financial-core --features market-settlement-model --example market_settlement
 fi
 if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router* ]]; then
@@ -127,7 +127,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   execution-router-feasible-books) node --import tsx tests/rpc-contract/feasible-book-rpc.ts ;;
   execution-router-matched-makers) node --import tsx tests/rpc-contract/comparison-rpc.ts ;;
   execution-router-direct-capacity|execution-router-thousand-member-credit|execution-router-streamed-capacity|execution-router-grouped-capacity) node --import tsx tests/rpc-contract/direct-credit-capacity-rpc.ts ;;
-  execution-router-venue-book)
+  execution-router-venue-book|execution-router-venue-default)
     node --import tsx tests/rpc-contract/venue-settlement-book-rpc.ts ;;
   execution-router-inactive-listing|execution-router-listing-index|execution-router-listed-maker) node --import tsx tests/rpc-contract/inactive-market-listing-rpc.ts ;;
   execution-router-indexed-withdrawal) node --import tsx tests/rpc-contract/venue-indexed-withdrawal-rpc.ts ;;
