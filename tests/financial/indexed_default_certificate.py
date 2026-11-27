@@ -85,11 +85,10 @@ def competing_certificate(book, positions, groups, venue, episode=1, member_ids=
             return all(x<=y for x,y in zip(a[1],b[1]))
         return a[2]!=b[2] and all(x<=y for x,y in zip(a[2],b[2]))
     finalists=[row for row in best if not any(dominates(other,row) for other in best)]
-    if len({row[1] for row in finalists}) > 1:
+    if len({(row[1],row[2]) for row in finalists}) > 1:
         assert len(book['market_roster']) >= 3
         assert len({tuple(row[6]['recovery']) for row in finalists}) == 1
         assert len({tuple(row[6]['settlement']['spent']) for row in finalists}) == 1
-        assert len({sum(cost for _,cost in row[2]) for row in finalists}) == 1
         targets = {d[0] for d in domains}
         def original_market(m):
             return (book['markets'][m]['insurance'], book['markets'][m]['pool'],
@@ -103,8 +102,16 @@ def competing_certificate(book, positions, groups, venue, episode=1, member_ids=
             payload = bytes(venue) + episode.to_bytes(8,'little') + market_id.to_bytes(2,'little')
             return sha256(b'Rivalt/frozen-market-order/v1\0' + payload).digest(), market_id
         priority_order = sorted(range(len(domains)), key=market_priority)
-        best_sharing = min(tuple(row[1][i] for i in priority_order) for row in finalists)
-        finalists = [row for row in finalists if tuple(row[1][i] for i in priority_order) == best_sharing]
+        def costs(plan):
+            return tuple(lots for _, lots in plan[2])
+        def fewer(left, right):
+            a, b = costs(left), costs(right)
+            return a != b and all(x <= y for x,y in zip(a,b))
+        finalists = [plan for plan in finalists if not any(fewer(other,plan) for other in finalists)]
+        def frozen_rank(plan):
+            return (tuple(plan[1][i] for i in priority_order),tuple(costs(plan)[i] for i in priority_order))
+        best_rank = min(map(frozen_rank, finalists))
+        finalists = [row for row in finalists if frozen_rank(row) == best_rank]
     assert len({(row[1],row[2]) for row in finalists})==1
     _,_,_,_,index,choices,outcome,ordinary=max(finalists,key=lambda row:row[3])
     for key in sorted(witnesses):
@@ -215,7 +222,7 @@ if __name__ == '__main__':
     data = json.load(sys.stdin)
     if 'priority_episode' in data:
         from test_indexed_market_priority import asymmetric_book
-        book, positions = asymmetric_book()
+        book, positions = asymmetric_book(data.get('multi_lot_winner',False))
         proof = competing_certificate(book, positions, [(0,0,[2,4]),(1,1,[3,5])], bytes(32), data['priority_episode'])
         result = dict(proof=proof, positions=positions, rows=[(int(row['cash']),[int(v)//SCALE for v in row['claims']])
                      for row in book['rows']])

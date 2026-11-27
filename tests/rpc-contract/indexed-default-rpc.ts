@@ -122,16 +122,16 @@ async function probe(width:number,padding:number,cycle=false) {
     await inspect('refuse nongreatest cyclic rates',{...data.proof,numerators:lower},6016);
   }
 }
-async function probeMarketPriority(episode:number) {
-  const data=reference<Probe>({priority_episode:episode});
+async function probeMarketPriority(episode:number,multiLotWinner:boolean) {
+  const data=reference<Probe>({priority_episode:episode,multi_lot_winner:multiLotWinner});
   const cells=data.rows.flatMap(([cash,claims],i)=>[u32(cash),u32(claims.length),...claims.map((claim,m)=>{
     const b=Buffer.alloc(7),[lots,eligible]=data.positions[i][m];
     b.writeInt32LE(claim); b.writeInt8(lots,4); b.writeUInt16LE(eligible,5); return b;
   })]);
-  const submit=(selected:number,error?:number)=>send('keeper inspect episode '+episode+' allocation '+selected,
+  const submit=(selected:number,error?:number)=>send('keeper inspect episode '+episode+(multiLotWinner?' unequal-volume':' equal-volume')+' allocation '+selected,
     'inspect_market_priority',[signer(keeper.address)],[u32(3),...[13,18,23].map(u16),
       u32(3),...[1,1,0].map(u64),u64(episode),u32(data.rows.length),...cells,encodeProof({...data.proof,selected})],operator,error);
-  assert.equal(data.proof.selected,episode===1?15:12);
+  assert.equal(data.proof.selected,episode===1||multiLotWinner?15:12);
   await submit(27-data.proof.selected,6016);
   const signature=await submit(data.proof.selected);
   const tx=await rpc.call('getTransaction',[signature,{commitment:'finalized',maxSupportedTransactionVersion:1}]);
@@ -321,7 +321,7 @@ try {
   assert.deepEqual(await Promise.all(wallets.map(w=>balance(w.address))),proof.cash.map(BigInt));
   assert.equal(await balance(vault),BigInt(outcome.retained));
   if(!twoDestinations && !competing && !partial && !joint) { await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true); }
-  if(joint) for(const episode of [1,2]) await probeMarketPriority(episode);
+  if(joint) for(const multiLotWinner of [false,true]) for(const episode of [1,2]) await probeMarketPriority(episode,multiLotWinner);
   const replay=new IndexedReplay(custody,keeper.address,mint.address,owners.map(o=>o.address),wallets.map(w=>w.address),ids,modes);
   const journal=await replayOrders(rpc,program,roots,vault,await balance(vault),expected,undefined,replay);
   assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],[outcome.fills,'0',String(outcome.retained),String(outcome.retained)]);

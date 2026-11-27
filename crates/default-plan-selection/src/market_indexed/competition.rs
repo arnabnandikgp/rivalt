@@ -133,6 +133,20 @@ fn dominates(dimensions: &[Dimension], a: usize, b: usize) -> bool {
     !deviations_equal || (fewer_lots && !more_lots)
 }
 
+/// Compare volume within each market, whose lots have their own unit of measure.
+fn closes_less(dimensions: &[Dimension], left: usize, right: usize) -> bool {
+    let mut fewer = false;
+    for market in dimensions {
+        let used = |choice| market.choice(choice).unwrap().lots.iter().sum::<u64>();
+        match used(left).cmp(&used(right)) {
+            Ordering::Greater => return false,
+            Ordering::Less => fewer = true,
+            Ordering::Equal => {}
+        }
+    }
+    fewer
+}
+
 fn set_splits(dimensions: &[Dimension], pairs: &mut [Pair], index: usize) {
     for dimension in dimensions {
         pairs[dimension.market].second = dimension.has_second.then(|| {
@@ -215,7 +229,7 @@ fn order(
 ) -> Result<Ordering> {
     // Among the undominated plans, a strict difference here means that neither
     // proportional allocation is better in every market. Total costs and
-    // insurance have already been checked before using the frozen order.
+    // insurance and market-by-market volume dominance have already been checked.
     for &market in markets {
         let dimension = &dimensions[market];
         let priority = dimension
@@ -228,12 +242,14 @@ fn order(
             return Ok(priority);
         }
     }
-    for dimension in dimensions {
-        require!(
-            dimension.choice(a).unwrap().lots.iter().sum::<u64>()
-                == dimension.choice(b).unwrap().lots.iter().sum::<u64>(),
-            Error::UnsupportedBook
-        );
+    for &market in markets {
+        let dimension = &dimensions[market];
+        let used = |choice| dimension.choice(choice).unwrap().lots.iter().sum::<u64>();
+        let priority = used(b).cmp(&used(a));
+        if !priority.is_eq() {
+            require!(wider, Error::UnsupportedBook);
+            return Ok(priority);
+        }
     }
     for &member in members {
         for dimension in dimensions {
@@ -328,7 +344,7 @@ pub(super) fn verify(
             episode.member_ids[id],
         )
     });
-    let finalists: Vec<_> = contenders
+    let mut finalists: Vec<_> = contenders
         .iter()
         .copied()
         .filter(|&candidate| {
@@ -337,29 +353,24 @@ pub(super) fn verify(
                 .any(|&rival| dominates(&dimensions, rival, candidate))
         })
         .collect();
-    let contested_sharing = finalists.iter().any(|&other| {
-        dimensions
-            .iter()
-            .any(|d| d.choice(selected).unwrap().deviation != d.choice(other).unwrap().deviation)
+    let differing_market_cost = finalists.iter().any(|&other| {
+        dimensions.iter().any(|market| {
+            let left = market.choice(selected).unwrap();
+            let right = market.choice(other).unwrap();
+            left.deviation != right.deviation
+                || left.lots.iter().sum::<u64>() != right.lots.iter().sum::<u64>()
+        })
     });
     let mut markets: Vec<_> = (0..dimensions.len()).collect();
-    if contested_sharing {
+    if differing_market_cost {
         require!(
             book.width >= 3 && distinct_markets(book, &dimensions),
             Error::UnsupportedBook
         );
         markets = market_order(episode, &dimensions);
-        let lots_closed = |index| {
-            dimensions
-                .iter()
-                .map(|d| u128::from(d.choice(index).unwrap().lots.iter().sum::<u64>()))
-                .sum::<u128>()
-        };
-        let lots = lots_closed(selected);
         // Only finalists require a second pass. A missing integer protection
         // proof refuses this class of book instead of excluding a competing plan.
         for &index in &finalists {
-            require!(lots_closed(index) == lots, Error::UnsupportedBook);
             set_splits(&dimensions, pairs, index);
             if index == selected {
                 protected_cash(book.rows, baseline, &terminal, pairs, charges)?;
@@ -379,6 +390,17 @@ pub(super) fn verify(
                 protected_cash(book.rows, baseline, &scratch, pairs, charges)?;
             }
         }
+        let eligible = finalists;
+        finalists = eligible
+            .iter()
+            .copied()
+            .filter(|&plan| {
+                !eligible
+                    .iter()
+                    .any(|&other| closes_less(&dimensions, other, plan))
+            })
+            .collect();
+        require!(finalists.contains(&selected), Error::DefaultCharge);
     }
     for other in finalists {
         if other != selected {
@@ -387,7 +409,7 @@ pub(super) fn verify(
                     &dimensions,
                     &members,
                     &markets,
-                    contested_sharing,
+                    differing_market_cost,
                     selected,
                     other
                 )?
@@ -482,10 +504,15 @@ mod tests {
     }
     #[test]
     fn asymmetric_finalists_follow_the_frozen_market_order() {
+        check_market_priority(1);
+        check_market_priority(3);
+    }
+
+    fn check_market_priority(btc_winner_lots: i64) {
         let frozen = [
-            (7, [-11, 0, 0], [-2, 0, 0]),
+            (7, [-11, 0, 0], [-(btc_winner_lots + 1), 0, 0]),
             (7, [0, -11, 0], [0, -2, 0]),
-            (0, [3, 0, 0], [1, 0, 0]),
+            (0, [3, 0, 0], [btc_winner_lots, 0, 0]),
             (0, [0, 3, 0], [0, 1, 0]),
             (0, [4, -4, 0], [1, 0, 0]),
             (0, [-4, 4, 0], [0, 1, 0]),
@@ -507,9 +534,18 @@ mod tests {
                         };
                         if gain > 0 {
                             let capacity = Attribution::default()
-                                .fill(0, 1, 100 - u64::from(gain))
+                                .fill(
+                                    0,
+                                    lots[market],
+                                    100 * lots[market].unsigned_abs() - u64::from(gain),
+                                )
                                 .unwrap()
-                                .frozen_capacity(1, 100, i128::from(gain) * SCALE, 1)
+                                .frozen_capacity(
+                                    lots[market],
+                                    100,
+                                    i128::from(gain) * SCALE,
+                                    lots[market].unsigned_abs(),
+                                )
                                 .unwrap();
                             capacities.push((member, market, capacity));
                         }
@@ -532,7 +568,11 @@ mod tests {
         ];
         for (epoch, winner, cash) in [
             (1, 15, [0, 0, 1, 0, 0, 0, 9, 8, 0]),
-            (2, 12, [0, 0, 0, 1, 0, 0, 10, 7, 0]),
+            if btc_winner_lots == 1 {
+                (2, 12, [0, 0, 0, 1, 0, 0, 10, 7, 0])
+            } else {
+                (2, 15, [0, 0, 1, 0, 0, 0, 9, 8, 0])
+            },
         ] {
             let verify = |selected| {
                 verify_book(
@@ -560,8 +600,18 @@ mod tests {
                     assert_eq!(&result.spent[..3], &[1, 1, 0]);
                     assert_eq!(&result.charges[..3], &[3, 3, 0]);
                     assert_eq!(
-                        result.splits.iter().flat_map(|(_, s)| s.lots).sum::<u64>(),
-                        3
+                        result
+                            .splits
+                            .iter()
+                            .map(|(_, split)| split.lots.iter().sum::<u64>())
+                            .collect::<Vec<_>>(),
+                        if btc_winner_lots == 3 {
+                            [3, 1]
+                        } else if winner == 15 {
+                            [2, 1]
+                        } else {
+                            [1, 2]
+                        }
                     );
                 } else {
                     assert!(

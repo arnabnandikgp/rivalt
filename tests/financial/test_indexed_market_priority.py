@@ -5,7 +5,7 @@ from test_joint_market_ties import mirror_book
 from test_market_indexed_default import frozen
 
 
-def asymmetric_book():
+def asymmetric_book(multi_lot_winner=False):
     reference, legs = mirror_book()
     # BTC's flat winner also owns a SOL claim backed by a separate funded SOL debtor.
     rows = [(a.cash, [*a.claims, 2 if member == 6 else 0])
@@ -13,6 +13,9 @@ def asymmetric_book():
     book = frozen(rows, reserves=[1, 1, 0])
     positions = [[(leg.lots[i], leg.unpaid_gains[i], 100 - leg.entries[i] if leg.lots[i] > 0 else 0)
                   if i < len(leg.lots) else (0, 0, 0) for leg in legs] + [(0, 0, 0)] for i in range(9)]
+    if multi_lot_winner:
+        positions[2][0] = (3, 3, 1)
+        positions[0][0] = (-4, 0, 0)
     return book, positions
 
 
@@ -26,6 +29,14 @@ class FrozenMarketPriorityTests(unittest.TestCase):
             self.assertEqual((proof['selected'], proof['cash']), (selected, wallets))
             self.assertEqual((proof['charges'], proof['spent']), ([3,3,0], [1,1,0]))
             self.assertEqual(sum(sum(m['lots']) for m in proof['splits']), 3)
+
+    def test_fewer_forced_lots_in_eth_and_equal_lots_in_btc_wins_in_both_episodes(self):
+        book, positions = asymmetric_book(True)
+        for episode in (1,2):
+            proof = competing_certificate(book, positions, [(0,0,[2,4]),(1,1,[3,5])], bytes(32), episode)
+            self.assertEqual((proof['totalPlans'],proof['protectedPlans']), (100,70))
+            self.assertEqual((proof['selected'],proof['spent'],proof['cash'][6:8]), (15,[1,1,0],[9,8]))
+            self.assertEqual([sum(m['lots']) for m in proof['splits']], [3,1])
 
     def test_an_unused_third_market_cannot_override_an_existing_market_symmetry(self):
         book, positions = asymmetric_book()

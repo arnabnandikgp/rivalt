@@ -410,15 +410,19 @@ pub fn inspect_priority(
     for (member, row) in rows.iter().enumerate() {
         for (market, cell) in row.cells.iter().enumerate().filter(|(_, c)| c.eligible > 0) {
             require!(
-                cell.lots == 1 && cell.eligible < 100,
+                cell.lots > 0 && u64::from(cell.eligible) < 100 * cell.lots.unsigned_abs(),
                 ProofError::UnsupportedBook
             );
-            let entry = 100 - u64::from(cell.eligible);
+            let entry = 100 * cell.lots.unsigned_abs() - u64::from(cell.eligible);
             let basis = checked(
-                clearing_accounting::attribution::Attribution::default().fill(0, 1, entry),
+                clearing_accounting::attribution::Attribution::default().fill(0, cell.lots, entry),
             )?;
-            let capacity =
-                checked(basis.frozen_capacity(1, 100, i128::from(cell.claim) * SCALE, 1))?;
+            let capacity = checked(basis.frozen_capacity(
+                cell.lots,
+                100,
+                i128::from(cell.claim) * SCALE,
+                cell.lots.unsigned_abs(),
+            ))?;
             capacities.push((member, market, capacity));
         }
     }
