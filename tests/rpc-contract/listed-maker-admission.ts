@@ -16,7 +16,7 @@ import {initializeFixtureFeed} from './oracle-fixture.js';
 export async function qualifyListedMaker(h:CanonicalHarness,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,
   listing:Address,members:Map<Address,Address>) {
   const {payer,venue,common,primary,traderOwner:owner,traderToken:token,mint}=setup;
-  const {guard,root}=executionTestHelpers(h,setup);
+  const {guard,root,withCheckpoints}=executionTestHelpers(h,setup);
   const [portfolio]=await sdk.deriveAccountPortfolio(venue,owner.address,0);
   const [capital]=await sdk.deriveMarginAccount(portfolio,1);
   const [capitalBinding]=await sdk.deriveCapitalBinding(capital);
@@ -33,10 +33,10 @@ export async function qualifyListedMaker(h:CanonicalHarness,setup:Awaited<Return
     ...common,authority:payer,marketId:secondId,symbol:secondSymbol,lotsPerUnit:100_000n,oracleFeed:feed,oraclePublisher:primary.address})]);
   const encoder=getAddressEncoder();
   const operator=setup.instances[0],other=setup.instances[2];
-  const configFor=async(program:Address)=>{
+  const configFor=async(program:Address,capitalKey=capital)=>{
     const derive=async(prefix:string,key:Address)=>(await getProgramDerivedAddress({programAddress:program,
       seeds:[Buffer.from(prefix),encoder.encode(key)]}))[0];
-    const config=await derive('curve-v4',capital);
+    const config=await derive('curve-v4',capitalKey);
     return {config,price:await derive('price-v4',config)};
   };
   const a=await configFor(operator.pricingProgram),b=await configFor(other.pricingProgram);
@@ -54,14 +54,24 @@ export async function qualifyListedMaker(h:CanonicalHarness,setup:Awaited<Return
   const terms={venue,owner,capital,instance:0,shape:symmetricPayoutShape,updater:setup.updater.address,expiry:1_000_000n};
   await reject('listed maker cannot initialize a BTC curve',await operator.module.getInitializeCurveInstructionAsync({
     ...terms,...operator.makerCommon,...a,market:setup.markets[0]}),sdk.makerA.MAKER_A_ERROR__BINDING);
+  for(const legacy of [setup.instances[0],setup.instances[3]]) {
+    const unused=await configFor(other.pricingProgram,legacy.capital);
+    const quote=await other.module.getInitializeListedCurveInstructionAsync({...terms,...other.makerCommon,...unused,
+      owner:legacy.owner,capital:legacy.capital,listing});
+    const before=await image();
+    await h.send('legacy maker capital cannot quote SOL '+legacy.market,[quote],[legacy.owner],sdk.makerB.MAKER_B_ERROR__BINDING);
+    assert.deepEqual(await image(),before);
+    assert.equal(await h.read(unused.config),null);
+    assert.equal(await h.read(unused.price),null);
+  }
   const curve=await operator.module.getInitializeListedCurveInstructionAsync({...terms,...operator.makerCommon,...a,listing});
   await h.send('initialize SOL maker curve',[curve],[owner]);
   const deps={...common,...a,owner,authority:payer,capital,capitalBinding,registration,instance:0,
     listing,pricingProgram:operator.pricingProgram,programData:operator.controlCommon.programData};
   const admit=await sdk.getAdmitListedMakerInstructionAsync(deps);
   await reject('unfunded listed maker refuses admission',admit,sdk.CLEARING_ERROR__MAKER_CAPITAL);
-  await h.send('deposit dedicated listed maker capital',[await sdk.getDepositAccountInstructionAsync({...common,
-    owner,margin:capital,quoteMint:mint.address,userToken:token.address,amount})],[owner]);
+  const deposit=await sdk.getDepositAccountInstructionAsync({...common,owner,margin:capital,quoteMint:mint.address,userToken:token.address,amount});
+  await h.send('deposit dedicated listed maker capital',await withCheckpoints(deposit),[owner]);
   assert.equal((await root(capital)).cash,amount);
   assert.equal(await tokenAmount(setup.vault),vaultBefore+amount);
   assert.equal(await tokenAmount(token.address),walletBefore);
@@ -83,7 +93,7 @@ export async function qualifyListedMaker(h:CanonicalHarness,setup:Awaited<Return
   assert.equal((await root(capital)).cash,amount);
   const exit=sdk.getWithdrawFundedAccountInstruction({...common,owner,margin:capital,userToken:token.address,
     quoteMint:mint.address,guard:await guard(capital),amount});
-  await h.send('listed maker withdraws full cash to wallet',[appendCoverage(exit,[members.get(capital)!])],[owner]);
+  await h.send('listed maker withdraws full cash to wallet',await withCheckpoints(appendCoverage(exit,[members.get(capital)!])),[owner]);
   assert.equal((await root(capital)).cash,0n);
   assert.equal(await tokenAmount(setup.vault),vaultBefore);
   assert.equal(await tokenAmount(token.address),walletBefore+amount);
