@@ -43,6 +43,8 @@ Rust solves the simultaneous capacity constraints with exact rational arithmetic
 
 For the [protected reduction comparison](qualification-scorecard.md#protected-three-market-forced-reduction), use the same native binary. Run `python3 tests/financial/test_three_market_reduction.py` and `cargo test --locked -p financial-core --features three-market-model --lib three_market::rounding`. Compare both non-target markets’ exact recoveries, rounded receipts and reserve spend against the independently reconstructed no-action settlement. Check each matched lot against its frozen entry, the debtor’s attributable writeoff, capped onward payments, and a refusal when the minimum receipts cannot all be funded.
 
+For the [signed single-pair default](../clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair), run `RIVALT_PROOF_SCOPE=three-market-default bash ops/default-proof-smoke.sh`. The script builds the dedicated local program, checks the deployed bytes, sends signed deposits and fills, freezes all five accounts, resolves and withdraws from SPL custody. Independently hash the original financial accounts, check rollback after every refusal, and replay finalized transactions in fresh PostgreSQL. Feed the reconstructed frozen book and entry into the exact-fraction reference and enumerate every whole charge through the debtor’s original uninsured writeoff. Compare the chosen charge, matched lots, market insurance, each wallet and the remainder in the vault.
+
 For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
 build `cargo build --locked --offline -p financial-core --bin backing-driver`
 and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares
