@@ -23,6 +23,16 @@ extra atom to refuse, and missing and substituted markets to refuse. Check
 fixture accounts before and after, compare the returned remaining cash with the
 independent amount, and rebuild the receipt table from finalized program history.
 
+To qualify the occupied-market cash floor on the venue, build program commit
+`4e11ef9488b3c2205a1fa1bad02c0215cae8d976` with
+`RIVALT_ATTRIBUTION_PROFILE=indexed-withdrawal bash ops/build-profit-attribution.sh`.
+From the qualification checkout, set `RIVALT_ROUTER_REVISION` to that full commit,
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` to the build directory and
+`RIVALT_SETTLEMENT_PROBE=execution-router-indexed-withdrawal`. Run
+`bash ops/scalable-settlement-smoke.sh`. The signed checks cover an order-only
+dependency, two opposite exposures, one atom above the cash floor, donor and
+recipient cash, wallet/vault deltas and independent PostgreSQL replay.
+
 For market-slot retention, run `cargo test --locked --offline -p clearing-accounting --features surviving-profit --test market_slots`. For signed replay, select `RIVALT_SETTLEMENT_PROBE=execution-router-grouped-slots` with the [pinned grouped-credit build](local-development.md#incremental-debtor-groups-on-open-markets) and run `bash ops/scalable-settlement-smoke.sh` with a new run directory. Require the same sparse bindings through live protection orders and both signs of flat claims, signed rollback on each omitted ETH dependency, release after final discharge, stale-reference rejection after reuse, a matching SPL wallet delta and fresh PostgreSQL reconciliation. Only the native test varies the market count.
 
 For [funded custody at increasing widths](qualification-scorecard.md#funded-custody-across-persisted-markets), run `RIVALT_PROOF_SCOPE=slot-custody bash ops/default-proof-smoke.sh`. Derive both cash floors independently, enumerate every funding corner, verify the persisted funding checkpoints on both roots and compare wallet/vault token balances. Refusals must preserve the full account bytes. Rebuild cash changes in fresh PostgreSQL from finalized program history and reconcile them to each margin PDA and the vault.

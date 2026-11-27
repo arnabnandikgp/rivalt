@@ -111,11 +111,13 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 11, competing winners on the indexed verifier.** On program and harness `70ac71f5`, a four-market book settled the complete ten-atom shortfall with charges of four and six. A 5/5 split impaired foreign creditors and a 3/7 split shared the charge less proportionally. Both signed alternatives refused. Four owners withdrew 15,174 atoms, leaving 12 fee and reserve atoms. The settlement took 225,399 CU and 977 bytes. PostgreSQL reconciled 62 program receipts. [Results and limits](operations/qualification-scorecard.md#two-winners-on-a-four-market-book)
 
-**Next action.** Begin wider venue integration in a gated local clearing profile. Bind an account’s occupied market IDs to authenticated venue markets and qualify the whole-account withdrawal check on the actual clearing program and SDK, including a missing-market rollback. Keep third-market trading gated while recovery for unsupported books remains open.
+**Finding 10, withdrawal on venue clearing.** Local clearing `4e11ef94` and SDK/harness `356293da` applied the occupied-market cash floor to an owner with ten BTC lots long and ten ETH lots short. The owner transferred one atom, then withdrew exactly 899,878 atoms to their wallet, retaining 99,940. Omissions, a market substitution and both one-atom overdraws rolled back. Fresh PostgreSQL replay reconciled 116 events. [Signed results and limits](operations/qualification-scorecard.md#occupied-market-withdrawal-on-venue-clearing)
+
+**Next action.** Qualify a versioned, venue-owned market listing for a third market on a fresh local deployment. Verify venue authority, market and oracle identity, and rejection by trading while broader recovery remains gated.
 
 | Open gate | What remains |
 |---|---|
-| Wider cross-margin activation (Finding 11) | Signed local books cover four linked markets, multi-destination debt, insurance, protected rounding and residual settlement without eligible opposing gain. A single charged market with two competing winners and full recovery is qualified locally. Competing partial recoveries, simultaneous competing markets and wider venue integration remain open. |
+| Wider cross-margin activation (Finding 11) | Signed local books cover four linked markets, multi-destination debt, insurance, protected rounding and residual settlement without eligible opposing gain. A single charged market with two competing winners and full recovery is qualified locally. Competing partial recoveries, simultaneous competing markets and venue integration beyond BTC/ETH remain open. |
 | Market scale and economics | Meaningful executable depth, sustained maker inventory, funded maker P&L, keeper incentives and payout time under adverse flow. [Risk and liquidation](clearing/risk-and-resolution.md) |
 | Independent maker validation (P15B) | An external maker must independently operate, reconcile and exit. All makers in the local evidence were internal. |
 | Independent review and funded-pilot readiness (P16B) | Separate review, risk calibration and authorization. Default/devnet builds keep the current financial paths disabled. |

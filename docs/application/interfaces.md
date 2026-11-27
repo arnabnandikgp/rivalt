@@ -59,6 +59,13 @@ flat netting or gain payment. Direct cancellation and admissible withdrawal must
 work with the venue API stopped. Recovered/terminal cash exits preserve their
 source-independent flat/no-claim rules.
 
+For the local grouped coverage layout, `groupedFundedWithdrawal` builds the owner
+instruction from an authenticated account snapshot. It includes markets required
+by live orders, positions and flat claims, the applicable ledgers and the
+owner account's coverage lane. Prepend the instructions returned by
+`marketCheckpointsFor` in the same transaction. The grouped-credit wallet
+performs this step in `prepare`. [SDK implementation](../../packages/sdk/src/account-client.ts)
+
 Current balance previews include both funding checkpoints, all negative claims,
 per-position IM and refreshed orders, with zero positive unpaid-profit credit.
 Indicative cash headroom is capped by all mixed held-funding corners. Missing

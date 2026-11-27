@@ -17,7 +17,7 @@ Use the numbered findings across revisions. **Open** means a measured bottleneck
 | 7 | **Coordinated makers and sources — Open for benchmark coverage** | The fixture can refresh six maker publications and synthetic oracle sources together. The funding report uses published depth and omits hypothetical financial admission. [Fixture](../../tests/rpc-contract/liquidity-execution-setup.ts) · [Funding](../liquidity/funding.md) | Vary maker update timing separately from oracle updates. Measure executable spread, refusals and funding coverage. The combined price jump and maker outage belongs to the deferred exercise. |
 | 8 | **Willing liquidation capital — Deferred to the shock exercise** | The signed case sold ten lots to a maker. A consenting operator-owned receiver could take five more only after it was funded. [Liquidation qualification](validation.md#evidence-by-deployment) | Exercise several unhealthy accounts competing for limited receiver capital. Measure deficit after fees, remaining exposure and recovery time. Independent participation is a separate external gate. |
 | 9 | **Local costs versus sustainable participation — Open for cost reporting** | The wallet uses zero priority fee and the maker kit labels hedge cost as an assumption. The 119 fills earned 2,963 collateral atoms in aggregate taker fees before insurance. [Wallet budget](../liquidity/routing.md) · [Maker economics](../../packages/maker-kit/src/liquidity-economics.ts) | Report actual costs per role in lamports, retained fees after insurance, funded and unpaid maker P&L, and explicitly assumed hedge and priority-fee scenarios. Independent maker economics remain open. |
-| 10 | **Markets sharing a margin account — Open** | Local clearing has two fixed slots. A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | [Signed fills](#signed-orders-on-eight-markets) and [receiver liquidation](#funded-receiver-liquidation-across-markets) qualify the sparse fixture. Integrate the wider account with venue clearing and its clients after the wider-default gate. |
+| 10 | **Markets sharing a margin account — Open** | Local clearing has two fixed slots. A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | [Signed fills](#signed-orders-on-eight-markets) and [receiver liquidation](#funded-receiver-liquidation-across-markets) qualify the sparse fixture. [Venue withdrawals](#occupied-market-withdrawal-on-venue-clearing) use the indexed check at two markets. Wider venue accounts and default activation remain open. |
 | 11 | **Default across three or more markets — Open, blocks wider cross trading** | A native complete-book calculation at `8b1e155f` matched independent exact settlement across three markets, including partial recovery, cycles, insurance and terminal whole atoms. [Workload](#three-market-frozen-book-settlement) | The [signed five-member book](#signed-three-market-default-and-wallet-exit) verifies the maximal protected charge for a single eligible pair and reconciles the wallet exits. The [signed two-winner settlement](#signed-two-winner-settlement-and-withdrawals) checks competing charges on the same BTC debtor. The [market-indexed engine](#one-settlement-engine-across-market-widths) compares simultaneous reductions against the original book. The [signed four-market book](#signed-market-indexed-settlement) verifies nine allocations and wallet exits. The [insured settlement](#insured-settlement-with-two-debt-destinations) pays a debtor’s two destinations and protects a creditor through rounding. Residual-only default, competing winners in the indexed verifier and venue integration remain open. Finding 5 tracks the operating cost of recovery. |
 
 ## Payout and cross-margin work
@@ -40,6 +40,26 @@ claim's progress. Preserve the closed fixed-width entry finding and the separate
 external and endurance gates.
 
 On the fresh grouped payout build, the [signed 1,000-member workload](performance.md#payout-with-incremental-debtor-groups) paid a closed ETH gain with every member exposed. All 64 group bounds held at the current adverse endpoints. The verifier checked zero individual debtors. A price shock that made an idle debtor unable to pay forced an individual check and blocked payment. The [stressed worker run](performance.md#automatic-wallet-payouts-on-a-stressed-1000-member-book) covers scheduling under competing fills and measures a payment with 40 groups requiring exact checks.
+
+### Occupied-market withdrawal on venue clearing
+
+Fresh local profile `indexed-withdrawal` ran clearing `4e11ef94` and SDK/harness
+`356293da`. A cross trader bought ten BTC lots at 60,002 atoms per lot and
+sold ten ETH lots at 29,998. The independent cash floor was 99,940 atoms after
+fees. After transferring one atom to the owner's other margin account, the
+owner withdrew 899,878 atoms to their token account. The SPL vault decreased by
+the same amount. This complete withdrawal transaction used 144,477 CU and
+1,107 wire bytes, including the market and fee checkpoints.
+
+Clearing rejected omission of ETH with only an ETH order and again with an open
+ETH position. Substituting the BTC PDA for the required ETH PDA failed seed
+validation. Both a transfer and a wallet withdrawal one atom over the limit
+failed. Each refusal preserved the watched margin, maker, lane, market, ledger,
+custody and token bytes. The run fetched 241 signed transactions over local
+RPC, observed WebSocket notifications and reproduced 116 journal events in a
+fresh PostgreSQL database. The signed venue book used zero funding premium.
+Nonzero mixed endpoints are covered in the native width and clearing tests.
+The venue still lists BTC and ETH.
 
 ### Withdrawal risk at two, four and eight markets
 

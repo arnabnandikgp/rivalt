@@ -55,9 +55,10 @@ constructs the funded transfer, and commits the accepted pair. [Withdrawal handl
 
 ### Withdrawal risk across occupied markets
 
-Current clearing enumerates the four BTC/ETH funding corners. The width
-comparison uses the same two requirements after accruing positions and refreshing
-order reservations. At current funding, retained cash must cover negative claims,
+The selected BTC/ETH build enumerates four funding corners. The opt-in local
+`indexed-withdrawal` clearing build applies the same two requirements to owner
+withdrawals and the donor side of funded transfers after accruing positions and
+refreshing order reservations. At current funding, retained cash must cover negative claims,
 per-market initial margin rounded up in atoms, and remaining order reservations.
 Across the held funding window, retained cash must cover negative claims. Keep
 fractional losses at full scale until comparing them to whole cash atoms.
@@ -70,6 +71,15 @@ funding for each short. A flat debt is fixed and a positive unpaid claim
 contributes zero. This lets one pass over the occupied markets calculate both
 cash requirements. The argument depends on the current additive risk rule and
 independent windows.
+
+On the local venue adapter, clearing derives required markets from the stored
+account before refreshing orders. Each supplied market must match its PDA,
+venue registry entry and market index. A live order can require a market even
+when the account has no position there. After refresh, the adapter passes every
+nonzero position or flat claim and the total surviving reservation to the risk
+kernel. Only open positions contribute funding windows. An omitted occupied
+market aborts the entire transaction, including its checkpoints. The venue
+account layout still has two slots. [Clearing adapter](../../programs/clearing/src/instructions/account_cash/engine.rs)
 
 The risk kernel takes occupied slots in market-ID order. Its funding windows cover every open position. The original signed width comparison uses read-only synthetic inputs. The [funded custody qualification](accounts.md#funded-custody-qualification) derives the required observations from persisted slots on both roots, including order-only markets, before applying the same kernel and moving test collateral. The production oracle adapter and general order lifecycle still need wider integration.
 [Risk calculation](../../crates/risk-engine/src/withdrawal.rs) · [Qualification](../operations/qualification-scorecard.md#withdrawal-risk-at-two-four-and-eight-markets)
