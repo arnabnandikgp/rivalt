@@ -11,7 +11,7 @@ from test_market_indexed_default import SCALE, candidate, expected, frozen, link
 
 
 def competing_certificate(book, positions, target, debtor, winners, venue):
-    """Enumerate even partial recoveries. Send only contenders for full recovery."""
+    """Enumerate even partial recoveries. Send only splits capable of attaining the independently derived upper bound."""
     passes = []
     before = expected(book, rate_passes=passes)
     budget = int(Fraction(before['rows'][debtor]['writeoff'][target]))
@@ -28,8 +28,9 @@ def competing_certificate(book, positions, target, debtor, winners, venue):
     preferred = min(range(2), key=lambda i: priority(winners[i]))
     ranking = []
     physical = 0
-    lower = max(0, budget - weights[1])
-    for total in range(budget + 1):
+    bound = min(budget, sum(weights))
+    lower = max(0, bound - weights[1])
+    for total in range(bound + 1):
         for left in range(max(0, total - weights[1]), min(total, weights[0]) + 1):
             split = [left, total-left]
             matched = [(charge + rate-1)//rate for charge,rate in zip(split,rates)]
@@ -40,7 +41,7 @@ def competing_certificate(book, positions, target, debtor, winners, venue):
                 dict(debtor=book['roster'][debtor], winner=book['roster'][member], charge=cost)
                 for member,cost in zip(winners,split) if cost])] if total else []
             outcome = candidate(book, actions)
-            if total == budget:
+            if total == bound:
                 changed = copy.deepcopy(book)
                 for member,delta in [(debtor,total), *zip(winners,(-cost for cost in split))]:
                     claims = changed['rows'][member]['claims']
@@ -51,13 +52,13 @@ def competing_certificate(book, positions, target, debtor, winners, venue):
             recovery = sum(map(Fraction, outcome['recovery']))
             deviation = sum(Fraction(charge**2, weight) for charge,weight in zip(split,weights)) - Fraction(total**2,sum(weights))
             ranking.append(((-recovery,deviation,total,sum(matched),-split[preferred]), split, matched, outcome,
-                            total == budget and ordinary['rows'] != outcome['settlement']['rows']))
+                            total == bound and ordinary['rows'] != outcome['settlement']['rows']))
     rank,split,matched,outcome,repaired = min(ranking, key=lambda item:item[0])
-    assert -rank[0] == sum(split) == budget and budget > 0
+    assert -rank[0] == sum(split) == bound and bound > 0
     loss = [sum(Fraction(row['loss'][m]) for row in before['rows']) for m in range(len(book['markets']))]
-    assert loss[target] == budget
+    assert loss[target] >= bound
     totals = [0]*len(loss)
-    totals[target] = budget
+    totals[target] = bound
     return dict(denominator=0, selected=1+split[0]-lower, numerators=[word for step in passes for word in step],
                 baselineLoss=list(map(str,loss)), cash=[int(row['cash']) for row in outcome['settlement']['rows']],
                 charges=totals, spent=list(map(int,outcome['settlement']['spent'])), repaired=repaired,

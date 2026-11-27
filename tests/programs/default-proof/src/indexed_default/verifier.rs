@@ -452,12 +452,11 @@ pub(super) fn verify_book(
     let (cash, repaired, spent) = if let Some(contest) = contest {
         let market = contest.market;
         charges = [0; WIDTH];
-        charges[market] = contest.budget;
         let (terminal, result) = contest.verify(
             &book,
             &baseline,
             &mut pairs,
-            &charges,
+            &mut charges,
             proof,
             &mut words,
             context.ok_or(ProofError::UnsupportedBook)?,

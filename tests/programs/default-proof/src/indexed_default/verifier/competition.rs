@@ -1,5 +1,6 @@
-//! Full recovery establishes an upper bound. Only splits of that same total
-//! can tie it, so smaller charges do not need on-chain rate witnesses.
+//! A protected reduction attaining the lesser of the debtor budget and all
+//! available winner capacity is optimal on recovery. Only splits of that total
+//! can tie it. Any remaining uninsured impairment still enters final settlement.
 use super::*;
 use clearing_accounting::attribution::LotRate;
 use core::cmp::Reverse;
@@ -19,18 +20,12 @@ impl Contest {
         book: &Book,
         baseline: &Flow,
         pairs: &mut [Pair],
-        charges: &Columns,
+        charges: &mut Columns,
         proof: &RatesProof,
         words: &mut &[u32],
         (venue, capacities): (&Address, &[(usize, usize, FrozenCapacity)]),
     ) -> Result<(Flow, WinnerSplit)> {
         let target = self.market;
-        // The candidate must eliminate the complete original market impairment.
-        // One debtor's integer loss budget bounds every physically legal charge.
-        require!(
-            baseline.loss[target] == self.budget * baseline.unit,
-            ProofError::UnsupportedBook
-        );
         let available = book.rows[self.debtor].cells[target].lots.unsigned_abs();
         let capacity = |winner: usize| -> Result<(u64, LotRate)> {
             let (_, _, terms) = capacities
@@ -52,8 +47,21 @@ impl Contest {
             left_weight > 0 && right_weight > 0,
             ProofError::UnsupportedBook
         );
-        let lower = self.budget.saturating_sub(right_weight);
-        let upper = self.budget.min(left_weight);
+        let total = self.budget.min(
+            left_weight
+                .checked_add(right_weight)
+                .ok_or(ProofError::DefaultCharge)?,
+        );
+        charges[target] = total;
+        let original_loss_after_charge = baseline.loss[target]
+            .checked_sub(
+                total
+                    .checked_mul(baseline.unit)
+                    .ok_or(ProofError::DefaultCharge)?,
+            )
+            .ok_or(ProofError::DefaultCharge)?;
+        let lower = total.saturating_sub(right_weight);
+        let upper = total.min(left_weight);
         require!(
             lower <= upper && upper - lower < (PLANS - 1) as u64,
             ProofError::UnsupportedBook
@@ -68,7 +76,7 @@ impl Contest {
         let mut best = None;
         let mut selected_split = None;
         for (offset, left) in (lower..=upper).enumerate() {
-            let right = self.budget - left;
+            let right = total - left;
             let lots = [
                 checked(left_rate.matched(left))?,
                 checked(right_rate.matched(right))?,
@@ -78,7 +86,9 @@ impl Contest {
             }
             pairs[target].second = Some((self.winners[1], right));
             book.read_plan(words, proof.denominator, pairs, charges, &mut scratch)?;
-            if scratch.loss[target] != 0 || book.rank(baseline, &scratch, pairs, charges).is_none()
+            if u128::from(scratch.loss[target]) * u128::from(baseline.unit)
+                > u128::from(original_loss_after_charge) * u128::from(scratch.unit)
+                || book.rank(baseline, &scratch, pairs, charges).is_none()
             {
                 continue;
             }
