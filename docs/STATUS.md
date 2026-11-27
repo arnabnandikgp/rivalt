@@ -1,6 +1,6 @@
 # Project status
 
-Updated 27 November 2026. Rivalt is a local, test-collateral BTC/ETH perpetual venue. The wallet uses on-chain execution-time routing across three internal makers per market. A fill selects up to two maker capitals. The same clearing engine handles isolated and cross accounts.
+Updated 28 November 2026. Rivalt is a local, test-collateral BTC/ETH perpetual venue. The wallet uses on-chain execution-time routing across three internal makers per market. A fill selects up to two maker capitals. The same clearing engine handles isolated and cross accounts.
 
 ## Integrated
 
@@ -129,10 +129,17 @@ bounds of 149–155. After expiry and source recovery at $1.01 collateral it was
 PostgreSQL replay reproduced 96 events from the run's 258 signed transactions.
 [Signed index results](operations/qualification-scorecard.md#inactive-sol-index-observation)
 
-**Next action.** Qualify admission of a market-isolated SOL maker on local
-clearing. Bind its registration and quote configuration to the listing and its
-own funded capital, and verify that a BTC/ETH maker's capital cannot substitute.
-SOL fills and wider cross-margin activation remain gated.
+**Finding 10, isolated maker admission for inactive listings (Review).** At program
+`5929eb48` and harness `5924e4c4`, the venue admitted one funded SOL maker.
+Its wallet withdrew all 1,234,567 deposited collateral atoms. BTC and ETH capital
+substitutions and the second listing's claim on the same capital all failed.
+The previous rehearsal omitted active-venue ledger checkpoints on deposit; the
+successful run supplied them. Fresh PostgreSQL replay reproduced 103 events
+from 255 signed transactions. [Acceptance](operations/qualification-scorecard.md#isolated-maker-capital-for-an-inactive-listing)
+
+**Next action.** Qualify settlement with competing winners when their available
+gain covers only part of a default. Follow with simultaneous competing markets
+and real venue integration before admitting wider trading.
 
 | Open gate | What remains |
 |---|---|

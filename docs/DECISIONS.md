@@ -56,3 +56,11 @@ before trading can open. [Listing contract](clearing/accounts.md#registering-an-
 **24 November 2026 — Adopt closed-quantity ordinary price-profit settlement.** This supersedes the ordinary open-payment portion of D112–D115, D123 and D125 for fresh local deployments. A maker or trader who carries profitable inventory can realize it by reducing that inventory. Accrued funding and the return of previously collected losses retain separate fixed-claim treatment. The old design needed a quantity-dependent storage reserve for future open payments. Reintroducing open-price payouts is deferred. Historical accounts and their signed journals retain their original deployment. [Accounting contract](clearing/accounting.md#ordinary-payouts-on-closed-quantity)
 
 **25 November 2026 — Allow wider atomic fills on an explicitly selected deployment.** An authenticated wallet shortlist can supply up to eight distinct maker capitals to one order. Clearing allocates the exact quantity on current bounded curves and admits the full allocation atomically. A financial failure can still refuse an order with another executable allocation. The two-leg search remains available. This extends the earlier two-counterparty decision for the local multi-maker instruction. [Routing contract](liquidity/routing.md#wider-atomic-fills)
+
+### 28 November 2026 · Isolate newly listed maker capital by listing address
+
+The local admission profile keeps the existing collateral vault and Financial
+membership. An immutable capital binding points to the registration for one
+full listing address. The one-byte selector reserves a tag for this class of
+account. A listed maker's deposit therefore cannot back a BTC/ETH fill or a
+second listing. [Account contract](clearing/accounts.md#isolated-maker-capital-for-an-inactive-listing)

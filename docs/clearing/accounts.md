@@ -12,13 +12,29 @@ USD index. Clearing checks the local oracle program's ownership, the feed's
 address and its stored publisher and feed ID. Registration does not read its price.
 
 The authority pays rent for these two accounts. Existing trader and maker accounts
-do not grow when a market is registered. A listing has no market ledger, funded
-maker capital or position slot and cannot authorize an order. The two admitted
+do not grow when a market is registered. Listing registration creates no market ledger or position slot. Orders require a separate trading market. The two admitted
 markets still come from the venue's trading configuration.
 
 A separate `ListingIndex` PDA keyed by the listing stores the bound sources and
 the last qualified price observation. The authority funds it at binding. A sample
 writes only this clearing account. [Index rules](risk-and-resolution.md#observing-the-index-of-an-inactive-listing)
+
+## Isolated maker capital for an inactive listing
+
+On the local `listed-maker-admission` profile an owner can create a dedicated
+maker margin account in their existing portfolio and deposit the venue's
+collateral through the usual SPL vault. Its inline market selector is 254,
+a tag meaning neither BTC nor ETH. Both inline positions and their reservations
+must be zero. The root has its own member ID and funded cash balance.
+
+The maker program binds its quote configuration to the full listing address
+and capital root. The owner and venue authority then sign `admit_listed_maker`.
+Clearing checks the program, executable hash, configuration, price account and
+positive funded balance. It creates a registration keyed by listing and
+instance and one permanent binding keyed by capital. This second key prevents
+the same capital from supporting two registrations, even when the maker
+deployments or listings differ. A maker can withdraw its funded cash. The binding
+persists at zero balance, so a consumer must check available capital at fill time.
 
 ## Follow a deposit
 

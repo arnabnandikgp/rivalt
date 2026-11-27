@@ -41,6 +41,14 @@ Compare per-lot bounds at 99-cent and $1.01 collateral with independent arithmet
 Verify source substitutions, stale and conflicting reports, expired sample recovery,
 the transaction signer, unchanged balances and the final state in fresh SQL replay.
 
+For listed maker admission, build clearing and both makers at `5929eb48` with
+`RIVALT_ATTRIBUTION_PROFILE=listed-maker-admission bash ops/build-profit-attribution.sh`.
+Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the output directory and
+`RIVALT_ROUTER_REVISION=5929eb48f2963499bc0a5316a9a22c2b99dcdd3d`. Run
+`RIVALT_SETTLEMENT_PROBE=execution-router-listed-maker bash ops/scalable-settlement-smoke.sh`.
+Check the wallet and vault around the full deposit and exit, both market ID
+directions, BTC/ETH capital substitution, code approval and finalized SQL replay.
+
 To qualify the occupied-market cash floor on the venue, build program commit
 `4e11ef9488b3c2205a1fa1bad02c0215cae8d976` with
 `RIVALT_ATTRIBUTION_PROFILE=indexed-withdrawal bash ops/build-profit-attribution.sh`.

@@ -176,3 +176,11 @@ Exact account spans depend on the deployment and its clearing-owned registration
 ## Events and economics
 
 Only committed financial effects enter the finalized journal. Compare actual inventory, consumed depth, fees, funding, funded cash and unpaid claims for each maker. The local maker kit computes its report from finalized events and labels any assumed hedge cost. [Operator runbook](../operations/deployment.md#reconciliation-economics-and-exit)
+
+## Publishing for an inactive listing
+
+On the local `listed-maker-admission` build either maker program can initialize
+a curve with its owner's listing-tagged capital, then publish using the usual
+owner or delegated updater. Clearing admission requires both the owner and venue
+authority. A published curve alone gives the router no permission to execute a
+fill. [Capital identity and custody](../clearing/accounts.md#isolated-maker-capital-for-an-inactive-listing)
