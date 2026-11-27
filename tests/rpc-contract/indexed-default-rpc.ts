@@ -82,6 +82,12 @@ async function probe(width:number,padding:number,cycle=false) {
   const tx=await rpc.call('getTransaction',[signature,{commitment:'finalized',maxSupportedTransactionVersion:1}]);
   assert.equal(tx.meta.returnData.programId,program);
   assert.deepEqual(Buffer.from(tx.meta.returnData.data[0],'base64'),Buffer.concat([u32(data.rows.length),...data.proof.cash.map(u64)]));
+  if(width===1) {
+    // Both candidates pay exactly four and have integral movements. Only a
+    // two-atom concession fully resolves the original two-atom impairment.
+    assert.deepEqual(data.proof.cash,[0,4]);
+    await inspect('refuse strictly lower recovery with identical wallet exits',{...data.proof,selected:1},6016);
+  }
   if(width===4 && padding===0 && !cycle) {
     assert.deepEqual(data.proof.cash,[0,0,0,0,0,0,9,9]);
     await inspect('refuse unsafe standalone close',{...data.proof,selected:2},6016);
@@ -142,7 +148,7 @@ try {
   for(const [i,amount] of proof.cash.entries()) if(amount) await wallet(i,amount,true);
   assert.deepEqual(await Promise.all(wallets.map(w=>balance(w.address))),proof.cash.map(BigInt));
   assert.equal(await balance(vault),8n);
-  await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true);
+  await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true);
   const replay=new IndexedReplay(custody,keeper.address,mint.address,owners.map(o=>o.address),wallets.map(w=>w.address),ids,modes);
   const journal=await replayOrders(rpc,program,roots,vault,await balance(vault),expected,undefined,replay);
   assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],[8,'0','8','8']);

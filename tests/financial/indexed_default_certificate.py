@@ -49,6 +49,10 @@ def certificate(book, positions):
 
 
 def probe(width, padding, cycle):
+    if width == 1:
+        rows = [(4, [-6]), (0, [6])]
+        positions = [[(-1, 0)], [(1, 6)]]
+        return dict(rows=rows, positions=positions, proof=certificate(frozen(rows), positions))
     book = linked_book(width)
     rows = [[int(row['cash']), [int(claim)//SCALE for claim in row['claims']]] for row in book['rows']]
     if cycle:

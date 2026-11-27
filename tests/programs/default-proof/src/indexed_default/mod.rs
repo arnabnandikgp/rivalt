@@ -4,6 +4,7 @@ use super::*;
 use crate::slot_custody::checked;
 use anchor_lang::{AccountDeserialize, BorshConfig};
 use anchor_spl::token::TokenAccount;
+use clearing_accounting::attribution::FrozenCapacity;
 use financial_core::SCALE;
 use solana_sha256_hasher::hashv;
 mod verifier;
@@ -23,6 +24,8 @@ pub struct IndexedCustody {
     pub ids: [u16; WIDTH],
     pub commitment: [u8; 32],
     pub selected: u8,
+    pub charges: [u64; WIDTH],
+    pub matched: [u64; WIDTH],
 }
 impl IndexedCustody {
     pub fn trading(&self) -> Result<()> {
@@ -119,7 +122,13 @@ pub struct SettleIndexed {
     pub vault: Account<TokenAccount>,
 }
 
-fn member(root: &TradingMargin, ids: &[u16], markets: &[TradingMarket]) -> Result<Member> {
+fn member(
+    index: usize,
+    root: &TradingMargin,
+    ids: &[u16],
+    markets: &[TradingMarket],
+    capacities: &mut Vec<(usize, usize, FrozenCapacity)>,
+) -> Result<Member> {
     let mut cells = vec![Cell::default(); ids.len()];
     require!(root.order.remaining == 0, ProofError::UnsupportedBook);
     let mut previous = None;
@@ -144,6 +153,9 @@ fn member(root: &TradingMargin, ids: &[u16], markets: &[TradingMarket]) -> Resul
             let basis = checked(image.entry.frozen_basis(lots))?;
             let capacity = checked(basis.frozen_capacity(lots, mark, scaled, lots.unsigned_abs()))?;
             eligible = u32::try_from(capacity.eligible).map_err(|_| ProofError::UnsupportedBook)?;
+            if eligible > 0 {
+                capacities.push((index, m, capacity));
+            }
         }
         cells[m] = Cell {
             claim,
@@ -219,12 +231,27 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
         ProofError::CustodyBinding
     );
     require!(digest == hash, ProofError::DefaultCommitment);
+    let mut capacities = Vec::new();
     let rows = roots
         .iter()
-        .map(|root| member(root, ids, &markets))
+        .enumerate()
+        .map(|(index, root)| member(index, root, ids, &markets, &mut capacities))
         .collect::<Result<Vec<_>>>()?;
-    let cash = verifier::verify(&rows, ids.len(), &proof)?;
-    for ((root, amount), view) in roots.iter_mut().zip(cash).zip(views.iter_mut()) {
+    let plan = verifier::verify(&rows, ids.len(), &proof)?;
+    for (m, &charge) in plan
+        .charges
+        .iter()
+        .enumerate()
+        .filter(|(_, charge)| **charge != 0)
+    {
+        let (_, _, terms) = capacities
+            .iter()
+            .find(|(i, market, _)| *i == plan.winners[m] && *market == m)
+            .ok_or(ProofError::DefaultCharge)?;
+        domain.matched[m] = checked(terms.schedule(charge))?.matched;
+    }
+    domain.charges = plan.charges;
+    for ((root, amount), view) in roots.iter_mut().zip(plan.cash).zip(views.iter_mut()) {
         root.cash = amount;
         root.slots.clear();
         root.advance()?;
@@ -272,5 +299,5 @@ pub fn inspect(width: u8, input: Vec<ProbeMember>, proof: RatesProof) -> Result<
                 .collect(),
         })
         .collect::<Vec<_>>();
-    verifier::verify(&rows, usize::from(width), &proof)
+    Ok(verifier::verify(&rows, usize::from(width), &proof)?.cash)
 }

@@ -257,7 +257,13 @@ fn allocation(mut index: usize, pairs: &[Pair]) -> Columns {
     charges
 }
 
-pub(super) fn verify(rows: &[Member], width: usize, proof: &RatesProof) -> Result<Vec<u64>> {
+pub(super) struct Verified {
+    pub cash: Vec<u64>,
+    pub charges: [u64; WIDTH],
+    pub winners: [usize; WIDTH],
+}
+
+pub(super) fn verify(rows: &[Member], width: usize, proof: &RatesProof) -> Result<Verified> {
     let book = Book::new(rows, width, proof.denominator)?;
     let before = proof
         .numerators
@@ -317,5 +323,9 @@ pub(super) fn verify(rows: &[Member], width: usize, proof: &RatesProof) -> Resul
             && cash.iter().sum::<u64>() == rows.iter().map(|r| u64::from(r.cash)).sum(),
         ProofError::UnsupportedBook
     );
-    Ok(cash)
+    Ok(Verified {
+        cash,
+        charges,
+        winners: pairs.map(|pair| pair.winner),
+    })
 }
