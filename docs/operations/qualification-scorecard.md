@@ -683,3 +683,10 @@ The signed on-chain effects in this workload end at freeze.
 The preceding funded-book rehearsal at `58ec5340` reconciled 112 events without a
 freeze. An earlier launch stopped before the workload because the native reference
 example was built without its required Cargo feature.
+
+
+### Checking the protected plan on the funded venue
+
+Clearing `a094f62c` and harness `cab2dfbf` froze seven real margin accounts after BTC moved to 80,000. The market already held 996 collected collateral atoms. The debtor could supply 11,504 atoms and BTC insurance could supply six. Initial entitlements were payable at 6,253/9,999. Reducing the opposing open gain by 7,492 atoms restored full recovery of the remaining claims. The signed result returned 0 for the debtor, 24,010 for its counterparty, 12,500 each for four other makers and 1,000,970 for the trader. Combined entitlements and the 20 retained fee atoms reconcile to the 1,075,000-atom vault.
+
+The read-only transaction used 66,981 CU, 882 bytes and 21 loaded accounts. Missing or substituted members, a stale episode, a forged rate, skipped recovery and surplus witness data all refused. The independent legacy Anchor client matched the instruction encoding. The workload finalized 243 signed transactions, and fresh PostgreSQL reconciliation matched 117 financial events. Actual balances were unchanged after the preview. Wider-market fills and application to the venue wallets remain open.

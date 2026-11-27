@@ -160,9 +160,9 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 117 events. The wider settlement has yet to pay wallets on this venue.
 [Signed frozen inputs](operations/qualification-scorecard.md#complete-settlement-inputs-from-venue-clearing)
 
-**Next action.** Verify the maximal protected reduction against this funded
-settlement pool on chain, using the venue's frozen member IDs and episode.
-The rule for economically distinct finalists in asymmetric markets awaits a decision.
+**Finding 11, funded venue default preview (Review).** On clearing `a094f62c` and harness `cab2dfbf`, a signed read verified a 7,492-atom reduction on the frozen seven-member book. It used 66,981 CU. Six invalid submissions refused and 117 financial events reconciled in PostgreSQL. Application and owner withdrawals on the wider venue remain open. [Amounts and limits](operations/qualification-scorecard.md#checking-the-protected-plan-on-the-funded-venue)
+
+**Next action.** Implement the approved frozen-episode market order for protected wider-market finalists tied on recovery, market insurance and total lots closed, then exercise it on the asymmetric three-market book.
 
 | Open gate | What remains |
 |---|---|

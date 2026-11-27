@@ -261,6 +261,12 @@ The program derives both weights and the minimum lots for each charge from the o
 
 The local custody can enter terminal settlement once. Its address, episode ordinal one and pre-registered member ordinal determine the final tie. Waiting another slot cannot change it. Fresh local custody appends one receipt per competing market with its full market ID, both member ordinals, charges and matched lot counts. The earlier fixture layout remains identified by its pinned build. [Verifier](../../crates/default-plan-selection/src/market_indexed/competition.rs) · [Signed comparison](../operations/qualification-scorecard.md#two-winners-on-a-four-market-book)
 
+### Verifying a default on the funded venue
+
+The local `venue-default-verifier` exposes `verify_indexed_default` on a venue frozen for insolvency. It reads the existing resolution account, token vault, custody, safety and registry accounts, both markets and ledgers, recovery storage and each financial margin account in ascending stable ID order. Clearing checks the current frozen episode, reconciles gross lots, cash and pool balances, and values every position at the frozen index and funding. Positive open gains also require the original position's surviving entry and opposing lots before a reduction can be certified.
+
+A successful call returns one whole-atom cash entitlement per member, followed by insurance spent and forced charges per market. The read-only call leaves every margin account, ledger and wallet untouched. This local adapter accepts at most twelve members and currently requires whole-atom input claims representable as signed 32-bit integers, with member cash representable as unsigned 32-bit integers. Wider books and fractional claims need their own application path. [Venue adapter](../../programs/clearing/src/instructions/account_safety/settlement/indexed.rs)
+
 ### Current two-market equations
 
 For the set of claims being settled, let `W_m` be the sum of positive claims in a market, and `B_m` its initial P plus

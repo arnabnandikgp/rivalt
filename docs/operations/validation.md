@@ -221,3 +221,6 @@ The [automatic direct-credit comparison](performance.md#automatic-payout-on-the-
 
 
 The [grouped open-book qualification](performance.md#payout-with-incremental-debtor-groups) ties the three signed payouts to decoded fill events, margin roots, source values, token exit and 4,413 replayed PostgreSQL events on harness `796a16b0`. Coverage maintenance and the exact fallback also have a separate idle cross-debtor shock control on `40691ed8`. Both used clearing `e4aff314`. The [stressed worker qualification](performance.md#automatic-wallet-payouts-on-a-stressed-1000-member-book) on `11cb1b55` matches queue originals to RPC/WS and both wallet exits to finalized token deltas. Independent fill and price receipts reproduce the idle debtor’s 9,138-atom shortfall and 6,702-atom recovered headroom. Fresh replay matched 3,583 events.
+
+
+For the [funded venue default preview](qualification-scorecard.md#checking-the-protected-plan-on-the-funded-venue), build the `venue-default-verifier` profile with `ops/build-profit-attribution.sh`. Run `ops/scalable-settlement-smoke.sh` with `RIVALT_SETTLEMENT_PROBE=execution-router-venue-default`, the pinned `RIVALT_ROUTER_REVISION` and its `RIVALT_SETTLEMENT_ARTIFACT_DIR`. Assert the entire returned entitlement vector, all six signed refusals, unchanged financial accounts, wire conformance and PostgreSQL replay.
