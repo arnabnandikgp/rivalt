@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "0038cf323725727d1c22f518fa2d89a670357f2efda6eebca79a8665c0f28c60",
+    "clearing": "a0ac81da377f9fd83819c55ac9ebd90b1a6b925039577b04f2329eb3ea654b40",
     "maker_a": "64842c29c8098dd8dfd722794d7d39cc9cd9c2ca3141dea261d07a676701dc11",
     "maker_b": "9812ee6127ac5078a5d5d246b0965cdc749995cce99335e0e4b4ea69ebb66eee"
   },
@@ -394,6 +394,29 @@
       "optional": [
         "co_signer"
       ]
+    },
+    {
+      "program": "clearing",
+      "name": "begin_listed_qualification",
+      "write": [
+        "authority",
+        "venue",
+        "safety",
+        "listing",
+        "funding",
+        "directory",
+        "book"
+      ],
+      "read": [
+        "registry",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
     },
     {
       "program": "clearing",
@@ -1320,6 +1343,52 @@
         "second_program_data",
         "second_config",
         "second_price"
+      ]
+    },
+    {
+      "program": "clearing",
+      "name": "execute_listed_market_order",
+      "write": [
+        "btc",
+        "eth",
+        "book",
+        "funding",
+        "trader",
+        "zero_capital",
+        "zero_registration",
+        "one_capital",
+        "one_registration",
+        "two_capital",
+        "two_registration"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "directory",
+        "listing",
+        "registry",
+        "zero_program",
+        "zero_program_data",
+        "zero_config",
+        "zero_price",
+        "one_program",
+        "one_program_data",
+        "one_config",
+        "one_price",
+        "two_program",
+        "two_program_data",
+        "two_config",
+        "two_price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": [
+        "btc",
+        "eth"
       ]
     },
     {

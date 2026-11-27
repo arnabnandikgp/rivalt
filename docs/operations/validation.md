@@ -245,3 +245,19 @@ the SPL wallet and vault deltas, and every margin layout against the finalized
 PostgreSQL replay. On clearing `0d8b70e0` and harness `11a502cd`, the BTC and
 ETH fills used 235,742 and 283,469 CU. The maximum exit used 151,880 CU and
 transferred 959,945 atoms. The new records were empty. [Account contract](../clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+
+### Signed three-market venue order
+
+Build clearing at `48f78deccb83995950a83c640b8206fd21758477` with
+`RIVALT_ATTRIBUTION_PROFILE=listed-venue-execution bash ops/build-profit-attribution.sh`.
+Select that artifact directory in `RIVALT_SETTLEMENT_ARTIFACT_DIR`, its full
+revision in `RIVALT_ROUTER_REVISION`, and use harness `7654019e` with
+`RIVALT_SETTLEMENT_PROBE=execution-router-listed-execution bash ops/scalable-settlement-smoke.sh`.
+The local run reproduced the same signed financial outcomes on two fresh venues.
+In the complete run the cross account held BTC, ETH and SOL together, the
+separately owned SOL maker held the matching short, and both isolated Anchor
+clients agreed with the generated SDK. Two fresh PostgreSQL journals produced
+identical financial events. Finalized account reads confirmed the maker's
+consumption, the trader's 42,981 cash atoms, one collected SOL-market fee atom
+and an unchanged SPL vault. The preceding withdrawal occurred before the SOL
+order. Wider cash exits and default remain pending.
