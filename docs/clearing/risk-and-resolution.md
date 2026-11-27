@@ -309,3 +309,10 @@ unclipped rational benchmark; uncollected sub-atom debt and clipped insurance
 remain separately reported.
 
 [Frozen profit and verification](default-plan-verification.md) explains how permitted forced reductions change creditor claims before the residual payout calculation. Clearing binds each member's payout to a complete plan, applies it once, and reconciles balances, market pools and SPL custody before resolved withdrawals. [Recovery measurements](../operations/validation.md)
+
+
+### Applying an indexed result on the local venue
+
+The `venue-default-application` profile can bind a verified plan after clearing values the complete original membership. The caller supplies the episode, current prepared revision, rate witness and every authenticated frozen page in ordinal order. Clearing reconstructs each winner's capacity from its frozen entry, verifies the selection, and checks that claim adjustments sum to zero per market, individual cash postings conserve collateral and total payments equal the available pools plus insurance spent. The binding stores these results once in the frozen rows.
+
+The common settlement controller applies the stored postings to the actual margin accounts and reconciles custody before moving the venue to Resolved. Owners may then sign their own SPL withdrawals. This profile operates on the venue’s BTC and ETH settlement header. The indexed verifier’s separate width and numeric bounds still apply. [Funded acceptance](../operations/qualification-scorecard.md#applying-the-verified-payouts-on-the-venue)

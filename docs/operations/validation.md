@@ -227,3 +227,6 @@ For the [funded venue default preview](qualification-scorecard.md#checking-the-p
 
 
 The joint competing indexed workload also checks [frozen market priority](qualification-scorecard.md#asymmetric-frozen-market-priority). Run `python3 tests/financial/test_indexed_market_priority.py` for full enumeration and `cargo test -p default-plan-selection --features indexed-settlement market_indexed` for the actual verifier. The signed workload checks both episode outcomes and rejects the opposite nomination before comparing its independent resource results and funded four-market withdrawals with PostgreSQL.
+
+
+Use the `venue-default-application` program artifact and `RIVALT_SETTLEMENT_PROBE=execution-router-venue-application` with `ops/scalable-settlement-smoke.sh` for [venue application and owner withdrawals](qualification-scorecard.md#applying-the-verified-payouts-on-the-venue). Set `RIVALT_ROUTER_REVISION` to the exact program source revision. The supervisor requires the pinned unified settlement page helper. It verifies real wallet and vault deltas, refused bindings, and independently reconstructed financial events in a fresh PostgreSQL database.

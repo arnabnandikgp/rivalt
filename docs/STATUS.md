@@ -164,7 +164,9 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, frozen market priority (Review).** On fixture and harness `5cb68d1d`, two signed inspections of the same asymmetric nine-member book selected the 9/8 and 10/7 outcomes in different episodes, each rejecting the rival nomination. Both recovered six atoms and spent two insurance atoms. The runtime needed a larger heap than the 32 KiB default. The separate funded four-market book reproduced five owner withdrawals. PostgreSQL reconciled 70 receipts. [Independent enumeration and costs](operations/qualification-scorecard.md#asymmetric-frozen-market-priority)
 
-**Next action.** Apply the indexed verifier's reconciled member and market movements on the frozen venue and check actual owner withdrawals from its vault.
+**Finding 11, real venue settlement and withdrawal (Review).** Clearing `bba16a8d` and harness `17e45cc1` applied the verified 7,492-atom reduction to seven frozen margin accounts. Six owner-signed withdrawals transferred 1,074,980 atoms from the venue vault and left its 20 retained fee atoms. Fresh PostgreSQL replay matched 148 financial events. The two-market controller took 234 successful continuation steps from freeze through resolution. [Signed costs and scope](operations/qualification-scorecard.md#applying-the-verified-payouts-on-the-venue)
+
+**Next action.** Bind wider positions and custody to the venue so every risk check and default reads the same occupied market IDs. Qualify an actual listed-market fill followed by whole-book settlement and owner withdrawal before enabling wider trading.
 
 | Open gate | What remains |
 |---|---|
