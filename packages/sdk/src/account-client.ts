@@ -61,7 +61,10 @@ export async function groupedFundedWithdrawal(snapshot:AccountSnapshot,owner:Add
   requireValue(root?.owner===owner && root.venue===snapshot.venue && root.lifecycle===2 && snapshot.marginLayout==='ledger-lanes'
     && snapshot.safetyState.mode===1 && !snapshot.safetyState.paused && amount>0n && amount<=root.cash,
     'Active owner margin and funded cash required.');
-  const instruction=await protocol.getWithdrawFundedAccountInstructionAsync({...snapshot,
+  // The generated async resolver fills omitted market PDAs. Preserve optional
+  // placeholders with the synchronous builder after resolving the event authority.
+  const [eventAuthority]=await protocol.findEventAuthorityPda();
+  const instruction=protocol.getWithdrawFundedAccountInstruction({...snapshot,eventAuthority,
     ...accountMarketMetas(snapshot.markets,[root]),...accountLiabilityMetas(snapshot.ledgers,[root]),
     owner:createNoopSigner(owner),margin,quoteMint:snapshot.venueState.quoteMint,userToken,amount,
     guard:accountGuard(snapshot,margin),program:protocol.CLEARING_PROGRAM_ADDRESS});

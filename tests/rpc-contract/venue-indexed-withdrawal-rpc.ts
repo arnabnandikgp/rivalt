@@ -10,6 +10,7 @@ import {symmetricPayoutShape} from './canonical-maker-cases.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {appendCoverage,coverageProvisioning} from './coverage-provisioning.js';
 import {routerBuild} from './execution-router-build.js';
+import type {ExpectedInstructionError} from './instruction-errors.js';
 import {payerKey} from './harness.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
@@ -36,7 +37,7 @@ try {
     ...lanes,...setup.markets,...setup.ledgers,setup.custody,setup.vault,wallet];
   const state=()=>Promise.all(watched.map(h.read));
   const tokens=async(key:Address)=>getTokenDecoder().decode((await h.read(key))!).amount;
-  async function refuse(label:string,ix:Instruction,error:number) {
+  async function refuse(label:string,ix:Instruction,error:ExpectedInstructionError) {
     const before=await state();
     await h.send(label,prefix(ix),[owner],error);
     assert.deepEqual(await state(),before,label);
@@ -56,6 +57,9 @@ try {
   assert(orderOnly.accounts.some(meta=>meta.address===setup.markets[1]));
   assert(!orderOnly.accounts.some(meta=>meta.address===setup.markets[0]));
   await refuse('exit omitting reserved ETH',await omitEth(),sdk.CLEARING_ERROR__ORDER_STATE);
+  const wrongMarket={...orderOnly, accounts:orderOnly.accounts.map(meta=>meta.address===setup.markets[1]
+    ? {...meta,address:setup.markets[0]} : meta)};
+  await refuse('exit substituting BTC for reserved ETH',wrongMarket,'InvalidSeeds');
   const cancel=sdk.getManageAccountOrderInstruction({...common,actor:owner,margin:trader,guard:await guard(trader),
     marketIndex:1,operation:{__kind:'Cancel',id:1n,version:1n,protectionGroup:false}});
   await h.send('cancel ETH reservation',await withCheckpoints(covered(cancel,[trader])),[owner]);
