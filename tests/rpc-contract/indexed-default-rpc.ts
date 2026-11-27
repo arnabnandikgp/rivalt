@@ -48,6 +48,7 @@ const dir=process.env.RIVALT_RUN_DIR!;
 const {rpc,h,ws,checks}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,dir,{
   instructionConformance:()=>false,payerFor:label=>label.startsWith('keeper ')?keeper:undefined,
   computeUnitLimit:label=>label.startsWith('keeper ')?1_400_000:undefined,
+  heapSize:label=>label.startsWith('keeper inspect episode ')?128*1024:undefined,
 });
 const expected=new Map<string,number>();
 async function send(label:string,name:string,accounts:NonNullable<Instruction['accounts']>,parts:Buffer[]=[],actor=operator,error?:number) {
