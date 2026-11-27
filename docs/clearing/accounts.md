@@ -36,6 +36,12 @@ the same capital from supporting two registrations, even when the maker
 deployments or listings differ. A maker can withdraw its funded cash. The binding
 persists at zero balance, so a consumer must check available capital at fill time.
 
+A venue-authorized `seal_listed_liquidity` moves the listing from status 0
+(registration open) to status 1 (directory sealed). It advances the listing
+revision and creates the maker directory. This one-time transition leaves cash
+and position records untouched. Both statuses accept independent index updates.
+[Maker directory](../liquidity/quoting.md)
+
 ## Follow a deposit
 
 1. An owner creates a portfolio and registers a child margin-account PDA. The owner, portfolio index and child index identify actual accounts. The portfolio holds the namespace. Cash, positions, orders and obligations belong to the margin account.

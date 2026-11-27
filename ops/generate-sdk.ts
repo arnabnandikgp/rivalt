@@ -97,7 +97,7 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
         }
       }
       if (name === 'liquidityRegistry') {
-        const marketSeed = pda.seeds[1];
+        const marketSeed = pda.seeds?.[1];
         assert(isNode(marketSeed,'variablePdaSeedNode'));
         if (marketSeed.name === 'listing') name='listedLiquidityRegistry';
       }

@@ -184,3 +184,13 @@ a curve with its owner's listing-tagged capital, then publish using the usual
 owner or delegated updater. Clearing admission requires both the owner and venue
 authority. A published curve alone gives the router no permission to execute a
 fill. [Capital identity and custody](../clearing/accounts.md#isolated-maker-capital-for-an-inactive-listing)
+
+On the local `listed-market-directory` profile, the venue authority seals the
+listing after all three maker instances have registered. Clearing checks their
+canonical addresses, their distinct capital accounts and participation from
+both supported maker programs. The resulting `LiquidityRegistry` has the same
+layout and address seeds as the BTC/ETH directories, keyed by the full listing
+address. Consumers can use `discoverLiquidityAccounts` to retrieve the three
+registrations and their dependencies. Sealing ends new maker admission on this
+listing. Each maker can continue updating its price and moving available cash.
+The listing remains ineligible for orders until the wider trading gate passes.

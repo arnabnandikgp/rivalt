@@ -20,7 +20,7 @@ export async function qualifyListedDirectory(h:CanonicalHarness,setup:Awaited<Re
     await sdk.getDepositAccountInstructionAsync({...common,owner,margin:capital,quoteMint:mint.address,
       userToken:traderToken.address,amount:100_000n})),[owner]);
   const seal=async(keys=registrations,authority=payer):Promise<Instruction>=>{
-    const instruction=await sdk.getSealListedLiquidityInstructionAsync({...common,authority,listing});
+    const instruction=await sdk.getSealListedLiquidityInstructionAsync({...common,authority,listing,registry});
     return {...instruction,accounts:[...instruction.accounts,...keys.map(address=>({address,role:AccountRole.READONLY}))]};
   };
   const image=()=>Promise.all([listing,registry,otherListing,...registrations,...capitals,setup.vault,traderToken.address].map(h.read));
