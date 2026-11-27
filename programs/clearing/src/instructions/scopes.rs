@@ -369,6 +369,8 @@ context!(InitializeLiquidity, venue, event_authority;
 [
 ]);
 
+context!(RegisterMarketListing, venue, event_authority;
+[venue: Read, safety: Read, listing: Create, symbol_binding: Create]; []);
 context!(InitializeMarket, venue, event_authority;
 [
     venue: Write,

@@ -207,6 +207,11 @@ pub use maker_liquidity::QuarantineLiquidity;
 pub use maker_liquidity::RegisterLiquidity;
 pub use maker_liquidity::SealLiquidity;
 
+pub mod market_listing;
+pub use market_listing::RegisterMarketListing;
+pub(crate) use market_listing::__client_accounts_registermarketlisting;
+#[cfg(feature="cpi")]
+pub(crate) use market_listing::__cpi_accounts_registermarketlisting;
 mod scopes;
 
 // Authenticated successor verification; no payout or trading authority.

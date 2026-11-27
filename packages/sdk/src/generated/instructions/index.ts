@@ -101,6 +101,7 @@ export * from "./recoverAccounts.js";
 export * from "./refundRecoveryAllocation.js";
 export * from "./registerLiquidity.js";
 export * from "./registerMargin.js";
+export * from "./registerMarketListing.js";
 export * from "./replenishLiquidity.js";
 export * from "./resetSettlementPlanOrder.js";
 export * from "./resetSettlementRateProposal.js";

@@ -151,6 +151,8 @@ def check_domains():
         r'Rivalt/pair-fills/v1\0', r'Rivalt/pair-order-page/v1\0'})
     # The local payout observer owns PDAs under [coverage-lane, venue, member_id % 8].
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'coverage-lane'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) |
+        {'market-listing', 'listed-symbol', '/USD', 'BTC', 'ETH'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
 
 
@@ -163,6 +165,32 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    listing = unique('register_market_listing')
+    assert listing['discriminator'] == list(hashlib.sha256(b'global:register_market_listing').digest()[:8])
+    assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in listing['accounts']] == [
+        ('authority',True,True),('venue',False,False),('safety',False,False),('listing',True,False),
+        ('symbol_binding',True,False),('oracle_feed',False,False),('system_program',False,False),
+        ('event_authority',False,False),('program',False,False)]
+    for index, seed, arg in [(3,'market-listing','market_id'),(4,'listed-symbol','symbol')]:
+        assert listing['accounts'][index]['pda']['seeds'] == [
+            {'kind':'const','value':list(seed.encode())}, {'kind':'account','path':'venue'}, {'kind':'arg','path':arg}]
+    symbol = {'array':['u8',8]}
+    args = [('market_id','u16'),('symbol',symbol),('lots_per_unit','u64'),('oracle_publisher','pubkey')]
+    assert [(row['name'],row['type']) for row in listing['args']] == args
+    actual['instructions'].remove(listing)
+    prefix = [('schema_version','u16'),('revision','u64')]
+    terms = args[:3] + [('quote_mint','pubkey'),args[3],('oracle_feed','pubkey'),('status','u8')]
+    for name, category, namespace, fields in [
+        ('MarketListing','accounts','account',prefix+[('venue','pubkey')]+terms+[('bump','u8')]),
+        ('ListedSymbol','accounts','account',prefix+[('listing','pubkey'),('bump','u8')]),
+        ('MarketListingRegistered','events','event',[('venue','pubkey'),('slot','u64'),('listing','pubkey'),
+            ('symbol_binding','pubkey')]+terms)]:
+        entry = next(row for row in actual[category] if row['name']==name)
+        assert entry['discriminator'] == list(hashlib.sha256(f'{namespace}:{name}'.encode()).digest()[:8])
+        definition = next(row for row in actual['types'] if row['name']==name)
+        assert [(f['name'],f['type']) for f in definition['type']['fields']] == fields
+        actual[category].remove(entry)
+        actual['types'].remove(definition)
     multi = unique('execute_multi_route')
     assert multi['discriminator'] == list(hashlib.sha256(b'global:execute_multi_route').digest()[:8])
     assert multi['accounts'] == unique('execute_best_route')['accounts']

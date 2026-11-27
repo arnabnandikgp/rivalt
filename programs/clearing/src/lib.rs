@@ -1059,6 +1059,12 @@ pub mod clearing {
             },
         )
     }
+    pub fn register_market_listing(ctx: &mut Context<RegisterMarketListing>, market_id: u16,
+        symbol: [u8; 8], lots_per_unit: u64, oracle_publisher: Address) -> Result<()> {
+        require!(cfg!(feature = "inactive-market-listing"), ClearingError::Profile);
+        scoped_history::run(ctx, [108, 103, 3, 230, 76, 230, 206, 137], false, |ctx, events|
+            market_listing::register(ctx, events, market_id, symbol, lots_per_unit, oracle_publisher))
+    }
     pub fn initialize_market(ctx: &mut Context<InitializeMarket>, index: u8) -> Result<()> {
         scoped_history::run(
             ctx,

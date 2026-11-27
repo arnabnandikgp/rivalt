@@ -43,11 +43,13 @@ import {
   getJointPaymentPageCodec,
   getJointPaymentProofCodec,
   getLiquidityRegistryCodec,
+  getListedSymbolCodec,
   getMakerRegistrationCodec,
   getMarginAccountCodec,
   getMarginTombstoneCodec,
   getMarketCodec,
   getMarketLedgerCodec,
+  getMarketListingCodec,
   getMemberIndexNodeCodec,
   getMemberPageCodec,
   getPairOrderPageCodec,
@@ -82,6 +84,8 @@ import {
   type JointPaymentProofArgs,
   type LiquidityRegistry,
   type LiquidityRegistryArgs,
+  type ListedSymbol,
+  type ListedSymbolArgs,
   type MakerRegistration,
   type MakerRegistrationArgs,
   type MarginAccount,
@@ -92,6 +96,8 @@ import {
   type MarketArgs,
   type MarketLedger,
   type MarketLedgerArgs,
+  type MarketListing,
+  type MarketListingArgs,
   type MemberIndexNode,
   type MemberIndexNodeArgs,
   type MemberPage,
@@ -229,6 +235,7 @@ import {
   getRefundRecoveryAllocationInstructionAsync,
   getRegisterLiquidityInstructionAsync,
   getRegisterMarginInstructionAsync,
+  getRegisterMarketListingInstructionAsync,
   getReplenishLiquidityInstructionAsync,
   getResetSettlementPlanOrderInstructionAsync,
   getResetSettlementRateProposalInstructionAsync,
@@ -349,6 +356,7 @@ import {
   parseRefundRecoveryAllocationInstruction,
   parseRegisterLiquidityInstruction,
   parseRegisterMarginInstruction,
+  parseRegisterMarketListingInstruction,
   parseReplenishLiquidityInstruction,
   parseResetSettlementPlanOrderInstruction,
   parseResetSettlementRateProposalInstruction,
@@ -551,6 +559,7 @@ import {
   type ParsedRefundRecoveryAllocationInstruction,
   type ParsedRegisterLiquidityInstruction,
   type ParsedRegisterMarginInstruction,
+  type ParsedRegisterMarketListingInstruction,
   type ParsedReplenishLiquidityInstruction,
   type ParsedResetSettlementPlanOrderInstruction,
   type ParsedResetSettlementRateProposalInstruction,
@@ -589,6 +598,7 @@ import {
   type RefundRecoveryAllocationAsyncInput,
   type RegisterLiquidityAsyncInput,
   type RegisterMarginAsyncInput,
+  type RegisterMarketListingAsyncInput,
   type ReplenishLiquidityAsyncInput,
   type ResetSettlementPlanOrderAsyncInput,
   type ResetSettlementRateProposalAsyncInput,
@@ -629,6 +639,7 @@ import {
   findFundingPublisherPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
+  findListingPda,
   findMarginAccountPda,
   findMarketLedgerPda,
   findOpenPairScheduleCertificatePda,
@@ -640,6 +651,7 @@ import {
   findSearchPda,
   findSecondMakerRegistrationPda,
   findStoragePda,
+  findSymbolBindingPda,
   findThirdMakerRegistrationPda,
   findVenuePda,
   findVenueRegistryPda,
@@ -658,11 +670,13 @@ export enum ClearingAccount {
   JointPaymentPage,
   JointPaymentProof,
   LiquidityRegistry,
+  ListedSymbol,
   MakerRegistration,
   MarginAccount,
   MarginTombstone,
   Market,
   MarketLedger,
+  MarketListing,
   MemberIndexNode,
   MemberPage,
   PairOrderPage,
@@ -770,6 +784,17 @@ export function identifyClearingAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([77, 103, 84, 52, 16, 190, 39, 92]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.ListedSymbol;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([231, 196, 106, 151, 199, 213, 13, 66]),
       ),
       0,
@@ -820,6 +845,17 @@ export function identifyClearingAccount(
     )
   ) {
     return ClearingAccount.MarketLedger;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([175, 123, 31, 97, 53, 211, 229, 16]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingAccount.MarketListing;
   }
   if (
     containsBytes(
@@ -1090,6 +1126,7 @@ export enum ClearingEvent {
   MarketCheckpointed,
   MarketFeesClassified,
   MarketLaneFilled,
+  MarketListingRegistered,
   MultiLotBookVerified,
   RecoverySelectionBound,
   RecoveryStorageRefunded,
@@ -1569,6 +1606,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([194, 106, 218, 225, 69, 16, 134, 99]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.MarketListingRegistered;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([169, 89, 5, 88, 68, 151, 202, 85]),
       ),
       0,
@@ -1743,6 +1791,7 @@ export enum ClearingInstruction {
   RefundRecoveryAllocation,
   RegisterLiquidity,
   RegisterMargin,
+  RegisterMarketListing,
   ReplenishLiquidity,
   ResetSettlementPlanOrder,
   ResetSettlementRateProposal,
@@ -2823,6 +2872,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([108, 103, 3, 230, 76, 230, 206, 137]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.RegisterMarketListing;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([164, 235, 145, 210, 171, 169, 231, 117]),
       ),
       0,
@@ -3388,6 +3448,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.RegisterMargin;
     } & ParsedRegisterMarginInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.RegisterMarketListing;
+    } & ParsedRegisterMarketListingInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.ReplenishLiquidity;
     } & ParsedReplenishLiquidityInstruction<TProgram>)
@@ -4134,6 +4197,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseRegisterMarginInstruction(instruction),
       };
     }
+    case ClearingInstruction.RegisterMarketListing: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.RegisterMarketListing,
+        ...parseRegisterMarketListingInstruction(instruction),
+      };
+    }
     case ClearingInstruction.ReplenishLiquidity: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -4341,6 +4411,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<JointPaymentProofArgs, JointPaymentProof>;
   liquidityRegistry: ReturnType<typeof getLiquidityRegistryCodec> &
     SelfFetchFunctions<LiquidityRegistryArgs, LiquidityRegistry>;
+  listedSymbol: ReturnType<typeof getListedSymbolCodec> &
+    SelfFetchFunctions<ListedSymbolArgs, ListedSymbol>;
   makerRegistration: ReturnType<typeof getMakerRegistrationCodec> &
     SelfFetchFunctions<MakerRegistrationArgs, MakerRegistration>;
   marginAccount: ReturnType<typeof getMarginAccountCodec> &
@@ -4351,6 +4423,8 @@ export type ClearingPluginAccounts = {
     SelfFetchFunctions<MarketArgs, Market>;
   marketLedger: ReturnType<typeof getMarketLedgerCodec> &
     SelfFetchFunctions<MarketLedgerArgs, MarketLedger>;
+  marketListing: ReturnType<typeof getMarketListingCodec> &
+    SelfFetchFunctions<MarketListingArgs, MarketListing>;
   memberIndexNode: ReturnType<typeof getMemberIndexNodeCodec> &
     SelfFetchFunctions<MemberIndexNodeArgs, MemberIndexNode>;
   memberPage: ReturnType<typeof getMemberPageCodec> &
@@ -4866,6 +4940,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRegisterMarginInstructionAsync> &
     SelfPlanAndSendFunctions;
+  registerMarketListing: (
+    input: RegisterMarketListingAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getRegisterMarketListingInstructionAsync> &
+    SelfPlanAndSendFunctions;
   replenishLiquidity: (
     input: ReplenishLiquidityAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5022,6 +5101,8 @@ export type ClearingPluginPdas = {
   proof: typeof findProofPda;
   capitalBinding: typeof findCapitalBindingPda;
   marginAccount: typeof findMarginAccountPda;
+  listing: typeof findListingPda;
+  symbolBinding: typeof findSymbolBindingPda;
 };
 
 export type ClearingPluginRequirements = ClientWithRpc<
@@ -5065,6 +5146,7 @@ export function clearingProgram(
             client,
             getLiquidityRegistryCodec(),
           ),
+          listedSymbol: addSelfFetchFunctions(client, getListedSymbolCodec()),
           makerRegistration: addSelfFetchFunctions(
             client,
             getMakerRegistrationCodec(),
@@ -5076,6 +5158,7 @@ export function clearingProgram(
           ),
           market: addSelfFetchFunctions(client, getMarketCodec()),
           marketLedger: addSelfFetchFunctions(client, getMarketLedgerCodec()),
+          marketListing: addSelfFetchFunctions(client, getMarketListingCodec()),
           memberIndexNode: addSelfFetchFunctions(
             client,
             getMemberIndexNodeCodec(),
@@ -5936,6 +6019,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          registerMarketListing: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRegisterMarketListingInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           replenishLiquidity: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6280,6 +6371,16 @@ export function clearingProgram(
             }),
           marginAccount: (seeds, pdaConfig) =>
             findMarginAccountPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          listing: (seeds, pdaConfig) =>
+            findListingPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          symbolBinding: (seeds, pdaConfig) =>
+            findSymbolBindingPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

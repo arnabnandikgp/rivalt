@@ -916,3 +916,18 @@ pub struct JointClaimsCopied {
     pub deltas: Vec<[i64; 2]>,
     pub slot: u64,
 }
+
+#[event]
+pub struct MarketListingRegistered {
+    pub venue: Address,
+    pub slot: u64,
+    pub listing: Address,
+    pub symbol_binding: Address,
+    pub market_id: u16,
+    pub symbol: [u8; 8],
+    pub lots_per_unit: u64,
+    pub quote_mint: Address,
+    pub oracle_publisher: Address,
+    pub oracle_feed: Address,
+    pub status: u8,
+}
