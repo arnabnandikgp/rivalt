@@ -21,13 +21,15 @@ export async function qualifyListedExecution(h:CanonicalHarness,setup:Awaited<Re
   assert.deepEqual([selection.count,selection.markets[0]],[1,2]);
   const previous=sdk.decodeListedMargin(await read(trader));
   assert.deepEqual(previous.root.positions.map(position=>position.lots),[1n,-10n]);
-  await setup.sample();
-  await published.sampleActive();
-  // Recover Normal across the full observation window before opening risk.
-  await setup.waitUntil((await setup.now())+7n);
-  await setup.sample();
-  const active=await published.sampleActive();
-  assert.equal(active.oracle.status,2);
+  // Each report covers at most six seconds. Keep publishing while the
+  // initial recovery interval accrues, and read all three markets at the end.
+  for(let round=0;round<4;round++) {
+    await setup.sample();
+    await published.sampleActive();
+  }
+  const [btc,eth]=await Promise.all([setup.marketState(0),setup.marketState(1)]);
+  const active=sdk.getListedFundingDecoder().decode(await read(published.funding)).values;
+  assert.deepEqual([btc.oracle.status,eth.oracle.status,active.oracle.status],[2,2,2]);
   const makers=await Promise.all(sealed.registrations.map(async key=>sdk.getMakerRegistrationDecoder().decode(await read(key))));
   assert(makers.every(m=>m.owner!==actor.address));
   const epochs=await Promise.all(makers.map(async(maker,index)=>{
