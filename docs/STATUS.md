@@ -121,10 +121,18 @@ A subsequent BTC fill succeeded. The full setup and check fetched 230 signed
 transactions and reproduced 81 events through fresh PostgreSQL replay.
 [Listing qualification](operations/qualification-scorecard.md#inactive-sol-listing-on-venue-clearing)
 
-**Next action.** Bind the inactive SOL listing to the primary and guard price
-sources for the underlying and collateral on local clearing. Qualify an index
-observation and signed stale, conflicting and substituted-source refusals before
-admitting SOL maker capital or opening trading.
+**Finding 10, inactive SOL index on venue clearing (Review).** Local clearing
+`aa205484` and harness `0cf1251f` accepted readings from four bound feeds.
+At $0.99 per collateral token the reference was 151 atoms per SOL lot, with
+bounds of 149–155. After expiry and source recovery at $1.01 collateral it was
+148, with bounds of 146–151. The trader alone signed each observation. Fresh
+PostgreSQL replay reproduced 96 events from the run's 258 signed transactions.
+[Signed index results](operations/qualification-scorecard.md#inactive-sol-index-observation)
+
+**Next action.** Qualify admission of a market-isolated SOL maker on local
+clearing. Bind its registration and quote configuration to the listing and its
+own funded capital, and verify that a BTC/ETH maker's capital cannot substitute.
+SOL fills and wider cross-margin activation remain gated.
 
 | Open gate | What remains |
 |---|---|
