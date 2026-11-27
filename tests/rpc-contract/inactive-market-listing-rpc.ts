@@ -47,6 +47,7 @@ try {
     assert.deepEqual(await read(watched),before,label);
   };
   await h.send('initialize SOL/USD index identity',[initializeFixtureFeed(feed,primary.address,feedId)],[primary]);
+  await flush();
   assert.deepEqual(await sdk.readInactiveMarketListings(rpc,venue),[]);
   await reject('owner cannot list a market',[await register({authority:owner})],[owner],sdk.CLEARING_ERROR__AUTHORITY);
   await reject('refuse BTC price feed for SOL',[await register({oracleFeed:setup.feeds[0].feed})],[],sdk.CLEARING_ERROR__ORACLE_SOURCE);
