@@ -49,6 +49,7 @@ try {
     {address:primary.address,role:AccountRole.WRITABLE_SIGNER},{address:feed,role:AccountRole.WRITABLE},
     {address:address('11111111111111111111111111111111'),role:AccountRole.READONLY}],
     data:Buffer.concat([createHash('sha256').update('global:initialize').digest().subarray(0,8),feedId])}],[primary]);
+  await flush();
   assert.deepEqual(await sdk.readInactiveMarketListings(rpc,venue),[]);
   await reject('owner cannot list a market',[await register({authority:owner})],[owner],sdk.CLEARING_ERROR__AUTHORITY);
   await reject('refuse BTC price feed for SOL',[await register({oracleFeed:setup.feeds[0].feed})],[],sdk.CLEARING_ERROR__ORACLE_SOURCE);
