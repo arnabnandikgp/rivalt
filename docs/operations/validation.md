@@ -224,3 +224,6 @@ The [grouped open-book qualification](performance.md#payout-with-incremental-deb
 
 
 For the [funded venue default preview](qualification-scorecard.md#checking-the-protected-plan-on-the-funded-venue), build the `venue-default-verifier` profile with `ops/build-profit-attribution.sh`. Run `ops/scalable-settlement-smoke.sh` with `RIVALT_SETTLEMENT_PROBE=execution-router-venue-default`, the pinned `RIVALT_ROUTER_REVISION` and its `RIVALT_SETTLEMENT_ARTIFACT_DIR`. Assert the entire returned entitlement vector, all six signed refusals, unchanged financial accounts, wire conformance and PostgreSQL replay.
+
+
+The joint competing indexed workload also checks [frozen market priority](qualification-scorecard.md#asymmetric-frozen-market-priority). Run `python3 tests/financial/test_indexed_market_priority.py` for full enumeration and `cargo test -p default-plan-selection --features indexed-settlement market_indexed` for the actual verifier. The signed workload checks both episode outcomes and rejects the opposite nomination before comparing its independent resource results and funded four-market withdrawals with PostgreSQL.

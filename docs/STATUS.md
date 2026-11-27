@@ -162,7 +162,9 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, funded venue default preview (Review).** On clearing `a094f62c` and harness `cab2dfbf`, a signed read verified a 7,492-atom reduction on the frozen seven-member book. It used 66,981 CU. Six invalid submissions refused and 117 financial events reconciled in PostgreSQL. Application and owner withdrawals on the wider venue remain open. [Amounts and limits](operations/qualification-scorecard.md#checking-the-protected-plan-on-the-funded-venue)
 
-**Next action.** Implement the approved frozen-episode market order for protected wider-market finalists tied on recovery, market insurance and total lots closed, then exercise it on the asymmetric three-market book.
+**Finding 11, frozen market priority (Review).** On fixture and harness `5cb68d1d`, two signed inspections of the same asymmetric nine-member book selected the 9/8 and 10/7 outcomes in different episodes, each rejecting the rival nomination. Both recovered six atoms and spent two insurance atoms. The runtime needed a larger heap than the 32 KiB default. The separate funded four-market book reproduced five owner withdrawals. PostgreSQL reconciled 70 receipts. [Independent enumeration and costs](operations/qualification-scorecard.md#asymmetric-frozen-market-priority)
+
+**Next action.** Apply the indexed verifier's reconciled member and market movements on the frozen venue and check actual owner withdrawals from its vault.
 
 | Open gate | What remains |
 |---|---|

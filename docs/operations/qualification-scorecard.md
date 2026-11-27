@@ -690,3 +690,15 @@ example was built without its required Cargo feature.
 Clearing `a094f62c` and harness `cab2dfbf` froze seven real margin accounts after BTC moved to 80,000. The market already held 996 collected collateral atoms. The debtor could supply 11,504 atoms and BTC insurance could supply six. Initial entitlements were payable at 6,253/9,999. Reducing the opposing open gain by 7,492 atoms restored full recovery of the remaining claims. The signed result returned 0 for the debtor, 24,010 for its counterparty, 12,500 each for four other makers and 1,000,970 for the trader. Combined entitlements and the 20 retained fee atoms reconcile to the 1,075,000-atom vault.
 
 The read-only transaction used 66,981 CU, 882 bytes and 21 loaded accounts. Missing or substituted members, a stale episode, a forged rate, skipped recovery and surplus witness data all refused. The independent legacy Anchor client matched the instruction encoding. The workload finalized 243 signed transactions, and fresh PostgreSQL reconciliation matched 117 financial events. Actual balances were unchanged after the preview. Wider-market fills and application to the venue wallets remain open.
+
+
+### Asymmetric frozen market priority
+
+On fixture and harness `5cb68d1d`, the independent exact model enumerated 100 physically possible allocations on a nine-member, three-market book. Seventy protected creditors. Two finalists each recovered three BTC-market atoms and three ETH-market atoms, closed three lots and used one atom of each market's reserve. Using identical claims and original lots, two signed read-only resource checks returned distinct approved results.
+
+| Frozen episode | Two flat creditor balances (atoms) | Accepted CU | Signed bytes |
+|---|---|---:|---:|
+| 1 | 9 and 8 | 318,099 | 841 |
+| 2 | 10 and 7 | 312,691 | 841 |
+
+Both opposite nominations refused. The three-market inputs for these inspections were synthetic. The original 32 KiB heap failed on the first competing nomination. The repeat used 128 KiB. In the separate funded four-market part of that run, eight fills produced the original competing-winner book. Five wallets withdrew 10,588 atoms after a 194,292-CU settlement. Eight fee atoms remained. Fresh PostgreSQL replay matched 70 program receipts across the funded lifecycle and the read-only checks. Wider venue activation remains open.
