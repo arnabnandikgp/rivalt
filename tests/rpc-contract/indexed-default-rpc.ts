@@ -1,0 +1,152 @@
+// Signed positions connect the two defaulted markets to two further creditors.
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {writeFileSync} from 'node:fs';
+import {AccountRole,address,getAddressEncoder,getProgramDerivedAddress,type Address,type Instruction} from '@solana/kit';
+import {getCreateAccountInstruction,getTransferSolInstruction} from '@solana-program/system';
+import {getInitializeAccount3Instruction,getInitializeMint2Instruction,getMintToInstruction,getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
+import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
+import {fixtureKey,payerKey} from './harness.js';
+import {fingerprint,readRoot,replayOrders} from './slot-orders-history.js';
+import {encodeProof,IndexedReplay,reference,u32,type Probe,type Certificate} from './indexed-default-history.js';
+
+const program=address('sDPXvpEPwCzVKHdpxntiM1khVvtCj2V6ozCr5euajBi'),system=address('11111111111111111111111111111111');
+const operator=await payerKey(),keeper=await fixtureKey('indexed-keeper'),mint=await fixtureKey('indexed-mint');
+const ids=[13,18,23,28],modes=[65535,65535,...ids],deposits=[1004,1004,548,548,300,300];
+const owners=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-owner-'+i)));
+const wallets=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-wallet-'+i)));
+const key=(a:Address)=>Buffer.from(getAddressEncoder().encode(a));
+const u16=(n:number)=>{const b=Buffer.alloc(2); b.writeUInt16LE(n); return b;};
+const u64=(n:number)=>{const b=Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b;};
+const pda=async(seed:string,...rest:Buffer[])=>(await getProgramDerivedAddress({programAddress:program,seeds:[Buffer.from(seed),...rest]}))[0];
+const ro=(address:Address)=>({address,role:AccountRole.READONLY}),rw=(address:Address)=>({address,role:AccountRole.WRITABLE});
+const signer=(address:Address)=>({address,role:AccountRole.READONLY_SIGNER}),paying=(address:Address)=>({address,role:AccountRole.WRITABLE_SIGNER});
+const custody=await pda('slot-custody',key(operator.address),key(mint.address)),vault=await pda('slot-vault',key(custody));
+const roots=await Promise.all(owners.map((o,i)=>pda('trade-root',key(custody),key(o.address),u16(modes[i]))));
+const markets=await Promise.all(ids.map(id=>pda('trade-market',key(custody),u16(id))));
+const complete=[...roots,...markets],watched=[custody,vault,...complete,...wallets.map(w=>w.address)];
+const dir=process.env.RIVALT_RUN_DIR!;
+const {rpc,h,ws,checks}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,dir,{
+  instructionConformance:()=>false,payerFor:label=>label.startsWith('keeper ')?keeper:undefined,
+  computeUnitLimit:label=>label.startsWith('keeper ')?1_400_000:undefined,
+});
+const expected=new Map<string,number>();
+async function send(label:string,name:string,accounts:NonNullable<Instruction['accounts']>,parts:Buffer[]=[],actor=operator,error?:number) {
+  const snapshot=()=>Promise.all(watched.map(h.read));
+  const before=error?await snapshot():null;
+  await h.send(label,[{programAddress:program,accounts,data:Buffer.concat([fingerprint('global:'+name),...parts])}],actor===operator?[]:[actor],error);
+  const receipt=checks.at(-1)!;
+  assert.equal(receipt.ws,true); expected.set(String(receipt.signature),error??0);
+  if(before) assert.deepEqual(await snapshot(),before,label);
+  return String(receipt.signature);
+}
+const root=async(i:number)=>readRoot((await h.read(roots[i]))!);
+const balance=async(a:Address)=>getTokenDecoder().decode((await h.read(a))!).amount;
+async function wallet(i:number,amount:number,withdraw=false,error?:number,actor=i) {
+  await send((withdraw?'withdraw ':'deposit ')+amount+' member '+i,withdraw?'withdraw_trade_cash':'deposit_trade_cash',
+    [signer(owners[actor].address),ro(custody),rw(roots[i]),ro(mint.address),rw(vault),rw(wallets[actor].address),ro(TOKEN_PROGRAM_ADDRESS)],
+    [u64((await root(i)).rev),u64(amount)],owners[actor],error);
+}
+async function publish(m:number,price:number,error?:number) {
+  await send('publish '+ids[m]+' at '+price,'publish_trade_market',[signer(operator.address),ro(custody),rw(markets[m])],
+    [u64(Number((await h.read(markets[m]))!.readBigUInt64LE(42))),u64(price),u64(0)],operator,error);
+}
+async function trade(t:number,m:number,price:number,close=false) {
+  await publish(m,price);
+  const trader=await root(t),maker=await root(m+2);
+  const marketSet=(extra:number[])=>Array.from(new Set([...trader.slots.map(s=>s.id),ids[m],...extra])).sort((a,b)=>a-b);
+  const expires=Number(await rpc.call('getSlot',[{commitment:'confirmed'}]))+5000;
+  await send('place member '+t+' market '+ids[m],'place_trade_order',
+    [signer(owners[t].address),ro(custody),rw(roots[t]),...marketSet([]).map(id=>ro(markets[ids.indexOf(id)]))],
+    [u64(trader.rev),u16(ids[m]),Buffer.from([+close]),u64(1),u64(price),u64(1),u64(expires),Buffer.from([+close])],owners[t]);
+  await send('fill member '+t+' market '+ids[m],'fill_trade_order',
+    [signer(owners[m+2].address),ro(custody),rw(markets[m]),rw(roots[t]),rw(roots[m+2]),
+      ...marketSet(maker.slots.map(s=>s.id)).filter(id=>id!==ids[m]).map(id=>ro(markets[ids.indexOf(id)]))],
+    [u64((await root(t)).rev),u64(maker.rev),u64(Number((await h.read(markets[m]))!.readBigUInt64LE(42))),u64(1)],owners[m+2]);
+}
+async function bookHash() {
+  const hash=(...parts:Buffer[])=>createHash('sha256').update(Buffer.concat(parts)).digest();
+  let digest=hash(Buffer.from('Rivalt/local-indexed-settlement/v1'),key(program),key(custody),key(mint.address));
+  for(const addr of complete) digest=hash(digest,key(addr),(await h.read(addr))!);
+  return digest;
+}
+async function probe(width:number,padding:number,cycle=false) {
+  const data=reference<Probe>({probe:[width,padding,cycle]});
+  const columns=data.rows[0][1].length;
+  const encode=(proof:Certificate)=>[Buffer.from([columns]),u32(data.rows.length),...data.rows.flatMap(([cash,cells],i)=>
+    [u32(cash),u32(cells.length),...cells.map((claim,m)=>{const b=Buffer.alloc(7),[lots,cap]=data.positions[i][m];
+      b.writeInt32LE(claim); b.writeInt8(lots,4); b.writeUInt16LE(cap,5); return b;})]),encodeProof(proof)];
+  const inspect=(label:string,proof:Certificate,error?:number)=>send('keeper '+label,'inspect_indexed_book',[signer(keeper.address)],encode(proof),operator,error);
+  const tag=data.rows.length+' members '+columns+' markets';
+  const signature=await inspect('inspect '+tag,data.proof);
+  const tx=await rpc.call('getTransaction',[signature,{commitment:'finalized',maxSupportedTransactionVersion:1}]);
+  assert.equal(tx.meta.returnData.programId,program);
+  assert.deepEqual(Buffer.from(tx.meta.returnData.data[0],'base64'),Buffer.concat([u32(data.rows.length),...data.proof.cash.map(u64)]));
+  if(width===4 && padding===0 && !cycle) {
+    assert.deepEqual(data.proof.cash,[0,0,0,0,0,0,9,9]);
+    await inspect('refuse unsafe standalone close',{...data.proof,selected:2},6016);
+    await inspect('refuse safe inferior joint close',{...data.proof,selected:4},6016);
+  }
+  if(cycle) {
+    const lower=[...data.proof.numerators];
+    lower[columns-2]=lower[columns-1]=0; // Still a fixed point of the closed cashless subcycle.
+    await inspect('refuse nongreatest cyclic rates',{...data.proof,numerators:lower},6016);
+  }
+}
+try {
+  await h.send('fund local signers and create mint',[
+    ...[keeper,...owners].map(owner=>getTransferSolInstruction({source:operator,destination:owner.address,amount:50_000_000n})),
+    getCreateAccountInstruction({payer:operator,newAccount:mint,lamports:await h.rent(82),space:82n,programAddress:TOKEN_PROGRAM_ADDRESS}),
+    getInitializeMint2Instruction({mint:mint.address,decimals:6,mintAuthority:operator.address})],[mint]);
+  await send('open custody','open_slot_custody',[paying(operator.address),ro(mint.address),rw(custody),rw(vault),ro(TOKEN_PROGRAM_ADDRESS),ro(system)]);
+  const register=(list:number[],error?:number)=>send('register '+list.join(','),'register_indexed_book',[signer(operator.address),rw(custody)],
+    [u32(list.length),...list.flatMap(i=>[key(owners[i].address),u16(modes[i])]),u32(ids.length),...ids.map(u16)],operator,error);
+  await register([0,0],6015); await register([0,1,2,3,4,5]); await register([0,1,2,3,4,5],6014);
+  for(const [m,id] of ids.entries()) await send('open market '+id,'open_trade_market',[paying(operator.address),ro(custody),rw(markets[m]),ro(system)],[u16(id)]);
+  for(const [i,owner] of owners.entries()) {
+    await h.send('mint test collateral '+i,[
+      getCreateAccountInstruction({payer:operator,newAccount:wallets[i],lamports:await h.rent(165),space:165n,programAddress:TOKEN_PROGRAM_ADDRESS}),
+      getInitializeAccount3Instruction({account:wallets[i].address,mint:mint.address,owner:owner.address}),
+      getMintToInstruction({mint:mint.address,token:wallets[i].address,mintAuthority:operator,amount:BigInt(deposits[i])})],[wallets[i]]);
+    await send('open margin '+i,'open_trade_root',[paying(owner.address),ro(custody),rw(roots[i]),ro(system)],[u16(modes[i])],owner);
+    await wallet(i,deposits[i]);
+  }
+  await trade(0,1,1000); await trade(0,1,1050,true); await trade(1,0,1000); await trade(1,0,1050,true);
+  await trade(0,0,1000); await trade(1,1,1000); await trade(0,2,2000); await trade(1,3,2000);
+  const stale=await bookHash();
+  for(const [m,price] of [1500,1500,800,800].entries()) await publish(m,price);
+  const digest=await bookHash();
+  // Independent signed workload assumptions. PostgreSQL reconstructs these again from transaction history.
+  const rows=[[1000,[500,50,-1200,0]],[1000,[50,500,0,-1200]],[548,[-550,0,0,0]],[548,[0,-550,0,0]],
+    [300,[0,0,1200,0]],[300,[0,0,0,1200]]];
+  const positions=[[[1,500],[0,0],[1,0],[0,0]],[[0,0],[1,500],[0,0],[1,0]],[[-1,0],[0,0],[0,0],[0,0]],
+    [[0,0],[-1,0],[0,0],[0,0]],[[0,0],[0,0],[-1,1200],[0,0]],[[0,0],[0,0],[0,0],[-1,1200]]];
+  const proof=reference<Certificate>({rows,positions,fees:[3,3,1,1]});
+  const accounts=[...roots.map(rw),...markets.map(ro)];
+  const settle=(label:string,p=proof,error?:number,metas=accounts,hash=digest)=>send('keeper '+label,'settle_indexed_book',
+    [rw(custody),ro(vault),...metas],[hash,encodeProof(p)],operator,error);
+  await settle('refuse stale signed state',proof,6017,accounts,stale);
+  await settle('refuse missing market',proof,6015,accounts.slice(0,-1));
+  await settle('refuse substituted member',proof,6015,[accounts[1],...accounts.slice(1)]);
+  await settle('refuse missing candidate',{...proof,numerators:proof.numerators.slice(0,-4)},6003);
+  await settle('refuse forged rate',{...proof,numerators:proof.numerators.map((n,i)=>n-Number(i===4))},6016);
+  await settle('refuse inferior allocation',{...proof,selected:4},6016);
+  await settle('settle funded book'); await settle('refuse replay',proof,6014);
+  await publish(0,1500,6014);
+  assert.deepEqual(proof.cash,[348,348,0,0,1500,1500]);
+  for(const [i,amount] of proof.cash.entries()) {
+    const state=await root(i);
+    assert.deepEqual([state.cash,state.slots.length],[BigInt(amount),0]);
+  }
+  await wallet(0,349,true,6007); await wallet(0,348,true,6008,1);
+  for(const [i,amount] of proof.cash.entries()) if(amount) await wallet(i,amount,true);
+  assert.deepEqual(await Promise.all(wallets.map(w=>balance(w.address))),proof.cash.map(BigInt));
+  assert.equal(await balance(vault),8n);
+  await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true);
+  const replay=new IndexedReplay(custody,keeper.address,mint.address,owners.map(o=>o.address),wallets.map(w=>w.address),ids,modes);
+  const journal=await replayOrders(rpc,program,roots,vault,await balance(vault),expected,undefined,replay);
+  assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],[8,'0','8','8']);
+  const measurements=checks.map(({label,signature,computeUnits,bytes,loadedAccounts,error})=>({label,signature,computeUnits,bytes,loadedAccounts,error}));
+  writeFileSync(dir+'/indexed-default.json',JSON.stringify({proof,journal,measurements},null,2));
+  console.log('Reconciled four-market default',journal,'wallets',proof.cash);
+} finally {await ws.close();}

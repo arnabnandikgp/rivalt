@@ -3,6 +3,10 @@
 use anchor_lang::prelude::*;
 mod basis;
 mod coverage;
+#[cfg(feature = "signed-indexed-default")]
+mod indexed_default;
+#[cfg(feature = "signed-indexed-default")]
+use indexed_default::*;
 use coverage::*;
 mod mirror;
 mod withdrawal;
@@ -59,6 +63,19 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    #[cfg(feature = "signed-indexed-default")]
+    pub fn register_indexed_book(ctx: &mut Context<RegisterIndexed>, members: Vec<MemberMode>, ids: Vec<u16>) -> Result<()> {
+        indexed_default::register(ctx, members, ids)
+    }
+    #[cfg(feature = "signed-indexed-default")]
+    pub fn settle_indexed_book(ctx: &mut Context<SettleIndexed>, digest: [u8;32], proof: RatesProof) -> Result<()> {
+        indexed_default::settle(ctx, digest, proof)
+    }
+    #[cfg(feature = "signed-indexed-default")]
+    pub fn inspect_indexed_book(_ctx: &mut Context<InspectIndexed>, width: u8, cells: Vec<ProbeMember>, proof: RatesProof) -> Result<Vec<u64>> {
+        indexed_default::inspect(width, cells, proof)
+    }
 
     #[cfg(feature = "signed-three-market-default")]
     pub fn configure_default(ctx: &mut Context<ConfigureDefault>, owners: [Address; 5], ids: [u16; 3]) -> Result<()> {

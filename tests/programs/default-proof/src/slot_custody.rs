@@ -22,7 +22,10 @@ const PRICE: u64 = 100;
 const MAX_SLOTS: usize = 8;
 const RECEIVER_ORDER_MARKET: u16 = 43;
 
-#[cfg(feature = "signed-three-market-default")]
+#[cfg(feature = "signed-indexed-default")]
+pub use crate::indexed_default::IndexedCustody as SlotCustody;
+
+#[cfg(all(feature = "signed-three-market-default", not(feature = "signed-indexed-default")))]
 pub use crate::three_market_default::ResolutionCustody as SlotCustody;
 
 #[cfg(not(feature = "signed-three-market-default"))]
