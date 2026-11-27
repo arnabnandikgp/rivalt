@@ -15,11 +15,16 @@ const CHECKPOINT: [u8; 8] = [234, 231, 222, 47, 209, 237, 138, 64];
 const BASE_FUNDING: [u8; 8] = [32, 39, 131, 11, 127, 118, 35, 241];
 const LISTED_FUNDING: [u8; 8] = [74, 221, 17, 23, 121, 23, 69, 210];
 
+pub(crate) const WITHDRAW: [u8;8] = [192,57,45,195,49,172,22,255];
+pub(crate) const TRANSFER: [u8;8] = [155,89,210,42,245,176,201,73];
+pub(crate) fn is_cash(instruction:[u8;8]) -> bool {
+    cfg!(feature="listed-venue-cash") && matches!(instruction,WITHDRAW|TRANSFER)
+}
 pub(crate) fn permits(instruction: [u8; 8]) -> bool {
     matches!(
         instruction,
         FILL | CHECKPOINT | BASE_FUNDING | LISTED_FUNDING
-    )
+    ) || is_cash(instruction)
 }
 
 pub(crate) fn identity(venue: &Venue, safety: &VenueSafety) -> Result<()> {
@@ -191,16 +196,7 @@ fn emit_margin(
     authority: &AccountView,
     slot: u64,
 ) -> Result<()> {
-    use clearing_accounting::market_slots::storage::{HEADER_BYTES, RECORD_BYTES};
-    let mut positions = vec![
-        0;
-        root.account()
-            .data_len()
-            .checked_sub(MARGIN_ALLOCATION)
-            .ok_or(ClearingError::Profile)?
-    ];
-    crate::engine::checked(next.directory.write_listed_bytes(&mut positions))?;
-    positions.truncate(HEADER_BYTES + RECORD_BYTES * next.directory.records().len());
+    let positions = next.packed_positions(root.account().data_len())?;
     events.emit(
         &ListedMarginChanged {
             venue: root.venue,
@@ -328,8 +324,10 @@ mod tests {
         ] {
             assert!(permits(tag(name)), "{name}");
         }
+        assert_eq!(permits(tag("withdraw_funded_account")), cfg!(feature="listed-venue-cash"));
+        assert_eq!(permits(tag("transfer_funded_account")), cfg!(feature="listed-venue-cash"));
         for name in [
-            "withdraw_funded_account",
+            "change_account_claim",
             "transfer_account_cash",
             "execute_best_route",
             "begin_listed_qualification",

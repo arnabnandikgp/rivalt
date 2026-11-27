@@ -24,7 +24,7 @@ import {qualifyListedMaker} from './listed-maker-admission.js';
 import {qualifyListingIndex} from './listing-index-qualification.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
-const build=routerBuild(),execution=build.artifactSet===sdk.LISTED_EXECUTION_ARTIFACT_SET,directory=process.env.RIVALT_RUN_DIR!;
+const build=routerBuild(),execution=sdk.hasListedExecution(build.artifactSet),directory=process.env.RIVALT_RUN_DIR!;
 let observer:Awaited<ReturnType<typeof payerKey>>|undefined;
 const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:label=>label.startsWith('listed trade ')?1_400_000:undefined,heapSize:label=>label.startsWith('listed trade ')?256*1024:undefined,payerFor:label=>label.startsWith('SOL sample ')?observer:undefined});

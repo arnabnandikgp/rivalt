@@ -65,8 +65,7 @@ fn fee_and_margin_use_the_cash_on_the_same_root_as_btc_and_eth() {
         let mut buyer =
             ListedMargin::prepare(&initial, &empty(&initial), None, &snapshot, true).unwrap();
         let mut seller =
-            ListedMargin::prepare(&capital, &empty(&capital), Some(id), &snapshot, true)
-                .unwrap();
+            ListedMargin::prepare(&capital, &empty(&capital), Some(id), &snapshot, true).unwrap();
         let (trader, makers, fee) = route::candidate(
             buyer.participant(id).unwrap(),
             &[seller.participant(id).unwrap()],
@@ -178,4 +177,57 @@ fn opening_on_a_listing_requires_healthy_sources_in_existing_markets() {
         ..snapshot.markets[1].as_ref().unwrap().oracle
     };
     assert!(ListedMargin::prepare(&initial, &empty(&initial), None, &snapshot, true).is_err());
+}
+
+#[cfg(feature = "listed-venue-cash")]
+#[test]
+fn cash_exit_values_every_open_position_at_the_current_and_held_funding_endpoints() {
+    let base = fixture_snapshot();
+    let initial = root(400, false);
+    let mut margin = ListedMargin::prepare(&initial, &empty(&initial), None, &base, true).unwrap();
+    let mut trader = margin
+        .participant(2)
+        .unwrap()
+        .quoted_fill(0, 10, 1520, 0)
+        .unwrap();
+    trader.cash -= 1;
+    margin
+        .admit_fill(&base, 2, trader, 1520, &[sample(2)])
+        .unwrap();
+    // At funding 1, SOL owes 30. Current IM and debt require 235 atoms.
+    // At the held endpoint 30, SOL owes 320. BTC and ETH owe 35 more.
+    let source = MarketWindow {
+        current: Risk {
+            funding: SCALE,
+            ..sample(2).current
+        },
+        funding_low: SCALE,
+        funding_high: 30 * SCALE,
+        ..sample(2)
+    };
+    let before = margin.directory.clone();
+    assert!(margin.change_cash(&base, &[], 44, true).is_err());
+    assert_eq!(
+        margin.change_cash(&base, &[source], 45, true),
+        Err(ClearingError::ExitCohort.into())
+    );
+    assert_eq!(margin.directory, before);
+    assert_eq!(margin.root.cash, 399);
+    margin.change_cash(&base, &[source], 44, true).unwrap();
+    assert_eq!(margin.root.cash, 355);
+    let slot = margin.directory.records()[0].1;
+    assert_eq!(
+        (
+            slot.position.virtual_scaled,
+            slot.position.funding_checkpoint
+        ),
+        (-1530 * SCALE, SCALE)
+    );
+    assert_eq!(slot.entry, before.records()[0].1.entry);
+    // A credit helps an underwater recipient. No extra charge arises from
+    // materializing the same funding a second time.
+    margin.root.cash = 0;
+    margin.change_cash(&base, &[source], 1, false).unwrap();
+    assert_eq!(margin.directory.records()[0].1, slot);
+    assert_eq!(margin.root.cash, 1);
 }

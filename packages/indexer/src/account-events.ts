@@ -10,6 +10,7 @@ import {integer} from './rpc.js';
 const decoders = [
   ['ListedVenueOpened',sdk.LISTED_VENUE_OPENED_EVENT_DISCRIMINATOR,sdk.getListedVenueOpenedEventDecoder()],
   ['ListedMarginChanged',sdk.LISTED_MARGIN_CHANGED_EVENT_DISCRIMINATOR,sdk.getListedMarginChangedEventDecoder()],
+  ['ListedCashAccrued',sdk.LISTED_CASH_ACCRUED_EVENT_DISCRIMINATOR,sdk.getListedCashAccruedEventDecoder()],
   ['ListedRouteFilled',sdk.LISTED_ROUTE_FILLED_EVENT_DISCRIMINATOR,sdk.getListedRouteFilledEventDecoder()],
   ['ListedFundingChanged',sdk.LISTED_FUNDING_CHANGED_EVENT_DISCRIMINATOR,sdk.getListedFundingChangedEventDecoder()],
   ['ListedLiquiditySealed',sdk.LISTED_LIQUIDITY_SEALED_EVENT_DISCRIMINATOR,sdk.getListedLiquiditySealedEventDecoder()],
@@ -102,7 +103,7 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
     const listedFill=invocation.instruction===sdk.hex(sdk.EXECUTE_LISTED_MARKET_ORDER_DISCRIMINATOR);
     if(listedFill || events.some(event=>event.type==='ListedMarginChanged'||event.type==='ListedRouteFilled')) {
       const last=events.at(-1);
-      if(!listedFill || binding.artifactSet!==sdk.LISTED_EXECUTION_ARTIFACT_SET || last?.type!=='ListedRouteFilled')
+      if(!listedFill || !sdk.hasListedExecution(binding.artifactSet) || last?.type!=='ListedRouteFilled')
         throw new Error('Missing funded listed fill receipt');
       const legs=last.data.legs;
       if(legs.length<1||legs.length>2||events.length!==legs.length+2)throw new Error('Incomplete listed fill receipt');
@@ -110,6 +111,17 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
       if(new Set(roots).size!==roots.length || roots.some((key,i)=>events[i].type!=='ListedMarginChanged' ||
         events[i].data.margin!==key || !invocation.writes.some(write=>write.kind===5 && write.account===key)))
         throw new Error('Invalid listed fill account effects');
+    }
+    if(events.some(event=>event.type==='ListedCashAccrued')) {
+      const [accrual,cash]=events;
+      const kind=[sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,sdk.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR]
+        .findIndex(tag=>invocation.instruction===sdk.hex(tag));
+      if(binding.artifactSet!==sdk.LISTED_CASH_ARTIFACT_SET || kind<0 || events.length!==2 ||
+        accrual.type!=='ListedCashAccrued' || cash.type!=='AccountFinancialChangedV3' || cash.data.kind!==kind ||
+        cash.data.roots.length!==kind+1 || new Set(cash.data.roots).size!==kind+1 ||
+        cash.data.roots.some((key:string)=>!invocation.writes.some(write=>write.account===key && write.kind===5)) ||
+        accrual.data.checkpoints.some((row:{funding:string})=>!invocation.writes.some(write=>write.account===row.funding && write.kind===31)))
+        throw new Error('Incomplete listed cash receipt');
     }
     const continuations=events.filter(event=>event.type==='MakerFillContinuation');
     if(continuations.length) {

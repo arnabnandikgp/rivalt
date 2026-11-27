@@ -2,7 +2,7 @@ import {address, getAddressEncoder, getBase58Decoder, getProgramDerivedAddress, 
 import * as clearing from './generated/index.js';
 import {deriveAccountVenue} from './account-addresses.js';
 import {LOCAL_ORACLE_FIXTURE} from './funding-sources.js';
-import {LISTED_EXECUTION_ARTIFACT_SET,qualifiedTradingProfile} from './account-deployment.js';
+import {hasListedExecution,qualifiedTradingProfile} from './account-deployment.js';
 import {fromBase64, requireValue, type UserRpc} from './wallet-client.js';
 
 const encoder=new TextEncoder();
@@ -63,7 +63,7 @@ export async function readMarketListings(rpc:Pick<UserRpc,'call'>,venue:Address,
       clearing.findListingPda({venue,marketId:record.marketId}),listingOracle(ticker,record.oraclePublisher)]);
     requireValue(key===expected && record.bump===listingBump && record.venue===venue && record.schemaVersion===1 &&
       ((record.status===0 && record.revision===1n) || (record.status===1 && record.revision===2n) ||
-        (artifactSet===LISTED_EXECUTION_ARTIFACT_SET && deployment.profileVersion===7 && record.status===2 && record.revision===3n)) &&
+        (hasListedExecution(artifactSet) && deployment.profileVersion===7 && record.status===2 && record.revision===3n)) &&
       record.marketId>=2 && symbol.every((byte,i)=>byte===record.symbol[i]) &&
       record.lotsPerUnit>0n && record.quoteMint===deployment.quoteMint && record.oracleFeed===feed,'Invalid inactive market binding.');
     return {address:key,ticker,record};

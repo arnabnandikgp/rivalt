@@ -114,7 +114,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       const listing=present(state.listings?.[change.listing],'sealed listing');
       const funding=present(state.listedFunding?.[change.funding],'listed funding');
       const active=currentVenue();
-      accountCheck(artifactSet===sdk.LISTED_EXECUTION_ARTIFACT_SET && active.profileVersion===6 && safety().mode===1
+      accountCheck(sdk.hasListedExecution(artifactSet) && active.profileVersion===6 && safety().mode===1
         && !safety().paused && listing.status===1 && change.marketId===listing.marketId && funding.listing===change.listing
         && BigInt(change.safetyEpoch)===BigInt(safety().epoch)+1n && !state.listedVenues?.[change.directory]
         && !state.listedBooks?.[change.book] && BigInt(change.values.observationSequence)===BigInt(funding.values.observationSequence)+1n
@@ -130,7 +130,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       break;
     }
     case 'ListedMarginChanged': {
-      accountCheck(artifactSet===sdk.LISTED_EXECUTION_ARTIFACT_SET && currentVenue().profileVersion===7,'listed margin profile');
+      accountCheck(sdk.hasListedExecution(artifactSet) && currentVenue().profileVersion===7,'listed margin profile');
       const payload=typeof change.positions==='string'?Buffer.from(change.positions,'hex'):Buffer.from(change.positions);
       const slots=sdk.decodeListedRecords(payload,sdk.listedMarginCapacity(change.state),true);
       const active=new Set(Object.values(state.listings??{}).filter(listing=>listing.status===2).map(listing=>listing.marketId));
@@ -139,11 +139,52 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       (state.listedPositions??={})[change.margin]=payload.toString('hex');
       break;
     }
+    case 'ListedCashAccrued': {
+      accountCheck(artifactSet===sdk.LISTED_CASH_ARTIFACT_SET && currentVenue().profileVersion===7,'listed cash profile');
+      const indexes=new Map<number,bigint>();
+      let prevMarket=1;
+      for(const checkpoint of change.checkpoints) {
+        const funding=present(state.listedFunding?.[checkpoint.funding],'cash funding source');
+        const listing=present(state.listings?.[funding.listing],'cash listing');
+        accountCheck(listing.marketId===checkpoint.market && listing.status===2 && listing.venue===venue &&
+          listing.marketId>prevMarket,'ordered cash funding markets');
+        prevMarket=listing.marketId;
+        const values=funding.values, observation=values.oracle, time=BigInt(checkpoint.fundingTime);
+        const index=BigInt(checkpoint.fundingIndexScaled);
+        if(time!==BigInt(values.fundingTime) || index!==BigInt(values.fundingIndexScaled)) {
+          const start=BigInt(observation.sampledAt);
+          accountCheck(observation.heldEpoch==='1' && BigInt(change.slot)<BigInt(observation.heldSlot) &&
+            time>=BigInt(values.fundingTime) && time>=start && time<=BigInt(observation.heldUntil) &&
+            index===BigInt(observation.fundingBase)+BigInt(observation.premiumScaled)*(time-start)/3600n,'held funding endpoint');
+        }
+        values.fundingTime=checkpoint.fundingTime;
+        values.fundingIndexScaled=checkpoint.fundingIndexScaled;
+        indexes.set(listing.marketId,index);
+      }
+      const required=new Set<number>();
+      for(const changeRoot of change.roots) {
+        const key=changeRoot.margin, capacity=sdk.listedMarginCapacity(present(state.roots[key],'cash member'));
+        const prev=present(state.listedPositions?.[key],'previous listed positions');
+        const slots=sdk.decodeListedRecords(Buffer.from(prev,'hex'),capacity,true);
+        const payload=typeof changeRoot.positions==='string'?Buffer.from(changeRoot.positions,'hex'):Buffer.from(changeRoot.positions);
+        const next=sdk.decodeListedRecords(payload,capacity,true);
+        const expected=slots.records.map(row=>{
+          if(row.lots===0n)return row;
+          const index=present(indexes.get(row.market),'required cash funding index');
+          required.add(row.market);
+          return {...row,virtualScaled:row.virtualScaled-row.lots*(index-row.fundingCheckpointScaled),fundingCheckpointScaled:index};
+        });
+        equal(next,{...slots,records:expected},'cash preserves lots and entry costs while accruing funding');
+        state.listedPositions![key]=payload.toString('hex');
+      }
+      accountCheck(required.size===indexes.size,'exact cash funding coverage');
+      break;
+    }
     case 'ListedRouteFilled': {
       const listing=present(state.listings?.[change.listing],'listed market');
       const book=present(Object.values(state.listedBooks??{}).find(value=>value.listing===change.listing),'listed book');
       const funding=present(Object.values(state.listedFunding??{}).find(value=>value.listing===change.listing),'listed funding');
-      accountCheck(artifactSet===sdk.LISTED_EXECUTION_ARTIFACT_SET && currentVenue().profileVersion===7 && listing.status===2
+      accountCheck(sdk.hasListedExecution(artifactSet) && currentVenue().profileVersion===7 && listing.status===2
         && [0,1].includes(change.side) && change.legs.length>=1 && change.legs.length<=2,'qualified listed fill');
       let gross=0n,lots=0n;
       const seen=new Set<string>();
@@ -174,7 +215,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       const previous=liquidity.publishers[change.configuration];
       state.listedFunding??={};
       const prior=state.listedFunding[change.funding];
-      accountCheck(sdk.hasListedFunding(artifactSet) && (listing.status===1 || (listing.status===2 && currentVenue().profileVersion===7 && artifactSet===sdk.LISTED_EXECUTION_ARTIFACT_SET)) && configuration.schemaVersion===10
+      accountCheck(sdk.hasListedFunding(artifactSet) && (listing.status===1 || (listing.status===2 && currentVenue().profileVersion===7 && sdk.hasListedExecution(artifactSet))) && configuration.schemaVersion===10
         && configuration.venue===venue && configuration.market===change.listing && configuration.revision===(previous?.revision??'0')
         && Object.values(liquidity.registries).some(value=>value.market===change.listing && value.sealed)
         && !!previous===!!prior && (listing.status===2 || (values.fundingIndexScaled==='0' && values.oracle.coveredSeconds==='0')),'listed funding state');

@@ -10,6 +10,7 @@ pub struct OccupiedSlot {
     pub position: Position,
 }
 
+#[derive(Clone, Copy)]
 pub struct MarketWindow {
     pub market: u16,
     pub current: Risk,

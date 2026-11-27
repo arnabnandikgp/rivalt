@@ -1,6 +1,7 @@
 // The canonical MarginAccount prefix owns collateral and the two original market positions.
 // This directory immediately follows their fixed-width entry costs on wider deployments.
-import {getMarginAccountDecoder,getMarginAccountSize,MARGIN_ACCOUNT_DISCRIMINATOR} from './generated/index.js';
+import {AccountRole,type Address} from '@solana/kit';
+import {findFundingPda,findListingPda,getMarginAccountDecoder,getMarginAccountSize,MARGIN_ACCOUNT_DISCRIMINATOR} from './generated/index.js';
 import {requireValue} from './wallet-client.js';
 import {readEntryBounds} from './entry-bounds.js';
 import {MAX_POSITION_LOTS} from './quantity-limits.js';
@@ -31,6 +32,31 @@ export function decodeListedMargin(bytes:Uint8Array) {
   requireValue(root.schemaVersion===10 && capacity>0 &&
     bytes.length===INLINE_MARGIN_BYTES+headerBytes+capacity*recordBytes,'Invalid listed margin capacity.');
   return {root,inlineEntries,capacity,...decodeListedRecords(bytes.subarray(INLINE_MARGIN_BYTES),capacity,false)};
+}
+
+/** Remaining accounts for a qualified withdrawal or same-owner transfer.
+ * Both sides accrue funding on every open market, including a market held only by the recipient. */
+export async function listedCashSourceAccounts(venue:Address,margins:readonly Uint8Array[]) {
+  requireValue(margins.length===1 || margins.length===2,'Expected a donor and at most one recipient.');
+  const markets=new Set<number>();
+  for(const bytes of margins) {
+    const root=getMarginAccountDecoder().decode(bytes);
+    requireValue(root.venue===venue && root.schemaVersion===10 && root.lifecycle===2 &&
+      MARGIN_ACCOUNT_DISCRIMINATOR.every((byte,i)=>bytes[i]===byte) &&
+      entryMarker.every((byte,i)=>bytes[getMarginAccountSize()+i]===byte),'Invalid funded margin account.');
+    if(listedMarginCapacity(root)===0) {
+      requireValue(bytes.length===INLINE_MARGIN_BYTES,'Invalid inline margin allocation.');
+      continue;
+    }
+    for(const position of decodeListedMargin(bytes).records) {
+      if(position.lots!==0n)markets.add(position.market);
+    }
+  }
+  return (await Promise.all([...markets].sort((left,right)=>left-right).map(async marketId=>{
+    const [listing]=await findListingPda({venue,marketId});
+    const [funding]=await findFundingPda({listing});
+    return [{address:listing,role:AccountRole.READONLY},{address:funding,role:AccountRole.WRITABLE}];
+  }))).flat();
 }
 
 export function decodeListedRecords(directory:Uint8Array,capacity:number,packed:boolean) {

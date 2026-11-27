@@ -1232,6 +1232,7 @@ export enum ClearingEvent {
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
   LiquidityRouteFeeRecorded,
+  ListedCashAccrued,
   ListedFundingChanged,
   ListedLiquiditySealed,
   ListedMakerAdmitted,
@@ -1675,6 +1676,17 @@ export function identifyClearingEvent(
     )
   ) {
     return ClearingEvent.LiquidityRouteFeeRecorded;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([187, 180, 4, 193, 42, 93, 232, 108]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.ListedCashAccrued;
   }
   if (
     containsBytes(

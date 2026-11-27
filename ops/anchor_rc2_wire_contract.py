@@ -203,7 +203,7 @@ def undo_listed_maker_delta(actual, program):
             assert [(meta['name'],meta.get('writable',False),meta.get('signer',False),meta.get('optional',False))
                     for meta in flatten(entry['accounts'])] == [(key,key in writes,key==signer,key in ('btc','eth')) for key in keys]
         for category, namespace, names in [('accounts','account',['ListedVenue','ListedMarketBook']),
-                                          ('events','event',['ListedVenueOpened','ListedRouteFilled','ListedMarginChanged'])]:
+                                          ('events','event',['ListedVenueOpened','ListedRouteFilled','ListedMarginChanged','ListedCashAccrued'])]:
             for name in names:
                 assert remove(category,name)['discriminator'] == disc(namespace,name)
         header = [('schema_version','u16'),('revision','u64')]
@@ -215,6 +215,9 @@ def undo_listed_maker_delta(actual, program):
             ('directory','pubkey'),('directory_bump','u8'),('book','pubkey'),('book_bump','u8'),('funding','pubkey'),
             ('values',defined('ListedFundingValues'))])
         exact_fields('ListedMarginChanged',event_header+[('margin','pubkey'),('state',defined('MarginAccountSnapshot')),('positions',{'vec':'u8'})])
+        exact_fields('ListedCashPositions',[('margin','pubkey'),('positions',{'vec':'u8'})])
+        exact_fields('ListedCashCheckpoint',[('market','u16'),('funding','pubkey'),('funding_time','i64'),('funding_index_scaled','i128')])
+        exact_fields('ListedCashAccrued',event_header+[('checkpoints',{'vec':defined('ListedCashCheckpoint')}),('roots',{'vec':defined('ListedCashPositions')})])
         exact_fields('ListedRouteFilled',event_header+[('listing','pubkey'),('trader','pubkey'),('side','u8'),
             *[(key,'u64') for key in ('lots','gross','fee','gross_lots','insurance','retained_fees')],('insurance_carry','u8'),
             ('legs',{'vec':defined('ExecutedLeg')}),('funding',defined('ListedFundingValues')),('inline_markets',{'vec':defined('MarketSnapshot')})])

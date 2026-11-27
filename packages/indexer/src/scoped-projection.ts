@@ -1,4 +1,5 @@
 import {isDeepStrictEqual} from 'node:util';
+import * as sdk from '@rivalt/sdk';
 import type {AccountInvocation} from './account-events.js';
 import {accountCheck, projectAccounts, type AccountState} from './account-projection.js';
 import {orderScopedTransactions} from './scoped-history.js';
@@ -40,6 +41,20 @@ export function projectScopedBatch(initial:AccountState,invocations:readonly Acc
     // immutable values, preserving array order and all financial fields.
     const before=new Map([...projectedEntities(state)].map(([key,value])=>[key,structuredClone(storedFields(state,key,value))]));
     for(const write of invocation.writes)state.revisions[write.account]={kind:write.kind,revision:write.before};
+    const cash=invocation.events.at(-1);
+    if(state.venue?.profileVersion===7 && cash?.type==='AccountFinancialChangedV3' && [0,1].includes(cash.data.kind)) {
+      const accrual=invocation.events[0];
+      accountCheck(binding.artifactSet===sdk.LISTED_CASH_ARTIFACT_SET && accrual.type==='ListedCashAccrued','wider cash accrual');
+      const occupied=cash.data.roots.filter((key:string)=>{
+        const payload=state.listedPositions?.[key];
+        return payload && sdk.decodeListedRecords(Buffer.from(payload,'hex'),sdk.listedMarginCapacity(state.roots[key]),true).records.length>0;
+      });
+      accountCheck(isDeepStrictEqual(occupied,accrual.data.roots.map((row:{margin:string})=>row.margin)),'complete cash position directories');
+      const amount=BigInt(cash.data.amount);
+      accountCheck(amount>0n && cash.data.rootStates.length===cash.data.roots.length &&
+        cash.data.roots.every((key:string,i:number)=>state.roots[key].owner===cash.data.actor &&
+          BigInt(cash.data.rootStates[i].cash)===BigInt(state.roots[key].cash)+(i===0?-amount:amount)),'funded cash movement');
+    }
     for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4,binding.artifactSet,
       event.type==='ListedMarginChanged' && invocation.events.at(-1)?.type==='ListedRouteFilled');
     const represented=projectedEntities(state),writes=new Map(invocation.writes.map(write=>[write.account,write]));

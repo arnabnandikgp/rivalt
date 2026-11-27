@@ -1037,3 +1037,26 @@ pub struct ListedMarginChanged {
     /// Exact populated directory only (header + occupied records), no empty capacity.
     pub positions: Vec<u8>,
 }
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
+pub struct ListedCashCheckpoint {
+    pub market: u16,
+    pub funding: Address,
+    pub funding_time: i64,
+    pub funding_index_scaled: i128,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
+pub struct ListedCashPositions {
+    pub margin: Address,
+    pub positions: Vec<u8>,
+}
+
+/// Funding changes on the listed accounts that accompany one funded cash movement.
+#[event]
+pub struct ListedCashAccrued {
+    pub venue: Address,
+    pub slot: u64,
+    pub checkpoints: Vec<ListedCashCheckpoint>,
+    pub roots: Vec<ListedCashPositions>,
+}

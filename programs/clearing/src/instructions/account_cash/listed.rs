@@ -50,6 +50,11 @@ impl ListedMargin {
         base: &Snapshot,
         increase: bool,
     ) -> Result<Self> {
+        let directory = Self::read_directory(root)?;
+        Self::prepare(root, &directory, maker_market, base, increase)
+    }
+
+    fn read_directory(root: &mut BorshAccount<MarginAccount>) -> Result<Vec<u8>> {
         let view = root.account().clone();
         let size = initial_margin_size(root.mode, root.isolated_market_index);
         require!(view.data_len() == size, ClearingError::Profile);
@@ -58,10 +63,21 @@ impl ListedMargin {
             let bytes = view.try_borrow()?;
             bytes[MARGIN_ALLOCATION..].to_vec()
         };
-        // Anchor forbids even read-only dereference of the Borsh prefix while
-        // its guard is released. Only the independently sized tail is copied.
         root.reacquire_guard_only()?;
-        Self::prepare(root, &directory, maker_market, base, increase)
+        Ok(directory)
+    }
+
+    pub(crate) fn packed_positions(&self, account_size: usize) -> Result<Vec<u8>> {
+        use clearing_accounting::market_slots::storage::{HEADER_BYTES, RECORD_BYTES};
+        let mut positions = vec![
+            0;
+            account_size
+                .checked_sub(MARGIN_ALLOCATION)
+                .ok_or(ClearingError::Profile)?
+        ];
+        checked(self.directory.write_listed_bytes(&mut positions))?;
+        positions.truncate(HEADER_BYTES + RECORD_BYTES * self.directory.records().len());
+        Ok(positions)
     }
 
     /// The Borsh writer owns the fixed prefix. Writing only the directory above
@@ -69,6 +85,10 @@ impl ListedMargin {
     pub(crate) fn commit(&self, root: &mut BorshAccount<MarginAccount>) -> Result<()> {
         trading::commit_root(root, &self.root)?;
         let mut view = root.account().clone();
+        if view.data_len() == MARGIN_ALLOCATION {
+            require!(self.directory.records().is_empty(), ClearingError::Profile);
+            return Ok(());
+        }
         root.release_borrow()?;
         let result = {
             let mut bytes = view.try_borrow_mut()?;
@@ -213,6 +233,9 @@ impl ListedMargin {
         Ok(())
     }
 }
+
+#[cfg(feature = "listed-venue-cash")]
+pub(crate) mod cash;
 
 #[cfg(test)]
 mod tests;

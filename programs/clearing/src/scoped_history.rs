@@ -736,6 +736,8 @@ pub(crate) struct MakerAccess {
 #[derive(Clone, Copy)]
 enum Remaining {
     ListedRegistrations,
+    #[cfg(feature="listed-venue-cash")]
+    ListedCashWindows,
     SelectedMakers(MakerAccess),
     ExplicitLane,
     #[cfg(feature = "checked-funding-prefix")]
@@ -749,6 +751,16 @@ enum Remaining {
 impl Remaining {
     fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
         match self {
+            #[cfg(feature="listed-venue-cash")]
+            Self::ListedCashWindows => {
+                require!(accounts.len() <= 12 && accounts.len() % 2 == 0, ClearingError::OracleSource);
+                for pair in accounts.chunks_exact_mut(2) {
+                    require!(!pair[0].is_writable() && pair[1].is_writable(), ClearingError::OracleSource);
+                    scope.raw::<MarketListing>(&mut pair[0],Access::Read)?;
+                    scope.raw::<ListedFunding>(&mut pair[1],Access::Write)?;
+                }
+                Ok(())
+            }
             Self::ListedRegistrations => {
                 require!(accounts.len()==usize::from(maker_interface::canonical::REGISTRATION_LIMIT),ClearingError::MakerBinding);
                 for account in accounts {
@@ -847,9 +859,13 @@ fn run_with_remaining<'context, T: ScopedContext>(
     if context.accounts.venue().profile_version == LISTED_VENUE_PROFILE {
         use crate::instructions::maker_liquidity::routes::listed_venue;
         require!(listed_venue::permits(instruction), ClearingError::Profile);
-        scope.listed_margin_write = instruction == listed_venue::FILL;
+        scope.listed_margin_write = instruction == listed_venue::FILL || listed_venue::is_cash(instruction);
         require!(coverage_lanes.is_empty(), ClearingError::Profile);
     }
+    #[cfg(feature="listed-venue-cash")]
+    let access = if scope.listed_margin_write && crate::instructions::maker_liquidity::routes::listed_venue::is_cash(instruction) {
+        Remaining::ListedCashWindows
+    } else { access };
     if let Remaining::SelectedMakers(selected) = access {
         scope.selected_makers = Some(selected);
     }

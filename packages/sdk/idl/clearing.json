@@ -30923,6 +30923,19 @@
       ]
     },
     {
+      "name": "ListedCashAccrued",
+      "discriminator": [
+        187,
+        180,
+        4,
+        193,
+        42,
+        93,
+        232,
+        108
+      ]
+    },
+    {
       "name": "ListedFundingChanged",
       "discriminator": [
         144,
@@ -35326,6 +35339,87 @@
                 },
                 8
               ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedCashAccrued",
+      "docs": [
+        "Funding changes on the listed accounts that accompany one funded cash movement."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "checkpoints",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ListedCashCheckpoint"
+                }
+              }
+            }
+          },
+          {
+            "name": "roots",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ListedCashPositions"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedCashCheckpoint",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "u16"
+          },
+          {
+            "name": "funding",
+            "type": "pubkey"
+          },
+          {
+            "name": "funding_time",
+            "type": "i64"
+          },
+          {
+            "name": "funding_index_scaled",
+            "type": "i128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedCashPositions",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "margin",
+            "type": "pubkey"
+          },
+          {
+            "name": "positions",
+            "type": {
+              "vec": "u8"
             }
           }
         ]
