@@ -105,11 +105,13 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 11, signed market-indexed settlement.** The local four-market profile settled six accounts in one transaction at 119,619 CU and 821 bytes. The two traders withdrew 348 test atoms each and two makers withdrew 1,500 each. Eight fee atoms remained. PostgreSQL independently reconciled 72 program receipts. The separate eight-member joint example paid both outside creditors nine and rejected an inferior proposal. The tested program and shared replay are at `3155169c`. [Scope and resource measurements](operations/qualification-scorecard.md#signed-market-indexed-settlement)
 
-**Next action.** Extend the same indexed verifier to a debtor owing more than one market. Qualify a signed book where recovered funds split by original debt proportions, a destination uses its own insurance and a creditor’s fractional payment needs protected rounding. Reconcile that book through wallet exit before enabling wider venue trading.
+**Finding 11, multi-destination debt and protected rounding.** In the local indexed program, a cross trader recovered 200 atoms and forwarded 80 and 120 under its frozen debt proportions. The first destination drew one atom from its own insurance. Clearing preserved a 27-atom creditor payment that ordinary rounding would have reduced to 26. Four owners withdrew their final balances and 12 fee atoms remained. On tested revision `de1b47f3`, settlement took 126,550 CU and 724 bytes. Fresh PostgreSQL replay reconciled 76 program receipts. [Signed results and limits](operations/qualification-scorecard.md#insured-settlement-with-two-debt-destinations)
+
+**Next action.** Qualify residual settlement when an insolvent indexed book has no eligible opposing lots. Require the complete book and its verified uninsured shortfall, reject settlement of a healthy book, then reconcile every owner’s exit. Competing-winner selection and wider venue integration follow.
 
 | Open gate | What remains |
 |---|---|
-| Wider cross-margin activation (Finding 11) | Signed local settlement covers a bounded four-market book. Multi-destination debt, per-market insurance, protected rounding and integration with the trading venue remain open. |
+| Wider cross-margin activation (Finding 11) | Signed local books cover four linked markets, multi-destination debt, per-market insurance and protected rounding. Residual-only settlement, competing winners and wider venue integration remain open. |
 | Market scale and economics | Meaningful executable depth, sustained maker inventory, funded maker P&L, keeper incentives and payout time under adverse flow. [Risk and liquidation](clearing/risk-and-resolution.md) |
 | Independent maker validation (P15B) | An external maker must independently operate, reconcile and exit. All makers in the local evidence were internal. |
 | Independent review and funded-pilot readiness (P16B) | Separate review, risk calibration and authorization. Default/devnet builds keep the current financial paths disabled. |

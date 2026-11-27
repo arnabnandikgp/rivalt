@@ -31,6 +31,8 @@ For [signed orders on a sparse account](../clearing/accounts.md#signed-orders-on
 
 For the [sparse funded-receiver check](../clearing/risk-and-resolution.md#funded-receiver-on-a-sparse-cross-account), run `RIVALT_PROOF_SCOPE=slot-liquidation bash ops/default-proof-smoke.sh`. Build the positions with signed orders, leave a debt in a flat market, then shock a different market from the one being liquidated. Test zero progress after the receiver fee, a receiver one atom short after reserving its own order, absent consent and omitted markets. Verify the exact signers, both account revisions, order cancellation or retention, final SPL withdrawal and post-recovery refusal. Recompute both deficits and the receiver’s initial margin from finalized history in a fresh PostgreSQL database.
 
+For [insured settlement with two debt destinations](qualification-scorecard.md#insured-settlement-with-two-debt-destinations), run `RIVALT_PROOF_SCOPE=insured-indexed-default bash ops/default-proof-smoke.sh`. Build the debts, charged inventory and market insurance from signed fills. Check the frozen 2:3 split, the four-atom concession, the insured market’s one-atom draw and the protected creditor’s 27-atom receipt. Rebuild the funding, fees, original positions, alternative allocations, rounding repair and wallet exits in fresh PostgreSQL and the independent fraction model. Run the earlier indexed workload below for compatibility. The focused host tests in `indexed_default::verifier::tests` cover a clipped fractional reserve draw, a capped destination and an insured market with multiple debtors.
+
 For the [market-indexed settlement](qualification-scorecard.md#one-settlement-engine-across-market-widths), run:
 
 ```sh
