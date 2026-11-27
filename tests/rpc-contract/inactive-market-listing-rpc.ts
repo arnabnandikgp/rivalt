@@ -16,6 +16,7 @@ import type {ExpectedInstructionError} from './instruction-errors.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {initializeFixtureFeed} from './oracle-fixture.js';
+import {qualifyListedMaker} from './listed-maker-admission.js';
 import {qualifyListingIndex} from './listing-index-qualification.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
@@ -25,7 +26,7 @@ const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,payerFor:label=>label.startsWith('SOL sample ')?observer:undefined});
 try {
   const payer=await payerKey(),{h,members,lanes}=coverageProvisioning(transport,payer);
-  const setup=await liquidityExecutionSetup(h,rpc,{traderCount:1,recoveryCapacity:7,marketCheckpoints:true,
+  const setup=await liquidityExecutionSetup(h,rpc,{traderCount:1,recoveryCapacity:build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?8:7,marketCheckpoints:true,
     marginLayout:'ledger-lanes',shape:symmetricPayoutShape,verifyRejections:false});
   const {venue,primary,traderOwner:owner}=setup, [trader]=setup.roots;
   const {route,root,guard,withCheckpoints}=executionTestHelpers(h,setup);
@@ -66,10 +67,11 @@ try {
   assert.deepEqual([key,ticker,record.marketId,record.oracleFeed,record.oraclePublisher,record.lotsPerUnit,
     record.quoteMint,record.status],[listing,'SOL',2,feed,primary.address,lotsPerUnit,setup.mint.address,0]);
 
+  const listedMaker=build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?await qualifyListedMaker(h,setup,listing,members):undefined;
   observer=owner;
   const indexProbe=build.artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET
     ? await qualifyListingIndex(h,setup,listing,feed,financialKeys) : undefined;
-  if(indexProbe) await setup.qualify();
+  if(indexProbe||listedMaker) await setup.qualify();
   else await setup.sample();
   const common={...setup.common,btc:setup.markets[0],eth:setup.markets[1]};
   const startSlot=await setup.slot();
@@ -103,10 +105,19 @@ try {
     }
     keys.push({program:sdk.CLEARING_PROGRAM_ADDRESS,name:'listingIndex',key:indexProbe.listingIndex});
   }
+  if(listedMaker) {
+    for(const [label,ix] of [['initialize SOL maker curve',listedMaker.curve],['admit funded SOL maker',listedMaker.admit],
+      ['publish alternative curve for listing 258',listedMaker.otherCurve]] as const) {
+      const landed=checks.find(row=>row.label===label)!;
+      parity.record([ix],await rpc.call('getTransaction',[landed.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]));
+    }
+    keys.push({program:sdk.CLEARING_PROGRAM_ADDRESS,name:'makerRegistration',key:listedMaker.registration},
+      {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'capitalBinding',key:listedMaker.capitalBinding});
+  }
   await parity.finish(directory,keys,h.read);
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   const replay=await journal.finish();
-  assert.equal(Object.keys(replay.state.listings??{}).length,1);
+  assert.equal(Object.keys(replay.state.listings??{}).length,listedMaker?2:1);
   assert.equal(replay.state.listings?.[listing]?.oracleFeed,feed);
   assert.equal(replay.state.listedSymbols?.[binding]?.listing,listing);
   assert.deepEqual(replay.state.venue?.markets,setup.markets);
@@ -115,7 +126,11 @@ try {
     assert.equal(projected?.reference,indexProbe.recovered.reference.toString());
     assert.equal(projected?.revision,'3');
   }
-  const result={index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
+  if(listedMaker) {
+    assert.equal(replay.state.liquidity?.makers[listedMaker.registration]?.market,listing);
+    assert.equal(replay.state.roots[listedMaker.capital]?.cash,'0');
+  }
+  const result={maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
     bytes:(await h.read(indexProbe.listingIndex))!.length,receipts:checks.filter(row=>!row.error &&
       (row.label==='bind SOL index'||String(row.label).startsWith('SOL sample ')))}:undefined,program:build.revision,harness:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     transactions:checks.length,events:replay.events,registration:accepted,listingBytes:(await h.read(listing))!.length,

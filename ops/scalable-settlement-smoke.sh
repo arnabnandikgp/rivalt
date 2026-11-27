@@ -124,7 +124,7 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   execution-router-feasible-books) node --import tsx tests/rpc-contract/feasible-book-rpc.ts ;;
   execution-router-matched-makers) node --import tsx tests/rpc-contract/comparison-rpc.ts ;;
   execution-router-direct-capacity|execution-router-thousand-member-credit|execution-router-streamed-capacity|execution-router-grouped-capacity) node --import tsx tests/rpc-contract/direct-credit-capacity-rpc.ts ;;
-  execution-router-inactive-listing|execution-router-listing-index) node --import tsx tests/rpc-contract/inactive-market-listing-rpc.ts ;;
+  execution-router-inactive-listing|execution-router-listing-index|execution-router-listed-maker) node --import tsx tests/rpc-contract/inactive-market-listing-rpc.ts ;;
   execution-router-indexed-withdrawal) node --import tsx tests/rpc-contract/venue-indexed-withdrawal-rpc.ts ;;
   execution-router-grouped-slots)
     CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 cargo build --locked --offline -p clearing --features bounded-entry-settlement --example occupied-markets
