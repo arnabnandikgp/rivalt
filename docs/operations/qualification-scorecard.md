@@ -18,7 +18,7 @@ Use the numbered findings across revisions. **Open** means a measured bottleneck
 | 8 | **Willing liquidation capital — Deferred to the shock exercise** | The signed case sold ten lots to a maker. A consenting operator-owned receiver could take five more only after it was funded. [Liquidation qualification](validation.md#evidence-by-deployment) | Exercise several unhealthy accounts competing for limited receiver capital. Measure deficit after fees, remaining exposure and recovery time. Independent participation is a separate external gate. |
 | 9 | **Local costs versus sustainable participation — Open for cost reporting** | The wallet uses zero priority fee and the maker kit labels hedge cost as an assumption. The 119 fills earned 2,963 collateral atoms in aggregate taker fees before insurance. [Wallet budget](../liquidity/routing.md) · [Maker economics](../../packages/maker-kit/src/liquidity-economics.ts) | Report actual costs per role in lamports, retained fees after insurance, funded and unpaid maker P&L, and explicitly assumed hedge and priority-fee scenarios. Independent maker economics remain open. |
 | 10 | **Markets sharing a margin account — Open** | Local clearing has two fixed slots. A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | [Signed fills](#signed-orders-on-eight-markets) and [receiver liquidation](#funded-receiver-liquidation-across-markets) qualify the sparse fixture. [Venue withdrawals](#occupied-market-withdrawal-on-venue-clearing) use the indexed check at two markets. The venue [registers SOL inactive](#inactive-sol-listing-on-venue-clearing) [observes its independent index](#inactive-sol-index-observation) and [admits separately funded maker capital](#isolated-maker-capital-for-an-inactive-listing). Wider venue accounts and default activation remain open. |
-| 11 | **Default across three or more markets — Open, blocks wider cross trading** | A native complete-book calculation at `8b1e155f` matched independent exact settlement across three markets, including partial recovery, cycles, insurance and terminal whole atoms. [Workload](#three-market-frozen-book-settlement) | The [signed five-member book](#signed-three-market-default-and-wallet-exit) verifies the maximal protected charge for a single eligible pair and reconciles the wallet exits. The [signed two-winner settlement](#signed-two-winner-settlement-and-withdrawals) checks competing charges on the same BTC debtor. The [market-indexed engine](#one-settlement-engine-across-market-widths) compares simultaneous reductions against the original book. The [signed four-market book](#signed-market-indexed-settlement) verifies nine allocations and wallet exits. The [insured settlement](#insured-settlement-with-two-debt-destinations) pays a debtor’s two destinations and protects a creditor through rounding. Residual-only default, competing winners in the indexed verifier and venue integration remain open. Finding 5 tracks the operating cost of recovery. |
+| 11 | **Default across three or more markets — Open, blocks wider cross trading** | A native complete-book calculation at `8b1e155f` matched independent exact settlement across three markets, including partial recovery, cycles, insurance and terminal whole atoms. [Workload](#three-market-frozen-book-settlement) | The [signed five-member book](#signed-three-market-default-and-wallet-exit) verifies the maximal protected charge for a single eligible pair and reconciles the wallet exits. The [signed two-winner settlement](#signed-two-winner-settlement-and-withdrawals) checks competing charges on the same BTC debtor. The [market-indexed engine](#one-settlement-engine-across-market-widths) compares simultaneous reductions against the original book. The [signed four-market book](#signed-market-indexed-settlement) verifies nine allocations and wallet exits. The [insured settlement](#insured-settlement-with-two-debt-destinations) pays a debtor’s two destinations and protects a creditor through rounding. The indexed verifier now covers [residual settlement](#residual-settlement-with-open-positions), [capacity-limited recovery](#partial-recovery-with-competing-winners) and [simultaneous competing markets](#competing-winners-in-two-distressed-markets). Wider venue trading, default and wallet exits remain open. Finding 5 tracks the operating cost of recovery. |
 
 ## Payout and cross-margin work
 
@@ -640,3 +640,22 @@ constraints can still prevent a split from attaining that upper bound.
 The same program repeated the full-recovery case. It refused 5/5 and 3/7,
 accepted 4/6, and reproduced 62 program receipts and the original wallets.
 The settlement used 226,597 CU in a 977-byte transaction.
+
+### Competing winners in two distressed markets
+
+On SBF revision `b5540580` and harness `1c92356d`, seven funded members traded
+on four market IDs. Eight signed fills left two markets in default with two
+eligible winners per debtor. Independent enumeration evaluated all 36 physical
+allocations. Nine could reach both two-atom recovery ceilings. The program
+verified the complete book and charged one atom to each winner in each market.
+It refused an uneven split in either market and a proposal to skip both.
+
+One settlement used 187,885 CU, 910 signed bytes and 16 loaded accounts.
+Five owners withdrew 4,586, 1,001, 1,001, 2,000 and 2,000 atoms. Eight fee
+atoms remained in the SPL vault and all four insurance balances were untouched.
+PostgreSQL independently reconstructed the fills, both stored splits and wallet
+exits from 66 finalized program receipts. The first replay read the new split
+vector as the previous optional single record and failed after the wallets had
+exited. The successful run repeated the entire workload on a fresh bank and
+database. This establishes a bounded test-program settlement. Finding 11
+requires the real clearing program to settle positions from the wider venue.

@@ -144,13 +144,20 @@ wallet exits and six fee atoms reconciled in fresh PostgreSQL replay. The same
 revision repeated the fully recoverable book, charged four and six, and
 reconciled 62 program receipts. [Partial-recovery acceptance](operations/qualification-scorecard.md#partial-recovery-with-competing-winners)
 
-**Next action.** Qualify a single atomic settlement when two markets in the
-same default each have competing winners. Then exercise the wider path on venue
-clearing with authenticated listings, real positions, custody and wallet exits.
+**Finding 11, simultaneous competing markets (Review).** On fixture `b5540580`
+and harness `1c92356d`, a single settlement charged four winning positions
+across two distressed markets. The independent model evaluated 36 alternatives.
+Five wallets withdrew their full balances, leaving eight fee atoms. Fresh
+PostgreSQL replay matched 66 program receipts.
+[Signed result and limits](operations/qualification-scorecard.md#competing-winners-in-two-distressed-markets)
+
+**Next action.** Reconcile a complete book from the real clearing venue,
+including its settlement pools, fee classification and full-precision claims,
+as inputs to wider-market recovery.
 
 | Open gate | What remains |
 |---|---|
-| Wider cross-margin activation (Finding 11) | Signed local books cover four linked markets, multi-destination debt, insurance, protected rounding and residual settlement without eligible opposing gain. One market with two winners has signed full and capacity-limited partial recoveries. Simultaneous competing markets and venue integration beyond BTC/ETH remain open. |
+| Wider cross-margin activation (Finding 11) | Signed local books cover four linked markets, multi-destination debt, insurance, protected rounding and residual settlement without eligible opposing gain. One market with two winners has signed full and capacity-limited partial recoveries. Two simultaneous competing markets have a signed settlement on the indexed fixture. Wider trading and default on the actual venue remain open. |
 | Market scale and economics | Meaningful executable depth, sustained maker inventory, funded maker P&L, keeper incentives and payout time under adverse flow. [Risk and liquidation](clearing/risk-and-resolution.md) |
 | Independent maker validation (P15B) | An external maker must independently operate, reconcile and exit. All makers in the local evidence were internal. |
 | Independent review and funded-pilot readiness (P16B) | Separate review, risk calibration and authorization. Default/devnet builds keep the current financial paths disabled. |
