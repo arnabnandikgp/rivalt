@@ -721,6 +721,9 @@ mod tests {
         };
         let plan = verify_book(&rows, &[996, 0], &[6, 0], &proof, Some(episode)).unwrap();
         assert_eq!(plan.cash, [0, 24_010, 1_000_970]);
+        assert_eq!(plan.postings.iter().map(|p| (p.claim_delta[0],p.movement[0])).collect::<Vec<_>>(),
+            [(7492,-11504),(-7492,11510),(0,996)]);
+        assert!(plan.postings.iter().all(|p|p.claim_delta[1]==0 && p.movement[1]==0));
         assert_eq!(&plan.charges[..2], &[7492, 0]);
         assert_eq!(&plan.spent[..2], &[6, 0]);
         assert!(verify_book(&rows, &[0, 996], &[6, 0], &proof, Some(episode)).is_err());

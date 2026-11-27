@@ -568,6 +568,24 @@ def before_window_extensions(actual, program):
             ('epoch', 'u64'), ('selected', 'u8'), ('denominator', 'u32'), ('rates', {'vec':'u32'})]
         assert instruction['returns'] == {'vec':'u64'}
         actual['instructions'].remove(instruction)
+        binder, = [row for row in actual['instructions'] if row['name'] == 'bind_indexed_default']
+        inventory, = [row for row in actual['instructions'] if row['name'] == 'verify_inventory_book']
+        assert binder['accounts'] == inventory['accounts']
+        assert binder['discriminator'] == list(hashlib.sha256(b'global:bind_indexed_default').digest()[:8])
+        assert binder['args'] == [instruction['args'][0], dict(name='revision', type='u64'), *instruction['args'][1:]]
+        assert 'returns' not in binder
+        actual['instructions'].remove(binder)
+        name = 'IndexedSettlementBound'
+        actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+        pair = {'array':['u64',2]}
+        transfers = {'vec':{'array':['i64',2]}}
+        vector = {'vec':'u64'}
+        fields = [('venue','pubkey'),('epoch','u64'),('prepared','pubkey'),('selection_ordinal','u64'),
+                  ('verified_plans','u64'),('charge_atoms',pair),('insurance_spent',pair),('member_ids',vector),
+                  ('claim_deltas',transfers),('movements',transfers),('final_cash',vector),('slot','u64')]
+        payload, = [row for row in actual['types'] if row['name'] == name]
+        assert clean(payload) == dict(name=name,type=dict(kind='struct',fields=[dict(name=k,type=v) for k,v in fields]))
+        actual['types'].remove(payload)
     return undo_liquidation_delta(undo_listed_maker_delta(actual, program), program)
 
 

@@ -21,6 +21,14 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const probe = process.env.RIVALT_SETTLEMENT_PROBE;
+  if(probe==='execution-router-venue-application') {
+    const deployment=accountDeployment('venue-default-application');
+    assert.equal(revision,deployment.programRevision);
+    const artifacts=Object.fromEntries(deployment.artifacts.filter(artifact=>['clearing','maker-a','maker-b'].includes(artifact.name))
+      .map(({name,bytes,sha256})=>[name,{bytes,sha256}])) as Record<'clearing'|'maker-a'|'maker-b',{bytes:number;sha256:string}>;
+    verifyTestBuild(directory,revision,artifacts,deployment.artifactSet);
+    return {revision,artifacts,artifactSet:deployment.artifactSet};
+  }
   if (probe === 'execution-router-listed-maker' || probe === 'execution-router-venue-book' || probe === 'execution-router-venue-default') {
     const verifier=probe==='execution-router-venue-default';
     assert.equal(revision,verifier?'a094f62cd4192b2b00f845660b281c613698986d':'5929eb48f2963499bc0a5316a9a22c2b99dcdd3d');

@@ -8,6 +8,7 @@ import {json} from '../../packages/indexer/src/events.js';
 import {symmetricPayoutShape} from './canonical-maker-cases.js';
 import {openCanonicalRpcHarness} from './canonical-rpc-harness.js';
 import {appendCoverage,coverageProvisioning} from './coverage-provisioning.js';
+import {applyVenueDefault} from './venue-default-application.js';
 import {verifyVenueDefault} from './venue-default-verifier.js';
 import {routerBuild} from './execution-router-build.js';
 import {payerKey} from './harness.js';
@@ -17,8 +18,8 @@ import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const build=routerBuild(),directory=process.env.RIVALT_RUN_DIR!;
 const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(process.env.RIVALT_RPC_URL!,
-  process.env.RIVALT_WS_URL!,directory,{deferFinality:true,heapSize:label=>label.startsWith('verify default')?128*1024:undefined,
-  computeUnitLimit:label=>label.startsWith('verify default')?500_000:undefined});
+  process.env.RIVALT_WS_URL!,directory,{deferFinality:true,heapSize:label=>/^(verify default|bind indexed)/.test(label)?128*1024:undefined,
+  computeUnitLimit:label=>/^(verify default|bind indexed)/.test(label)?500_000:label.startsWith('settle indexed')?1_350_000:undefined});
 try {
   const payer=await payerKey(),{h,members}=coverageProvisioning(transport,payer);
   const setup=await liquidityExecutionSetup(h,rpc,{shape:symmetricPayoutShape,traderCount:1,makerCash:12_500n,
@@ -86,9 +87,13 @@ try {
   assert.equal(frozen.outcome.spent[0],frozen.book.markets[0].insurance);
   assert.equal(frozen.outcome.spent[1],'0');
   await assert.rejects(()=>capture(),/Expected an active venue/);
-  const certificate=build.artifactSet===sdk.INDEXED_DEFAULT_ARTIFACT_SET?await verifyVenueDefault(setup,roster,{h,rpc,checks,flush},directory):undefined;
+  const application=build.artifactSet===sdk.INDEXED_APPLICATION_ARTIFACT_SET;
+  const certificate=application||build.artifactSet===sdk.INDEXED_DEFAULT_ARTIFACT_SET?await verifyVenueDefault(setup,roster,{h,rpc,checks,flush},directory):undefined;
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
+  if(application)await journal.checkpoint('before-indexed-settlement',true);
+  const applied=application?await applyVenueDefault(setup,h,members):undefined;
+  await flush();
   const replay=await journal.finish();
-  writeFileSync(directory+'/venue-book.json',json({program:build.revision,empty,before,after,frozen,certificate,transactions:checks.length,events:replay.events}));
+  writeFileSync(directory+'/venue-book.json',json({program:build.revision,empty,before,after,frozen,certificate,applied,transactions:checks.length,events:replay.events}));
   console.log('Reconciled venue settlement inputs and unchanged terminal wallets across collection;',replay.events,'events.');
 } finally {await ws.close();}
