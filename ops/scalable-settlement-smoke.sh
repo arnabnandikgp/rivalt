@@ -6,6 +6,9 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router-venue-book ]]; then
+  cargo build --locked --offline -p financial-core --features market-settlement-model --example market_settlement
+fi
 if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router* ]]; then
   node --import tsx --input-type=module -e 'import {routerBuild} from "./tests/rpc-contract/execution-router-build.ts"; routerBuild()'
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-partitioned-population || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-populated-rates || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-original-budgets || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-foreign-caps || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-winner-allocations || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-pair-schedule || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-joint-settlement ]]; then
@@ -125,7 +128,6 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   execution-router-matched-makers) node --import tsx tests/rpc-contract/comparison-rpc.ts ;;
   execution-router-direct-capacity|execution-router-thousand-member-credit|execution-router-streamed-capacity|execution-router-grouped-capacity) node --import tsx tests/rpc-contract/direct-credit-capacity-rpc.ts ;;
   execution-router-venue-book)
-    cargo build --locked --offline -p financial-core --example market_settlement
     node --import tsx tests/rpc-contract/venue-settlement-book-rpc.ts ;;
   execution-router-inactive-listing|execution-router-listing-index|execution-router-listed-maker) node --import tsx tests/rpc-contract/inactive-market-listing-rpc.ts ;;
   execution-router-indexed-withdrawal) node --import tsx tests/rpc-contract/venue-indexed-withdrawal-rpc.ts ;;
