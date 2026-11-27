@@ -1075,6 +1075,10 @@ pub mod clearing {
         #[cfg(not(feature="venue-default-verifier"))]
         { let _=(ctx,epoch,selected,denominator,rates); Err(ClearingError::Profile.into()) }
     }
+    pub fn seal_listed_liquidity(ctx: &mut Context<SealListedLiquidity>) -> Result<()> {
+        require!(cfg!(feature="listed-market-directory"), ClearingError::Profile);
+        scoped_history::run_listed_directory(ctx, [173, 174, 253, 223, 148, 109, 43, 101], maker_liquidity::listed_directory::seal)
+    }
     pub fn admit_listed_maker(ctx: &mut Context<AdmitListedMaker>, instance: u8) -> Result<()> {
         require!(cfg!(feature = "listed-maker-admission"), ClearingError::Profile);
         scoped_history::run(ctx, [159, 93, 238, 177, 144, 184, 33, 39], false,

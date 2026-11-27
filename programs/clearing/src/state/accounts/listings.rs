@@ -3,6 +3,8 @@ use anchor_lang::prelude::*;
 
 pub const LISTING_SCHEMA: u16 = 1;
 pub const LISTING_INACTIVE: u8 = 0;
+/// Maker membership is immutable. The listing still has no permission to trade.
+pub const LISTING_MAKERS_SEALED: u8 = 1;
 
 #[account(borsh)]
 #[derive(InitSpace, Default)]

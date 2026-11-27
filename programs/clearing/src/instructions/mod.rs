@@ -207,6 +207,10 @@ pub use maker_liquidity::QuarantineLiquidity;
 pub use maker_liquidity::{AdmitListedMaker, RegisterLiquidity};
 pub use maker_liquidity::SealLiquidity;
 
+pub use maker_liquidity::SealListedLiquidity;
+pub(crate) use maker_liquidity::listed_directory::__client_accounts_seallistedliquidity;
+#[cfg(feature="cpi")]
+pub(crate) use maker_liquidity::listed_directory::__cpi_accounts_seallistedliquidity;
 pub mod listing_index;
 pub use listing_index::{BindListingIndex, ObserveListingIndex};
 pub(crate) use listing_index::{__client_accounts_bindlistingindex, __client_accounts_observelistingindex};

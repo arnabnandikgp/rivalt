@@ -24107,6 +24107,137 @@
       "args": []
     },
     {
+      "name": "seal_listed_liquidity",
+      "discriminator": [
+        173,
+        174,
+        253,
+        223,
+        148,
+        109,
+        43,
+        101
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "venue"
+          ]
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "listing"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "listing",
+          "writable": true
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "seal_search",
       "discriminator": [
         196,
@@ -29533,6 +29664,19 @@
       ]
     },
     {
+      "name": "ListedLiquiditySealed",
+      "discriminator": [
+        21,
+        241,
+        238,
+        26,
+        63,
+        44,
+        52,
+        29
+      ]
+    },
+    {
       "name": "ListedMakerAdmitted",
       "discriminator": [
         215,
@@ -33871,6 +34015,38 @@
                 },
                 8
               ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedLiquiditySealed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "LiquidityRegistryPayload"
+              }
             }
           }
         ]

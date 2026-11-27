@@ -106,6 +106,22 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     values.forEach(value=>market(value));
   };
   switch(event.type) {
+    case 'ListedLiquiditySealed': {
+      const listing=present(state.listings?.[change.listing],'listed market');
+      const liquidity=present(state.liquidity,'liquidity');
+      const directory=change.state;
+      const members=Object.entries(liquidity.makers).filter(([,maker])=>maker.market===change.listing)
+        .sort(([,left],[,right])=>left.instance-right.instance);
+      accountCheck(artifactSet===sdk.LISTED_DIRECTORY_ARTIFACT_SET && listing.status===0 && directory.venue===venue
+        && directory.market===change.listing && directory.schemaVersion===10 && directory.sealed===true
+        && !liquidity.registries[change.registry] && directory.count===members.length && members.length===3
+        && members.every(([key,maker],index)=>maker.instance===index && key===directory.registrations[index])
+        && new Set(members.map(([,maker])=>maker.capital)).size===members.length
+        && new Set(members.map(([,maker])=>maker.pricingProgram)).size===2,'complete listed maker directory');
+      liquidity.registries[change.registry]=accountFields<sdk.LiquidityRegistry>(directory);
+      listing.status=1;
+      break;
+    }
     case 'ListedMakerAdmitted': {
       const maker=change.state,liquidity=present(state.liquidity,'liquidity');
       const capital=present(state.roots[maker.capital],'listed maker capital');
@@ -122,7 +138,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     }
     case 'ListingIndexChanged': {
       const listing=state.listings?.[change.listing];
-      accountCheck((artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET || sdk.hasListedMaker(artifactSet)) && listing?.status===0 &&
+      accountCheck((artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET || sdk.hasListedMaker(artifactSet)) && listing && (listing.status===0 || (listing.status===1 && artifactSet===sdk.LISTED_DIRECTORY_ARTIFACT_SET)) &&
         change.sources[0]===listing.oracleFeed && new Set(change.sources).size===4,'listed index sources');
       state.listingIndices??={};
       const previous=state.listingIndices[change.index];

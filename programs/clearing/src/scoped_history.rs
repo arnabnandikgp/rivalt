@@ -628,6 +628,13 @@ pub(crate) fn run<'context, T: ScopedContext>(
     )
 }
 
+pub(crate) fn run_listed_directory<'context, T: ScopedContext>(
+    context: &mut Context<'context,T>, instruction:[u8;8],
+    handler: impl FnOnce(&mut Context<'context,T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context,instruction,Remaining::ListedRegistrations,handler)
+}
+
 /// The checked publisher authenticates a fixed set of read-only registrations.
 #[inline(never)]
 pub(crate) fn run_funding<'context, T: ScopedContext>(
@@ -696,6 +703,7 @@ pub(crate) struct MakerAccess {
 
 #[derive(Clone, Copy)]
 enum Remaining {
+    ListedRegistrations,
     SelectedMakers(MakerAccess),
     ExplicitLane,
     #[cfg(feature = "checked-funding-prefix")]
@@ -709,6 +717,15 @@ enum Remaining {
 impl Remaining {
     fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
         match self {
+            Self::ListedRegistrations => {
+                require!(accounts.len()==usize::from(maker_interface::canonical::REGISTRATION_LIMIT),ClearingError::MakerBinding);
+                for account in accounts {
+                    require!(!account.is_writable() && !account.executable(),ClearingError::MakerBinding);
+                    if account.owner()==&crate::ID { scope.raw::<MakerRegistration>(account,Access::Read)?; }
+                    else { require!(account.owner()==&anchor_lang::system_program::ID && account.data_len()==0,ClearingError::MakerBinding); }
+                }
+                Ok(())
+            }
             Self::ExplicitLane => {
                 require!(accounts.len() <= 1, ClearingError::Profile);
                 if let Some(lane) = accounts.first_mut() {

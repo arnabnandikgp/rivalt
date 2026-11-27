@@ -44,6 +44,7 @@ export * from "./liquidityMakerChanged.js";
 export * from "./liquidityRegistryChanged.js";
 export * from "./liquidityRouteExecuted.js";
 export * from "./liquidityRouteFeeRecorded.js";
+export * from "./listedLiquiditySealed.js";
 export * from "./listedMakerAdmitted.js";
 export * from "./listingIndexChanged.js";
 export * from "./makerFillContinuation.js";

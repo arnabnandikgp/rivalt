@@ -54,7 +54,7 @@ fn inactive(venue: &Venue, safety: &VenueSafety, listing: &MarketListing) -> Res
     require!(!safety.paused, ClearingError::Paused);
     require!(
         listing.schema_version == LISTING_SCHEMA
-            && listing.status == LISTING_INACTIVE
+            && matches!(listing.status, LISTING_INACTIVE | LISTING_MAKERS_SEALED)
             && listing.quote_mint == venue.quote_mint,
         ClearingError::Profile
     );

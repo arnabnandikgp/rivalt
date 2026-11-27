@@ -250,6 +250,7 @@ import {
   getRetireMarginInstructionAsync,
   getScanForeignProtectionInstructionAsync,
   getSealLiquidityInstructionAsync,
+  getSealListedLiquidityInstructionAsync,
   getSealSearchInstruction,
   getSeedMarketInsuranceInstructionAsync,
   getSetAccountDelegateInstructionAsync,
@@ -376,6 +377,7 @@ import {
   parseRetireMarginInstruction,
   parseScanForeignProtectionInstruction,
   parseSealLiquidityInstruction,
+  parseSealListedLiquidityInstruction,
   parseSealSearchInstruction,
   parseSeedMarketInsuranceInstruction,
   parseSetAccountDelegateInstruction,
@@ -588,6 +590,7 @@ import {
   type ParsedRetireMarginInstruction,
   type ParsedScanForeignProtectionInstruction,
   type ParsedSealLiquidityInstruction,
+  type ParsedSealListedLiquidityInstruction,
   type ParsedSealSearchInstruction,
   type ParsedSeedMarketInsuranceInstruction,
   type ParsedSetAccountDelegateInstruction,
@@ -628,6 +631,7 @@ import {
   type RetireMarginAsyncInput,
   type ScanForeignProtectionAsyncInput,
   type SealLiquidityAsyncInput,
+  type SealListedLiquidityAsyncInput,
   type SealSearchInput,
   type SeedMarketInsuranceAsyncInput,
   type SetAccountDelegateAsyncInput,
@@ -662,6 +666,7 @@ import {
   findFundingPublisherPda,
   findLiquidityControllerPda,
   findLiquidityRegistryPda,
+  findListedLiquidityRegistryPda,
   findListingIndexPda,
   findListingPda,
   findMarginAccountPda,
@@ -1158,6 +1163,7 @@ export enum ClearingEvent {
   LiquidityRegistryChanged,
   LiquidityRouteExecuted,
   LiquidityRouteFeeRecorded,
+  ListedLiquiditySealed,
   ListedMakerAdmitted,
   ListingIndexChanged,
   MakerFillContinuation,
@@ -1601,6 +1607,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([21, 241, 238, 26, 63, 44, 52, 29]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.ListedLiquiditySealed;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([215, 95, 209, 158, 217, 57, 117, 208]),
       ),
       0,
@@ -1875,6 +1892,7 @@ export enum ClearingInstruction {
   RetireMargin,
   ScanForeignProtection,
   SealLiquidity,
+  SealListedLiquidity,
   SealSearch,
   SeedMarketInsurance,
   SetAccountDelegate,
@@ -3081,6 +3099,17 @@ export function identifyClearingInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([173, 174, 253, 223, 148, 109, 43, 101]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.SealListedLiquidity;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([196, 45, 6, 67, 91, 46, 14, 207]),
       ),
       0,
@@ -3616,6 +3645,9 @@ export type ParsedClearingInstruction<
   | ({
       instructionType: ClearingInstruction.SealLiquidity;
     } & ParsedSealLiquidityInstruction<TProgram>)
+  | ({
+      instructionType: ClearingInstruction.SealListedLiquidity;
+    } & ParsedSealListedLiquidityInstruction<TProgram>)
   | ({
       instructionType: ClearingInstruction.SealSearch;
     } & ParsedSealSearchInstruction<TProgram>)
@@ -4428,6 +4460,13 @@ export function parseClearingInstruction<TProgram extends string>(
         ...parseSealLiquidityInstruction(instruction),
       };
     }
+    case ClearingInstruction.SealListedLiquidity: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.SealListedLiquidity,
+        ...parseSealListedLiquidityInstruction(instruction),
+      };
+    }
     case ClearingInstruction.SealSearch: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -5184,6 +5223,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSealLiquidityInstructionAsync> &
     SelfPlanAndSendFunctions;
+  sealListedLiquidity: (
+    input: SealListedLiquidityAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getSealListedLiquidityInstructionAsync> &
+    SelfPlanAndSendFunctions;
   sealSearch: (
     input: SealSearchInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5313,6 +5357,7 @@ export type ClearingPluginPdas = {
   marginAccount: typeof findMarginAccountPda;
   listing: typeof findListingPda;
   symbolBinding: typeof findSymbolBindingPda;
+  listedLiquidityRegistry: typeof findListedLiquidityRegistryPda;
 };
 
 export type ClearingPluginRequirements = ClientWithRpc<
@@ -6326,6 +6371,14 @@ export function clearingProgram(
                   instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),
+          sealListedLiquidity: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSealListedLiquidityInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
           sealSearch: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -6637,6 +6690,11 @@ export function clearingProgram(
             }),
           symbolBinding: (seeds, pdaConfig) =>
             findSymbolBindingPda(seeds, {
+              programAddress:
+                pdaConfig?.programAddress ?? config.programAddress,
+            }),
+          listedLiquidityRegistry: (seeds, pdaConfig) =>
+            findListedLiquidityRegistryPda(seeds, {
               programAddress:
                 pdaConfig?.programAddress ?? config.programAddress,
             }),

@@ -19,6 +19,7 @@ export * from "./firstMakerRegistration.js";
 export * from "./fundingPublisher.js";
 export * from "./liquidityController.js";
 export * from "./liquidityRegistry.js";
+export * from "./listedLiquidityRegistry.js";
 export * from "./listing.js";
 export * from "./listingIndex.js";
 export * from "./marginAccount.js";

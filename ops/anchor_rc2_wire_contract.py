@@ -170,6 +170,15 @@ def undo_listed_maker_delta(actual, program):
     if program not in ('clearing', 'maker_a', 'maker_b'):
         return actual
     if program == 'clearing':
+        seal = remove('instructions','seal_listed_liquidity')
+        assert seal['args'] == [] and seal['discriminator'] == disc('global',seal['name'])
+        assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in seal['accounts']] == [
+            (key,key in ('authority','listing','registry'),key=='authority')
+            for key in 'authority venue safety listing registry system_program event_authority program'.split()]
+        assert remove('events','ListedLiquiditySealed')['discriminator'] == disc('event','ListedLiquiditySealed')
+        fields = remove('types','ListedLiquiditySealed')['type']['fields']
+        assert [(f['name'],f['type']) for f in fields] == [('venue','pubkey'),('slot','u64'),('listing','pubkey'),
+            ('registry','pubkey'),('state',{'defined':{'name':'LiquidityRegistryPayload'}})]
         ix = remove('instructions', 'admit_listed_maker')
         names = 'owner authority venue safety listing capital registration capital_binding config price pricing_program program_data system_program event_authority program'
         assert ix['args'] == [dict(name='instance', type='u8')]

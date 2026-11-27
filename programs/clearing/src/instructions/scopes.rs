@@ -373,6 +373,8 @@ context!(BindListingIndex, venue, event_authority;
 [venue: Read, safety: Read, listing: Read, market: Read, listing_index: Create]; []);
 context!(ObserveListingIndex, venue, event_authority;
 [venue: Read, safety: Read, listing: Read, listing_index: Write]; []);
+context!(SealListedLiquidity, venue, event_authority;
+[venue: Read, safety: Read, listing: Write, registry: Create]; []);
 context!(AdmitListedMaker, venue, event_authority;
 [venue: Read, safety: Read, listing: Read, capital: Read, registration: Create, capital_binding: Create]; []);
 context!(RegisterMarketListing, venue, event_authority;

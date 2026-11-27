@@ -56,7 +56,8 @@ export async function readInactiveMarketListings(rpc:Pick<UserRpc,'call'>,venue:
     const [[expected,listingBump],{feed}]=await Promise.all([
       clearing.findListingPda({venue,marketId:record.marketId}),listingOracle(ticker,record.oraclePublisher)]);
     requireValue(key===expected && record.bump===listingBump && record.venue===venue && record.schemaVersion===1 &&
-      record.revision===1n && record.status===0 && record.marketId>=2 && symbol.every((byte,i)=>byte===record.symbol[i]) &&
+      ((record.status===0 && record.revision===1n) || (record.status===1 && record.revision===2n)) &&
+      record.marketId>=2 && symbol.every((byte,i)=>byte===record.symbol[i]) &&
       record.lotsPerUnit>0n && record.quoteMint===deployment.quoteMint && record.oracleFeed===feed,'Invalid inactive market binding.');
     return {address:key,ticker,record};
   }));
