@@ -118,7 +118,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       accountCheck(artifactSet===sdk.LISTED_FUNDING_ARTIFACT_SET && listing.status===1 && configuration.schemaVersion===10
         && configuration.venue===venue && configuration.market===change.listing && configuration.revision===(previous?.revision??'0')
         && Object.values(liquidity.registries).some(value=>value.market===change.listing && value.sealed)
-        && !!previous===!!prior && values.fundingIndexScaled==='0' && values.fundingTime==='0','inactive listed funding state');
+        && !!previous===!!prior && values.fundingIndexScaled==='0' && values.oracle.coveredSeconds==='0','inactive listed funding state');
       equal(values.oracle.sources,index.sources,'immutable listed funding sources');
       const sequence=BigInt(previous?.lastSequence??'0'),epoch=BigInt(previous?.authorityEpoch??'0');
       const report=change.report.__option==='Some'?change.report.value:null;
@@ -128,7 +128,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
           && report.version===1 && report.domain===domain && report.market===change.listing
           && BigInt(configuration.lastSequence)===sequence+1n && report.sequence===configuration.lastSequence
           && report.expectedObservationSequence===prior?.values.observationSequence
-          && report.expectedConfigEpoch==='1' && report.expectedTermsEpoch==='1'
+          && values.fundingTime===values.oracle.sampledAt && report.expectedConfigEpoch==='1' && report.expectedTermsEpoch==='1'
           && configuration.lastObservedSlot===report.observedSlot && BigInt(report.observedSlot)>BigInt(previous.lastObservedSlot)
           && configuration.lastObservedTime===report.observedTime && BigInt(report.observedTime)>=BigInt(previous.lastObservedTime)
           && (report.outcome!==0 || (values.referencePrice===report.referencePrice && values.oracle.quantity===report.quantity

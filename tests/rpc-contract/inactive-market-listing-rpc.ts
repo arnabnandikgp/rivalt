@@ -159,7 +159,7 @@ try {
     for(const capital of sealed.capitals)assert.equal(replay.state.roots[capital].cash,'100000');
   }
   if(published) {
-    assert.equal(replay.state.listedFunding?.[published.funding]?.values.oracle.bid,'5920000');
+    assert.equal(replay.state.listedFunding?.[published.funding]?.values.oracle.bid,'5960000');
     assert.equal(replay.state.liquidity?.publishers[published.configuration].lastSequence,'3');
   }
   const result={published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,

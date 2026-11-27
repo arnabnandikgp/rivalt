@@ -75,10 +75,14 @@ export async function qualifyListedFunding(h:CanonicalHarness,rpc:Pick<sdk.UserR
   assert.deepEqual([reset.oracle.quantity,reset.oracle.heldSlot,reset.oracle.heldUntil,reset.fundingIndexScaled],
     [0n,0n,reset.oracle.sampledAt,0n]);
   await setup.waitUntil(reset.oracle.sampledAt+3n);
-  await refresh(150n);
+  await refresh(151n);
   const latest=await snapshot();
   await reject('retired SOL publisher cannot post',await publish(latest),updater,2001);
   await send('new SOL funding signer publishes',await publish(await snapshot(),owner),[owner]);
+  const tilted=await state();
+  // Midpoint 151 minus index 150 is capped at 0.5% of the index, i.e. 0.75 atoms/lot.
+  assert.deepEqual([tilted.referencePrice,tilted.oracle.quantity,tilted.oracle.bid,tilted.oracle.ask,tilted.oracle.premiumScaled,
+    tilted.oracle.coveredSeconds,tilted.fundingIndexScaled],[150n,40_000n,5_960_000n,6_120_000n,750_000_000n,0n,0n]);
   assert.deepEqual(await read(money),before,'pre-trading funding touched market membership, index or cash');
   return {funding,configuration,accepted};
 }
