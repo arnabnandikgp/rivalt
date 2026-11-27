@@ -233,6 +233,8 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
       assert.deepEqual(data.subarray(0,8),fingerprint('account:IndexedCustody'));
       assert.equal(data[73],2); assert.deepEqual(data.subarray(476,508),appliedCommitment);
       assert.equal(data[508],indexed.result!.selected);
+      assert.equal(Boolean(data[701]),indexed.result!.repaired);
+      for(let m=0;m<8;m++) assert.equal(data.readBigUInt64LE(637+8*m),BigInt(indexed.result!.spent[m]??0));
       for(let m=0;m<8;m++) {
         const charge:bigint=BigInt(indexed.result!.charges[m]??0);
         assert.equal(data.readBigUInt64LE(509+8*m),charge);
@@ -257,7 +259,7 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
       assert.equal(bytes.readBigUInt64LE(50),market.price);
       assert.equal(signed128(bytes,58),market.funding*scale);
       assert.equal(bytes.readBigUInt64LE(82),market.fees-market.fees/4n);
-      const spent=settlement && configuration?BigInt(settlement.spent[configuration.ids.indexOf(market.id)]):0n;
+      const spent=settlement && configuration?BigInt(settlement.spent[configuration.ids.indexOf(market.id)]):indexed?BigInt(indexed.result!.spent[indexed.ids.indexOf(market.id)]):0n;
       assert.equal(bytes.readBigUInt64LE(90),market.fees/4n-spent); assert.equal(bytes[98],Number(market.fees%4n));
       fees+=market.fees-spent;
     }

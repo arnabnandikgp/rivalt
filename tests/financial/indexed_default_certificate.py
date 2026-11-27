@@ -9,7 +9,7 @@ import sys
 from test_market_indexed_default import SCALE, candidate, expected, frozen, linked_book
 
 
-def certificate(book, positions):
+def certificate(book, positions, framed=False):
     baseline = expected(book)
     options = []
     for market, cells in enumerate(zip(*positions)):
@@ -22,7 +22,7 @@ def certificate(book, positions):
         assert len(pairs) <= 1
         options.append(pairs[0] if pairs else (0, 0, 0))
 
-    vectors, ranking = [], []
+    vectors, ranking, framed_words = [], [], []
     for index, reverse in enumerate(product(*(range(limit + 1) for _, _, limit in reversed(options)))):
         charges = list(reversed(reverse))
         changed = copy.deepcopy(book)
@@ -35,15 +35,21 @@ def certificate(book, positions):
                 claims[m] = str(int(claims[m]) + delta * SCALE)
             actions.append(dict(market=book['market_roster'][m], charges=[dict(
                 debtor=book['roster'][debtor], winner=book['roster'][winner], charge=charge)]))
-        vectors.extend(map(Fraction, expected(changed, frozen=book)['rates']))
+        passes = []
+        ordinary = expected(changed, frozen=book, rate_passes=passes)
+        framed_words.extend(value for step in passes for value in step)
+        vectors.extend(map(Fraction, ordinary['rates']))
         outcome = candidate(book, actions)
         if outcome:
-            ranking.append((sum(map(Fraction, outcome['recovery'])), index, charges, outcome))
+            ranking.append((sum(map(Fraction, outcome['recovery'])), index, charges, outcome, ordinary))
     ranking.sort(reverse=True)
-    best, selected, charges, outcome = ranking[0]
+    best, selected, charges, outcome, ordinary = ranking[0]
     assert best > ranking[1][0]
     unit = lcm(*(rate.denominator for rate in vectors))
-    return dict(denominator=unit, selected=selected, numerators=[int(rate*unit) for rate in vectors],
+    return dict(denominator=0 if framed else unit, selected=selected,
+                numerators=framed_words if framed else [int(rate*unit) for rate in vectors],
+                spent=list(map(int, outcome['settlement']['spent'])),
+                repaired=ordinary['rows'] != outcome['settlement']['rows'],
                 charges=charges, cash=[int(row['cash']) for row in outcome['settlement']['rows']],
                 protectedPlans=len(ranking), totalPlans=len(vectors)//len(book['markets']))
 
@@ -83,7 +89,8 @@ if __name__ == '__main__':
     if 'probe' in data:
         result = probe(*data['probe'])
     else:
-        book = frozen(data['rows'], fees=data['fees'])
+        reserves = [f // 4 for f in data['fees']]
+        book = frozen(data['rows'], reserves=reserves, fees=[f-r for f,r in zip(data['fees'], reserves)])
         # Positive limits use the opposite inventory and surviving entry from signed fills.
-        result = certificate(book, data['positions'])
+        result = certificate(book, data['positions'], framed=any(reserves) or data.get('framed', False))
     json.dump(result, sys.stdout)

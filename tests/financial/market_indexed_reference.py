@@ -105,7 +105,7 @@ def rates_for(claims, segments, bases, face, insurance):
     return greatest
 
 
-def expected(book, *, frozen=None, minimums=None):
+def expected(book, *, frozen=None, minimums=None, rate_passes=None):
     market_ids = [item["id"] for item in book["markets"]]
     markets = range(len(market_ids))
     assert market_ids == sorted(market_ids)
@@ -137,6 +137,11 @@ def expected(book, *, frozen=None, minimums=None):
         forwarded = [allocate(regimes, sum(src)) for src, regimes in zip(recovered, segments)]
         spent = [face[m] * rates[m] - bases[m] - sum(row[m] for row in forwarded) for m in markets]
         assert all(0 <= use <= budget for use, budget in zip(spent, budgets))
+        if rate_passes is not None:
+            # Each pass has its own common grid for rates, original cash and forwarded atoms.
+            from math import lcm
+            unit = lcm(*(v.denominator for group in [rates, *own, *forwarded] for v in group))
+            rate_passes.append([unit, *(int(rate * unit) for rate in rates)])
         if all(use.denominator == 1 for use in spent):
             break
         budgets = [

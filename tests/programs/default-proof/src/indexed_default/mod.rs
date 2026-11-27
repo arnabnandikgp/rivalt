@@ -26,6 +26,8 @@ pub struct IndexedCustody {
     pub selected: u8,
     pub charges: [u64; WIDTH],
     pub matched: [u64; WIDTH],
+    pub spent: [u64; WIDTH],
+    pub repaired: bool,
 }
 impl IndexedCustody {
     pub fn trading(&self) -> Result<()> {
@@ -220,7 +222,7 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
                 view.address() == &key && market.id == id && market.custody == *domain.address(),
                 ProofError::DefaultRoster
             );
-            require!(market.insurance == 0, ProofError::UnsupportedBook);
+            allocated = checked(financial_core::cash_add(allocated, market.insurance))?;
             market.window(slot)?;
             allocated = checked(financial_core::cash_add(allocated, market.retained))?;
             markets.push(market);
@@ -237,7 +239,25 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
         .enumerate()
         .map(|(index, root)| member(index, root, ids, &markets, &mut capacities))
         .collect::<Result<Vec<_>>>()?;
-    let plan = verifier::verify(&rows, ids.len(), &proof)?;
+    let reserves: Vec<_> = markets.iter().map(|m| m.insurance).collect();
+    let plan = verifier::verify(&rows, &reserves, &proof)?;
+    for (m, market) in markets
+        .iter_mut()
+        .enumerate()
+        .filter(|(m, _)| plan.spent[*m] > 0)
+    {
+        let view = &mut views[count + m];
+        require!(view.is_writable(), ProofError::DefaultRoster);
+        market.insurance = market
+            .insurance
+            .checked_sub(plan.spent[m])
+            .ok_or(ProofError::DefaultCharge)?;
+        let mut data = view.try_borrow_mut()?;
+        <TradingMarket as SchemaWrite<BorshConfig>>::write(&mut data[8..], market)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+    }
+    domain.spent = plan.spent;
+    domain.repaired = plan.repaired;
     for (m, &charge) in plan
         .charges
         .iter()
@@ -299,5 +319,6 @@ pub fn inspect(width: u8, input: Vec<ProbeMember>, proof: RatesProof) -> Result<
                 .collect(),
         })
         .collect::<Vec<_>>();
-    Ok(verifier::verify(&rows, usize::from(width), &proof)?.cash)
+    require!(usize::from(width) <= WIDTH, ProofError::UnsupportedBook);
+    Ok(verifier::verify(&rows, &[0; WIDTH][..usize::from(width)], &proof)?.cash)
 }

@@ -12,7 +12,10 @@ import {encodeProof,IndexedReplay,reference,u32,type Probe,type Certificate} fro
 
 const program=address('sDPXvpEPwCzVKHdpxntiM1khVvtCj2V6ozCr5euajBi'),system=address('11111111111111111111111111111111');
 const operator=await payerKey(),keeper=await fixtureKey('indexed-keeper'),mint=await fixtureKey('indexed-mint');
-const ids=[13,18,23,28],modes=[65535,65535,...ids],deposits=[1004,1004,548,548,300,300];
+const insured=process.env.RIVALT_PROOF_SCOPE==='insured-indexed-default';
+const ids=insured?[13,18,23]:[13,18,23,28], traderCount=insured?3:2;
+const modes=[...Array<number>(traderCount).fill(65535),...ids];
+const deposits=insured?[425,2003,2006,396,1200,1200]:[1004,1004,548,548,300,300];
 const owners=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-owner-'+i)));
 const wallets=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-wallet-'+i)));
 const key=(a:Address)=>Buffer.from(getAddressEncoder().encode(a));
@@ -51,18 +54,18 @@ async function publish(m:number,price:number,error?:number) {
   await send('publish '+ids[m]+' at '+price,'publish_trade_market',[signer(operator.address),ro(custody),rw(markets[m])],
     [u64(Number((await h.read(markets[m]))!.readBigUInt64LE(42))),u64(price),u64(0)],operator,error);
 }
-async function trade(t:number,m:number,price:number,close=false) {
+async function trade(t:number,m:number,price:number,close=false,sell=close) {
   await publish(m,price);
-  const trader=await root(t),maker=await root(m+2);
+  const trader=await root(t),maker=await root(m+traderCount);
   const marketSet=(extra:number[])=>Array.from(new Set([...trader.slots.map(s=>s.id),ids[m],...extra])).sort((a,b)=>a-b);
   const expires=Number(await rpc.call('getSlot',[{commitment:'confirmed'}]))+5000;
   await send('place member '+t+' market '+ids[m],'place_trade_order',
     [signer(owners[t].address),ro(custody),rw(roots[t]),...marketSet([]).map(id=>ro(markets[ids.indexOf(id)]))],
-    [u64(trader.rev),u16(ids[m]),Buffer.from([+close]),u64(1),u64(price),u64(1),u64(expires),Buffer.from([+close])],owners[t]);
+    [u64(trader.rev),u16(ids[m]),Buffer.from([+sell]),u64(1),u64(price),u64(1),u64(expires),Buffer.from([+close])],owners[t]);
   await send('fill member '+t+' market '+ids[m],'fill_trade_order',
-    [signer(owners[m+2].address),ro(custody),rw(markets[m]),rw(roots[t]),rw(roots[m+2]),
+    [signer(owners[m+traderCount].address),ro(custody),rw(markets[m]),rw(roots[t]),rw(roots[m+traderCount]),
       ...marketSet(maker.slots.map(s=>s.id)).filter(id=>id!==ids[m]).map(id=>ro(markets[ids.indexOf(id)]))],
-    [u64((await root(t)).rev),u64(maker.rev),u64(Number((await h.read(markets[m]))!.readBigUInt64LE(42))),u64(1)],owners[m+2]);
+    [u64((await root(t)).rev),u64(maker.rev),u64(Number((await h.read(markets[m]))!.readBigUInt64LE(42))),u64(1)],owners[m+traderCount]);
 }
 async function bookHash() {
   const hash=(...parts:Buffer[])=>createHash('sha256').update(Buffer.concat(parts)).digest();
@@ -117,42 +120,74 @@ try {
     await send('open margin '+i,'open_trade_root',[paying(owner.address),ro(custody),rw(roots[i]),ro(system)],[u16(modes[i])],owner);
     await wallet(i,deposits[i]);
   }
-  await trade(0,1,1000); await trade(0,1,1050,true); await trade(1,0,1000); await trade(1,0,1050,true);
-  await trade(0,0,1000); await trade(1,1,1000); await trade(0,2,2000); await trade(1,3,2000);
-  const stale=await bookHash();
-  for(const [m,price] of [1500,1500,800,800].entries()) await publish(m,price);
+  let stale:Buffer, proof:Certificate;
+  if(insured) {
+    // The first trader realizes 200 on the source, the second keeps an open gain.
+    await trade(0,0,1000); await trade(0,0,1200,true); await trade(1,0,1000);
+    // Two flat creditors earn 135 and 315 against the insured maker.
+    await trade(1,1,1000); await trade(1,1,1135,true); await trade(2,1,1000); await trade(2,1,1315,true);
+    await trade(0,1,2000); await trade(0,2,2000);
+    stale=await bookHash(); await publish(0,1200);
+    for(const [market,price] of [[1,1496],[2,1244]]) {
+      // A solvent trader sells and buys back at the shocked mark. The isolated
+      // maker realizes its old short and reopens at this same mark with zero
+      // forced-close capacity. The distressed trader never signs another fill.
+      await trade(2,market,price,false,true); await trade(2,market,price,true,false);
+    }
+    const rows=[[421,[200,-504,-756]],[2000,[200,135,0]],[2000,[0,315,0]],
+      [396,[-400,0,0]],[1200,[0,54,0]],[1200,[0,0,756]]];
+    const positions=[[[0,0],[1,0],[1,0]],[[1,200],[0,0],[0,0]],[[0,0],[0,0],[0,0]],
+      [[-1,0],[0,0],[0,0]],[[0,0],[-1,0],[0,0]],[[0,0],[0,0],[-1,0]]];
+    proof=reference<Certificate>({rows,positions,fees:[3,7,3]});
+    assert.deepEqual([proof.charges,proof.spent,proof.repaired],[[4,0,0],[0,1,0],true]);
+  } else {
+    await trade(0,1,1000); await trade(0,1,1050,true); await trade(1,0,1000); await trade(1,0,1050,true);
+    await trade(0,0,1000); await trade(1,1,1000); await trade(0,2,2000); await trade(1,3,2000);
+    stale=await bookHash();
+    for(const [m,price] of [1500,1500,800,800].entries()) await publish(m,price);
+    // Independent signed workload assumptions. PostgreSQL reconstructs these again from transaction history.
+    const rows=[[1000,[500,50,-1200,0]],[1000,[50,500,0,-1200]],[548,[-550,0,0,0]],[548,[0,-550,0,0]],
+      [300,[0,0,1200,0]],[300,[0,0,0,1200]]];
+    const positions=[[[1,500],[0,0],[1,0],[0,0]],[[0,0],[1,500],[0,0],[1,0]],[[-1,0],[0,0],[0,0],[0,0]],
+      [[0,0],[-1,0],[0,0],[0,0]],[[0,0],[0,0],[-1,1200],[0,0]],[[0,0],[0,0],[0,0],[-1,1200]]];
+    proof=reference<Certificate>({rows,positions,fees:[3,3,1,1]});
+  }
   const digest=await bookHash();
-  // Independent signed workload assumptions. PostgreSQL reconstructs these again from transaction history.
-  const rows=[[1000,[500,50,-1200,0]],[1000,[50,500,0,-1200]],[548,[-550,0,0,0]],[548,[0,-550,0,0]],
-    [300,[0,0,1200,0]],[300,[0,0,0,1200]]];
-  const positions=[[[1,500],[0,0],[1,0],[0,0]],[[0,0],[1,500],[0,0],[1,0]],[[-1,0],[0,0],[0,0],[0,0]],
-    [[0,0],[-1,0],[0,0],[0,0]],[[0,0],[0,0],[-1,1200],[0,0]],[[0,0],[0,0],[0,0],[-1,1200]]];
-  const proof=reference<Certificate>({rows,positions,fees:[3,3,1,1]});
-  const accounts=[...roots.map(rw),...markets.map(ro)];
+  const accounts=[...roots.map(rw),...markets.map((m,i)=>proof.spent[i]?rw(m):ro(m))];
   const settle=(label:string,p=proof,error?:number,metas=accounts,hash=digest)=>send('keeper '+label,'settle_indexed_book',
     [rw(custody),ro(vault),...metas],[hash,encodeProof(p)],operator,error);
   await settle('refuse stale signed state',proof,6017,accounts,stale);
   await settle('refuse missing market',proof,6015,accounts.slice(0,-1));
   await settle('refuse substituted member',proof,6015,[accounts[1],...accounts.slice(1)]);
   await settle('refuse missing candidate',{...proof,numerators:proof.numerators.slice(0,-4)},6003);
-  await settle('refuse forged rate',{...proof,numerators:proof.numerators.map((n,i)=>n-Number(i===4))},6016);
-  await settle('refuse inferior allocation',{...proof,selected:4},6016);
+  await settle('refuse forged rate',{...proof,numerators:proof.numerators.map((n,i)=>n-Number(i===(insured?5:4)))},6016);
+  await settle('refuse inferior allocation',{...proof,selected:insured?2:4},6016);
+  if(insured) {
+    await settle('refuse read-only insurance source',proof,6015,[...roots.map(rw),...markets.map(ro)]);
+    const altered=[...proof.numerators], end=altered.length;
+    // Keep total proposed cash constant and divert three atoms from the
+    // uninsured market to the insured one. The frozen 2:3 split rules it out.
+    assert.equal(altered[end-4],2520);
+    altered[end-2]+=15; altered[end-1]-=10;
+    await settle('refuse cross-market diversion',{...proof,numerators:altered},6016);
+  }
   await settle('settle funded book'); await settle('refuse replay',proof,6014);
   await publish(0,1500,6014);
-  assert.deepEqual(proof.cash,[348,348,0,0,1500,1500]);
+  assert.deepEqual(proof.cash,insured?[0,2263,2155,0,1227,1573]:[348,348,0,0,1500,1500]);
   for(const [i,amount] of proof.cash.entries()) {
     const state=await root(i);
     assert.deepEqual([state.cash,state.slots.length],[BigInt(amount),0]);
   }
-  await wallet(0,349,true,6007); await wallet(0,348,true,6008,1);
+  const paid=proof.cash.findIndex(cash=>cash>0);
+  await wallet(paid,proof.cash[paid]+1,true,6007); await wallet(paid,proof.cash[paid],true,6008,paid+1);
   for(const [i,amount] of proof.cash.entries()) if(amount) await wallet(i,amount,true);
   assert.deepEqual(await Promise.all(wallets.map(w=>balance(w.address))),proof.cash.map(BigInt));
-  assert.equal(await balance(vault),8n);
-  await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true);
+  assert.equal(await balance(vault),insured?12n:8n);
+  if(!insured) { await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true); }
   const replay=new IndexedReplay(custody,keeper.address,mint.address,owners.map(o=>o.address),wallets.map(w=>w.address),ids,modes);
   const journal=await replayOrders(rpc,program,roots,vault,await balance(vault),expected,undefined,replay);
-  assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],[8,'0','8','8']);
+  assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],insured?[13,'0','12','12']:[8,'0','8','8']);
   const measurements=checks.map(({label,signature,computeUnits,bytes,loadedAccounts,error})=>({label,signature,computeUnits,bytes,loadedAccounts,error}));
   writeFileSync(dir+'/indexed-default.json',JSON.stringify({proof,journal,measurements},null,2));
-  console.log('Reconciled four-market default',journal,'wallets',proof.cash);
+  console.log('Reconciled indexed default',journal,'wallets',proof.cash,'insurance',proof.spent,'repaired',proof.repaired);
 } finally {await ws.close();}
