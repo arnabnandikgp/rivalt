@@ -42,6 +42,36 @@ revision and creates the maker directory. This one-time transition leaves cash
 and position records untouched. Both statuses accept independent index updates.
 [Maker directory](../liquidity/quoting.md)
 
+## Listed markets on the funded margin account
+
+The local `listed-margin-storage` profile allocates position space on the
+existing margin PDA when the owner registers. Its first 1,099 bytes are the
+existing account and both bounded BTC/ETH entry records. The account's cash
+field and the venue SPL vault continue to own all collateral. The owner pays
+rent for the additional space once at registration.
+
+| Account | Extra records reserved | Total bytes |
+|---|---:|---:|
+| Cross trader or cross receiver | 6 | 1,705 |
+| Isolated maker bound to a listed market | 1 | 1,215 |
+| Isolated BTC/ETH account | 0 | 1,099 |
+
+An 18-byte header after the original records contains the eight bytes
+`RVMKTS01`, the last allocated incarnation (u64) and the occupied count
+(u16). Each 98-byte record carries the full market ID (u16), incarnation
+(u64), signed lots (i64), virtual balance and funding checkpoint (both i128),
+position generation (u64) and the existing 40-byte bounded entry cost. Integers
+are little-endian. Records are sorted by market ID. A flat position with a
+fractional debt or claim still occupies a record. Reusing a discharged slot
+assigns a new incarnation. Spare bytes must be zero.
+
+Registration creates an empty directory. BTC/ETH trading, cash access and the
+two-market default reader require an empty directory. A separate listing must
+pass trading and default acceptance before a live financial instruction may
+write a listed position. The reservation of six records describes physical
+capacity. Signed SOL execution and eight-market trading have separate gates.
+[Market slot encoding](../../crates/clearing-accounting/src/market_slots/storage.rs)
+
 ## Follow a deposit
 
 1. An owner creates a portfolio and registers a child margin-account PDA. The owner, portfolio index and child index identify actual accounts. The portfolio holds the namespace. Cash, positions, orders and obligations belong to the margin account.

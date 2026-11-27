@@ -236,3 +236,12 @@ The same signed workload repeats the [unequal forced-volume comparison](qualific
 The local `execution-router-listed-directory` probe funds three SOL maker capitals and checks directory completeness, authority, replays, SDK discovery, post-seal index observations and continued BTC trading. At clearing `a3a2c3cb` and harness `6b0a53ab`, the signed seal used 538 bytes, 12 keys and 20,589 CU. See [current acceptance](../STATUS.md).
 
 The `execution-router-listed-funding` probe independently checks SOL report size and gross amounts, the 50 bps premium cap, unavailable depth, oracle substitution, signer rotation, replay and unchanged venue cash. The 311-transaction run on clearing `b609e3e8` reconciled 127 financial events. [Contract and amounts](../liquidity/funding.md#funding-for-a-sealed-listing)
+
+
+The `execution-router-listed-margin` probe uses the `listed-margin-storage` SBF
+artifact. It checks signed BTC and ETH fills on the same wider cross root, the
+maximum exit with both positions open, rollback one atom above that maximum,
+the SPL wallet and vault deltas, and every margin layout against the finalized
+PostgreSQL replay. On clearing `0d8b70e0` and harness `11a502cd`, the BTC and
+ETH fills used 235,742 and 283,469 CU. The maximum exit used 151,880 CU and
+transferred 959,945 atoms. The new records were empty. [Account contract](../clearing/accounts.md#listed-markets-on-the-funded-margin-account)

@@ -172,7 +172,9 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, listed-market funding source (Review).** On clearing `b609e3e8` and harness `49817c63`, two registered SOL curves supplied both sides of a 40,000-lot impact report at an independent index of 150. The signed report used 23,126 CU. After publisher rotation, a 151 midpoint produced the capped premium of 0.75 atoms per lot. The inactive listing accrued zero funding and venue cash stayed unchanged. Fresh PostgreSQL replay matched 127 financial events across 311 signed transactions. [Listed-market funding](liquidity/funding.md#funding-for-a-sealed-listing)
 
-**Next action.** Bind wider positions and custody to the venue so every risk check and default reads the same occupied market IDs. Qualify an actual listed-market fill followed by whole-book settlement and owner withdrawal before enabling wider trading.
+**Finding 11, funded wider margin storage (Review).** On clearing `0d8b70e0` and harness `11a502cd`, one owner held a one-lot BTC long and ten-lot ETH short on the 1,705-byte cross root. The same wallet withdrew 959,945 atoms and kept the independently calculated 39,982-atom margin requirement. Withdrawing one extra atom refused. Three funded SOL maker roots reserved one listed record each. The wider records were empty throughout. PostgreSQL replay matched 145 financial events across 318 signed transactions. [Storage contract](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+
+**Next action.** Connect a fill against the sealed SOL maker directory to the stored listed positions and whole-account admission. Exercise the fill on the same funded BTC/ETH cross root in qualification, then verify default and owner withdrawals on that wider venue before enabling SOL order entry.
 
 | Open gate | What remains |
 |---|---|

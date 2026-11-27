@@ -184,7 +184,8 @@ fn listed_wire_keeps_full_market_ids_and_fractional_debts_in_the_original_root()
     let book = start.successor(&[first, last], &[]).unwrap();
     book.write_listed_bytes(&mut bytes).unwrap();
     assert_eq!(bytes.len(), 214);
-    assert_eq!(&bytes[..18], b"RVMKTS01\x02\0\0\0\0\0\0\0\x02\0");
+    assert_eq!(&bytes[..8], "RVMKTS01".as_bytes());
+    assert_eq!(&bytes[8..18], &[2, 0, 0, 0, 0, 0, 0, 0, 2, 0]);
     assert_eq!(&bytes[18..20], &[2, 1]);
     assert_eq!(&bytes[36..52], &[255; 16]);
     assert_eq!(&bytes[116..118], &[255, 255]);

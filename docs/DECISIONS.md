@@ -74,3 +74,15 @@ Two plans can reach every market's recovery ceiling and draw identical market in
 ### 28 November 2026 · Eliminate unnecessary forced volume within each market
 
 After maximizing protected recovery, compare proportional sharing in each market. If the surviving wider-market plans have identical insurance spending and pass exact and whole-atom creditor protection, discard a plan when a rival closes no more lots in any market and fewer in at least one. Rank the survivors by proportional deviation in frozen market order, then by lots in that order if their deviations tie. Stable frozen member priority resolves an exact tie. The previous equal-total-lot restriction is superseded. Lots in different markets have different units. [Worked example](operations/qualification-scorecard.md#forced-volume-by-market)
+
+
+### 28 November 2026 · Keep listed positions on the same funded margin PDA
+
+Fresh local wider accounts append sorted, market-ID-keyed position records
+after their BTC and ETH entry costs. A fill can lock one participant root and
+a cash or frozen-book reader can derive its complete position set directly
+from that address. Cash, membership identity and the vault authority retain
+one owner each. A two-market consumer may use a wider root only when the
+appendix is empty. Integrating a listed fill also requires venue-wide protection
+for payout and default instructions that can act without reading that root.
+[Account layout and limits](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
