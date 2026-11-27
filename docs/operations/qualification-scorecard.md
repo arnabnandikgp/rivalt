@@ -256,6 +256,24 @@ Of 7,230 deposited atoms, four owners withdrew **2,263, 2,155, 1,227 and 1,573**
 
 At `de1b47f3` the insured settlement used **126,550 CU**, 724 signed bytes and 14 loaded accounts for five allocations. The same binary reproduced the earlier four-market wallet exits and its 72-receipt reconciliation. That nine-allocation transaction used **158,141 CU** and 821 bytes, compared with 119,619 CU on the narrower verifier at `3155169c`. These are per-settlement measurements on the two specified books. Focused host cases exercised a fractional reserve draw clipped from 3/8 to zero, a reduction that fills one destination before the other, and two debtors sharing a market insurance payment. The signed insured book spent a whole atom. Cases with no eligible reduction, competing winners or unresolved priority ties still need qualification before venue integration. [Verification contract](../clearing/risk-and-resolution.md#signed-verification-across-market-ids) · [Run commands](validation.md#checks-by-change)
 
+### Residual settlement with open positions
+
+A six-member local workload starts with three fully covered markets. A trader has 421 cash atoms and a closed claim worth 200 in the first market. Two price shocks leave it owing 504 and 756 in the other markets. The opposing makers still hold positions, but have closed their previous lots and reopened at the current price. Their outstanding claims survive and their new lots have zero eligible open gain. The remaining loss must be allocated to creditors after using the debtor's own resources and each market's insurance.
+
+| Frozen outcome, collateral atoms | First debt market | Second debt market |
+|---|---:|---:|
+| Debt | 504 | 756 |
+| Debtor's own cash plus recovered claim, before rounding | 248⅖ | 372⅗ |
+| Own insurance spent | 1 | 0 |
+| Exact uninsured loss | 254⅗ | 383⅖ |
+| Whole atoms received by creditors | 249 | 373 |
+
+On program and harness revision `d2dec1c9`, twelve signed fills produced this book. The first market paid the full 200 from its maker’s cash. After the loss of 638 atoms, the first debt market's three creditors received 67, 156 and 26 whole atoms. The other market’s creditor received 373. Settlement recorded zero forced charges and zero matched lots across all markets. Five owners separately withdrew 2,068, 2,156, 196, 1,226 and 1,573 atoms. The sixth owner’s cash was zero. These withdrawals plus the 11 retained fee atoms reconcile to all 7,230 deposits.
+
+The successful transaction used **54,409 CU, 659 signed bytes and 14 loaded accounts**. The same keeper’s earlier attempt to settle the fully covered book refused before the shocks. All 17 signed refusal controls preserved the watched accounts, including a missing market, a forged full-recovery claim and a diversion between markets. Fresh PostgreSQL replay rebuilt the frozen book from finalized RPC history and reconciled 77 program receipts, the reserve debit and the wallet exits. The independent exact-fraction model and native Rust settlement agreed on every market movement and wallet.
+
+On a separate signed book with an eligible four-atom concession, zero-charge settlement refused. The same binary accepted the winning reduction, preserved the creditor’s 27th atom and reproduced all four prior withdrawals. That settlement used 126,597 CU and 724 bytes. PostgreSQL reconciled 77 program receipts. A focused native test also refused residual settlement when insurance alone could cover the entire gap. Competing winners within a charged market and the wider venue path remain open. [Scoped run commands](validation.md#checks-by-change)
+
 ### BTC/ETH backing summary comparison
 
 [Native comparison in review, #205](https://github.com/arnabnandikgp/rivalt/pull/205). This model starts with empty counters and records account
