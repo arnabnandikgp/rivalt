@@ -16,6 +16,7 @@ import type {ExpectedInstructionError} from './instruction-errors.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {initializeFixtureFeed} from './oracle-fixture.js';
+import {qualifyListedDirectory} from './listed-maker-directory.js';
 import {qualifyListedMaker} from './listed-maker-admission.js';
 import {qualifyListingIndex} from './listing-index-qualification.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
@@ -26,7 +27,8 @@ const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,payerFor:label=>label.startsWith('SOL sample ')?observer:undefined});
 try {
   const payer=await payerKey(),{h,members,lanes}=coverageProvisioning(transport,payer);
-  const setup=await liquidityExecutionSetup(h,rpc,{traderCount:1,recoveryCapacity:build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?8:7,marketCheckpoints:true,
+  const sealDirectory=build.artifactSet===sdk.LISTED_DIRECTORY_ARTIFACT_SET;
+  const setup=await liquidityExecutionSetup(h,rpc,{traderCount:1,recoveryCapacity:sealDirectory?10:build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?8:7,marketCheckpoints:true,
     marginLayout:'ledger-lanes',shape:symmetricPayoutShape,verifyRejections:false});
   const {venue,primary,traderOwner:owner}=setup, [trader]=setup.roots;
   const {route,root,guard,withCheckpoints}=executionTestHelpers(h,setup);
@@ -67,9 +69,10 @@ try {
   assert.deepEqual([key,ticker,record.marketId,record.oracleFeed,record.oraclePublisher,record.lotsPerUnit,
     record.quoteMint,record.status],[listing,'SOL',2,feed,primary.address,lotsPerUnit,setup.mint.address,0]);
 
-  const listedMaker=build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?await qualifyListedMaker(h,setup,listing,members):undefined;
+  const listedMaker=sealDirectory||build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?await qualifyListedMaker(h,setup,listing,members):undefined;
+  const sealed=sealDirectory && listedMaker?await qualifyListedDirectory(h,setup,listing,listedMaker.listing,listedMaker.capital):undefined;
   observer=owner;
-  const indexProbe=build.artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET
+  const indexProbe=sealDirectory||build.artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET
     ? await qualifyListingIndex(h,setup,listing,feed,financialKeys) : undefined;
   if(indexProbe||listedMaker) await setup.qualify();
   else await setup.sample();
@@ -114,6 +117,15 @@ try {
     keys.push({program:sdk.CLEARING_PROGRAM_ADDRESS,name:'makerRegistration',key:listedMaker.registration},
       {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'capitalBinding',key:listedMaker.capitalBinding});
   }
+  if(sealed) {
+    const landed=checks.find(row=>row.label==='seal SOL maker directory')!;
+    parity.record([sealed.instruction],await rpc.call('getTransaction',[landed.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]));
+    keys.push({program:sdk.CLEARING_PROGRAM_ADDRESS,name:'liquidityRegistry',key:sealed.registry});
+    const discovered=await sdk.discoverLiquidityAccounts(rpc,venue,listing,'finalized','ledger-lanes');
+    assert.deepEqual(discovered.capitals,sealed.capitals);
+    const listings=await sdk.readInactiveMarketListings(rpc,venue);
+    assert.deepEqual(listings.map(({record})=>[record.marketId,record.status]),[[2,1],[258,0]]);
+  }
   await parity.finish(directory,keys,h.read);
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   const replay=await journal.finish();
@@ -128,9 +140,14 @@ try {
   }
   if(listedMaker) {
     assert.equal(replay.state.liquidity?.makers[listedMaker.registration]?.market,listing);
-    assert.equal(replay.state.roots[listedMaker.capital]?.cash,'0');
+    assert.equal(replay.state.roots[listedMaker.capital]?.cash,sealed?'100000':'0');
   }
-  const result={maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
+  if(sealed) {
+    assert.deepEqual(replay.state.liquidity?.registries[sealed.registry]?.registrations,sealed.registrations);
+    assert.equal(replay.state.listings?.[listing]?.status,1);
+    for(const capital of sealed.capitals)assert.equal(replay.state.roots[capital].cash,'100000');
+  }
+  const result={sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
     bytes:(await h.read(indexProbe.listingIndex))!.length,receipts:checks.filter(row=>!row.error &&
       (row.label==='bind SOL index'||String(row.label).startsWith('SOL sample ')))}:undefined,program:build.revision,harness:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     transactions:checks.length,events:replay.events,registration:accepted,listingBytes:(await h.read(listing))!.length,

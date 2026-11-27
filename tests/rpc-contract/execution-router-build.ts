@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {verifyTestBuild} from './backing-artifacts.js';
-import {INDEXED_DEFAULT_ARTIFACT_SET,LISTED_MAKER_ARTIFACT_SET,LISTING_INDEX_ARTIFACT_SET,INACTIVE_LISTING_ARTIFACT_SET,INDEXED_WITHDRAWAL_ARTIFACT_SET,GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
+import {LISTED_DIRECTORY_ARTIFACT_SET,INDEXED_DEFAULT_ARTIFACT_SET,LISTED_MAKER_ARTIFACT_SET,LISTING_INDEX_ARTIFACT_SET,INACTIVE_LISTING_ARTIFACT_SET,INDEXED_WITHDRAWAL_ARTIFACT_SET,GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
 
 export function multiDeploymentFor(artifactSet: string) {
   if (artifactSet === PRICE_LIMITED_MULTI_ARTIFACT_SET) return 'price-limited-multi-maker';
@@ -21,6 +21,16 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const probe = process.env.RIVALT_SETTLEMENT_PROBE;
+  if(probe==='execution-router-listed-directory') {
+    assert.equal(revision,'a3a2c3cb6864a21a3225c82a788b0a00db3e467d');
+    const artifacts={
+      'clearing':{bytes:4275120,sha256:'d144f260856f843b8c7a6a6f660701cbaf733c38789fbd2e3919ee8c338745b7'},
+      'maker-a':{bytes:187208,sha256:'1c8d021a8dc0947606f96ac18d1a2a61b0c2185ec9f862c097d52a3bce302e62'},
+      'maker-b':{bytes:187208,sha256:'65412a25adb9e98bd793878ba016648026529169c36c028a51bab592c1e824e8'}
+    };
+    verifyTestBuild(directory,revision,artifacts,LISTED_DIRECTORY_ARTIFACT_SET);
+    return {revision,artifacts,artifactSet:LISTED_DIRECTORY_ARTIFACT_SET};
+  }
   if(probe==='execution-router-venue-application') {
     const deployment=accountDeployment('venue-default-application');
     assert.equal(revision,deployment.programRevision);
