@@ -30,6 +30,20 @@ struct Pair {
     debtor: usize,
     winner: usize,
     maximum: u64,
+    // When two winners share a market, the first bears the rest of its total charge.
+    second: Option<(usize, u64)>,
+}
+impl Pair {
+    fn charge_of(self, member: usize, total: u64) -> u64 {
+        let second_charge = self.second.map_or(0, |(_, charge)| charge);
+        if self.winner == member {
+            total - second_charge
+        } else if self.second.is_some_and(|(winner, _)| winner == member) {
+            second_charge
+        } else {
+            0
+        }
+    }
 }
 
 struct Flow {
@@ -112,11 +126,7 @@ impl<'a> Book<'a> {
 
     fn gain(&self, i: usize, m: usize, pairs: &[Pair], charges: &Columns) -> u64 {
         let gain = self.rows[i].cells[m].claim.max(0) as u64;
-        if pairs[m].winner == i {
-            gain - charges[m]
-        } else {
-            gain
-        }
+        gain - pairs[m].charge_of(i, charges[m])
     }
 
     // Keep the original cash split. Forward new receipts by original principal
@@ -282,9 +292,13 @@ impl<'a> Book<'a> {
         Err(ProofError::UnsupportedBook.into())
     }
 
-    fn pairs(&self, baseline: &Flow) -> Result<([Pair; WIDTH], usize)> {
+    fn pairs(
+        &self,
+        baseline: &Flow,
+    ) -> Result<([Pair; WIDTH], usize, Option<competition::Contest>)> {
         let mut pairs = [Pair::default(); WIDTH];
         let mut count = 1;
+        let mut contest = None;
         for (m, pair) in pairs.iter_mut().enumerate().take(self.width) {
             let occupied = self.rows.iter().filter(|r| r.cells[m].lots != 0).count();
             for (d, debtor) in self.rows.iter().enumerate() {
@@ -309,28 +323,42 @@ impl<'a> Book<'a> {
                     {
                         continue;
                     }
-                    require!(
-                        occupied == 2 && pair.maximum == 0,
-                        ProofError::UnsupportedBook
-                    );
                     let maximum = budget
                         .min(u64::from(cell.eligible))
                         .min(cell.claim.max(0) as u64);
-                    require!(
-                        maximum > 0 && maximum < PLANS as u64,
-                        ProofError::UnsupportedBook
-                    );
-                    *pair = Pair {
-                        debtor: d,
-                        winner: w,
-                        maximum,
-                    };
-                    count *= maximum as usize + 1;
-                    require!(count <= PLANS, ProofError::UnsupportedBook);
+                    require!(maximum > 0, ProofError::UnsupportedBook);
+                    if pair.maximum == 0 {
+                        *pair = Pair {
+                            debtor: d,
+                            winner: w,
+                            maximum,
+                            second: None,
+                        };
+                    } else {
+                        require!(
+                            contest.is_none() && pair.debtor == d,
+                            ProofError::UnsupportedBook
+                        );
+                        contest = Some(competition::Contest {
+                            market: m,
+                            debtor: d,
+                            winners: [pair.winner, w],
+                            budget,
+                        });
+                    }
                 }
             }
+            if pair.maximum != 0 && !contest.as_ref().is_some_and(|c| c.market == m) {
+                require!(
+                    occupied == 2 && pair.maximum < PLANS as u64,
+                    ProofError::UnsupportedBook
+                );
+                count *= pair.maximum as usize + 1;
+                require!(count <= PLANS, ProofError::UnsupportedBook);
+            }
         }
-        Ok((pairs, count))
+        require!(contest.is_none() || count == 1, ProofError::UnsupportedBook);
+        Ok((pairs, count, contest))
     }
 
     fn rank(
@@ -361,7 +389,7 @@ impl<'a> Book<'a> {
                 .enumerate()
                 .filter(|(_, r)| r.cells[m].claim > 0)
             {
-                let direct = if pairs[m].winner == i { charges[m] } else { 0 };
+                let direct = pairs[m].charge_of(i, charges[m]);
                 if u128::from(flow.payments[i][m] + direct * flow.unit) * u128::from(baseline.unit)
                     < u128::from(baseline.payments[i][m]) * u128::from(flow.unit)
                 {
@@ -389,12 +417,23 @@ pub(super) struct Verified {
     pub repaired: bool,
     pub charges: [u64; WIDTH],
     pub winners: [usize; WIDTH],
+    pub split: Option<(usize, WinnerSplit)>,
 }
 
+mod competition;
 mod rounding;
 use rounding::protected_cash;
 
 pub(super) fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> Result<Verified> {
+    verify_book(rows, reserves, proof, None)
+}
+
+pub(super) fn verify_book(
+    rows: &[Member],
+    reserves: &[u64],
+    proof: &RatesProof,
+    context: Option<(&Address, &[(usize, usize, FrozenCapacity)])>,
+) -> Result<Verified> {
     let width = reserves.len();
     let book = Book::new(rows, width, reserves)?;
     let mut words = proof.numerators.as_slice();
@@ -406,10 +445,27 @@ pub(super) fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> R
         &[0; WIDTH],
         &mut baseline,
     )?;
-    let (pairs, count) = book.pairs(&baseline)?;
+    let (mut pairs, count, contest) = book.pairs(&baseline)?;
     let selected = usize::from(proof.selected);
-    let charges = allocation(selected, &pairs);
-    let (cash, repaired, spent) = if count == 1 {
+    let mut charges = allocation(selected, &pairs);
+    let mut split = None;
+    let (cash, repaired, spent) = if let Some(contest) = contest {
+        let market = contest.market;
+        charges = [0; WIDTH];
+        charges[market] = contest.budget;
+        let (terminal, result) = contest.verify(
+            &book,
+            &baseline,
+            &mut pairs,
+            &charges,
+            proof,
+            &mut words,
+            context.ok_or(ProofError::UnsupportedBook)?,
+        )?;
+        let (cash, repaired) = protected_cash(rows, &baseline, &terminal, &pairs, &charges)?;
+        split = Some((market, result));
+        (cash, repaired, terminal.spent)
+    } else if count == 1 {
         // The complete roster has no whole-atom charge available. Only an
         // actual post-insurance creditor loss can authorize a terminal write.
         require!(
@@ -446,6 +502,7 @@ pub(super) fn verify(rows: &[Member], reserves: &[u64], proof: &RatesProof) -> R
         repaired,
         charges,
         winners: pairs.map(|p| p.winner),
+        split,
     })
 }
 
@@ -563,6 +620,7 @@ mod tests {
             debtor: 0,
             winner: 2,
             maximum: 40,
+            second: None,
         };
         let charges = allocation(40, &pairs);
         // Own cash remains 25/25. Of the next 100 atoms, only 35 fit the
@@ -597,7 +655,7 @@ mod tests {
             &mut baseline,
         )
         .unwrap();
-        let (pairs, count) = book.pairs(&baseline).unwrap();
+        let (pairs, count, _) = book.pairs(&baseline).unwrap();
         // Six of eight residual debt atoms belong to the first debtor. Its
         // uninsured writeoff is 6 * (8 - 2) / 8 = 4.5, admitting four whole atoms.
         assert_eq!((pairs[0].maximum, count), (4, 5));

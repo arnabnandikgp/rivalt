@@ -12,19 +12,21 @@ import {encodeProof,IndexedReplay,reference,u32,type Probe,type Certificate} fro
 
 const program=address('sDPXvpEPwCzVKHdpxntiM1khVvtCj2V6ozCr5euajBi'),system=address('11111111111111111111111111111111');
 const operator=await payerKey(),keeper=await fixtureKey('indexed-keeper'),mint=await fixtureKey('indexed-mint');
+const competing=process.env.RIVALT_PROOF_SCOPE==='competing-indexed-default';
 const residual=process.env.RIVALT_PROOF_SCOPE==='residual-indexed-default';
 const insured=process.env.RIVALT_PROOF_SCOPE==='insured-indexed-default';
 const twoDestinations=residual || insured;
 const ids=twoDestinations?[13,18,23]:[13,18,23,28], traderCount=twoDestinations?3:2;
-const modes=[...Array<number>(traderCount).fill(65535),...ids];
-const deposits=twoDestinations?[425,2003,2006,396,1200,1200]:[1004,1004,548,548,300,300];
+const modes=competing?[65535,18,18,13,23,28]:[...Array<number>(traderCount).fill(65535),...ids];
+const deposits=competing?[7897,289,1000,2000,2000,2000]:twoDestinations?[425,2003,2006,396,1200,1200]:[1004,1004,548,548,300,300];
 const expectedOutcomes={
+  'competing-indexed-default':{cash:[0,0,1174,7000,4000,3000],retained:12,fills:7,alterRateAt:2},
   'residual-indexed-default':{cash:[0,2068,2156,196,1226,1573],retained:11,fills:12,alterRateAt:2},
   'insured-indexed-default':{cash:[0,2263,2155,0,1227,1573],retained:12,fills:13,alterRateAt:5},
   'indexed-default':{cash:[348,348,0,0,1500,1500],retained:8,fills:8,alterRateAt:4},
 };
 const scope=process.env.RIVALT_PROOF_SCOPE;
-assert(scope==='residual-indexed-default' || scope==='insured-indexed-default' || scope==='indexed-default');
+assert(scope==='competing-indexed-default' || scope==='residual-indexed-default' || scope==='insured-indexed-default' || scope==='indexed-default');
 const outcome=expectedOutcomes[scope];
 const owners=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-owner-'+i)));
 const wallets=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-wallet-'+i)));
@@ -64,18 +66,18 @@ async function publish(m:number,price:number,error?:number) {
   await send('publish '+ids[m]+' at '+price,'publish_trade_market',[signer(operator.address),ro(custody),rw(markets[m])],
     [u64(Number((await h.read(markets[m]))!.readBigUInt64LE(42))),u64(price),u64(0)],operator,error);
 }
-async function trade(t:number,m:number,price:number,close=false,sell=close) {
+async function trade(t:number,m:number,price:number,close=false,sell=close,makerIndex=m+traderCount,lots=1) {
   await publish(m,price);
-  const trader=await root(t),maker=await root(m+traderCount);
+  const trader=await root(t),maker=await root(makerIndex);
   const marketSet=(extra:number[])=>Array.from(new Set([...trader.slots.map(s=>s.id),ids[m],...extra])).sort((a,b)=>a-b);
   const expires=Number(await rpc.call('getSlot',[{commitment:'confirmed'}]))+5000;
   await send('place member '+t+' market '+ids[m],'place_trade_order',
     [signer(owners[t].address),ro(custody),rw(roots[t]),...marketSet([]).map(id=>ro(markets[ids.indexOf(id)]))],
-    [u64(trader.rev),u16(ids[m]),Buffer.from([+sell]),u64(1),u64(price),u64(1),u64(expires),Buffer.from([+close])],owners[t]);
+    [u64(trader.rev),u16(ids[m]),Buffer.from([+sell]),u64(lots),u64(price),u64(Math.ceil(lots*price/5000)),u64(expires),Buffer.from([+close])],owners[t]);
   await send('fill member '+t+' market '+ids[m],'fill_trade_order',
-    [signer(owners[m+traderCount].address),ro(custody),rw(markets[m]),rw(roots[t]),rw(roots[m+traderCount]),
+    [signer(owners[makerIndex].address),ro(custody),rw(markets[m]),rw(roots[t]),rw(roots[makerIndex]),
       ...marketSet(maker.slots.map(s=>s.id)).filter(id=>id!==ids[m]).map(id=>ro(markets[ids.indexOf(id)]))],
-    [u64((await root(t)).rev),u64(maker.rev),u64(Number((await h.read(markets[m]))!.readBigUInt64LE(42))),u64(1)],owners[m+traderCount]);
+    [u64((await root(t)).rev),u64(maker.rev),u64(Number((await h.read(markets[m]))!.readBigUInt64LE(42))),u64(lots)],owners[makerIndex]);
 }
 async function bookHash() {
   const hash=(...parts:Buffer[])=>createHash('sha256').update(Buffer.concat(parts)).digest();
@@ -134,7 +136,30 @@ try {
     await wallet(i,deposits[i]);
   }
   let stale:Buffer, proof:Certificate;
-  if(twoDestinations) {
+  if(competing) {
+    // In market 18 one trader and one isolated maker each retain a long lot.
+    // Both can be paired with the two shorts held by a single defaulting maker.
+    await trade(0,1,1060,false,false,2);
+    await trade(0,1,1000,true,true,2);
+    await trade(0,1,1000,false,false,1,2);
+    await trade(0,1,1030,true,true,2);
+    await trade(0,0,16000,false,false,3);
+    await trade(0,2,15500,false,false,4);
+    await trade(0,3,2000,false,false,5);
+    stale=await bookHash();
+    for(const [m,price] of [11000,1150,13500,1000].entries()) await publish(m,price);
+    const rows=[[7884,[-5000,120,-2000,-1000]],[289,[0,-300,0,0]],[1000,[0,180,0,0]],
+      [2000,[5000,0,0,0]],[2000,[0,0,2000,0]],[2000,[0,0,0,1000]]];
+    // Signed lots, eligible unpaid gain and whole-atom gain per opposing lot.
+    const empty=[0,0,0], positions=[
+      [[1,0,0],[1,120,150],[1,0,0],[1,0,0]], [empty,[-2,0,0],empty,empty],
+      [empty,[1,120,120],empty,empty], [[-1,5000,5000],empty,empty,empty],
+      [empty,empty,[-1,2000,2000],empty], [empty,empty,empty,[-1,1000,1000]],
+    ];
+    proof=reference<Certificate>({rows,positions,fees:[4,4,4,1],venue:[...key(custody)]});
+    assert.deepEqual([proof.totalPlans,proof.protectedPlans,proof.selected,proof.spent],[66,29,5,[0,1,0,0]]);
+    assert.deepEqual(proof.split,{market:18,members:[0,2],charges:[4,6],lots:[1,1]});
+  } else if(twoDestinations) {
     await trade(0,0,1000); await trade(0,0,1200,true);
     if(insured) await trade(1,0,1000); // Only the forced-close book has an open source gain.
     // Two flat creditors earn 135 and 315 against the insured maker.
@@ -196,6 +221,10 @@ try {
     await settle('refuse nonexistent reduction',{...proof,selected:1},6016);
     await settle('refuse trailing rate pass',{...proof,numerators:[...proof.numerators,...proof.numerators]},6003);
     await settle('refuse erasing the uninsured shortfall',{...proof,numerators:[1,1,1,1]},6016);
+  } else if(competing) {
+    await settle('refuse 5 and 5 impairing foreign recovery',{...proof,selected:6},6016);
+    await settle('refuse equally effective but less proportional 3 and 7',{...proof,selected:4},6016);
+    await settle('refuse skipping both winners',{...proof,selected:0},6016);
   } else {
     await settle('refuse inferior allocation',{...proof,selected:insured?2:4},6016);
     await settle('refuse bypass of eligible reduction',{...proof,selected:0},6016);
@@ -221,7 +250,7 @@ try {
   for(const [i,amount] of proof.cash.entries()) if(amount) await wallet(i,amount,true);
   assert.deepEqual(await Promise.all(wallets.map(w=>balance(w.address))),proof.cash.map(BigInt));
   assert.equal(await balance(vault),BigInt(outcome.retained));
-  if(!twoDestinations) { await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true); }
+  if(!twoDestinations && !competing) { await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true); }
   const replay=new IndexedReplay(custody,keeper.address,mint.address,owners.map(o=>o.address),wallets.map(w=>w.address),ids,modes);
   const journal=await replayOrders(rpc,program,roots,vault,await balance(vault),expected,undefined,replay);
   assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],[outcome.fills,'0',String(outcome.retained),String(outcome.retained)]);

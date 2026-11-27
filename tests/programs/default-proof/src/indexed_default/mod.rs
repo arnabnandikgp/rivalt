@@ -28,7 +28,16 @@ pub struct IndexedCustody {
     pub matched: [u64; WIDTH],
     pub spent: [u64; WIDTH],
     pub repaired: bool,
+    pub split: Option<WinnerSplit>,
 }
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub struct WinnerSplit {
+    pub market: u16,
+    pub members: [u8; 2],
+    pub charges: [u64; 2],
+    pub lots: [u64; 2],
+}
+
 impl IndexedCustody {
     pub fn trading(&self) -> Result<()> {
         require!(self.phase == 1, ProofError::DefaultPhase);
@@ -240,7 +249,12 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
         .map(|(index, root)| member(index, root, ids, &markets, &mut capacities))
         .collect::<Result<Vec<_>>>()?;
     let reserves: Vec<_> = markets.iter().map(|m| m.insurance).collect();
-    let plan = verifier::verify(&rows, &reserves, &proof)?;
+    let plan = verifier::verify_book(
+        &rows,
+        &reserves,
+        &proof,
+        Some((domain.address(), &capacities)),
+    )?;
     for (m, market) in markets
         .iter_mut()
         .enumerate()
@@ -264,6 +278,15 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
         .enumerate()
         .filter(|(_, charge)| **charge != 0)
     {
+        if let Some((index, split)) = &plan.split {
+            if *index == m {
+                domain.matched[m] = split.lots.iter().sum();
+                let mut receipt = split.clone();
+                receipt.market = domain.ids[m];
+                domain.split = Some(receipt);
+                continue;
+            }
+        }
         let (_, _, terms) = capacities
             .iter()
             .find(|(i, market, _)| *i == plan.winners[m] && *market == m)

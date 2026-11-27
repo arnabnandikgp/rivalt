@@ -5,7 +5,8 @@ import {getAddressEncoder,type Address} from '@solana/kit';
 
 type Sql={query(sql:string,args:unknown[]):Promise<{rows:Record<string,string>[]}>};
 type Price={id:number;price:bigint;funding:bigint;fees:bigint};
-export type Certificate={denominator:number;selected:number;numerators:number[];baselineLoss:string[];charges:number[];cash:number[];spent:number[];repaired:boolean;protectedPlans:number;totalPlans:number};
+type WinnerSplit={market:number;members:number[];charges:number[];lots:number[]};
+export type Certificate={split?:WinnerSplit;denominator:number;selected:number;numerators:number[];baselineLoss:string[];charges:number[];cash:number[];spent:number[];repaired:boolean;protectedPlans:number;totalPlans:number};
 export type Probe={rows:[number,number[]][];positions:[number,number][][];proof:Certificate};
 export function reference<T>(input:unknown):T {
   return JSON.parse(execFileSync('python3',['tests/financial/indexed_default_certificate.py'],{input:JSON.stringify(input),encoding:'utf8'}));
@@ -30,12 +31,16 @@ export class IndexedReplay {
     assert.equal(data.length,offset+2*this.ids.length);
   }
   fill(market:number,trader:Address,maker:Address,delta:bigint,price:bigint) {
-    // Each open leg in this workload is one lot. Round trips leave a realized
-    // claim in the postings while removing the inventory used to prove capacity.
+    // These signed books only add at the same entry and reduce up to flat.
+    // Keep the remaining basis across a partial close. Reject unsupported histories.
     for(const [root,signed] of [[trader,delta],[maker,-delta]] as const) {
       const key=root+'/'+market, old=this.entry.get(key);
-      if(old) { assert.equal(old.lots+signed,0n); this.entry.delete(key); }
-      else { assert.equal(signed<0n?-signed:signed,1n); this.entry.set(key,{lots:signed,price}); }
+      if(!old) { this.entry.set(key,{lots:signed,price}); continue; }
+      const remaining=old.lots+signed;
+      if(remaining===0n) { this.entry.delete(key); continue; }
+      assert.equal(remaining>0n,old.lots>0n,'unexpected position flip');
+      if((old.lots>0n)===(signed>0n)) assert.equal(price,old.price,'unexpected mixed-price increase');
+      old.lots=remaining;
     }
   }
   async settle(sql:Sql,roots:Address[],prices:Map<Address,Price>,bytes:Buffer,
@@ -56,11 +61,13 @@ export class IndexedReplay {
         const entry=this.entry.get(root+'/'+market.id), gain=lots*(market.price-(entry?.price??0n)), claim=scaled/scale;
         assert.equal(entry?.lots??0n,lots);
         const cap=claim<gain?claim:gain;
-        claims.push(Number(claim)); limits.push([Number(lots),Number(cap>0n?cap:0n)]);
+        const size=lots<0n?-lots:lots;
+        claims.push(Number(claim));
+        limits.push([Number(lots),Number(cap>0n?cap:0n),Number(gain>0n?gain/size:0n)]);
       }
       rows.push([Number(cash),claims]); positions.push(limits); stored.push({root,cash,slots});
     }
-    this.result=reference<Certificate>({rows,positions,fees:markets.map(m=>Number(m.fees))});
+    this.result=reference<Certificate>({rows,positions,fees:markets.map(m=>Number(m.fees)),venue:[...getAddressEncoder().encode(this.custody)]});
     assert.deepEqual(bytes.subarray(40),encodeProof(this.result));
     for(const [i,{root,cash,slots}] of stored.entries()) {
       await post(root,null,BigInt(this.result.cash[i])-cash,0n,0n);

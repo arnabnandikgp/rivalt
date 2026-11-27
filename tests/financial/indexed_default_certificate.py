@@ -1,5 +1,6 @@
-"""Independent certificate writer for the signed single-pair, whole-atom workload."""
+"""Build rate witnesses and independently rank the feasible frozen claims."""
 import copy
+from hashlib import sha256
 from fractions import Fraction
 from itertools import product
 import json
@@ -9,19 +10,80 @@ import sys
 from test_market_indexed_default import SCALE, candidate, expected, frozen, linked_book
 
 
-def certificate(book, positions, framed=False):
+def competing_certificate(book, positions, target, debtor, winners, venue):
+    """Enumerate even partial recoveries. Send only contenders for full recovery."""
+    passes = []
+    before = expected(book, rate_passes=passes)
+    budget = int(Fraction(before['rows'][debtor]['writeoff'][target]))
+    lots = abs(positions[debtor][target][0])
+    weights, rates = [], []
+    for member in winners:
+        size, eligible, per_lot = positions[member][target]
+        assert per_lot > 0
+        rates.append(per_lot)
+        weights.append(min(eligible, min(abs(size), lots) * per_lot))
+    def priority(member):
+        return sha256(b'Rivalt/frozen-member-order/v1\0' + bytes(venue) +
+                      (1).to_bytes(8, 'little') + member.to_bytes(8, 'little')).digest(), member
+    preferred = min(range(2), key=lambda i: priority(winners[i]))
+    ranking = []
+    physical = 0
+    lower = max(0, budget - weights[1])
+    for total in range(budget + 1):
+        for left in range(max(0, total - weights[1]), min(total, weights[0]) + 1):
+            split = [left, total-left]
+            matched = [(charge + rate-1)//rate for charge,rate in zip(split,rates)]
+            if sum(matched) > lots:
+                continue
+            physical += 1
+            actions = [dict(market=book['market_roster'][target], charges=[
+                dict(debtor=book['roster'][debtor], winner=book['roster'][member], charge=cost)
+                for member,cost in zip(winners,split) if cost])] if total else []
+            outcome = candidate(book, actions)
+            if total == budget:
+                changed = copy.deepcopy(book)
+                for member,delta in [(debtor,total), *zip(winners,(-cost for cost in split))]:
+                    claims = changed['rows'][member]['claims']
+                    claims[target] = str(int(claims[target])+delta*SCALE)
+                ordinary = expected(changed, frozen=book, rate_passes=passes)
+            if outcome is None:
+                continue
+            recovery = sum(map(Fraction, outcome['recovery']))
+            deviation = sum(Fraction(charge**2, weight) for charge,weight in zip(split,weights)) - Fraction(total**2,sum(weights))
+            ranking.append(((-recovery,deviation,total,sum(matched),-split[preferred]), split, matched, outcome,
+                            total == budget and ordinary['rows'] != outcome['settlement']['rows']))
+    rank,split,matched,outcome,repaired = min(ranking, key=lambda item:item[0])
+    assert -rank[0] == sum(split) == budget and budget > 0
+    loss = [sum(Fraction(row['loss'][m]) for row in before['rows']) for m in range(len(book['markets']))]
+    assert loss[target] == budget
+    totals = [0]*len(loss)
+    totals[target] = budget
+    return dict(denominator=0, selected=1+split[0]-lower, numerators=[word for step in passes for word in step],
+                baselineLoss=list(map(str,loss)), cash=[int(row['cash']) for row in outcome['settlement']['rows']],
+                charges=totals, spent=list(map(int,outcome['settlement']['spent'])), repaired=repaired,
+                split=dict(market=book['market_roster'][target],members=winners,charges=split,lots=matched),
+                totalPlans=physical,protectedPlans=len(ranking))
+
+
+def certificate(book, positions, framed=False, venue=None):
     baseline = expected(book)
     options = []
+    competition = None
     for market, cells in enumerate(zip(*positions)):
         pairs = []
-        for debtor, (lots, _) in enumerate(cells):
+        for debtor, (lots, *_) in enumerate(cells):
             debt = int(Fraction(baseline['rows'][debtor]['writeoff'][market]))
-            for winner, (opposite, capacity) in enumerate(cells):
+            for winner, (opposite, capacity, *_) in enumerate(cells):
                 if debt and lots * opposite < 0 and capacity > 0:
                     pairs.append((debtor, winner, min(capacity, debt)))
-        assert len(pairs) <= 1
+        if len(pairs) > 1:
+            assert competition is None and len(pairs) == 2 and pairs[0][0] == pairs[1][0]
+            competition = (market, pairs[0][0], [pair[1] for pair in pairs])
         options.append(pairs[0] if pairs else (0, 0, 0))
 
+    if competition:
+        assert venue is not None and sum(limit > 0 for _, _, limit in options) == 1
+        return competing_certificate(book, positions, *competition, venue)
     vectors, ranking, framed_words = [], [], []
     for index, reverse in enumerate(product(*(range(limit + 1) for _, _, limit in reversed(options)))):
         charges = list(reversed(reverse))
@@ -101,5 +163,5 @@ if __name__ == '__main__':
         reserves = [f // 4 for f in data['fees']]
         book = frozen(data['rows'], reserves=reserves, fees=[f-r for f,r in zip(data['fees'], reserves)])
         # Positive limits use the opposite inventory and surviving entry from signed fills.
-        result = certificate(book, data['positions'], framed=any(reserves) or data.get('framed', False))
+        result = certificate(book, data['positions'], framed=any(reserves) or data.get('framed', False), venue=data.get('venue'))
     json.dump(result, sys.stdout)

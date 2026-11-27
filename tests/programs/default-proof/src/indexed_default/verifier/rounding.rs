@@ -102,7 +102,7 @@ pub(super) fn protected_cash(
             .enumerate()
             .filter(|(_, r)| r.cells[m].claim > 0)
         {
-            let direct = if pairs[m].winner == i { charges[m] } else { 0 };
+            let direct = pairs[m].charge_of(i, charges[m]);
             floors[i][m] = base.payments[i][m].saturating_sub(direct);
             repaired |= result.payments[i][m] < floors[i][m];
         }
