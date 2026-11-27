@@ -9,7 +9,7 @@ import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import type {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 
 export async function qualifyListedDirectory(h:CanonicalHarness,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,
-  listing:Address,otherListing:Address,firstCapital:Address) {
+  listing:Address,otherListing:Address,firstCapital:Address,depth?:bigint) {
   const {venue,common,payer,traderOwner:owner,traderToken,mint}=setup;
   const {withCheckpoints}=executionTestHelpers(h,setup);
   const registrations=(await sdk.registeredMakerPdas(listing,3)).map(([address])=>address);
@@ -40,8 +40,11 @@ export async function qualifyListedDirectory(h:CanonicalHarness,setup:Awaited<Re
     await deposit(capital);
     const [config]=await operator.module.findCurveConfigPda({capital});
     const [price]=await operator.module.findCurvePricePda({config});
+    const shape=depth?{...symmetricPayoutShape,longCap:depth,shortCap:depth,
+      asks:symmetricPayoutShape.asks.map((r,i)=>i===0?{...r,endLots:depth}:r),
+      bids:symmetricPayoutShape.bids.map((r,i)=>i===0?{...r,endLots:depth}:r)}:symmetricPayoutShape;
     const curve=await operator.module.getInitializeListedCurveInstructionAsync({...operator.makerCommon,
-      venue,owner,listing,capital,config,price,instance,shape:symmetricPayoutShape,updater:setup.updater.address,expiry:1_000_000n});
+      venue,owner,listing,capital,config,price,instance,shape,updater:setup.updater.address,expiry:1_000_000n});
     await h.send('initialize SOL directory curve '+instance,[curve],[owner]);
     const admit=await sdk.getAdmitListedMakerInstructionAsync({...common,authority:payer,owner,listing,capital,capitalBinding,
       registration:registrations[instance],instance,config,price,pricingProgram:operator.pricingProgram,
