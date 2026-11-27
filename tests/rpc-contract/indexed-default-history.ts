@@ -6,7 +6,7 @@ import {getAddressEncoder,type Address} from '@solana/kit';
 type Sql={query(sql:string,args:unknown[]):Promise<{rows:Record<string,string>[]}>};
 type Price={id:number;price:bigint;funding:bigint;fees:bigint};
 type WinnerSplit={market:number;members:number[];charges:number[];lots:number[]};
-export type Certificate={split?:WinnerSplit;denominator:number;selected:number;numerators:number[];baselineLoss:string[];charges:number[];cash:number[];spent:number[];repaired:boolean;protectedPlans:number;totalPlans:number};
+export type Certificate={splits?:WinnerSplit[];denominator:number;selected:number;numerators:number[];baselineLoss:string[];charges:number[];cash:number[];spent:number[];repaired:boolean;protectedPlans:number;totalPlans:number};
 export type Probe={rows:[number,number[]][];positions:[number,number][][];proof:Certificate};
 export function reference<T>(input:unknown):T {
   return JSON.parse(execFileSync('python3',['tests/financial/indexed_default_certificate.py'],{input:JSON.stringify(input),encoding:'utf8'}));

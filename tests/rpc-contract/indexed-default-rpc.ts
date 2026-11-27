@@ -12,15 +12,17 @@ import {encodeProof,IndexedReplay,reference,u32,type Probe,type Certificate} fro
 
 const program=address('sDPXvpEPwCzVKHdpxntiM1khVvtCj2V6ozCr5euajBi'),system=address('11111111111111111111111111111111');
 const operator=await payerKey(),keeper=await fixtureKey('indexed-keeper'),mint=await fixtureKey('indexed-mint');
+const joint=process.env.RIVALT_PROOF_SCOPE==='joint-competing-indexed-default';
 const partial=process.env.RIVALT_PROOF_SCOPE==='partial-indexed-default';
 const competing=process.env.RIVALT_PROOF_SCOPE==='competing-indexed-default';
 const residual=process.env.RIVALT_PROOF_SCOPE==='residual-indexed-default';
 const insured=process.env.RIVALT_PROOF_SCOPE==='insured-indexed-default';
 const twoDestinations=residual || insured;
 const ids=twoDestinations?[13,18,23]:[13,18,23,28], traderCount=twoDestinations?3:2;
-const modes=(competing||partial)?[65535,18,18,13,23,28]:[...Array<number>(traderCount).fill(65535),...ids];
-const deposits=(competing||partial)?[7897,289,1000,2000,2000,2000]:twoDestinations?[425,2003,2006,396,1200,1200]:[1004,1004,548,548,300,300];
+const modes=joint?[65535,18,18,13,13,23,28]:(competing||partial)?[65535,18,18,13,23,28]:[...Array<number>(traderCount).fill(65535),...ids];
+const deposits=joint?[4000,298,1000,298,1000,2000,2000]:(competing||partial)?[7897,289,1000,2000,2000,2000]:twoDestinations?[425,2003,2006,396,1200,1200]:[1004,1004,548,548,300,300];
 const expectedOutcomes={
+  'joint-competing-indexed-default':{cash:[4586,0,1001,0,1001,2000,2000],retained:8,fills:8,alterRateAt:2},
   'partial-indexed-default':{cash:[8180,0,1000,2000,2000,2000],retained:6,fills:6,alterRateAt:2},
   'competing-indexed-default':{cash:[0,0,1174,7000,4000,3000],retained:12,fills:7,alterRateAt:2},
   'residual-indexed-default':{cash:[0,2068,2156,196,1226,1573],retained:11,fills:12,alterRateAt:2},
@@ -28,7 +30,7 @@ const expectedOutcomes={
   'indexed-default':{cash:[348,348,0,0,1500,1500],retained:8,fills:8,alterRateAt:4},
 };
 const scope=process.env.RIVALT_PROOF_SCOPE;
-assert(scope==='partial-indexed-default' || scope==='competing-indexed-default' || scope==='residual-indexed-default' || scope==='insured-indexed-default' || scope==='indexed-default');
+assert(scope==='joint-competing-indexed-default' || scope==='partial-indexed-default' || scope==='competing-indexed-default' || scope==='residual-indexed-default' || scope==='insured-indexed-default' || scope==='indexed-default');
 const outcome=expectedOutcomes[scope];
 const owners=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-owner-'+i)));
 const wallets=await Promise.all(modes.map((_,i)=>fixtureKey('indexed-wallet-'+i)));
@@ -127,7 +129,8 @@ try {
   await send('open custody','open_slot_custody',[paying(operator.address),ro(mint.address),rw(custody),rw(vault),ro(TOKEN_PROGRAM_ADDRESS),ro(system)]);
   const register=(list:number[],error?:number)=>send('register '+list.join(','),'register_indexed_book',[signer(operator.address),rw(custody)],
     [u32(list.length),...list.flatMap(i=>[key(owners[i].address),u16(modes[i])]),u32(ids.length),...ids.map(u16)],operator,error);
-  await register([0,0],6015); await register([0,1,2,3,4,5]); await register([0,1,2,3,4,5],6014);
+  const roster=owners.map((_,i)=>i);
+  await register([0,0],6015); await register(roster); await register(roster,6014);
   for(const [m,id] of ids.entries()) await send('open market '+id,'open_trade_market',[paying(operator.address),ro(custody),rw(markets[m]),ro(system)],[u16(id)]);
   for(const [i,owner] of owners.entries()) {
     await h.send('mint test collateral '+i,[
@@ -138,7 +141,26 @@ try {
     await wallet(i,deposits[i]);
   }
   let stale:Buffer, proof:Certificate;
-  if(partial) {
+  if(joint) {
+    for(const [market,debtor,winner] of [[0,3,4],[1,1,2]]) {
+      await trade(0,market,1000,false,false,debtor,2);
+      await trade(0,market,1148,true,true,winner,2);
+      await trade(0,market,1148,false,false,winner);
+    }
+    await trade(0,2,2000,false,false,5);
+    await trade(0,3,1000,false,false,6);
+    stale=await bookHash();
+    await publish(0,1150); await publish(1,1150);
+    const empty=[0,0,0],owing=[-2,0,0],winning=[1,2,2];
+    const rows=[[3992,[298,298,0,0]],[298,[0,-300,0,0]],[1000,[0,2,0,0]],
+      [298,[-300,0,0,0]],[1000,[2,0,0,0]],[2000,[0,0,0,0]],[2000,[0,0,0,0]]];
+    const positions=[[winning,winning,[1,0,0],[1,0,0]],[empty,owing,empty,empty],[empty,winning,empty,empty],
+      [owing,empty,empty,empty],[winning,empty,empty,empty],[empty,empty,[-1,0,0],empty],[empty,empty,empty,[-1,0,0]]];
+    proof=reference<Certificate>({rows,positions,fees:[3,3,1,1],venue:[...key(custody)]});
+    assert.deepEqual([proof.totalPlans,proof.charges,proof.selected],[36,[2,2,0,0],5]);
+    assert.deepEqual(proof.splits,[{market:13,members:[0,4],charges:[1,1],lots:[1,1]},
+      {market:18,members:[0,2],charges:[1,1],lots:[1,1]}]);
+  } else if(partial) {
     // The first owner closes both winning lots against a solvent maker and buys
     // one back. Only one atom of open gain per winner survives the final tick.
     await trade(0,1,1000,false,false,1,2);
@@ -158,7 +180,7 @@ try {
     proof=reference<Certificate>({rows,positions,fees:[1,3,1,1],venue:[...key(custody)]});
     assert.deepEqual(proof.baselineLoss,['0','11','0','0']);
     assert.deepEqual([proof.totalPlans,proof.protectedPlans,proof.charges],[4,4,[0,2,0,0]]);
-    assert.deepEqual(proof.split,{market:18,members:[0,2],charges:[1,1],lots:[1,1]});
+    assert.deepEqual(proof.splits,[{market:18,members:[0,2],charges:[1,1],lots:[1,1]}]);
   } else if(competing) {
     // In market 18 one trader and one isolated maker each retain a long lot.
     // Both can be paired with the two shorts held by a single defaulting maker.
@@ -181,7 +203,7 @@ try {
     ];
     proof=reference<Certificate>({rows,positions,fees:[4,4,4,1],venue:[...key(custody)]});
     assert.deepEqual([proof.totalPlans,proof.protectedPlans,proof.selected,proof.spent],[66,29,5,[0,1,0,0]]);
-    assert.deepEqual(proof.split,{market:18,members:[0,2],charges:[4,6],lots:[1,1]});
+    assert.deepEqual(proof.splits,[{market:18,members:[0,2],charges:[4,6],lots:[1,1]}]);
   } else if(twoDestinations) {
     await trade(0,0,1000); await trade(0,0,1200,true);
     if(insured) await trade(1,0,1000); // Only the forced-close book has an open source gain.
@@ -244,6 +266,10 @@ try {
     await settle('refuse nonexistent reduction',{...proof,selected:1},6016);
     await settle('refuse trailing rate pass',{...proof,numerators:[...proof.numerators,...proof.numerators]},6003);
     await settle('refuse erasing the uninsured shortfall',{...proof,numerators:[1,1,1,1]},6016);
+  } else if(joint) {
+    await settle('refuse disproportionate first market',{...proof,selected:4},6016);
+    await settle('refuse disproportionate second market',{...proof,selected:2},6016);
+    await settle('refuse zero plan across two distressed markets',{...proof,selected:0},6016);
   } else if(partial) {
     await settle('refuse abandoning two recoverable atoms',{...proof,selected:0},6016);
     await settle('refuse nonexistent higher-capacity split',{...proof,selected:2},6016);
@@ -266,6 +292,25 @@ try {
   }
   await settle('settle funded book'); await settle('refuse replay',proof,6014);
   await publish(0,1500,6014);
+  // Independent Borsh decode of the on-chain settlement receipt after all negative controls.
+  // Header: discriminator, two addresses, four bytes, twelve roots, eight u16 IDs, frozen digest.
+  const stored=(await h.read(custody))!;
+  let offset=8+32+32+4+12*32+8*2+32;
+  assert.equal(stored[offset++],proof.selected);
+  const column=()=>Array.from({length:8},()=>{const n=Number(stored.readBigUInt64LE(offset));offset+=8;return n;});
+  assert.deepEqual(column(),[...proof.charges,...Array(8-ids.length).fill(0)]);
+  const matched=column();
+  assert.deepEqual(column(),[...proof.spent,...Array(8-ids.length).fill(0)]);
+  assert.equal(Boolean(stored[offset++]),proof.repaired);
+  const count=stored.readUInt32LE(offset);offset+=4;assert.equal(count,proof.splits?.length??0);
+  for(const split of proof.splits??[]) {
+    assert.equal(stored.readUInt16LE(offset),split.market);offset+=2;
+    assert.deepEqual([...stored.subarray(offset,offset+2)],split.members);offset+=2;
+    for(const field of [split.charges,split.lots]) for(const amount of field) {
+      assert.equal(stored.readBigUInt64LE(offset),BigInt(amount));offset+=8;
+    }
+    assert.equal(matched[ids.indexOf(split.market)],split.lots[0]+split.lots[1]);
+  }
   assert.deepEqual(proof.cash,outcome.cash);
   for(const [i,amount] of proof.cash.entries()) {
     const state=await root(i);
@@ -276,7 +321,7 @@ try {
   for(const [i,amount] of proof.cash.entries()) if(amount) await wallet(i,amount,true);
   assert.deepEqual(await Promise.all(wallets.map(w=>balance(w.address))),proof.cash.map(BigInt));
   assert.equal(await balance(vault),BigInt(outcome.retained));
-  if(!twoDestinations && !competing && !partial) { await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true); }
+  if(!twoDestinations && !competing && !partial && !joint) { await probe(1,0); await probe(2,2); await probe(4,0); await probe(4,2); await probe(4,0,true); }
   const replay=new IndexedReplay(custody,keeper.address,mint.address,owners.map(o=>o.address),wallets.map(w=>w.address),ids,modes);
   const journal=await replayOrders(rpc,program,roots,vault,await balance(vault),expected,undefined,replay);
   assert.deepEqual(replay.result,proof); assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],[outcome.fills,'0',String(outcome.retained),String(outcome.retained)]);

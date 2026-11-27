@@ -28,7 +28,8 @@ pub struct IndexedCustody {
     pub matched: [u64; WIDTH],
     pub spent: [u64; WIDTH],
     pub repaired: bool,
-    pub split: Option<WinnerSplit>,
+    #[max_len(8)]
+    pub splits: Vec<WinnerSplit>,
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct WinnerSplit {
@@ -278,14 +279,12 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
         .enumerate()
         .filter(|(_, charge)| **charge != 0)
     {
-        if let Some((index, split)) = &plan.split {
-            if *index == m {
-                domain.matched[m] = split.lots.iter().sum();
-                let mut receipt = split.clone();
-                receipt.market = domain.ids[m];
-                domain.split = Some(receipt);
-                continue;
-            }
+        if let Some((_, split)) = plan.splits.iter().find(|(index, _)| *index == m) {
+            domain.matched[m] = split.lots.iter().sum();
+            let mut receipt = split.clone();
+            receipt.market = domain.ids[m];
+            domain.splits.push(receipt);
+            continue;
         }
         let (_, _, terms) = capacities
             .iter()

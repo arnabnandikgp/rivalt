@@ -10,66 +10,100 @@ import sys
 from test_market_indexed_default import SCALE, candidate, expected, frozen, linked_book
 
 
-def competing_certificate(book, positions, target, debtor, winners, venue):
-    """Enumerate even partial recoveries. Send only splits capable of attaining the independently derived upper bound."""
+def competing_certificate(book, positions, groups, venue):
+    """Brute-force every physical allocation, including zero, using exact fractions."""
     passes = []
     before = expected(book, rate_passes=passes)
-    budget = int(Fraction(before['rows'][debtor]['writeoff'][target]))
-    lots = abs(positions[debtor][target][0])
-    weights, rates = [], []
-    for member in winners:
-        size, eligible, per_lot = positions[member][target]
-        assert per_lot > 0
-        rates.append(per_lot)
-        weights.append(min(eligible, min(abs(size), lots) * per_lot))
-    def priority(member):
-        return sha256(b'Rivalt/frozen-member-order/v1\0' + bytes(venue) +
-                      (1).to_bytes(8, 'little') + member.to_bytes(8, 'little')).digest(), member
-    preferred = min(range(2), key=lambda i: priority(winners[i]))
-    ranking = []
-    physical = 0
-    bound = min(budget, sum(weights))
-    lower = max(0, bound - weights[1])
-    for total in range(bound + 1):
-        for left in range(max(0, total - weights[1]), min(total, weights[0]) + 1):
-            split = [left, total-left]
-            matched = [(charge + rate-1)//rate for charge,rate in zip(split,rates)]
-            if sum(matched) > lots:
-                continue
-            physical += 1
-            actions = [dict(market=book['market_roster'][target], charges=[
-                dict(debtor=book['roster'][debtor], winner=book['roster'][member], charge=cost)
-                for member,cost in zip(winners,split) if cost])] if total else []
-            outcome = candidate(book, actions)
-            if total == bound:
-                changed = copy.deepcopy(book)
-                for member,delta in [(debtor,total), *zip(winners,(-cost for cost in split))]:
-                    claims = changed['rows'][member]['claims']
-                    claims[target] = str(int(claims[target])+delta*SCALE)
-                ordinary = expected(changed, frozen=book, rate_passes=passes)
-            if outcome is None:
-                continue
-            recovery = sum(map(Fraction, outcome['recovery']))
-            deviation = sum(Fraction(charge**2, weight) for charge,weight in zip(split,weights)) - Fraction(total**2,sum(weights))
-            ranking.append(((-recovery,deviation,total,sum(matched),-split[preferred]), split, matched, outcome,
-                            total == bound and ordinary['rows'] != outcome['settlement']['rows']))
-    rank,split,matched,outcome,repaired = min(ranking, key=lambda item:item[0])
-    assert -rank[0] == sum(split) == bound and bound > 0
     loss = [sum(Fraction(row['loss'][m]) for row in before['rows']) for m in range(len(book['markets']))]
-    assert loss[target] >= bound
-    totals = [0]*len(loss)
-    totals[target] = bound
-    return dict(denominator=0, selected=1+split[0]-lower, numerators=[word for step in passes for word in step],
-                baselineLoss=list(map(str,loss)), cash=[int(row['cash']) for row in outcome['settlement']['rows']],
-                charges=totals, spent=list(map(int,outcome['settlement']['spent'])), repaired=repaired,
-                split=dict(market=book['market_roster'][target],members=winners,charges=split,lots=matched),
-                totalPlans=physical,protectedPlans=len(ranking))
+    def priority(i):
+        return sha256(b'Rivalt/frozen-member-order/v1\0' + bytes(venue) +
+                      (1).to_bytes(8, 'little') + i.to_bytes(8, 'little')).digest(), i
+    stable = sorted(range(len(positions)), key=priority)
+    domains = []
+    for market, debtor, winners in groups:
+        budget = int(Fraction(before['rows'][debtor]['writeoff'][market]))
+        available = abs(positions[debtor][market][0])
+        terms = [positions[w][market] for w in winners]
+        weights = [min(eligible, min(abs(size), available)*rate) for size, eligible, rate in terms]
+        bound = min(budget, sum(weights))
+        assert bound > 0 and all(weights)
+        options = []
+        for total in range(bound+1):
+            start = max(0,total-weights[1]) if len(weights)==2 else total
+            for first in range(start,min(total,weights[0])+1):
+                split = [first,total-first] if len(weights)==2 else [first]
+                lots = [(q+rate-1)//rate for q,(_,_,rate) in zip(split,terms)]
+                cost = sum(lots)
+                deviation = sum(Fraction(q*q,w) for q,w in zip(split,weights)) - Fraction(total*total,sum(weights))
+                options.append((total,split,lots,deviation,cost,cost <= available))
+        domains.append((market,debtor,winners,bound,options))
+    full = [[choice for choice in options if choice[0]==bound] for _,_,_,bound,options in domains]
+    upper_indices = {tuple(tuple(x[1]) for x in reversed(combo)):i+1 for i,combo in enumerate(product(*reversed(full)))}
+    # Independent financial ranking first. Witness ordering is a separate serialization step.
+    outcomes, witnesses, physical = [], {}, 0
+    for choices in product(*(d[4] for d in domains)):
+        if not all(choice[5] for choice in choices):
+            continue
+        physical += 1
+        actions = []
+        changed = copy.deepcopy(book)
+        amounts = {}
+        for (m,debtor,winners,_,_), (total, split, _, _, _, _) in zip(domains,choices):
+            charges = []
+            for w,q in zip(winners,split):
+                if q:
+                    charges.append(dict(debtor=book['roster'][debtor],winner=book['roster'][w],charge=q))
+                    amounts[w,m]=q
+                    original = changed['rows'][w]['claims']
+                    original[m]=str(int(original[m])-q*SCALE)
+            if charges:
+                actions.append(dict(market=book['market_roster'][m],charges=charges))
+                original=changed['rows'][debtor]['claims']
+                original[m]=str(int(original[m])+total*SCALE)
+        key=tuple(tuple(choice[1]) for choice in choices)
+        index=upper_indices.get(key)
+        ordinary=None
+        if index:
+            rate_steps=[]
+            ordinary=expected(changed,frozen=book,rate_passes=rate_steps)
+            witnesses[index]=rate_steps
+        outcome=candidate(book,actions)
+        if outcome is None:
+            continue
+        recovery=list(map(Fraction,outcome['recovery']))
+        score=(sum(recovery),tuple(sorted(r/v for r,v in zip(recovery,loss) if v)))
+        tie=tuple(amounts.get((w,m),0) for w in stable for m,_,_,_,_ in domains)
+        outcomes.append((score,tuple(x[3] for x in choices),tuple((x[0],x[4]) for x in choices),
+                         tie,index,choices,outcome,ordinary))
+    best_score=max(row[0] for row in outcomes)
+    assert best_score[0]==sum(d[3] for d in domains)
+    best=[row for row in outcomes if row[0]==best_score]
+    def dominates(a,b):
+        if a[1]!=b[1]:
+            return all(x<=y for x,y in zip(a[1],b[1]))
+        return a[2]!=b[2] and all(x<=y for x,y in zip(a[2],b[2]))
+    finalists=[row for row in best if not any(dominates(other,row) for other in best)]
+    assert len({(row[1],row[2]) for row in finalists})==1
+    _,_,_,_,index,choices,outcome,ordinary=max(finalists,key=lambda row:row[3])
+    for key in sorted(witnesses):
+        passes.extend(witnesses[key])
+    totals=[0]*len(loss)
+    splits=[]
+    for (m,_,winners,_,_), (total,split,lots,_,_,_) in zip(domains,choices):
+        totals[m]=total
+        if len(winners)==2:
+            splits.append(dict(market=book['market_roster'][m],members=winners,charges=split,lots=lots))
+    return dict(denominator=0,selected=index,numerators=[word for step in passes for word in step],
+                baselineLoss=list(map(str,loss)),cash=[int(r['cash']) for r in outcome['settlement']['rows']],
+                charges=totals,spent=list(map(int,outcome['settlement']['spent'])),
+                repaired=ordinary['rows']!=outcome['settlement']['rows'],splits=splits,
+                totalPlans=physical,protectedPlans=len(outcomes))
 
 
 def certificate(book, positions, framed=False, venue=None):
     baseline = expected(book)
     options = []
-    competition = None
+    groups = []
     for market, cells in enumerate(zip(*positions)):
         pairs = []
         for debtor, (lots, *_) in enumerate(cells):
@@ -77,14 +111,13 @@ def certificate(book, positions, framed=False, venue=None):
             for winner, (opposite, capacity, *_) in enumerate(cells):
                 if debt and lots * opposite < 0 and capacity > 0:
                     pairs.append((debtor, winner, min(capacity, debt)))
-        if len(pairs) > 1:
-            assert competition is None and len(pairs) == 2 and pairs[0][0] == pairs[1][0]
-            competition = (market, pairs[0][0], [pair[1] for pair in pairs])
-        options.append(pairs[0] if pairs else (0, 0, 0))
-
-    if competition:
-        assert venue is not None and sum(limit > 0 for _, _, limit in options) == 1
-        return competing_certificate(book, positions, *competition, venue)
+        if pairs:
+            assert len(pairs)<=2 and all(pair[0]==pairs[0][0] for pair in pairs)
+            groups.append((market,pairs[0][0],[pair[1] for pair in pairs]))
+        options.append(pairs[0] if pairs else (0,0,0))
+    if any(len(winners)>1 for _,_,winners in groups):
+        assert venue is not None
+        return competing_certificate(book,positions,groups,venue)
     vectors, ranking, framed_words = [], [], []
     for index, reverse in enumerate(product(*(range(limit + 1) for _, _, limit in reversed(options)))):
         charges = list(reversed(reverse))

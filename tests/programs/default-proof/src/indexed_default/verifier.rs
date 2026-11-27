@@ -292,13 +292,11 @@ impl<'a> Book<'a> {
         Err(ProofError::UnsupportedBook.into())
     }
 
-    fn pairs(
-        &self,
-        baseline: &Flow,
-    ) -> Result<([Pair; WIDTH], usize, Option<competition::Contest>)> {
+    fn pairs(&self, baseline: &Flow) -> Result<([Pair; WIDTH], usize, Vec<competition::Contest>)> {
         let mut pairs = [Pair::default(); WIDTH];
         let mut count = 1;
-        let mut contest = None;
+        let mut opportunities = Vec::new();
+        let mut single_only = true;
         for (m, pair) in pairs.iter_mut().enumerate().take(self.width) {
             let occupied = self.rows.iter().filter(|r| r.cells[m].lots != 0).count();
             for (d, debtor) in self.rows.iter().enumerate() {
@@ -334,31 +332,42 @@ impl<'a> Book<'a> {
                             maximum,
                             second: None,
                         };
-                    } else {
-                        require!(
-                            contest.is_none() && pair.debtor == d,
-                            ProofError::UnsupportedBook
-                        );
-                        contest = Some(competition::Contest {
+                        opportunities.push(competition::Contest {
                             market: m,
                             debtor: d,
-                            winners: [pair.winner, w],
+                            first: w,
+                            second: None,
                             budget,
                         });
+                    } else {
+                        let group = opportunities.last_mut().ok_or(ProofError::DefaultCharge)?;
+                        require!(
+                            group.market == m && group.debtor == d && group.second.is_none(),
+                            ProofError::UnsupportedBook
+                        );
+                        group.second = Some(w);
+                        single_only = false;
                     }
                 }
             }
-            if pair.maximum != 0 && !contest.as_ref().is_some_and(|c| c.market == m) {
-                require!(
-                    occupied == 2 && pair.maximum < PLANS as u64,
-                    ProofError::UnsupportedBook
-                );
+            if pair.maximum != 0
+                && opportunities
+                    .last()
+                    .is_some_and(|g| g.market == m && g.second.is_none())
+            {
+                require!(occupied == 2, ProofError::UnsupportedBook);
+            }
+        }
+        if single_only {
+            // The original one-winner proof enumerates all totals, including zero.
+            for pair in pairs.iter().take(self.width) {
+                require!(pair.maximum < PLANS as u64, ProofError::UnsupportedBook);
                 count *= pair.maximum as usize + 1;
                 require!(count <= PLANS, ProofError::UnsupportedBook);
             }
+            opportunities.clear();
         }
-        require!(contest.is_none() || count == 1, ProofError::UnsupportedBook);
-        Ok((pairs, count, contest))
+        Ok((pairs, count, opportunities))
     }
 
     fn rank(
@@ -417,7 +426,7 @@ pub(super) struct Verified {
     pub repaired: bool,
     pub charges: [u64; WIDTH],
     pub winners: [usize; WIDTH],
-    pub split: Option<(usize, WinnerSplit)>,
+    pub splits: Vec<(usize, WinnerSplit)>,
 }
 
 mod competition;
@@ -445,14 +454,13 @@ pub(super) fn verify_book(
         &[0; WIDTH],
         &mut baseline,
     )?;
-    let (mut pairs, count, contest) = book.pairs(&baseline)?;
+    let (mut pairs, count, opportunities) = book.pairs(&baseline)?;
     let selected = usize::from(proof.selected);
-    let mut charges = allocation(selected, &pairs);
-    let mut split = None;
-    let (cash, repaired, spent) = if let Some(contest) = contest {
-        let market = contest.market;
-        charges = [0; WIDTH];
-        let (terminal, result) = contest.verify(
+    let mut splits = Vec::new();
+    let mut charges = [0; WIDTH];
+    let (cash, repaired, spent) = if !opportunities.is_empty() {
+        let (terminal, result) = competition::verify(
+            &opportunities,
             &book,
             &baseline,
             &mut pairs,
@@ -462,7 +470,7 @@ pub(super) fn verify_book(
             context.ok_or(ProofError::UnsupportedBook)?,
         )?;
         let (cash, repaired) = protected_cash(rows, &baseline, &terminal, &pairs, &charges)?;
-        split = Some((market, result));
+        splits = result;
         (cash, repaired, terminal.spent)
     } else if count == 1 {
         // The complete roster has no whole-atom charge available. Only an
@@ -478,6 +486,7 @@ pub(super) fn verify_book(
             baseline.spent,
         )
     } else {
+        charges = allocation(selected, &pairs);
         let terminal = verify_reduction(
             &book,
             &baseline,
@@ -501,7 +510,7 @@ pub(super) fn verify_book(
         repaired,
         charges,
         winners: pairs.map(|p| p.winner),
-        split,
+        splits,
     })
 }
 
