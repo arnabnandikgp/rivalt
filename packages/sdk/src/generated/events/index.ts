@@ -36,6 +36,7 @@ export * from "./frozenLinkedAllocationRow.js";
 export * from "./frozenPairVerified.js";
 export * from "./fundingPublisherChanged.js";
 export * from "./fundingReportAccepted.js";
+export * from "./indexedSettlementBound.js";
 export * from "./inventoryBookVerified.js";
 export * from "./jointClaimsCopied.js";
 export * from "./ledgerLaneFilled.js";

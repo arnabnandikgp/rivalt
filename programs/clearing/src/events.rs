@@ -912,6 +912,23 @@ pub struct PagedRecoverySelectionBound {
     pub slot: u64,
 }
 
+/// Protected market-indexed settlement bound to the original frozen pages.
+#[event]
+pub struct IndexedSettlementBound {
+    pub venue: Address,
+    pub epoch: u64,
+    pub prepared: Address,
+    pub selection_ordinal: u64,
+    pub verified_plans: u64,
+    pub charge_atoms: [u64; 2],
+    pub insurance_spent: [u64; 2],
+    pub member_ids: Vec<u64>,
+    pub claim_deltas: Vec<[i64; 2]>,
+    pub movements: Vec<[i64; 2]>,
+    pub final_cash: Vec<u64>,
+    pub slot: u64,
+}
+
 /// One canonical prefix of certified claim reductions. Cash remains frozen.
 #[event]
 pub struct JointClaimsCopied {

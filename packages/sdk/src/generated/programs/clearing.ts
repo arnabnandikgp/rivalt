@@ -162,6 +162,7 @@ import {
   getBeginRecoveryProvisionInstructionAsync,
   getBeginSettlementPlanOrderInstructionAsync,
   getBeginSettlementRateProposalInstructionAsync,
+  getBindIndexedDefaultInstructionAsync,
   getBindJointPaymentInstructionAsync,
   getBindListingIndexInstructionAsync,
   getBindRecoverySelectionInstructionAsync,
@@ -287,6 +288,7 @@ import {
   parseBeginRecoveryProvisionInstruction,
   parseBeginSettlementPlanOrderInstruction,
   parseBeginSettlementRateProposalInstruction,
+  parseBindIndexedDefaultInstruction,
   parseBindJointPaymentInstruction,
   parseBindListingIndexInstruction,
   parseBindRecoverySelectionInstruction,
@@ -412,6 +414,7 @@ import {
   type BeginRecoveryProvisionAsyncInput,
   type BeginSettlementPlanOrderAsyncInput,
   type BeginSettlementRateProposalAsyncInput,
+  type BindIndexedDefaultAsyncInput,
   type BindJointPaymentAsyncInput,
   type BindListingIndexAsyncInput,
   type BindRecoverySelectionAsyncInput,
@@ -497,6 +500,7 @@ import {
   type ParsedBeginRecoveryProvisionInstruction,
   type ParsedBeginSettlementPlanOrderInstruction,
   type ParsedBeginSettlementRateProposalInstruction,
+  type ParsedBindIndexedDefaultInstruction,
   type ParsedBindJointPaymentInstruction,
   type ParsedBindListingIndexInstruction,
   type ParsedBindRecoverySelectionInstruction,
@@ -1146,6 +1150,7 @@ export enum ClearingEvent {
   FrozenPairVerified,
   FundingPublisherChanged,
   FundingReportAccepted,
+  IndexedSettlementBound,
   InventoryBookVerified,
   JointClaimsCopied,
   LedgerLaneFilled,
@@ -1508,6 +1513,17 @@ export function identifyClearingEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([57, 89, 234, 180, 204, 232, 244, 119]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingEvent.IndexedSettlementBound;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([95, 101, 202, 50, 193, 199, 200, 34]),
       ),
       0,
@@ -1771,6 +1787,7 @@ export enum ClearingInstruction {
   BeginRecoveryProvision,
   BeginSettlementPlanOrder,
   BeginSettlementRateProposal,
+  BindIndexedDefault,
   BindJointPayment,
   BindListingIndex,
   BindRecoverySelection,
@@ -2091,6 +2108,17 @@ export function identifyClearingInstruction(
     )
   ) {
     return ClearingInstruction.BeginSettlementRateProposal;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([246, 190, 204, 1, 93, 188, 180, 243]),
+      ),
+      0,
+    )
+  ) {
+    return ClearingInstruction.BindIndexedDefault;
   }
   if (
     containsBytes(
@@ -3325,6 +3353,9 @@ export type ParsedClearingInstruction<
       instructionType: ClearingInstruction.BeginSettlementRateProposal;
     } & ParsedBeginSettlementRateProposalInstruction<TProgram>)
   | ({
+      instructionType: ClearingInstruction.BindIndexedDefault;
+    } & ParsedBindIndexedDefaultInstruction<TProgram>)
+  | ({
       instructionType: ClearingInstruction.BindJointPayment;
     } & ParsedBindJointPaymentInstruction<TProgram>)
   | ({
@@ -3779,6 +3810,13 @@ export function parseClearingInstruction<TProgram extends string>(
       return {
         instructionType: ClearingInstruction.BeginSettlementRateProposal,
         ...parseBeginSettlementRateProposalInstruction(instruction),
+      };
+    }
+    case ClearingInstruction.BindIndexedDefault: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: ClearingInstruction.BindIndexedDefault,
+        ...parseBindIndexedDefaultInstruction(instruction),
       };
     }
     case ClearingInstruction.BindJointPayment: {
@@ -4709,6 +4747,11 @@ export type ClearingPluginInstructions = {
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getBeginSettlementRateProposalInstructionAsync> &
     SelfPlanAndSendFunctions;
+  bindIndexedDefault: (
+    input: BindIndexedDefaultAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getBindIndexedDefaultInstructionAsync> &
+    SelfPlanAndSendFunctions;
   bindJointPayment: (
     input: BindJointPaymentAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -5539,6 +5582,14 @@ export function clearingProgram(
             addSelfPlanAndSendFunctions(
               client,
               getBeginSettlementRateProposalInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          bindIndexedDefault: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getBindIndexedDefaultInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

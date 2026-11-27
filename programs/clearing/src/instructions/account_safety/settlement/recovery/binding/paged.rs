@@ -13,6 +13,67 @@ struct PagePrefix {
     row_count: u8,
 }
 
+fn page_rows(
+    header: &PreparedSettlement,
+    index: usize,
+    address: Address,
+    bytes: &[u8],
+) -> Result<usize> {
+    let total = usize::try_from(header.count).map_err(|_| ClearingError::Resolution)?;
+    require!(index < total.div_ceil(8), ClearingError::Resolution);
+    let prefix_end = 8 + PagePrefix::INIT_SPACE;
+    require!(
+        bytes.len() == 8 + FrozenMarginPage::INIT_SPACE
+            && bytes[..8] == *FrozenMarginPage::DISCRIMINATOR,
+        ClearingError::Resolution
+    );
+    let prefix: PagePrefix = crate::wire::read(&bytes[8..prefix_end])?;
+    let start = index * 8;
+    let count = (total - start).min(8);
+    require!(
+        prefix.schema_version == SCHEMA_VERSION
+            && prefix.venue == header.venue
+            && prefix.epoch == header.epoch
+            && prefix.page_index == index as u64
+            && usize::from(prefix.row_count) == count,
+        ClearingError::Resolution
+    );
+    let expected = create_program_address(
+        &[
+            b"frozen-margin-page",
+            header.venue.as_ref(),
+            &prefix.page_index.to_le_bytes(),
+            &[bytes[bytes.len() - 1]],
+        ],
+        &crate::ID,
+    )
+    .map_err(|_| ClearingError::Resolution)?;
+    require_keys_eq!(address, expected, ClearingError::Resolution);
+    Ok(count)
+}
+
+#[cfg(feature = "venue-default-application")]
+pub(super) fn read(
+    header: &PreparedSettlement,
+    pages: &[AccountView],
+) -> Result<Vec<FrozenMargin>> {
+    require!(
+        pages.len() as u64 == header.count.div_ceil(8),
+        ClearingError::Resolution
+    );
+    let mut rows = Vec::with_capacity(header.count as usize);
+    for (index, page) in pages.iter().enumerate() {
+        let bytes = page.try_borrow()?;
+        let count = page_rows(header, index, *page.address(), &bytes)?;
+        for local in 0..count {
+            let start = 8 + PagePrefix::INIT_SPACE + local * FrozenMargin::INIT_SPACE;
+            rows.push(crate::wire::read(
+                &bytes[start..start + FrozenMargin::INIT_SPACE],
+            )?);
+        }
+    }
+    Ok(rows)
+}
 pub(super) fn store(
     header: &PreparedSettlement,
     captured: &[SearchMember],
@@ -30,34 +91,9 @@ pub(super) fn store(
         // writable remaining account. Recheck the full page identity and size here.
         let address = *page.address();
         let mut bytes = page.try_borrow_mut()?;
+        let count = page_rows(header, index, address, &bytes)?;
         let prefix_end = 8 + PagePrefix::INIT_SPACE;
-        require!(
-            bytes.len() == 8 + FrozenMarginPage::INIT_SPACE
-                && bytes[..8] == *FrozenMarginPage::DISCRIMINATOR,
-            ClearingError::Resolution
-        );
-        let prefix: PagePrefix = crate::wire::read(&bytes[8..prefix_end])?;
         let start = index * 8;
-        let count = (members.len() - start).min(8);
-        require!(
-            prefix.schema_version == SCHEMA_VERSION
-                && prefix.venue == header.venue
-                && prefix.epoch == header.epoch
-                && prefix.page_index == index as u64
-                && usize::from(prefix.row_count) == count,
-            ClearingError::Resolution
-        );
-        let expected = create_program_address(
-            &[
-                b"frozen-margin-page",
-                header.venue.as_ref(),
-                &prefix.page_index.to_le_bytes(),
-                &[bytes[bytes.len() - 1]],
-            ],
-            &crate::ID,
-        )
-        .map_err(|_| ClearingError::Resolution)?;
-        require_keys_eq!(address, expected, ClearingError::Resolution);
         for local in 0..count {
             let offset = prefix_end + local * FrozenMargin::INIT_SPACE;
             let data = &mut bytes[offset..offset + FrozenMargin::INIT_SPACE];

@@ -25,6 +25,7 @@ export * from "./approveLiquidity.js";
 export * from "./beginRecoveryProvision.js";
 export * from "./beginSettlementPlanOrder.js";
 export * from "./beginSettlementRateProposal.js";
+export * from "./bindIndexedDefault.js";
 export * from "./bindJointPayment.js";
 export * from "./bindListingIndex.js";
 export * from "./bindRecoverySelection.js";

@@ -1,4 +1,6 @@
 //! Only clearing-owned, completely verified results can advance this local profile.
+#[cfg(feature="venue-default-application")]
+pub mod indexed;
 use super::super::{single_pair, BindRecoverySelection, DENOMINATOR, PROPOSAL};
 use super::*;
 use crate::state::accounts::FrozenMargin;

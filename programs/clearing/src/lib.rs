@@ -1060,6 +1060,14 @@ pub mod clearing {
         )
     }
     /// Read-only complete-book verification before any change to custody or frozen balances.
+    pub fn bind_indexed_default(ctx:&mut Context<VerifyInventoryBook>, epoch:u64, revision:u64, selected:u8,
+        denominator:u32, rates:Vec<u32>) -> Result<()> {
+        #[cfg(feature="venue-default-application")]
+        { scoped_history::run_frozen_pages(ctx,[246, 190, 204, 1, 93, 188, 180, 243],|ctx,events|
+            account_safety::settlement::recovery::binding::indexed::bind(ctx,events,epoch,revision,selected,denominator,rates)) }
+        #[cfg(not(feature="venue-default-application"))]
+        { let _=(ctx,epoch,revision,selected,denominator,rates); Err(ClearingError::Profile.into()) }
+    }
     pub fn verify_indexed_default(ctx:&mut Context<PreparedSourceIdentity>, epoch:u64, selected:u8,
         denominator:u32, rates:Vec<u32>) -> Result<Vec<u64>> {
         #[cfg(feature="venue-default-verifier")]

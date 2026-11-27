@@ -1,3 +1,4 @@
+import {INDEXED_APPLICATION_ARTIFACT_SET} from '@rivalt/sdk';
 /** Financial effects of the authenticated paged settlement, separate from its
  * readonly arithmetic scratch. IDs stay decimal strings on this boundary. */
 import {address} from '@solana/kit';
@@ -45,10 +46,14 @@ export function projectSettlement(state:AccountState,event:AccountEvent,root:(va
     }
     return;
   }
-  if(event.type==='RecoverySelectionBound'||event.type==='PagedRecoverySelectionBound') {
+  if(event.type==='IndexedSettlementBound'||event.type==='RecoverySelectionBound'||event.type==='PagedRecoverySelectionBound') {
+    const indexed=event.type==='IndexedSettlementBound';
+    if(indexed) accountCheck(artifactSet===INDEXED_APPLICATION_ARTIFACT_SET,'indexed settlement deployment');
     accountCheck(hasJointRecovery(artifactSet) && current.stage===2 && !current.boundRecovery,'unique sealed recovery');
-    const {search,schedule,schedulesChecked,chargeAtoms,insuranceSpent,memberIds,claimDeltas,movements,finalCash}=change;
-    eq(event.type==='PagedRecoverySelectionBound',hasPagedRecovery(artifactSet),'recovery artifact');
+    const {chargeAtoms,insuranceSpent,memberIds,claimDeltas,movements,finalCash}=change;
+    const search=indexed?change.prepared:change.search, schedule=indexed?change.selectionOrdinal:change.schedule,
+      schedulesChecked=indexed?change.verifiedPlans:change.schedulesChecked;
+    if(!indexed) eq(event.type==='PagedRecoverySelectionBound',hasPagedRecovery(artifactSet),'recovery artifact');
     if(event.type==='RecoverySelectionBound')eq(current.count,'8','complete eight-member recovery');
     eq(String(memberIds.length),current.count,'complete recovery membership');
     for(const values of [claimDeltas,movements,finalCash])eq(values.length,memberIds.length,'complete payout rows');

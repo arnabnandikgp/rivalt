@@ -4974,6 +4974,379 @@
       ]
     },
     {
+      "name": "bind_indexed_default",
+      "docs": [
+        "Read-only complete-book verification before any change to custody or frozen balances."
+      ],
+      "discriminator": [
+        246,
+        190,
+        204,
+        1,
+        93,
+        188,
+        180,
+        243
+      ],
+      "accounts": [
+        {
+          "name": "venue",
+          "relations": [
+            "custody",
+            "safety",
+            "registry",
+            "storage",
+            "resolution",
+            "btc",
+            "eth",
+            "btc_ledger",
+            "eth_ledger"
+          ]
+        },
+        {
+          "name": "custody",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "storage",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  111,
+                  118,
+                  101,
+                  114,
+                  121,
+                  45,
+                  115,
+                  116,
+                  111,
+                  114,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resolution",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "btc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth_ledger",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  101,
+                  100,
+                  103,
+                  101,
+                  114,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "eth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "prepared",
+          "writable": true
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "epoch",
+          "type": "u64"
+        },
+        {
+          "name": "revision",
+          "type": "u64"
+        },
+        {
+          "name": "selected",
+          "type": "u8"
+        },
+        {
+          "name": "denominator",
+          "type": "u32"
+        },
+        {
+          "name": "rates",
+          "type": {
+            "vec": "u32"
+          }
+        }
+      ]
+    },
+    {
       "name": "bind_joint_payment",
       "discriminator": [
         83,
@@ -26217,9 +26590,6 @@
     },
     {
       "name": "verify_indexed_default",
-      "docs": [
-        "Read-only complete-book verification before any change to custody or frozen balances."
-      ],
       "discriminator": [
         146,
         128,
@@ -29056,6 +29426,19 @@
         70,
         145,
         222
+      ]
+    },
+    {
+      "name": "IndexedSettlementBound",
+      "discriminator": [
+        57,
+        89,
+        234,
+        180,
+        204,
+        232,
+        244,
+        119
       ]
     },
     {
@@ -32282,6 +32665,93 @@
                 "name": "MarketSnapshot"
               }
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "IndexedSettlementBound",
+      "docs": [
+        "Protected market-indexed settlement bound to the original frozen pages."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "prepared",
+            "type": "pubkey"
+          },
+          {
+            "name": "selection_ordinal",
+            "type": "u64"
+          },
+          {
+            "name": "verified_plans",
+            "type": "u64"
+          },
+          {
+            "name": "charge_atoms",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "insurance_spent",
+            "type": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          },
+          {
+            "name": "member_ids",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "claim_deltas",
+            "type": {
+              "vec": {
+                "array": [
+                  "i64",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "movements",
+            "type": {
+              "vec": {
+                "array": [
+                  "i64",
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "name": "final_cash",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "slot",
+            "type": "u64"
           }
         ]
       }

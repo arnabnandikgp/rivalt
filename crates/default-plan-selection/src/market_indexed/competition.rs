@@ -263,7 +263,7 @@ pub(super) fn verify(
     proof: &RatesProof,
     words: &mut &[u32],
     episode: Episode,
-) -> Result<(Flow, Vec<(usize, WinnerSplit)>)> {
+) -> Result<(Flow, Vec<(usize, WinnerSplit)>, usize, usize)> {
     let mut dimensions = Vec::with_capacity(contests.len());
     let mut count = 1;
     for contest in contests {
@@ -279,6 +279,8 @@ pub(super) fn verify(
     require!(selected < count, Error::DefaultCharge);
     let mut scratch = Flow::empty(book.rows.len());
     let mut terminal = Flow::empty(book.rows.len());
+    let mut checked_plans = 1; // Includes the baseline.
+    let mut selected_ordinal = 0;
     let mut contenders = Vec::with_capacity(count);
     let mut witnesses = vec![&[][..]; count];
     for index in 0..count {
@@ -289,6 +291,10 @@ pub(super) fn verify(
             continue;
         }
         set_splits(&dimensions, pairs, index);
+        if index == selected {
+            selected_ordinal = checked_plans;
+        }
+        checked_plans += 1;
         let input = *words;
         book.read_plan(words, proof.denominator, pairs, charges, &mut scratch)?;
         let reaches_bound = dimensions.iter().all(|dimension| {
@@ -405,7 +411,7 @@ pub(super) fn verify(
             ));
         }
     }
-    Ok((terminal, receipts))
+    Ok((terminal, receipts, selected_ordinal, checked_plans))
 }
 
 #[cfg(test)]

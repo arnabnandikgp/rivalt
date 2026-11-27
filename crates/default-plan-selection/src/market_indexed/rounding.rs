@@ -1,7 +1,7 @@
 use super::*;
 use financial_core::clearing::atom_rounding::AtomNetwork;
 
-struct Rounded {
+pub(super) struct Rounded {
     pub cash: Vec<u64>,
     pub payments: Vec<Columns>,
 }
@@ -57,38 +57,44 @@ fn rounded(rows: &[Member], flow: &Flow, floors: Option<&[Columns]>) -> Result<R
     Ok(result)
 }
 
-fn integral_cash(flow: &Flow, count: usize, width: usize) -> Option<Vec<u64>> {
+fn integral(flow: &Flow, count: usize, width: usize) -> Option<Rounded> {
     let cash = &flow.cash[..count];
-    if cash.iter().all(|v| v % flow.unit == 0)
-        && flow
+    if !cash.iter().all(|v| v % flow.unit == 0)
+        || !flow
             .payments
             .iter()
-            .all(|r| r[..width].iter().all(|v| v % flow.unit == 0))
+            .all(|row| row[..width].iter().all(|v| v % flow.unit == 0))
     {
-        return Some(cash.iter().map(|v| v / flow.unit).collect());
+        return None;
     }
-    None
+    Some(Rounded {
+        cash: cash.iter().map(|v| v / flow.unit).collect(),
+        payments: flow
+            .payments
+            .iter()
+            .map(|row| row.map(|v| v / flow.unit))
+            .collect(),
+    })
 }
 
-pub(super) fn baseline_cash(rows: &[Member], baseline: &Flow) -> Result<Vec<u64>> {
-    if let Some(cash) = integral_cash(baseline, rows.len(), rows[0].cells.len()) {
-        return Ok(cash);
+pub(super) fn baseline_cash(rows: &[Member], baseline: &Flow) -> Result<Rounded> {
+    if let Some(result) = integral(baseline, rows.len(), rows[0].cells.len()) {
+        return Ok(result);
     }
-    Ok(rounded(rows, baseline, None)?.cash)
+    rounded(rows, baseline, None)
 }
-
 pub(super) fn protected_cash(
     rows: &[Member],
     baseline: &Flow,
     terminal: &Flow,
     pairs: &[Pair],
     charges: &Columns,
-) -> Result<(Vec<u64>, bool)> {
+) -> Result<(Rounded, bool)> {
     let width = rows[0].cells.len();
     // A whole winning receipt that passes exact protection already covers the
     // ceiling of the protected baseline less its whole direct charge. There is
     // only one rounding when all market movements and cash are already integral.
-    if let Some(cash) = integral_cash(terminal, rows.len(), width) {
+    if let Some(cash) = integral(terminal, rows.len(), width) {
         return Ok((cash, false));
     }
     let base = rounded(rows, baseline, None)?;
@@ -110,5 +116,5 @@ pub(super) fn protected_cash(
     if repaired {
         result = rounded(rows, terminal, Some(&floors))?;
     }
-    Ok((result.cash, repaired))
+    Ok((result, repaired))
 }

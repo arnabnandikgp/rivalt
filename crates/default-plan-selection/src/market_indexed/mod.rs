@@ -470,7 +470,16 @@ fn allocation(mut index: usize, pairs: &[Pair]) -> Columns {
     charges
 }
 
+pub struct Posting {
+    /// Signed whole-atom change of claims from forced reductions.
+    pub claim_delta: [i64; WIDTH],
+    /// Actual whole-atom cash transfers, positive when this account receives.
+    pub movement: [i64; WIDTH],
+}
 pub struct Verified {
+    pub postings: Vec<Posting>,
+    pub checked_plans: usize,
+    pub selected_ordinal: usize,
     pub cash: Vec<u64>,
     pub spent: Columns,
     pub repaired: bool,
@@ -500,8 +509,8 @@ pub fn verify_book(
         require!(
             episode.ordinal > 0
                 && episode.member_ids.len() == rows.len()
-                && episode.market_ids.len()==pools.len()
-                && episode.market_ids.windows(2).all(|ids|ids[0]<ids[1])
+                && episode.market_ids.len() == pools.len()
+                && episode.market_ids.windows(2).all(|ids| ids[0] < ids[1])
                 && episode.member_ids.windows(2).all(|ids| ids[0] < ids[1]),
             Error::DefaultRoster
         );
@@ -519,8 +528,10 @@ pub fn verify_book(
     let selected = usize::from(proof.selected);
     let mut splits = Vec::new();
     let mut charges = [0; WIDTH];
-    let (cash, repaired, spent) = if !opportunities.is_empty() {
-        let (terminal, result) = competition::verify(
+    let mut checked_plans = count;
+    let mut selected_ordinal = selected;
+    let (payout, repaired, spent) = if !opportunities.is_empty() {
+        let (terminal, result, ordinal, examined) = competition::verify(
             &opportunities,
             &book,
             &baseline,
@@ -532,6 +543,8 @@ pub fn verify_book(
         )?;
         let (cash, repaired) = protected_cash(rows, &baseline, &terminal, &pairs, &charges)?;
         splits = result;
+        checked_plans = examined;
+        selected_ordinal = ordinal;
         (cash, repaired, terminal.spent)
     } else if count == 1 {
         // The complete roster has no whole-atom charge available. Only an
@@ -560,15 +573,51 @@ pub fn verify_book(
         let (cash, repaired) = protected_cash(rows, &baseline, &terminal, &pairs, &charges)?;
         (cash, repaired, terminal.spent)
     };
-    require!(
-        cash.iter().sum::<u64>()
-            == rows.iter().map(|r| u64::from(r.cash)).sum::<u64>()
-                + spent.iter().sum::<u64>()
-                + pools.iter().sum::<u64>(),
-        Error::UnsupportedBook
-    );
+    let mut market_movements = [0i128; WIDTH];
+    let mut net_delta = [0i128; WIDTH];
+    let mut postings = Vec::with_capacity(rows.len());
+    for (index, row) in rows.iter().enumerate() {
+        let mut posting = Posting {
+            claim_delta: [0; WIDTH],
+            movement: [0; WIDTH],
+        };
+        let mut final_cash = i128::from(row.cash);
+        for (market, cell) in row.cells.iter().enumerate() {
+            let pair = pairs[market];
+            let charge = charges[market];
+            let debtor_relief = if pair.debtor == index { charge } else { 0 };
+            let delta = i128::from(debtor_relief) - i128::from(pair.charge_of(index, charge));
+            let effective = i128::from(cell.claim) + delta;
+            let paid = i128::from(payout.payments[index][market]);
+            require!(paid <= effective.abs(), Error::UnsupportedBook);
+            let movement = effective.signum() * paid;
+            posting.claim_delta[market] =
+                i64::try_from(delta).map_err(|_| Error::UnsupportedBook)?;
+            posting.movement[market] =
+                i64::try_from(movement).map_err(|_| Error::UnsupportedBook)?;
+            final_cash += movement;
+            market_movements[market] += movement;
+            net_delta[market] += delta;
+        }
+        require!(
+            final_cash == i128::from(payout.cash[index]),
+            Error::UnsupportedBook
+        );
+        postings.push(posting);
+    }
+    for market in 0..book.width {
+        require!(
+            net_delta[market] == 0
+                && market_movements[market]
+                    == i128::from(pools[market]) + i128::from(spent[market]),
+            Error::UnsupportedBook
+        );
+    }
     Ok(Verified {
-        cash,
+        cash: payout.cash,
+        postings,
+        checked_plans,
+        selected_ordinal,
         spent,
         repaired,
         charges,
@@ -662,7 +711,7 @@ mod tests {
             venue: &[7; 32],
             ordinal: 3,
             member_ids: &[2, 91, 1024],
-            market_ids:&[0,1],
+            market_ids: &[0, 1],
             capacities: &capacities,
         };
         let proof = RatesProof {
