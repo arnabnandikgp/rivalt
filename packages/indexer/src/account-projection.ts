@@ -115,7 +115,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       const previous=liquidity.publishers[change.configuration];
       state.listedFunding??={};
       const prior=state.listedFunding[change.funding];
-      accountCheck(artifactSet===sdk.LISTED_FUNDING_ARTIFACT_SET && listing.status===1 && configuration.schemaVersion===10
+      accountCheck(sdk.hasListedFunding(artifactSet) && listing.status===1 && configuration.schemaVersion===10
         && configuration.venue===venue && configuration.market===change.listing && configuration.revision===(previous?.revision??'0')
         && Object.values(liquidity.registries).some(value=>value.market===change.listing && value.sealed)
         && !!previous===!!prior && values.fundingIndexScaled==='0' && values.oracle.coveredSeconds==='0','inactive listed funding state');

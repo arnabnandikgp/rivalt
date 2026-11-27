@@ -16,6 +16,7 @@ import type {ExpectedInstructionError} from './instruction-errors.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {initializeFixtureFeed} from './oracle-fixture.js';
+import {qualifyListedMargin} from './listed-margin.js';
 import {qualifyListedFunding} from './listed-funding.js';
 import {qualifyListedDirectory} from './listed-maker-directory.js';
 import {qualifyListedMaker} from './listed-maker-admission.js';
@@ -28,7 +29,7 @@ const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(
   process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,payerFor:label=>label.startsWith('SOL sample ')?observer:undefined});
 try {
   const payer=await payerKey(),{h,members,lanes}=coverageProvisioning(transport,payer);
-  const testFunding=build.artifactSet===sdk.LISTED_FUNDING_ARTIFACT_SET;
+  const testFunding=sdk.hasListedFunding(build.artifactSet);
   const sealDirectory=sdk.hasListedDirectory(build.artifactSet);
   const setup=await liquidityExecutionSetup(h,rpc,{traderCount:1,recoveryCapacity:sealDirectory?10:build.artifactSet===sdk.LISTED_MAKER_ARTIFACT_SET?8:7,marketCheckpoints:true,
     marginLayout:'ledger-lanes',shape:symmetricPayoutShape,verifyRejections:false});
@@ -92,6 +93,8 @@ try {
   await reject('refuse listing PDA as routed market',await withCheckpoints(substitution),[owner],'InvalidAccountData');
   await h.send('fill one BTC lot after listing',await withCheckpoints(fill),[owner]);
   assert.equal((await root(trader)).positions[0].lots,1n);
+  const wider=build.artifactSet===sdk.LISTED_MARGIN_ARTIFACT_SET && sealed
+    ? await qualifyListedMargin(h,setup,members,sealed.capitals) : undefined;
   await flush();
   const accepted=checks.find(row=>row.label==='register inactive SOL market')!;
   const receipt=await rpc.call('getTransaction',[accepted.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
@@ -162,7 +165,11 @@ try {
     assert.equal(replay.state.listedFunding?.[published.funding]?.values.oracle.bid,'5960000');
     assert.equal(replay.state.liquidity?.publishers[published.configuration].lastSequence,'3');
   }
-  const result={published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
+  if(wider) {
+    assert.equal(replay.state.roots[trader].cash,wider.minimumCash.toString());
+    assert.deepEqual(replay.state.roots[trader].positions.map(position=>position.lots),['1','-10']);
+  }
+  const result={wider,published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
     bytes:(await h.read(indexProbe.listingIndex))!.length,receipts:checks.filter(row=>!row.error &&
       (row.label==='bind SOL index'||String(row.label).startsWith('SOL sample ')))}:undefined,program:build.revision,harness:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     transactions:checks.length,events:replay.events,registration:accepted,listingBytes:(await h.read(listing))!.length,

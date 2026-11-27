@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {verifyTestBuild} from './backing-artifacts.js';
-import {LISTED_FUNDING_ARTIFACT_SET,LISTED_DIRECTORY_ARTIFACT_SET,INDEXED_DEFAULT_ARTIFACT_SET,LISTED_MAKER_ARTIFACT_SET,LISTING_INDEX_ARTIFACT_SET,INACTIVE_LISTING_ARTIFACT_SET,INDEXED_WITHDRAWAL_ARTIFACT_SET,GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
+import {LISTED_MARGIN_ARTIFACT_SET,LISTED_FUNDING_ARTIFACT_SET,LISTED_DIRECTORY_ARTIFACT_SET,INDEXED_DEFAULT_ARTIFACT_SET,LISTED_MAKER_ARTIFACT_SET,LISTING_INDEX_ARTIFACT_SET,INACTIVE_LISTING_ARTIFACT_SET,INDEXED_WITHDRAWAL_ARTIFACT_SET,GROUPED_CREDIT_ARTIFACT_SET,STREAMED_CREDIT_ARTIFACT_SET,THOUSAND_MEMBER_CREDIT_ARTIFACT_SET,accountDeployment,FUNDED_MULTI_ARTIFACT_SET,PRICE_LIMITED_MULTI_ARTIFACT_SET,MULTI_ROUTING_ARTIFACT_SET,WIDE_DIRECTORY_ARTIFACT_SET,WIDE_ROUTING_ARTIFACT_SET} from '@rivalt/sdk';
 
 export function multiDeploymentFor(artifactSet: string) {
   if (artifactSet === PRICE_LIMITED_MULTI_ARTIFACT_SET) return 'price-limited-multi-maker';
@@ -21,17 +21,30 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
   directory = process.env.RIVALT_SETTLEMENT_ARTIFACT_DIR!) {
   const revision = process.env.RIVALT_ROUTER_REVISION!;
   const probe = process.env.RIVALT_SETTLEMENT_PROBE;
-  if(probe==='execution-router-listed-funding'||probe==='execution-router-listed-directory') {
-    const funding=probe==='execution-router-listed-funding';
-    const artifactSet=funding?LISTED_FUNDING_ARTIFACT_SET:LISTED_DIRECTORY_ARTIFACT_SET;
-    assert.equal(revision,funding?'b609e3e860ed80f733ce862b33059bba9156102e':'a3a2c3cb6864a21a3225c82a788b0a00db3e467d');
+  const listedBuilds = {
+    'execution-router-listed-directory': {
+      artifactSet: LISTED_DIRECTORY_ARTIFACT_SET, revision: 'a3a2c3cb6864a21a3225c82a788b0a00db3e467d',
+      clearing: {bytes:4275120,sha256:'d144f260856f843b8c7a6a6f660701cbaf733c38789fbd2e3919ee8c338745b7'},
+    },
+    'execution-router-listed-funding': {
+      artifactSet: LISTED_FUNDING_ARTIFACT_SET, revision: 'b609e3e860ed80f733ce862b33059bba9156102e',
+      clearing: {bytes:4344424,sha256:'df0290217b04dc5b944f5bacdbf2d82188a085eabf3e2af561ddde709f904809'},
+    },
+    'execution-router-listed-margin': {
+      artifactSet: LISTED_MARGIN_ARTIFACT_SET, revision: '0d8b70e0e45acf00f88509c08c74ff7c0252b4bd',
+      clearing: {bytes:4348408,sha256:'368d940e74ff4cc9936e5f1d3cc495e03df17651acbe0daccdf2c5462f4fb323'},
+    },
+  };
+  if(probe && Object.hasOwn(listedBuilds,probe)) {
+    const build=listedBuilds[probe as keyof typeof listedBuilds];
+    assert.equal(revision,build.revision);
     const artifacts={
-      'clearing':funding?{bytes:4344424,sha256:'df0290217b04dc5b944f5bacdbf2d82188a085eabf3e2af561ddde709f904809'}:{bytes:4275120,sha256:'d144f260856f843b8c7a6a6f660701cbaf733c38789fbd2e3919ee8c338745b7'},
+      clearing:build.clearing,
       'maker-a':{bytes:187208,sha256:'1c8d021a8dc0947606f96ac18d1a2a61b0c2185ec9f862c097d52a3bce302e62'},
       'maker-b':{bytes:187208,sha256:'65412a25adb9e98bd793878ba016648026529169c36c028a51bab592c1e824e8'}
     };
-    verifyTestBuild(directory,revision,artifacts,artifactSet);
-    return {revision,artifacts,artifactSet};
+    verifyTestBuild(directory,revision,artifacts,build.artifactSet);
+    return {revision,artifacts,artifactSet:build.artifactSet};
   }
   if(probe==='execution-router-venue-application') {
     const deployment=accountDeployment('venue-default-application');

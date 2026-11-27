@@ -137,3 +137,26 @@ it('decodes opposite conservative endpoints from each fixed-width market record'
   expect(()=>sdk.decodeProfitAttribution(margin())).toThrow(/Invalid bounded entry/);
   expect(()=>sdk.decodeProfitAttribution(margin().subarray(0,-1))).toThrow();
 });
+
+it('decodes a fractional listed-market debt and refuses a two-market view of it',async()=>{
+  const {root}=await fixture();
+  Object.assign(root,{mode:0,role:0,isolatedMarketIndex:255});
+  const prefix=Buffer.concat([Buffer.from(sdk.getMarginAccountEncoder().encode(root)),Buffer.from('RVPROF03'),Buffer.alloc(80)]);
+  const directory=Buffer.alloc(18+6*98);
+  directory.write('RVMKTS01');
+  const bytes=()=>Buffer.concat([prefix,directory]);
+  expect(sdk.decodeListedMargin(bytes()).capacity).toBe(6);
+  expect(sdk.decodeProfitAttribution(bytes()).root.cash).toBe(root.cash);
+  directory.writeBigUInt64LE(3n,8);
+  directory.writeUInt16LE(1,16);
+  directory.writeUInt16LE(65535,18);
+  directory.writeBigUInt64LE(3n,20);
+  directory.fill(255,36,52); // -1 scaled atom
+  expect(sdk.decodeListedMargin(bytes()).records[0]).toMatchObject({market:65535,incarnation:3n,lots:0n,virtualScaled:-1n});
+  expect(()=>sdk.decodeProfitAttribution(bytes())).toThrow(/two-market reader/);
+  directory.writeUInt16LE(1,18);
+  expect(()=>sdk.decodeListedMargin(bytes())).toThrow();
+  directory.writeUInt16LE(258,18);
+  directory[directory.length-1]=1;
+  expect(()=>sdk.decodeListedMargin(bytes())).toThrow();
+});

@@ -40,7 +40,9 @@ export const DIRECT_CREDIT_ARTIFACT_SET='direct-closed-credit-984f18f3';
 // Distinct lane allocations on fresh local qualification banks.
 export const THOUSAND_MEMBER_CREDIT_ARTIFACT_SET='thousand-member-credit-213d394d';
 export const LISTED_FUNDING_ARTIFACT_SET='listed-funding';
-export const hasListedDirectory=(set?:string)=>set===LISTED_DIRECTORY_ARTIFACT_SET||set===LISTED_FUNDING_ARTIFACT_SET;
+export const LISTED_MARGIN_ARTIFACT_SET='listed-margin-storage';
+export const hasListedFunding=(set?:string)=>set===LISTED_FUNDING_ARTIFACT_SET||set===LISTED_MARGIN_ARTIFACT_SET;
+export const hasListedDirectory=(set?:string)=>set===LISTED_DIRECTORY_ARTIFACT_SET||hasListedFunding(set);
 export const LISTED_DIRECTORY_ARTIFACT_SET='listed-market-directory';
 export const INDEXED_APPLICATION_ARTIFACT_SET='venue-default-application';
 export const INDEXED_DEFAULT_ARTIFACT_SET='venue-default-verifier';
