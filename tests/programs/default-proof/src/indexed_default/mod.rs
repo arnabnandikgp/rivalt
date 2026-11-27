@@ -284,6 +284,7 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
             venue: domain.address().as_array(),
             ordinal: 1,
             member_ids: &membership,
+            market_ids: ids,
             capacities: &capacities,
         }),
     )
@@ -313,7 +314,7 @@ pub fn settle(ctx: &mut Context<SettleIndexed>, digest: [u8; 32], proof: RatesPr
     {
         if let Some((_, split)) = plan.splits.iter().find(|(index, _)| *index == m) {
             domain.matched[m] = split.lots.iter().sum();
-            let market=domain.ids[m];
+            let market = domain.ids[m];
             domain.splits.push(WinnerSplit {
                 market,
                 members: split.members,
@@ -362,7 +363,18 @@ pub struct InspectIndexed {
     pub caller: Signer,
 }
 pub fn inspect(width: u8, input: Vec<ProbeMember>, proof: RatesProof) -> Result<Vec<u64>> {
-    let rows = input
+    let rows = probe_rows(input);
+    require!(usize::from(width) <= WIDTH, ProofError::UnsupportedBook);
+    let zeros = &[0; WIDTH][..usize::from(width)];
+    Ok(
+        verifier::verify_book(&rows, zeros, zeros, &proof.domain(), None)
+            .map_err(verification)?
+            .cash,
+    )
+}
+
+fn probe_rows(input: Vec<ProbeMember>) -> Vec<Member> {
+    input
         .into_iter()
         .map(|row| Member {
             cash: row.cash,
@@ -376,12 +388,53 @@ pub fn inspect(width: u8, input: Vec<ProbeMember>, proof: RatesProof) -> Result<
                 })
                 .collect(),
         })
-        .collect::<Vec<_>>();
-    require!(usize::from(width) <= WIDTH, ProofError::UnsupportedBook);
-    let zeros = &[0; WIDTH][..usize::from(width)];
-    Ok(
-        verifier::verify_book(&rows, zeros, zeros, &proof.domain(), None)
-            .map_err(verification)?
-            .cash,
+        .collect()
+}
+
+/// Read-only resource probe. Every economic input here is synthetic. The
+/// trade-derived settlement entrypoint independently reads custody-owned roots.
+pub fn inspect_priority(
+    ids: Vec<u16>,
+    reserves: Vec<u64>,
+    episode: u64,
+    input: Vec<ProbeMember>,
+    proof: RatesProof,
+) -> Result<Vec<u64>> {
+    let rows = probe_rows(input);
+    require!(
+        ids.len() <= WIDTH && rows.len() <= MEMBERS,
+        ProofError::UnsupportedBook
+    );
+    let members: Vec<_> = (0..rows.len() as u64).collect();
+    let mut capacities = Vec::new();
+    for (member, row) in rows.iter().enumerate() {
+        for (market, cell) in row.cells.iter().enumerate().filter(|(_, c)| c.eligible > 0) {
+            require!(
+                cell.lots == 1 && cell.eligible < 100,
+                ProofError::UnsupportedBook
+            );
+            let entry = 100 - u64::from(cell.eligible);
+            let basis = checked(
+                clearing_accounting::attribution::Attribution::default().fill(0, 1, entry),
+            )?;
+            let capacity =
+                checked(basis.frozen_capacity(1, 100, i128::from(cell.claim) * SCALE, 1))?;
+            capacities.push((member, market, capacity));
+        }
+    }
+    let outcome = verifier::verify_book(
+        &rows,
+        &[0; WIDTH][..ids.len()],
+        &reserves,
+        &proof.domain(),
+        Some(verifier::Episode {
+            venue: &[0; 32],
+            ordinal: episode,
+            member_ids: &members,
+            market_ids: &ids,
+            capacities: &capacities,
+        }),
     )
+    .map_err(verification)?;
+    Ok(outcome.cash)
 }

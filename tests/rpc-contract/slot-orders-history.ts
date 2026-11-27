@@ -33,7 +33,7 @@ export function readRoot(bytes:Buffer) {
 export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],vault:Address,vaultBalance:bigint,
   expected:Map<string,number>, configuration?:DefaultJournal, indexed?:IndexedReplay) {
   const resolution=configuration && new DefaultReplay(configuration);
-  const replayMethods:readonly string[]=indexed?[...methods,'open_slot_custody','open_trade_root','register_indexed_book','settle_indexed_book','inspect_indexed_book']:resolution?[...methods,'open_slot_custody','open_trade_root','configure_default','freeze_default','apply_default','apply_competing_default']:methods;
+  const replayMethods:readonly string[]=indexed?[...methods,'open_slot_custody','open_trade_root','register_indexed_book','settle_indexed_book','inspect_indexed_book','inspect_market_priority']:resolution?[...methods,'open_slot_custody','open_trade_root','configure_default','freeze_default','apply_default','apply_competing_default']:methods;
   let appliedCommitment:Buffer|undefined, cutoff:bigint|undefined;
   const url=new URL(process.env.RIVALT_DATABASE_URL!);
   assert.equal(url.hostname,'127.0.0.1');

@@ -131,6 +131,7 @@ pub fn preview(
             venue: &venue,
             ordinal: epoch,
             member_ids: &ids,
+            market_ids:&[0,1],
             capacities: &capacities,
         }),
     )

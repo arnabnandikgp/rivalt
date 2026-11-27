@@ -77,6 +77,12 @@ pub mod default_proof_probe {
         indexed_default::inspect(width, cells, proof)
     }
 
+    #[cfg(feature = "signed-indexed-default")]
+    pub fn inspect_market_priority(_ctx: &mut Context<InspectIndexed>, ids: Vec<u16>, reserves: Vec<u64>,
+        episode: u64, cells: Vec<ProbeMember>, proof: RatesProof) -> Result<Vec<u64>> {
+        indexed_default::inspect_priority(ids, reserves, episode, cells, proof)
+    }
+
     #[cfg(feature = "signed-three-market-default")]
     pub fn configure_default(ctx: &mut Context<ConfigureDefault>, owners: [Address; 5], ids: [u16; 3]) -> Result<()> {
         three_market_default::configure(ctx, owners, ids)

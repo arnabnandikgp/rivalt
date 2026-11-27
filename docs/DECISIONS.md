@@ -64,3 +64,8 @@ membership. An immutable capital binding points to the registration for one
 full listing address. The one-byte selector reserves a tag for this class of
 account. A listed maker's deposit therefore cannot back a BTC/ETH fill or a
 second listing. [Account contract](clearing/accounts.md#isolated-maker-capital-for-an-inactive-listing)
+
+
+### 28 November 2026 · Use frozen market priority for asymmetric protected finalists
+
+Two plans can reach every market's recovery ceiling and draw identical market insurance while sharing losses more proportionally in different markets. When they also close the same total number of lots and satisfy each protected whole-atom receipt, prefer the smaller proportional deviation in the first distinguishing market. Sort market IDs by SHA-256 of the domain `Rivalt/frozen-market-order/v1` followed by a zero byte, the venue's 32 bytes, the frozen episode as little-endian u64 and the market ID as little-endian u16. Break a hash collision by numeric market ID. The caller and the slot of submission have no input. Equal sharing and equal per-market lot counts retain frozen member priority. [Default contract](clearing/risk-and-resolution.md#market-indexed-default-verification)

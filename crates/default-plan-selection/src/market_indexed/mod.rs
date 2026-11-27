@@ -31,6 +31,7 @@ pub struct Episode<'a> {
     pub venue: &'a [u8; 32],
     pub ordinal: u64,
     pub member_ids: &'a [u64],
+    pub market_ids: &'a [u16],
     pub capacities: &'a [(usize, usize, FrozenCapacity)],
 }
 #[derive(Clone)]
@@ -499,6 +500,8 @@ pub fn verify_book(
         require!(
             episode.ordinal > 0
                 && episode.member_ids.len() == rows.len()
+                && episode.market_ids.len()==pools.len()
+                && episode.market_ids.windows(2).all(|ids|ids[0]<ids[1])
                 && episode.member_ids.windows(2).all(|ids| ids[0] < ids[1]),
             Error::DefaultRoster
         );
@@ -659,6 +662,7 @@ mod tests {
             venue: &[7; 32],
             ordinal: 3,
             member_ids: &[2, 91, 1024],
+            market_ids:&[0,1],
             capacities: &capacities,
         };
         let proof = RatesProof {

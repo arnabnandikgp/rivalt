@@ -137,7 +137,7 @@ def check_domains():
     expected['rust_byte_literals'] = sorted((set(expected['rust_byte_literals']) - DOMAINS_REMOVED) | {'RVBACK01'})
     # D121 episode ordering is used only by the research selector at this revision.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
-                                            | {r'Rivalt/frozen-member-order/v1\0', r'Rivalt/winner-targets/v1\0'})
+                                            | {r'Rivalt/frozen-market-order/v1\0', r'Rivalt/frozen-member-order/v1\0', r'Rivalt/winner-targets/v1\0'})
     # Native-only exact replay uses separate digest domains for fills and checkpoints.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
         r'Rivalt/entry-replay/fill/v1\0', r'Rivalt/entry-replay/checkpoint/v1\0'})
