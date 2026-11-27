@@ -15,6 +15,28 @@ export function u32(value:number) { const b=Buffer.alloc(4); b.writeUInt32LE(val
 export function encodeProof(proof:Certificate) {
   return Buffer.concat([u32(proof.denominator),Buffer.from([proof.selected]),u32(proof.numerators.length),...proof.numerators.map(u32)]);
 }
+export function assertSettlementReceipt(stored:Buffer,proof:Certificate,ids:number[]) {
+  // Independent Borsh decode of the on-chain settlement receipt after all negative controls.
+  // Header: discriminator, two addresses, four bytes, twelve roots, eight u16 IDs, frozen digest.
+  let offset=8+32+32+4+12*32+8*2+32;
+  assert.equal(stored[offset++],proof.selected);
+  const column=()=>Array.from({length:8},()=>{const n=Number(stored.readBigUInt64LE(offset));offset+=8;return n;});
+  assert.deepEqual(column(),[...proof.charges,...Array(8-ids.length).fill(0)]);
+  const matched=column();
+  const expectedLots=proof.charges.map(charge=>Number(charge>0));
+  assert.deepEqual(column(),[...proof.spent,...Array(8-ids.length).fill(0)]);
+  assert.equal(Boolean(stored[offset++]),proof.repaired);
+  const count=stored.readUInt32LE(offset);offset+=4;assert.equal(count,proof.splits?.length??0);
+  for(const split of proof.splits??[]) {
+    assert.equal(stored.readUInt16LE(offset),split.market);offset+=2;
+    assert.deepEqual([...stored.subarray(offset,offset+2)],split.members);offset+=2;
+    for(const field of [split.charges,split.lots]) for(const amount of field) {
+      assert.equal(stored.readBigUInt64LE(offset),BigInt(amount));offset+=8;
+    }
+    expectedLots[ids.indexOf(split.market)]=split.lots[0]+split.lots[1];
+  }
+  assert.deepEqual(matched,[...expectedLots,...Array(8-ids.length).fill(0)]);
+}
 export class IndexedReplay {
   private entry=new Map<string,{lots:bigint;price:bigint}>();
   result?:Certificate;

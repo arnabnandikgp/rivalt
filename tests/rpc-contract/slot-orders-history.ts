@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {getBase58Encoder, type Address} from '@solana/kit';
 import {DefaultReplay, type DefaultJournal} from './three-market-default-history.js';
-import type {IndexedReplay} from './indexed-default-history.js';
+import {assertSettlementReceipt,type IndexedReplay} from './indexed-default-history.js';
 import type {WireRpc} from './wire.js';
 
 export const fingerprint = (s:string) => createHash('sha256').update(s).digest().subarray(0,8);
@@ -232,23 +232,7 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
       const data=await read(indexed.custody);
       assert.deepEqual(data.subarray(0,8),fingerprint('account:IndexedCustody'));
       assert.equal(data[73],2); assert.deepEqual(data.subarray(476,508),appliedCommitment);
-      assert.equal(data[508],indexed.result!.selected);
-      assert.equal(Boolean(data[701]),indexed.result!.repaired);
-      for(let m=0;m<8;m++) assert.equal(data.readBigUInt64LE(637+8*m),BigInt(indexed.result!.spent[m]??0));
-      const split=indexed.result!.split;
-      assert.equal(data[702],Number(Boolean(split)));
-      if(split) {
-        assert.equal(data.readUInt16LE(703),split.market);
-        assert.deepEqual([...data.subarray(705,707)],split.members);
-        assert.deepEqual([707,715].map(offset=>Number(data.readBigUInt64LE(offset))),split.charges);
-        assert.deepEqual([723,731].map(offset=>Number(data.readBigUInt64LE(offset))),split.lots);
-      }
-      for(let m=0;m<8;m++) {
-        const charge:bigint=BigInt(indexed.result!.charges[m]??0);
-        assert.equal(data.readBigUInt64LE(509+8*m),charge);
-        const matched:bigint=split && split.market===indexed.ids[m]?BigInt(split.lots.reduce((a,b)=>a+b,0)):BigInt(charge>0n);
-        assert.equal(data.readBigUInt64LE(573+8*m),matched);
-      }
+      assertSettlementReceipt(data,indexed.result!,indexed.ids);
     }
     const settlement=resolution?.outcome();
     if(configuration && settlement) {
