@@ -10,13 +10,13 @@ export async function readVenueSettlementBook(rpc:Pick<UserRpc,'call'>,identity:
   phase:'active-preview'|'frozen') {
   const view=await readCompleteFinancialSnapshot(rpc,identity,roster);
   requireValue(view.feeEscrow && view.marginLayout==='ledger-lanes','Settlement input reader needs the ledger-lane venue.');
-  const frozen=phase==='frozen'?view.resolution:undefined;
+  const frozen=phase==='frozen'?view.resolutionState:undefined;
   if(phase==='frozen') {
     requireValue(frozen && view.safetyState.mode===2 && view.safetyState.paused && frozen.stage===2 && frozen.cursor===0n &&
       frozen.epoch===view.safetyState.resolutionEpoch && frozen.safetyEpoch===view.safetyState.epoch &&
       frozen.termsEpoch===view.venueState.termsEpoch && frozen.count===view.membership.financialCount &&
       frozen.membershipEpoch===view.membership.membershipEpoch && frozen.liveIndex===view.membership.liveIndex &&
-      view.storage?.lockedEpoch===frozen.epoch && view.storage.readyCapacity>=frozen.count &&
+      view.storageState?.lockedEpoch===frozen.epoch && view.storageState.readyCapacity>=frozen.count &&
       frozen.allocatedBefore===view.custodyState.allocatedVault,'Expected a newly valued, complete frozen venue.');
     const encode=getAddressEncoder();
     const input=Uint8Array.from([...new TextEncoder().encode('rivalt-financial-membership-v1'),...encode.encode(view.venue),
