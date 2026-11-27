@@ -86,8 +86,8 @@ try {
   const receipt=await rpc.call('getTransaction',[accepted.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
   const parity=new CanonicalConformance();
   parity.record([registration],receipt);
-  await parity.finish(directory,[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'MarketListing',key:listing},
-    {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'ListedSymbol',key:binding}],h.read);
+  await parity.finish(directory,[{program:sdk.CLEARING_PROGRAM_ADDRESS,name:'marketListing',key:listing},
+    {program:sdk.CLEARING_PROGRAM_ADDRESS,name:'listedSymbol',key:binding}],h.read);
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   const replay=await journal.finish();
   assert.equal(Object.keys(replay.state.listings??{}).length,1);
