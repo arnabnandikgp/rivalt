@@ -553,10 +553,13 @@ def undo_liquidation_delta(actual, program):
     return actual
 
 
+def before_window_extensions(actual, program):
+    return undo_liquidation_delta(undo_listed_maker_delta(actual, program), program)
+
+
 def comparable_program(program, actual):
     """Validate every explicit extension before comparing the retained D90 ABI."""
-    actual = undo_listed_maker_delta(actual, program)
-    actual = undo_liquidation_delta(actual, program)
+    actual = before_window_extensions(actual, program)
     actual = undo_window_delta(actual, program)
     actual = undo_backing_delta(actual, program)
     actual = undo_membership_delta(actual, program)

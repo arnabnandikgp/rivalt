@@ -39,10 +39,19 @@ class WireContractTest(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(AssertionError):
                 rc2.undo_liquidation_delta(altered, 'clearing')
 
+    def test_listed_admission_requires_both_signers_and_readonly_capital(self):
+        for account, privilege in [('authority', 'signer'), ('owner', 'signer'), ('capital', 'writable')]:
+            altered = deepcopy(self.original)
+            admit = next(ix for ix in altered['instructions'] if ix['name'] == 'admit_listed_maker')
+            meta = next(a for a in admit['accounts'] if a['name'] == account)
+            meta[privilege] = not meta.get(privilege, False)
+            with self.subTest(account=account), self.assertRaises(AssertionError):
+                rc2.before_window_extensions(altered, 'clearing')
+
     def test_backing_delta_preserves_exact_epoch_layout_and_ledger_privilege(self):
         from backing_wire_contract import undo_backing_delta
         from settlement_wire_contract import undo_window_delta
-        original = undo_window_delta(rc2.undo_liquidation_delta(self.original, 'clearing'), 'clearing')
+        original = undo_window_delta(rc2.before_window_extensions(self.original, 'clearing'), 'clearing')
         undo_backing_delta(original, 'clearing')
         for name in ('MarginAccount', 'MarketLedger', 'BackingState', 'BackingRegion', 'SettlementCertificate', 'AccountBackingChanged'):
             altered = deepcopy(original)
@@ -58,7 +67,7 @@ class WireContractTest(unittest.TestCase):
 
     def test_window_extension_rejects_unknown_authority_payload_or_layout(self):
         from settlement_wire_contract import undo_window_delta
-        original = rc2.undo_liquidation_delta(self.original, 'clearing')
+        original = rc2.before_window_extensions(self.original, 'clearing')
         undo_window_delta(original, 'clearing')
         for mutation in ('argument', 'order', 'discriminator', 'layout', 'duplicate'):
             altered = deepcopy(original)
