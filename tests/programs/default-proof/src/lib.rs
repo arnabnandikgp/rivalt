@@ -1,5 +1,5 @@
-//! Isolated local diagnostic. Its PDA contains a synthetic frozen book and a
-//! restartable selection result. It has no clearing account or custody authority.
+//! Isolated local qualification program for default selection, trading and test-token custody.
+//! Each custody instance controls only its own SPL vault.
 use anchor_lang::prelude::*;
 mod basis;
 mod coverage;
@@ -60,12 +60,15 @@ pub struct ContinueProof {
 pub mod default_proof_probe {
     use super::*;
 
+    #[cfg(feature = "signed-three-market-default")]
     pub fn configure_default(ctx: &mut Context<ConfigureDefault>, owners: [Address; 5], ids: [u16; 3]) -> Result<()> {
         three_market_default::configure(ctx, owners, ids)
     }
+    #[cfg(feature = "signed-three-market-default")]
     pub fn freeze_default(ctx: &mut Context<ResolveDefault>) -> Result<()> {
         three_market_default::freeze(ctx)
     }
+    #[cfg(feature = "signed-three-market-default")]
     pub fn apply_default(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charge: u64) -> Result<()> {
         three_market_default::apply(ctx, commitment, charge)
     }

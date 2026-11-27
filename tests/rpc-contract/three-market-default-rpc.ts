@@ -53,13 +53,18 @@ async function publish(id:number,price:number,error?:number) {
   await send('publish '+id+' at '+price,'publish_trade_market',[signer(operator.address),ro(custody),rw(market)],
     [u64((await h.read(market))!.readBigUInt64LE(42)),u64(price),u64(0)],operator,error);
 }
-async function trade(id:number,maker:number,price:number,close=false) {
-  await publish(id,price);
-  const target=markets[ids.indexOf(id)], source=await h.read(target), trader=await root(0);
+async function place(id:number,price:number,close:boolean) {
+  const trader=await root(0);
   const union=Array.from(new Set([...trader.slots.map(s=>s.id),id])).sort((a,b)=>a-b);
   const expires=Number(await rpc.call('getSlot',[{commitment:'confirmed'}]))+5000;
   await send('place '+id+' at '+price,'place_trade_order',[signer(owners[0].address),ro(custody),rw(roots[0]),...union.map(i=>ro(markets[ids.indexOf(i)]))],
     [u64(trader.rev),u16(id),Buffer.from([Number(close)]),u64(10),u64(price),u64(3),u64(expires),Buffer.from([Number(close)])],owners[0]);
+  return union;
+}
+async function trade(id:number,maker:number,price:number,close=false) {
+  await publish(id,price);
+  const union=await place(id,price,close);
+  const target=markets[ids.indexOf(id)], source=await h.read(target);
   await send('match '+labels[maker]+' at '+price,'fill_trade_order',[signer(owners[maker].address),ro(custody),rw(target),rw(roots[0]),rw(roots[maker]),
     ...union.filter(i=>i!==id).map(i=>ro(markets[ids.indexOf(i)]))],
     [u64((await root(0)).rev),u64((await root(maker)).rev),u64(source!.readBigUInt64LE(42)),u64(10)],owners[maker]);
@@ -93,7 +98,11 @@ try {
   await trade(3,2,560); await trade(3,2,500,true); await trade(3,1,500);
   await trade(8,3,300); await trade(38,4,200);
   await freeze('refuse healthy book',complete,6000);
+  await place(3,500,true);
   await publish(3,600); await publish(8,120); await publish(38,80);
+  await freeze('refuse unresolved standing order',complete,6000);
+  await send('cancel open BTC order','cancel_trade_order',[signer(owners[0].address),ro(custody),rw(roots[0])],
+    [u64((await root(0)).rev)],owners[0]);
   await freeze('refuse omitted market',complete.slice(0,-1),6015);
   await freeze('refuse substituted root',[roots[1],...complete.slice(1)],6015);
   await freeze('refuse reversed markets',[...roots,markets[0],markets[2],markets[1]],6015);
