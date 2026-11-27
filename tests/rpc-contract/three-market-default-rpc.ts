@@ -11,9 +11,11 @@ import {fingerprint,readRoot,replayOrders} from './slot-orders-history.js';
 
 const program=address('sDPXvpEPwCzVKHdpxntiM1khVvtCj2V6ozCr5euajBi'), system=address('11111111111111111111111111111111');
 const operator=await payerKey(), keeper=await fixtureKey('linked-default-keeper'), mint=await fixtureKey('linked-default-mint');
-const labels=['cross trader','BTC debtor','flat BTC creditor','ETH creditor','SOL creditor'];
+const competing=process.env.RIVALT_PROOF_SCOPE==='competing-three-market-default';
+const labels=['cross trader','BTC debtor',competing?'BTC winning maker':'flat BTC creditor','ETH creditor','SOL creditor'];
 const owners=await Promise.all(labels.map(name=>fixtureKey('linked-default-owner-'+name))), wallets=await Promise.all(labels.map(name=>fixtureKey('linked-default-wallet-'+name)));
-const ids=[3,8,38], modes=[65535,3,3,8,38], deposits=[2806,599,1000,1000,1000];
+const ids=[3,8,38], modes=[65535,3,3,8,38], deposits=competing?[7896,289,1000,2000,2000]:[2806,599,1000,1000,1000];
+const deposited=BigInt(deposits.reduce((sum,amount)=>sum+amount,0));
 const key=(addr:Address)=>Buffer.from(getAddressEncoder().encode(addr));
 const u16=(n:number)=>{const b=Buffer.alloc(2); b.writeUInt16LE(n); return b;};
 const u64=(n:number|bigint)=>{const b=Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b;};
@@ -53,25 +55,25 @@ async function publish(id:number,price:number,error?:number) {
   await send('publish '+id+' at '+price,'publish_trade_market',[signer(operator.address),ro(custody),rw(market)],
     [u64((await h.read(market))!.readBigUInt64LE(42)),u64(price),u64(0)],operator,error);
 }
-async function place(id:number,price:number,close:boolean) {
+async function place(id:number,price:number,close:boolean,lots=10) {
   const trader=await root(0);
   const union=Array.from(new Set([...trader.slots.map(s=>s.id),id])).sort((a,b)=>a-b);
   const expires=Number(await rpc.call('getSlot',[{commitment:'confirmed'}]))+5000;
   await send('place '+id+' at '+price,'place_trade_order',[signer(owners[0].address),ro(custody),rw(roots[0]),...union.map(i=>ro(markets[ids.indexOf(i)]))],
-    [u64(trader.rev),u16(id),Buffer.from([Number(close)]),u64(10),u64(price),u64(3),u64(expires),Buffer.from([Number(close)])],owners[0]);
+    [u64(trader.rev),u16(id),Buffer.from([Number(close)]),u64(lots),u64(price),u64(competing?5:3),u64(expires),Buffer.from([Number(close)])],owners[0]);
   return union;
 }
-async function trade(id:number,maker:number,price:number,close=false) {
+async function trade(id:number,maker:number,price:number,close=false,lots=10) {
   await publish(id,price);
-  const union=await place(id,price,close);
+  const union=await place(id,price,close,lots);
   const target=markets[ids.indexOf(id)], source=await h.read(target);
   await send('match '+labels[maker]+' at '+price,'fill_trade_order',[signer(owners[maker].address),ro(custody),rw(target),rw(roots[0]),rw(roots[maker]),
     ...union.filter(i=>i!==id).map(i=>ro(markets[ids.indexOf(i)]))],
-    [u64((await root(0)).rev),u64((await root(maker)).rev),u64(source!.readBigUInt64LE(42)),u64(10)],owners[maker]);
+    [u64((await root(0)).rev),u64((await root(maker)).rev),u64(source!.readBigUInt64LE(42)),u64(lots)],owners[maker]);
 }
 const freeze=(label:string,accounts=complete,error?:number)=>send('keeper '+label,'freeze_default',[rw(custody),ro(vault),...accounts.map(ro)],[],operator,error);
-const apply=(label:string,commit:Buffer,charge:number,error?:number)=>send('keeper '+label,'apply_default',
-  [rw(custody),ro(vault),...roots.map(rw),rw(markets[0]),...markets.slice(1).map(ro)],[commit,u64(charge)],operator,error);
+const apply=(label:string,commit:Buffer,charge:number|[number,number],error?:number)=>send('keeper '+label,Array.isArray(charge)?'apply_competing_default':'apply_default',
+  [rw(custody),ro(vault),...roots.map(rw),rw(markets[0]),...markets.slice(1).map(ro)],[commit,...(Array.isArray(charge)?charge:[charge]).map(u64)],operator,error);
 
 try {
   await h.send('create mint and fund signers',[
@@ -95,11 +97,19 @@ try {
     await send('create margin '+labels[i],'open_trade_root',[paying(owner.address),ro(custody),rw(roots[i]),ro(system)],[u16(modes[i])],owner);
     await wallet(i,deposits[i]);
   }
-  await trade(3,2,560); await trade(3,2,500,true); await trade(3,1,500);
-  await trade(8,3,300); await trade(38,4,200);
+  if(competing) {
+    // A realizes -60 then +30 on BTC, and retains one 1000-entry long.
+    // B realizes +60 then buys one lot at 1030. The debtor retains both shorts.
+    await trade(3,2,1060,false,1); await trade(3,2,1000,true,1);
+    await trade(3,1,1000,false,2); await trade(3,2,1030,true,1);
+    await trade(8,3,16000,false,1); await trade(38,4,15500,false,1);
+  } else {
+    await trade(3,2,560); await trade(3,2,500,true); await trade(3,1,500);
+    await trade(8,3,300); await trade(38,4,200);
+  }
   await freeze('refuse healthy book',complete,6000);
-  await place(3,500,true);
-  await publish(3,600); await publish(8,120); await publish(38,80);
+  await place(3,competing?1030:500,true,competing?1:10);
+  await publish(3,competing?1150:600); await publish(8,competing?11000:120); await publish(38,competing?12500:80);
   await freeze('refuse unresolved standing order',complete,6000);
   await send('cancel open BTC order','cancel_trade_order',[signer(owners[0].address),ro(custody),rw(roots[0])],
     [u64((await root(0)).rev)],owners[0]);
@@ -109,29 +119,43 @@ try {
   const bytes=await Promise.all(complete.map(h.read));
   await freeze('freeze complete book');
   const frozen=(await h.read(custody))!;
-  assert.equal(frozen[73],2); assert.equal(frozen.readBigUInt64LE(376),6405n);
+  assert.equal(frozen[73],2); assert.equal(frozen.readBigUInt64LE(376),deposited);
   const hash=(...chunks:Buffer[])=>createHash('sha256').update(Buffer.concat(chunks)).digest();
   let commitment=hash(Buffer.from('Rivalt/local-three-market-freeze/v1'),key(program),key(custody),key(mint.address),frozen.subarray(368,376));
   for(const [i,addr] of complete.entries()) commitment=hash(commitment,key(addr),bytes[i]!);
   assert.deepEqual(commitment,frozen.subarray(336,368));
   await wallet(2,1,true,6014); await wallet(4,1,false,6014); await publish(3,601,6014);
-  await apply('refuse other commitment',Buffer.alloc(32),100,6017);
-  await apply('refuse nonmaximal charge',commitment,99,6016); await apply('protect foreign creditors',commitment,101,6016);
-  await apply('resolve complete book',commitment,100); await apply('refuse duplicate application',commitment,100,6014);
-  const payouts=[0,0,1400,2800,2200];
+  const selected=competing?[4,6] as [number,number]:100;
+  await apply('refuse other commitment',Buffer.alloc(32),selected,6017);
+  if(competing) {
+    await apply('refuse aggregate without individual charges',commitment,10,6016);
+    await apply('refuse equally shared charge that impairs foreign creditors',commitment,[5,5],6016);
+    await apply('refuse safe but less proportional allocation',commitment,[3,7],6016);
+    await apply('refuse under-recovery',commitment,[4,5],6016);
+    await apply('refuse charge above debtor shortfall',commitment,[4,7],6016);
+  } else {
+    await apply('refuse competing instruction on single-winner book',commitment,[100,0],6016);
+    await apply('refuse nonmaximal charge',commitment,99,6016); await apply('protect foreign creditors',commitment,101,6016);
+  }
+  await apply('resolve complete book',commitment,selected); await apply('refuse duplicate application',commitment,selected,6014);
+  const payouts=competing?[0,0,1174,7000,5000]:[0,0,1400,2800,2200];
   for(const [i,value] of payouts.entries()) {
     const state=await root(i);
     assert.deepEqual([state.cash,state.slots.length],[BigInt(value),0]);
   }
-  assert.equal(await balance(vault),6405n);
-  await wallet(1,1,true,6007); await wallet(2,1401,true,6007); await wallet(2,1400,true,6008,0);
+  assert.equal(await balance(vault),deposited);
+  await wallet(1,1,true,6007); await wallet(2,payouts[2]+1,true,6007); await wallet(2,payouts[2],true,6008,0);
   for(const i of [2,3,4]) await wallet(i,payouts[i],true);
   assert.deepEqual(await Promise.all(wallets.map(w=>balance(w.address))),payouts.map(BigInt));
   const journal=await replayOrders(rpc,program,roots,vault,await balance(vault),expected,{
-    custody,keeper:keeper.address,owners:owners.map(o=>o.address),wallets:wallets.map(w=>w.address),mint:mint.address,ids,
+    custody,keeper:keeper.address,owners:owners.map(o=>o.address),wallets:wallets.map(w=>w.address),mint:mint.address,ids,competing,
   });
-  assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],[5,'0','5','5']);
-  assert.deepEqual(journal.settlement,{charge:'100',matched:'1',enumerated:400,feasible:100,before:['40','0','1360','2800','2200'],payouts:payouts.map(String),spent:['1','0','0']});
+  assert.deepEqual([journal.fills,journal.cash,journal.fees,journal.vault],competing?[6,'0','11','11']:[5,'0','5','5']);
+  if(competing) {
+    assert.deepEqual(journal.settlement,{charge:'10',matched:'2',protectedControls:{'3/7':true,'5/5':false},enumerated:66,feasible:29,before:payouts.map(String),payouts:payouts.map(String),spent:['1','0','0'],
+      winners:[{id:'0',weight:'120',charge:'4',matched:'1',baseTicks:'4',extraTickLots:'0'},
+               {id:'2',weight:'120',charge:'6',matched:'1',baseTicks:'6',extraTickLots:'0'}]});
+  } else assert.deepEqual(journal.settlement,{charge:'100',matched:'1',enumerated:400,feasible:100,before:['40','0','1360','2800','2200'],payouts:payouts.map(String),spent:['1','0','0']});
   const measurements=checks.map(({label,signature,computeUnits,bytes,loadedAccounts,error})=>({label,signature,computeUnits,bytes,loadedAccounts,error}));
   writeFileSync(dir+'/three-market-default.json',JSON.stringify({journal,measurements},null,2));
   console.log('Reconciled signed three-market default',journal);

@@ -1,14 +1,36 @@
-"""Select the best protected single-pair charge from finalized local trade postings."""
+"""Select the best protected charge allocation from finalized local trade postings."""
+from copy import deepcopy
 import json
 import sys
 from fractions import Fraction
 
-from test_three_market_reduction import compare_reference
+from test_three_market_competition import reference as competing_reference
+from test_three_market_reduction import compare_reference, protected_settlement
 from three_market_reference import expected
 
 
 def select(book):
     baseline = expected(book)
+    if "competition" in book:
+        best, enumerated, feasible = competing_reference(book)
+        winners = best["winners"]
+        assert [winner["id"] for winner in winners] == ["0", "2"]
+        # Explain two refused originals independently of the optimum. Both fully
+        # cover BTC; only one preserves the other markets' original entitlements.
+        target = next(i for i, market in enumerate(book["markets"]) if market["id"] == book["competition"]["market"])
+        by_id = {row["id"]: i for i, row in enumerate(book["rows"])}
+        controls = {}
+        for first, second in ((3, 7), (5, 5)):
+            candidate = deepcopy(book)
+            for member, delta in [(best["debtor"], first + second), (winners[0]["id"], -first), (winners[1]["id"], -second)]:
+                claims = candidate["rows"][by_id[member]]["claims"]
+                claims[target] = str(int(claims[target]) + delta * 10**9)
+            controls[f"{first}/{second}"] = protected_settlement(book, candidate, baseline, target) is not None
+        terminal = best["settlement"]
+        return dict(charge=str(sum(int(w["charge"]) for w in winners)), winners=winners,
+                    matched=str(sum(int(w["matched"]) for w in winners)), protectedControls=controls,
+                    enumerated=enumerated, feasible=feasible, before=[r["cash"] for r in baseline["rows"]],
+                    payouts=[r["cash"] for r in terminal["rows"]], spent=terminal["spent"])
     action = book["reduction"]
     debtor = int(action["debtor"])
     winner = int(action["winner"])

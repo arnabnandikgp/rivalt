@@ -6,6 +6,7 @@ use anchor_lang::{AccountDeserialize, BorshConfig};
 use anchor_spl::token::TokenAccount;
 use solana_sha256_hasher::hashv;
 mod settlement;
+pub use settlement::Charges;
 
 const TRADING: u8 = 1;
 const FROZEN: u8 = 2;
@@ -195,7 +196,7 @@ pub fn freeze(ctx: &mut Context<ResolveDefault>) -> Result<()> {
     let slot = Clock::get()?.slot;
     let book = snapshot(&views, domain, ctx.accounts.vault.amount(), slot, false)?;
     // Do not strand a healthy or unsupported book in a terminal-only mode.
-    settlement::plan(&book)?;
+    settlement::plan(&book, domain.address(), slot)?;
     domain.allocated = book.allocated;
     domain.commitment = book.digest;
     domain.frozen_slot = slot;
@@ -209,7 +210,11 @@ fn store<T: SchemaWrite<BorshConfig, Src = T>>(view: &mut AccountView, account: 
     T::write(&mut data[8..], account).map_err(|_| ProgramError::InvalidAccountData)
 }
 
-pub fn apply(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charge: u64) -> Result<()> {
+pub fn apply(
+    ctx: &mut Context<ResolveDefault>,
+    commitment: [u8; 32],
+    charges: Charges,
+) -> Result<()> {
     let mut views = ctx.remaining_accounts()?;
     let domain = &mut ctx.accounts.custody;
     require!(domain.phase == FROZEN, ProofError::DefaultPhase);
@@ -226,8 +231,8 @@ pub fn apply(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charge: u6
             && book.allocated == domain.allocated,
         ProofError::DefaultCommitment
     );
-    let plan = settlement::plan(&book)?;
-    require!(charge == plan.charge, ProofError::DefaultCharge);
+    let plan = settlement::plan(&book, domain.address(), domain.frozen_slot)?;
+    require!(charges == plan.charges, ProofError::DefaultCharge);
     for (i, root) in book.roots.iter_mut().enumerate() {
         root.cash = plan.cash[i];
         root.slots.clear();
@@ -236,7 +241,7 @@ pub fn apply(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charge: u6
     }
     book.markets[0].insurance = 0;
     store(&mut views[MEMBERS], &book.markets[0])?;
-    domain.charge = charge;
+    domain.charge = plan.charges.total()?;
     domain.matched = plan.matched;
     domain.payouts = plan.cash;
     domain.phase = RESOLVED;

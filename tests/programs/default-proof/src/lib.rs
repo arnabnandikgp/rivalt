@@ -70,7 +70,12 @@ pub mod default_proof_probe {
     }
     #[cfg(feature = "signed-three-market-default")]
     pub fn apply_default(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charge: u64) -> Result<()> {
-        three_market_default::apply(ctx, commitment, charge)
+        three_market_default::apply(ctx, commitment, three_market_default::Charges::Single(charge))
+    }
+
+    #[cfg(feature = "signed-three-market-default")]
+    pub fn apply_competing_default(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charges: [u64; 2]) -> Result<()> {
+        three_market_default::apply(ctx, commitment, three_market_default::Charges::Competing(charges))
     }
 
     pub fn open_trade_root(ctx: &mut Context<OpenTradeRoot>, isolated: u16) -> Result<()> {

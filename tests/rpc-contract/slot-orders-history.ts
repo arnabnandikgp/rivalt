@@ -32,7 +32,7 @@ export function readRoot(bytes:Buffer) {
 export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],vault:Address,vaultBalance:bigint,
   expected:Map<string,number>, configuration?:DefaultJournal) {
   const resolution=configuration && new DefaultReplay(configuration);
-  const replayMethods:readonly string[]=resolution?[...methods,'open_slot_custody','open_trade_root','configure_default','freeze_default','apply_default']:methods;
+  const replayMethods:readonly string[]=resolution?[...methods,'open_slot_custody','open_trade_root','configure_default','freeze_default','apply_default','apply_competing_default']:methods;
   let appliedCommitment:Buffer|undefined, cutoff:bigint|undefined;
   const url=new URL(process.env.RIVALT_DATABASE_URL!);
   assert.equal(url.hostname,'127.0.0.1');
@@ -103,16 +103,19 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
             }
             assert.deepEqual(configuration.ids.map((_,i)=>bytes.readUInt16LE(168+i*2)),configuration.ids);
           }
-          if(name==='freeze_default' || name==='apply_default') {
+          if(name==='freeze_default' || name==='apply_default' || name==='apply_competing_default') {
             assert.deepEqual(signers,[configuration.keeper]);
             assert.deepEqual(keys,[configuration.custody,vault,...roots,...prices.keys()]);
             assert.equal(orders.size,0);
             if(name==='freeze_default') {
               assert.equal(cutoff,undefined); cutoff=BigInt(tx.slot);
-              await resolution.freeze(sql,roots,prices);
+              await resolution.freeze(sql,roots,prices,cutoff);
             } else {
               appliedCommitment=bytes.subarray(8,40);
-              await resolution.apply(sql,roots,bytes.readBigUInt64LE(40),post);
+              assert.equal(name,configuration.competing?'apply_competing_default':'apply_default');
+              assert.equal(bytes.length,configuration.competing?56:48);
+              const charges=configuration.competing?[bytes.readBigUInt64LE(40),bytes.readBigUInt64LE(48)]:[bytes.readBigUInt64LE(40)];
+              await resolution.apply(sql,roots,charges,post);
             }
           }
           if(name==='withdraw_trade_cash' || name==='deposit_trade_cash') {
@@ -148,7 +151,7 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
           const signed=order.sell?-lots:lots, basis=signed*(market.funding-market.price)*scale;
           await post(trader,market.id,-fee,signed,basis);
           await post(maker,market.id,0n,-signed,-basis);
-          if(resolution) { assert.equal(trader,roots[0]); resolution.fill(market.id,signed,market.price); }
+          if(resolution) { assert.equal(trader,roots[0]); resolution.fill(market.id,trader,maker,signed,market.price); }
           market.fees+=fee; fills++;
         }
         if(name==='transfer_trade_risk') {
