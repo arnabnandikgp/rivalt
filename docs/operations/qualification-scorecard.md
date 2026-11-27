@@ -18,7 +18,7 @@ Use the numbered findings across revisions. **Open** means a measured bottleneck
 | 8 | **Willing liquidation capital — Deferred to the shock exercise** | The signed case sold ten lots to a maker. A consenting operator-owned receiver could take five more only after it was funded. [Liquidation qualification](validation.md#evidence-by-deployment) | Exercise several unhealthy accounts competing for limited receiver capital. Measure deficit after fees, remaining exposure and recovery time. Independent participation is a separate external gate. |
 | 9 | **Local costs versus sustainable participation — Open for cost reporting** | The wallet uses zero priority fee and the maker kit labels hedge cost as an assumption. The 119 fills earned 2,963 collateral atoms in aggregate taker fees before insurance. [Wallet budget](../liquidity/routing.md) · [Maker economics](../../packages/maker-kit/src/liquidity-economics.ts) | Report actual costs per role in lamports, retained fees after insurance, funded and unpaid maker P&L, and explicitly assumed hedge and priority-fee scenarios. Independent maker economics remain open. |
 | 10 | **Markets sharing a margin account — Open** | Local clearing has two fixed slots. A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | [Signed fills](#signed-orders-on-eight-markets) and [receiver liquidation](#funded-receiver-liquidation-across-markets) qualify the sparse fixture. Integrate the wider account with venue clearing and its clients after the wider-default gate. |
-| 11 | **Default across three or more markets — Open, blocks wider cross trading** | A native complete-book calculation at `8b1e155f` matched independent exact settlement across three markets, including partial recovery, cycles, insurance and terminal whole atoms. [Workload](#three-market-frozen-book-settlement) | The [signed five-member book](#signed-three-market-default-and-wallet-exit) verifies the maximal protected charge for a single eligible pair and reconciles the wallet exits. The [native competing-winner comparison](#competing-winners-in-a-three-market-default) selects two charges on the same debtor. Signed competing and joint reductions and wider venue integration remain open. Finding 5 tracks the operating cost of recovery. |
+| 11 | **Default across three or more markets — Open, blocks wider cross trading** | A native complete-book calculation at `8b1e155f` matched independent exact settlement across three markets, including partial recovery, cycles, insurance and terminal whole atoms. [Workload](#three-market-frozen-book-settlement) | The [signed five-member book](#signed-three-market-default-and-wallet-exit) verifies the maximal protected charge for a single eligible pair and reconciles the wallet exits. The [signed two-winner settlement](#signed-two-winner-settlement-and-withdrawals) checks competing charges on the same BTC debtor. Joint reductions across distressed markets and wider venue integration remain open. Finding 5 tracks the operating cost of recovery. |
 
 ## Payout and cross-margin work
 
@@ -165,7 +165,7 @@ On revision `eed48e38`, 64 transactions finalized with RPC and WebSocket confirm
 | Verify the maximum and settle all balances | 27,169 | 609 | 13 |
 | Withdraw to one owner’s wallet, each of three | 13,001 | 550 | 10 |
 
-This dedicated local fixture uses signed synthetic prices, whole-atom final transfers and one possible pair. It does not qualify competing or joint reductions, general fractional terminal settlement, or venue trading on a third market. [Verification contract](../clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair) · [Reproduction](validation.md#checks-by-change)
+That run used signed synthetic prices, whole-atom final transfers and one eligible pair. The two-winner case below extends the signed scope. Joint reductions, general fractional terminal settlement and a third venue market remain open. [Verification contract](../clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair) · [Reproduction](validation.md#checks-by-change)
 
 ### Competing winners in a three-market default
 
@@ -179,7 +179,32 @@ On native revision `1f6f1e6a`, independent enumeration on 31 frozen books and ep
 | A winner owes five ETH and three SOL atoms | 4 and 6 | Five and five would lower exact foreign receipts to 35/8 and 21/8. The selected split preserved five and three and used only one BTC insurance atom. Three candidate evaluations sufficed. |
 | Either one-atom charge harms a different foreign creditor | 0 and 0 | The original settlement was the only protected result. |
 
-On a separate equal-capacity book with a one-million-atom writeoff, the native selector verified 500,000 atoms per winner, 50,000 matched lots each, in one candidate evaluation. That case checked its hand-derived optimum and complete reference settlement. The exhaustive 602-allocation count covers the smaller books. Search cost still depends on how many splits the actual lot and foreign protections exclude. These are native financial comparisons. The signed fixture currently verifies one eligible pair. [Contract](../clearing/default-plan-verification.md#two-winners-competing-for-the-same-debtor-lots) · [Reproduction](validation.md#checks-by-change)
+On a separate equal-capacity book with a one-million-atom writeoff, the native selector verified 500,000 atoms per winner, 50,000 matched lots each, in one candidate evaluation. That case checked its hand-derived optimum and complete reference settlement. The exhaustive 602-allocation count covers the smaller books. Search cost still depends on how many splits the actual lot and foreign protections exclude. The native search covers more books than the signed two-winner fixture below. [Contract](../clearing/default-plan-verification.md#two-winners-competing-for-the-same-debtor-lots) · [Reproduction](validation.md#checks-by-change)
+
+### Signed two-winner settlement and withdrawals
+
+Five wallets deposited 13,185 test collateral atoms. Six signed fills left the BTC debtor short two lots. The cross trader and an isolated maker each held one opposite lot and 120 atoms of eligible gain. The trader’s net BTC claim was 120 and the maker’s was 180, including earlier realized P&L. The debtor owed 300 BTC-market atoms. Its 289 cash and one BTC insurance atom left ten to allocate.
+
+The cross trader owed 5,000 on ETH and 3,000 on SOL, with 7,884 atoms of funded cash. It therefore needed at least 116 from BTC. The table compares whole-wallet outcomes from the independent reference on that frozen book. The selected row is also checked through actual SPL withdrawals.
+
+| BTC charge to cross trader / maker | Cross trader | BTC debtor | BTC maker | ETH creditor | SOL creditor | Reason |
+|---|---:|---:|---:|---:|---:|---|
+| No action | 0 | 0 | 1,174 | 7,000 | 5,000 | Ten BTC atoms remain written off in the baseline settlement. |
+| 5 / 5 | 0 | 0 | 1,175 | 6,999 | 5,000 | Only 115 BTC atoms reach the cross trader. Both exact foreign entitlements fall. |
+| 3 / 7 | 1 | 0 | 1,173 | 7,000 | 5,000 | Protects foreign creditors but another full recovery shares the charge more proportionally. |
+| **4 / 6** | **0** | **0** | **1,174** | **7,000** | **5,000** | Recovers the ten-atom BTC writeoff, matches one lot per winner and preserves both foreign claims. |
+
+All four rows use one BTC insurance atom. The accepted allocation changes how the BTC loss is recognized. Its three wallet amounts coincide with the no-action baseline on this book. The ETH and SOL insurance atoms remain available in the vault.
+
+At `4348427c`, 70 signed originals finalized through local Surfpool RPC and WebSocket. All 21 refusals left the watched financial accounts unchanged. Fresh PostgreSQL replay reconstructed every one of the 64 program receipts, including six fills. Independent exact-fraction enumeration on that reconstructed book found 66 physically possible splits and 29 that preserved foreign creditors and insurance. The three withdrawals totaled 13,174 atoms. The remaining 11 comprised nine retained fee atoms and one atom each of ETH and SOL insurance.
+
+| Successful transaction | CU | Wire bytes | Loaded accounts |
+|---|---:|---:|---:|
+| Freeze all five members and three markets | 34,370 | 569 | 13 |
+| Verify both charges and settle the book | 35,632 | 617 | 13 |
+| Withdraw to one owner's wallet, each of three | 13,003 | 550 | 10 |
+
+On the same revision, a fresh single-winner regression matched 59 program receipts, refused the two-charge instruction on that freeze, reproduced the 100-atom charge and paid the original three wallet amounts. The five-member local fixture uses synthetic indices and one distressed market. Joint plans across distressed markets and activation of a third market remain open. [Signed contract](../clearing/default-plan-verification.md#signed-settlement-with-a-second-btc-winner) · [Reproduction](validation.md#checks-by-change)
 
 ### BTC/ETH backing summary comparison
 

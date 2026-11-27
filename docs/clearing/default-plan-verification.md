@@ -37,7 +37,7 @@ At freeze the program authenticates the entire roster, requires every order to h
 
 The local verifier covers one BTC debtor, one flat BTC creditor and one cross trader who can concede BTC gain but owes both foreign markets. Let `D` be the BTC debt, `G` the trader's BTC gain, `C` the BTC debtor’s cash plus BTC insurance, and `H` the trader’s ETH and SOL debt left after its own cash. A concession of `x` removes that many atoms from both the BTC debtor's debt and the trader's gain. The trader's share of the remaining BTC payment is `C × (G − x) / (D − x)`. Both foreign creditors can still receive their full claims without foreign insurance precisely when that share covers `H`. For the admitted books `0 < H < C < D`, so the maximum protected whole charge is the floor of `(C × G − H × D) / (C − H)`, capped by the BTC shortfall and the frozen entry’s eligible lots and gain. Each additional feasible atom removes one atom of BTC impairment.
 
-Resolution rechecks the commitment, verifies the exact maximum, and in one transaction settles every position, credits all five cash balances and debits the BTC insurance used. Only then can owners withdraw. The fixture admits integral terminal transfers for this specific pattern of debts. Competing winners, joint reductions, fractional terminal transfers and larger rosters require additional qualification. Venue clearing continues to support BTC/ETH. [Signed verifier](../../tests/programs/default-proof/src/three_market_default/) · [Reproduction](../operations/validation.md#checks-by-change)
+Resolution rechecks the commitment, verifies the exact maximum, and in one transaction settles every position, credits all five cash balances and debits the BTC insurance used. Only then can owners withdraw. The fixture admits integral terminal transfers for this specific pattern of debts. The two-winner extension below has its own admission criteria. Joint reductions, fractional terminal transfers and larger rosters remain outside the signed verifier. Venue clearing continues to support BTC/ETH. [Signed verifier](../../tests/programs/default-proof/src/three_market_default/) · [Reproduction](../operations/validation.md#checks-by-change)
 
 ## Two winners competing for the same debtor lots
 
@@ -48,5 +48,18 @@ For each winner, the weight is the charge its frozen entry and positive market c
 The selector maximizes actual target-market impairment removed, capped at the total charge. For a tie, it minimizes weighted squared deviation from proportional charges, then the total charged, then lots closed. The final tie follows the existing venue/episode/member order. The zero-charge settlement is eligible. If the search budget expires before the winner is established, the caller receives an incomplete-search error and no plan.
 
 For a fixed total and two winners, proportional deviation grows with squared distance from the ideal split. The search checks whole-atom splits on either side of that ideal. Once a split recovers the entire candidate total, finishing that distance layer rules out a better result at the same or any smaller total. Books with binding lot or creditor constraints can still require many comparisons. [Financial admission](../../crates/financial-core/src/clearing/three_market/reduction/competition.rs) · [Native selection](../../crates/default-plan-selection/src/three_market.rs)
+
+### Signed settlement with a second BTC winner
+
+On the same five-root custody layout, the second BTC creditor can also hold a winning position on the same side as the cross trader. The two winners then own all the lots opposite the BTC debtor. The operator fixes their roster identities before deposits. The freeze binds their positions, and a successful resolution instruction records the two charges in roster order. A single aggregate charge cannot authorize this book.
+
+Let `T = D − C` be the BTC shortfall after debtor cash and BTC insurance, and let `A` and `B` be the charge capacities derived from the winners’ frozen entries, lots and unpaid claims. The verifier requires full foreign coverage before forced reduction. If the entire shortfall can be recovered, the remaining BTC claims pay at par. Charging the cross winner `a` leaves it `G − a` to meet its foreign gap `H`. The feasible range is therefore:
+
+```text
+max(0, T − B) ≤ a ≤ min(T, A, G − H)
+second winner's charge = T − a
+```
+
+Within this range, the verifier checks the whole atoms nearest the proportional share `T × A / (A + B)`, then ranks ties by matched lots and frozen member order. It rejects an empty range before freezing. Both charges and all terminal balances apply atomically. This specialization covers integral payouts, one distressed market and sufficient opposite lots to recover its entire shortfall. The native comparison above also exercises scarce lots and partial recovery. [Signed verifier](../../tests/programs/default-proof/src/three_market_default/settlement.rs) · [Wallet qualification](../operations/qualification-scorecard.md#signed-two-winner-settlement-and-withdrawals)
 
 [Selection and ordering](../../crates/default-plan-selection/src/) · [Settlement verifier](../../crates/financial-core/src/clearing/) · [On-chain controller](../../programs/clearing/src/instructions/account_safety/settlement/) · [Detailed equations, ranking and proof families](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/clearing/default-plan-verification.md)

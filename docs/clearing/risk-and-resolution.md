@@ -223,7 +223,7 @@ whole atoms over the complete flow graph using the existing residual rounding
 rule, with rows and markets in stable ID order. The model returns each creditor's
 exact impairment, each debtor's residual writeoff and each member's whole cash
 balance. Total writeoffs must equal impairments separately in every market.
-A native [forced-reduction comparison](default-plan-verification.md#one-proposed-reduction-on-a-three-market-frozen-book) checks a proposed pair against this baseline. The [signed single-pair fixture](default-plan-verification.md#signed-three-market-default-with-one-eligible-pair) adds an authenticated freeze, verification of the maximum safe charge and SPL withdrawals on a five-member book. More complex three-market defaults and venue integration remain open. [Qualification results](../operations/qualification-scorecard.md#three-market-frozen-book-settlement)
+A native [forced-reduction comparison](default-plan-verification.md#one-proposed-reduction-on-a-three-market-frozen-book) checks a proposed pair against this baseline. The signed five-member fixture verifies the [maximum safe charge for one pair](default-plan-verification.md#signed-three-market-default-with-one-eligible-pair) and the [protected split between two BTC winners](default-plan-verification.md#signed-settlement-with-a-second-btc-winner) through SPL withdrawals. Joint reductions across distressed markets and venue integration remain open. [Qualification results](../operations/qualification-scorecard.md#three-market-frozen-book-settlement)
 
 ### Current two-market equations
 
