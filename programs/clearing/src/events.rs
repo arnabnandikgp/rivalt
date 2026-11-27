@@ -993,3 +993,47 @@ pub struct ListingIndexChanged {
     pub lower: u64,
     pub upper: u64,
 }
+
+#[event]
+pub struct ListedVenueOpened {
+    pub venue: Address,
+    pub slot: u64,
+    pub safety_epoch: u64,
+    pub listing: Address,
+    pub market_id: u16,
+    pub directory: Address,
+    pub directory_bump: u8,
+    pub book: Address,
+    pub book_bump: u8,
+    pub funding: Address,
+    pub values: crate::state::accounts::ListedFundingValues,
+}
+
+#[event]
+pub struct ListedRouteFilled {
+    pub venue: Address,
+    pub slot: u64,
+    pub listing: Address,
+    pub trader: Address,
+    pub side: u8,
+    pub lots: u64,
+    pub gross: u64,
+    pub fee: u64,
+    pub gross_lots: u64,
+    pub insurance: u64,
+    pub retained_fees: u64,
+    pub insurance_carry: u8,
+    pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
+    pub funding: crate::state::accounts::ListedFundingValues,
+    pub inline_markets: Vec<MarketSnapshot>,
+}
+
+#[event]
+pub struct ListedMarginChanged {
+    pub venue: Address,
+    pub slot: u64,
+    pub margin: Address,
+    pub state: MarginAccountSnapshot,
+    /// Exact populated directory only (header + occupied records), no empty capacity.
+    pub positions: Vec<u8>,
+}

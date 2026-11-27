@@ -1075,6 +1075,20 @@ pub mod clearing {
         #[cfg(not(feature="venue-default-verifier"))]
         { let _=(ctx,epoch,selected,denominator,rates); Err(ClearingError::Profile.into()) }
     }
+    pub fn begin_listed_qualification(ctx: &mut Context<BeginListedQualification>) -> Result<()> {
+        #[cfg(feature="listed-venue-execution")]
+        { scoped_history::run(ctx, [46,56,66,151,91,75,179,201], false, maker_liquidity::routes::listed_venue::begin) }
+        #[cfg(not(feature="listed-venue-execution"))]
+        { let _ = ctx; Err(ClearingError::Profile.into()) }
+    }
+
+    pub fn execute_listed_market_order(ctx: &mut Context<ExecuteListedMarketOrder>, args: BestRouteIntent) -> Result<()> {
+        #[cfg(feature="listed-venue-execution")]
+        { maker_liquidity::routes::listed_venue::execute(ctx, args) }
+        #[cfg(not(feature="listed-venue-execution"))]
+        { let _ = (ctx, args); Err(ClearingError::Profile.into()) }
+    }
+
     pub fn initialize_listed_funding(ctx: &mut Context<InitializeListedFunding>, publisher: Address) -> Result<()> {
         require!(cfg!(feature = "listed-funding"), ClearingError::Profile);
         scoped_history::run(ctx, [74, 12, 6, 83, 92, 247, 201, 176], false,

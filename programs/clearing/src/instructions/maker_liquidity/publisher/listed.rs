@@ -70,6 +70,13 @@ pub struct PublishListedFunding {
 }
 
 fn enabled(venue: &Venue, safety: &VenueSafety, listing: &MarketListing) -> Result<()> {
+    #[cfg(feature = "listed-venue-execution")]
+    if venue.profile_version == LISTED_VENUE_PROFILE {
+        crate::instructions::maker_liquidity::routes::listed_venue::identity(venue, safety)?;
+        require!(listing.schema_version == LISTING_SCHEMA && listing.status == LISTING_QUALIFICATION
+            && listing.quote_mint == venue.quote_mint, ClearingError::FundingReport);
+        return Ok(());
+    }
     account_trading::base_identity(venue, safety)?;
     require!(
         !safety.paused
@@ -231,8 +238,9 @@ pub fn publish(
         clock.unix_timestamp,
     )?;
     let impact = report_impact(&report, bounds)?;
+    let mode = if cfg!(feature="listed-venue-execution") && a.listing.status == LISTING_QUALIFICATION { ACTIVE } else { CUSTODY };
     let mut next = funding::sample_admitted_market(
-        CUSTODY,
+        mode,
         &market,
         &clock,
         bounds,

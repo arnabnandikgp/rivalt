@@ -190,7 +190,7 @@ impl<'account> View<'account> {
                 && listing.venue == *venue.address()
                 && listing.quote_mint == venue.quote_mint
                 && usize::from(listing.market_id) >= MARKET_COUNT
-                && listing.status == LISTING_MAKERS_SEALED,
+                && listing.status == LISTING_QUALIFICATION,
             ClearingError::MakerBinding
         );
         require!(

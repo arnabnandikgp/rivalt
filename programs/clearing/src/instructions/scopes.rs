@@ -2,6 +2,7 @@
 //! Keep this table synchronized with Anchor declarations; the coverage test
 //! compares nested/optional fields and access, independently of message flags.
 use super::*;
+use crate::state::accounts::Venue;
 use crate::scoped_history::{Access, Scope, ScopedContext};
 use anchor_lang::prelude::*;
 
@@ -22,7 +23,7 @@ impl ScopedContext for ExecuteBestRoute {
         self.candidate_two.visit_maker(scope, 2)?;
         Ok(())
     }
-    fn venue(&self) -> (Address, [u8; 32]) { (*self.identity.venue.address(), self.identity.venue.domain) }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.identity.venue }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
 
@@ -38,9 +39,7 @@ macro_rules! context {
                 })*
                 Ok(())
             }
-            fn venue(&self) -> (Address, [u8; 32]) {
-                (self.$($venue).+.address().to_owned(), self.$($venue).+.domain)
-            }
+            fn venue(&self) -> &BorshAccount<Venue> { &self.$($venue).+ }
             fn event_authority(&self) -> AccountView {
                 self.$($authority).+.account().clone()
             }
@@ -55,7 +54,7 @@ impl ScopedContext for FundMemberPage {
         scope.created_raw::<crate::state::accounts::MemberPage>(&mut self.allocation.account().clone())?;
         scope.account(&mut self.receipt, Access::Create)
     }
-    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.venue }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
 impl ScopedContext for FundMemberIndex {
@@ -65,7 +64,7 @@ impl ScopedContext for FundMemberIndex {
         scope.created_raw::<crate::state::accounts::MemberIndexNode>(&mut self.allocation.account().clone())?;
         scope.account(&mut self.receipt, Access::Create)
     }
-    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.venue }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
 context!(InitializeRecoveryStorage, venue, event_authority;
@@ -93,7 +92,7 @@ impl ScopedContext for FundRecoveryAllocation {
         }
         scope.account(&mut self.receipt, Access::Create)
     }
-    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.venue }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
 impl ScopedContext for VerifyRecoveryAllocation {
@@ -112,7 +111,7 @@ impl ScopedContext for VerifyRecoveryAllocation {
         else { return Err(crate::ClearingError::Resolution.into()); }
         scope.account(&mut self.receipt, Access::Read)
     }
-    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.venue }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
 
@@ -744,9 +743,7 @@ impl ScopedContext for AdvancePreparedMembership {
         }
         Ok(())
     }
-    fn venue(&self) -> (Address, [u8; 32]) {
-        (*self.source.venue.address(), self.source.venue.domain)
-    }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.source.venue }
     fn event_authority(&self) -> AccountView {
         self.event_authority.account().clone()
     }
@@ -1106,7 +1103,7 @@ impl ScopedContext for RetireMargin {
         scope.retire_margin(&mut self.margin.account().clone())?;
         scope.account(&mut self.members, Access::Write)
     }
-    fn venue(&self) -> (Address, [u8; 32]) { (*self.venue.address(), self.venue.domain) }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.venue }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
 
@@ -1118,7 +1115,7 @@ impl ScopedContext for RefundRecoveryAllocation {
         scope.retire_storage(&mut self.allocation.account().clone())?;
         scope.account(&mut self.receipt, Access::Read)
     }
-    fn venue(&self) -> (Address, [u8;32]) { (*self.venue.address(),self.venue.domain) }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.venue }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
 
@@ -1197,3 +1194,28 @@ context!(CopyJointRegister, source.venue, event_authority;
 [source.venue: Read, source.custody: Read, source.safety: Read, source.registry: Read, source.storage: Read,
  source.resolution: Read, source.btc: Read, source.eth: Read, source.btc_ledger: Read, source.eth_ledger: Read,
  prepared: Write, rates: Write, page: Write]; []);
+
+context!(BeginListedQualification, venue, event_authority;
+[venue: Write, safety: Write, listing: Write, registry: Read, funding: Write, directory: Create, book: Create]; []);
+
+impl ScopedContext for ExecuteListedMarketOrder {
+    fn visit(&mut self, scope: &mut Scope) -> Result<()> {
+        scope.account(&mut self.identity.venue, Access::Read)?;
+        scope.account(&mut self.identity.safety, Access::Read)?;
+        let identity = &mut *self.identity;
+        for market in [&mut identity.btc, &mut identity.eth].into_iter().flatten() {
+            scope.account(market, Access::Write)?;
+        }
+        scope.account(&mut self.directory, Access::Read)?;
+        scope.account(&mut self.listing, Access::Read)?;
+        scope.account(&mut self.book, Access::Write)?;
+        scope.account(&mut self.funding, Access::Write)?;
+        scope.account(&mut self.registry, Access::Read)?;
+        scope.account(&mut self.trader, Access::Write)?;
+        self.candidate_zero.visit_maker(scope, 0)?;
+        self.candidate_one.visit_maker(scope, 1)?;
+        self.candidate_two.visit_maker(scope, 2)
+    }
+    fn venue(&self) -> &BorshAccount<Venue> { &self.identity.venue }
+    fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
+}

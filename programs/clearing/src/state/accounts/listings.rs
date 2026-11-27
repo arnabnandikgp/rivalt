@@ -115,3 +115,33 @@ impl From<&super::Market> for ListedFundingValues {
         }
     }
 }
+
+/// Read-only membership at fill time. Market IDs remain full u16 values, even
+/// when they are sparse. The per-market financial record has a separate PDA.
+#[account(borsh)]
+#[derive(InitSpace, Default)]
+pub struct ListedVenue {
+    pub schema_version: u16,
+    pub revision: u64,
+    pub venue: Address,
+    pub markets: [u16; 6],
+    pub count: u8,
+    pub bump: u8,
+}
+
+#[account(borsh)]
+#[derive(InitSpace, Default)]
+pub struct ListedMarketBook {
+    pub schema_version: u16,
+    pub revision: u64,
+    pub listing: Address,
+    pub gross_lots: u64,
+    pub collected_fees: u128,
+    pub insurance: u64,
+    pub fees: u64,
+    pub settlement: u64,
+    pub insurance_carry: u8,
+    pub bump: u8,
+}
+pub const LISTED_VENUE_PROFILE: u16 = 7;
+pub const LISTING_QUALIFICATION: u8 = 2;

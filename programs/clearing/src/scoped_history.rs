@@ -58,6 +58,7 @@ revisioned! {
     20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
     24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone, 27 => StorageTombstone,
     28 => MarketListing, 29 => ListedSymbol, 30 => ListingIndex, 31 => ListedFunding,
+    32 => ListedVenue, 33 => ListedMarketBook,
 }
 
 impl Revisioned for MarginAccount {
@@ -73,7 +74,7 @@ fn schema_for_kind(kind: u8) -> Result<u16> {
     match kind {
         0..=10 | 13..=16 => Ok(SCHEMA_VERSION),
         17..=27 => Ok(SETTLEMENT_SCHEMA),
-        28..=31 => Ok(LISTING_SCHEMA),
+        28..=33 => Ok(LISTING_SCHEMA),
         _ => Err(ClearingError::Profile.into()),
     }
 }
@@ -96,6 +97,8 @@ struct Entry {
 pub(crate) struct Scope {
     #[cfg(feature = "maintained-coverage")]
     coverage: crate::shadow_coverage::maintenance::Changes,
+    #[cfg(feature = "listed-margin-storage")]
+    listed_margin_write: bool,
     selected_makers: Option<MakerAccess>,
     #[cfg(feature = "read-only-route-market")]
     venue_mode: Option<u8>,
@@ -112,6 +115,8 @@ impl Scope {
         Self {
             #[cfg(feature = "maintained-coverage")]
             coverage: Default::default(),
+            #[cfg(feature = "listed-margin-storage")]
+            listed_margin_write: false,
             entries: Vec::with_capacity(limit), limit, cursor: None, selected_makers: None,
             #[cfg(feature = "read-only-route-market")] venue_mode: None }
     }
@@ -197,7 +202,7 @@ impl Scope {
         access: Access,
     ) -> Result<()> {
         #[cfg(feature = "listed-margin-storage")]
-        if T::KIND == MarginAccount::KIND && (access != Access::Create || self.cursor.is_some()) {
+        if !self.listed_margin_write && T::KIND == MarginAccount::KIND && (access != Access::Create || self.cursor.is_some()) {
             let view = account.account().clone();
             if view.data_len() != MARGIN_ALLOCATION {
                 // Read-only wrappers already allow a shared read. RC2 writable
@@ -219,6 +224,11 @@ impl Scope {
         #[cfg(feature = "maintained-coverage")]
         if access != Access::Read {
             if let Some(root) = account.coverage_root() {
+                #[cfg(feature = "listed-margin-storage")]
+                if !self.listed_margin_write {
+                self.coverage.capture(*account.address(), root, self.cursor.is_some())?;
+                }
+                #[cfg(not(feature = "listed-margin-storage"))]
                 self.coverage.capture(*account.address(), root, self.cursor.is_some())?;
             }
         }
@@ -631,7 +641,7 @@ pub(crate) fn economic_accounts<T: Bumps>(ctx: &mut Context<T>) -> Result<Vec<Ac
 /// before/after the handler, including optional and nested account declarations.
 pub(crate) trait ScopedContext: Bumps {
     fn visit(&mut self, scope: &mut Scope) -> Result<()>;
-    fn venue(&self) -> (Address, [u8; 32]);
+    fn venue(&self) -> &BorshAccount<Venue>;
     fn event_authority(&self) -> AccountView;
 }
 
@@ -833,6 +843,13 @@ fn run_with_remaining<'context, T: ScopedContext>(
     };
     #[cfg(not(feature = "book-inventory-qualification"))]
     let mut scope = Scope::new();
+    #[cfg(feature = "listed-venue-execution")]
+    if context.accounts.venue().profile_version == LISTED_VENUE_PROFILE {
+        use crate::instructions::maker_liquidity::routes::listed_venue;
+        require!(listed_venue::permits(instruction), ClearingError::Profile);
+        scope.listed_margin_write = instruction == listed_venue::FILL;
+        require!(coverage_lanes.is_empty(), ClearingError::Profile);
+    }
     if let Remaining::SelectedMakers(selected) = access {
         scope.selected_makers = Some(selected);
     }
@@ -864,7 +881,8 @@ fn run_with_remaining<'context, T: ScopedContext>(
     scope.cursor = Some(0);
     context.accounts.visit(&mut scope)?;
     access.visit(&mut scope, &mut remaining)?;
-    let (venue, domain) = context.accounts.venue();
+    let venue_account = context.accounts.venue();
+    let (venue, domain) = (*venue_account.address(), venue_account.domain);
     #[cfg(feature = "maintained-coverage")]
     scope.coverage.commit(venue, &coverage_lanes)?;
     let event = scope.finish(

@@ -4092,6 +4092,230 @@
       ]
     },
     {
+      "name": "begin_listed_qualification",
+      "discriminator": [
+        46,
+        56,
+        66,
+        151,
+        91,
+        75,
+        179,
+        201
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "venue"
+          ]
+        },
+        {
+          "name": "venue",
+          "writable": true,
+          "relations": [
+            "safety",
+            "listing",
+            "registry"
+          ]
+        },
+        {
+          "name": "safety",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "listing",
+          "writable": true,
+          "relations": [
+            "funding"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "funding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  101,
+                  100,
+                  45,
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "directory",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  101,
+                  100,
+                  45,
+                  118,
+                  101,
+                  110,
+                  117,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "book",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  101,
+                  100,
+                  45,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "begin_recovery_provision",
       "discriminator": [
         135,
@@ -12687,6 +12911,360 @@
           "type": {
             "defined": {
               "name": "LiquidityRouteIntent"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_listed_market_order",
+      "discriminator": [
+        250,
+        20,
+        51,
+        83,
+        229,
+        130,
+        125,
+        143
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "signer": true
+        },
+        {
+          "name": "venue",
+          "relations": [
+            "safety",
+            "btc",
+            "eth"
+          ]
+        },
+        {
+          "name": "safety",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  97,
+                  102,
+                  101,
+                  116,
+                  121,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "btc",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  0
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "eth",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  118,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "venue"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  1
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "directory"
+        },
+        {
+          "name": "listing",
+          "relations": [
+            "book",
+            "funding"
+          ]
+        },
+        {
+          "name": "book",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  101,
+                  100,
+                  45,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "funding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  101,
+                  100,
+                  45,
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  45,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "listing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true
+        },
+        {
+          "name": "zero_capital",
+          "writable": true
+        },
+        {
+          "name": "zero_registration",
+          "writable": true
+        },
+        {
+          "name": "zero_program",
+          "docs": [
+            "CHECK: the sealed registration binds the executable and its approved code."
+          ]
+        },
+        {
+          "name": "zero_program_data"
+        },
+        {
+          "name": "zero_config",
+          "docs": [
+            "CHECK: clearing authenticates the maker-owned curve, price and current authority."
+          ]
+        },
+        {
+          "name": "zero_price",
+          "docs": [
+            "CHECK: a fixed read-only maker PDA bound to the curve."
+          ]
+        },
+        {
+          "name": "one_capital",
+          "writable": true
+        },
+        {
+          "name": "one_registration",
+          "writable": true
+        },
+        {
+          "name": "one_program",
+          "docs": [
+            "CHECK: the sealed registration binds the executable and its approved code."
+          ]
+        },
+        {
+          "name": "one_program_data"
+        },
+        {
+          "name": "one_config",
+          "docs": [
+            "CHECK: clearing authenticates the maker-owned curve, price and current authority."
+          ]
+        },
+        {
+          "name": "one_price",
+          "docs": [
+            "CHECK: a fixed read-only maker PDA bound to the curve."
+          ]
+        },
+        {
+          "name": "two_capital",
+          "writable": true
+        },
+        {
+          "name": "two_registration",
+          "writable": true
+        },
+        {
+          "name": "two_program",
+          "docs": [
+            "CHECK: the sealed registration binds the executable and its approved code."
+          ]
+        },
+        {
+          "name": "two_program_data"
+        },
+        {
+          "name": "two_config",
+          "docs": [
+            "CHECK: clearing authenticates the maker-owned curve, price and current authority."
+          ]
+        },
+        {
+          "name": "two_price",
+          "docs": [
+            "CHECK: a fixed read-only maker PDA bound to the curve."
+          ]
+        },
+        {
+          "name": "event_authority",
+          "docs": [
+            "CHECK: Only the event authority can invoke self-CPI"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "docs": [
+            "CHECK: Kept for v1-compatible account ordering and IDL shape"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "BestRouteIntent"
             }
           }
         }
@@ -29459,6 +30037,19 @@
       ]
     },
     {
+      "name": "ListedMarketBook",
+      "discriminator": [
+        176,
+        170,
+        169,
+        207,
+        45,
+        240,
+        31,
+        237
+      ]
+    },
+    {
       "name": "ListedSymbol",
       "discriminator": [
         77,
@@ -29469,6 +30060,19 @@
         190,
         39,
         92
+      ]
+    },
+    {
+      "name": "ListedVenue",
+      "discriminator": [
+        21,
+        175,
+        38,
+        128,
+        218,
+        249,
+        168,
+        152
       ]
     },
     {
@@ -30355,6 +30959,45 @@
         57,
         117,
         208
+      ]
+    },
+    {
+      "name": "ListedMarginChanged",
+      "discriminator": [
+        37,
+        145,
+        153,
+        96,
+        104,
+        189,
+        231,
+        99
+      ]
+    },
+    {
+      "name": "ListedRouteFilled",
+      "discriminator": [
+        119,
+        163,
+        25,
+        203,
+        23,
+        9,
+        212,
+        19
+      ]
+    },
+    {
+      "name": "ListedVenueOpened",
+      "discriminator": [
+        121,
+        125,
+        126,
+        187,
+        13,
+        122,
+        97,
+        35
       ]
     },
     {
@@ -34891,6 +35534,175 @@
       }
     },
     {
+      "name": "ListedMarginChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "margin",
+            "type": "pubkey"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "MarginAccountSnapshot"
+              }
+            }
+          },
+          {
+            "name": "positions",
+            "docs": [
+              "Exact populated directory only (header + occupied records), no empty capacity."
+            ],
+            "type": {
+              "vec": "u8"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedMarketBook",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          },
+          {
+            "name": "listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "collected_fees",
+            "type": "u128"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "fees",
+            "type": "u64"
+          },
+          {
+            "name": "settlement",
+            "type": "u64"
+          },
+          {
+            "name": "insurance_carry",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedRouteFilled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "lots",
+            "type": "u64"
+          },
+          {
+            "name": "gross",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "gross_lots",
+            "type": "u64"
+          },
+          {
+            "name": "insurance",
+            "type": "u64"
+          },
+          {
+            "name": "retained_fees",
+            "type": "u64"
+          },
+          {
+            "name": "insurance_carry",
+            "type": "u8"
+          },
+          {
+            "name": "legs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ExecutedLeg"
+                }
+              }
+            }
+          },
+          {
+            "name": "funding",
+            "type": {
+              "defined": {
+                "name": "ListedFundingValues"
+              }
+            }
+          },
+          {
+            "name": "inline_markets",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MarketSnapshot"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "ListedSymbol",
       "type": {
         "kind": "struct",
@@ -34910,6 +35722,103 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedVenue",
+      "docs": [
+        "Read-only membership at fill time. Market IDs remain full u16 values, even",
+        "when they are sparse. The per-market financial record has a separate PDA."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u16"
+          },
+          {
+            "name": "revision",
+            "type": "u64"
+          },
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "markets",
+            "type": {
+              "array": [
+                "u16",
+                6
+              ]
+            }
+          },
+          {
+            "name": "count",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ListedVenueOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "venue",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "safety_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "listing",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_id",
+            "type": "u16"
+          },
+          {
+            "name": "directory",
+            "type": "pubkey"
+          },
+          {
+            "name": "directory_bump",
+            "type": "u8"
+          },
+          {
+            "name": "book",
+            "type": "pubkey"
+          },
+          {
+            "name": "book_bump",
+            "type": "u8"
+          },
+          {
+            "name": "funding",
+            "type": "pubkey"
+          },
+          {
+            "name": "values",
+            "type": {
+              "defined": {
+                "name": "ListedFundingValues"
+              }
+            }
           }
         ]
       }
