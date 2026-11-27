@@ -170,6 +170,8 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, listed maker directory (Review).** On clearing `a3a2c3cb` and harness `6b0a53ab`, the venue sealed three independently funded SOL capitals from both internal maker programs. RPC discovery returned all three. The seal used 20,589 CU and touched no financial balances. Six invalid seal attempts refused. Independent PostgreSQL replay matched 122 financial events across 297 signed transactions. SOL index sampling continued after sealing. The venue still refused SOL orders and filled BTC. [Directory contract](liquidity/quoting.md)
 
+**Finding 11, listed-market funding source (Review).** On clearing `b609e3e8` and harness `49817c63`, two registered SOL curves supplied both sides of a 40,000-lot impact report at an independent index of 150. The signed report used 23,126 CU. After publisher rotation, a 151 midpoint produced the capped premium of 0.75 atoms per lot. The inactive listing accrued zero funding and venue cash stayed unchanged. Fresh PostgreSQL replay matched 127 financial events across 311 signed transactions. [Listed-market funding](liquidity/funding.md#funding-for-a-sealed-listing)
+
 **Next action.** Bind wider positions and custody to the venue so every risk check and default reads the same occupied market IDs. Qualify an actual listed-market fill followed by whole-book settlement and owner withdrawal before enabling wider trading.
 
 | Open gate | What remains |

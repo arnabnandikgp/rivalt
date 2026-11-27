@@ -234,3 +234,5 @@ Use the `venue-default-application` program artifact and `RIVALT_SETTLEMENT_PROB
 The same signed workload repeats the [unequal forced-volume comparison](qualification-scorecard.md#forced-volume-by-market) across both episodes. Check the amount paid to each creditor, which allocation was refused and the per-market lot counts in the independent reference.
 
 The local `execution-router-listed-directory` probe funds three SOL maker capitals and checks directory completeness, authority, replays, SDK discovery, post-seal index observations and continued BTC trading. At clearing `a3a2c3cb` and harness `6b0a53ab`, the signed seal used 538 bytes, 12 keys and 20,589 CU. See [current acceptance](../STATUS.md).
+
+The `execution-router-listed-funding` probe independently checks SOL report size and gross amounts, the 50 bps premium cap, unavailable depth, oracle substitution, signer rotation, replay and unchanged venue cash. The 311-transaction run on clearing `b609e3e8` reconciled 127 financial events. [Contract and amounts](../liquidity/funding.md#funding-for-a-sealed-listing)
