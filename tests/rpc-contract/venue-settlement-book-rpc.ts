@@ -19,14 +19,14 @@ const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(process.en
   process.env.RIVALT_WS_URL!,directory,{deferFinality:true});
 try {
   const payer=await payerKey(),{h,members}=coverageProvisioning(transport,payer);
-  const setup=await liquidityExecutionSetup(h,rpc,{shape:symmetricPayoutShape,traderCount:1,
+  const setup=await liquidityExecutionSetup(h,rpc,{shape:symmetricPayoutShape,traderCount:1,makerCash:12_500n,
     recoveryCapacity:7,marginLayout:'ledger-lanes',marketCheckpoints:true,verifyRejections:false});
   const {route,root,withCheckpoints}=executionTestHelpers(h,setup);
   const owner=setup.traderOwner,[trader]=setup.roots,[makerA,makerB]=setup.instances;
   const roster=[trader,...setup.instances.map(maker=>maker.capital)];
   const identity={...setup.identity,closedQuantity:true,boundedEntry:true};
-  const capture=async(keys:Address[]=roster)=>{
-    const result=await sdk.readVenueSettlementBook(rpc,identity,keys);
+  const capture=async(keys:Address[]=roster,phase:'active-preview'|'frozen'='active-preview')=>{
+    const result=await sdk.readVenueSettlementBook(rpc,identity,keys,phase);
     const input=JSON.stringify(result.book)+'\n';
     const native=JSON.parse(execFileSync('target/debug/examples/market_settlement',{input,encoding:'utf8'}));
     const independent=JSON.parse(execFileSync('python3',['-c',
@@ -65,8 +65,27 @@ try {
   assert.deepEqual(funds(after),[[btc[0]+996n,btc[1]+6n,btc[2]+20n],eth]);
   assert.equal(after.book.vault,before.book.vault);
   assert.deepEqual(after.outcome.rows.map((row:{cash:string})=>row.cash),before.outcome.rows.map((row:{cash:string})=>row.cash));
+  await assert.rejects(()=>capture(roster,'frozen'),/Expected a newly valued/);
+  // Maker A still holds the short. Its 11,504 funded atoms cannot cover the new price.
+  setup.sourcePrices.btc=80_000_000_000n;
+  await setup.freshSources();
+  const [primaryBtc,primaryCollateral,guardBtc,guardCollateral,primaryEth,guardEth]=setup.feeds.map(f=>f.feed);
+  const safety=sdk.getVenueSafetyDecoder().decode((await h.read(setup.safety))!);
+  const header=sdk.getResolutionDecoder().decode((await h.read(setup.resolution))!);
+  const freeze=sdk.getFreezeAccountsInstruction({...setup.safetyCommon,caller:payer,target:makerA.capital,
+    members:(await sdk.deriveMemberPage(setup.venue,BigInt(ids[1])/64n))[0],
+    primaryBtc,primaryCollateral,guardBtc,guardCollateral,primaryEth,guardEth,
+    safetyEpoch:safety.epoch,resolutionEpoch:header.epoch,emergency:false});
+  await h.send('freeze insolvent short at independent BTC index',await withCheckpoints(freeze));
+  await flush();
+  const frozen=await capture(roster,'frozen');
+  assert.deepEqual(claims(frozen),[996n,-19_002n,19_002n].map(value=>value*scale));
+  assert.equal(frozen.episode,1n);
+  assert.equal(frozen.outcome.spent[0],frozen.book.markets[0].insurance);
+  assert.equal(frozen.outcome.spent[1],'0');
+  await assert.rejects(()=>capture(),/Expected an active venue/);
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   const replay=await journal.finish();
-  writeFileSync(directory+'/venue-book.json',json({program:build.revision,empty,before,after,transactions:checks.length,events:replay.events}));
+  writeFileSync(directory+'/venue-book.json',json({program:build.revision,empty,before,after,frozen,transactions:checks.length,events:replay.events}));
   console.log('Reconciled venue settlement inputs and unchanged terminal wallets across collection;',replay.events,'events.');
 } finally {await ws.close();}
