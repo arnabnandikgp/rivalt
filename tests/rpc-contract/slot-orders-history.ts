@@ -234,7 +234,7 @@ export async function replayOrders(rpc:WireRpc,program:Address,roots:Address[],v
       assert.equal(data[73],2); assert.deepEqual(data.subarray(476,508),appliedCommitment);
       assert.equal(data[508],indexed.result!.selected);
       for(let m=0;m<8;m++) {
-        const charge=BigInt(indexed.result!.charges[m]??0);
+        const charge:bigint=BigInt(indexed.result!.charges[m]??0);
         assert.equal(data.readBigUInt64LE(509+8*m),charge);
         // Every original signed position contributing to a forced close is a single lot.
         assert.equal(data.readBigUInt64LE(573+8*m),charge>0n?1n:0n);

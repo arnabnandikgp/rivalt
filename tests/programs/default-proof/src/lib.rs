@@ -3,9 +3,9 @@
 use anchor_lang::prelude::*;
 mod basis;
 mod coverage;
-#[cfg(feature = "signed-indexed-default")]
+// Anchor emits client account imports for all handlers, even feature-gated ones.
+#[cfg_attr(not(feature = "signed-indexed-default"), allow(dead_code))]
 mod indexed_default;
-#[cfg(feature = "signed-indexed-default")]
 use indexed_default::*;
 use coverage::*;
 mod mirror;
