@@ -31,8 +31,8 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
       clearing: {bytes:4344424,sha256:'df0290217b04dc5b944f5bacdbf2d82188a085eabf3e2af561ddde709f904809'},
     },
     'execution-router-listed-execution': {
-      artifactSet: LISTED_EXECUTION_ARTIFACT_SET, revision: 'edc0d21a10e4d088883a952db26ca7d10f9ef841',
-      clearing: {bytes:4504520,sha256:'3eefd0619f6759367525821b802a66af5a63de0877c5f514ff95734befde0d38'},
+      artifactSet: LISTED_EXECUTION_ARTIFACT_SET, revision: '48f78deccb83995950a83c640b8206fd21758477',
+      clearing: {bytes:4505216,sha256:'24ebbe95af57ee1fe908c4ddf7b62346ef654ffc392c2094cc51756c0c7b12a1'},
     },
     'execution-router-listed-margin': {
       artifactSet: LISTED_MARGIN_ARTIFACT_SET, revision: '0d8b70e0e45acf00f88509c08c74ff7c0252b4bd',

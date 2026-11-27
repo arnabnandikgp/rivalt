@@ -152,7 +152,7 @@ def check_domains():
     # The local payout observer owns PDAs under [coverage-lane, venue, member_id % 8].
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'coverage-lane'})
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) |
-        {'market-listing', 'listed-symbol', 'listing-index', 'listed-funding', '/USD', 'BTC', 'ETH'})
+        {'market-listing', 'listed-symbol', 'listing-index', 'listed-funding', 'listed-venue', 'listed-book', '/USD', 'BTC', 'ETH'})
     # The finalized SDK reader independently authenticates the existing on-chain registry hash.
     expected['sdk_hash_domains'] = sorted(set(expected['sdk_hash_domains']) | {'rivalt-financial-membership-v1'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
@@ -187,6 +187,37 @@ def undo_listed_maker_delta(actual, program):
             assert [(f['name'],f['type']) for f in remove('types',name)['type']['fields']]==fields
         def defined(name):
             return {'defined':{'name':name}}
+        candidates = [f'{ordinal}_{field}' for ordinal in ('zero','one','two')
+                      for field in ('capital','registration','program','program_data','config','price')]
+        financial = 'actor venue safety btc eth directory listing book funding registry trader'.split()
+        for name, keys, writes, signer, arguments in [
+            ('begin_listed_qualification',
+             'authority venue safety listing registry funding directory book system_program event_authority program'.split(),
+             set('authority venue safety listing funding directory book'.split()),'authority',[]),
+            ('execute_listed_market_order',financial+candidates+['event_authority','program'],
+             {'btc','eth','trader','book','funding'} | {key for key in candidates if key.endswith(('_capital','_registration'))},
+             'actor',[('args',defined('BestRouteIntent'))])]:
+            entry = remove('instructions',name)
+            assert entry['discriminator'] == disc('global',name)
+            assert [(arg['name'],arg['type']) for arg in entry['args']] == arguments
+            assert [(meta['name'],meta.get('writable',False),meta.get('signer',False),meta.get('optional',False))
+                    for meta in flatten(entry['accounts'])] == [(key,key in writes,key==signer,key in ('btc','eth')) for key in keys]
+        for category, namespace, names in [('accounts','account',['ListedVenue','ListedMarketBook']),
+                                          ('events','event',['ListedVenueOpened','ListedRouteFilled','ListedMarginChanged'])]:
+            for name in names:
+                assert remove(category,name)['discriminator'] == disc(namespace,name)
+        header = [('schema_version','u16'),('revision','u64')]
+        exact_fields('ListedVenue',header+[('venue','pubkey'),('markets',{'array':['u16',6]}),('count','u8'),('bump','u8')])
+        exact_fields('ListedMarketBook',header+[('listing','pubkey'),('gross_lots','u64'),('collected_fees','u128'),
+            ('insurance','u64'),('fees','u64'),('settlement','u64'),('insurance_carry','u8'),('bump','u8')])
+        event_header = [('venue','pubkey'),('slot','u64')]
+        exact_fields('ListedVenueOpened',event_header+[('safety_epoch','u64'),('listing','pubkey'),('market_id','u16'),
+            ('directory','pubkey'),('directory_bump','u8'),('book','pubkey'),('book_bump','u8'),('funding','pubkey'),
+            ('values',defined('ListedFundingValues'))])
+        exact_fields('ListedMarginChanged',event_header+[('margin','pubkey'),('state',defined('MarginAccountSnapshot')),('positions',{'vec':'u8'})])
+        exact_fields('ListedRouteFilled',event_header+[('listing','pubkey'),('trader','pubkey'),('side','u8'),
+            *[(key,'u64') for key in ('lots','gross','fee','gross_lots','insurance','retained_fees')],('insurance_carry','u8'),
+            ('legs',{'vec':defined('ExecutedLeg')}),('funding',defined('ListedFundingValues')),('inline_markets',{'vec':defined('MarketSnapshot')})])
         exact_fields('ListedFunding',[('schema_version','u16'),('revision','u64'),('listing','pubkey'),
             ('values',defined('ListedFundingValues')),('bump','u8')])
         exact_fields('ListedFundingValues',[('observation_sequence','u64'),('funding_index_scaled','i128'),('funding_time','i64'),
