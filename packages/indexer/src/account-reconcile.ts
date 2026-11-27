@@ -77,6 +77,10 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   }
   for(const [key,value] of Object.entries(state.markets))await expect(key,sdk.deriveAccountMarket(venue,value.index,program),sdk.getMarketDecoder(),sdk.MARKET_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.ledgers))await expect(key,sdk.deriveMarketLedger(address(value.market),program),sdk.getMarketLedgerDecoder(),sdk.MARKET_LEDGER_DISCRIMINATOR,value);
+  for(const [key,value] of Object.entries(state.listingIndices??{})) {
+    await expect(key,sdk.findListingIndexPda({listing:address(value.listing)},{programAddress:program}),
+      sdk.getListingIndexDecoder(),sdk.LISTING_INDEX_DISCRIMINATOR,value);
+  }
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioDecoder(),sdk.PORTFOLIO_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.roots))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.subaccountIndex,program),sdk.getMarginAccountDecoder(),sdk.MARGIN_ACCOUNT_DISCRIMINATOR,value);
   for(const [key,value]of Object.entries(state.tombstones))await expect(key,sdk.deriveMarginAccount(address(value.portfolio),value.child,program),sdk.getMarginTombstoneDecoder(),sdk.MARGIN_TOMBSTONE_DISCRIMINATOR,value);

@@ -36,6 +36,7 @@ export type AccountState = {
   storageTombstones:Record<string,Fields<sdk.StorageTombstone>>; members:string[]; portfolios:Record<string,Fields<sdk.Portfolio>>;
   roots:Record<string,AccountRoot>; markets:Record<string,AccountMarket>;
   listings?:Record<string,Fields<sdk.MarketListing>>;
+  listingIndices?:Record<string,Fields<sdk.ListingIndex>>;
   listedSymbols?:Record<string,Fields<sdk.ListedSymbol>>;
   ledgers:Record<string,Fields<sdk.MarketLedger>>;
   backing:Record<string,Fields<sdk.SettlementCertificate>>;
@@ -105,8 +106,31 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     values.forEach(value=>market(value));
   };
   switch(event.type) {
+    case 'ListingIndexChanged': {
+      const listing=state.listings?.[change.listing];
+      accountCheck(artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET && listing?.status===0 &&
+        change.sources[0]===listing.oracleFeed && new Set(change.sources).size===4,'listed index sources');
+      state.listingIndices??={};
+      const previous=state.listingIndices[change.index];
+      if(previous) {
+        equal(previous.listing,change.listing,'index listing');
+        equal(previous.sources,change.sources,'immutable listing sources');
+        accountCheck(BigInt(change.sampledAt)>BigInt(previous.sampledAt) &&
+          BigInt(change.deadline)>BigInt(change.sampledAt) && BigInt(change.lower)>0n &&
+          BigInt(change.lower)<=BigInt(change.reference) && BigInt(change.reference)<=BigInt(change.upper) &&
+          change.sourceSequences.every((seq:string,i:number)=>BigInt(seq)>0n && BigInt(seq)>=BigInt(previous.sourceSequences[i])) &&
+          change.sourceSequences.some((seq:string,i:number)=>seq!==previous.sourceSequences[i]),'qualified listing observation');
+      } else {
+        accountCheck([change.sampledAt,change.deadline,change.reference,change.lower,change.upper,...change.sourceSequences]
+          .every(value=>value==='0'),'empty listing index at binding');
+      }
+      state.listingIndices[change.index]={schemaVersion:1,revision:previous?.revision??'0',listing:change.listing,
+        sources:change.sources,sourceSequences:change.sourceSequences,sampledAt:change.sampledAt,deadline:change.deadline,
+        reference:change.reference,lower:change.lower,upper:change.upper};
+      break;
+    }
     case 'MarketListingRegistered': {
-      accountCheck(artifactSet===sdk.INACTIVE_LISTING_ARTIFACT_SET && change.status===0 &&
+      accountCheck((artifactSet===sdk.INACTIVE_LISTING_ARTIFACT_SET || artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET) && change.status===0 &&
         change.marketId>=2 && change.quoteMint===currentVenue().quoteMint && BigInt(change.lotsPerUnit)>0n,
         'inactive market listing identity');
       state.listings??={};
