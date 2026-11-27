@@ -174,7 +174,9 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, funded wider margin storage (Review).** On clearing `0d8b70e0` and harness `11a502cd`, one owner held a one-lot BTC long and ten-lot ETH short on the 1,705-byte cross root. The same wallet withdrew 959,945 atoms and kept the independently calculated 39,982-atom margin requirement. Withdrawing one extra atom refused. Three funded SOL maker roots reserved one listed record each. The wider records were empty throughout. PostgreSQL replay matched 145 financial events across 318 signed transactions. [Storage contract](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
 
-**Next action.** Connect a fill against the sealed SOL maker directory to the stored listed positions and whole-account admission. Exercise the fill on the same funded BTC/ETH cross root in qualification, then verify default and owner withdrawals on that wider venue before enabling SOL order entry.
+**Finding 11, listed fill admission (in development).** Native clearing revision `38f25daf` passed 30 focused cash and route tests. With one BTC and one ETH position already open, buying ten listed lots at 152 against an index of 150 required 226 cash atoms including the fee. At 225 the fill refused. A separate two-maker case charged one aggregate fee, admitted both funded makers, and refused the candidate when one maker was an atom short. These are native results. The last signed venue run is [PR #246](https://github.com/arnabnandikgp/rivalt/pull/246), with an empty listed directory on the trader.
+
+**Next action.** Wire the listed quote and admission to the gated venue instruction, then land a signed SOL fill on the funded BTC/ETH root. Complete wider default, creditor withdrawals and independent replay before enabling general SOL order entry.
 
 | Open gate | What remains |
 |---|---|
