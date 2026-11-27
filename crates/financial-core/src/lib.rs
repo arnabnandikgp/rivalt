@@ -11,7 +11,7 @@ pub mod liquidity;
 pub mod margin;
 pub mod oracle;
 pub use clearing_accounting::price_policy;
-pub use risk_engine::orders;
+pub use risk_engine::{orders, withdrawal};
 pub mod route;
 pub mod settlement;
 

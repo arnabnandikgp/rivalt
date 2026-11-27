@@ -1,5 +1,5 @@
-//! Native width comparison for a cross account after funding accrual and order refresh.
-//! Clearing supplies the complete occupied slot list. No instruction calls this candidate.
+//! Cash required to withdraw from a margin account after funding accrual and order refresh.
+//! Clearing supplies the complete occupied slot list and authenticates its market data.
 use crate::{margin_atoms, Risk, IM_BPS};
 use clearing_accounting::{
     add, cash_add, scaled, sub, Error, Position, Result, MAX_CASH, MAX_FUNDING,
