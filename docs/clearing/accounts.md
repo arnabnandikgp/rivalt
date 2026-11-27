@@ -72,6 +72,16 @@ write a listed position. The reservation of six records describes physical
 capacity. Signed SOL execution and eight-market trading have separate gates.
 [Market slot encoding](../../crates/clearing-accounting/src/market_slots/storage.rs)
 
+The separate `listed-venue-execution` qualification build lets the venue
+authority move a fresh funded venue into profile 7. The transition requires
+a sealed maker directory and configured funding for the listing, increments
+the venue and safety epochs, and closes the previous funding interval. The
+profile accepts the listed market order, the base market checkpoint and the
+two funding publication instructions. This gate also applies to legacy
+instructions that could otherwise pay a different account in the same venue.
+Wider cash access and default need their own signed acceptance before general
+trading can open. [Current qualification](../STATUS.md)
+
 ## Follow a deposit
 
 1. An owner creates a portfolio and registers a child margin-account PDA. The owner, portfolio index and child index identify actual accounts. The portfolio holds the namespace. Cash, positions, orders and obligations belong to the margin account.

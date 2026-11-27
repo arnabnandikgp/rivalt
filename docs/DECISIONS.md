@@ -86,3 +86,13 @@ one owner each. A two-market consumer may use a wider root only when the
 appendix is empty. Integrating a listed fill also requires venue-wide protection
 for payout and default instructions that can act without reading that root.
 [Account layout and limits](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+
+### 28 November 2026 · Isolate funded wider execution during qualification
+
+Activating listed trading changes which assets can create liabilities against
+the common vault. A check on the traded margin account alone leaves a legacy
+payout to a different creditor reachable. The venue authority therefore selects
+a dedicated profile for the entire local venue, invalidating prior signed
+intents and requiring fresh funding observations. Each financial instruction
+enters the profile's allowlist after it can account for the wider book.
+The trader and makers retain their existing funded accounts. [Qualification boundary](clearing/accounts.md#listed-markets-on-the-funded-margin-account)

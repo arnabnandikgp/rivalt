@@ -38,7 +38,7 @@ export class CanonicalConformance {
         const decoded = canonicalValue(implementation[`get${upper(name)}InstructionDataDecoder`]().decode(instruction.data));
         // Codama flattens an Anchor instruction's single `args` struct. Rebuild
         // that argument for the independently isolated Anchor encoder.
-        const args = definition.args.length === 1 && definition.args[0].name === 'args'
+        const args = definition.args.length === 1 && definition.args[0].name === 'args' && !Object.hasOwn(decoded,'args')
           ? { args: decoded } : decoded;
         let offset = 0;
         const accountTree = (definitions: any[]): any => Object.fromEntries(definitions.map(account => {

@@ -190,11 +190,14 @@ try {
     assert.deepEqual(slots.records.map(({market,lots,virtualScaled})=>[market,lots,virtualScaled]),[[2,10n,-1520n*1_000_000_000n]]);
     assert.equal(replay.state.listedBooks?.[executed.book]?.grossLots,'20');
   }
-  const result={executed,wider,published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
+  const executedOrder=executed && {trader:executed.trader,listing,book:executed.book,directory:executed.directory,
+    cash:executed.cash,lots:executed.lots,gross:executed.gross,fee:executed.fee,inlineLots:executed.inlineLots,
+    receipt:checks.find(row=>row.label==='listed trade signed SOL buy beside BTC and ETH')};
+  const result={executed:executedOrder,wider,published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
     bytes:(await h.read(indexProbe.listingIndex))!.length,receipts:checks.filter(row=>!row.error &&
       (row.label==='bind SOL index'||String(row.label).startsWith('SOL sample ')))}:undefined,program:build.revision,harness:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     transactions:checks.length,events:replay.events,registration:accepted,listingBytes:(await h.read(listing))!.length,
     symbolBytes:(await h.read(binding))!.length,rejections:checks.filter(row=>row.error).map(row=>({label:row.label,error:row.error}))};
   writeFileSync(directory+'/listing-result.json',json(result));
-  console.log('Reconciled one inactive SOL listing and the BTC fill;',replay.events,'events.');
+  console.log(executed?'Reconciled the funded SOL fill alongside BTC and ETH.':'Reconciled the inactive SOL listing and the BTC fill.',replay.events,'events.');
 } finally {await ws.close();}

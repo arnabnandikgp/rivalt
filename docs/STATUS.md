@@ -178,7 +178,9 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, venue integration in progress.** Clearing `edc0d21a` built for SBF and its signed local activation landed. On harness `46d0dba9`, a seven-second sampling gap reset SOL oracle recovery. Harness `c5fee4af` maintained continuous BTC, ETH and SOL observations and reached Normal on all three. The first SOL order then failed simulation before execution because the listed-margin loader accessed an Anchor account while its borrow guard was released. The failed simulation supplies no fill or payout evidence.
 
-**Next action.** Repeat the funded three-market order on the corrected loader, compare the landed trader, maker and fee accounts with independent PostgreSQL replay, then qualify wider cash access, default and creditor exits before general SOL order entry.
+**First funded three-market venue fill (local candidate).** Clearing `48f78dec` and harness `9b9acc9f` landed a signed ten-lot SOL buy at 152 atoms per lot on the same account as a one-lot BTC long and a ten-lot ETH short. A separately owned SOL maker took all ten opposing lots. The single venue fee was one atom, and the vault balance stayed constant. At slot 2,775 the complete order and both BTC/ETH checkpoints consumed 536,513 CU. Omitting the ETH risk account refused and preserved the funded balances. The finalized RPC and WebSocket receipts agree on the successful fill. A double-wrapped argument in the isolated Anchor test harness initially stopped further checks. Re-encoding the saved instructions with the corrected adapter passed for both clients.
+
+**Next action.** Finish fresh PostgreSQL replay against the funded three-market book, then qualify wider cash access, default and creditor exits before general SOL order entry.
 
 | Open gate | What remains |
 |---|---|
