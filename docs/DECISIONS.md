@@ -96,3 +96,10 @@ a dedicated profile for the entire local venue, invalidating prior signed
 intents and requiring fresh funding observations. Each financial instruction
 enters the profile's allowlist after it can account for the wider book.
 The trader and makers retain their existing funded accounts. [Qualification boundary](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+
+The cash-access qualification extends that allowlist to owner withdrawals and
+same-owner transfers. Clearing derives the required funding sources from the
+open positions on both sides of a transfer. It still charges flat debt and
+checks the donor's full current and held-window requirements. The legacy
+two-market payout and default instructions stay gated on this profile.
+[Cash access contract](clearing/accounts.md#cash-access-on-the-funded-listed-market-qualification-venue)

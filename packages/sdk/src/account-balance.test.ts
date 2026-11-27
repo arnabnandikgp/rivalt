@@ -164,3 +164,35 @@ it('decodes a fractional listed-market debt and refuses a two-market view of it'
   directory[directory.length-1]=1;
   expect(()=>sdk.decodeListedMargin(bytes())).toThrow();
 });
+
+it('derives cash inputs from both funded accounts in full market-ID order',async()=>{
+  const {root}=await fixture();
+  Object.assign(root,{mode:0,role:0,isolatedMarketIndex:255,lifecycle:2});
+  const prefix=Buffer.concat([Buffer.from(sdk.getMarginAccountEncoder().encode(root)),Buffer.from('RVPROF03'),Buffer.alloc(80)]);
+  const margin=(markets:number[])=>{
+    const directory=Buffer.alloc(18+6*98);
+    directory.write('RVMKTS01');
+    directory.writeBigUInt64LE(BigInt(markets.length),8);
+    directory.writeUInt16LE(markets.length,16);
+    for(const [i,market] of markets.entries()) {
+      const offset=18+i*98;
+      directory.writeUInt16LE(market,offset);
+      directory.writeBigUInt64LE(BigInt(i+1),offset+2);
+      directory.writeBigInt64LE(1n,offset+10);
+      const entry=offset+58;
+      directory.writeBigUInt64LE(152n*scale,entry);
+      directory.writeBigUInt64LE(152n*scale,entry+16);
+      directory.writeBigUInt64LE(1n,entry+32);
+    }
+    return Buffer.concat([prefix,directory]);
+  };
+  const expected=[];
+  for(const marketId of [2,258,65535]) {
+    const [listing]=await sdk.findListingPda({venue:root.venue,marketId});
+    const [funding]=await sdk.findFundingPda({listing});
+    expected.push({address:listing,role:0},{address:funding,role:1});
+  }
+  expect(await sdk.listedCashSourceAccounts(root.venue,[margin([258,65535]),margin([2,258])])).toEqual(expected);
+  await expect(sdk.listedCashSourceAccounts(root.venue,[prefix])).rejects.toThrow();
+  await expect(sdk.listedCashSourceAccounts(sdk.CLEARING_PROGRAM_ADDRESS,[margin([2])])).rejects.toThrow();
+});

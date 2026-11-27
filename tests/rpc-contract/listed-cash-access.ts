@@ -18,7 +18,7 @@ export async function qualifyListedCash(h:CanonicalHarness,setup:Awaited<ReturnT
   const watched=[trader,recipient,vault,wallet,setup.common.custody,...markets,published.funding,listing];
   const snapshot=()=>Promise.all(watched.map(raw));
   const refresh=async()=>{await setup.sample();await published.sampleActive();};
-  const identity={...setup.common,btc:markets[0],eth:markets[1],owner};
+  const identity={...setup.common,btc:markets[0],eth:markets[1],btcLedger:undefined,ethLedger:undefined,owner};
   const signed: [string,Instruction][]=[];
   await refresh();
   const before=sdk.decodeListedMargin(await raw(trader));
@@ -41,6 +41,7 @@ export async function qualifyListedCash(h:CanonicalHarness,setup:Awaited<ReturnT
   async function movement(from:Address,amount:bigint,to?:Address) {
     const ix=to?sdk.getTransferFundedAccountInstruction({...identity,donor:from,recipient:to,guard:await guard(from),amount}):
       sdk.getWithdrawFundedAccountInstruction({...identity,margin:from,userToken:wallet,quoteMint:setup.mint.address,guard:await guard(from),amount});
+    assert(ix.accounts.every(meta=>!setup.ledgers.includes(meta.address)),'legacy fee ledgers in wider cash movement');
     const dynamic=await sdk.listedCashSourceAccounts(venue,await Promise.all((to?[from,to]:[from]).map(raw)));
     assert.deepEqual(dynamic.map(meta=>meta.address),[listing,published.funding]);
     return {...ix,accounts:[...ix.accounts,...dynamic]};

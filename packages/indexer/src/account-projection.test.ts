@@ -105,3 +105,39 @@ describe('per-market fractional accounting',()=>{
     expect(()=>reconcileAccountLedger(current)).toThrow(/cash conservation|root cash/);
   });
 });
+
+it('reconstructs listed cash funding and rejects a changed position or funding endpoint',()=>{
+  const create=()=>{
+    const current=state();
+    current.venue!.profileVersion=7;
+    current.listings={sol:{...blank(sdk.getMarketListingDecoder()),venue,status:2,marketId:258}};
+    const funding=blank(sdk.getListedFundingDecoder());
+    Object.assign(funding,{listing:'sol',revision:'1'});
+    Object.assign(funding.values,{fundingTime:'100',fundingIndexScaled:'1'});
+    Object.assign(funding.values.oracle,{heldEpoch:'1',sampledAt:'100',heldUntil:'106',heldSlot:'20',
+      fundingBase:'1',premiumScaled:'7200'});
+    current.listedFunding={funding};
+    const packed=Buffer.alloc(18+98);
+    packed.write('RVMKTS01');packed.writeBigUInt64LE(1n,8);packed.writeUInt16LE(1,16);
+    packed.writeUInt16LE(258,18);packed.writeBigUInt64LE(1n,20);packed.writeBigInt64LE(2n,28);
+    packed.writeBigUInt64LE(1n,52);
+    for(const offset of [76,92])packed.writeBigUInt64LE(304_000_000_000n,offset);
+    packed.writeBigUInt64LE(2n,108);
+    current.listedPositions={debtor:packed.toString('hex')};
+    return {current,packed};
+  };
+  const apply=(fundingIndex:bigint,virtual:bigint)=>{
+    const {current,packed}=create();
+    // At second 105, an index starting at 1 grows by 7200*5/3600=10.
+    // A long of two lots owes 20 scaled units; its entry cost is preserved.
+    packed.writeBigInt64LE(virtual,36);packed.writeBigInt64LE(virtual<0n?-1n:0n,44);
+    packed.writeBigInt64LE(fundingIndex,52);
+    projectAccounts(current,event('ListedCashAccrued',{roots:[{margin:'debtor',positions:packed.toString('hex')}],
+      checkpoints:[{market:258,funding:'funding',fundingTime:'105',fundingIndexScaled:String(fundingIndex)}]}),
+      venue,domain,4,sdk.LISTED_CASH_ARTIFACT_SET);
+    return current;
+  };
+  expect(apply(11n,-20n).listedFunding?.funding.values.fundingTime).toBe('105');
+  expect(()=>apply(10n,-18n)).toThrow(/held funding endpoint/);
+  expect(()=>apply(11n,-19n)).toThrow(/cash preserves lots/);
+});
