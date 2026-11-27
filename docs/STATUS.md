@@ -168,6 +168,8 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, forced volume by market (Review).** On `8b23c8f1`, both frozen episodes chose three BTC lots and one ETH lot over three BTC lots and two ETH lots, recovering six atoms with equal insurance. All four signed equal- and unequal-volume comparisons matched the independent model. Five owners on the separate funded fixture withdrew their full balances. PostgreSQL replay matched 74 receipts. [Costs and scope](operations/qualification-scorecard.md#forced-volume-by-market)
 
+**Finding 11, listed maker directory (Review).** On clearing `a3a2c3cb` and harness `6b0a53ab`, the venue sealed three independently funded SOL capitals from both internal maker programs. RPC discovery returned all three. The seal used 20,589 CU and touched no financial balances. Six invalid seal attempts refused. Independent PostgreSQL replay matched 122 financial events across 297 signed transactions. SOL index sampling continued after sealing. The venue still refused SOL orders and filled BTC. [Directory contract](liquidity/quoting.md)
+
 **Next action.** Bind wider positions and custody to the venue so every risk check and default reads the same occupied market IDs. Qualify an actual listed-market fill followed by whole-book settlement and owner withdrawal before enabling wider trading.
 
 | Open gate | What remains |
