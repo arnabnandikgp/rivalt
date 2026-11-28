@@ -1,20 +1,6 @@
 name: Scoped PR checks
 on:
   pull_request:
-    paths:
-      - '.github/workflows/**'
-      - 'apps/**'
-      - 'packages/**'
-      - 'crates/**'
-      - 'programs/**'
-      - 'tests/**'
-      - 'ops/**'
-      - 'scenarios/**'
-      - 'Cargo.*'
-      - 'rust-toolchain.toml'
-      - 'package.json'
-      - 'pnpm-*.yaml'
-      - 'tsconfig.json'
 permissions:
   contents: read
 concurrency:
@@ -27,6 +13,7 @@ jobs:
     outputs:
       client: ${{ steps.scope.outputs.client }}
       financial: ${{ steps.scope.outputs.financial }}
+      probes: ${{ steps.scope.outputs.probes }}
       report: ${{ steps.scope.outputs.report }}
       shell: ${{ steps.scope.outputs.shell }}
     steps:
@@ -44,7 +31,7 @@ jobs:
         run: python3 ops/ci-scope.py
   client:
     needs: scope
-    if: needs.scope.outputs.client == 'true'
+    if: needs.scope.outputs.client != 'none'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -59,15 +46,28 @@ jobs:
       - run: pnpm --dir tests/anchor-conformance install --frozen-lockfile
       - run: pnpm --dir tests/anchor-rc2-conformance install --frozen-lockfile
       - run: node ops/local-keys.mjs
-      - run: pnpm generate:check
+      - if: needs.scope.outputs.client == 'full'
+        run: pnpm generate:check
       - run: pnpm typecheck
-      - run: node --import tsx tests/performance/inventory.ts
-      - run: pnpm test
+      - if: needs.scope.outputs.client == 'full'
+        run: node --import tsx tests/performance/inventory.ts
+      - name: Workspace tests for shared client changes
+        if: needs.scope.outputs.client == 'full'
+        run: pnpm test
+      - name: Trader and local demo consumers
+        if: needs.scope.outputs.client == 'trader'
+        run: pnpm exec vitest run apps/trader packages/local-demo
+      - name: Indexer and downstream service, demo and harness tests
+        if: needs.scope.outputs.client == 'indexer'
+        run: pnpm exec vitest run packages/indexer packages/services packages/maker-kit packages/local-demo tests/load tests/performance tests/rpc-contract tests/e2e
       - name: Canonical maker SDK against independent reference
+        if: needs.scope.outputs.client == 'full'
         run: python3 tests/financial/check_maker_curve_parity.py --implementation sdk
       - name: Exact liquidity allocation against independent financial enumeration
+        if: needs.scope.outputs.client == 'full'
         run: python3 tests/financial/check_liquidity_allocation.py
-      - run: pnpm build:trader
+      - if: needs.scope.outputs.client != 'indexer'
+        run: pnpm build:trader
   report:
     needs: scope
     if: needs.scope.outputs.report == 'true'
@@ -84,27 +84,56 @@ jobs:
       - run: python3 -m unittest discover -s tests/load -p 'test_*.py'
   financial:
     needs: scope
-    if: needs.scope.outputs.financial == 'true'
+    if: needs.scope.outputs.financial != '[]' || needs.scope.outputs.probes != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: rustup toolchain install 1.97.1 --profile minimal
-      - run: mkdir -p .local
-      - run: bash ops/financial.sh
-      - name: Current engine and disabled-default gates
-        env:
-          CARGO_PROFILE_TEST_DEBUG: '0'
-          CARGO_PROFILE_DEV_DEBUG: '0'
-          CARGO_INCREMENTAL: '0'
+      - name: Shared financial references
+        if: contains(fromJSON(needs.scope.outputs.financial), 'reference')
+        run: |
+          mkdir -p .local
+          bash ops/financial.sh
+      - name: Clearing and disabled-default gates
+        if: contains(fromJSON(needs.scope.outputs.financial), 'clearing')
         run: |
           cargo test --locked -p clearing --lib --features liquidity-execution-qualification
           cargo test --locked -p clearing --lib
-          cargo test --locked -p rivalt-settlement-pages
+      - name: Maker admission and disabled-default gates
+        if: contains(fromJSON(needs.scope.outputs.financial), 'makers')
+        run: |
           cargo test --locked -p maker_a -p maker_b --lib --features maker-liquidity-qualification
           cargo test --locked -p maker_a -p maker_b --lib
+      - name: Settlement transport
+        if: contains(fromJSON(needs.scope.outputs.financial), 'pages')
+        run: cargo test --locked -p rivalt-settlement-pages
+      - name: Indexed settlement and funded default
+        if: contains(fromJSON(needs.scope.outputs.financial), 'indexed')
+        run: |
+          python3 -m unittest discover -s tests/financial -p 'test_indexed_*.py'
+          cargo test --locked -p default-plan-selection --features indexed-settlement --lib market_indexed::
+          cargo test --locked -p default-plan-selection --features indexed-settlement --test funded_listed_episode
+          cargo test --locked -p clearing --lib --features listed-venue-default account_safety::resolution
+      - name: Changed native fixture programs
+        if: needs.scope.outputs.probes != ''
+        env:
+          PROBE_PACKAGES: ${{ needs.scope.outputs.probes }}
+        run: |
+          for package in $PROBE_PACKAGES; do
+            case "$package" in
+              default-proof-probe) features=(--features signed-indexed-default) ;;
+              frozen-plan-probe) features=(--features paged-recovery-qualification) ;;
+              *) features=() ;;
+            esac
+            cargo test --locked -p "$package" --lib "${features[@]}"
+          done
 
   shell:
     needs: scope
