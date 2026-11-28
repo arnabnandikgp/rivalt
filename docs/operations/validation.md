@@ -333,3 +333,18 @@ event and episode account bytes.
 The four-market, partial-recovery and creditor-rounding cases in the
 [scorecard](qualification-scorecard.md) used separate fixtures. General
 admission remains gated by the [funded venue verifier's limits](../clearing/default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market).
+
+
+The same command also accepts reviewed clearing `051babb78d8ed8662469bbb0270001fff494ca8f`
+and harness `c2c519a6b50597af87e4b08777cdc3a3042e80ad`. A foreign signer
+could not pause the active venue. The venue authority paused and resumed it
+in two 55,848-CU transactions. A current-epoch SOL order failed in the fill
+instruction while paused. After resume the signed BTC/ETH/SOL account filled
+in 537,022 CU. This workload used three maker instances across two executables.
+A host regression separately authenticated eight distinct executable and
+ProgramData pairs and refused a mismatched hash on reuse.
+
+Freeze used 143,757 CU and settlement used 399,654 CU. The ten wallet exits
+again paid 7,340,192 atoms and left 56 retained fees. Independent PostgreSQL
+replay matched 241 events from 394 signed transactions. Finalized RPC matched
+210 accounts at slot 3,314 with zero unexplained vault balance.

@@ -9,6 +9,7 @@ Updated 28 November 2026. Rivalt is a local, test-collateral BTC/ETH perpetual v
 | Execution and wallet | The previously integrated `bounded-router-candidate` ran at program revision `986b3cd3`. An execution-time reprice changed the winning makers. Search-budget and trader-limit refusals rolled back the trade. [Routing](liquidity/routing.md) |
 | Ordinary settlement | The worker can pay a ready creditor while another market builds its backing proof. A 16-wallet BTC payout completed in 93.041 seconds in the review repeat. [Settlement PR #168](https://github.com/arnabnandikgp/rivalt/pull/168) |
 | Wallet load and maker capacity | In a 24-wallet burst, waiting for the previous wallet order to confirm and resizing one maker improved fills to 119 of 120. One signed route still failed admission after preview. [Workload PR #169](https://github.com/arnabnandikgp/rivalt/pull/169) |
+| Funded BTC/ETH/SOL default | Finding 11 closes for the bounded local venue on integration of [PR #250](https://github.com/arnabnandikgp/rivalt/pull/250). Clearing `051babb7` and harness `c2c519a6` settled 12 members and paid all ten wallet exits. [Signed results](operations/validation.md#funded-venue-default-and-creditor-wallet-exits) |
 | Recovery | Earlier pinned recovery runs verified all 128 payouts on one populated book and completed wallet exits after keeper restart on three 75-member books. The verifier and book determine the work. [Validation](operations/validation.md) |
 
 PRs #168 and #169 merged together at [`9c482583`](https://github.com/arnabnandikgp/rivalt/commit/9c4825830842b6cd316ebd6c8458ecc9d34e28a9). The merge revision, harness revision and deployed program revision serve different purposes.
@@ -113,7 +114,7 @@ The signed read-only fixture on `558d781a` used 102,169 CU for 125 exact rows an
 
 **Finding 10, withdrawal on venue clearing.** Local clearing `4e11ef94` and SDK/harness `356293da` applied the occupied-market cash floor to an owner with ten BTC lots long and ten ETH lots short. The owner transferred one atom, then withdrew exactly 899,878 atoms to their wallet, retaining 99,940. Omissions, a market substitution and both one-atom overdraws rolled back. Fresh PostgreSQL replay reconciled 116 events. [Signed results and limits](operations/qualification-scorecard.md#occupied-market-withdrawal-on-venue-clearing)
 
-**Finding 10, third market registered inactive on venue clearing (Review).** On
+**Finding 10, third market registered inactive on venue clearing.** On
 local clearing `1adaf018` and harness `d470168b`, the venue authority registered
 SOL under ID 2. The SDK discovered it from finalized RPC. All eight signed
 refusals preserved the watched accounts, including both attempts to trade SOL.
@@ -121,7 +122,7 @@ A subsequent BTC fill succeeded. The full setup and check fetched 230 signed
 transactions and reproduced 81 events through fresh PostgreSQL replay.
 [Listing qualification](operations/qualification-scorecard.md#inactive-sol-listing-on-venue-clearing)
 
-**Finding 10, inactive SOL index on venue clearing (Review).** Local clearing
+**Finding 10, inactive SOL index on venue clearing.** Local clearing
 `aa205484` and harness `0cf1251f` accepted readings from four bound feeds.
 At $0.99 per collateral token the reference was 151 atoms per SOL lot, with
 bounds of 149–155. After expiry and source recovery at $1.01 collateral it was
@@ -129,7 +130,7 @@ bounds of 149–155. After expiry and source recovery at $1.01 collateral it was
 PostgreSQL replay reproduced 96 events from the run's 258 signed transactions.
 [Signed index results](operations/qualification-scorecard.md#inactive-sol-index-observation)
 
-**Finding 10, isolated maker admission for inactive listings (Review).** At program
+**Finding 10, isolated maker admission for inactive listings.** At program
 `5929eb48` and harness `5924e4c4`, the venue admitted one funded SOL maker.
 Its wallet withdrew all 1,234,567 deposited collateral atoms. BTC and ETH capital
 substitutions and the second listing's claim on the same capital all failed.
@@ -137,21 +138,21 @@ The previous rehearsal omitted active-venue ledger checkpoints on deposit; the
 successful run supplied them. Fresh PostgreSQL replay reproduced 103 events
 from 255 signed transactions. [Acceptance](operations/qualification-scorecard.md#isolated-maker-capital-for-an-inactive-listing)
 
-**Finding 11, competing partial recovery (Review).** On indexed verifier
+**Finding 11, competing partial recovery.** On indexed verifier
 `95df43f7`, the two eligible winners each conceded one atom. Nine of the
 original eleven unpaid atoms remained for terminal settlement. Five signed
 wallet exits and six fee atoms reconciled in fresh PostgreSQL replay. The same
 revision repeated the fully recoverable book, charged four and six, and
 reconciled 62 program receipts. [Partial-recovery acceptance](operations/qualification-scorecard.md#partial-recovery-with-competing-winners)
 
-**Finding 11, simultaneous competing markets (Review).** On fixture `b5540580`
+**Finding 11, simultaneous competing markets.** On fixture `b5540580`
 and harness `1c92356d`, a single settlement charged four winning positions
 across two distressed markets. The independent model evaluated 36 alternatives.
 Five wallets withdrew their full balances, leaving eight fee atoms. Fresh
 PostgreSQL replay matched 66 program receipts.
 [Signed result and limits](operations/qualification-scorecard.md#competing-winners-in-two-distressed-markets)
 
-**Finding 11, complete real-venue default inputs (Review).** On clearing
+**Finding 11, complete real-venue default inputs.** On clearing
 `5929eb48` and harness `e44cad4e`, two BTC fills and a 996-atom loss collection
 produced a funded settlement pool. A price increase then made a maker insolvent.
 The signed freeze pinned a 1,075,000-atom allocated vault, seven margin accounts,
@@ -160,31 +161,31 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 117 events. The wider settlement has yet to pay wallets on this venue.
 [Signed frozen inputs](operations/qualification-scorecard.md#complete-settlement-inputs-from-venue-clearing)
 
-**Finding 11, funded venue default preview (Review).** On clearing `a094f62c` and harness `cab2dfbf`, a signed read verified a 7,492-atom reduction on the frozen seven-member book. It used 66,981 CU. Six invalid submissions refused and 117 financial events reconciled in PostgreSQL. Application and owner withdrawals on the wider venue remain open. [Amounts and limits](operations/qualification-scorecard.md#checking-the-protected-plan-on-the-funded-venue)
+**Finding 11, funded venue default preview.** On clearing `a094f62c` and harness `cab2dfbf`, a signed read verified a 7,492-atom reduction on the frozen seven-member book. It used 66,981 CU. Six invalid submissions refused and 117 financial events reconciled in PostgreSQL. Application and owner withdrawals on the wider venue remain open. [Amounts and limits](operations/qualification-scorecard.md#checking-the-protected-plan-on-the-funded-venue)
 
-**Finding 11, frozen market priority (Review).** On fixture and harness `5cb68d1d`, two signed inspections of the same asymmetric nine-member book selected the 9/8 and 10/7 outcomes in different episodes, each rejecting the rival nomination. Both recovered six atoms and spent two insurance atoms. The runtime needed a larger heap than the 32 KiB default. The separate funded four-market book reproduced five owner withdrawals. PostgreSQL reconciled 70 receipts. [Independent enumeration and costs](operations/qualification-scorecard.md#asymmetric-frozen-market-priority)
+**Finding 11, frozen market priority.** On fixture and harness `5cb68d1d`, two signed inspections of the same asymmetric nine-member book selected the 9/8 and 10/7 outcomes in different episodes, each rejecting the rival nomination. Both recovered six atoms and spent two insurance atoms. The runtime needed a larger heap than the 32 KiB default. The separate funded four-market book reproduced five owner withdrawals. PostgreSQL reconciled 70 receipts. [Independent enumeration and costs](operations/qualification-scorecard.md#asymmetric-frozen-market-priority)
 
-**Finding 11, real venue settlement and withdrawal (Review).** Clearing `bba16a8d` and harness `17e45cc1` applied the verified 7,492-atom reduction to seven frozen margin accounts. Six owner-signed withdrawals transferred 1,074,980 atoms from the venue vault and left its 20 retained fee atoms. Fresh PostgreSQL replay matched 148 financial events. The two-market controller took 234 successful continuation steps from freeze through resolution. [Signed costs and scope](operations/qualification-scorecard.md#applying-the-verified-payouts-on-the-venue)
+**Finding 11, real venue settlement and withdrawal.** Clearing `bba16a8d` and harness `17e45cc1` applied the verified 7,492-atom reduction to seven frozen margin accounts. Six owner-signed withdrawals transferred 1,074,980 atoms from the venue vault and left its 20 retained fee atoms. Fresh PostgreSQL replay matched 148 financial events. The two-market controller took 234 successful continuation steps from freeze through resolution. [Signed costs and scope](operations/qualification-scorecard.md#applying-the-verified-payouts-on-the-venue)
 
-**Finding 11, forced volume by market (Review).** On `8b23c8f1`, both frozen episodes chose three BTC lots and one ETH lot over three BTC lots and two ETH lots, recovering six atoms with equal insurance. All four signed equal- and unequal-volume comparisons matched the independent model. Five owners on the separate funded fixture withdrew their full balances. PostgreSQL replay matched 74 receipts. [Costs and scope](operations/qualification-scorecard.md#forced-volume-by-market)
+**Finding 11, forced volume by market.** On `8b23c8f1`, both frozen episodes chose three BTC lots and one ETH lot over three BTC lots and two ETH lots, recovering six atoms with equal insurance. All four signed equal- and unequal-volume comparisons matched the independent model. Five owners on the separate funded fixture withdrew their full balances. PostgreSQL replay matched 74 receipts. [Costs and scope](operations/qualification-scorecard.md#forced-volume-by-market)
 
-**Finding 11, listed maker directory (Review).** On clearing `a3a2c3cb` and harness `6b0a53ab`, the venue sealed three independently funded SOL capitals from both internal maker programs. RPC discovery returned all three. The seal used 20,589 CU and touched no financial balances. Six invalid seal attempts refused. Independent PostgreSQL replay matched 122 financial events across 297 signed transactions. SOL index sampling continued after sealing. The venue still refused SOL orders and filled BTC. [Directory contract](liquidity/quoting.md)
+**Finding 11, listed maker directory.** On clearing `a3a2c3cb` and harness `6b0a53ab`, the venue sealed three independently funded SOL capitals from both internal maker programs. RPC discovery returned all three. The seal used 20,589 CU and touched no financial balances. Six invalid seal attempts refused. Independent PostgreSQL replay matched 122 financial events across 297 signed transactions. SOL index sampling continued after sealing. The venue still refused SOL orders and filled BTC. [Directory contract](liquidity/quoting.md)
 
-**Finding 11, listed-market funding source (Review).** On clearing `b609e3e8` and harness `49817c63`, two registered SOL curves supplied both sides of a 40,000-lot impact report at an independent index of 150. The signed report used 23,126 CU. After publisher rotation, a 151 midpoint produced the capped premium of 0.75 atoms per lot. The inactive listing accrued zero funding and venue cash stayed unchanged. Fresh PostgreSQL replay matched 127 financial events across 311 signed transactions. [Listed-market funding](liquidity/funding.md#funding-for-a-sealed-listing)
+**Finding 11, listed-market funding source.** On clearing `b609e3e8` and harness `49817c63`, two registered SOL curves supplied both sides of a 40,000-lot impact report at an independent index of 150. The signed report used 23,126 CU. After publisher rotation, a 151 midpoint produced the capped premium of 0.75 atoms per lot. The inactive listing accrued zero funding and venue cash stayed unchanged. Fresh PostgreSQL replay matched 127 financial events across 311 signed transactions. [Listed-market funding](liquidity/funding.md#funding-for-a-sealed-listing)
 
-**Finding 11, funded wider margin storage (Review).** On clearing `0d8b70e0` and harness `11a502cd`, one owner held a one-lot BTC long and ten-lot ETH short on the 1,705-byte cross root. The same wallet withdrew 959,945 atoms and kept the independently calculated 39,982-atom margin requirement. Withdrawing one extra atom refused. Three funded SOL maker roots reserved one listed record each. The wider records were empty throughout. PostgreSQL replay matched 145 financial events across 318 signed transactions. [Storage contract](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+**Finding 11, funded wider margin storage.** On clearing `0d8b70e0` and harness `11a502cd`, one owner held a one-lot BTC long and ten-lot ETH short on the 1,705-byte cross root. The same wallet withdrew 959,945 atoms and kept the independently calculated 39,982-atom margin requirement. Withdrawing one extra atom refused. Three funded SOL maker roots reserved one listed record each. The wider records were empty throughout. PostgreSQL replay matched 145 financial events across 318 signed transactions. [Storage contract](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
 
-**Finding 11, first funded three-market venue order (Review).** On clearing `48f78dec` and harness `7654019e`, a trader with +1 BTC lot and −10 ETH lots bought 10 SOL lots at 152 from a separately owned maker on the same funded account. The trade left 42,981 cash atoms after one fee atom. The order with both funding checkpoints used 536,513 CU, 1,644 bytes and 36 accounts. A signed order omitting the ETH risk account refused without changing cash, positions or maker consumption. Fresh PostgreSQL replay agreed on 175 financial events across 343 signed setup, funding, trade and rejection transactions. Finalized RPC reconciled 208 accounts and 7,343,055 atoms in the vault across 11 financial members. General trading remains BTC/ETH. [Reproduction and scope](operations/validation.md#signed-three-market-venue-order)
+**Finding 11, first funded three-market venue order.** On clearing `48f78dec` and harness `7654019e`, a trader with +1 BTC lot and −10 ETH lots bought 10 SOL lots at 152 from a separately owned maker on the same funded account. The trade left 42,981 cash atoms after one fee atom. The order with both funding checkpoints used 536,513 CU, 1,644 bytes and 36 accounts. A signed order omitting the ETH risk account refused without changing cash, positions or maker consumption. Fresh PostgreSQL replay agreed on 175 financial events across 343 signed setup, funding, trade and rejection transactions. Finalized RPC reconciled 208 accounts and 7,343,055 atoms in the vault across 11 financial members. General trading remains BTC/ETH. [Reproduction and scope](operations/validation.md#signed-three-market-venue-order)
 
-**Finding 11, cash access with three open venue positions (Review).** Clearing `b79ea8db` and harness `feb4ca7d` transferred and withdrew the independently calculated 2,807-atom surplus from 42,981 funded atoms. Both 2,808-atom operations refused. The wallet received the full amount while the three positions stayed open. Two fresh PostgreSQL journals agreed on all 209 events. Finalized RPC reconciled 12 members and 7,340,248 vault atoms. [Signed amounts and costs](operations/validation.md#signed-cash-access-with-three-open-venue-positions)
+**Finding 11, cash access with three open venue positions.** Clearing `b79ea8db` and harness `feb4ca7d` transferred and withdrew the independently calculated 2,807-atom surplus from 42,981 funded atoms. Both 2,808-atom operations refused. The wallet received the full amount while the three positions stayed open. Two fresh PostgreSQL journals agreed on all 209 events. Finalized RPC reconciled 12 members and 7,340,248 vault atoms. [Signed amounts and costs](operations/validation.md#signed-cash-access-with-three-open-venue-positions)
 
-**Finding 11, funded three-market default and owner exits (Review).** Clearing `8b5a0808` and harness `74408ac0` froze an insolvent BTC/ETH/SOL cross trader and settled all 12 financial members. The trader was short 26 atoms. BTC and ETH spent 3 and 15 insurance atoms. The program selected the same plan as the independent exact-fraction reference from 14 alternatives. Ten owner-signed withdrawals paid all 7,340,192 funded atoms and left 56 retained fee atoms. Two PostgreSQL journals agreed on 235 events from 390 signed transactions. Finalized RPC reconciled 210 accounts at slot 3,221. The signed acceptance criteria for this bounded venue passed. [Results and limits](operations/validation.md#funded-venue-default-and-creditor-wallet-exits)
+**Finding 11, funded three-market default and owner exits.** Clearing `8b5a0808` and harness `74408ac0` froze an insolvent BTC/ETH/SOL cross trader and settled all 12 financial members. The trader was short 26 atoms. BTC and ETH spent 3 and 15 insurance atoms. The program selected the same plan as the independent exact-fraction reference from 14 alternatives. Ten owner-signed withdrawals paid all 7,340,192 funded atoms and left 56 retained fee atoms. Two PostgreSQL journals agreed on 235 events from 390 signed transactions. Finalized RPC reconciled 210 accounts at slot 3,221. The signed acceptance criteria for this bounded venue passed. [Results and limits](operations/validation.md#funded-venue-default-and-creditor-wallet-exits)
 
-**Next action.** Repeat the funded default workload with the review changes to emergency pause, pricing authentication and witness encoding, then merge the reviewed stack. General trading remains BTC/ETH. Wider activation requires a recovery path for books beyond this verifier's membership, claim and search bounds.
+**Next action.** For Finding 6, prepare a reproducible mixed wallet trace that Finding 7 can replay against independently timed maker and oracle updates. General trading remains BTC/ETH. Wider activation requires a recovery path for books beyond this verifier's membership, claim and search bounds.
 
 | Open gate | What remains |
 |---|---|
-| General wider cross-margin activation | Finding 11 passed signed local acceptance on the funded three-market venue and awaits integration. The local default verifier accepts at most 12 financial members and eight market columns, bounded plan searches and initially whole-atom claims. Unrestricted wider trading remains gated. |
+| General wider cross-margin activation | Finding 11 qualifies the bounded funded three-market venue. Finding 10 tracks general admission. The local default verifier accepts at most 12 financial members and eight market columns, bounded plan searches and initially whole-atom claims. Unrestricted wider trading remains gated. |
 | Market scale and economics | Meaningful executable depth, sustained maker inventory, funded maker P&L, keeper incentives and payout time under adverse flow. [Risk and liquidation](clearing/risk-and-resolution.md) |
 | Independent maker validation (P15B) | An external maker must independently operate, reconcile and exit. All makers in the local evidence were internal. |
 | Independent review and funded-pilot readiness (P16B) | Separate review, risk calibration and authorization. Default/devnet builds keep the current financial paths disabled. |

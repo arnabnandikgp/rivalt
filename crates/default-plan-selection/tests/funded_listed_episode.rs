@@ -66,3 +66,21 @@ fn btc_and_eth_creditors_share_the_cross_debt_after_a_sol_gain() {
     )
     .is_err());
 }
+
+#[test]
+fn unframed_rates_must_encode_both_half_atom_debt_payments() {
+    // Both cross debtors forward half an atom to each destination. The fourth
+    // market has a real unpaid creditor so the terminal settlement is eligible.
+    let accounts = [
+        (1, [-1, -1, 1, 0]), (1, [-1, -1, 1, 0]), (0, [2, 2, 0, 0]),
+        (2, [0, 0, -2, 0]), (0, [0, 0, 0, -1]), (0, [0, 0, 0, 1]),
+    ];
+    let members = accounts.map(|(cash, claims)| Member {
+        cash,
+        cells: claims.map(|claim| Cell { claim, ..Cell::default() }).to_vec(),
+    });
+    let proof = |unit| RatesProof { denominator: unit, selected: 0, numerators: vec![unit, unit, unit, 0] };
+    assert!(verify_book(&members, &[0; 4], &[0; 4], &proof(1), None).is_err());
+    let settlement = verify_book(&members, &[0; 4], &[0; 4], &proof(2), None).unwrap();
+    assert_eq!(settlement.cash, [0, 0, 4, 0, 0, 0]);
+}
