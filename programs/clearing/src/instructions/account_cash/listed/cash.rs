@@ -12,34 +12,42 @@ impl ListedMargin {
     ) -> Result<Self> {
         require!(root.lifecycle == MEMBER_FINANCIAL, ClearingError::Profile);
         let bytes = Self::read_directory(root)?;
-        let directory = if bytes.is_empty() {
-            MarketSlots::new(Mode::CashOnly, 0)
-        } else {
-            let mode = if root.mode == MODE_CROSS {
-                Mode::Cross
-            } else {
-                // Cash cannot select a new maker market. The only existing
-                // slot was created through its authenticated maker registration.
-                require!(
-                    root.mode == MODE_ISOLATED
-                        && root.isolated_market_index == LISTED_CAPITAL_TAG
-                        && root.role == ROLE_MAKER,
-                    ClearingError::Profile
-                );
-                let id =
-                    u16::from_le_bytes(bytes[HEADER_BYTES..HEADER_BYTES + 2].try_into().unwrap());
-                if id == 0 {
-                    Mode::CashOnly
-                } else {
-                    Mode::Isolated(usize::from(id))
-                }
-            };
-            checked(MarketSlots::from_listed_bytes(&bytes, mode, &[]))?
-        };
+        let directory = Self::stored_directory(root, &bytes)?;
         Ok(Self {
             root: base.refresh(root, donor)?,
             directory,
         })
+    }
+
+    /// Decode an existing root without letting the caller choose an isolated maker's market.
+    pub(crate) fn stored_directory(root: &MarginAccount, bytes: &[u8]) -> Result<MarketSlots> {
+        require!(
+            bytes.len()
+                == initial_margin_size(root.mode, root.isolated_market_index) - MARGIN_ALLOCATION,
+            ClearingError::Profile
+        );
+        if bytes.is_empty() {
+            return Ok(MarketSlots::new(Mode::CashOnly, 0));
+        }
+        let mode = if root.mode == MODE_CROSS {
+            Mode::Cross
+        } else {
+            require!(
+                root.mode == MODE_ISOLATED
+                    && root.isolated_market_index == LISTED_CAPITAL_TAG
+                    && root.role == ROLE_MAKER,
+                ClearingError::Profile
+            );
+            // A listed maker has space for exactly one record. The directory
+            // decoder checks its binding, count, entry cost and unused bytes.
+            let id = u16::from_le_bytes(bytes[HEADER_BYTES..HEADER_BYTES + 2].try_into().unwrap());
+            if id == 0 {
+                Mode::CashOnly
+            } else {
+                Mode::Isolated(usize::from(id))
+            }
+        };
+        checked(MarketSlots::from_listed_bytes(bytes, mode, &[]))
     }
 
     pub(crate) fn needs_source(&self, market: u16) -> bool {

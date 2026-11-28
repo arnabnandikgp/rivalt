@@ -8,6 +8,7 @@ use financial_core::{
 
 mod contexts;
 mod freeze;
+pub(crate) mod solvency;
 mod recovery;
 pub mod retirement;
 pub use contexts::*;
