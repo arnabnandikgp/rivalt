@@ -48,10 +48,13 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
     },
   };
   if(probe && Object.hasOwn(listedBuilds,probe)) {
-    const build=probe==='execution-router-funded-listed-default' && revision==='051babb78d8ed8662469bbb0270001fff494ca8f'
-      ? {artifactSet:LISTED_DEFAULT_ARTIFACT_SET, revision:'051babb78d8ed8662469bbb0270001fff494ca8f',
-          clearing:{bytes:4666880, sha256:'a5f5a9869cf126223e6f3bef2f90fcd80a050af75e90b124fc1b4063c11a85e8'}}
-      : listedBuilds[probe as keyof typeof listedBuilds];
+    const archived = listedBuilds[probe as keyof typeof listedBuilds];
+    const reviewedDefaults = [
+      {revision:'051babb78d8ed8662469bbb0270001fff494ca8f', clearing:{bytes:4666880, sha256:'a5f5a9869cf126223e6f3bef2f90fcd80a050af75e90b124fc1b4063c11a85e8'}},
+      {revision:'69c2f5d559221309107055ace615d35cff7d115b', clearing:{bytes:4667360, sha256:'0243095ce443f0e4d3840563af9bbfde283b09e8e040140cfb5fafeb9bb5ab3b'}},
+    ];
+    const reviewed = probe==='execution-router-funded-listed-default' && reviewedDefaults.find(entry=>entry.revision===revision);
+    const build = reviewed ? {...archived, ...reviewed} : archived;
     assert.equal(revision,build.revision);
     const artifacts={
       clearing:build.clearing,

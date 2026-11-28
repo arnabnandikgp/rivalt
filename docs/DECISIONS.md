@@ -111,6 +111,9 @@ That record preserves the original market attribution of debt and insurance
 through verification and payment. The existing two-market recovery header
 cannot represent the listed-market position, fee balance or insurance carry.
 Clearing therefore verifies the complete market-indexed book and applies the
-funded balances together before enabling terminal owner withdrawals. General
+funded balances together before enabling terminal owner withdrawals. If a
+verified market insurance draw pays all creditors, the authenticated frozen
+episode settles at par with zero forced reductions. Starting terminal settlement
+from an ordinary book still requires the original loss checks. General
 market admission still requires a recovery path for the financial books a
 venue can reach. [Funded venue default contract](clearing/default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market)
