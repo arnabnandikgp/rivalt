@@ -65,11 +65,11 @@ are little-endian. Records are sorted by market ID. A flat position with a
 fractional debt or claim still occupies a record. Reusing a discharged slot
 assigns a new incarnation. Spare bytes must be zero.
 
-Registration creates an empty directory. BTC/ETH trading, cash access and the
-two-market default reader require an empty directory. A separate listing must
-pass trading and default acceptance before a live financial instruction may
-write a listed position. The reservation of six records describes physical
-capacity. Signed SOL execution and eight-market trading have separate gates.
+Registration creates an empty directory. The legacy BTC/ETH trading, cash and
+two-market default paths require that directory to stay empty. Six reserved
+records describe physical capacity. The funded listed venue qualified one
+additional market, SOL. The eight-market trading result comes from a separate
+sparse custody fixture.
 [Market slot encoding](../../crates/clearing-accounting/src/market_slots/storage.rs)
 
 The separate `listed-venue-execution` qualification build lets the venue
@@ -79,8 +79,8 @@ the venue and safety epochs, and closes the previous funding interval. The
 profile accepts the listed market order, the base market checkpoint and the
 two funding publication instructions. This gate also applies to legacy
 instructions that could otherwise pay a different account in the same venue.
-Wider cash access and default need their own signed acceptance before general
-trading can open. [Current qualification](../STATUS.md)
+The listed cash and default profiles subsequently qualified those operations on
+BTC/ETH/SOL. General wider admission remains open. [Current qualification](../STATUS.md)
 
 The venue authority can pause and resume active profile 7 through `pause_venue` with both inline fee checkpoints. Each change advances the safety epoch. The paused profile rejects listed fills and funding publications. Fee classification remains available so the authority can resume. The pause itself leaves positions and collateral untouched.
 
@@ -118,7 +118,7 @@ A listed market occupies space in a margin account when the account has open lot
 
 The candidate directory stores the market ID alongside the position and its entry-cost bounds. Within one margin account, a reference pairs that ID with a monotonically assigned number. Collecting the final debt while an order remains keeps the reference valid. Releasing the slot and reopening the same market assigns a new number. Moving another record during compaction leaves its reference valid. An isolated maker can occupy only its registered market.
 
-A transition must supply the final position and entry cost for every previous occupant and every touched market, plus all live orders from the authenticated root. An explicit zero image discharges a market. An omitted image, invalid entry record or excess occupancy rejects the entire transition. The number of slots is a per-account capacity; market IDs can be sparse. Native qualification replays finalized BTC/ETH account images. The local custody qualification also persists the directory in program-owned accounts, in both qualification profiles below. The trading deployment still persists the two fixed market records described above. [Slot transition](../../crates/clearing-accounting/src/market_slots.rs) · [Qualification](../operations/qualification-scorecard.md#market-slot-retention-and-reuse)
+A transition must supply the final position and entry cost for every previous occupant and every touched market, plus all live orders from the authenticated root. An explicit zero image discharges a market. An omitted image, invalid entry record or excess occupancy rejects the entire transition. The number of slots is a per-account capacity; market IDs can be sparse. Native qualification replays finalized BTC/ETH account images. The local custody qualification also persists the directory in program-owned accounts, in both qualification profiles below. The trading deployment still persists the two fixed market records described above. [Slot transition](../../crates/clearing-accounting/src/market_slots.rs) · [Qualification](https://github.com/arnabnandikgp/rivalt/blob/ef9ba31aac8fed71c917eafa50f3d29ae5762e77/docs/operations/qualification-scorecard.md#market-slot-retention-and-reuse)
 
 ### Funded custody qualification
 
@@ -126,7 +126,7 @@ On the local custody fixture, a margin PDA stores the collateral custody identit
 
 A withdrawal requires the current revision, the owner's signature and one authenticated, unexpired market observation per occupied market in order. A transfer uses the union of the two margin accounts' markets, counting each shared market once. The fixture accrues every open position and recalculates the standing order's reserve. Debiting the sender must leave cash sufficient for both current initial margin and held-window risk. The recipient can receive collateral even when its initial balance is below its requirements. Transfers preserve total funded cash inside the vault. A withdrawal transfers tokens from the vault to the owner's token account in the same instruction.
 
-This profile fixes the initial exposures, a single standing buy per account and synthetic price/funding observations. It has a separate program and vault from the BTC/ETH venue. [Qualification results](../operations/qualification-scorecard.md#funded-custody-across-persisted-markets) · [Fixture implementation](../../tests/programs/default-proof/src/slot_custody.rs)
+This profile fixes the initial exposures, a single standing buy per account and synthetic price/funding observations. It has a separate program and vault from the BTC/ETH venue. [Qualification results](https://github.com/arnabnandikgp/rivalt/blob/ef9ba31aac8fed71c917eafa50f3d29ae5762e77/docs/operations/qualification-scorecard.md#funded-custody-across-persisted-markets) · [Fixture implementation](../../tests/programs/default-proof/src/slot_custody.rs)
 
 ### Signed orders on a sparse cross account
 

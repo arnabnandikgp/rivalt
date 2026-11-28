@@ -131,8 +131,8 @@ feeds and Clock in one coherent bank. Clearing rechecks all four feeds at
 landing and uses the same quantity, price bands, signed premium cap and causal
 sampling code as BTC/ETH. Sealed listings can record depth and demonstrate
 source recovery before trading. While the listing is inactive, its accumulated
-funding and covered seconds stay zero. Crossing the future trading gate must
-start a fresh accrual interval.
+funding and covered seconds stay zero. Activating the listing on the funded execution profile closes the previous
+interval and requires fresh funding observations. [Activation contract](../clearing/accounts.md#listed-markets-on-the-funded-margin-account)
 
 The signed SOL case used 40,000 lots at 150 collateral atoms per lot. Two maker
 curves together supplied 5,920,000 bid and 6,080,000 ask atoms. After rotation
