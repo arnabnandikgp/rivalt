@@ -261,3 +261,30 @@ identical financial events. Finalized account reads confirmed the maker's
 consumption, the trader's 42,981 cash atoms, one collected SOL-market fee atom
 and an unchanged SPL vault. The preceding withdrawal occurred before the SOL
 order. Wider cash exits and default remain pending.
+
+### Signed cash access with three open venue positions
+
+Build clearing `b79ea8db6a53b7e404308148ef3f6e397b5941b7` with
+`RIVALT_ATTRIBUTION_PROFILE=listed-venue-cash bash ops/build-profit-attribution.sh`.
+Use harness `feb4ca7d`, set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that build directory and
+`RIVALT_ROUTER_REVISION` to the full clearing revision. Run
+`RIVALT_SETTLEMENT_PROBE=execution-router-listed-cash bash ops/scalable-settlement-smoke.sh`.
+
+The signed trader held +1 BTC lot, −10 ETH lots and +10 SOL lots with 42,981 funded atoms.
+An independent calculation using each market's adverse price and rounded initial margin required
+40,174 atoms. The owner transferred the full 2,807-atom surplus to a sibling account and back,
+then withdrew it to the wallet. Five signed refusals preserved the watched financial accounts
+byte for byte, including missing and substituted SOL sources, both 2,808-atom debit attempts
+and a final one-atom withdrawal.
+
+| Complete successful transaction | CU including two base funding checkpoints | Bytes | Accounts |
+|---|---:|---:|---:|
+| Transfer from cross to isolated | 113,647 | 914 | 19 |
+| Transfer back to the open cross account | 110,231 | 914 | 19 |
+| Withdraw to the owner's wallet | 110,946 | 1,046 | 23 |
+
+Surfpool RPC/WS confirmed 369 signed transactions. Two PostgreSQL 18.6 journals agreed on
+209 financial events. A separate finalized read reconciled 209 accounts, 12 financial members,
+and all 7,340,248 remaining vault atoms. The signed fixture had zero funding premium.
+Focused native and indexer vectors exercised a nonzero funding debit and the adverse held endpoint.
+Wider venue default and creditor wallet exits remain open.
