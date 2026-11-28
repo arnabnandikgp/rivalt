@@ -228,7 +228,7 @@ try {
     assert.equal(replay.state.listedDefaults?.[settled.episode]?.completed,true);
     assert(Object.values(replay.state.roots).every(root=>root.cash==='0'));
   }
-  const result={settled:settled && {episode:settled.episode,expected:settled.expected,withdrawals:settled.withdrawals,
+  const result={reconciliation:replay.reconciliation,settled:settled && {episode:settled.episode,expected:settled.expected,withdrawals:settled.withdrawals,
     retained:settled.retained,receipts:checks.filter(row=>String(row.label).startsWith('wider '))},cashAccess:cashAccess && {minimum:cashAccess.minimum,maximum:cashAccess.maximum,
     receipts:checks.filter(row=>String(row.label).startsWith('listed cash '))},executed:executedOrder,wider,published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
     bytes:(await h.read(indexProbe.listingIndex))!.length,receipts:checks.filter(row=>!row.error &&

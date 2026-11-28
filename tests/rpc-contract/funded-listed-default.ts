@@ -62,7 +62,7 @@ export async function qualifyFundedListedDefault(h:CanonicalHarness, setup:Setup
   assert.deepEqual([header.target,header.memberCount,header.allocatedVault,(await safety()).mode],
     [setup.roots[0],12n,7_340_248n,2]);
   const withdraw=async(account:typeof owners[number],amount:bigint)=>sdk.getWithdrawFundedAccountInstruction({
-    ...setup.common,owner:account.owner,margin:account.margin,userToken:account.token.address,quoteMint:setup.mint.address,
+    ...setup.common,btc:undefined,eth:undefined,btcLedger:undefined,ethLedger:undefined,owner:account.owner,margin:account.margin,userToken:account.token.address,quoteMint:setup.mint.address,
     guard:await guard(account.margin),amount});
   await refuse('wider default blocks frozen owner withdrawal',[await withdraw(owners[7],1n)],sdk.CLEARING_ERROR__PROFILE,[owners[7].owner]);
   // Independent historical fills: [signed lots, gross entry notional]. The
