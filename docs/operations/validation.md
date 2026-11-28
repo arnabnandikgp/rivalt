@@ -44,7 +44,8 @@ the transaction signer, unchanged balances and the final state in fresh SQL repl
 For listed maker admission, build clearing and both makers at `5929eb48` with
 `RIVALT_ATTRIBUTION_PROFILE=listed-maker-admission bash ops/build-profit-attribution.sh`.
 Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the output directory and
-`RIVALT_ROUTER_REVISION=5929eb48f2963499bc0a5316a9a22c2b99dcdd3d`. Run
+`RIVALT_ROUTER_REVISION=5929eb48f2963499bc0a5316a9a22c2b99dcdd3d`. From a checkout of harness
+`5924e4c4`, point the artifact directory at that same build and run
 `RIVALT_SETTLEMENT_PROBE=execution-router-listed-maker bash ops/scalable-settlement-smoke.sh`.
 Check the wallet and vault around the full deposit and exit, both market ID
 directions, BTC/ETH capital substitution, code approval and finalized SQL replay.
@@ -93,6 +94,7 @@ For the [three-market frozen book](qualification-scorecard.md#three-market-froze
 ```sh
 source ops/env.sh
 cargo build --locked -p financial-core --features three-market-model --example three_market_default
+export RIVALT_THREE_MARKET_DRIVER="${CARGO_TARGET_DIR:-target}/debug/examples/three_market_default"
 python3 tests/financial/test_three_market_default.py
 ```
 
@@ -231,7 +233,7 @@ The joint competing indexed workload also checks [frozen market priority](qualif
 
 Use the `venue-default-application` program artifact and `RIVALT_SETTLEMENT_PROBE=execution-router-venue-application` with `ops/scalable-settlement-smoke.sh` for [venue application and owner withdrawals](qualification-scorecard.md#applying-the-verified-payouts-on-the-venue). Set `RIVALT_ROUTER_REVISION` to the exact program source revision. The supervisor requires the pinned unified settlement page helper. It verifies real wallet and vault deltas, refused bindings, and independently reconstructed financial events in a fresh PostgreSQL database.
 
-The same signed workload repeats the [unequal forced-volume comparison](qualification-scorecard.md#forced-volume-by-market) across both episodes. Check the amount paid to each creditor, which allocation was refused and the per-market lot counts in the independent reference.
+Run `RIVALT_PROOF_SCOPE=joint-competing-indexed-default bash ops/default-proof-smoke.sh` for the [unequal forced-volume comparison](qualification-scorecard.md#forced-volume-by-market) across both episodes. Check the amount paid to each creditor, which allocation was refused and the per-market lot counts in the independent reference.
 
 The local `execution-router-listed-directory` probe funds three SOL maker capitals and checks directory completeness, authority, replays, SDK discovery, post-seal index observations and continued BTC trading. At clearing `a3a2c3cb` and harness `6b0a53ab`, the signed seal used 538 bytes, 12 keys and 20,589 CU. See [current acceptance](../STATUS.md).
 

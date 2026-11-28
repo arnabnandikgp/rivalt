@@ -159,6 +159,8 @@ the old valid interval's materialized index. Recovery cannot bridge a gap beyond
 the old publication's held time/slot endpoint. Existing slot-expiry and catchup
 limits still prohibit adding expired, unmaterialized funding.
 
+During route selection clearing authenticates each distinct pricing executable and its ProgramData once per instruction. Every maker still checks its registered approval hash, including makers that share an executable.
+
 If a fill lands before another signed route, the latter uses current inventory and
 consumption; it must still fit capacity and user limits. If a reprice lands first,
 the route uses that price within the same limits. If shape/control/depth/authority

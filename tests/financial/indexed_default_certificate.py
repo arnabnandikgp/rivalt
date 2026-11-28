@@ -129,6 +129,20 @@ def competing_certificate(book, positions, groups, venue, episode=1, member_ids=
                 totalPlans=physical,protectedPlans=len(outcomes))
 
 
+def encode_rate_passes(passes, framed):
+    """Preserve the exact rate and every cash share on the verifier's u32 grid."""
+    common_unit = 1
+    for unit, *_ in passes:
+        if not 0 < unit <= 0xffff_ffff:
+            raise ValueError("recovery pass denominator exceeds the u32 wire limit")
+        if not framed:
+            common_unit = lcm(common_unit, unit)
+            framed = common_unit > 0xffff_ffff
+    if framed:
+        return 0, [word for step in passes for word in step]
+    return common_unit, [rate * (common_unit // unit) for unit, *rates in passes for rate in rates]
+
+
 def certificate(book, positions, framed=False, venue=None):
     baseline = expected(book)
     options = []
@@ -147,7 +161,7 @@ def certificate(book, positions, framed=False, venue=None):
     if any(len(winners)>1 for _,_,winners in groups):
         assert venue is not None
         return competing_certificate(book,positions,groups,venue)
-    vectors, ranking, framed_words = [], [], []
+    plan_passes, ranking = [], []
     for index, reverse in enumerate(product(*(range(limit + 1) for _, _, limit in reversed(options)))):
         charges = list(reversed(reverse))
         changed = copy.deepcopy(book)
@@ -162,8 +176,7 @@ def certificate(book, positions, framed=False, venue=None):
                 debtor=book['roster'][debtor], winner=book['roster'][winner], charge=charge)]))
         passes = []
         ordinary = expected(changed, frozen=book, rate_passes=passes)
-        framed_words.extend(value for step in passes for value in step)
-        vectors.extend(map(Fraction, ordinary['rates']))
+        plan_passes.extend(passes)
         outcome = candidate(book, actions)
         if outcome:
             ranking.append((sum(map(Fraction, outcome['recovery'])), index, charges, outcome, ordinary))
@@ -171,14 +184,13 @@ def certificate(book, positions, framed=False, venue=None):
     best, selected, charges, outcome, ordinary = ranking[0]
     baseline_loss = [sum(Fraction(row['loss'][market]) for row in baseline['rows'])
                      for market in range(len(options))]
-    total_plans = len(vectors) // len(book['markets'])
+    total_plans = index + 1
     if total_plans == 1:
         assert selected == best == 0
     else:
         assert selected > 0 and best > ranking[1][0]
-    unit = lcm(*(rate.denominator for rate in vectors))
-    return dict(denominator=0 if framed else unit, selected=selected,
-                numerators=framed_words if framed else [int(rate*unit) for rate in vectors],
+    unit, words = encode_rate_passes(plan_passes, framed)
+    return dict(denominator=unit, selected=selected, numerators=words,
                 baselineLoss=list(map(str, baseline_loss)),
                 spent=list(map(int, outcome['settlement']['spent'])),
                 repaired=ordinary['rows'] != outcome['settlement']['rows'],

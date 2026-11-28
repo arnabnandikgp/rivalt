@@ -73,9 +73,9 @@ pub fn classify(ctx:&mut Context<ClassifyMarketFees>, events:&mut crate::event_c
         require!(ctx.remaining_accounts()?.is_empty(),ClearingError::Profile);
         let a=&mut ctx.accounts;
         require!(a.identity.venue.insurance_fee_share_bps==2500 && a.identity.safety.mode!=FROZEN, ClearingError::Profile);
-        #[cfg(feature="listed-venue-default")]
+        #[cfg(feature="listed-venue-execution")]
         if a.identity.venue.profile_version == LISTED_VENUE_PROFILE {
-            crate::instructions::maker_liquidity::routes::listed_venue::identity(&a.identity.venue,&a.identity.safety)?;
+            crate::instructions::maker_liquidity::routes::listed_venue::active_profile(&a.identity.venue,&a.identity.safety)?;
         }
         let ledger=&mut a.identity.ledger;
         #[cfg(feature="read-only-route-ledger")]

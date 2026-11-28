@@ -8,7 +8,7 @@ import type {qualifyListedFunding} from './listed-funding.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 
 export async function qualifyListedExecution(h:CanonicalHarness,setup:Awaited<ReturnType<typeof liquidityExecutionSetup>>,
-  listing:Address,sealed:Awaited<ReturnType<typeof qualifyListedDirectory>>,published:Awaited<ReturnType<typeof qualifyListedFunding>>) {
+  listing:Address,sealed:Awaited<ReturnType<typeof qualifyListedDirectory>>,published:Awaited<ReturnType<typeof qualifyListedFunding>>, checkPause: boolean) {
   const {payer,venue,traderOwner:actor,markets}=setup,[trader]=setup.roots;
   const [directory]=await sdk.findDirectoryPda({venue}), [book]=await sdk.findBookPda({listing});
   const read=async(key:Address)=>(await h.read(key))!;
@@ -21,15 +21,6 @@ export async function qualifyListedExecution(h:CanonicalHarness,setup:Awaited<Re
   assert.deepEqual([selection.count,selection.markets[0]],[1,2]);
   const previous=sdk.decodeListedMargin(await read(trader));
   assert.deepEqual(previous.root.positions.map(position=>position.lots),[1n,-10n]);
-  // Each report covers at most six seconds. Keep publishing while the
-  // initial recovery interval accrues, and read all three markets at the end.
-  for(let round=0;round<4;round++) {
-    await setup.sample();
-    await published.sampleActive();
-  }
-  const [btc,eth]=await Promise.all([setup.marketState(0),setup.marketState(1)]);
-  const active=sdk.getListedFundingDecoder().decode(await read(published.funding)).values;
-  assert.deepEqual([btc.oracle.status,eth.oracle.status,active.oracle.status],[2,2,2]);
   const makers=await Promise.all(sealed.registrations.map(async key=>sdk.getMakerRegistrationDecoder().decode(await read(key))));
   assert(makers.every(m=>m.owner!==actor.address));
   const epochs=await Promise.all(makers.map(async(maker,index)=>{
@@ -47,6 +38,43 @@ export async function qualifyListedExecution(h:CanonicalHarness,setup:Awaited<Re
         side:0,lots,allInLimit:lots*155n,maxFee:20n,reduceOnly:false,generation:null,makerEpochs:epochs}});
   };
   const watch=()=>Promise.all([trader,...sealed.capitals,...sealed.registrations,book,setup.vault].map(read));
+  if (checkPause) {
+    const pause = (paused: boolean, authority = payer) => sdk.getPauseVenueInstruction({...setup.common, authority, paused});
+    const readSafety = async () => sdk.getVenueSafetyDecoder().decode(await read(setup.safety));
+    const originalSafety = await readSafety();
+    await h.send('listed pause rejects foreign authority', await withCheckpoints(pause(true, actor)), [actor], sdk.CLEARING_ERROR__AUTHORITY);
+    assert.deepEqual(await readSafety(), originalSafety);
+    await h.send('venue authority pauses listed orders', await withCheckpoints(pause(true)));
+    const pausedSafety = await readSafety();
+    assert.equal(pausedSafety.paused, true);
+    assert.equal(pausedSafety.epoch, originalSafety.epoch + 1n);
+    const frozenImage = await watch();
+    await h.send('paused listed venue rejects fresh signed order', await withCheckpoints(await build(10n)), [actor], sdk.CLEARING_ERROR__PROFILE);
+    assert.deepEqual(await watch(), frozenImage);
+    await h.send('venue authority resumes listed orders', await withCheckpoints(pause(false)));
+    const resumedSafety = await readSafety();
+    assert.equal(resumedSafety.paused, false);
+    assert.equal(resumedSafety.epoch, pausedSafety.epoch + 1n);
+  }
+  // Each report covers at most six seconds. Keep publishing while the
+  // initial recovery interval accrues, and read all three markets at the end.
+  let previousSamples: bigint[] | undefined;
+  for(let round=0;round<4;round++) {
+    await setup.sample();
+    const listed = await published.sampleActive();
+    const inline = await Promise.all([setup.marketState(0), setup.marketState(1)]);
+    const samples = [...inline.map(market=>market.oracle.sampledAt), listed.oracle.sampledAt];
+    if (previousSamples) {
+      for (const [index, symbol] of ['BTC','ETH','SOL'].entries()) {
+        const gap = samples[index] - previousSamples[index];
+        assert(gap > 0n && gap <= 6n, `${symbol} report gap in recovery round ${round+1} was ${gap}s (hold 6s)`);
+      }
+    }
+    previousSamples = samples;
+  }
+  const [btc,eth]=await Promise.all([setup.marketState(0),setup.marketState(1)]);
+  const active=sdk.getListedFundingDecoder().decode(await read(published.funding)).values;
+  assert.deepEqual([btc.oracle.status,eth.oracle.status,active.oracle.status],[2,2,2]);
   const unfilled=await watch();
   const fill=await build(10n);
   await h.send('listed trade signed SOL buy beside BTC and ETH',await withCheckpoints(fill),[actor]);

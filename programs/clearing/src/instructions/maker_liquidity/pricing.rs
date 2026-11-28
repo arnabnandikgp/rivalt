@@ -9,7 +9,7 @@ use maker_interface::canonical::{MakerQuoteRequest, MakerQuoteResponse};
 /// this instruction only. Every registration still compares its own approved hash.
 #[derive(Default)]
 pub(crate) struct CodeApprovalCache {
-    entries: [Option<(Address, Address, [u8; 32])>; 2],
+    entries: Vec<(Address, Address, [u8; 32])>,
 }
 
 impl CodeApprovalCache {
@@ -19,26 +19,45 @@ impl CodeApprovalCache {
         data: &BorshAccount<ProgramData>,
         approved: [u8; 32],
     ) -> Result<()> {
-        let digest = if let Some((_, _, digest)) =
-            self.entries
-                .iter()
-                .flatten()
-                .find(|(existing_program, existing_data, _)| {
-                    *existing_program == program && *existing_data == data.address().to_owned()
-                }) {
-            *digest
-        } else {
-            let digest = module_hash(data)?;
-            let empty = self
-                .entries
-                .iter_mut()
-                .find(|entry| entry.is_none())
-                .ok_or(ClearingError::MakerBinding)?;
-            *empty = Some((program, data.address().to_owned(), digest));
-            digest
+        self.check_digest(program, *data.address(), approved, || module_hash(data))
+    }
+
+    fn check_digest(
+        &mut self,
+        program: Address,
+        data: Address,
+        approved: [u8; 32],
+        hash: impl FnOnce() -> Result<[u8; 32]>,
+    ) -> Result<()> {
+        let digest = match self.entries.iter().find(|(key, account, _)| *key == program && *account == data) {
+            Some((_, _, digest)) => *digest,
+            None => {
+                let digest = hash()?;
+                self.entries.push((program, data, digest));
+                digest
+            }
         };
         require!(digest == approved, ClearingError::MakerUpgrade);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod cache_tests {
+    use super::*;
+
+    #[test]
+    fn each_distinct_executable_is_hashed_once_and_every_approval_is_checked() {
+        let mut cache = CodeApprovalCache::default();
+        for id in 1..=8 {
+            let program = Address::new_from_array([id; 32]);
+            let data = Address::new_from_array([id + 8; 32]);
+            cache.check_digest(program, data, [id; 32], || Ok([id; 32])).unwrap();
+        }
+        for &(program, data, digest) in &cache.entries.clone() {
+            cache.check_digest(program, data, digest, || panic!("cached executable")).unwrap();
+            assert!(cache.check_digest(program, data, [0; 32], || panic!("cached executable")).is_err());
+        }
     }
 }
 

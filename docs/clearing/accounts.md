@@ -82,6 +82,8 @@ instructions that could otherwise pay a different account in the same venue.
 Wider cash access and default need their own signed acceptance before general
 trading can open. [Current qualification](../STATUS.md)
 
+The venue authority can pause and resume active profile 7 through `pause_venue` with both inline fee checkpoints. Each change advances the safety epoch. The paused profile rejects listed fills and funding publications. Fee classification remains available so the authority can resume. The pause itself leaves positions and collateral untouched.
+
 ## Follow a deposit
 
 1. An owner creates a portfolio and registers a child margin-account PDA. The owner, portfolio index and child index identify actual accounts. The portfolio holds the namespace. Cash, positions, orders and obligations belong to the margin account.

@@ -288,8 +288,8 @@ def undo_listed_maker_delta(actual, program):
         writes = {'owner','config','price'}
         signers = {'owner'}
     assert ix['discriminator'] == disc('global',ix['name'])
-    assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in ix['accounts']] == [
-        (key,key in writes,key in signers) for key in names.split()]
+    assert [(a['name'],a.get('writable',False),a.get('signer',False),a.get('optional',False)) for a in ix['accounts']] == [
+        (key,key in writes,key in signers,False) for key in names.split()]
     return actual
 
 

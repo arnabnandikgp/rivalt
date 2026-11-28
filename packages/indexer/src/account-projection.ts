@@ -321,7 +321,15 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       accountCheck(sdk.hasMultiMaker(artifactSet),'multi-maker deployment');
       break;
     case 'AccountCustodyChangedV3': {
-      accountCheck(change.schemaVersion===10&&change.profileVersion===sdk.ACCOUNT_PROFILE&&change.domain===domain,'custody version/domain');
+      const profile = state.venue?.profileVersion ?? sdk.ACCOUNT_PROFILE;
+      accountCheck(change.schemaVersion===10 && change.profileVersion===profile && change.domain===domain,'custody version/domain');
+      if (profile===7) {
+        accountCheck(sdk.hasListedExecution(artifactSet) && change.kind===7 && safety().mode===1
+          && change.mode===1 && change.actor===currentVenue().authority && change.members.length===0
+          && BigInt(change.safetyEpoch)===BigInt(safety().epoch)+1n,'listed venue pause');
+      } else {
+        accountCheck(profile===sdk.ACCOUNT_PROFILE,'custody profile');
+      }
       accountCheck(Number.isInteger(change.kind)&&change.kind>=0&&change.kind<=10,'custody kind');
       if(change.kind===0) {
         accountCheck(!state.venue&&state.sequence==='0','duplicate initialization');

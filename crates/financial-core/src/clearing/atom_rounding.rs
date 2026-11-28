@@ -109,8 +109,10 @@ impl<R: Ord + Default> AtomNetwork<R> {
         if lower > upper {
             return Err(Error::Entitlement);
         }
-        self.needs[from] = self.needs[from].checked_sub(lower).ok_or(Error::Overflow)?;
-        self.needs[to] = self.needs[to].checked_add(lower).ok_or(Error::Overflow)?;
+        let source_need = self.needs[from].checked_sub(lower).ok_or(Error::Overflow)?;
+        let destination_need = self.needs[to].checked_add(lower).ok_or(Error::Overflow)?;
+        self.needs[from] = source_need;
+        self.needs[to] = destination_need;
         let arc = self
             .graph
             .edge(from, to, (upper - lower) as u64, 1, remainder);
@@ -144,5 +146,18 @@ impl<R: Ord + Default> AtomNetwork<R> {
             .into_iter()
             .map(|(arc, lower)| lower + i128::from(self.graph.arcs[arc ^ 1].capacity))
             .collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn overflowing_destination_preserves_the_network() {
+        let mut network = AtomNetwork::<u64>::new(vec![0, i128::MAX]);
+        assert_eq!(network.transfer(0, 1, 1, 0, 0), Err(Error::Overflow));
+        assert_eq!(network.needs, [0, i128::MAX]);
+        assert!(network.graph.arcs.is_empty());
     }
 }

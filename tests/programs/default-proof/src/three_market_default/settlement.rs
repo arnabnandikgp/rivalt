@@ -251,37 +251,39 @@ mod tests {
     fn protected_interval_matches_exhaustive_charge_and_lot_ranking() {
         let venue = Address::new_from_array([7; 32]);
         // These lots can each concede at most 3 and 2 ticks respectively.
-        let capacities = [
-            capacity(&EntryCost::default().fill(0, 2, 194).unwrap(), 2, 100, 6).unwrap(),
-            capacity(&EntryCost::default().fill(0, 3, 294).unwrap(), 3, 100, 6).unwrap(),
-        ];
-        for slot in 0..4 {
-            let first_precedes = member_priority(venue.as_ref(), slot, 0)
-                <= member_priority(venue.as_ref(), slot, 2);
-            for total in 1u64..=13 {
-                for protected in 0..=6 {
-                    let best = (0..=total)
-                        .filter(|&a| a <= protected && a <= 6 && total - a <= 6)
-                        .min_by_key(|&a| {
-                            let b = total - a;
-                            (
-                                a.abs_diff(b),
-                                a.div_ceil(3) + b.div_ceil(2),
-                                Reverse(if first_precedes { a } else { b }),
-                            )
-                        });
-                    let actual =
-                        competing_distribution(&capacities, total, protected, 6, &venue, slot);
-                    if let Some(first) = best {
-                        let result = actual.unwrap();
-                        assert!(result.charges == Charges::Competing([first, total - first]));
-                        assert_eq!(
-                            result.matched,
-                            first.div_ceil(3) + (total - first).div_ceil(2)
-                        );
-                        assert_eq!(result.second_receipt, 6 - (total - first));
-                    } else {
-                        assert!(actual.is_err());
+        for (left, right) in [(6, 6), (6, 4), (3, 6)] {
+            let capacities = [
+                capacity(&EntryCost::default().fill(0, 2, 194).unwrap(), 2, 100, i128::from(left)).unwrap(),
+                capacity(&EntryCost::default().fill(0, 3, 294).unwrap(), 3, 100, i128::from(right)).unwrap(),
+            ];
+            for slot in 0..4 {
+                let first_precedes = member_priority(venue.as_ref(), slot, 0)
+                    <= member_priority(venue.as_ref(), slot, 2);
+                for total in 1u64..=13 {
+                    for protected in 0..=6 {
+                        let best = (0..=total)
+                            .filter(|&a| a <= protected && a <= left && total - a <= right)
+                            .min_by_key(|&a| {
+                                let b = total - a;
+                                (
+                                    (a * right).abs_diff(b * left),
+                                    a.div_ceil(3) + b.div_ceil(2),
+                                    Reverse(if first_precedes { a } else { b }),
+                                )
+                            });
+                        let actual =
+                            competing_distribution(&capacities, total, protected, right, &venue, slot);
+                        if let Some(first) = best {
+                            let result = actual.unwrap();
+                            assert!(result.charges == Charges::Competing([first, total - first]));
+                            assert_eq!(
+                                result.matched,
+                                first.div_ceil(3) + (total - first).div_ceil(2)
+                            );
+                            assert_eq!(result.second_receipt, right - (total - first));
+                        } else {
+                            assert!(actual.is_err());
+                        }
                     }
                 }
             }

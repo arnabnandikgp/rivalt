@@ -97,7 +97,9 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
       if(end!==payload.length)throw new Error('Trailing account event bytes');
       const data=JSON.parse(json(value));
       if(BigInt(data.slot)!==invocation.slot||data.venue!==binding.venue)throw new Error('Account event slot/venue mismatch');
-      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==10||data.profileVersion!==6||data.domain!==binding.domain))
+      const listedPause = data.profileVersion===7 && data.kind===7 && sdk.hasListedExecution(binding.artifactSet)
+        && invocation.instruction===sdk.hex(sdk.PAUSE_VENUE_DISCRIMINATOR);
+      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==10||(data.profileVersion!==6 && !listedPause)||data.domain!==binding.domain))
         throw new Error('Unsupported account event version/domain');
       return {signature,outer:invocation.outer,inner,ordinal,slot:transaction.slot,
         blockTime:transaction.blockTime===null?null:integer(transaction.blockTime),type,data,bytes};

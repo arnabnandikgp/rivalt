@@ -110,7 +110,7 @@ try {
   const extraCash=execution?3_000n:0n;
   const wider=sdk.hasListedMargin(build.artifactSet) && sealed
     ? await qualifyListedMargin(h,setup,members,sealed.capitals,extraCash) : undefined;
-  const executed=execution && sealed && published ? await qualifyListedExecution(h,setup,listing,sealed,published) : undefined;
+  const executed=execution && sealed && published ? await qualifyListedExecution(h,setup,listing,sealed,published,testDefault && build.revision!=='8b5a08080663ef19610b9276bd3d599aa5cc37cf') : undefined;
   const cashAccess=cashRecipient && published && executed
     ? await qualifyListedCash(h,setup,cashRecipient,published,listing,unusedId):undefined;
   const settled=testDefault && executed && cashAccess && published && sealed

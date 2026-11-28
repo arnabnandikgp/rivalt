@@ -11,6 +11,8 @@ use financial_core::{
 };
 
 pub(crate) const FILL: [u8; 8] = [250, 20, 51, 83, 229, 130, 125, 143];
+const PAUSE: [u8; 8] = [95, 78, 87, 119, 226, 152, 10, 227];
+const CLASSIFY_FEES: [u8; 8] = [119, 160, 87, 122, 107, 187, 203, 113];
 const CHECKPOINT: [u8; 8] = [234, 231, 222, 47, 209, 237, 138, 64];
 const BASE_FUNDING: [u8; 8] = [32, 39, 131, 11, 127, 118, 35, 241];
 const LISTED_FUNDING: [u8; 8] = [74, 221, 17, 23, 121, 23, 69, 210];
@@ -23,25 +25,29 @@ pub(crate) fn is_cash(instruction:[u8;8]) -> bool {
 pub(crate) fn permits(instruction: [u8; 8]) -> bool {
     #[cfg(feature="listed-venue-default")]
     if matches!(instruction, crate::instructions::account_safety::resolution::listed::FREEZE
-        | crate::instructions::account_safety::resolution::listed::SETTLE
-        | [119,160,87,122,107,187,203,113]) { return true; }
+        | crate::instructions::account_safety::resolution::listed::SETTLE) { return true; }
     matches!(
         instruction,
-        FILL | CHECKPOINT | BASE_FUNDING | LISTED_FUNDING
+        FILL | PAUSE | CLASSIFY_FEES | CHECKPOINT | BASE_FUNDING | LISTED_FUNDING
     ) || is_cash(instruction)
 }
 
-pub(crate) fn identity(venue: &Venue, safety: &VenueSafety) -> Result<()> {
+pub(crate) fn active_profile(venue: &Venue, safety: &VenueSafety) -> Result<()> {
     require!(
         venue.schema_version == SCHEMA_VERSION
             && venue.profile_version == LISTED_VENUE_PROFILE
             && usize::from(venue.market_count) == MARKET_COUNT
             && venue.insurance_fee_share_bps == 2500
             && safety.schema_version == SCHEMA_VERSION
-            && safety.mode == ACTIVE
-            && !safety.paused,
+            && safety.mode == ACTIVE,
         ClearingError::Profile
     );
+    Ok(())
+}
+
+pub(crate) fn identity(venue: &Venue, safety: &VenueSafety) -> Result<()> {
+    active_profile(venue, safety)?;
+    require!(!safety.paused, ClearingError::Profile);
     Ok(())
 }
 
@@ -322,6 +328,8 @@ mod tests {
         };
         for name in [
             "execute_listed_market_order",
+            "pause_venue",
+            "classify_market_fees",
             "checkpoint_market",
             "publish_funding_report",
             "publish_listed_funding",
