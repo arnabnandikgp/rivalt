@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "a8aeb7d228bb2bf559addee75212b6f40c40d9c09feaa54215c3a45a054b0a8d",
+    "clearing": "cdf88448baed936098ddf7fdc1699304944cd5437ac83536b54f5bfeaa2218d2",
     "maker_a": "64842c29c8098dd8dfd722794d7d39cc9cd9c2ca3141dea261d07a676701dc11",
     "maker_b": "9812ee6127ac5078a5d5d246b0965cdc749995cce99335e0e4b4ea69ebb66eee"
   },
@@ -1515,6 +1515,41 @@
     },
     {
       "program": "clearing",
+      "name": "freeze_listed_default",
+      "write": [
+        "payer",
+        "venue",
+        "custody",
+        "safety",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "episode"
+      ],
+      "read": [
+        "vault",
+        "registry",
+        "directory",
+        "target",
+        "members",
+        "primary_btc",
+        "primary_collateral",
+        "guard_btc",
+        "guard_collateral",
+        "primary_eth",
+        "guard_eth",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "fund_member_index",
       "write": [
         "payer",
@@ -2840,6 +2875,28 @@
       "signers": [
         "owner"
       ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "settle_listed_default",
+      "write": [
+        "venue",
+        "custody",
+        "safety",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "episode"
+      ],
+      "read": [
+        "vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
       "optional": []
     },
     {

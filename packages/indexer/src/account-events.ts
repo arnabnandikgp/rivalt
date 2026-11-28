@@ -125,6 +125,20 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
         accrual.data.checkpoints.some((row:{funding:string})=>!invocation.writes.some(write=>write.account===row.funding && write.kind===31)))
         throw new Error('Incomplete listed cash receipt');
     }
+    const defaultKinds=[
+      [sdk.hex(sdk.FREEZE_LISTED_DEFAULT_DISCRIMINATOR),'ListedDefaultFrozen'],
+      [sdk.hex(sdk.SETTLE_LISTED_DEFAULT_DISCRIMINATOR),'ListedDefaultSettled'],
+    ] as const;
+    const matched=defaultKinds.find(([tag])=>invocation.instruction===tag);
+    if(matched || events.some(event=>defaultKinds.some(([,type])=>event.type===type))) {
+      const event=events[0];
+      if(binding.artifactSet!==sdk.LISTED_DEFAULT_ARTIFACT_SET || events.length!==1 || !matched || event.type!==matched[1] ||
+        !invocation.writes.some(write=>write.kind===34 && write.account===event.data.episode))
+        throw new Error('Incomplete listed default receipt');
+      if(event.type==='ListedDefaultSettled' &&
+        invocation.writes.filter(write=>write.kind===5).length!==event.data.memberIds.length)
+        throw new Error('Incomplete settled cohort');
+    }
     const continuations=events.filter(event=>event.type==='MakerFillContinuation');
     if(continuations.length) {
       const first=events[0], trade=first.data;

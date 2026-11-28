@@ -152,7 +152,7 @@ def check_domains():
     # The local payout observer owns PDAs under [coverage-lane, venue, member_id % 8].
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'coverage-lane'})
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) |
-        {'market-listing', 'listed-symbol', 'listing-index', 'listed-funding', 'listed-venue', 'listed-book', '/USD', 'BTC', 'ETH'})
+        {'market-listing', 'listed-symbol', 'listing-index', 'listed-funding', 'listed-venue', 'listed-book', 'listed-default', '/USD', 'BTC', 'ETH'})
     # The finalized SDK reader independently authenticates the existing on-chain registry hash.
     expected['sdk_hash_domains'] = sorted(set(expected['sdk_hash_domains']) | {'rivalt-financial-membership-v1'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
@@ -202,6 +202,36 @@ def undo_listed_maker_delta(actual, program):
             assert [(arg['name'],arg['type']) for arg in entry['args']] == arguments
             assert [(meta['name'],meta.get('writable',False),meta.get('signer',False),meta.get('optional',False))
                     for meta in flatten(entry['accounts'])] == [(key,key in writes,key==signer,key in ('btc','eth')) for key in keys]
+        identity = 'venue custody safety btc eth btc_ledger eth_ledger vault'.split()
+        feeds = 'primary_btc primary_collateral guard_btc guard_collateral primary_eth guard_eth'.split()
+        default_instructions = [
+            ('freeze_listed_default',['payer']+identity+'registry directory target members episode'.split()+feeds+['system_program'],
+                [('safety_epoch','u64')]),
+            ('settle_listed_default',identity+['registry','episode'],
+                [('epoch','u64'),('selected','u8'),('denominator','u32'),('numerators',{'vec':'u32'})]),
+        ]
+        for name,keys,args in default_instructions:
+            entry = remove('instructions',name)
+            assert entry['discriminator'] == disc('global',name)
+            assert [(arg['name'],arg['type']) for arg in entry['args']] == args
+            writes = set(identity[:-1]+['episode','payer'])
+            assert [(meta['name'],meta.get('writable',False),meta.get('signer',False),meta.get('optional',False))
+                for meta in flatten(entry['accounts'])] == [(key,key in writes,key=='payer',False) for key in keys+['event_authority','program']]
+        for category,namespace,name in [('accounts','account','ListedDefault'),('events','event','ListedDefaultFrozen'),
+                                       ('events','event','ListedDefaultSettled')]:
+            assert remove(category,name)['discriminator'] == disc(namespace,name)
+        exact_fields('FrozenListedMarket',[('market','u16'),('reference','u64'),('funding','i128'),
+            *[(field,'u64') for field in ['gross_lots','settlement','insurance','fees']],('insurance_carry','u8')])
+        exact_fields('ListedDefaultSnapshot',[('epoch','u64'),('safety_epoch','u64'),('terms_epoch','u64'),
+            ('target','pubkey'),('membership_epoch','u64'),('member_count','u64'),('registry_hash',{'array':['u8',32]}),
+            ('allocated_vault','u64'),('frozen_at','i64'),('width','u8'),('markets',{'array':[defined('FrozenListedMarket'),8]})])
+        exact_fields('ListedDefault',[('schema_version','u16'),('revision','u64'),('venue','pubkey'),
+            ('snapshot',defined('ListedDefaultSnapshot')),('completed','bool'),('bump','u8')])
+        exact_fields('ListedDefaultFrozen',[('venue','pubkey'),('slot','u64'),('episode','pubkey'),('bump','u8'),
+            ('snapshot',defined('ListedDefaultSnapshot'))])
+        exact_fields('ListedDefaultSettled',[('venue','pubkey'),('slot','u64'),('episode','pubkey'),('epoch','u64'),
+            ('safety_epoch','u64'),('terms_epoch','u64'),('checked_plans','u32'),('selected','u8'),
+            *[(field,{'vec':'u64'}) for field in ['member_ids','final_cash','spent','charged']]])
         for category, namespace, names in [('accounts','account',['ListedVenue','ListedMarketBook']),
                                           ('events','event',['ListedVenueOpened','ListedRouteFilled','ListedMarginChanged','ListedCashAccrued'])]:
             for name in names:

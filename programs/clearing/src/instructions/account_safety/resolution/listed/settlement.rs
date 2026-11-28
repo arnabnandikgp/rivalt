@@ -197,6 +197,9 @@ fn commit_books(
                 && ledger.insurance_fee_remainder == frozen.insurance_carry,
             ClearingError::Reconciliation
         );
+        // Retire pre-default maker-lane reservations as the canonical gross is
+        // cleared. Bounded market reads must also see zero after settlement.
+        crate::market_capacity::reset(market, 0)?;
         market.gross_lots = 0;
         increment(&mut market.terms_epoch)?;
         ledger.settlement = 0;
