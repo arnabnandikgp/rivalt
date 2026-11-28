@@ -5,6 +5,7 @@ use crate::instructions::account_trading;
 use crate::state::liquidity::{FundingPublisher, FundingPublisherPayload, FundingReport};
 use financial_core::oracle as policy;
 
+pub mod listed;
 mod contexts;
 pub use contexts::*;
 mod validation;
@@ -132,6 +133,14 @@ pub fn publish(
     #[cfg(not(feature="checked-funding-prefix"))]
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
     let accounts = &mut ctx.accounts;
+    #[cfg(feature = "listed-venue-execution")]
+    if accounts.venue.profile_version == LISTED_VENUE_PROFILE {
+        crate::instructions::maker_liquidity::routes::listed_venue::identity(&accounts.venue, &accounts.safety)?;
+        account_trading::validate_market(&accounts.market)?;
+    } else {
+        execution_profile(&accounts.venue, &accounts.safety, &accounts.market)?;
+    }
+    #[cfg(not(feature = "listed-venue-execution"))]
     execution_profile(&accounts.venue, &accounts.safety, &accounts.market)?;
     let clock = Clock::get()?;
     #[cfg(feature="checked-funding-prefix")]

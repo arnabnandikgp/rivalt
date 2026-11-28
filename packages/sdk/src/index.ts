@@ -12,9 +12,11 @@ export * from './test-deployment.js';
 export * from './wallet-client.js';
 export * from './artifacts.js';
 export * from './account-addresses.js';
+export * from './market-listing.js';
 export * from './account-membership.js';
 export * from './account-membership-scan.js';
 export * from './account-snapshot.js';
+export * from './venue-settlement-book.js';
 export * from './account-client.js';
 export * from './account-markets.js';
 export * from './account-balance.js';
@@ -46,3 +48,5 @@ export * from './btc-allocation.js';
 export * from './market-fees.js';
 export * from './ledger-lanes.js';
 export * from './market-capacity.js';
+
+export * from './listed-margin.js';

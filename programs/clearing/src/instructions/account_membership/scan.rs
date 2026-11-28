@@ -20,6 +20,8 @@ pub(crate) fn step(cursor: &mut MembershipCursor, venue: &Address, accounts: &[A
             let account = &accounts[1];
             require!(account.owner() == &crate::ID && !account.is_signer() && !account.executable()
                 && crate::state::accounts::valid_margin_size(account.data_len()) && *account.address() == entry.root, ClearingError::Resolution);
+            #[cfg(feature = "listed-margin-storage")]
+            legacy_margin_bytes(&account.try_borrow()?)?;
             let root = Box::new(MarginAccount::try_deserialize(&mut &account.try_borrow()?[..])?);
             require!(root.schema_version == SCHEMA_VERSION && root.revision > 0 && root.venue == *venue
                 && root.id == id && root.lifecycle == MEMBER_FINANCIAL

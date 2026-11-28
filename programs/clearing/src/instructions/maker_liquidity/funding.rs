@@ -33,7 +33,16 @@ pub(crate) fn sample_candidate(
     sequences: [u64; 4],
     impact: Option<&Impact>,
 ) -> Result<Market> {
-    let mut materialized = account_trading::market_view(market)?;
+    account_trading::validate_market(market)?;
+    sample_admitted_market(mode, market, clock, bounds, sequences, impact)
+}
+
+/// Both callers authenticate their own market namespace before entering the same causal transition.
+pub(super) fn sample_admitted_market(
+    mode: u8, market: &Market, clock: &Clock, bounds: Option<policy::Bounds>,
+    sequences: [u64; 4], impact: Option<&Impact>,
+) -> Result<Market> {
+    let mut materialized = market.clone();
     let old = materialized.oracle;
     require!(
         matches!(mode, CUSTODY | ACTIVE)
@@ -90,7 +99,12 @@ pub(crate) fn sample_candidate(
 /// control is an unqualified observation at its actual Clock, not a source
 /// update. Source identities/sequences/deadline and risk bounds stay unchanged.
 pub(crate) fn control_candidate(mode: u8, market: &Market, clock: &Clock) -> Result<Market> {
-    let mut candidate = account_trading::market_view(market)?;
+    account_trading::validate_market(market)?;
+    control_admitted_market(mode, market, clock)
+}
+
+pub(super) fn control_admitted_market(mode: u8, market: &Market, clock: &Clock) -> Result<Market> {
+    let mut candidate = market.clone();
     let old = candidate.oracle;
     require!(
         matches!(mode, CUSTODY | ACTIVE)

@@ -10,6 +10,10 @@ use crate::state::{OrderBook, Position, Protection, StoredOrder};
 
 mod contract;
 mod market_order;
+#[cfg(feature = "listed-margin-storage")]
+pub(crate) mod listed;
+#[cfg(feature = "listed-venue-execution")]
+pub(crate) mod listed_venue;
 pub use market_order::{execute_best, execute_multi, BestRouteIntent, MakerEpochs, MultiRouteIntent};
 mod liquidation;
 use contract::*;

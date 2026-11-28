@@ -55,7 +55,6 @@ pub(super) fn authorized_prices(
             ClearingError::Resolution
         );
     } else {
-        let flat = target.positions.iter().all(|position| position.lots == 0);
         let target_credible = target
             .positions
             .iter()
@@ -64,16 +63,11 @@ pub(super) fn authorized_prices(
         require!(target_credible, ClearingError::Resolution);
         let prices = bounds.map(|bound| bound.map_or(1, |value| value.reference));
         let claims = checked(model.claims(prices, funding))?;
-        let gross_debt = claims.into_iter().try_fold(0u128, |total, claim| {
-            total
-                .checked_add(claim.min(0).unsigned_abs())
-                .ok_or(ClearingError::Arithmetic)
-        })?;
-        require!(
-            checked(model.net_equity(prices, funding))? < 0
-                || (flat && gross_debt > u128::from(target.cash) * math::SCALE as u128),
-            ClearingError::Resolution
-        );
+        let mut solvency = solvency::FrozenEquity::from_cash(target.cash)?;
+        for (position, claim) in model.positions.iter().zip(claims) {
+            solvency.include(position.lots, claim)?;
+        }
+        require!(solvency.can_default(), ClearingError::Resolution);
     }
     required_prices(markets, bounds)
 }

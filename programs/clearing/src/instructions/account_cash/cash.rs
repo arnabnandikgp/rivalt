@@ -9,7 +9,12 @@ pub fn withdraw(
     amount: u64,
 ) -> Result<()> {
     let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
-    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let wider = cfg!(feature = "listed-venue-cash")
+        && ctx.accounts.identity.venue.profile_version == LISTED_VENUE_PROFILE;
+    require!(
+        remaining_accounts.is_empty() || wider,
+        ClearingError::Profile
+    );
     let accounts = &mut ctx.accounts;
     guard.check(
         &accounts.identity.venue,
@@ -20,8 +25,45 @@ pub fn withdraw(
     let terminal = matches!(accounts.identity.safety.mode, RESOLVED | RETIRED)
         || super::super::account_custody::recovered_custody(&accounts.identity.safety);
     let clock = if terminal {
+        if wider {
+            #[cfg(feature="listed-venue-default")]
+            {
+                require!(accounts.identity.safety.mode == RESOLVED && remaining_accounts.is_empty()
+                    && accounts.identity.btc.is_none() && accounts.identity.eth.is_none()
+                    && accounts.btc_ledger.is_none() && accounts.eth_ledger.is_none(), ClearingError::Profile);
+                let root = &mut accounts.margin;
+                let view = root.account().clone();
+                require!(view.data_len() == initial_margin_size(root.mode, root.isolated_market_index), ClearingError::Profile);
+                root.release_borrow()?;
+                legacy_margin_bytes(&view.try_borrow()?)?;
+                root.reacquire_guard_only()?;
+                events.emit(&crate::events::ListedCashAccrued { venue: *accounts.identity.venue.address(),
+                    slot: Clock::get()?.slot, roots: vec![], checkpoints: vec![] }, accounts.event_authority.account().clone())?;
+            }
+            #[cfg(not(feature="listed-venue-default"))]
+            return Err(ClearingError::Profile.into());
+        }
         terminal_exit(&accounts.identity, &mut accounts.margin, amount)?;
         Clock::get()?
+    } else if wider {
+        #[cfg(feature = "listed-venue-cash")]
+        {
+            require!(
+                accounts.btc_ledger.is_none() && accounts.eth_ledger.is_none(),
+                ClearingError::Profile
+            );
+            super::listed::cash::apply(
+                &accounts.identity,
+                &mut accounts.margin,
+                None,
+                &mut remaining_accounts,
+                amount,
+                events,
+                accounts.event_authority.account().clone(),
+            )?
+        }
+        #[cfg(not(feature = "listed-venue-cash"))]
+        return Err(ClearingError::Profile.into());
     } else {
         let snapshot = begin(&accounts.identity)?;
         let candidate = withdraw_candidate(&accounts.margin, &snapshot, amount)?;
@@ -95,7 +137,9 @@ fn terminal_exit(
     require!(
         cfg!(feature = "liquidity-execution-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && trading::supported_profile(&identity.venue)
+            && (trading::supported_profile(&identity.venue)
+                || (cfg!(feature="listed-venue-default") && identity.venue.profile_version == LISTED_VENUE_PROFILE
+                    && identity.safety.mode == RESOLVED))
             && identity.venue.market_count == 2
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.safety.schema_version == SCHEMA_VERSION
@@ -118,47 +162,74 @@ pub fn transfer(
     amount: u64,
 ) -> Result<()> {
     let mut remaining_accounts = crate::scoped_history::economic_accounts(ctx)?;
-    require!(remaining_accounts.is_empty(), ClearingError::Profile);
+    let wider = cfg!(feature = "listed-venue-cash")
+        && ctx.accounts.identity.venue.profile_version == LISTED_VENUE_PROFILE;
+    require!(
+        remaining_accounts.is_empty() || wider,
+        ClearingError::Profile
+    );
     let accounts = &mut ctx.accounts;
-    let snapshot = begin(&accounts.identity)?;
     guard.check(
         &accounts.identity.venue,
         &accounts.identity.safety,
         &accounts.donor,
     )?;
-    let donor = withdraw_candidate(&accounts.donor, &snapshot, amount)?;
-    let recipient = receive_candidate(&accounts.recipient, &snapshot, amount)?;
-    commit(
-        &mut accounts.donor,
-        &donor,
-        [
-            accounts
-                .btc_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-            accounts
-                .eth_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-        ],
-        &accounts.identity.safety,
-    )?;
-    commit(
-        &mut accounts.recipient,
-        &recipient,
-        [
-            accounts
-                .btc_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-            accounts
-                .eth_ledger
-                .as_deref_mut()
-                .map(|ledger| &mut **ledger),
-        ],
-        &accounts.identity.safety,
-    )?;
-    finish(&mut accounts.identity, &snapshot.clock)?;
+    let clock = if wider {
+        #[cfg(feature = "listed-venue-cash")]
+        {
+            require!(
+                accounts.btc_ledger.is_none() && accounts.eth_ledger.is_none(),
+                ClearingError::Profile
+            );
+            super::listed::cash::apply(
+                &accounts.identity,
+                &mut accounts.donor,
+                Some(&mut accounts.recipient),
+                &mut remaining_accounts,
+                amount,
+                events,
+                accounts.event_authority.account().clone(),
+            )?
+        }
+        #[cfg(not(feature = "listed-venue-cash"))]
+        return Err(ClearingError::Profile.into());
+    } else {
+        let snapshot = begin(&accounts.identity)?;
+        let donor = withdraw_candidate(&accounts.donor, &snapshot, amount)?;
+        let recipient = receive_candidate(&accounts.recipient, &snapshot, amount)?;
+        commit(
+            &mut accounts.donor,
+            &donor,
+            [
+                accounts
+                    .btc_ledger
+                    .as_deref_mut()
+                    .map(|ledger| &mut **ledger),
+                accounts
+                    .eth_ledger
+                    .as_deref_mut()
+                    .map(|ledger| &mut **ledger),
+            ],
+            &accounts.identity.safety,
+        )?;
+        commit(
+            &mut accounts.recipient,
+            &recipient,
+            [
+                accounts
+                    .btc_ledger
+                    .as_deref_mut()
+                    .map(|ledger| &mut **ledger),
+                accounts
+                    .eth_ledger
+                    .as_deref_mut()
+                    .map(|ledger| &mut **ledger),
+            ],
+            &accounts.identity.safety,
+        )?;
+        snapshot.clock
+    };
+    finish(&mut accounts.identity, &clock)?;
     emit(
         &accounts.identity,
         events,
@@ -176,6 +247,6 @@ pub fn transfer(
         .flatten()
         .collect::<Vec<_>>(),
         None,
-        snapshot.clock.slot,
+        clock.slot,
     )
 }

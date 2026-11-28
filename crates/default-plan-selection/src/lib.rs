@@ -4,6 +4,8 @@
 use core::cmp::Ordering;
 #[cfg(feature = "compact-book")]
 pub mod compact_book;
+#[cfg(feature = "indexed-settlement")]
+pub mod market_indexed;
 pub mod foreign_creditor;
 pub mod inventory_book;
 pub mod inventory_choice;
@@ -18,6 +20,8 @@ pub mod mirror;
 pub mod pair_prefix;
 #[cfg(feature = "native-search")]
 pub mod multi_lot;
+#[cfg(all(feature = "three-market-search", not(target_arch = "bpf")))]
+pub mod three_market;
 pub mod proportional;
 pub mod single_lot;
 pub mod two_debtors;

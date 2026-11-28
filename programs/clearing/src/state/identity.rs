@@ -2,6 +2,9 @@
 pub const MARKET_COUNT: usize = 2;
 pub const MAX_PORTFOLIOS: u32 = 4;
 pub const MAX_SUBACCOUNT: u32 = 8;
+/// Listing-bound maker capital has no claim or exposure in either inline market.
+/// Its full u16 market ID is authenticated through the immutable capital binding.
+pub const LISTED_CAPITAL_TAG: u8 = 254;
 pub const CROSS_MARKET_SENTINEL: u8 = u8::MAX;
 
 pub const MODE_CROSS: u8 = 0;
@@ -28,7 +31,10 @@ pub fn valid_identity(
                     && role != ROLE_MAKER
             }
             MODE_ISOLATED => {
-                subaccount_index > 0 && usize::from(isolated_market_index) < MARKET_COUNT
+                subaccount_index > 0
+                    && (usize::from(isolated_market_index) < MARKET_COUNT
+                        || (cfg!(feature = "listed-maker-admission")
+                            && role == ROLE_MAKER && isolated_market_index == LISTED_CAPITAL_TAG))
             }
             _ => false,
         }

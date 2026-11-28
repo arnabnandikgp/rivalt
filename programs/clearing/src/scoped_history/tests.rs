@@ -60,6 +60,7 @@ fn with_margin(
     let key = Address::new_unique();
     let mut bytes = Vec::new();
     crate::wire::write_discriminated(&value, &mut bytes).unwrap();
+    bytes.resize(MARGIN_ALLOCATION, 0);
     let mut backing =
         crate::test_support::TestAccount::new(key, crate::ID, &bytes, writable, false);
     let mut info = backing.view();
@@ -172,6 +173,7 @@ fn remaining_root_preserves_manual_financial_write_then_advances_header() {
     };
     let mut bytes = Vec::new();
     crate::wire::write_discriminated(&root, &mut bytes).unwrap();
+    bytes.resize(MARGIN_ALLOCATION, 0);
     let mut backing = crate::test_support::TestAccount::new(key, crate::ID, &bytes, true, false);
     let mut info = backing.view();
     let mut scope = Scope::new();
@@ -189,6 +191,7 @@ fn remaining_root_preserves_manual_financial_write_then_advances_header() {
     let mut expected = Vec::new();
     root.revision = 12;
     crate::wire::write_discriminated(&root, &mut expected).unwrap();
+    expected.resize(MARGIN_ALLOCATION, 0);
     assert_eq!(&info.try_borrow().unwrap()[..], expected);
     let event = scope
         .finish(Address::default(), [0; 32], [0; 8], 1, 42)
@@ -483,6 +486,7 @@ fn permanent_tombstone_keeps_predecessor_revision_and_has_one_narrow_kind_transi
     };
     let mut root_bytes = Vec::new();
     crate::wire::write_discriminated(&root, &mut root_bytes).unwrap();
+    root_bytes.resize(MARGIN_ALLOCATION, 0);
     let mut before = TestAccount::new(key, crate::ID, &root_bytes, true, false);
     let tombstone = MarginTombstone {
         schema_version: SCHEMA_VERSION,
@@ -676,7 +680,7 @@ fn shared_coverage_lane_verifies_prior_rows_and_removes_only_the_leaving_member(
         radius: [[i128::MAX; 2]; 4],
         members: vec![],
     };
-    let mut bytes = vec![0; 326 + 16 * 64];
+    let mut bytes = vec![0; CoverageLane::SPACE];
     crate::wire::write_account(&lane, &mut bytes).unwrap();
     let mut backing = TestAccount::new(key, crate::ID, &bytes, true, false);
     let view = backing.view();
@@ -724,4 +728,46 @@ fn shared_coverage_lane_verifies_prior_rows_and_removes_only_the_leaving_member(
     batch.capture(second, &member(8, 24), true).unwrap();
     batch.commit(venue, &[view.clone()]).unwrap();
     assert_eq!(rows(), vec![(8, 24)]);
+}
+
+#[cfg(feature = "listed-margin-storage")]
+#[test]
+fn two_market_consumers_refuse_a_wider_root_with_even_a_fractional_debt() {
+    use crate::test_support::TestAccount;
+    use clearing_accounting::{
+        entry_cost::EntryCost,
+        market_slots::{MarketImage, MarketSlots},
+        Mode, Position,
+    };
+    let root = MarginAccount {
+        schema_version: SCHEMA_VERSION, revision: 1, mode: MODE_CROSS,
+        isolated_market_index: CROSS_MARKET_SENTINEL, cash: 500,
+        ..Default::default()
+    };
+    let mut bytes = Vec::new();
+    crate::wire::write_discriminated(&root, &mut bytes).unwrap();
+    bytes.resize(initial_margin_size(root.mode, root.isolated_market_index), 0);
+    let directory=MarketSlots::new(Mode::Cross,6);
+    let debt = MarketImage {
+        market: 258,
+        position: Position { virtual_scaled: -1, ..Default::default() },
+        entry: EntryCost::default(),
+    };
+    directory.successor(&[debt], &[]).unwrap().write_listed_bytes(&mut bytes[MARGIN_ALLOCATION..]).unwrap();
+    let key=Address::new_unique();
+    for occupied in [true,false] {
+        if !occupied { directory.write_listed_bytes(&mut bytes[MARGIN_ALLOCATION..]).unwrap(); }
+        assert_eq!(MarginAccount::try_deserialize(&mut bytes.as_slice()).unwrap().cash,500);
+        let mut backing=TestAccount::new(key,crate::ID,&bytes,true,false);
+        let mut view=backing.view();
+        assert_eq!(Scope::new().raw::<MarginAccount>(&mut view,Access::Read).is_err(),occupied);
+        assert_eq!(Scope::new().remaining(&mut [view.clone()],false).is_err(),occupied);
+        assert_eq!(Scope::new().retire_margin(&mut view).is_err(),occupied);
+        {
+            let mut account=unsafe { BorshAccount::<MarginAccount>::load(view.clone()) }.unwrap();
+            assert_eq!(Scope::new().account(&mut account,Access::Read).is_err(),occupied);
+        }
+        let mut account=unsafe { BorshAccount::<MarginAccount>::load_mut(view.clone()) }.unwrap();
+        assert_eq!(Scope::new().account(&mut account,Access::Write).is_err(),occupied);
+    }
 }

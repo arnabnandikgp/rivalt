@@ -131,12 +131,65 @@ pub(crate) fn withdraw_candidate(
 ) -> Result<Box<MarginAccount>> {
     require!(amount > 0, ClearingError::Amount);
     let mut next = snapshot.refresh(root, true)?;
-    let candidate =
-        checked(crate::engine::account::model(&next)?.withdraw(amount, snapshot.risks))?;
-    snapshot.held_solvent(candidate)?;
+    let accrued = crate::engine::account::model(&next)?;
+    #[cfg(feature = "indexed-withdrawal")]
+    let candidate = indexed_cash_outflow(accrued, snapshot, amount)?;
+    #[cfg(not(feature = "indexed-withdrawal"))]
+    let candidate = {
+        let candidate = checked(accrued.withdraw(amount, snapshot.risks))?;
+        snapshot.held_solvent(candidate)?;
+        candidate
+    };
     snapshot.commit_model(&mut next, candidate)?;
     advance(&mut next)?;
     Ok(next)
+}
+
+/// The root has already accrued funding and refreshed every active order. The
+/// account context binds each supplied market PDA to its slot on this venue.
+#[cfg(feature = "indexed-withdrawal")]
+fn indexed_cash_outflow(mut accrued: Margin, snapshot: &Snapshot, amount: u64) -> Result<Margin> {
+    accrued.cash = checked(math::cash_sub(accrued.cash, amount))?;
+    let (slots, windows) = snapshot.base_risk_inputs(&accrued)?;
+    check_available_cash(&accrued, &slots, &windows)?;
+    Ok(accrued)
+}
+
+#[cfg(feature = "indexed-withdrawal")]
+impl Snapshot {
+    pub(crate) fn base_risk_inputs(
+        &self,
+        accrued: &Margin,
+    ) -> Result<(Vec<math::withdrawal::OccupiedSlot>, Vec<math::withdrawal::MarketWindow>)> {
+        use math::withdrawal::{MarketWindow, OccupiedSlot};
+        let mut slots = Vec::with_capacity(accrued.positions.len());
+        let mut windows = Vec::with_capacity(accrued.positions.len());
+        for (index, position) in accrued.positions.iter().enumerate() {
+            if position.lots == 0 && position.virtual_scaled == 0 {
+                continue;
+            }
+            let market = u16::from(self.market(index)?.index);
+            slots.push(OccupiedSlot { market, position: *position });
+            if position.lots != 0 {
+                let [funding_low, funding_high] = self.bounds[index];
+                windows.push(MarketWindow { market, current: self.risks[index], funding_low, funding_high });
+            }
+        }
+        Ok((slots, windows))
+    }
+}
+
+#[cfg(feature = "indexed-withdrawal")]
+pub(crate) fn check_available_cash(
+    accrued: &Margin,
+    slots: &[math::withdrawal::OccupiedSlot],
+    windows: &[math::withdrawal::MarketWindow],
+) -> Result<()> {
+    let remaining = checked(math::scaled(accrued.cash))?;
+    let required = checked(math::withdrawal::cash_required(slots, windows, accrued.reserved))?;
+    require!(remaining >= required.current_scaled, ClearingError::Arithmetic);
+    require!(remaining >= required.held_scaled, ClearingError::ExitCohort);
+    Ok(())
 }
 
 pub(crate) fn receive_candidate(

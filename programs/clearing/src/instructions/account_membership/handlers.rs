@@ -49,8 +49,10 @@ pub fn retire(ctx: &mut Context<RetireMargin>, events: &mut crate::event_cpi::Pa
     let mut account = accounts.margin.account().clone();
     require!(account.owner() == &crate::ID && account.is_writable() && !account.is_signer()
         // Release outstanding contributor credit before refunding original rent to the owner.
-        && !account.executable() && account.data_len() == crate::state::accounts::MARGIN_ALLOCATION, ClearingError::Resolution);
+        && !account.executable(), ClearingError::Resolution);
     let mut root = Box::new(MarginAccount::try_deserialize(&mut &account.try_borrow()?[..])?);
+    require!(account.data_len() == initial_margin_size(root.mode, root.isolated_market_index)
+        || account.data_len() == MARGIN_ALLOCATION, ClearingError::Resolution);
     require!(root.revision == revision && root.owner == *accounts.owner.address()
         && root.portfolio == *accounts.portfolio.address(), ClearingError::Authority);
     let key = create_program_address(&[b"margin-v3", root.portfolio.as_ref(), &root.subaccount_index.to_le_bytes(), &[root.bump]],

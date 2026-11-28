@@ -9,6 +9,8 @@ use anchor_lang::prelude::*;
 use financial_core as math;
 
 mod engine;
+#[cfg(feature = "listed-margin-storage")]
+pub(crate) mod listed;
 pub(crate) use engine::*;
 mod contexts;
 pub use contexts::*;
@@ -18,7 +20,7 @@ pub(crate) mod maintained;
 pub mod claims;
 pub mod fees;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 fn add(left: i128, right: i128) -> Result<i128> {
     left.checked_add(right)

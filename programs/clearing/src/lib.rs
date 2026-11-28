@@ -1059,6 +1059,91 @@ pub mod clearing {
             },
         )
     }
+    /// Read-only complete-book verification before any change to custody or frozen balances.
+    pub fn bind_indexed_default(ctx:&mut Context<VerifyInventoryBook>, epoch:u64, revision:u64, selected:u8,
+        denominator:u32, rates:Vec<u32>) -> Result<()> {
+        #[cfg(feature="venue-default-application")]
+        { scoped_history::run_frozen_pages(ctx,[246, 190, 204, 1, 93, 188, 180, 243],|ctx,events|
+            account_safety::settlement::recovery::binding::indexed::bind(ctx,events,epoch,revision,selected,denominator,rates)) }
+        #[cfg(not(feature="venue-default-application"))]
+        { let _=(ctx,epoch,revision,selected,denominator,rates); Err(ClearingError::Profile.into()) }
+    }
+    pub fn verify_indexed_default(ctx:&mut Context<PreparedSourceIdentity>, epoch:u64, selected:u8,
+        denominator:u32, rates:Vec<u32>) -> Result<Vec<u64>> {
+        #[cfg(feature="venue-default-verifier")]
+        { account_safety::settlement::indexed::preview(ctx,epoch,selected,denominator,rates) }
+        #[cfg(not(feature="venue-default-verifier"))]
+        { let _=(ctx,epoch,selected,denominator,rates); Err(ClearingError::Profile.into()) }
+    }
+    pub fn freeze_listed_default(ctx: &mut Context<FreezeListedDefault>, safety_epoch: u64) -> Result<()> {
+        #[cfg(feature="listed-venue-default")]
+        { scoped_history::run(ctx, account_safety::resolution::listed::FREEZE, false,
+            |ctx, events| account_safety::resolution::listed::freeze(ctx, events, safety_epoch)) }
+        #[cfg(not(feature="listed-venue-default"))]
+        { let _ = (ctx, safety_epoch); Err(ClearingError::Profile.into()) }
+    }
+
+    pub fn settle_listed_default(ctx: &mut Context<SettleListedDefault>, epoch: u64,
+        selected: u8, denominator: u32, numerators: Vec<u32>) -> Result<()> {
+        #[cfg(feature="listed-venue-default")]
+        { scoped_history::run(ctx, account_safety::resolution::listed::SETTLE, false,
+            |ctx, events| account_safety::resolution::listed::settlement::settle(ctx, events, epoch, selected, denominator, numerators)) }
+        #[cfg(not(feature="listed-venue-default"))]
+        { let _ = (ctx, epoch, selected, denominator, numerators); Err(ClearingError::Profile.into()) }
+    }
+
+    pub fn begin_listed_qualification(ctx: &mut Context<BeginListedQualification>) -> Result<()> {
+        #[cfg(feature="listed-venue-execution")]
+        { scoped_history::run(ctx, [46,56,66,151,91,75,179,201], false, maker_liquidity::routes::listed_venue::begin) }
+        #[cfg(not(feature="listed-venue-execution"))]
+        { let _ = ctx; Err(ClearingError::Profile.into()) }
+    }
+
+    pub fn execute_listed_market_order(ctx: &mut Context<ExecuteListedMarketOrder>, args: BestRouteIntent) -> Result<()> {
+        #[cfg(feature="listed-venue-execution")]
+        { maker_liquidity::routes::listed_venue::execute(ctx, args) }
+        #[cfg(not(feature="listed-venue-execution"))]
+        { let _ = (ctx, args); Err(ClearingError::Profile.into()) }
+    }
+
+    pub fn initialize_listed_funding(ctx: &mut Context<InitializeListedFunding>, publisher: Address) -> Result<()> {
+        require!(cfg!(feature = "listed-funding"), ClearingError::Profile);
+        scoped_history::run(ctx, [74, 12, 6, 83, 92, 247, 201, 176], false,
+            |ctx, events| maker_liquidity::publisher::listed::initialize(ctx, events, publisher))
+    }
+    pub fn configure_listed_funding(ctx: &mut Context<ConfigureListedFunding>, epoch: u64, publisher: Address) -> Result<()> {
+        require!(cfg!(feature = "listed-funding"), ClearingError::Profile);
+        scoped_history::run(ctx, [232, 46, 84, 226, 54, 86, 246, 37], false,
+            |ctx, events| maker_liquidity::publisher::listed::configure(ctx, events, epoch, publisher))
+    }
+    pub fn publish_listed_funding(ctx: &mut Context<PublishListedFunding>, report: crate::state::liquidity::FundingReport) -> Result<()> {
+        require!(cfg!(feature = "listed-funding"), ClearingError::Profile);
+        scoped_history::run(ctx, [74, 221, 17, 23, 121, 23, 69, 210], false,
+            |ctx, events| maker_liquidity::publisher::listed::publish(ctx, events, report))
+    }
+    pub fn seal_listed_liquidity(ctx: &mut Context<SealListedLiquidity>) -> Result<()> {
+        require!(cfg!(feature="listed-market-directory"), ClearingError::Profile);
+        scoped_history::run_listed_directory(ctx, [173, 174, 253, 223, 148, 109, 43, 101], maker_liquidity::listed_directory::seal)
+    }
+    pub fn admit_listed_maker(ctx: &mut Context<AdmitListedMaker>, instance: u8) -> Result<()> {
+        require!(cfg!(feature = "listed-maker-admission"), ClearingError::Profile);
+        scoped_history::run(ctx, [159, 93, 238, 177, 144, 184, 33, 39], false,
+            |ctx, events| maker_liquidity::listed::admit(ctx, events, instance))
+    }
+    pub fn bind_listing_index(ctx: &mut Context<BindListingIndex>) -> Result<()> {
+        require!(cfg!(feature = "inactive-market-listing"), ClearingError::Profile);
+        scoped_history::run(ctx, [130, 194, 213, 225, 127, 24, 57, 109], false, listing_index::bind)
+    }
+    pub fn observe_listing_index(ctx: &mut Context<ObserveListingIndex>) -> Result<()> {
+        require!(cfg!(feature = "inactive-market-listing"), ClearingError::Profile);
+        scoped_history::run(ctx, [58, 11, 151, 19, 51, 121, 166, 85], false, listing_index::observe)
+    }
+    pub fn register_market_listing(ctx: &mut Context<RegisterMarketListing>, market_id: u16,
+        symbol: [u8; 8], lots_per_unit: u64, oracle_publisher: Address) -> Result<()> {
+        require!(cfg!(feature = "inactive-market-listing"), ClearingError::Profile);
+        scoped_history::run(ctx, [108, 103, 3, 230, 76, 230, 206, 137], false, |ctx, events|
+            market_listing::register(ctx, events, market_id, symbol, lots_per_unit, oracle_publisher))
+    }
     pub fn initialize_market(ctx: &mut Context<InitializeMarket>, index: u8) -> Result<()> {
         scoped_history::run(
             ctx,

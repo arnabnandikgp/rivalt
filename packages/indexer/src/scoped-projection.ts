@@ -1,4 +1,5 @@
 import {isDeepStrictEqual} from 'node:util';
+import * as sdk from '@rivalt/sdk';
 import type {AccountInvocation} from './account-events.js';
 import {accountCheck, projectAccounts, type AccountState} from './account-projection.js';
 import {orderScopedTransactions} from './scoped-history.js';
@@ -13,7 +14,7 @@ export function projectedEntities(state:AccountState) {
     accountCheck(keys.length===1,`singleton revision coverage ${kind}`);values.set(keys[0],value);
   }
   for(const [kind,collection] of [[4,state.portfolios],[5,state.roots],[6,state.markets],[7,state.ledgers],[9,state.backing],
-    [26,state.tombstones],[27,state.storageTombstones],[14,state.liquidity?.registries??{}],[15,state.liquidity?.makers??{}],[16,state.liquidity?.publishers??{}]] as const)
+    [28,state.listings??{}],[29,state.listedSymbols??{}],[30,state.listingIndices??{}],[31,state.listedFunding??{}],[32,state.listedVenues??{}],[33,state.listedBooks??{}],[34,state.listedDefaults??{}],[26,state.tombstones],[27,state.storageTombstones],[14,state.liquidity?.registries??{}],[15,state.liquidity?.makers??{}],[16,state.liquidity?.publishers??{}]] as const)
     for(const [account,value] of Object.entries(collection)) {
       accountCheck(state.revisions[account]?.kind===kind,`snapshot entity kind ${account}`);values.set(account,value);
     }
@@ -40,7 +41,22 @@ export function projectScopedBatch(initial:AccountState,invocations:readonly Acc
     // immutable values, preserving array order and all financial fields.
     const before=new Map([...projectedEntities(state)].map(([key,value])=>[key,structuredClone(storedFields(state,key,value))]));
     for(const write of invocation.writes)state.revisions[write.account]={kind:write.kind,revision:write.before};
-    for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4,binding.artifactSet);
+    const cash=invocation.events.at(-1);
+    if(state.venue?.profileVersion===7 && cash?.type==='AccountFinancialChangedV3' && [0,1].includes(cash.data.kind)) {
+      const accrual=invocation.events[0];
+      accountCheck(sdk.hasListedCash(binding.artifactSet) && accrual.type==='ListedCashAccrued','wider cash accrual');
+      const occupied=cash.data.roots.filter((key:string)=>{
+        const payload=state.listedPositions?.[key];
+        return payload && sdk.decodeListedRecords(Buffer.from(payload,'hex'),sdk.listedMarginCapacity(state.roots[key]),true).records.length>0;
+      });
+      accountCheck(isDeepStrictEqual(occupied,accrual.data.roots.map((row:{margin:string})=>row.margin)),'complete cash position directories');
+      const amount=BigInt(cash.data.amount);
+      accountCheck(amount>0n && cash.data.rootStates.length===cash.data.roots.length &&
+        cash.data.roots.every((key:string,i:number)=>state.roots[key].owner===cash.data.actor &&
+          BigInt(cash.data.rootStates[i].cash)===BigInt(state.roots[key].cash)+(i===0?-amount:amount)),'funded cash movement');
+    }
+    for(const event of invocation.events)projectAccounts(state,event,binding.venue,binding.domain,4,binding.artifactSet,
+      event.type==='ListedMarginChanged' && invocation.events.at(-1)?.type==='ListedRouteFilled');
     const represented=projectedEntities(state),writes=new Map(invocation.writes.map(write=>[write.account,write]));
     for(const [key,value] of represented) {
       const expected=state.revisions[key];

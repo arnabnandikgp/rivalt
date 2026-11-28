@@ -142,6 +142,10 @@ macro_rules! maker_bundle {
                 pricing::View { capital: &self.$capital, registration: &self.$registration,
                     program: &self.$program, data: &self.$data, config: &self.$config, price: &self.$price }
             }
+            #[cfg(feature="listed-venue-execution")]
+            pub(super) fn financial_accounts(&mut self) -> (&mut BorshAccount<MarginAccount>, &mut BorshAccount<MakerRegistration>) {
+                (&mut self.$capital, &mut self.$registration)
+            }
             fn bundle(&mut self) -> MakerAccounts<'_> {
                 MakerAccounts {capital: &mut self.$capital, registration: &mut self.$registration,
                     program: &self.$program, data: &self.$data, config: &self.$config, price: &self.$price}
@@ -222,4 +226,55 @@ pub(super) struct RouteAccounts<'a> {
     pub second_config: Option<&'a UncheckedAccount>,
     pub second_price: Option<&'a UncheckedAccount>,
     pub event_authority: AccountView,
+}
+
+#[event_cpi]
+#[derive(Accounts)]
+pub struct BeginListedQualification {
+    #[account(mut)]
+    pub authority: Signer,
+    #[account(mut, seeds=[b"venue-v3",&venue.domain], bump=venue.bump, has_one=authority)]
+    pub venue: Box<BorshAccount<Venue>>,
+    #[account(mut, seeds=[b"safety-v3",venue.address().as_ref()], bump=safety.bump, has_one=venue)]
+    pub safety: Box<BorshAccount<VenueSafety>>,
+    #[account(mut, seeds=[b"market-listing",venue.address().as_ref(),&listing.market_id.to_le_bytes()], bump=listing.bump, has_one=venue)]
+    pub listing: Box<BorshAccount<MarketListing>>,
+    #[account(seeds=[b"liquidity-v4",listing.address().as_ref()], bump=registry.bump, has_one=venue)]
+    pub registry: Box<BorshAccount<LiquidityRegistry>>,
+    #[account(mut, seeds=[b"listed-funding",listing.address().as_ref()], bump=funding.bump, has_one=listing)]
+    pub funding: Box<BorshAccount<ListedFunding>>,
+    #[account(init, payer=authority, space=8+ListedVenue::INIT_SPACE, seeds=[b"listed-venue",venue.address().as_ref()], bump)]
+    pub directory: Box<BorshAccount<ListedVenue>>,
+    #[account(init, payer=authority, space=8+ListedMarketBook::INIT_SPACE, seeds=[b"listed-book",listing.address().as_ref()], bump)]
+    pub book: Box<BorshAccount<ListedMarketBook>>,
+    pub system_program: Program<System>,
+}
+
+use crate::instructions::account_cash::{AccountFinancialIdentity, AccountFinancialIdentityBumps,
+    __client_accounts_accountfinancialidentity, __cpi_accounts_accountfinancialidentity};
+
+#[event_cpi]
+#[derive(Accounts)]
+pub struct ExecuteListedMarketOrder {
+    pub actor: Signer,
+    pub identity: Nested<AccountFinancialIdentity>,
+    #[account(seeds=[b"listed-venue",identity.venue.address().as_ref()], bump=directory.bump,
+        constraint=directory.venue==*identity.venue.address() @ ClearingError::Profile)]
+    pub directory: Box<BorshAccount<ListedVenue>>,
+    #[account(seeds=[b"market-listing",identity.venue.address().as_ref(),&listing.market_id.to_le_bytes()], bump=listing.bump,
+        constraint=listing.venue==*identity.venue.address() @ ClearingError::Profile)]
+    pub listing: Box<BorshAccount<MarketListing>>,
+    #[account(mut, seeds=[b"listed-book",listing.address().as_ref()], bump=book.bump, has_one=listing)]
+    pub book: Box<BorshAccount<ListedMarketBook>>,
+    #[account(mut, seeds=[b"listed-funding",listing.address().as_ref()], bump=funding.bump, has_one=listing)]
+    pub funding: Box<BorshAccount<ListedFunding>>,
+    #[account(seeds=[b"liquidity-v4",listing.address().as_ref()], bump=registry.bump,
+        constraint=registry.venue==*identity.venue.address() @ ClearingError::MakerBinding)]
+    pub registry: Box<BorshAccount<LiquidityRegistry>>,
+    #[account(mut, seeds=[b"margin-v3",trader.portfolio.as_ref(),&trader.subaccount_index.to_le_bytes()], bump=trader.bump,
+        constraint=trader.venue==*identity.venue.address() @ ClearingError::Profile)]
+    pub trader: Box<BorshAccount<MarginAccount>>,
+    pub candidate_zero: Nested<RouteMakerZero>,
+    pub candidate_one: Nested<RouteMakerOne>,
+    pub candidate_two: Nested<RouteMakerTwo>,
 }

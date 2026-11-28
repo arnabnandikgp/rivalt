@@ -8,5 +8,6 @@
 
 export * from "./controlCurve.js";
 export * from "./initializeCurve.js";
+export * from "./initializeListedCurve.js";
 export * from "./quoteCurve.js";
 export * from "./reprice.js";

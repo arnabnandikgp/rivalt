@@ -1,6 +1,6 @@
 // Explicit local dependency wire schema, independently encoded from Anchor.
 import {createHash} from 'node:crypto';
-import {address,AccountRole,getAddressEncoder,getProgramDerivedAddress,type Instruction} from '@solana/kit';
+import {address,AccountRole,getAddressEncoder,getProgramDerivedAddress,type Address,type Instruction} from '@solana/kit';
 import type {Keypair} from '@solana/web3.js';
 import {fixtureKey} from './harness.js';
 export const ORACLE_FIXTURE=address('A5ACpHNQHLkCQtfvRkPoR45juvuxwfi9mEWGU43eD5nj');
@@ -12,13 +12,20 @@ export async function feedAddress(index:number){
 }
 export async function initializeFeed(index:number):Promise<Instruction>{
   const f=await feedAddress(index);
-  return {programAddress:ORACLE_FIXTURE,accounts:[{address:f.authority.address,role:AccountRole.WRITABLE_SIGNER},{address:f.feed,role:AccountRole.WRITABLE},{address:address('11111111111111111111111111111111'),role:AccountRole.READONLY}],data:Buffer.concat([disc('initialize'),f.id])};
+  return initializeFixtureFeed(f.feed,f.authority.address,f.id);
+}
+export function initializeFixtureFeed(feed:Address,authority:Address,id:Uint8Array):Instruction {
+  return {programAddress:ORACLE_FIXTURE,accounts:[{address:authority,role:AccountRole.WRITABLE_SIGNER},{address:feed,role:AccountRole.WRITABLE},{address:address('11111111111111111111111111111111'),role:AccountRole.READONLY}],data:Buffer.concat([disc('initialize'),id])};
 }
 export type SourceChange={verifier?:string;level?:number;price?:bigint;confidence?:bigint;exponent?:number;published?:bigint};
 export async function publishFeed(index:number,now:bigint,change:SourceChange={},signer?:Keypair):Promise<Instruction>{
-  const f=await feedAddress(index),data=Buffer.alloc(69);disc('publish').copy(data);
+  const f=await feedAddress(index);
+  return publishFixtureFeed(f.feed,signer?.address??f.authority.address,now,{...change,price:change.price??(index%2===0?60_000_000_000n:1_000_000n)});
+}
+export function publishFixtureFeed(feed:Address,authority:Address,now:bigint,change:SourceChange & {price:bigint}):Instruction {
+  const data=Buffer.alloc(69);disc('publish').copy(data);
   data.set(getAddressEncoder().encode(address(change.verifier??ORACLE_FIXTURE)),8);data[40]=change.level??2;
-  data.writeBigInt64LE(change.price??(index%2===0?60_000_000_000n:1_000_000n),41);data.writeBigUInt64LE(change.confidence??0n,49);
+  data.writeBigInt64LE(change.price,41);data.writeBigUInt64LE(change.confidence??0n,49);
   data.writeInt32LE(change.exponent??-6,57);data.writeBigInt64LE(change.published??now,61);
-  return {programAddress:ORACLE_FIXTURE,accounts:[{address:signer?.address??f.authority.address,role:AccountRole.READONLY_SIGNER},{address:f.feed,role:AccountRole.WRITABLE}],data};
+  return {programAddress:ORACLE_FIXTURE,accounts:[{address:authority,role:AccountRole.READONLY_SIGNER},{address:feed,role:AccountRole.WRITABLE}],data};
 }

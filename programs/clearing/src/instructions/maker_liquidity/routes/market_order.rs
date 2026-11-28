@@ -73,7 +73,7 @@ struct Winner {
     quotes: Vec<canonical::MakerQuoteResponse>,
 }
 
-struct SelectionError(ProgramError);
+pub(super) struct SelectionError(pub(super) ProgramError);
 impl From<maker_interface::QuoteError> for SelectionError {
     fn from(error: maker_interface::QuoteError) -> Self {
         if error == maker_interface::QuoteError::SearchLimit {

@@ -17,13 +17,35 @@ This register summarizes choices enforced by the local protocol. The [original d
 
 Record future material choices here with a date, alternatives considered, consequences for users, and the current contract. [Project status](STATUS.md) tracks open questions separately.
 
+**27 November 2026 — Reuse the venue's collateral oracle for inactive listings.**
+The local venue authority binds the listing's index once. Clearing derives the
+independent asset guard from the publisher of the existing collateral guard.
+This gives a new underlying the same collateral valuation as BTC and ETH and
+lets anyone submit an observation without selecting the feeds. Rejections retain
+the original expiry of the last qualified sample. Market admission remains a
+separate financial decision. [Index rules](clearing/risk-and-resolution.md#observing-the-index-of-an-inactive-listing)
+
+**27 November 2026 — Give each inactive listing a stable ID and a unique ticker.**
+The local venue authority reserves both names atomically in two small PDAs.
+This lets clients discover a proposed market without rewriting a shared directory
+or reallocating existing margin accounts. Registration authenticates the primary
+feed's identity and leaves the market inactive. Price observation, maker admission
+and the complete default and exit paths each require separate qualification
+before trading can open. [Listing contract](clearing/accounts.md#registering-an-inactive-market)
+
+**27 November 2026 — Verify a bounded wider default in the settlement transaction.** In the local qualification build, accept permissionless proposals for the registered roster. Authenticate current account bytes, verify greatest recovery rates and compare every candidate before committing the terminal balances. This avoids a persistent freeze that could strand a book outside the verifier’s supported class. The first local certificate required a strictly best allocation with whole terminal flows. Its successor checks the same strict recovery priority, verifies whole insurance budgets from the original reserves and runs protected circulation over fractional terminal flows. If the complete book has no eligible whole-atom reduction, permit terminal settlement only for a verified post-insurance loss. This lets owners withdraw the funded remainder while preventing a keeper from terminating a fully covered book. For two winners in a single charged market, a certified full recovery bounds the search to rival splits of the same total. Retain frozen member priority and shared lot limits. A proposal that cannot establish the full recovery is outside this certificate. Wider trading still requires the full venue settlement contract. [Certificate and bounds](clearing/risk-and-resolution.md#signed-verification-across-market-ids)
+
+**27 November 2026 — Qualify wider default through one market-indexed engine.** The successor accepts frozen market IDs and member obligations at runtime. The two- and three-market examples remain financial regressions. Wider accounts can link more markets across the frozen book than any one member occupies, so qualify those two dimensions independently. Reuse the frozen debt proportions, market-specific insurance and protected rounding rules. Wider trading requires signed verification of the complete settlement and wallet exits on the venue profile. [Settlement contract](clearing/risk-and-resolution.md#settlement-across-a-frozen-set-of-markets)
+
+**27 November 2026 — Bind candidate slot references to the margin account, market ID and occupancy period.** Fixed global offsets grow with the venue's listings. Reusing an offset or market ID alone can make an old reference point to a newly admitted obligation. Preserve a market's binding until all its exposure, claims and live order authority are discharged. Assign its next occupancy a fresh account-local counter. Qualification first projected existing BTC/ETH roots into this representation. The [funded custody fixture](clearing/accounts.md#funded-custody-qualification) persists the candidate directory under a separate program and test-token vault so it can exercise more markets without changing trading admission. [Account contract](clearing/accounts.md#market-slots-in-the-width-qualification)
+
 **26 November 2026 — Maintain debtor bounds in small groups for local payout qualification.** Rebuild the affected groups inside the financial write. On payment, check their intervals against the current held prices and funding bounds. Per-row checks remain authoritative whenever an interval is insufficient. This preserves creditor protection for an idle debtor between trades while allowing a solvent open book to pay from summaries alone. The profile has an explicit fresh-genesis allocation and its own artifact identity. [Accounting contract](clearing/accounting.md#incremental-debtor-checks-on-open-books)
 
 **26 November 2026 — Execute verified backing and closed-profit credit together on the bounded local profile.** A caller can request payment directly from the market pool when clearing verifies the complete current book in the same instruction. The existing certificate path and historical artifact bindings remain available. Reading all eight coverage lanes exposes a shared read dependency with any fill that changes one of them. [Authority and account contract](clearing/accounting.md#atomic-credit-of-closed-profit)
 
 **26 November 2026 — Maintain debtor coverage at the financial commit.** On a fresh local venue the clearing instruction that changes a balance or financial membership must also maintain the corresponding coverage row. A separate caller-supplied recording instruction allowed a financial write to omit its coverage update. Clearing now commits both changes atomically. Permissionless observers read the current rows. A registered empty identity can retire once it has left financial membership. The existing certificate continues to authorize payouts while direct claims and adverse books undergo qualification. [Contract and storage limits](clearing/accounting.md#clearing-maintained-debtor-coverage)
 
-**26 November 2026 — Split cross-debtor recoveries before insurance.** For the wider-market successor, recovered proceeds cover frozen remaining destination debts in proportion to their sizes, capped at debt. Each destination then uses only its own insurance. An insurance-aware allocation could pay more creditors in full by drawing more of one market's reserve. The approved rule keeps that reserve from changing another market's share. The local program still supports two markets. [Worked comparison](clearing/risk-and-resolution.md#gate-for-a-third-cross-market)
+**26 November 2026 — Split cross-debtor recoveries before insurance.** For the wider-market successor, recovered proceeds cover frozen remaining destination debts in proportion to their sizes, capped at debt. Each destination then uses only its own insurance. An insurance-aware allocation could pay more creditors in full by drawing more of one market's reserve. The approved rule keeps that reserve from changing another market's share. If a proposed close discharges one destination debt, recovered funds above that debt go toward the remaining debt before the debtor retains any surplus. The local venue still supports two markets. [Worked comparison](clearing/risk-and-resolution.md#gate-for-a-third-cross-market) · [Native reduction comparison](clearing/default-plan-verification.md#one-proposed-reduction-on-a-three-market-frozen-book) · [Signed single-pair scope](clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair)
 
 **26 November 2026 — Qualify payout backing before widening cross margin.** The successor targets direct payment of a backed closed claim without ordinary membership scans. A funded pool alone cannot authorize payment when a shared debtor is underfunded. Qualifying a third market at the same time would mix a change to default economics with a change to payout verification. Build against the BTC/ETH payout contract first. A third cross market requires a separately verified liquidation and default allocation rule. The current certificate and two-market deployment remain authoritative during qualification. [Payout cases](clearing/accounting.md#acceptance-contract-for-ordinary-payouts) · [Default example](clearing/risk-and-resolution.md#gate-for-a-third-cross-market)
 
@@ -34,3 +56,64 @@ Record future material choices here with a date, alternatives considered, conseq
 **24 November 2026 — Adopt closed-quantity ordinary price-profit settlement.** This supersedes the ordinary open-payment portion of D112–D115, D123 and D125 for fresh local deployments. A maker or trader who carries profitable inventory can realize it by reducing that inventory. Accrued funding and the return of previously collected losses retain separate fixed-claim treatment. The old design needed a quantity-dependent storage reserve for future open payments. Reintroducing open-price payouts is deferred. Historical accounts and their signed journals retain their original deployment. [Accounting contract](clearing/accounting.md#ordinary-payouts-on-closed-quantity)
 
 **25 November 2026 — Allow wider atomic fills on an explicitly selected deployment.** An authenticated wallet shortlist can supply up to eight distinct maker capitals to one order. Clearing allocates the exact quantity on current bounded curves and admits the full allocation atomically. A financial failure can still refuse an order with another executable allocation. The two-leg search remains available. This extends the earlier two-counterparty decision for the local multi-maker instruction. [Routing contract](liquidity/routing.md#wider-atomic-fills)
+
+### 28 November 2026 · Isolate newly listed maker capital by listing address
+
+The local admission profile keeps the existing collateral vault and Financial
+membership. An immutable capital binding points to the registration for one
+full listing address. The one-byte selector reserves a tag for this class of
+account. A listed maker's deposit therefore cannot back a BTC/ETH fill or a
+second listing. [Account contract](clearing/accounts.md#isolated-maker-capital-for-an-inactive-listing)
+
+
+### 28 November 2026 · Use frozen market priority for asymmetric protected finalists
+
+Two plans can reach every market's recovery ceiling and draw identical market insurance while sharing losses more proportionally in different markets. When they also close the same total number of lots and satisfy each protected whole-atom receipt, prefer the smaller proportional deviation in the first distinguishing market. Sort market IDs by SHA-256 of the domain `Rivalt/frozen-market-order/v1` followed by a zero byte, the venue's 32 bytes, the frozen episode as little-endian u64 and the market ID as little-endian u16. Break a hash collision by numeric market ID. The caller and the slot of submission have no input. Equal sharing and equal per-market lot counts retain frozen member priority. [Default contract](clearing/risk-and-resolution.md#settlement-across-a-frozen-set-of-markets)
+
+
+### 28 November 2026 · Eliminate unnecessary forced volume within each market
+
+After maximizing protected recovery, compare proportional sharing in each market. If the surviving wider-market plans have identical insurance spending and pass exact and whole-atom creditor protection, discard a plan when a rival closes no more lots in any market and fewer in at least one. Rank the survivors by proportional deviation in frozen market order, then by lots in that order if their deviations tie. Stable frozen member priority resolves an exact tie. The previous equal-total-lot restriction is superseded. Lots in different markets have different units. [Worked example](operations/qualification-scorecard.md#forced-volume-by-market)
+
+
+### 28 November 2026 · Keep listed positions on the same funded margin PDA
+
+Fresh local wider accounts append sorted, market-ID-keyed position records
+after their BTC and ETH entry costs. A fill can lock one participant root and
+a cash or frozen-book reader can derive its complete position set directly
+from that address. Cash, membership identity and the vault authority retain
+one owner each. A two-market consumer may use a wider root only when the
+appendix is empty. Integrating a listed fill also requires venue-wide protection
+for payout and default instructions that can act without reading that root.
+[Account layout and limits](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+
+### 28 November 2026 · Isolate funded wider execution during qualification
+
+Activating listed trading changes which assets can create liabilities against
+the common vault. A check on the traded margin account alone leaves a legacy
+payout to a different creditor reachable. The venue authority therefore selects
+a dedicated profile for the entire local venue, invalidating prior signed
+intents and requiring fresh funding observations. Each financial instruction
+enters the profile's allowlist after it can account for the wider book.
+The trader and makers retain their existing funded accounts. [Qualification boundary](clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+
+The cash-access qualification extends that allowlist to owner withdrawals and
+same-owner transfers. Clearing derives the required funding sources from the
+open positions on both sides of a transfer. It still charges flat debt and
+checks the donor's full current and held-window requirements. The legacy
+two-market payout and default instructions stay gated on this profile.
+[Cash access contract](clearing/accounts.md#cash-access-on-the-funded-listed-market-qualification-venue)
+
+### 28 November 2026 · Bind wider default to the funded venue and its complete membership
+
+The local wider venue freezes all admitted markets in a dedicated episode.
+That record preserves the original market attribution of debt and insurance
+through verification and payment. The existing two-market recovery header
+cannot represent the listed-market position, fee balance or insurance carry.
+Clearing therefore verifies the complete market-indexed book and applies the
+funded balances together before enabling terminal owner withdrawals. If a
+verified market insurance draw pays all creditors, the authenticated frozen
+episode settles at par with zero forced reductions. Starting terminal settlement
+from an ordinary book still requires the original loss checks. General
+market admission still requires a recovery path for the financial books a
+venue can reach. [Funded venue default contract](clearing/default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market)

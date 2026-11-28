@@ -6,6 +6,8 @@ use crate::state::{
 };
 use anchor_lang::prelude::*;
 
+mod listings;
+pub use listings::*;
 mod layouts;
 mod backing;
 mod membership;
@@ -44,7 +46,43 @@ pub const MAX_ATTRIBUTION_SLOT: usize = 256;
 #[cfg(feature = "profit-attribution-qualification")]
 pub const RENT_CREDIT_BYTES: usize = 32 + 8;
 
+/// The amount paid at registration is specific to the fresh binary and the account mode.
+pub fn initial_margin_size(mode: u8, isolated_market: u8) -> usize {
+    #[cfg(feature = "listed-margin-storage")]
+    {
+        use clearing_accounting::market_slots::storage::{HEADER_BYTES, RECORD_BYTES};
+        // Reserve six additional records for a cross root and one for a listed
+        // maker. This is rent capacity in the local profile, not market admission.
+        let capacity = match (mode, isolated_market) {
+            (MODE_CROSS, CROSS_MARKET_SENTINEL) => 6,
+            (MODE_ISOLATED, LISTED_CAPITAL_TAG) => 1,
+            _ => 0,
+        };
+        if capacity > 0 {
+            return MARGIN_ALLOCATION + HEADER_BYTES + capacity * RECORD_BYTES;
+        }
+    }
+    let _ = (mode, isolated_market);
+    MARGIN_ALLOCATION
+}
+
+#[cfg(feature = "listed-margin-storage")]
+pub(crate) fn legacy_margin_bytes(bytes: &[u8]) -> Result<()> {
+    if bytes.len() != MARGIN_ALLOCATION {
+        require!(valid_margin_size(bytes.len()), crate::ClearingError::Profile);
+        clearing_accounting::market_slots::storage::require_empty(&bytes[MARGIN_ALLOCATION..])
+            .map_err(|_| crate::ClearingError::Profile)?;
+    }
+    Ok(())
+}
+
 pub fn valid_margin_size(size: usize) -> bool {
+    #[cfg(feature = "listed-margin-storage")]
+    if size == initial_margin_size(MODE_CROSS, CROSS_MARKET_SENTINEL)
+        || size == initial_margin_size(MODE_ISOLATED, LISTED_CAPITAL_TAG)
+    {
+        return true;
+    }
     if size == MARGIN_ALLOCATION { return true; }
     #[cfg(all(feature = "profit-attribution-qualification", not(feature = "bounded-entry-settlement")))]
     if let Some(extra) = size.checked_sub(MARGIN_ALLOCATION + RENT_CREDIT_BYTES) {
@@ -69,7 +107,7 @@ pub const RETIRED: u8 = 4;
 
 /// Identity indices have the same user meaning as V2, but distinct PDA roots.
 pub use crate::state::identity::{
-    valid_identity, CROSS_MARKET_SENTINEL, MAX_PORTFOLIOS, MAX_SUBACCOUNT, MODE_CROSS,
+    valid_identity, CROSS_MARKET_SENTINEL, LISTED_CAPITAL_TAG, MAX_PORTFOLIOS, MAX_SUBACCOUNT, MODE_CROSS,
     MODE_ISOLATED, ROLE_MAKER, ROLE_RECEIVER, ROLE_TRADER,
 };
 

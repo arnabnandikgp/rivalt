@@ -165,7 +165,7 @@ pub use account_trading::AccountRouteIdentity;
 pub(crate) use maker_liquidity::__client_accounts_controlliquidity;
 pub(crate) use maker_liquidity::__client_accounts_initializeliquidity;
 pub(crate) use maker_liquidity::__client_accounts_quarantineliquidity;
-pub(crate) use maker_liquidity::__client_accounts_registerliquidity;
+pub(crate) use maker_liquidity::{__client_accounts_registerliquidity, __client_accounts_admitlistedmaker};
 pub(crate) use maker_liquidity::__client_accounts_sealliquidity;
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::__cpi_accounts_controlliquidity;
@@ -174,7 +174,7 @@ pub(crate) use maker_liquidity::__cpi_accounts_initializeliquidity;
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::__cpi_accounts_quarantineliquidity;
 #[cfg(feature = "cpi")]
-pub(crate) use maker_liquidity::__cpi_accounts_registerliquidity;
+pub(crate) use maker_liquidity::{__cpi_accounts_registerliquidity, __cpi_accounts_admitlistedmaker};
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::__cpi_accounts_sealliquidity;
 pub(crate) use maker_liquidity::publisher::__client_accounts_configurefundingpublisher;
@@ -186,6 +186,18 @@ pub(crate) use maker_liquidity::publisher::__cpi_accounts_configurefundingpublis
 pub(crate) use maker_liquidity::publisher::__cpi_accounts_initializefundingpublisher;
 #[cfg(feature = "cpi")]
 pub(crate) use maker_liquidity::publisher::__cpi_accounts_publishfundingreport;
+pub use maker_liquidity::publisher::listed::InitializeListedFunding;
+pub(crate) use maker_liquidity::publisher::listed::__client_accounts_initializelistedfunding;
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::publisher::listed::__cpi_accounts_initializelistedfunding;
+pub use maker_liquidity::publisher::listed::ConfigureListedFunding;
+pub(crate) use maker_liquidity::publisher::listed::__client_accounts_configurelistedfunding;
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::publisher::listed::__cpi_accounts_configurelistedfunding;
+pub use maker_liquidity::publisher::listed::PublishListedFunding;
+pub(crate) use maker_liquidity::publisher::listed::__client_accounts_publishlistedfunding;
+#[cfg(feature = "cpi")]
+pub(crate) use maker_liquidity::publisher::listed::__cpi_accounts_publishlistedfunding;
 pub use maker_liquidity::publisher::ConfigureFundingPublisher;
 pub use maker_liquidity::publisher::InitializeFundingPublisher;
 pub use maker_liquidity::publisher::PublishFundingReport;
@@ -204,9 +216,23 @@ pub(crate) use maker_liquidity::routes::__cpi_accounts_executebestroute;
 pub use maker_liquidity::ControlLiquidity;
 pub use maker_liquidity::InitializeLiquidity;
 pub use maker_liquidity::QuarantineLiquidity;
-pub use maker_liquidity::RegisterLiquidity;
+pub use maker_liquidity::{AdmitListedMaker, RegisterLiquidity};
 pub use maker_liquidity::SealLiquidity;
 
+pub use maker_liquidity::SealListedLiquidity;
+pub(crate) use maker_liquidity::listed_directory::__client_accounts_seallistedliquidity;
+#[cfg(feature="cpi")]
+pub(crate) use maker_liquidity::listed_directory::__cpi_accounts_seallistedliquidity;
+pub mod listing_index;
+pub use listing_index::{BindListingIndex, ObserveListingIndex};
+pub(crate) use listing_index::{__client_accounts_bindlistingindex, __client_accounts_observelistingindex};
+#[cfg(feature="cpi")]
+pub(crate) use listing_index::{__cpi_accounts_bindlistingindex, __cpi_accounts_observelistingindex};
+pub mod market_listing;
+pub use market_listing::RegisterMarketListing;
+pub(crate) use market_listing::__client_accounts_registermarketlisting;
+#[cfg(feature="cpi")]
+pub(crate) use market_listing::__cpi_accounts_registermarketlisting;
 mod scopes;
 
 // Authenticated successor verification; no payout or trading authority.
@@ -403,3 +429,17 @@ pub use account_safety::settlement::AdvanceBtcAllocation;
 pub(crate) use account_safety::settlement::__client_accounts_advancebtcallocation;
 #[cfg(feature="cpi")]
 pub(crate) use account_safety::settlement::__cpi_accounts_advancebtcallocation;
+
+pub use maker_liquidity::routes::{BeginListedQualification, ExecuteListedMarketOrder};
+pub(crate) use maker_liquidity::routes::{__client_accounts_beginlistedqualification, __client_accounts_executelistedmarketorder};
+#[cfg(feature="cpi")]
+pub(crate) use maker_liquidity::routes::{__cpi_accounts_beginlistedqualification, __cpi_accounts_executelistedmarketorder};
+
+pub use account_safety::resolution::FreezeListedDefault;
+pub(crate) use account_safety::resolution::__client_accounts_freezelisteddefault;
+#[cfg(feature="cpi")]
+pub(crate) use account_safety::resolution::__cpi_accounts_freezelisteddefault;
+pub use account_safety::resolution::SettleListedDefault;
+pub(crate) use account_safety::resolution::__client_accounts_settlelisteddefault;
+#[cfg(feature="cpi")]
+pub(crate) use account_safety::resolution::__cpi_accounts_settlelisteddefault;

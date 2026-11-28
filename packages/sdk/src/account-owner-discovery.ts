@@ -1,3 +1,4 @@
+import {isListedMakerCapital} from './market-listing.js';
 import type {Address} from '@solana/kit';
 import * as protocol from './generated/index.js';
 import {deriveAccountPortfolio,deriveMarginAccount} from './account-addresses.js';
@@ -35,7 +36,7 @@ export async function readOwnerAccounts(rpc:Pick<UserRpc,'call'>,venue:Address,o
     requireValue(root.schemaVersion===10&&root.venue===venue&&root.portfolio===portfolioKey&&root.owner===owner
       &&root.subaccountIndex===child&&root.bump===bump&&root.revision>0n,'Owner account identity mismatch.');
     requireValue([0,1,2].includes(root.role)&&(child===0?root.mode===0&&root.isolatedMarketIndex===255&&root.role!==1:
-      root.mode===1&&[0,1].includes(root.isolatedMarketIndex)),'Owner account mode mismatch.');
+      root.mode===1&&([0,1].includes(root.isolatedMarketIndex)||isListedMakerCapital(root))),'Owner account mode mismatch.');
     requireValue([MEMBER_REGISTERED,MEMBER_FINANCIAL].includes(root.lifecycle)
       &&(root.lifecycle!==MEMBER_FINANCIAL||root.activationGeneration>0n),'Owner account lifecycle mismatch.');
     accounts.push([key,root]);

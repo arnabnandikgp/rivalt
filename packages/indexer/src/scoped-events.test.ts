@@ -118,15 +118,15 @@ it('checks literal envelope widths, revisions, bounded counts, aliases and compl
     (bytes: Buffer) => {bytes.writeBigUInt64LE(0n, 129);},
     (bytes: Buffer) => {bytes.writeUInt32LE(0, 137);},
     (bytes: Buffer) => {bytes.fill(3, 141, 173);},
-    (bytes: Buffer) => {bytes[173] = 28;},
+    (bytes: Buffer) => {bytes[173] = 35;},
     (bytes: Buffer) => {bytes.writeBigUInt64LE(9n, 182);},
   ]) {const bytes = footer(); mutate(bytes); expect(() => decodeTransition(bytes)).toThrow();}
-  for (let kind=17;kind<=27;kind++) {const bytes=footer();bytes[173]=kind;expect(decodeTransition(bytes).writes[0].kind).toBe(kind);}
+  for (let kind=17;kind<=34;kind++) {const bytes=footer();bytes[173]=kind;expect(decodeTransition(bytes).writes[0].kind).toBe(kind);}
   expect(() => decodeTransition(footer().subarray(0, -1))).toThrow(/Truncated/);
   expect(() => decodeTransition(Buffer.concat([footer(), Buffer.from([0])]))).toThrow(/Trailing/);
 });
 
-it('matches the rebuilt generated SDK against the literal schema-9 envelope', () => {
+it('matches the rebuilt generated SDK against the literal schema-10 envelope', () => {
   const bytes = footer(), [value, end] = getAccountTransitionEventDecoder().read(bytes, 0);
   expect(end).toBe(190);
   expect(value.schemaVersion).toBe(10);
@@ -185,4 +185,22 @@ it('uses the pinned account list for the read-only market backing check', () => 
   accounts.push(0,2);
   expect(replay(VERIFIED_COVERAGE_ARTIFACT_SET)).toEqual([]);
   expect(() => replay(SHADOW_COVERAGE_ARTIFACT_SET)).toThrow(/Invalid local coverage observation/);
+});
+
+it('admits a footerless default preview only on the pinned verifier with a complete wire envelope', () => {
+  const transaction = tx();
+  const view = clearingIdl.instructions.find(value => value.name === 'verify_indexed_default')!;
+  const data = Buffer.concat([Buffer.from(view.discriminator), u64(1n), Buffer.from([1]), u32(0), u32(1), u32(3)]);
+  const preview = transaction.transaction.message.instructions[0];
+  preview.data = encoded(data);
+  preview.accounts = Array(12).fill(2);
+  transaction.meta.innerInstructions = [];
+  const read = () => scopedInvocations('original', transaction, 3, {...binding, indexedDefault: true});
+  expect(read()).toEqual([]);
+  expect(() => decode(transaction)).toThrow(/Missing scoped footer/);
+  preview.data = encoded(data.subarray(0, -1));
+  expect(read).toThrow(/Invalid indexed default preview/);
+  preview.data = encoded(data);
+  transaction.meta.innerInstructions = [{index: 0, instructions: [event(financialPayload)]}];
+  expect(read).toThrow(/foreign invocation/);
 });

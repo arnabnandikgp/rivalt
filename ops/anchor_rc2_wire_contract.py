@@ -137,12 +137,12 @@ def check_domains():
     expected['rust_byte_literals'] = sorted((set(expected['rust_byte_literals']) - DOMAINS_REMOVED) | {'RVBACK01'})
     # D121 episode ordering is used only by the research selector at this revision.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals'])
-                                            | {r'Rivalt/frozen-member-order/v1\0', r'Rivalt/winner-targets/v1\0'})
+                                            | {r'Rivalt/frozen-market-order/v1\0', r'Rivalt/frozen-member-order/v1\0', r'Rivalt/winner-targets/v1\0'})
     # Native-only exact replay uses separate digest domains for fills and checkpoints.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
         r'Rivalt/entry-replay/fill/v1\0', r'Rivalt/entry-replay/checkpoint/v1\0'})
     # Format marker for the separately qualified margin extension.
-    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPROF02', 'RVPROF03', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01', 'RVJALLOC', 'RVCHAIN1', 'RVLOTS01', 'RVLOTS02', 'RVBOOK01', 'Rivalt/inventory-book/v1', 'RVMULT01', 'Rivalt/multi-lot-book/v1'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'RVPROF01', 'RVPROF02', 'RVPROF03', 'RVMKTS01', 'RVPAIR01', 'RVPAIR02', 'RVBTC001', 'RVLINK01', 'RVJALLOC', 'RVCHAIN1', 'RVLOTS01', 'RVLOTS02', 'RVBOOK01', 'Rivalt/inventory-book/v1', 'RVMULT01', 'Rivalt/multi-lot-book/v1'})
     # Private native continuation domains bind the frozen source and proposed charge vector.
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {
         r'Rivalt/multi-lot-charge-proposal/v1\0', r'Rivalt/whole-single-market-search/v1\0'})
@@ -151,7 +151,146 @@ def check_domains():
         r'Rivalt/pair-fills/v1\0', r'Rivalt/pair-order-page/v1\0'})
     # The local payout observer owns PDAs under [coverage-lane, venue, member_id % 8].
     expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) | {'coverage-lane'})
+    expected['rust_byte_literals'] = sorted(set(expected['rust_byte_literals']) |
+        {'market-listing', 'listed-symbol', 'listing-index', 'listed-funding', 'listed-venue', 'listed-book', 'listed-default', '/USD', 'BTC', 'ETH'})
+    # The finalized SDK reader independently authenticates the existing on-chain registry hash.
+    expected['sdk_hash_domains'] = sorted(set(expected['sdk_hash_domains']) | {'rivalt-financial-membership-v1'})
     assert source_domains() == expected, 'Unapproved seed or signed domain change'
+
+
+def undo_listed_maker_delta(actual, program):
+    """Check the opt-in listing extension without altering any legacy instruction."""
+    actual = deepcopy(actual)
+    def remove(category, name):
+        row, = [row for row in actual[category] if row['name'] == name]
+        actual[category].remove(row)
+        return row
+    def disc(namespace, name):
+        return list(hashlib.sha256(f'{namespace}:{name}'.encode()).digest()[:8])
+    if program not in ('clearing', 'maker_a', 'maker_b'):
+        return actual
+    if program == 'clearing':
+        for name, keys, writes, signer, arguments in [
+            ('initialize_listed_funding', 'authority venue safety listing listing_index registry funding configuration system_program event_authority program',
+             {'authority','funding','configuration'},'authority',[('publisher','pubkey')]),
+            ('configure_listed_funding', 'authority venue safety listing funding configuration event_authority program',
+             {'funding','configuration'},'authority',[('epoch','u64'),('publisher','pubkey')]),
+            ('publish_listed_funding', 'publisher venue safety listing listing_index funding configuration primary_asset primary_collateral guard_asset guard_collateral event_authority program',
+             {'funding','configuration'},'publisher',[('report',{'defined':{'name':'FundingReport'}})])]:
+            entry=remove('instructions',name)
+            assert entry['discriminator']==disc('global',name) and [(a['name'],a['type']) for a in entry['args']]==arguments
+            assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in entry['accounts']]==[
+                (key,key in writes,key==signer) for key in keys.split()]
+        assert remove('accounts','ListedFunding')['discriminator']==disc('account','ListedFunding')
+        assert remove('events','ListedFundingChanged')['discriminator']==disc('event','ListedFundingChanged')
+        def exact_fields(name, fields):
+            assert [(f['name'],f['type']) for f in remove('types',name)['type']['fields']]==fields
+        def defined(name):
+            return {'defined':{'name':name}}
+        candidates = [f'{ordinal}_{field}' for ordinal in ('zero','one','two')
+                      for field in ('capital','registration','program','program_data','config','price')]
+        financial = 'actor venue safety btc eth directory listing book funding registry trader'.split()
+        for name, keys, writes, signer, arguments in [
+            ('begin_listed_qualification',
+             'authority venue safety listing registry funding directory book system_program event_authority program'.split(),
+             set('authority venue safety listing funding directory book'.split()),'authority',[]),
+            ('execute_listed_market_order',financial+candidates+['event_authority','program'],
+             {'btc','eth','trader','book','funding'} | {key for key in candidates if key.endswith(('_capital','_registration'))},
+             'actor',[('args',defined('BestRouteIntent'))])]:
+            entry = remove('instructions',name)
+            assert entry['discriminator'] == disc('global',name)
+            assert [(arg['name'],arg['type']) for arg in entry['args']] == arguments
+            assert [(meta['name'],meta.get('writable',False),meta.get('signer',False),meta.get('optional',False))
+                    for meta in flatten(entry['accounts'])] == [(key,key in writes,key==signer,key in ('btc','eth')) for key in keys]
+        identity = 'venue custody safety btc eth btc_ledger eth_ledger vault'.split()
+        feeds = 'primary_btc primary_collateral guard_btc guard_collateral primary_eth guard_eth'.split()
+        default_instructions = [
+            ('freeze_listed_default',['payer']+identity+'registry directory target members episode'.split()+feeds+['system_program'],
+                [('safety_epoch','u64')]),
+            ('settle_listed_default',identity+['registry','episode'],
+                [('epoch','u64'),('selected','u8'),('denominator','u32'),('numerators',{'vec':'u32'})]),
+        ]
+        for name,keys,args in default_instructions:
+            entry = remove('instructions',name)
+            assert entry['discriminator'] == disc('global',name)
+            assert [(arg['name'],arg['type']) for arg in entry['args']] == args
+            writes = set(identity[:-1]+['episode','payer'])
+            assert [(meta['name'],meta.get('writable',False),meta.get('signer',False),meta.get('optional',False))
+                for meta in flatten(entry['accounts'])] == [(key,key in writes,key=='payer',False) for key in keys+['event_authority','program']]
+        for category,namespace,name in [('accounts','account','ListedDefault'),('events','event','ListedDefaultFrozen'),
+                                       ('events','event','ListedDefaultSettled')]:
+            assert remove(category,name)['discriminator'] == disc(namespace,name)
+        exact_fields('FrozenListedMarket',[('market','u16'),('reference','u64'),('funding','i128'),
+            *[(field,'u64') for field in ['gross_lots','settlement','insurance','fees']],('insurance_carry','u8')])
+        exact_fields('ListedDefaultSnapshot',[('epoch','u64'),('safety_epoch','u64'),('terms_epoch','u64'),
+            ('target','pubkey'),('membership_epoch','u64'),('member_count','u64'),('registry_hash',{'array':['u8',32]}),
+            ('allocated_vault','u64'),('frozen_at','i64'),('width','u8'),('markets',{'array':[defined('FrozenListedMarket'),8]})])
+        exact_fields('ListedDefault',[('schema_version','u16'),('revision','u64'),('venue','pubkey'),
+            ('snapshot',defined('ListedDefaultSnapshot')),('completed','bool'),('bump','u8')])
+        exact_fields('ListedDefaultFrozen',[('venue','pubkey'),('slot','u64'),('episode','pubkey'),('bump','u8'),
+            ('snapshot',defined('ListedDefaultSnapshot'))])
+        exact_fields('ListedDefaultSettled',[('venue','pubkey'),('slot','u64'),('episode','pubkey'),('epoch','u64'),
+            ('safety_epoch','u64'),('terms_epoch','u64'),('checked_plans','u32'),('selected','u8'),
+            *[(field,{'vec':'u64'}) for field in ['member_ids','final_cash','spent','charged']]])
+        for category, namespace, names in [('accounts','account',['ListedVenue','ListedMarketBook']),
+                                          ('events','event',['ListedVenueOpened','ListedRouteFilled','ListedMarginChanged','ListedCashAccrued'])]:
+            for name in names:
+                assert remove(category,name)['discriminator'] == disc(namespace,name)
+        header = [('schema_version','u16'),('revision','u64')]
+        exact_fields('ListedVenue',header+[('venue','pubkey'),('markets',{'array':['u16',6]}),('count','u8'),('bump','u8')])
+        exact_fields('ListedMarketBook',header+[('listing','pubkey'),('gross_lots','u64'),('collected_fees','u128'),
+            ('insurance','u64'),('fees','u64'),('settlement','u64'),('insurance_carry','u8'),('bump','u8')])
+        event_header = [('venue','pubkey'),('slot','u64')]
+        exact_fields('ListedVenueOpened',event_header+[('safety_epoch','u64'),('listing','pubkey'),('market_id','u16'),
+            ('directory','pubkey'),('directory_bump','u8'),('book','pubkey'),('book_bump','u8'),('funding','pubkey'),
+            ('values',defined('ListedFundingValues'))])
+        exact_fields('ListedMarginChanged',event_header+[('margin','pubkey'),('state',defined('MarginAccountSnapshot')),('positions',{'vec':'u8'})])
+        exact_fields('ListedCashPositions',[('margin','pubkey'),('positions',{'vec':'u8'})])
+        exact_fields('ListedCashCheckpoint',[('market','u16'),('funding','pubkey'),('funding_time','i64'),('funding_index_scaled','i128')])
+        exact_fields('ListedCashAccrued',event_header+[('checkpoints',{'vec':defined('ListedCashCheckpoint')}),('roots',{'vec':defined('ListedCashPositions')})])
+        exact_fields('ListedRouteFilled',event_header+[('listing','pubkey'),('trader','pubkey'),('side','u8'),
+            *[(key,'u64') for key in ('lots','gross','fee','gross_lots','insurance','retained_fees')],('insurance_carry','u8'),
+            ('legs',{'vec':defined('ExecutedLeg')}),('funding',defined('ListedFundingValues')),('inline_markets',{'vec':defined('MarketSnapshot')})])
+        exact_fields('ListedFunding',[('schema_version','u16'),('revision','u64'),('listing','pubkey'),
+            ('values',defined('ListedFundingValues')),('bump','u8')])
+        exact_fields('ListedFundingValues',[('observation_sequence','u64'),('funding_index_scaled','i128'),('funding_time','i64'),
+            *[(name,'u64') for name in ['reference_price','lower','upper','valid_from','valid_until']],('oracle',defined('OracleState'))])
+        exact_fields('ListedFundingChanged',[('venue','pubkey'),('slot','u64'),('listing','pubkey'),('funding','pubkey'),('configuration','pubkey'),
+            ('values',defined('ListedFundingValues')),('publisher',defined('FundingPublisherPayload')),('report',{'option':defined('FundingReport')})])
+        seal = remove('instructions','seal_listed_liquidity')
+        assert seal['args'] == [] and seal['discriminator'] == disc('global',seal['name'])
+        assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in seal['accounts']] == [
+            (key,key in ('authority','listing','registry'),key=='authority')
+            for key in 'authority venue safety listing registry system_program event_authority program'.split()]
+        assert remove('events','ListedLiquiditySealed')['discriminator'] == disc('event','ListedLiquiditySealed')
+        fields = remove('types','ListedLiquiditySealed')['type']['fields']
+        assert [(f['name'],f['type']) for f in fields] == [('venue','pubkey'),('slot','u64'),('listing','pubkey'),
+            ('registry','pubkey'),('state',{'defined':{'name':'LiquidityRegistryPayload'}})]
+        ix = remove('instructions', 'admit_listed_maker')
+        names = 'owner authority venue safety listing capital registration capital_binding config price pricing_program program_data system_program event_authority program'
+        assert ix['args'] == [dict(name='instance', type='u8')]
+        assert remove('events','ListedMakerAdmitted')['discriminator'] == disc('event','ListedMakerAdmitted')
+        fields = remove('types','ListedMakerAdmitted')['type']['fields']
+        assert [(f['name'],f['type']) for f in fields] == [('venue','pubkey'),('slot','u64'),('registration','pubkey'),
+            ('capital_binding','pubkey'),('state',{'defined':{'name':'MakerRegistrationPayload'}})]
+        writes = {'owner','registration','capital_binding'}
+        signers = {'owner','authority'}
+    else:
+        ix = remove('instructions', 'initialize_listed_curve')
+        names = 'owner venue listing capital config price system_program event_authority program'
+        ordinary = next(row for row in actual['instructions'] if row['name']=='initialize_curve')
+        assert ix['args'] == ordinary['args']
+        assert remove('accounts','MarketListing')['discriminator'] == disc('account','MarketListing')
+        fields = remove('types','MarketListing')['type']['fields']
+        assert [(f['name'],f['type']) for f in fields] == [('schema_version','u16'),('revision','u64'),('venue','pubkey'),
+            ('market_id','u16'),('symbol',{'array':['u8',8]}),('lots_per_unit','u64'),('quote_mint','pubkey'),
+            ('oracle_publisher','pubkey'),('oracle_feed','pubkey'),('status','u8'),('bump','u8')]
+        writes = {'owner','config','price'}
+        signers = {'owner'}
+    assert ix['discriminator'] == disc('global',ix['name'])
+    assert [(a['name'],a.get('writable',False),a.get('signer',False),a.get('optional',False)) for a in ix['accounts']] == [
+        (key,key in writes,key in signers,False) for key in names.split()]
+    return actual
 
 
 def undo_liquidation_delta(actual, program):
@@ -163,6 +302,48 @@ def undo_liquidation_delta(actual, program):
         matches = [ix for ix in actual['instructions'] if ix['name'] == name]
         assert len(matches) == 1, name
         return matches[0]
+    listing = unique('register_market_listing')
+    assert listing['discriminator'] == list(hashlib.sha256(b'global:register_market_listing').digest()[:8])
+    assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in listing['accounts']] == [
+        ('authority',True,True),('venue',False,False),('safety',False,False),('listing',True,False),
+        ('symbol_binding',True,False),('oracle_feed',False,False),('system_program',False,False),
+        ('event_authority',False,False),('program',False,False)]
+    for index, seed, arg in [(3,'market-listing','market_id'),(4,'listed-symbol','symbol')]:
+        assert listing['accounts'][index]['pda']['seeds'] == [
+            {'kind':'const','value':list(seed.encode())}, {'kind':'account','path':'venue'}, {'kind':'arg','path':arg}]
+    symbol = {'array':['u8',8]}
+    args = [('market_id','u16'),('symbol',symbol),('lots_per_unit','u64'),('oracle_publisher','pubkey')]
+    assert [(row['name'],row['type']) for row in listing['args']] == args
+    actual['instructions'].remove(listing)
+    prefix = [('schema_version','u16'),('revision','u64')]
+    index_fields = [('listing','pubkey'),('sources',{'array':['pubkey',4]}),
+                    ('source_sequences',{'array':['u64',4]}),('sampled_at','i64'),('deadline','i64'),
+                    ('reference','u64'),('lower','u64'),('upper','u64')]
+    for name, names in [
+        ('bind_listing_index','authority venue safety listing market listing_index primary_collateral guard_collateral system_program event_authority program'),
+        ('observe_listing_index','venue safety listing listing_index primary_asset primary_collateral guard_asset guard_collateral event_authority program')]:
+        ix = unique(name)
+        assert ix['discriminator'] == list(hashlib.sha256(f'global:{name}'.encode()).digest()[:8])
+        assert not ix['args']
+        assert [(a['name'],a.get('writable',False),a.get('signer',False)) for a in ix['accounts']] == [
+            (key,key in ('authority','listing_index'),key=='authority') for key in names.split()]
+        index = next(row for row in ix['accounts'] if row['name']=='listing_index')
+        assert index['pda']['seeds'] == [{'kind':'const','value':list(b'listing-index')},{'kind':'account','path':'listing'}]
+        actual['instructions'].remove(ix)
+    terms = args[:3] + [('quote_mint','pubkey'),args[3],('oracle_feed','pubkey'),('status','u8')]
+    for name, category, namespace, fields in [
+        ('ListingIndex','accounts','account',prefix+index_fields+[('bump','u8')]),
+        ('ListingIndexChanged','events','event',[('venue','pubkey'),('slot','u64'),('index','pubkey')]+index_fields),
+        ('MarketListing','accounts','account',prefix+[('venue','pubkey')]+terms+[('bump','u8')]),
+        ('ListedSymbol','accounts','account',prefix+[('listing','pubkey'),('bump','u8')]),
+        ('MarketListingRegistered','events','event',[('venue','pubkey'),('slot','u64'),('listing','pubkey'),
+            ('symbol_binding','pubkey')]+terms)]:
+        entry = next(row for row in actual[category] if row['name']==name)
+        assert entry['discriminator'] == list(hashlib.sha256(f'{namespace}:{name}'.encode()).digest()[:8])
+        definition = next(row for row in actual['types'] if row['name']==name)
+        assert [(f['name'],f['type']) for f in definition['type']['fields']] == fields
+        actual[category].remove(entry)
+        actual['types'].remove(definition)
     multi = unique('execute_multi_route')
     assert multi['discriminator'] == list(hashlib.sha256(b'global:execute_multi_route').digest()[:8])
     assert multi['accounts'] == unique('execute_best_route')['accounts']
@@ -470,9 +651,43 @@ def undo_liquidation_delta(actual, program):
     return actual
 
 
+def before_window_extensions(actual, program):
+    if program == 'clearing':
+        actual = deepcopy(actual)
+        matches = [row for row in actual['instructions'] if row['name'] == 'verify_indexed_default']
+        assert len(matches) == 1
+        instruction, = matches
+        assert instruction['discriminator'] == list(hashlib.sha256(b'global:verify_indexed_default').digest()[:8])
+        assert [a['name'] for a in instruction['accounts']] == 'venue custody safety registry storage resolution btc eth btc_ledger eth_ledger vault'.split()
+        assert not any(a.get('writable') or a.get('signer') or a.get('optional') for a in instruction['accounts'])
+        assert [(a['name'], a['type']) for a in instruction['args']] == [
+            ('epoch', 'u64'), ('selected', 'u8'), ('denominator', 'u32'), ('rates', {'vec':'u32'})]
+        assert instruction['returns'] == {'vec':'u64'}
+        actual['instructions'].remove(instruction)
+        binder, = [row for row in actual['instructions'] if row['name'] == 'bind_indexed_default']
+        inventory, = [row for row in actual['instructions'] if row['name'] == 'verify_inventory_book']
+        assert binder['accounts'] == inventory['accounts']
+        assert binder['discriminator'] == list(hashlib.sha256(b'global:bind_indexed_default').digest()[:8])
+        assert binder['args'] == [instruction['args'][0], dict(name='revision', type='u64'), *instruction['args'][1:]]
+        assert 'returns' not in binder
+        actual['instructions'].remove(binder)
+        name = 'IndexedSettlementBound'
+        actual['events'].remove(dict(name=name, discriminator=list(hashlib.sha256(f'event:{name}'.encode()).digest()[:8])))
+        pair = {'array':['u64',2]}
+        transfers = {'vec':{'array':['i64',2]}}
+        vector = {'vec':'u64'}
+        fields = [('venue','pubkey'),('epoch','u64'),('prepared','pubkey'),('selection_ordinal','u64'),
+                  ('verified_plans','u64'),('charge_atoms',pair),('insurance_spent',pair),('member_ids',vector),
+                  ('claim_deltas',transfers),('movements',transfers),('final_cash',vector),('slot','u64')]
+        payload, = [row for row in actual['types'] if row['name'] == name]
+        assert clean(payload) == dict(name=name,type=dict(kind='struct',fields=[dict(name=k,type=v) for k,v in fields]))
+        actual['types'].remove(payload)
+    return undo_liquidation_delta(undo_listed_maker_delta(actual, program), program)
+
+
 def comparable_program(program, actual):
     """Validate every explicit extension before comparing the retained D90 ABI."""
-    actual = undo_liquidation_delta(actual, program)
+    actual = before_window_extensions(actual, program)
     actual = undo_window_delta(actual, program)
     actual = undo_backing_delta(actual, program)
     actual = undo_membership_delta(actual, program)

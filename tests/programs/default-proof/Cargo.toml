@@ -8,6 +8,8 @@ crate-type = ["cdylib", "lib"]
 name = "default_proof_probe"
 [features]
 default = []
+signed-three-market-default = []
+signed-indexed-default = ["signed-three-market-default", "default-plan-selection/indexed-settlement"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
@@ -16,6 +18,9 @@ custom-heap = []
 custom-panic = []
 [dependencies]
 anchor-lang = { workspace = true }
+anchor-spl = { workspace = true }
+clearing-accounting = { path = "../../../crates/clearing-accounting", features = ["surviving-profit"] }
 default-plan-selection = { path = "../../../crates/default-plan-selection" }
 solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
 financial-core = { path = "../../../crates/financial-core" }
+risk-engine = { path = "../../../crates/risk-engine" }

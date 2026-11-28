@@ -1,3 +1,5 @@
+import {decodeVenueMembershipRegistry} from './account-membership.js';
+import {isListedMakerCapital} from './market-listing.js';
 import {readCoherentAccounts} from './coherent-accounts.js';
 import {decodeCapacityAnchor,makerRegistrationPdas,marketFromExecutionLanes} from './market-capacity.js';
 import {ledgerFromExecutionLanes} from './ledger-lanes.js';
@@ -6,7 +8,7 @@ import {hasCapacityLayout,hasFundingLayout,hasFeeLayout,decodeMarginForLayout,de
 import {address,type Address,type Decoder,type ReadonlyUint8Array} from '@solana/kit';
 import {getMintDecoder,getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
-import {deriveAccountVenue,deriveAccountPortfolio,deriveVenueComponent,deriveAccountMarket,deriveMarketLedger,deriveMarginAccount} from './account-addresses.js';
+import {deriveAccountVenue,deriveAccountPortfolio,deriveMemberIndex,deriveRecoveryStorage,deriveVenueComponent,deriveAccountMarket,deriveMarketLedger,deriveMarginAccount} from './account-addresses.js';
 import {authenticateLiquidityMarket,discoverLiquidityAccounts} from './liquidity-adapter.js';
 import {fromBase64,hex,requireValue,rpcInteger,type UserRpc} from './wallet-client.js';
 
@@ -34,8 +36,24 @@ export async function readAccountTradeSnapshot(rpc:Pick<UserRpc,'call'>,identity
   requireValue(marketIndex===0||marketIndex===1,'Unsupported liquidity market.');
   return readSnapshot(rpc,identity,[trader],commitment,marketIndex);
 }
+/** Registry and every nominated financial root are authenticated at the same bank.
+ * Completeness follows from unique active member IDs and the registry count. */
+export async function readCompleteFinancialSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,margins:Address[]) {
+  requireValue(margins.length>0 && margins.length<=SETTLEMENT_READ_BATCH && new Set(margins).size===margins.length,
+    'Invalid complete settlement roster.');
+  const [[registry,bump],[liveIndex],[resolution,resolutionBump],[storage,storageBump]]=await Promise.all([
+    deriveVenueComponent(identity.venue,'registry'),deriveMemberIndex(identity.venue,14,0n),
+    deriveVenueComponent(identity.venue,'resolution'),deriveRecoveryStorage(identity.venue)]);
+  const snapshot=await readSnapshot(rpc,identity,margins,'finalized',undefined,100,
+    {registry,bump,liveIndex,resolution,resolutionBump,storage,storageBump});
+  const state=snapshot.membership;
+  const roots=Object.values(snapshot.roots);
+  requireValue(state && BigInt(roots.length)===state.financialCount && new Set(roots.map(root=>root.id)).size===roots.length &&
+    roots.every(root=>root.id<state.nextId),'Incomplete financial membership at settlement bank.');
+  return {...snapshot,membership:state};
+}
 async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,selectedMargins:Address[],
-  commitment:'confirmed'|'finalized',liquidityMarketIndex?:0|1,maxKeys=32) {
+  commitment:'confirmed'|'finalized',liquidityMarketIndex?:0|1,maxKeys=32,complete?:{registry:Address;bump:number;liveIndex:Address;resolution:Address;resolutionBump:number;storage:Address;storageBump:number}) {
   requireValue(['confirmed','finalized'].includes(commitment),'Unsupported account commitment.');
   requireValue(/^[0-9a-f]{64}$/.test(identity.domain),'Invalid venue domain.');
   const venue=identity.venue,component=(name:Parameters<typeof deriveVenueComponent>[1])=>deriveVenueComponent(venue,name);
@@ -66,7 +84,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   requireValue(discovery.value?.length===margins.length,'Incomplete account discovery.');
   const discovered=discovery.value.map((account:any)=>decodeMarginForLayout(raw(account),identity.marginLayout)) as protocol.MarginAccount[];
   const portfolioKeys=[...new Set(discovered.map(root=>root.portfolio))];
-  const keys=[venue,custody,safety,vault,identity.mint,ACCOUNT_CLOCK,...markets,...ledgers,...margins,...portfolioKeys,...new Set(makerKeys)];
+  const keys=[venue,custody,safety,vault,identity.mint,ACCOUNT_CLOCK,...markets,...ledgers,...margins,...portfolioKeys,...new Set(makerKeys),...(complete?[complete.registry,complete.resolution,complete.storage]:[])];
   requireValue(new Set(keys).size===keys.length,'Aliased account dependencies.');
   // RPC dependency discovery includes all unselected makers and full code. This
   // read bound is separate from the signed transaction's loaded-account budget.
@@ -77,6 +95,11 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const contextSlot=rpcInteger(response.context.slot);requireValue(contextSlot>=discoverySlot,'Account RPC predates discovery.');
   requireValue(response.value?.length===keys.length,'Incomplete account snapshot.');
   const accounts=new Map<Address,any>(keys.map((key,index)=>[key,response.value[index]]));
+  const membership=complete?decodeVenueMembershipRegistry(accounts.get(complete.registry),venue,complete.bump,complete.liveIndex):undefined;
+  const resolution=complete?decode(accounts.get(complete.resolution),protocol.RESOLUTION_DISCRIMINATOR,protocol.getResolutionDecoder()):undefined;
+  const storage=complete?decode(accounts.get(complete.storage),protocol.RECOVERY_STORAGE_DISCRIMINATOR,protocol.getRecoveryStorageDecoder()):undefined;
+  if(complete) requireValue(resolution?.venue===venue && resolution.bump===complete.resolutionBump && resolution.schemaVersion===10 &&
+    storage?.venue===venue && storage.bump===complete.storageBump && storage.schemaVersion===10,'Foreign resolution source.');
   const venueState=decode(accounts.get(venue),protocol.VENUE_DISCRIMINATOR,protocol.getVenueDecoder());
   requireValue(venueState.schemaVersion===10&&venueState.profileVersion===6&&venueState.marketCount===2&&venueState.bump===venueBump&&venueState.vaultBump===vaultBump&&
     hex(venueState.domain)===identity.domain&&venueState.quoteMint===identity.mint&&venueState.vault===vault&&venueState.insuranceFeeShareBps===2500&&
@@ -130,11 +153,11 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
     requireValue(value.schemaVersion===10&&value.venue===venue&&value.lifecycle===2&&value.activationGeneration>0n&&value.portfolio===discovered[index].portfolio&&key===canonical&&value.bump===bump&&
       portfolio?.owner===value.owner&&portfolio.activeChildren>0&&[0,1,2].includes(value.role)&&
       (value.mode===0?value.subaccountIndex===0&&value.isolatedMarketIndex===255&&value.role!==1:
-        value.mode===1&&value.subaccountIndex>=1&&[0,1].includes(value.isolatedMarketIndex)),'Margin identity/mode mismatch.');
-    if(value.mode===1) {
-      const unused=value.positions[1-value.isolatedMarketIndex];
-      requireValue(unused.lots===0n&&unused.virtualScaled===0n&&unused.fundingCheckpointScaled===0n&&unused.generation===0n,'Foreign isolated position.');
-    }
+        value.mode===1&&value.subaccountIndex>=1&&([0,1].includes(value.isolatedMarketIndex)||isListedMakerCapital(value))),'Margin identity/mode mismatch.');
+    if(value.mode===1) value.positions.forEach((position,index)=>{
+      if(index!==value.isolatedMarketIndex)
+        requireValue(position.lots===0n&&position.virtualScaled===0n&&position.fundingCheckpointScaled===0n&&position.generation===0n,'Foreign isolated position.');
+    });
     roots[key]=value;
   }
   const mintBytes=raw(accounts.get(identity.mint),TOKEN_PROGRAM_ADDRESS),mint=getMintDecoder().decode(mintBytes);
@@ -144,7 +167,7 @@ async function readSnapshot(rpc:Pick<UserRpc,'call'>,identity:AccountIdentity,se
   const liquidity=liquidityMarketIndex===undefined?undefined:await authenticateLiquidityMarket({venue,marginLayout:identity.marginLayout,
     market:markets[liquidityMarketIndex],marketIndex:liquidityMarketIndex,domain:venueState.domain,slot,now,contextSlot},accounts);
   return {marginLayout:identity.marginLayout,commitment,venue,custody,safety,vault,markets,btc:markets[0],eth:markets[1],ledgers,btcLedger:ledgers[0],ethLedger:ledgers[1],
-    venueState,custodyState,safetyState,marketStates,ledgerStates,feeEscrow,roots,closedEntries,portfolios,actualVault:token.amount,liquidity,
+    venueState,custodyState,safetyState,marketStates,ledgerStates,feeEscrow,membership,resolutionState:resolution,storageState:storage,roots,closedEntries,portfolios,actualVault:token.amount,liquidity,
     slot,now,contextSlot};
 }
 export type AccountSnapshot=Awaited<ReturnType<typeof readAccountSnapshot>>;

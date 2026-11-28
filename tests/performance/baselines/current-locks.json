@@ -2,9 +2,9 @@
   "schema": 1,
   "scope": "Declared IDL accounts; dynamic remaining accounts and fee payer must be resolved per transaction",
   "idlHashes": {
-    "clearing": "024e7c389ff24e45312fb7769a8e72049b80b5f2f0ee767a2f6c087a80b6c5a4",
-    "maker_a": "72ee7ea5315b5724695bb1325c2227c5b13f8863eaa81c6e36b232e8781750f1",
-    "maker_b": "e4f3c8cf382ca965b21697f083bbcce90d5af1f362c841db396677b2f8101d6e"
+    "clearing": "cdf88448baed936098ddf7fdc1699304944cd5437ac83536b54f5bfeaa2218d2",
+    "maker_a": "64842c29c8098dd8dfd722794d7d39cc9cd9c2ca3141dea261d07a676701dc11",
+    "maker_b": "9812ee6127ac5078a5d5d246b0965cdc749995cce99335e0e4b4ea69ebb66eee"
   },
   "instructions": [
     {
@@ -134,6 +134,34 @@
       ],
       "signers": [
         "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "admit_listed_maker",
+      "write": [
+        "owner",
+        "registration",
+        "capital_binding"
+      ],
+      "read": [
+        "authority",
+        "venue",
+        "safety",
+        "listing",
+        "capital",
+        "config",
+        "price",
+        "pricing_program",
+        "program_data",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner",
+        "authority"
       ],
       "optional": []
     },
@@ -369,6 +397,29 @@
     },
     {
       "program": "clearing",
+      "name": "begin_listed_qualification",
+      "write": [
+        "authority",
+        "venue",
+        "safety",
+        "listing",
+        "funding",
+        "directory",
+        "book"
+      ],
+      "read": [
+        "registry",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "begin_recovery_provision",
       "write": [
         "storage"
@@ -444,6 +495,30 @@
     },
     {
       "program": "clearing",
+      "name": "bind_indexed_default",
+      "write": [
+        "prepared"
+      ],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "bind_joint_payment",
       "write": [
         "prepared"
@@ -466,6 +541,29 @@
         "program"
       ],
       "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "bind_listing_index",
+      "write": [
+        "authority",
+        "listing_index"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "listing",
+        "market",
+        "primary_collateral",
+        "guard_collateral",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
       "optional": []
     },
     {
@@ -749,6 +847,26 @@
         "authority",
         "venue",
         "safety",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "configure_listed_funding",
+      "write": [
+        "funding",
+        "configuration"
+      ],
+      "read": [
+        "authority",
+        "venue",
+        "safety",
+        "listing",
         "event_authority",
         "program"
       ],
@@ -1229,6 +1347,52 @@
     },
     {
       "program": "clearing",
+      "name": "execute_listed_market_order",
+      "write": [
+        "btc",
+        "eth",
+        "book",
+        "funding",
+        "trader",
+        "zero_capital",
+        "zero_registration",
+        "one_capital",
+        "one_registration",
+        "two_capital",
+        "two_registration"
+      ],
+      "read": [
+        "actor",
+        "venue",
+        "safety",
+        "directory",
+        "listing",
+        "registry",
+        "zero_program",
+        "zero_program_data",
+        "zero_config",
+        "zero_price",
+        "one_program",
+        "one_program_data",
+        "one_config",
+        "one_price",
+        "two_program",
+        "two_program_data",
+        "two_config",
+        "two_price",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "actor"
+      ],
+      "optional": [
+        "btc",
+        "eth"
+      ]
+    },
+    {
+      "program": "clearing",
       "name": "execute_market_lane",
       "write": [
         "other_market",
@@ -1346,6 +1510,41 @@
       ],
       "signers": [
         "caller"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "freeze_listed_default",
+      "write": [
+        "payer",
+        "venue",
+        "custody",
+        "safety",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "episode"
+      ],
+      "read": [
+        "vault",
+        "registry",
+        "directory",
+        "target",
+        "members",
+        "primary_btc",
+        "primary_collateral",
+        "guard_btc",
+        "guard_collateral",
+        "primary_eth",
+        "guard_eth",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "payer"
       ],
       "optional": []
     },
@@ -1550,6 +1749,29 @@
         "program_data",
         "quote_mint",
         "token_program",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "initialize_listed_funding",
+      "write": [
+        "authority",
+        "funding",
+        "configuration"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "listing",
+        "listing_index",
+        "registry",
         "system_program",
         "event_authority",
         "program"
@@ -1931,6 +2153,26 @@
     },
     {
       "program": "clearing",
+      "name": "observe_listing_index",
+      "write": [
+        "listing_index"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "listing",
+        "primary_asset",
+        "primary_collateral",
+        "guard_asset",
+        "guard_collateral",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "open_joint_payment",
       "write": [
         "payer",
@@ -2091,6 +2333,31 @@
         "publisher",
         "venue",
         "safety",
+        "primary_asset",
+        "primary_collateral",
+        "guard_asset",
+        "guard_collateral",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "publisher"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "publish_listed_funding",
+      "write": [
+        "funding",
+        "configuration"
+      ],
+      "read": [
+        "publisher",
+        "venue",
+        "safety",
+        "listing",
+        "listing_index",
         "primary_asset",
         "primary_collateral",
         "guard_asset",
@@ -2329,6 +2596,27 @@
     },
     {
       "program": "clearing",
+      "name": "register_market_listing",
+      "write": [
+        "authority",
+        "listing",
+        "symbol_binding"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "oracle_feed",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "replenish_liquidity",
       "write": [
         "market",
@@ -2515,6 +2803,26 @@
     },
     {
       "program": "clearing",
+      "name": "seal_listed_liquidity",
+      "write": [
+        "authority",
+        "listing",
+        "registry"
+      ],
+      "read": [
+        "venue",
+        "safety",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "authority"
+      ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
       "name": "seal_search",
       "write": [
         "search"
@@ -2567,6 +2875,28 @@
       "signers": [
         "owner"
       ],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "settle_listed_default",
+      "write": [
+        "venue",
+        "custody",
+        "safety",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "episode"
+      ],
+      "read": [
+        "vault",
+        "registry",
+        "event_authority",
+        "program"
+      ],
+      "signers": [],
       "optional": []
     },
     {
@@ -2773,6 +3103,26 @@
       "read": [
         "prepared",
         "resolution"
+      ],
+      "signers": [],
+      "optional": []
+    },
+    {
+      "program": "clearing",
+      "name": "verify_indexed_default",
+      "write": [],
+      "read": [
+        "venue",
+        "custody",
+        "safety",
+        "registry",
+        "storage",
+        "resolution",
+        "btc",
+        "eth",
+        "btc_ledger",
+        "eth_ledger",
+        "vault"
       ],
       "signers": [],
       "optional": []
@@ -2998,6 +3348,27 @@
     },
     {
       "program": "maker_a",
+      "name": "initialize_listed_curve",
+      "write": [
+        "owner",
+        "config",
+        "price"
+      ],
+      "read": [
+        "venue",
+        "listing",
+        "capital",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "maker_a",
       "name": "quote_curve",
       "write": [],
       "read": [
@@ -3052,6 +3423,27 @@
       "read": [
         "venue",
         "market",
+        "capital",
+        "system_program",
+        "event_authority",
+        "program"
+      ],
+      "signers": [
+        "owner"
+      ],
+      "optional": []
+    },
+    {
+      "program": "maker_b",
+      "name": "initialize_listed_curve",
+      "write": [
+        "owner",
+        "config",
+        "price"
+      ],
+      "read": [
+        "venue",
+        "listing",
         "capital",
         "system_program",
         "event_authority",

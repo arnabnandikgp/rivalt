@@ -159,6 +159,8 @@ the old valid interval's materialized index. Recovery cannot bridge a gap beyond
 the old publication's held time/slot endpoint. Existing slot-expiry and catchup
 limits still prohibit adding expired, unmaterialized funding.
 
+During route selection clearing authenticates each distinct pricing executable and its ProgramData once per instruction. Every maker still checks its registered approval hash, including makers that share an executable.
+
 If a fill lands before another signed route, the latter uses current inventory and
 consumption; it must still fit capacity and user limits. If a reprice lands first,
 the route uses that price within the same limits. If shape/control/depth/authority
@@ -176,3 +178,21 @@ Exact account spans depend on the deployment and its clearing-owned registration
 ## Events and economics
 
 Only committed financial effects enter the finalized journal. Compare actual inventory, consumed depth, fees, funding, funded cash and unpaid claims for each maker. The local maker kit computes its report from finalized events and labels any assumed hedge cost. [Operator runbook](../operations/deployment.md#reconciliation-economics-and-exit)
+
+## Publishing for an inactive listing
+
+On the local `listed-maker-admission` build either maker program can initialize
+a curve with its owner's listing-tagged capital, then publish using the usual
+owner or delegated updater. Clearing admission requires both the owner and venue
+authority. A published curve alone gives the router no permission to execute a
+fill. [Capital identity and custody](../clearing/accounts.md#isolated-maker-capital-for-an-inactive-listing)
+
+On the local `listed-market-directory` profile, the venue authority seals the
+listing after all three maker instances have registered. Clearing checks their
+canonical addresses, their distinct capital accounts and participation from
+both supported maker programs. The resulting `LiquidityRegistry` has the same
+layout and address seeds as the BTC/ETH directories, keyed by the full listing
+address. Consumers can use `discoverLiquidityAccounts` to retrieve the three
+registrations and their dependencies. Sealing ends new maker admission on this
+listing. Each maker can continue updating its price and moving available cash.
+The listing remains ineligible for orders until the wider trading gate passes.

@@ -14,6 +14,118 @@ Use the smallest check that exercises the changed behavior. For a financial tran
 | User-facing trade and payout | Verify wallet review and guards, actual fills, fees, inventory, funded and unpaid balances, vault movement and fresh SQL replay. [Wallet workload](local-development.md#wallet-load-comparison) |
 | CI scope | [Workflow](../../.github/workflows/pr-checks.yml) and [scope selector](../../ops/ci-scope.py). Broad regression belongs in the relevant CI jobs. |
 
+For the [withdrawal width comparison](qualification-scorecard.md#withdrawal-risk-at-two-four-and-eight-markets),
+run `cargo test --locked --offline -p financial-core --test withdrawal_width -- --nocapture`.
+Compare both cash requirements with all independent funding corners at two, four
+and eight markets. Run `RIVALT_PROOF_SCOPE=withdrawal-width bash ops/default-proof-smoke.sh`
+for the signed diagnostic. At each width, require the exact maximum to pass, one
+extra atom to refuse, and missing and substituted markets to refuse. Check
+fixture accounts before and after, compare the returned remaining cash with the
+independent amount, and rebuild the receipt table from finalized program history.
+
+For the local market-listing check, build clearing at `1adaf018` with
+`RIVALT_ATTRIBUTION_PROFILE=inactive-market-listing bash ops/build-profit-attribution.sh`.
+Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to its manifest directory,
+`RIVALT_ROUTER_REVISION=1adaf018353172e446820a04597b45b97bcbac23` and
+`RIVALT_SETTLEMENT_PROBE=execution-router-inactive-listing`, then run
+`bash ops/scalable-settlement-smoke.sh`. Check discovery on finalized RPC,
+duplicate ID and ticker rollback, oracle substitution, authority, and both the
+order and fill boundaries. Compare the registered accounts with independent
+Anchor decoders and reconcile both records through fresh PostgreSQL replay.
+
+For the listing index workload, use the same build profile at the clearing commit
+recorded in [the scorecard](qualification-scorecard.md#inactive-sol-index-observation). Set `RIVALT_ROUTER_REVISION` to that
+commit and `RIVALT_SETTLEMENT_ARTIFACT_DIR` to its build, then run
+`RIVALT_SETTLEMENT_PROBE=execution-router-listing-index bash ops/scalable-settlement-smoke.sh`.
+Compare per-lot bounds at 99-cent and $1.01 collateral with independent arithmetic.
+Verify source substitutions, stale and conflicting reports, expired sample recovery,
+the transaction signer, unchanged balances and the final state in fresh SQL replay.
+
+For listed maker admission, build clearing and both makers at `5929eb48` with
+`RIVALT_ATTRIBUTION_PROFILE=listed-maker-admission bash ops/build-profit-attribution.sh`.
+Set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the output directory and
+`RIVALT_ROUTER_REVISION=5929eb48f2963499bc0a5316a9a22c2b99dcdd3d`. From a checkout of harness
+`5924e4c4`, point the artifact directory at that same build and run
+`RIVALT_SETTLEMENT_PROBE=execution-router-listed-maker bash ops/scalable-settlement-smoke.sh`.
+Check the wallet and vault around the full deposit and exit, both market ID
+directions, BTC/ETH capital substitution, code approval and finalized SQL replay.
+
+To qualify the occupied-market cash floor on the venue, build program commit
+`4e11ef9488b3c2205a1fa1bad02c0215cae8d976` with
+`RIVALT_ATTRIBUTION_PROFILE=indexed-withdrawal bash ops/build-profit-attribution.sh`.
+From the qualification checkout, set `RIVALT_ROUTER_REVISION` to that full commit,
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` to the build directory and
+`RIVALT_SETTLEMENT_PROBE=execution-router-indexed-withdrawal`. Run
+`bash ops/scalable-settlement-smoke.sh`. The signed checks cover an order-only
+dependency, two opposite exposures, one atom above the cash floor, donor and
+recipient cash, wallet/vault deltas and independent PostgreSQL replay.
+
+For market-slot retention, run `cargo test --locked --offline -p clearing-accounting --features surviving-profit --test market_slots`. For signed replay, select `RIVALT_SETTLEMENT_PROBE=execution-router-grouped-slots` with the [pinned grouped-credit build](local-development.md#incremental-debtor-groups-on-open-markets) and run `bash ops/scalable-settlement-smoke.sh` with a new run directory. Require the same sparse bindings through live protection orders and both signs of flat claims, signed rollback on each omitted ETH dependency, release after final discharge, stale-reference rejection after reuse, a matching SPL wallet delta and fresh PostgreSQL reconciliation. Only the native test varies the market count.
+
+For [funded custody at increasing widths](qualification-scorecard.md#funded-custody-across-persisted-markets), run `RIVALT_PROOF_SCOPE=slot-custody bash ops/default-proof-smoke.sh`. Derive both cash floors independently, enumerate every funding corner, verify the persisted funding checkpoints on both roots and compare wallet/vault token balances. Refusals must preserve the full account bytes. Rebuild cash changes in fresh PostgreSQL from finalized program history and reconcile them to each margin PDA and the vault.
+
+For [signed orders on a sparse account](../clearing/accounts.md#signed-orders-on-a-sparse-cross-account), run `RIVALT_PROOF_SCOPE=slot-orders bash ops/default-proof-smoke.sh`. Start with empty roots and real test-token deposits. Split one opening order and one reduce-only close across fills, reprice two markets between signing and execution, check both counterparties’ entries and claims, and withdraw the independently calculated maximum. Verify that an omitted sibling, a stale revision, a breached limit, insufficient maker cash and an extra atom of withdrawal all refuse without modifying financial state. Re-fetch finalized instructions into a fresh PostgreSQL database. Reconcile signed lot changes, funding-adjusted claims, cumulative fees, per-market insurance and SPL balances.
+
+For the [sparse funded-receiver check](../clearing/risk-and-resolution.md#funded-receiver-on-a-sparse-cross-account), run `RIVALT_PROOF_SCOPE=slot-liquidation bash ops/default-proof-smoke.sh`. Build the positions with signed orders, leave a debt in a flat market, then shock a different market from the one being liquidated. Test zero progress after the receiver fee, a receiver one atom short after reserving its own order, absent consent and omitted markets. Verify the exact signers, both account revisions, order cancellation or retention, final SPL withdrawal and post-recovery refusal. Recompute both deficits and the receiver’s initial margin from finalized history in a fresh PostgreSQL database.
+
+For [two winners on a four-market book](qualification-scorecard.md#two-winners-on-a-four-market-book), run `RIVALT_PROOF_SCOPE=competing-indexed-default bash ops/default-proof-smoke.sh`. Reconstruct both winners’ current entries, the debtor’s capacity and all four markets’ claims from signed fills. Enumerate every physically legal whole-atom allocation independently. Check the accepted split, rejection of a full recovery that harms foreign creditors, rejection of a less proportional safe split, the stored lots and the final SPL withdrawals. The focused verifier test `two_winners_cannot_reuse_the_only_debtor_lot` covers a scarce lot and final member-priority ties.
+
+For [actual venue settlement inputs](qualification-scorecard.md#complete-settlement-inputs-from-venue-clearing), use the pinned listed-maker binary and environment above with `RIVALT_SETTLEMENT_PROBE=execution-router-venue-book bash ops/scalable-settlement-smoke.sh`. The signed workload compares native Rust against independent rational arithmetic before collection, after collection and at a signed insolvency freeze. Its fresh PostgreSQL replay reconciles the funded venue.
+
+For [simultaneous competing markets](qualification-scorecard.md#competing-winners-in-two-distressed-markets), run `RIVALT_PROOF_SCOPE=joint-competing-indexed-default bash ops/default-proof-smoke.sh`. Independently enumerate both markets together, verify every recorded split from finalized custody, and reconcile every wallet exit and the remaining SPL vault through fresh PostgreSQL.
+
+For [residual settlement with open positions](qualification-scorecard.md#residual-settlement-with-open-positions), run `RIVALT_PROOF_SCOPE=residual-indexed-default bash ops/default-proof-smoke.sh`. Submit the all-par rates on the healthy book, then apply two price shocks and reset the opposing makers’ entry prices through trades. Verify the remaining loss, zero forced charges, each owner’s withdrawal and the fees left in SPL custody. Repeat the insured workload below to check that an eligible reduction cannot be skipped.
+
+For [insured settlement with two debt destinations](qualification-scorecard.md#insured-settlement-with-two-debt-destinations), run `RIVALT_PROOF_SCOPE=insured-indexed-default bash ops/default-proof-smoke.sh`. Build the debts, charged inventory and market insurance from signed fills. Check the frozen 2:3 split, the four-atom concession, the insured market’s one-atom draw and the protected creditor’s 27-atom receipt. Rebuild the funding, fees, original positions, alternative allocations, rounding repair and wallet exits in fresh PostgreSQL and the independent fraction model. Run the earlier indexed workload below for compatibility. The focused host tests in `default-plan-selection` with feature `indexed-settlement` cover a clipped fractional reserve draw, a capped destination and an insured market with multiple debtors.
+
+For the [market-indexed settlement](qualification-scorecard.md#one-settlement-engine-across-market-widths), run:
+
+```sh
+source ops/env.sh
+cargo build --locked --offline -p financial-core --features market-settlement-model --example market_settlement
+cargo test --locked --offline -p financial-core --features market-settlement-model --lib market_settlement::
+python3 tests/financial/test_market_indexed_default.py
+```
+
+Exercise independently supplied market and member rosters, several source and destination markets, exact joint versus standalone protection, mixed fractional books, a cashless cycle and a cycle with an unpaid outside creditor. Compare permutations of both the market columns and member roster. The twelve-market chain limits each member to two occupied markets. Run the existing three-market, protected-pair and competing-winner comparisons below when the shared kernel or Python reference changes.
+
+For the [three-market frozen book](qualification-scorecard.md#three-market-frozen-book-settlement), run the native fixture from the repository root:
+
+```sh
+source ops/env.sh
+cargo build --locked -p financial-core --features three-market-model --example three_market_default
+export RIVALT_THREE_MARKET_DRIVER="${CARGO_TARGET_DIR:-target}/debug/examples/three_market_default"
+python3 tests/financial/test_three_market_default.py
+```
+
+Rust solves the simultaneous capacity constraints with exact rational arithmetic. The Python reference enumerates which debts and markets are paid in full, solves the resulting balance equations and checks candidate rates against the original cash flows. Compare all exact and rounded results, permute market columns and stable membership input order, and repeat two-market cases against the established atom contract. The comparison ends at terminal plan balances. Signed verification, application and custody exits require a separate Surfpool and PostgreSQL run.
+
+For the [protected reduction comparison](qualification-scorecard.md#protected-three-market-forced-reduction), use the same native binary. Run `python3 tests/financial/test_three_market_reduction.py` and `cargo test --locked -p financial-core --features three-market-model --lib market_settlement::rounding`. Compare both non-target markets’ exact recoveries, rounded receipts and reserve spend against the independently reconstructed no-action settlement. Check each matched lot against its frozen entry, the debtor’s attributable writeoff, capped onward payments, and a refusal when the minimum receipts cannot all be funded.
+
+For the [market-indexed settlement](qualification-scorecard.md#signed-market-indexed-settlement), run `RIVALT_PROOF_SCOPE=indexed-default bash ops/default-proof-smoke.sh`. Rebuild the book from signed fills, verify all candidate rates and compare the winning charges and lot counts with finalized PostgreSQL replay and the independent fraction reference. Check each owner's SPL exit, the fees remaining in the vault and full rollback on stale, incomplete and inferior proposals. The same program separately meters the original linked-book example through a read-only instruction. Those inputs exercise the arithmetic without making withdrawals.
+
+For the [signed single-pair default](../clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair), run `RIVALT_PROOF_SCOPE=three-market-default bash ops/default-proof-smoke.sh`. The script builds the dedicated local program, checks the deployed bytes, sends signed deposits and fills, freezes all five accounts, resolves and withdraws from SPL custody. Independently hash the original financial accounts, check rollback after every refusal, and replay finalized transactions in fresh PostgreSQL. Feed the reconstructed frozen book and entry into the exact-fraction reference and enumerate every whole charge through the debtor’s original uninsured writeoff. Compare the chosen charge, matched lots, market insurance, each wallet and the remainder in the vault.
+
+For the capacity-limited competing-winner case, run
+`RIVALT_PROOF_SCOPE=partial-indexed-default bash ops/default-proof-smoke.sh`.
+Require two separately earned one-atom open gains on a default with eleven
+uninsured atoms. Check all four physically possible allocations, the nine-atom
+residual, each wallet exit, the retained fees and a fresh journal replay.
+Repeat `competing-indexed-default` on the same revision for the full recovery
+with binding foreign-creditor protection.
+
+For the [signed competing-winner default](qualification-scorecard.md#signed-two-winner-settlement-and-withdrawals), run `RIVALT_PROOF_SCOPE=competing-three-market-default bash ops/default-proof-smoke.sh`. Six signed fills must generate both winning BTC entries, their realized claims and the cross trader’s debts to ETH and SOL. Against one freeze, submit 5/5, 3/7, an incorrect total and the legacy aggregate instruction. Each refusal must preserve every watched financial account. Compare the accepted charges and lot schedules with independent enumeration from finalized fills. Reconcile all five balances, the three owner-authorized withdrawals and the reserve balance of each market. Repeat the single-pair command above after changing the shared verifier or replay.
+
+For the [two-winner selection](qualification-scorecard.md#competing-winners-in-a-three-market-default), run the native driver and comparison:
+
+```sh
+cargo build --locked --offline -p default-plan-selection --features three-market-search --example three_market_competition
+python3 tests/financial/test_three_market_competition.py
+cargo test --locked --offline -p default-plan-selection --features three-market-search --lib three_market::tests
+```
+
+Compare every selected charge, matched lot, integer price concession and exact and rounded terminal flow against the independent whole-lot enumeration. Include a genuinely scarce debtor lot, different per-lot capacities, another market’s exact receipt, a zero-action optimum, an episode-order tie and an exhausted search. Re-run the two prior three-market Python comparisons when changing their shared frozen inputs or rounding checks.
+
 For the [payout coverage comparison](qualification-scorecard.md#btceth-backing-summary-comparison),
 build `cargo build --locked --offline -p financial-core --bin backing-driver`
 and run `python3 tests/financial/test_payout_coverage_summary.py`. This compares
@@ -111,3 +223,146 @@ The [automatic direct-credit comparison](performance.md#automatic-payout-on-the-
 
 
 The [grouped open-book qualification](performance.md#payout-with-incremental-debtor-groups) ties the three signed payouts to decoded fill events, margin roots, source values, token exit and 4,413 replayed PostgreSQL events on harness `796a16b0`. Coverage maintenance and the exact fallback also have a separate idle cross-debtor shock control on `40691ed8`. Both used clearing `e4aff314`. The [stressed worker qualification](performance.md#automatic-wallet-payouts-on-a-stressed-1000-member-book) on `11cb1b55` matches queue originals to RPC/WS and both wallet exits to finalized token deltas. Independent fill and price receipts reproduce the idle debtor’s 9,138-atom shortfall and 6,702-atom recovered headroom. Fresh replay matched 3,583 events.
+
+
+For the [funded venue default preview](qualification-scorecard.md#checking-the-protected-plan-on-the-funded-venue), build the `venue-default-verifier` profile with `ops/build-profit-attribution.sh`. Run `ops/scalable-settlement-smoke.sh` with `RIVALT_SETTLEMENT_PROBE=execution-router-venue-default`, the pinned `RIVALT_ROUTER_REVISION` and its `RIVALT_SETTLEMENT_ARTIFACT_DIR`. Assert the entire returned entitlement vector, all six signed refusals, unchanged financial accounts, wire conformance and PostgreSQL replay.
+
+
+The joint competing indexed workload also checks [frozen market priority](qualification-scorecard.md#asymmetric-frozen-market-priority). Run `python3 tests/financial/test_indexed_market_priority.py` for full enumeration and `cargo test -p default-plan-selection --features indexed-settlement market_indexed` for the actual verifier. The signed workload checks both episode outcomes and rejects the opposite nomination before comparing its independent resource results and funded four-market withdrawals with PostgreSQL.
+
+
+Use the `venue-default-application` program artifact and `RIVALT_SETTLEMENT_PROBE=execution-router-venue-application` with `ops/scalable-settlement-smoke.sh` for [venue application and owner withdrawals](qualification-scorecard.md#applying-the-verified-payouts-on-the-venue). Set `RIVALT_ROUTER_REVISION` to the exact program source revision. The supervisor requires the pinned unified settlement page helper. It verifies real wallet and vault deltas, refused bindings, and independently reconstructed financial events in a fresh PostgreSQL database.
+
+Run `RIVALT_PROOF_SCOPE=joint-competing-indexed-default bash ops/default-proof-smoke.sh` for the [unequal forced-volume comparison](qualification-scorecard.md#forced-volume-by-market) across both episodes. Check the amount paid to each creditor, which allocation was refused and the per-market lot counts in the independent reference.
+
+The local `execution-router-listed-directory` probe funds three SOL maker capitals and checks directory completeness, authority, replays, SDK discovery, post-seal index observations and continued BTC trading. At clearing `a3a2c3cb` and harness `6b0a53ab`, the signed seal used 538 bytes, 12 keys and 20,589 CU. See [current acceptance](../STATUS.md).
+
+The `execution-router-listed-funding` probe independently checks SOL report size and gross amounts, the 50 bps premium cap, unavailable depth, oracle substitution, signer rotation, replay and unchanged venue cash. The 311-transaction run on clearing `b609e3e8` reconciled 127 financial events. [Contract and amounts](../liquidity/funding.md#funding-for-a-sealed-listing)
+
+
+The `execution-router-listed-margin` probe uses the `listed-margin-storage` SBF
+artifact. It checks signed BTC and ETH fills on the same wider cross root, the
+maximum exit with both positions open, rollback one atom above that maximum,
+the SPL wallet and vault deltas, and every margin layout against the finalized
+PostgreSQL replay. On clearing `0d8b70e0` and harness `11a502cd`, the BTC and
+ETH fills used 235,742 and 283,469 CU. The maximum exit used 151,880 CU and
+transferred 959,945 atoms. The new records were empty. [Account contract](../clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+
+### Signed three-market venue order
+
+Build clearing at `48f78deccb83995950a83c640b8206fd21758477` with
+`RIVALT_ATTRIBUTION_PROFILE=listed-venue-execution bash ops/build-profit-attribution.sh`.
+Select that artifact directory in `RIVALT_SETTLEMENT_ARTIFACT_DIR`, its full
+revision in `RIVALT_ROUTER_REVISION`, and use harness `7654019e` with
+`RIVALT_SETTLEMENT_PROBE=execution-router-listed-execution bash ops/scalable-settlement-smoke.sh`.
+The local run reproduced the same signed financial outcomes on two fresh venues.
+In the complete run the cross account held BTC, ETH and SOL together, the
+separately owned SOL maker held the matching short, and both isolated Anchor
+clients agreed with the generated SDK. Two fresh PostgreSQL journals produced
+identical financial events. Finalized account reads confirmed the maker's
+consumption, the trader's 42,981 cash atoms, one collected SOL-market fee atom
+and an unchanged SPL vault. The preceding withdrawal occurred before the SOL
+order. The subsequent runs below cover wider cash access and default.
+
+### Signed cash access with three open venue positions
+
+Build clearing `b79ea8db6a53b7e404308148ef3f6e397b5941b7` with
+`RIVALT_ATTRIBUTION_PROFILE=listed-venue-cash bash ops/build-profit-attribution.sh`.
+Use harness `feb4ca7d`, set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to that build directory and
+`RIVALT_ROUTER_REVISION` to the full clearing revision. Run
+`RIVALT_SETTLEMENT_PROBE=execution-router-listed-cash bash ops/scalable-settlement-smoke.sh`.
+
+The signed trader held +1 BTC lot, −10 ETH lots and +10 SOL lots with 42,981 funded atoms.
+An independent calculation using each market's adverse price and rounded initial margin required
+40,174 atoms. The owner transferred the full 2,807-atom surplus to a sibling account and back,
+then withdrew it to the wallet. Five signed refusals preserved the watched financial accounts
+byte for byte, including missing and substituted SOL sources, both 2,808-atom debit attempts
+and a final one-atom withdrawal.
+
+| Complete successful transaction | CU including two base funding checkpoints | Bytes | Accounts |
+|---|---:|---:|---:|
+| Transfer from cross to isolated | 113,647 | 914 | 19 |
+| Transfer back to the open cross account | 110,231 | 914 | 19 |
+| Withdraw to the owner's wallet | 110,946 | 1,046 | 23 |
+
+Surfpool RPC/WS confirmed 369 signed transactions. Two PostgreSQL 18.6 journals agreed on
+209 financial events. A separate finalized read reconciled 209 accounts, 12 financial members,
+and all 7,340,248 remaining vault atoms. The signed fixture had zero funding premium.
+Focused native and indexer vectors exercised a nonzero funding debit and the adverse held endpoint.
+The following default run starts from these same funded balances.
+
+### Funded venue default and creditor wallet exits
+
+Use clearing `8b5a08080663ef19610b9276bd3d599aa5cc37cf` and harness
+`74408ac0752e8634f7cfa678391f4222c9ba6ee2`. Build the local
+`listed-venue-default` artifact with
+`RIVALT_ATTRIBUTION_PROFILE=listed-venue-default bash ops/build-profit-attribution.sh`. Set
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` to its output and `RIVALT_ROUTER_REVISION` to
+the program revision. Run
+`RIVALT_SETTLEMENT_PROBE=execution-router-funded-listed-default bash ops/scalable-settlement-smoke.sh`.
+
+The cross trader had 40,174 funded atoms and positions of +1 BTC lot, −10 ETH
+lots and +10 SOL lots. Signed fixture price updates moved the per-lot indices
+to 53,002, 33,498 and 332. The respective claims were −7,000, −35,000 and
++1,800 atoms, leaving a 26-atom shortfall. All three funding indices were zero.
+The freeze bound the 12-member cohort and the three markets' resources.
+The signed settlement matched the independent Python reference across
+14 candidate plans. It charged the BTC and ETH winning positions 1 and 6
+atoms and spent 3 BTC-market and 15 ETH-market insurance atoms.
+
+| Signed transaction | CU | Accounts | Wire bytes |
+|---|---:|---:|---:|
+| Freeze with both inline market and fee checkpoints | 143,761 | 34 | 1,342 |
+| Verify and settle the entire frozen book | 398,896 | 26 | 1,236 |
+| Withdraw the BTC maker's funded balance to its owner's wallet | 31,100 | 13 | 678 |
+
+The BTC and ETH makers received 1,006,999 and 1,034,993 atoms, including
+their original cash. The SOL maker received 98,200. Across all accounts, ten
+owner-signed SPL transfers paid 7,340,192 atoms. The insolvent trader and its
+empty child had zero balances. The vault retained 10, 45 and 1 fee atoms by
+market. Both allocated and actual vault balances were 56.
+
+Seven signed refusals covered a solvent target, an omitted listing, a wallet
+withdrawal during freeze, a missing creditor, two incorrect default proposals
+and settlement replay. Each left the watched financial accounts unchanged.
+Surfpool RPC/WS verified 390 signed transactions. Independent PostgreSQL
+journals matched all 235 financial events and the complete projected state.
+Finalized RPC reconciled all 210 accounts at slot 3,221. The isolated legacy
+Anchor client and RC2 client matched the generated SDK on the signed instruction,
+event and episode account bytes.
+
+The four-market, partial-recovery and creditor-rounding cases in the
+[scorecard](qualification-scorecard.md) used separate fixtures. General
+admission remains gated by the [funded venue verifier's limits](../clearing/default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market).
+
+
+The same command also accepts reviewed clearing `051babb78d8ed8662469bbb0270001fff494ca8f`
+and harness `c2c519a6b50597af87e4b08777cdc3a3042e80ad`. A foreign signer
+could not pause the active venue. The venue authority paused and resumed it
+in two 55,848-CU transactions. A current-epoch SOL order failed in the fill
+instruction while paused. After resume the signed BTC/ETH/SOL account filled
+in 537,022 CU. This workload used three maker instances across two executables.
+A host regression separately authenticated eight distinct executable and
+ProgramData pairs and refused a mismatched hash on reuse.
+
+Freeze used 143,757 CU and settlement used 399,654 CU. The ten wallet exits
+again paid 7,340,192 atoms and left 56 retained fees. Independent PostgreSQL
+replay matched 241 events from 394 signed transactions. Finalized RPC matched
+210 accounts at slot 3,314 with zero unexplained vault balance.
+
+Clearing `69c2f5d559221309107055ace615d35cff7d115b` and harness
+`49623912407acd0f124d6038ff230cdcf3e55dfd` exercised both insurance
+outcomes on fresh funded venues. Use the same build and smoke command above
+with `RIVALT_LISTED_DEFAULT_CASE=insured` or `RIVALT_LISTED_DEFAULT_CASE=residual`.
+Both settled 12 members. Each run included 394 signed transactions, ten wallet
+withdrawals, and independent PostgreSQL replay of 241 events.
+
+| Shortfall | BTC / ETH / SOL insurance spent | Forced charges | Paid to wallets | Left in vault | Settlement CU | Final reconciliation slot |
+|---|---|---|---:|---:|---:|---:|
+| 6 atoms, fully insured | 1 / 5 / 0 | 0 / 0 / 0 | 7,340,180 | 68 | 165,221 | 3,400 |
+| 26 atoms, residual loss | 3 / 15 / 0 | 1 / 6 / 0 | 7,340,192 | 56 | 399,670 | 3,252 |
+
+The insured run compared all 210 accounts with finalized RPC while the venue
+was frozen at slot 3,216. The legacy workspace lock stayed zero. Its final 68
+vault atoms comprised 56 fees and 12 unspent insurance. Both final snapshots
+reconciled all 210 accounts with zero unexplained surplus.

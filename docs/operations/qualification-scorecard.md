@@ -1,6 +1,6 @@
 # Venue qualification scorecard
 
-Reviewed 26 November 2026. Fixed-width position storage is integrated. A funded-routing candidate passes the previously missed ETH order. Wider maker discovery, atomic fills and the matched dollar comparison have signed local qualification. The wallet now covers the previously missed eight-leg thin-bid sales. The funded multi-maker wallet matches the independent references for the curved BTC buy and margin-constrained ETH sale. The combined market-shock and recovery exercise is deferred. The baseline is local BTC/ETH trading with test collateral, synthetic sources and internal makers.
+Reviewed 28 November 2026. Fixed-width position storage is integrated. A funded-routing candidate passes the previously missed ETH order. Wider maker discovery, atomic fills and the matched dollar comparison have signed local qualification. The wallet now covers the previously missed eight-leg thin-bid sales. The funded multi-maker wallet matches the independent references for the curved BTC buy and margin-constrained ETH sale. The combined market-shock and recovery exercise is deferred. The baseline is local BTC/ETH trading with test collateral, synthetic sources and internal makers.
 
 Use the numbered findings across revisions. **Open** means a measured bottleneck or a gap in the evidence. **In review** requires a tested change and a linked PR. **Closed** requires integration and the evidence specified in the last column, scoped to the workload it covers. **Deferred** records a deliberate timing decision. When updating a row, give the program and harness revisions, the denominator, the outcome and the remaining limit. Keep raw receipts at their ignored local paths.
 
@@ -11,14 +11,14 @@ Use the numbered findings across revisions. **Open** means a measured bottleneck
 | 1 | **Position storage — Closed on integration of [#180](https://github.com/arnabnandikgp/rivalt/pull/180)** | On clearing `b7e4458b` and harness `d175285e`, 80/80 alternating increases and reductions fit fixed 40-byte market records. All 163 wallet routes landed. The maker withdrew principal plus gain, with 951 events reconciled. Exact-fraction checks cover a separate 4,101-fill history and the documented rounding differences. [Measured workload](performance.md#fixed-width-maker-entry) | The fixed-width deployment covers retained mixed-price inventory. Depth, concurrency and adverse-flow liquidity remain separate findings. |
 | 2 | **Published versus executable depth — Closed on integration of [#191](https://github.com/arnabnandikgp/rivalt/pull/191) for the bounded local workload ([clearing #189](https://github.com/arnabnandikgp/rivalt/pull/189), [wallet #190](https://github.com/arnabnandikgp/rivalt/pull/190))** | [Benchmark PR #181](https://github.com/arnabnandikgp/rivalt/pull/181). On clearing `b7e4458b` and harness `6ddfcaee`, 22/30 ordinary BTC orders filled across deep, fragmented and one-sided books. Three needed two makers. Six requests exceeded published depth and two required three makers. On ETH the router returned 6133 for a financially executable 3,334-lot buy. The alternative maker filled it in the signed explicit control. Across the ordinary BTC orders, 52.66% of requested dollars filled at the index. [Dollar fills and per-order cost](performance.md#dollar-sized-orders-and-executable-depth) | Clearing `e02e72a0` and harness `db964391` filled this ETH order at the exact $100.053343 limit and refused the tighter limit. At 16 and 32 makers, the matched trace filled 5/10, 6/10 and 7/10 requests at caps of two, four and eight. An eight-maker shortlist omitted deeper bids needed to fill a $10,000 sell. [Matched results](performance.md#matched-dollar-execution-across-16-and-32-makers). On `0edb3064` the eight-leg wallet filled both thin-bid sells at the independent bounded price and improved to 8/10 at each directory size. [Signed results](performance.md#wallet-selection-by-order-size). On curved BTC asks a signed alternative saved $1.720650. On ETH the wallet refused a $3,000 sale that two shortlisted makers filled in a signed control. Clearing `50bd8836` filled ETH at the control price and executed the best four-curve BTC control in 394,364 CU. SDK `7353f463` closed the $5.038591 BTC gap and preserved the funded ETH fill. Both signed ordinary orders reached the computed four-leg optimum. [Wallet results](performance.md#price-aware-wallet-execution). Integration is pending. [Curved and margin-bound results](performance.md#curved-quotes-and-binding-maker-margin). Historical order 109’s exact 6120 branch remains unknown. |
 | 3 | **Wallet count versus parallel throughput — Closed for the bounded local workload** | Surfpool filled 288/288 in matched wallet windows. Native wallet preparation limited delivery to 8.54 and 16.05 signed orders/s in two split windows scheduled at 25/s. In matched pre-signed bursts, all 50 BTC orders landed in one local slot, and so did 25 BTC plus 25 ETH. The split used two workers and halved the highest writable-account cost. [Wallet preparation](performance.md#where-the-wallet-spends-time-before-signing) · [Burst and slot timing](performance.md#fifty-already-signed-orders-in-one-slot) | SDK `402a6c03` reduced median Chrome verification from about 16 to 7.3 ms for one wallet and from 169–172 to 82 ms each for twelve. Integrated at `cf61ad81`. The 200 ms repeat is deferred. Sustained throughput and priority-fee competition remain unmeasured. [Browser replay](performance.md#browser-wallet-verification-with-the-default-decoder) · [PR](https://github.com/arnabnandikgp/rivalt/pull/198) |
-| 4 | **Closing versus getting cash out — Acceptance complete for bounded local BTC/ETH; closes on worker-stack integration** | A 1,000-member book paid two separately earned 40-atom closed ETH gains through the ordinary worker. The owner withdrew both payments to its token wallet. The ordinary credit used 158,387 CU with zero exact checks. Recovery used 640,410 CU for 640 checks. [Worker qualification](performance.md#automatic-wallet-payouts-on-a-stressed-1000-member-book) | The worker refused an underfunded cross debtor through restart and membership replacement, then paid after recovery. Both exits landed under competing fills and 3,583 events reconciled. Wider market support and production latency are separate qualifications. |
+| 4 | **Closing versus getting cash out — Closed for bounded local BTC/ETH in [#216](https://github.com/arnabnandikgp/rivalt/pull/216)** | A 1,000-member book paid two separately earned 40-atom closed ETH gains through the ordinary worker. The owner withdrew both payments to its token wallet. The ordinary credit used 158,387 CU with zero exact checks. Recovery used 640,410 CU for 640 checks. [Worker qualification](performance.md#automatic-wallet-payouts-on-a-stressed-1000-member-book) | The worker refused an underfunded cross debtor through restart and membership replacement, then paid after recovery. Both exits landed under competing fills and 3,583 events reconciled. Wider market support and production latency are separate qualifications. |
 | 5 | **Member count versus default complexity — Deferred to the shock exercise** | Three 75-member books needed 193, 285 and 327 finalized keeper transactions. A separate 128-member recovery needed 471 continuations for one payout calculation. [Recovery evidence](validation.md#evidence-by-deployment) | At fixed population, vary debt concentration, cross-market claims and eligible reductions. Report work to finish, restart progress and time to the last wallet exit. |
 | 6 | **Scripted flow versus actual wallet behavior — Open** | The burst assigned wallets round-robin. The 72-order trace covered eight sizes overall, yet each of its 16 wallets used one size throughout. The 24-wallet burst was BTC buy-only. [Generator](../../tests/rpc-contract/router-load-rpc.ts) | Vary arrival, size, side and market independently per wallet, keep a fixed comparison trace, and repeat on additional seeds. Include repeat traders, reductions, reversals and outstanding orders. |
 | 7 | **Coordinated makers and sources — Open for benchmark coverage** | The fixture can refresh six maker publications and synthetic oracle sources together. The funding report uses published depth and omits hypothetical financial admission. [Fixture](../../tests/rpc-contract/liquidity-execution-setup.ts) · [Funding](../liquidity/funding.md) | Vary maker update timing separately from oracle updates. Measure executable spread, refusals and funding coverage. The combined price jump and maker outage belongs to the deferred exercise. |
 | 8 | **Willing liquidation capital — Deferred to the shock exercise** | The signed case sold ten lots to a maker. A consenting operator-owned receiver could take five more only after it was funded. [Liquidation qualification](validation.md#evidence-by-deployment) | Exercise several unhealthy accounts competing for limited receiver capital. Measure deficit after fees, remaining exposure and recovery time. Independent participation is a separate external gate. |
 | 9 | **Local costs versus sustainable participation — Open for cost reporting** | The wallet uses zero priority fee and the maker kit labels hedge cost as an assumption. The 119 fills earned 2,963 collateral atoms in aggregate taker fees before insurance. [Wallet budget](../liquidity/routing.md) · [Maker economics](../../packages/maker-kit/src/liquidity-economics.ts) | Report actual costs per role in lamports, retained fees after insurance, funded and unpaid maker P&L, and explicitly assumed hedge and priority-fee scenarios. Independent maker economics remain open. |
-| 10 | **Markets sharing a margin account — Open** | The local account and risk, funding and backing inputs have two fixed market slots. A flat account can still owe or own a claim. | Key slots by market and preserve obligations until discharged. Qualify the whole account at increasing widths before enabling additional markets. |
-| 11 | **Default across three or more markets — Open, blocks wider cross trading** | A BTC/ETH debtor has at most one other market where recovered proceeds can be applied. A third market creates competing destinations. [Three-market example](../clearing/risk-and-resolution.md#gate-for-a-third-cross-market) | Verify the approved proportional allocation before insurance in complete, order-independent settlement, including insurance and final cash exits. Finding 5 separately tracks the cost of running recovery. |
+| 10 | **Markets sharing a margin account — Open** | The local venue trades two inline markets. A fresh local build also reserves [listed records on the same funded root](../clearing/accounts.md#listed-markets-on-the-funded-margin-account). A [withdrawal comparison](#withdrawal-risk-at-two-four-and-eight-markets) covers two, four and eight markets. The [slot lifecycle](#market-slot-retention-and-reuse) and [funded custody fixture](#funded-custody-across-persisted-markets) exercise obligation retention and signed cash movements. | [Signed fills](#signed-orders-on-eight-markets) and [receiver liquidation](#funded-receiver-liquidation-across-markets) qualify the sparse fixture. [Venue withdrawals](#occupied-market-withdrawal-on-venue-clearing) use the indexed check at two markets. The venue [registers SOL inactive](#inactive-sol-listing-on-venue-clearing) [observes its independent index](#inactive-sol-index-observation) and [admits separately funded maker capital](#isolated-maker-capital-for-an-inactive-listing). One funded venue root has [held BTC, ETH and SOL after a signed routed order](validation.md#signed-three-market-venue-order). The [maximum withdrawal and both transfer directions](validation.md#signed-cash-access-with-three-open-venue-positions) passed with all three markets open. The [funded three-market default](validation.md#funded-venue-default-and-creditor-wallet-exits) also passed on the opt-in venue. General admission remains gated. |
+| 11 | **Default across three or more markets — Closed for the bounded local venue on integration of [#250](https://github.com/arnabnandikgp/rivalt/pull/250)** | A native complete-book calculation at `8b1e155f` matched independent exact settlement across three markets, including partial recovery, cycles, insurance and terminal whole atoms. [Workload](#three-market-frozen-book-settlement) | The [signed five-member book](#signed-three-market-default-and-wallet-exit) verifies the maximal protected charge for a single eligible pair and reconciles the wallet exits. The [signed two-winner settlement](#signed-two-winner-settlement-and-withdrawals) checks competing charges on the same BTC debtor. The [market-indexed engine](#one-settlement-engine-across-market-widths) compares simultaneous reductions against the original book. The [signed four-market book](#signed-market-indexed-settlement) verifies nine allocations and wallet exits. The [insured settlement](#insured-settlement-with-two-debt-destinations) pays a debtor’s two destinations and protects a creditor through rounding. The indexed verifier now covers [residual settlement](#residual-settlement-with-open-positions), [capacity-limited recovery](#partial-recovery-with-competing-winners) and [simultaneous competing markets](#competing-winners-in-two-distressed-markets). The [venue controller and wallet exits](#applying-the-verified-payouts-on-the-venue) now qualify the two-market book. The gated venue has [filled SOL beside BTC and ETH](validation.md#signed-three-market-venue-order). The [funded three-market qualification](validation.md#funded-venue-default-and-creditor-wallet-exits) froze and settled 12 actual participants and paid every funded balance. Ten withdrawals left 56 fee atoms. Reviewed runs also qualified emergency pause and a six-atom fully insured default with zero forced charges. Each replay matched 241 events. General activation beyond the qualified book remains gated. Finding 5 tracks the operating cost of recovery. |
 
 ## Payout and cross-margin work
 
@@ -40,6 +40,321 @@ claim's progress. Preserve the closed fixed-width entry finding and the separate
 external and endurance gates.
 
 On the fresh grouped payout build, the [signed 1,000-member workload](performance.md#payout-with-incremental-debtor-groups) paid a closed ETH gain with every member exposed. All 64 group bounds held at the current adverse endpoints. The verifier checked zero individual debtors. A price shock that made an idle debtor unable to pay forced an individual check and blocked payment. The [stressed worker run](performance.md#automatic-wallet-payouts-on-a-stressed-1000-member-book) covers scheduling under competing fills and measures a payment with 40 groups requiring exact checks.
+
+### Inactive SOL listing on venue clearing
+
+Clearing `1adaf018` and harness `d470168b` ran on a fresh local venue. The
+authority registered SOL as ID 2 with 1,000,000 lots per whole SOL, the existing
+test collateral mint and a local SOL/USD feed. Finalized SDK discovery returned
+one listing. The 522-byte transaction used 18,534 CU and loaded ten accounts.
+The listing occupies 166 bytes and its ticker binding 51. No margin account or
+active market changed during registration.
+
+Clearing rejected eight signed attempts covering an unauthorized signer, a BTC
+feed substituted for SOL, a different publisher, reserved ETH ID 1, duplicate ID, duplicate
+ticker, an order on ID 2 and an attempted fill using the listing as an active
+market. The financial accounts and both listing accounts matched their pre-attempt
+bytes after each refusal. A one-lot BTC fill succeeded afterward. The 230 signed
+transactions include venue provisioning. Fresh PostgreSQL replay reproduced 81
+events and reconciled both listing accounts against RPC. The isolated legacy
+and RC2 Anchor clients agreed with the generated SDK on the signed instruction,
+its two account layouts and both events. SOL index observations, maker admission,
+live positions and default remain outside this run.
+
+### Inactive SOL index observation
+
+On clearing `aa205484` and harness `0cf1251f`, the authority bound four local
+oracle feeds to a 251-byte observation PDA. A trader paid the network fee and
+was the only signer on each accepted observation. The venue supports one million
+lots per SOL and one million atoms per collateral token in this test.
+
+| Signed transaction | Price inputs (primary SOL, guard SOL, collateral) | Reference and inclusive bounds, in collateral atoms per lot | CU | Wire bytes |
+|---|---|---|---:|---:|
+| Bind the sources | No published price required | Empty observation | 18,076 | 538 |
+| First observation | $150, $151, $0.99 | 151 (149–155) | 18,380 | 537 |
+| Recover after expiry | $149.50, $150, $1.01 | 148 (146–151) | 18,392 | 537 |
+
+Each transaction loaded 12 accounts. The first observation expired eight seconds
+after acceptance because the guard's report was already 12 seconds old. An
+unchanged report, substituted feeds, stale primary and collateral guard prices,
+a conflicting guard price, excessive confidence width and an unverified guard
+all refused. No refusal moved the sample's deadline or changed financial state.
+
+The full signed run included 258 transactions. Nineteen refused, including
+eleven specific to binding or observing the index. Fresh PostgreSQL replay
+matched all 96 events and reconciled the final accounts. Both isolated Anchor
+clients matched the generated SDK on four accepted instructions, three accounts
+and eight events. A one-lot BTC control filled; SOL trading remained disabled.
+This is local fixture pricing. [Reproduction](validation.md)
+
+### Occupied-market withdrawal on venue clearing
+
+Fresh local profile `indexed-withdrawal` ran clearing `4e11ef94` and SDK/harness
+`356293da`. A cross trader bought ten BTC lots at 60,002 atoms per lot and
+sold ten ETH lots at 29,998. The independent cash floor was 99,940 atoms after
+fees. After transferring one atom to the owner's other margin account, the
+owner withdrew 899,878 atoms to their token account. The SPL vault decreased by
+the same amount. This complete withdrawal transaction used 144,477 CU and
+1,107 wire bytes, including the market and fee checkpoints.
+
+Clearing rejected omission of ETH with only an ETH order and again with an open
+ETH position. Substituting the BTC PDA for the required ETH PDA failed seed
+validation. Both a transfer and a wallet withdrawal one atom over the limit
+failed. Each refusal preserved the watched margin, maker, lane, market, ledger,
+custody and token bytes. The run fetched 241 signed transactions over local
+RPC, observed WebSocket notifications and reproduced 116 journal events in a
+fresh PostgreSQL database. The signed venue book used zero funding premium.
+Nonzero mixed endpoints are covered in the native width and clearing tests.
+The venue still lists BTC and ETH.
+
+### Withdrawal risk at two, four and eight markets
+
+On risk kernel `f57333f3`, the independent reference computed both required cash amounts for 128 books at each width. It enumerated all funding corners from the stored pre-accrual positions. Both amounts matched on every book, including books with flat claims and fractional losses. Testing a withdrawal one atom below, at and one atom above the independent maximum gave 1,152 matching decisions. With two markets, all 384 also matched the existing Rust withdrawal and four-corner risk calculation. The held funding requirement bound 32, 25 and 20 of the 128 books respectively. The comparison uses deliberately wide synthetic windows to exercise both conditions. [Arithmetic and assumptions](../clearing/risk-and-resolution.md#withdrawal-risk-across-occupied-markets)
+
+Signed local fixture `e32e5d88` stored alternating longs and shorts in a synthetic book with 10,000 funded atoms and seven reserved atoms. Absolute sizes were one through the number of markets. Each lot could lose 60 atoms under its adverse funding endpoint. The table reports complete, finalized read-only decision transactions. Each signed transaction paid 5,000 test lamports. Only the fee payer was writable.
+
+| Occupied markets | Funding corners in reference | Maximum withdrawal in fixture atoms | CU at the boundary | Loaded accounts | Wire bytes |
+|---:|---:|---:|---:|---:|---:|
+| 2 | 4 | 9,820 | 5,164 | 6 | 346 |
+| 4 | 16 | 9,400 | 8,733 | 8 | 412 |
+| 8 | 256 | 7,840 | 15,871 | 12 | 544 |
+
+All three maxima passed. One extra atom, a missing market PDA and a substituted market PDA each refused at every width. RPC and WS verified the signed originals. A fresh PostgreSQL table rebuilt from finalized program history matched the 12 observed decisions and their CU. All fixture state bytes compared equal before and after. The measured path includes the fixture account reads and risk calculation. Production oracle checks, order refresh, SPL custody, account writes and wider liquidation/default still need separate qualification. [Reproduction](validation.md#checks-by-change)
+
+### Market slot retention and reuse
+
+The candidate keeps only occupied markets, sorted by market ID. Native tests fill capacities of two, four and eight, refuse one additional market, then release a middle slot and admit a different market on either side of the existing IDs. Unaffected references still resolve after compaction. Both signs of a one-billionth-of-an-atom claim keep the market occupied. At all widths the checks use the same accounting transition. [Account contract](../clearing/accounts.md#market-slots-in-the-width-qualification)
+
+On clearing `e4aff314`, harness `e131600c` captured 15 finalized root images each for a cross trader and an isolated ETH maker. The trader kept a live BTC order while opening and closing ten ETH lots. Cancelling one protection child left the other active. The close invalidated the surviving child and left the trader owing 40 atoms and the maker owed 40. Collecting 39 kept the trader’s ETH slot. Collecting the last atom released it. The maker’s slot survived until its claim became funded cash, and the owner withdrew the 40 atoms. Reopening ETH assigned the trader a fresh binding. Removing the BTC order kept the new ETH binding valid after compaction.
+
+Both withdrawals that omitted a required ETH market (live order, then flat debt) returned clearing error 6125 and left the watched financial and token accounts byte-identical. Of 247 signed workload and provisioning transactions, those two were the only refusals. Each original matched finalized RPC and WS observations. PostgreSQL replay reconciled 150 events. The Rust directory replayed the existing two-market wire layout and checked retired references at each stage. The signed program used the existing two-market representation throughout. [Reproduce](validation.md#checks-by-change)
+
+### Funded custody across persisted markets
+
+The local custody program stores alternating long and short positions, with sizes of one through the number of occupied markets. Each sender starts with an SPL deposit of 10,000 test atoms. The standing order reserves 307 atoms. At the current funding index a long owes three atoms per lot. The reference separately enumerates all four, 16 or 256 combinations of the held funding endpoints. The sender must retain the larger of the two cash floors.
+
+| Occupied sender markets | Current cash floor | Held cash floor | Maximum transferable or withdrawable atoms |
+|---:|---:|---:|---:|
+| 2 | 340 | 177 | 9,660 |
+| 4 | 419 | 594 | 9,406 |
+| 8 | 715 | 2,148 | 7,852 |
+
+Each receiver holds a position in one shared market and a standing order in a market unique to the receiver. The transfer therefore requires three, five or nine distinct market observations. Both accounts accrue from their stored funding checkpoints. Admission of a credit can improve an underfunded receiver, while spending from that receiver requires its own cash floor of 320 atoms. [Account layout and authority](../clearing/accounts.md#funded-custody-qualification)
+
+On fixture and harness `c7325087`, all three maximum withdrawals and transfers landed. With two, four and eight sender markets, withdrawals used 17,900, 23,903 and 36,326 CU. Transfers used 14,161, 20,420 and 32,922 CU. The widest withdrawal loaded 17 accounts in 718 wire bytes. The widest transfer loaded 15 accounts in 652 bytes. These costs include the fixture risk checks and the withdrawal’s SPL CPI. They exclude live order matching and production source updates.
+
+The 52 signed transactions included 35 cash instructions. Twenty refusals covered one atom over each sender limit, missing or substituted markets on both operations, a foreign signer and a stale revision. Every refused operation preserved the roots, windows, wallet and vault byte-for-byte. Fresh PostgreSQL replay of finalized history matched 35 receipts, the six final funded balances and the 4,042 atoms remaining in the SPL vault. The held observations and exposures were synthetic. [Reproduction](validation.md#checks-by-change)
+
+### Signed orders on eight markets
+
+On fixture and harness `a10888c9`, one trader deposited 20,000 collateral atoms into an empty cross account. A separate local operator funded eight isolated maker accounts with 4,000 atoms each. The trader bought 100 lots in each of eight markets at 100 atoms per lot. Two fills of 25 and 75 lots completed the first order for two fee atoms in total. Nine markets were listed. An order in the ninth refused when all eight slots were occupied.
+
+After the trader signed a sell limit of 100, the source authority changed the first market’s index to 95 and the eighth to 98, and increased each cumulative funding index by one atom per lot. The update wrote neither counterparty’s margin account. The old revision and the old sell limit each refused. The trader signed a replacement at 98 and closed the eighth position in fills of 40 and 60 lots. The closed trader owed 300 atoms in that market. The isolated maker held the corresponding unpaid gain. The other seven trader positions stayed open.
+
+| Signed fixture operation | CU | Loaded accounts | Wire bytes |
+|---|---:|---:|---:|
+| Fill the second market | 16,545 | 9 | 533 |
+| Fill the fourth market | 24,249 | 11 | 599 |
+| Fill the eighth market | 40,257 | 15 | 731 |
+| Close 40 of 100 lots with eight occupied markets | 41,925 | 15 | 731 |
+| Close the remaining 60 lots | 38,433 | 15 | 731 |
+| Withdraw the trader’s surplus with seven open positions and one flat debt | 40,115 | 18 | 814 |
+
+After fees the trader held 19,982 funded atoms. The current cash floor was 6,950 initial margin plus 900 debt. The held funding endpoints required 2,300. Withdrawing 12,133 atoms refused, and 12,132 landed in the trader’s SPL account, leaving 7,850. The maker withdrew its 4,000 funded atoms and retained the 300-atom unpaid claim. A withdrawal of 4,001 refused.
+
+There were 72 finalized signed transactions including setup. All 13 expected refusals preserved both token wallets, vault, markets and margin accounts byte-for-byte. Separate PostgreSQL replay discovered 59 market, order, fill and custody receipts from finalized program history. It reconstructed all 11 fills and reconciled all nine margin accounts and nine market fee records. The vault held 35,868 atoms, comprising 35,850 funded balances, 17 retained fees and one insurance atom. The older two-, four- and eight-market custody trace also reconciled all 35 cash receipts and 4,042 remaining vault atoms on this revision.
+
+These measurements use synthetic index and funding updates, one resting order per trader and one consenting maker per fill. The profile omits production price discovery, routed maker execution and liquidation. [Account contract](../clearing/accounts.md#signed-orders-on-a-sparse-cross-account) · [Reproduction](validation.md#checks-by-change)
+
+### Funded receiver liquidation across markets
+
+The signed `847d6ca2` workload extends the eight-market order trace. The target had seven open longs, one closed debt of 300 atoms, 8,852 funded atoms and a resting buy. An index drop to 45 and cumulative funding of two atoms per lot in the first market produced another 5,700 atoms of debt. With 3,225 atoms of maintenance required, its shortfall was 373. The selected transfer market held its index of 100 throughout. A separate receiver had a resting buy in the ninth market reserving 1,002 atoms.
+
+| Finalized transaction | Result | CU | Loaded accounts | Wire bytes |
+|---|---|---:|---:|---:|
+| Transfer one lot at 96 | Five atoms of maintenance released, four lost on price and one paid in fees. The unchanged shortfall blocked execution. | 49,650 | 16 | 772 |
+| Transfer 40 at 100 with 1,399 receiver cash | The two-atom fee left the receiver one atom short of its reservation plus 400 initial margin. Both accounts rolled back. | 55,202 | 16 | 772 |
+| Add one atom to receiver cash, then transfer 40 at 100 | The transfer alone took the shortfall from 373 to 175 after the two-atom fee. The receiver kept its order and the target’s resting buy was cancelled. | 56,115 | 16 | 772 |
+| Receiver cancels its resting buy, then takes 36 at 100 | The transfer alone restored maintenance after a second two-atom fee. The target retained 24 lots in this market. | 55,152 | 15 | 739 |
+
+The receiver owner and a separate fee payer signed both successful transfers. The target and source authority did not sign. A third attempt refused after recovery. The receiver withdrew 644 atoms, leaving 760 against its 76 lots. Each successful transfer paid 10,000 test lamports in transaction fees. The two collateral fees passed from target to receiver. The market retained its existing trading-fee split.
+
+Of 97 signed transactions, 25 expected refusals preserved all watched financial state. Of 12 receiver transfer attempts, two landed. A fresh PostgreSQL database replayed 82 finalized market, order, fill, transfer and custody receipts, reconstructed both deficits after fees and checked receiver margin. Ten margin roots held 37,608 funded atoms. Together with 18 trading-fee atoms they matched 37,626 atoms in SPL custody. Native regression `2f0f5467` also checked a partially transferred short’s surviving reduce-only reservation and its release at flat. It rebuilt the same program bytes.
+
+This single-target local case uses synthetic observations and an internal funded receiver. The production adapter, maker-routed liquidation, competition for receiver capital, and complete default at greater width each have their own qualification scope. [Receiver contract](../clearing/risk-and-resolution.md#funded-receiver-on-a-sparse-cross-account) · [Reproduction](validation.md#checks-by-change)
+
+### Three-market frozen-book settlement
+
+At `8b1e155f` the Rust model and Python fraction reference matched on 153 native evaluations. These comprised six partial-recovery or debt-cap cases under 12 input orderings, eight mixed books under six market orderings, 32 seeded four-member books and one numeric-boundary book. A further 24 books with an empty third market reproduced the existing two-market specification's whole member balances, claim movements and insurance use. Ten invalid inputs refused, including an omitted zero-balance member whose removal would otherwise preserve every financial total.
+
+| Frozen book | Outcome in collateral atoms |
+|---|---|
+| SOL collects 90 against 180 owed to a cross debtor with BTC/ETH debts of 150/120 | The debtor forwards 50/40. BTC insurance supplies 100. The creditors receive 150/40 and the ETH creditor bears the remaining 80. |
+| SOL collects one atom against the same debts, with no insurance | The exact entitlements are 5/9 and 4/9. The BTC creditor receives the one whole atom. All 12 input orders produce the same result. |
+| A cashless cycle with an available reserve in each market | All three markets discharge the reciprocal claims in full. Cash paid and insurance consumed are both zero. Adding outside creditors and three funded atoms in a separate book gives rates 33/56, 33/56 and 17/28. |
+| Rounding one reserve reduces the next market's incoming recovery | From reserves of 2/3/3, the book spends 1/2/2. Final recovery rates are 2/3, 6/7 and 10/11. Fees stay in their originating markets. |
+
+The fully compared fields include each member's own cash collection, recovered claims, onward payments, impairment, writeoff, exact cash entitlement and final whole-atom movements. The largest fixture contained seven members. This is a native arithmetic qualification on supplied frozen balances. Wider signed default, forced reductions, SPL exits and operating cost remain open. [Equations](../clearing/risk-and-resolution.md#settlement-across-a-frozen-set-of-markets) · [Reproduction](validation.md#checks-by-change)
+
+### Protected three-market forced reduction
+
+On native revision `1669a71b`, the comparator admitted 178 of 270 submissions and refused 92. The eight tests covered 12 named proposals under 12 orderings each, 54 seeded cases rotating the target market, 60 interconnected fractional books, one near-tick entry and 11 malformed proposal or position controls. The largest book held nine members. Each admitted schedule, remaining position size, exact recovery, whole cash movement, fee and reserve balance matched the independent fraction reference.
+
+| Proposed action | Verified outcome in collateral atoms |
+|---|---|
+| Charge 10 on BTC while the winner owes 12 on ETH and 8 on SOL | Two of three opposite lots closed. The BTC flat creditor received 40. ETH and SOL kept 12 and 8, with zero insurance. |
+| Raise the charge to 11 on the same book | Ordinary rounding still gives 12 and 8. The exact claims fall to 1044/89 and 696/89, so the comparison refused. At 20, holding both creditors whole would spend 3 of ETH insurance and 2 of SOL insurance. That alternative also refused. |
+| Charge 40 after an account originally split SOL proceeds equally between BTC and ETH | The account recovered 150 on SOL. Its adjusted BTC debt was only 60, so it forwarded 60 to BTC and the remaining 90 to ETH. The market reserves contributed zero. |
+| Ordinary rounding would transfer one atom away from each of two small creditors | The conserving whole-atom plan preserved the smallest creditor’s previous atom in both ETH and SOL. Each set of three creditors received 3/1/1. |
+
+A separate Rust test rejected two individual minimums that each fit their own rounded claim but together required two atoms from a one-atom vault. These are native calculations on supplied frozen positions and claims. The signed case below measures on-chain selection and payment for one eligible pair. General schedule selection remains open. [Contract](../clearing/default-plan-verification.md#one-proposed-reduction-on-a-three-market-frozen-book) · [Reproduction](validation.md#checks-by-change)
+
+### Signed three-market default and wallet exit
+
+Five wallets deposited 6,405 test collateral atoms. The cross trader first closed a losing BTC trade against one isolated maker, leaving that maker flat with a 600-atom claim. It then opened ten lots in each of BTC, ETH and SOL against three other isolated makers. The three price updates left the cross trader with a 400-atom BTC claim, 2,800 cash and debts of 1,800 on ETH and 1,200 on SOL. The BTC debtor owed 1,000 and had 599 cash. BTC insurance held one atom from the signed fills.
+
+| Member | Cash at freeze | Cash without a forced reduction | Cash after resolution and amount withdrawn |
+|---|---:|---:|---:|
+| Cross trader | 2,800 | 40 | 0 |
+| BTC debtor | 599 | 0 | 0 |
+| Flat BTC creditor | 1,000 | 1,360 | 1,400 |
+| ETH creditor | 1,000 | 2,800 | 2,800 |
+| SOL creditor | 1,000 | 2,200 | 2,200 |
+
+At a 100-atom charge on one matched BTC lot, exactly 200 atoms of the BTC payment still flow through the cross trader to meet its remaining ETH/SOL debt. The flat BTC creditor receives the other 400 BTC payment atoms. At 101, the cross trader would receive only 179400/899 atoms, falling short by 400/899. This exact shortfall disqualifies the larger charge even though it is smaller than a whole token atom. BTC insurance spent one atom, ETH and SOL insurance spent zero, and five collected fee atoms remained in the SPL vault after all three wallet exits.
+
+On revision `eed48e38`, 64 transactions finalized with RPC and WebSocket confirmation, including six SPL or signer setup transactions. Fresh PostgreSQL replay matched 58 program receipts. The independent fraction model on the reconstructed book enumerated the 400 charges through the BTC writeoff and admitted 100. All 18 signed refusals preserved the watched financial accounts, including a standing order at freeze, a roster omission, a wrong commitment, 99 and 101 charged atoms, a second application and an unauthorized withdrawal. A separate keeper signed the freeze and resolution alone.
+
+| Successful transaction | CU | Wire bytes | Loaded accounts |
+|---|---:|---:|---:|
+| Freeze five members and three markets | 25,929 | 569 | 13 |
+| Verify the maximum and settle all balances | 27,169 | 609 | 13 |
+| Withdraw to one owner’s wallet, each of three | 13,001 | 550 | 10 |
+
+That run used signed synthetic prices, whole-atom final transfers and one eligible pair. The two-winner case below extends the signed scope. Joint reductions, general fractional terminal settlement and a third venue market remain open. [Verification contract](../clearing/default-plan-verification.md#signed-three-market-default-with-one-eligible-pair) · [Reproduction](validation.md#checks-by-change)
+
+### Competing winners in a three-market default
+
+On native revision `1f6f1e6a`, independent enumeration on 31 frozen books and episode variants examined 602 allocations within the original lot and debtor budgets, including zero action. Of those, 535 preserved the foreign creditors and insurance. All 67 Rust selections, including reordered inputs, matched the independent winning charges, lot schedules and complete terminal settlements. Eighteen seeded cases varied which market defaulted, the side of the debtor, its cash, winner capacities and foreign reserves.
+
+| Frozen book | Selected charges in atoms | What determined the result |
+|---|---:|---|
+| Equal winning positions, two debtor lots, 10 atoms recoverable | 5 and 5 | Each winner gave up one lot. The native search needed one candidate evaluation. |
+| Same claims, one debtor lot, equal terms | 10 and 0 or 0 and 10 | Both schedules recovered 10. The frozen episode selected who bore it. Six fixed episodes exercised both outcomes. |
+| One debtor lot, per-lot capacities of 3 and 6 | 0 and 6 | Only the second winner could absorb six atoms on that lot. |
+| A winner owes five ETH and three SOL atoms | 4 and 6 | Five and five would lower exact foreign receipts to 35/8 and 21/8. The selected split preserved five and three and used only one BTC insurance atom. Three candidate evaluations sufficed. |
+| Either one-atom charge harms a different foreign creditor | 0 and 0 | The original settlement was the only protected result. |
+
+On a separate equal-capacity book with a one-million-atom writeoff, the native selector verified 500,000 atoms per winner, 50,000 matched lots each, in one candidate evaluation. That case checked its hand-derived optimum and complete reference settlement. The exhaustive 602-allocation count covers the smaller books. Search cost still depends on how many splits the actual lot and foreign protections exclude. The native search covers more books than the signed two-winner fixture below. [Contract](../clearing/default-plan-verification.md#two-winners-competing-for-the-same-debtor-lots) · [Reproduction](validation.md#checks-by-change)
+
+### Signed two-winner settlement and withdrawals
+
+Five wallets deposited 13,185 test collateral atoms. Six signed fills left the BTC debtor short two lots. The cross trader and an isolated maker each held one opposite lot and 120 atoms of eligible gain. The trader’s net BTC claim was 120 and the maker’s was 180, including earlier realized P&L. The debtor owed 300 BTC-market atoms. Its 289 cash and one BTC insurance atom left ten to allocate.
+
+The cross trader owed 5,000 on ETH and 3,000 on SOL, with 7,884 atoms of funded cash. It therefore needed at least 116 from BTC. The table compares whole-wallet outcomes from the independent reference on that frozen book. The selected row is also checked through actual SPL withdrawals.
+
+| BTC charge to cross trader / maker | Cross trader | BTC debtor | BTC maker | ETH creditor | SOL creditor | Reason |
+|---|---:|---:|---:|---:|---:|---|
+| No action | 0 | 0 | 1,174 | 7,000 | 5,000 | Ten BTC atoms remain written off in the baseline settlement. |
+| 5 / 5 | 0 | 0 | 1,175 | 6,999 | 5,000 | Only 115 BTC atoms reach the cross trader. Both exact foreign entitlements fall. |
+| 3 / 7 | 1 | 0 | 1,173 | 7,000 | 5,000 | Protects foreign creditors but another full recovery shares the charge more proportionally. |
+| **4 / 6** | **0** | **0** | **1,174** | **7,000** | **5,000** | Recovers the ten-atom BTC writeoff, matches one lot per winner and preserves both foreign claims. |
+
+All four rows use one BTC insurance atom. The accepted allocation changes how the BTC loss is recognized. Its three wallet amounts coincide with the no-action baseline on this book. The ETH and SOL insurance atoms remain available in the vault.
+
+At `4348427c`, 70 signed originals finalized through local Surfpool RPC and WebSocket. All 21 refusals left the watched financial accounts unchanged. Fresh PostgreSQL replay reconstructed every one of the 64 program receipts, including six fills. Independent exact-fraction enumeration on that reconstructed book found 66 physically possible splits and 29 that preserved foreign creditors and insurance. The three withdrawals totaled 13,174 atoms. The remaining 11 comprised nine retained fee atoms and one atom each of ETH and SOL insurance.
+
+| Successful transaction | CU | Wire bytes | Loaded accounts |
+|---|---:|---:|---:|
+| Freeze all five members and three markets | 34,370 | 569 | 13 |
+| Verify both charges and settle the book | 35,632 | 617 | 13 |
+| Withdraw to one owner's wallet, each of three | 13,003 | 550 | 10 |
+
+On the same revision, a fresh single-winner regression matched 59 program receipts, refused the two-charge instruction on that freeze, reproduced the 100-atom charge and paid the original three wallet amounts. The five-member local fixture uses synthetic indices and one distressed market. Joint plans across distressed markets and activation of a third market remain open. [Signed contract](../clearing/default-plan-verification.md#signed-settlement-with-a-second-btc-winner) · [Reproduction](validation.md#checks-by-change)
+
+### One settlement engine across market widths
+
+Native revision `d2e1ca09` used the same settlement implementation at two, three, four, eight and twelve markets. The eight-market allocation and the twelve-market chain exercise different limits. The former lets one account owe seven destinations. The latter allows each member at most two occupied markets.
+
+| Frozen book | Observed settlement |
+|---|---|
+| Four markets, one source of recovery and three destinations | The 150 recovered atoms covered 75, 60 and 15 of the frozen debts. The first market spent 25 of its own insurance. Creditor cash was 100, 60 and 15. |
+| Four markets, simultaneous distress in the first two | Out of the nine combinations of charges from zero to two per target, charging two in each reduced impairment by one atom per target. The two outside creditors each received nine instead of eight at baseline, with zero insurance. Either two-atom charge alone refused. |
+| A third creditor depends on a winner's own proceeds | The joint two-atom charges refused when they would deprive that creditor of its protected recovery. |
+| Eight-market cycle | A closed cashless cycle offset every claim at par. With a four-atom outside creditor and one outside cash atom, all eight rates were exactly one quarter and the outside creditor received one. |
+| Twelve linked markets, thirteen members | With 25 cash against the initial 100-atom debt, each market recovered one quarter and the final creditor received all 25 atoms. |
+| Frozen economic inputs from the signed two-winner book | Of eleven full ten-atom splits, the protected ones charged the cross trader zero to four. Four and six was closest to proportional. The resulting cash and reserve spend matched the prior signed withdrawals. |
+
+The reference compared 12 seeded four-market fractional books in three input orders. Across four joint books, 36 charge combinations and 16 reversed-order repeats matched independent exact settlement or refusal. Ten malformed inputs refused. The pre-existing two-market projections, three-market reference cases and 67 competing-winner selections also passed. On the same revision, separate signed repeats on the existing local fixture reproduced its single-winner and competing-winner SPL exits. Fresh PostgreSQL replay matched 59 and 64 program receipts, respectively. The general engine evaluates supplied plans in host memory. The signed local profile below verifies greatest rates and pays a bounded four-market book. Venue integration and broader books remain open. [Contract](../clearing/risk-and-resolution.md#settlement-across-a-frozen-set-of-markets) · [Reproduction](validation.md#checks-by-change)
+
+### Signed market-indexed settlement
+
+On revision `3155169c`, eight signed fills linked four markets. Each of two cross traders held a 500-atom open gain in one market, a 50-atom closed gain in the other and a 1,200-atom debt in a third. Two isolated makers each owed 550 with 548 funded atoms. All nine joint charge allocations satisfied the creditor protections. Only a two-atom concession on one lot in each defaulted market recovered all four atoms of the original shortfall. The two traders withdrew 348 atoms each, two other makers withdrew 1,500 each, and eight fee atoms remained in the vault. Those wallet totals also match the baseline on this symmetric book. The forced reductions remove four atoms of unpaid claims against the defaulted makers. Fresh PostgreSQL replay rebuilt cash, entry prices and claims from eight fills, reproduced the full rate witness, and reconciled all 72 successful or rejected program receipts with finalized RPC history and WS observations.
+
+| Operation on local Surfpool | Members | Markets | CU | Signed bytes | Loaded accounts |
+|---|---:|---:|---:|---:|---:|
+| Authenticate trade accounts, verify nine allocations, apply balances and record matched lots | 6 | 4 connected | 119,619 | 821 | 15 |
+| Read-only frozen example, nine allocations | 8 | 2 connected | 51,023 | 503 | 3 |
+| Same member count, two further connected creditors’ markets | 8 | 4 connected | 73,394 | 687 | 3 |
+| Same connected book, two additional flat members | 10 | 4 connected | 85,778 | 759 | 3 |
+| Same member count, two members in a separate reciprocal-debt component | 10 | 4 connected + 2 | 111,322 | 971 | 3 |
+
+The funded settlement carried a 153-byte rate witness encoding one denominator, one allocation index and 36 rate numerators with a vector length. Its separate 32-byte digest authenticated the book. The read-only instruction takes encoded inputs and returns terminal cash. On the original eight-member example it awarded the last two creditors nine each, and rejected both a standalone forced close and the inferior joint allocation. An independent control rejected a lower recovery even when both proposals paid wallets identically. The reciprocal-debt control refused a mathematically self-consistent zero rate when full offset at par was possible. The account-writing path also rejected an omitted market, substituted member, stale book digest, missing candidate, forged rate, inferior allocation and replay. Sixteen signed refusals preserved all watched financial state. On the same revision, the existing single-pair three-market flow reproduced its 1,400, 2,800 and 2,200 atom withdrawals and reconciled 59 program receipts.
+
+That revision qualified a local test program with zero insurance and one debt destination per member. At eight members, two rows are empty in the two-market book and become linked creditors in the four-market book. At four markets the two extra members in the ten-member book are empty. Resource growth with populated members, many competing allocations, reserve clipping and fractional rounding still needs measurement before venue activation. [Contract and limits](../clearing/risk-and-resolution.md#signed-verification-across-market-ids) · [Reproduction](validation.md#checks-by-change)
+
+### Insured settlement with two debt destinations
+
+Thirteen signed fills on Surfpool created a three-market book with six margin accounts and one test collateral mint. One cross trader held 421 cash atoms, a closed source claim of 200, and debts of 504 and 756. A source maker owed 400 with 396 funded atoms. The winning plan charged four atoms on one profitable opposing lot. That brought the source market to par and let the cross trader forward all 200 recovered atoms.
+
+| Step | First destination | Second destination |
+|---|---:|---:|
+| Frozen debt | 504 | 756 |
+| Collection from the trader’s 421 cash atoms | 168⅖ | 252⅗ |
+| Share of its 200 recovered atoms | 80 | 120 |
+| Own market insurance used | 1 | 0 |
+| Total exact resources for creditors | 249⅖ | 372⅗ |
+| Whole atoms paid | 249 | 373 |
+
+One creditor held 54 atoms of face claims in the first destination. Its exact recovery increased from 3,729/140 to 3,741/140 atoms. Ordinary deterministic rounding would have reduced its prior whole receipt from 27 to 26. Protected rounding preserved 27 and paid the other two creditors 67 and 155. The program calculated the repair and recorded that it used it. Diverting three atoms between markets while preserving the global total refused. Supplying the insurance account read-only also refused. All 14 refusals preserved every watched financial account.
+
+Of 7,230 deposited atoms, four owners withdrew **2,263, 2,155, 1,227 and 1,573** (7,218 in total). The other two balances were zero. The three markets collected 3, 7 and 3 fee atoms. With the 25% insurance share tracked separately in each market, only the middle market had earned a whole reserve atom. It spent that atom. Twelve retained fee atoms remained in the vault. Fresh PostgreSQL replay reconstructed all 13 fills, checked the five charge allocations, verified the insurance debit and matched all 76 program receipts. The independent Python model and native Rust settlement agreed on each wallet and the three protected-market receipts.
+
+At `de1b47f3` the insured settlement used **126,550 CU**, 724 signed bytes and 14 loaded accounts for five allocations. The same binary reproduced the earlier four-market wallet exits and its 72-receipt reconciliation. That nine-allocation transaction used **158,141 CU** and 821 bytes, compared with 119,619 CU on the narrower verifier at `3155169c`. These are per-settlement measurements on the two specified books. Focused host cases exercised a fractional reserve draw clipped from 3/8 to zero, a reduction that fills one destination before the other, and two debtors sharing a market insurance payment. The signed insured book spent a whole atom. Cases with no eligible reduction, competing winners or unresolved priority ties still need qualification before venue integration. [Verification contract](../clearing/risk-and-resolution.md#signed-verification-across-market-ids) · [Run commands](validation.md#checks-by-change)
+
+### Residual settlement with open positions
+
+A six-member local workload starts with three fully covered markets. A trader has 421 cash atoms and a closed claim worth 200 in the first market. Two price shocks leave it owing 504 and 756 in the other markets. The opposing makers still hold positions, but have closed their previous lots and reopened at the current price. Their outstanding claims survive and their new lots have zero eligible open gain. The remaining loss must be allocated to creditors after using the debtor's own resources and each market's insurance.
+
+| Frozen outcome, collateral atoms | First debt market | Second debt market |
+|---|---:|---:|
+| Debt | 504 | 756 |
+| Debtor's own cash plus recovered claim, before rounding | 248⅖ | 372⅗ |
+| Own insurance spent | 1 | 0 |
+| Exact uninsured loss | 254⅗ | 383⅖ |
+| Whole atoms received by creditors | 249 | 373 |
+
+On program and harness revision `d2dec1c9`, twelve signed fills produced this book. The first market paid the full 200 from its maker’s cash. After the loss of 638 atoms, the first debt market's three creditors received 67, 156 and 26 whole atoms. The other market’s creditor received 373. Settlement recorded zero forced charges and zero matched lots across all markets. Five owners separately withdrew 2,068, 2,156, 196, 1,226 and 1,573 atoms. The sixth owner’s cash was zero. These withdrawals plus the 11 retained fee atoms reconcile to all 7,230 deposits.
+
+The successful transaction used **54,409 CU, 659 signed bytes and 14 loaded accounts**. The same keeper’s earlier attempt to settle the fully covered book refused before the shocks. All 17 signed refusal controls preserved the watched accounts, including a missing market, a forged full-recovery claim and a diversion between markets. Fresh PostgreSQL replay rebuilt the frozen book from finalized RPC history and reconciled 77 program receipts, the reserve debit and the wallet exits. The independent exact-fraction model and native Rust settlement agreed on every market movement and wallet.
+
+On a separate signed book with an eligible four-atom concession, zero-charge settlement refused. The same binary accepted the winning reduction, preserved the creditor’s 27th atom and reproduced all four prior withdrawals. That settlement used 126,597 CU and 724 bytes. PostgreSQL reconciled 77 program receipts. A focused native test also refused residual settlement when insurance alone could cover the entire gap. Competing winners within a charged market and the wider venue path remain open. [Scoped run commands](validation.md#checks-by-change)
+
+### Two winners on a four-market book
+
+Seven signed fills on a fresh local Surfpool venue left a market maker short two lots, owing 300 atoms against 289 cash and one atom of its own market’s insurance. A cross trader and another maker each held one opposing lot with 120 atoms of eligible gain. The cross trader also owed three foreign markets 5,000, 2,000 and 1,000 atoms. At baseline those creditors were fully covered. The target market’s ten-atom writeoff was the largest possible recovery from a forced reduction.
+
+| Charge to cross trader / second maker | Target loss removed | Effect on the three foreign claims | Result |
+|---|---:|---|---|
+| 5 / 5 | 10 | Exact receipts fall by ⅝, ¼ and ⅛ of an atom. The first creditor loses a whole atom after rounding. | Refused |
+| 3 / 7 | 10 | All three claims stay paid in full. | Refused because 4 / 6 shares the charge more proportionally. |
+| 4 / 6 | 10 | All three claims stay paid in full. | Accepted. Each winner concedes one lot. |
+
+The independent Python reference and the native Rust financial engine agreed on all 66 physically possible allocations, including zero action. Twenty-nine preserved the creditors. The on-chain verifier checked the baseline and all eleven full-charge splits, since a charge below ten cannot recover ten. The signed transaction used **225,399 CU, 977 bytes and 15 loaded accounts** on `70ac71f5`. It recorded the two charges, lots and member identities, and debited one originating-market insurance atom. Four owners withdrew 1,174, 7,000, 4,000 and 3,000 test atoms. Two members had zero cash. Of the 15,186 deposited atoms, 12 remained in custody as ten retained fee atoms and two unspent foreign insurance atoms. Fresh PostgreSQL replay reconciled 62 program receipts. All fourteen signed refusal controls preserved the watched accounts.
+
+On the same binary, the signed single-winner insured case reproduced the protected 27-atom receipt and all four withdrawals, reconciling 77 program receipts. Its settlement used 128,382 CU and 724 bytes. The two-market joint charge reproduced the 348, 348, 1,500 and 1,500 withdrawals on its four-market book, reconciling 73 receipts. Its settlement used 162,516 CU and 821 bytes.
+
+A native scarce-lot case gave the debtor one lot even though two opposing winners could each absorb the whole charge. Across sixteen custody identities the verifier refused a split that spent the same lot twice, and both winners were selected in different final member-priority ties. The signed book exercised two available lots and a tie on recovery decided by proportionality. This local certificate covers full recovery with one competing pair of winners. Partial recoveries with competing winners, simultaneous competing markets and wider venue activation remain open. [Verification contract](../clearing/risk-and-resolution.md#signed-verification-across-market-ids) · [Reproduction](validation.md#checks-by-change)
 
 ### BTC/ETH backing summary comparison
 
@@ -285,3 +600,119 @@ The [current payout and cross-margin sequence](#payout-and-cross-margin-work) bu
 1. **Compare and qualify position storage.** Use the [fixed BTC sequence](performance.md#btc-orders-at-fixed-dollar-sizes) of $100, $1,000, $10,000 and $61,000 plus the one- and three-lot controls. Compare the existing exact implementation to alternative representations on both sides of the trade. Check single-price and mixed entries, aggregate versus split maker legs, repeated partial closes, payments between closes, flips and final close. Check funded cash, unpaid claims, eligible forced-close amounts and creditor receipts against an independent oracle, including rounding boundaries. Measure encoded bytes, reserved bytes, rent, CU and wire impact. Require a signed deep-book repeat, rollback checks, SPL wallet exit and fresh PostgreSQL reconciliation before declaring the storage limit addressed. Escalate any proposal that changes who receives a collateral atom.
 2. **Benchmark the trader’s experience.** Keep the deterministic regression suite. Use identical dollar requests across deep, fragmented and one-sided books, then vary maker capital, independent update timing, wallet activity and BTC/ETH exposure. Preserve every scheduled request, including unsigned refusals, expiries and unresolved originals. Report requested and filled notional, actual price against the signed limit, one- and two-maker fills, fees by payer, scheduled-arrival-to-fill latency, cash payout, SPL exit and outstanding claims at a stated cutoff. Keep the index notional and execution value distinct. A larger run can begin while storage work proceeds, but a refusal supplies no downstream payout observation.
 3. **Deferred — degradation and recovery on a populated venue.** Build positions with actual trades, introduce a price shock and a maker outage, and continue ordinary traffic while liquidation and payout compete. Measure depth loss and recovery, cost by role, unpaid claims and time to the last exit. This exercise, the deferred 24-hour endurance run, and external P15B/P16B validation have separate scopes.
+
+
+### Isolated maker capital for an inactive listing
+
+At `5929eb48` with harness `5924e4c4`, a maker deposited 1,234,567 atoms,
+published a SOL curve, and obtained joint owner/venue admission. Clearing stored
+the SHA-256 of the deployed maker program data. The updater then repriced the
+curve. A withdrawal returned all 1,234,567 atoms to the owner's SPL account and
+restored the vault to its balance before the deposit.
+
+The legacy BTC and ETH maker accounts could not initialize SOL curves. A second
+listing with ID 258 could not use the curve for ID 2. A separately initialized
+curve on the other maker program could quote the second listing, but clearing
+refused to bind the same capital twice. Unfunded admission, a SOL order and
+a SOL listing substituted into a BTC fill also refused. A control BTC fill
+landed. The two independent clients decoded the new instructions and accounts,
+and fresh PostgreSQL replay reconciled 103 events from 255 signed transactions.
+
+### Partial recovery with competing winners
+
+At `95df43f7` the four-market fixture recorded six signed fills. One trader
+closed two winning lots and reopened one against a second maker. At the final
+index, the debtor owed 300 atoms and held 289. The trader owned a 299-atom
+claim, of which one atom belonged to the still-open lot. The second winner
+owned one atom of open gain. Ordinary default began with eleven unpaid atoms.
+
+Independent enumeration found four feasible allocations. The signed verifier
+charged one atom to each winner, recovered two and settled the remaining
+nine-atom loss under the existing rule. It refused to skip the reductions,
+to charge an unavailable split and to use forged rates. Settlement took
+62,949 CU, 716 bytes and 15 loaded accounts. The five solvent owners withdrew
+8,180, 1,000, 2,000, 2,000 and 2,000 atoms. Six fee atoms remained in custody.
+Fresh PostgreSQL replay reconciled 56 program receipts. This result covers a
+partial recovery limited by the winners' eligible gain. Lot or creditor
+constraints can still prevent a split from attaining that upper bound.
+
+
+The same program repeated the full-recovery case. It refused 5/5 and 3/7,
+accepted 4/6, and reproduced 62 program receipts and the original wallets.
+The settlement used 226,597 CU in a 977-byte transaction.
+
+### Competing winners in two distressed markets
+
+On SBF revision `b5540580` and harness `1c92356d`, seven funded members traded
+on four market IDs. Eight signed fills left two markets in default with two
+eligible winners per debtor. Independent enumeration evaluated all 36 physical
+allocations. Nine could reach both two-atom recovery ceilings. The program
+verified the complete book and charged one atom to each winner in each market.
+It refused an uneven split in either market and a proposal to skip both.
+
+One settlement used 187,885 CU, 910 signed bytes and 16 loaded accounts.
+Five owners withdrew 4,586, 1,001, 1,001, 2,000 and 2,000 atoms. Eight fee
+atoms remained in the SPL vault and all four insurance balances were untouched.
+PostgreSQL independently reconstructed the fills, both stored splits and wallet
+exits from 66 finalized program receipts. The first replay read the new split
+vector as the previous optional single record and failed after the wallets had
+exited. The successful run repeated the entire workload on a fresh bank and
+database. The [funded venue qualification](validation.md#funded-venue-default-and-creditor-wallet-exits)
+subsequently applied the verifier to positions opened on the real clearing program.
+
+### Complete settlement inputs from venue clearing
+
+On clearing `5929eb48` and harness `e44cad4e`, seven Financial accounts used
+the deployed SPL vault and maker programs. A trader bought one BTC lot for
+60,002 atoms and sold it to another maker for 60,998. The two 13-atom fees
+contributed six atoms to BTC insurance and 20 to retained fees. Collecting
+996 atoms of the short maker's loss moved cash into the BTC settlement pool.
+Both the native settlement engine and the independent rational reference
+gave identical terminal balances before and after this collection.
+
+A signed price shock to 80,000 atoms per lot then froze the short maker
+with 11,504 funded atoms and a 19,002-atom debt. The frozen roster, market
+inventory, claims, settlement pools, fee split and 1,075,000 allocated vault
+atoms reconciled. Before forced reductions, the BTC recovery rate was
+6,253/9,999 with six atoms of BTC insurance and zero ETH insurance. The SDK
+refused an omitted or duplicate member, an active book presented as frozen,
+and a frozen book presented as active. Fresh PostgreSQL replay matched 117
+events from 236 signed transactions. Those terminal values are calculations.
+The signed on-chain effects in this workload end at freeze.
+
+The preceding funded-book rehearsal at `58ec5340` reconciled 112 events without a
+freeze. An earlier launch stopped before the workload because the native reference
+example was built without its required Cargo feature.
+
+
+### Checking the protected plan on the funded venue
+
+Clearing `a094f62c` and harness `cab2dfbf` froze seven real margin accounts after BTC moved to 80,000. The market already held 996 collected collateral atoms. The debtor could supply 11,504 atoms and BTC insurance could supply six. Initial entitlements were payable at 6,253/9,999. Reducing the opposing open gain by 7,492 atoms restored full recovery of the remaining claims. The signed result returned 0 for the debtor, 24,010 for its counterparty, 12,500 each for four other makers and 1,000,970 for the trader. Combined entitlements and the 20 retained fee atoms reconcile to the 1,075,000-atom vault.
+
+The read-only transaction used 66,981 CU, 882 bytes and 21 loaded accounts. Missing or substituted members, a stale episode, a forged rate, skipped recovery and surplus witness data all refused. The independent legacy Anchor client matched the instruction encoding. The workload finalized 243 signed transactions, and fresh PostgreSQL reconciliation matched 117 financial events. Actual balances were unchanged after the preview. Wider-market fills and application to the venue wallets remain open.
+
+
+### Asymmetric frozen market priority
+
+On fixture and harness `5cb68d1d`, the independent exact model enumerated 100 physically possible allocations on a nine-member, three-market book. Seventy protected creditors. Two finalists each recovered three BTC-market atoms and three ETH-market atoms, closed three lots and used one atom of each market's reserve. Using identical claims and original lots, two signed read-only resource checks returned distinct approved results.
+
+| Frozen episode | Two flat creditor balances (atoms) | Accepted CU | Signed bytes |
+|---|---|---:|---:|
+| 1 | 9 and 8 | 318,099 | 841 |
+| 2 | 10 and 7 | 312,691 | 841 |
+
+Both opposite nominations refused. The three-market inputs for these inspections were synthetic. The original 32 KiB heap failed on the first competing nomination. The repeat used 128 KiB. In the separate funded four-market part of that run, eight fills produced the original competing-winner book. Five wallets withdrew 10,588 atoms after a 194,292-CU settlement. Eight fee atoms remained. Fresh PostgreSQL replay matched 70 program receipts across the funded lifecycle and the read-only checks. Wider venue activation remains open.
+
+
+### Applying the verified payouts on the venue
+
+On clearing `bba16a8d` and harness `17e45cc1`, the signed venue binder charged 7,492 atoms of BTC open profit and committed seven reconciled postings to the original frozen pages. It used 70,345 CU, 759 bytes and 17 loaded accounts. A skipped charge, stale revision, trailing rates, missing page and replay all refused. The binder left all seven margin balances and the vault unchanged until application.
+
+The existing settlement controller took 234 successful transactions including binding, applying each account and verifying the terminal balances. Six owner-signed transfers paid 24,010 atoms to the opposing maker, 12,500 each to four other maker accounts and 1,000,970 to the trader. The debtor received zero. Each transfer used 40,275–40,351 CU. The vault fell from 1,075,000 to 20 atoms, exactly the retained fees. BTC used six insurance atoms and ETH used zero. Fresh PostgreSQL replay reproduced 148 financial events from 488 signed transactions. Both venue markets participated in settlement. Trading on this frozen book occurred in BTC.
+
+
+### Forced volume by market
+
+On program and harness `8b23c8f1`, three BTC lots supplied one atom of eligible gain each. Independent enumeration found 100 physical allocations and 70 protected allocations. Two finalists recovered three atoms in each distressed market and each spent one BTC and one ETH insurance atom. Both closed three BTC lots. Closing one ETH lot paid the two flat creditors 9 and 8 atoms. Closing two ETH lots would pay them 10 and 7. In each of two episodes the signed verifier accepted the former and refused the latter. It used 325,516 and 319,979 CU in 841-byte transactions. The original equal-volume case continued selecting opposite winners in the two episodes.
+
+These four comparisons used synthetic frozen balances. A separate funded four-market book on the same binary executed eight fills, settled in 201,691 CU, and transferred 10,588 collateral atoms to five owners, leaving eight fee atoms. PostgreSQL replay matched 74 program receipts across both workloads.

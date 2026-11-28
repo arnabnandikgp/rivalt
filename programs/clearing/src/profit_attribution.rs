@@ -28,12 +28,37 @@ fn tail(
     // RC2 holds the mutable Borsh borrow until exit. Release it while changing
     // the separately encoded tail, then retain the already deserialized prefix.
     root.release_borrow()?;
-    operation(&mut account.try_borrow_mut()?[MARGIN_PREFIX..])?;
+    let end = attribution_end(account.data_len());
+    operation(&mut account.try_borrow_mut()?[MARGIN_PREFIX..end])?;
     root.reacquire_guard_only()?;
     Ok(())
 }
 
+fn attribution_end(size: usize) -> usize {
+    #[cfg(feature = "listed-margin-storage")]
+    { return size.min(crate::state::accounts::MARGIN_ALLOCATION); }
+    #[cfg(not(feature = "listed-margin-storage"))]
+    { size }
+}
+
 pub fn initialize(root: &mut BorshAccount<MarginAccount>) -> Result<()> {
+    #[cfg(feature = "listed-margin-storage")]
+    {
+        use crate::state::accounts::{initial_margin_size, MARGIN_ALLOCATION};
+        use clearing_accounting::market_slots::storage::MAGIC as DIRECTORY_MAGIC;
+        let mut account = root.account().clone();
+        require!(account.data_len() == initial_margin_size(root.mode, root.isolated_market_index), ClearingError::Profile);
+        if account.data_len() > MARGIN_ALLOCATION {
+            root.release_borrow()?;
+            {
+                let mut data = account.try_borrow_mut()?;
+                let directory = &mut data[MARGIN_ALLOCATION..];
+                require!(directory.iter().all(|byte| *byte == 0), ClearingError::Profile);
+                directory[..8].copy_from_slice(DIRECTORY_MAGIC);
+            }
+            root.reacquire_guard_only()?;
+        }
+    }
     tail(root, |bytes| {
         require!(bytes.iter().all(|byte| *byte == 0), ClearingError::Profile);
         bytes[..8].copy_from_slice(MAGIC);
@@ -148,19 +173,23 @@ pub(crate) fn frozen_btc_history(root:&BorshAccount<MarginAccount>) -> Result<At
 #[cfg(feature="single-pair-default-qualification")]
 pub fn frozen_history(root:&BorshAccount<MarginAccount>, market:usize) -> Result<Attribution> {
     require!(market < 2, ClearingError::Resolution);
-    let account=root.account();
-    require!(valid_margin_size(account.data_len()),ClearingError::Profile);
+    frozen_account_basis(root.account(), &root.positions, market)
+}
+
+#[cfg(feature = "single-pair-default-qualification")]
+pub(crate) fn frozen_account_basis(account:&AccountView, positions:&[crate::state::records::Position;2], market:usize) -> Result<Attribution> {
+    require!(market<positions.len() && valid_margin_size(account.data_len()),ClearingError::Profile);
     let data=account.try_borrow()?;
-    let bytes=&data[MARGIN_PREFIX..];
+    let bytes=&data[MARGIN_PREFIX..attribution_end(data.len())];
     require!(bytes.starts_with(MAGIC),ClearingError::Profile);
     let width=(slots_end(bytes)-8)/2;
     let start=8+width*market;
     #[cfg(feature = "bounded-entry-settlement")]
-    return EntryCost::read(&bytes[start..start+width], root.positions[market].lots)
-        .and_then(|entry| entry.frozen_basis(root.positions[market].lots))
+    return EntryCost::read(&bytes[start..start+width], positions[market].lots)
+        .and_then(|entry| entry.frozen_basis(positions[market].lots))
         .map_err(|_| ClearingError::Resolution.into());
     #[cfg(not(feature = "bounded-entry-settlement"))]
-    Attribution::read(&bytes[start..start+width],root.positions[market].lots)
+    Attribution::read(&bytes[start..start+width],positions[market].lots)
         .map_err(|_| ClearingError::Resolution.into())
 }
 

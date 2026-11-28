@@ -9,7 +9,7 @@ use maker_interface::canonical::{MakerQuoteRequest, MakerQuoteResponse};
 /// this instruction only. Every registration still compares its own approved hash.
 #[derive(Default)]
 pub(crate) struct CodeApprovalCache {
-    entries: [Option<(Address, Address, [u8; 32])>; 2],
+    entries: Vec<(Address, Address, [u8; 32])>,
 }
 
 impl CodeApprovalCache {
@@ -19,26 +19,45 @@ impl CodeApprovalCache {
         data: &BorshAccount<ProgramData>,
         approved: [u8; 32],
     ) -> Result<()> {
-        let digest = if let Some((_, _, digest)) =
-            self.entries
-                .iter()
-                .flatten()
-                .find(|(existing_program, existing_data, _)| {
-                    *existing_program == program && *existing_data == data.address().to_owned()
-                }) {
-            *digest
-        } else {
-            let digest = module_hash(data)?;
-            let empty = self
-                .entries
-                .iter_mut()
-                .find(|entry| entry.is_none())
-                .ok_or(ClearingError::MakerBinding)?;
-            *empty = Some((program, data.address().to_owned(), digest));
-            digest
+        self.check_digest(program, *data.address(), approved, || module_hash(data))
+    }
+
+    fn check_digest(
+        &mut self,
+        program: Address,
+        data: Address,
+        approved: [u8; 32],
+        hash: impl FnOnce() -> Result<[u8; 32]>,
+    ) -> Result<()> {
+        let digest = match self.entries.iter().find(|(key, account, _)| *key == program && *account == data) {
+            Some((_, _, digest)) => *digest,
+            None => {
+                let digest = hash()?;
+                self.entries.push((program, data, digest));
+                digest
+            }
         };
         require!(digest == approved, ClearingError::MakerUpgrade);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod cache_tests {
+    use super::*;
+
+    #[test]
+    fn each_distinct_executable_is_hashed_once_and_every_approval_is_checked() {
+        let mut cache = CodeApprovalCache::default();
+        for id in 1..=8 {
+            let program = Address::new_from_array([id; 32]);
+            let data = Address::new_from_array([id + 8; 32]);
+            cache.check_digest(program, data, [id; 32], || Ok([id; 32])).unwrap();
+        }
+        for &(program, data, digest) in &cache.entries.clone() {
+            cache.check_digest(program, data, digest, || panic!("cached executable")).unwrap();
+            assert!(cache.check_digest(program, data, [0; 32], || panic!("cached executable")).is_err());
+        }
     }
 }
 
@@ -96,21 +115,28 @@ impl<'account> View<'account> {
         market: &BorshAccount<Market>,
         registry: &BorshAccount<LiquidityRegistry>,
     ) -> Result<()> {
-        sealed_registry(
-            registry,
-            venue.address().to_owned(),
-            market.address().to_owned(),
-        )?;
         capital_identity(self.capital, market)?;
+        self.registration_identity(venue, *market.address(), registry)
+    }
+
+    fn registration_identity(
+        &self,
+        venue: &BorshAccount<Venue>,
+        market: Address,
+        registry: &BorshAccount<LiquidityRegistry>,
+    ) -> Result<()> {
+        sealed_registry(registry, *venue.address(), market)?;
         // Identity and quote inventory are needed for D74 funding. Financial
         // admission belongs to execution, not publication authentication.
         let registration = self.registration;
         require!(
             registration.schema_version == crate::state::accounts::SCHEMA_VERSION
                 && registration.venue == venue.address().to_owned()
-                && registration.market == market.address().to_owned()
+                && registration.market == market
                 && registration.instance < registry.count
-                && registry.registrations.get(usize::from(registration.instance))
+                && registry
+                    .registrations
+                    .get(usize::from(registration.instance))
                     .is_none_or(|stored| stored == registration.address())
                 && registration.capital == self.capital.address().to_owned()
                 && registration.owner == self.capital.owner
@@ -132,7 +158,7 @@ impl<'account> View<'account> {
             create_program_address(
                 &[
                     b"maker-v4",
-                    market.address().as_ref(),
+                    market.as_ref(),
                     &[registration.instance],
                     &[registration.bump]
                 ],
@@ -168,6 +194,42 @@ impl<'account> View<'account> {
     ) -> Result<AuthenticatedCurve> {
         profile_cu!("maker-auth-enter");
         self.bind(venue, market, registry)?;
+        self.read_approved_curve(venue, *market.address(), cache)
+    }
+
+    #[cfg(feature = "listed-margin-storage")]
+    pub(super) fn bind_listing(
+        &self,
+        venue: &BorshAccount<Venue>,
+        listing: &BorshAccount<MarketListing>,
+        registry: &BorshAccount<LiquidityRegistry>,
+    ) -> Result<()> {
+        require!(
+            listing.schema_version == LISTING_SCHEMA
+                && listing.venue == *venue.address()
+                && listing.quote_mint == venue.quote_mint
+                && usize::from(listing.market_id) >= MARKET_COUNT
+                && listing.status == LISTING_QUALIFICATION,
+            ClearingError::MakerBinding
+        );
+        require!(
+            self.capital.schema_version == SCHEMA_VERSION
+                && self.capital.venue == *venue.address()
+                && self.capital.mode == MODE_ISOLATED
+                && self.capital.role == ROLE_MAKER
+                && self.capital.isolated_market_index == LISTED_CAPITAL_TAG,
+            ClearingError::MakerCapital
+        );
+        self.registration_identity(venue, *listing.address(), registry)
+    }
+
+    #[inline(never)]
+    pub(super) fn read_approved_curve(
+        &self,
+        venue: &BorshAccount<Venue>,
+        market: Address,
+        cache: &mut CodeApprovalCache,
+    ) -> Result<AuthenticatedCurve> {
         require!(!self.registration.quarantined, ClearingError::MakerBinding);
         let (config, price) = config_and_price(
             self.config,
@@ -195,10 +257,29 @@ impl<'account> View<'account> {
         side: u8,
         lots: u64,
     ) -> MakerQuoteRequest {
+        self.inventory_request(
+            venue,
+            *market.address(),
+            self.capital.positions[usize::from(market.index)].lots,
+            state,
+            side,
+            lots,
+        )
+    }
+
+    pub(crate) fn inventory_request(
+        &self,
+        venue: &BorshAccount<Venue>,
+        market: Address,
+        inventory: i64,
+        state: &AuthenticatedCurve,
+        side: u8,
+        lots: u64,
+    ) -> MakerQuoteRequest {
         MakerQuoteRequest {
             version: canonical::VERSION,
             domain: venue.domain,
-            market: market.address().to_owned(),
+            market,
             capital: self.capital.address().to_owned(),
             instance: self.registration.instance,
             authority_epoch: self.registration.authority_epoch,
@@ -207,7 +288,7 @@ impl<'account> View<'account> {
             depth_epoch: self.registration.depth_epoch,
             side,
             lots,
-            inventory: self.capital.positions[usize::from(market.index)].lots,
+            inventory,
             consumed: if side == 0 {
                 self.registration.buy_consumed
             } else {

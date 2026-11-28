@@ -28,6 +28,8 @@ pub(crate) fn structural_model(root: &MarginAccount) -> Result<math::margin::Mar
         id: root.id,
         mode: if root.mode == MODE_CROSS {
             math::margin::Mode::Cross
+        } else if root.isolated_market_index == LISTED_CAPITAL_TAG {
+            math::margin::Mode::CashOnly
         } else {
             math::margin::Mode::Isolated(usize::from(root.isolated_market_index))
         },

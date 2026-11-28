@@ -52,7 +52,7 @@ pub(crate) fn market_view(market: &Market) -> Result<Market> {
     Ok(market.clone())
 }
 
-fn validate_market(market: &Market) -> Result<()> {
+pub(crate) fn validate_market(market: &Market) -> Result<()> {
     require!(
         market.schema_version == SCHEMA_VERSION
             && market.index < 2

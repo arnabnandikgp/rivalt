@@ -115,3 +115,27 @@ deferred; quarantine invalidates complete coverage rather than creating a new se
 ## Consumed funding checkpoints
 
 A fill in one market may consume held funding from the trader's other market. Clearing authenticates the canonical registration checkpoints and the previous observation before installing a new report, so publication cannot discard an already-earned interval. Workers derive those accounts even when quoting is unavailable. [Publisher implementation](../../programs/clearing/src/instructions/maker_liquidity/publisher/) · [SDK impact calculation](../../packages/sdk/src/funding-impact.ts)
+
+## Funding for a sealed listing
+
+On the local `listed-funding` build, the venue authority can name a restricted
+publisher once the maker directory is sealed and the four independent index
+sources are bound. The publisher account uses the full listing address as its
+market key. A separate `ListedFunding` PDA stores the observation sequence,
+source fences, held interval and cumulative funding. The authority can replace
+or revoke the publisher. A change ends its current interval and fences out any
+previously prepared reports.
+
+The SDK reads the entire sealed directory, its quote accounts, the independent
+feeds and Clock in one coherent bank. Clearing rechecks all four feeds at
+landing and uses the same quantity, price bands, signed premium cap and causal
+sampling code as BTC/ETH. Sealed listings can record depth and demonstrate
+source recovery before trading. While the listing is inactive, its accumulated
+funding and covered seconds stay zero. Crossing the future trading gate must
+start a fresh accrual interval.
+
+The signed SOL case used 40,000 lots at 150 collateral atoms per lot. Two maker
+curves together supplied 5,920,000 bid and 6,080,000 ask atoms. After rotation
+the totals moved to 5,960,000 and 6,120,000. The independent reference stayed
+at 150 and the midpoint of 151 gave the capped 0.75-atom premium. The funding
+report attests published depth. Order execution checks the maker's funded capital.

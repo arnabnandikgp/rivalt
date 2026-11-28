@@ -57,6 +57,8 @@ revisioned! {
     17 => PreparedSettlement, 18 => FrozenMarginPage, 19 => MemberIndexNode,
     20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
     24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone, 27 => StorageTombstone,
+    28 => MarketListing, 29 => ListedSymbol, 30 => ListingIndex, 31 => ListedFunding,
+    32 => ListedVenue, 33 => ListedMarketBook, 34 => ListedDefault,
 }
 
 impl Revisioned for MarginAccount {
@@ -72,6 +74,7 @@ fn schema_for_kind(kind: u8) -> Result<u16> {
     match kind {
         0..=10 | 13..=16 => Ok(SCHEMA_VERSION),
         17..=27 => Ok(SETTLEMENT_SCHEMA),
+        28..=34 => Ok(LISTING_SCHEMA),
         _ => Err(ClearingError::Profile.into()),
     }
 }
@@ -94,6 +97,8 @@ struct Entry {
 pub(crate) struct Scope {
     #[cfg(feature = "maintained-coverage")]
     coverage: crate::shadow_coverage::maintenance::Changes,
+    #[cfg(feature = "listed-margin-storage")]
+    listed_margin_write: bool,
     selected_makers: Option<MakerAccess>,
     #[cfg(feature = "read-only-route-market")]
     venue_mode: Option<u8>,
@@ -110,6 +115,8 @@ impl Scope {
         Self {
             #[cfg(feature = "maintained-coverage")]
             coverage: Default::default(),
+            #[cfg(feature = "listed-margin-storage")]
+            listed_margin_write: false,
             entries: Vec::with_capacity(limit), limit, cursor: None, selected_makers: None,
             #[cfg(feature = "read-only-route-market")] venue_mode: None }
     }
@@ -194,6 +201,22 @@ impl Scope {
         account: &mut SerializedAccount<T, S>,
         access: Access,
     ) -> Result<()> {
+        #[cfg(feature = "listed-margin-storage")]
+        if !self.listed_margin_write && T::KIND == MarginAccount::KIND && (access != Access::Create || self.cursor.is_some()) {
+            let view = account.account().clone();
+            if view.data_len() != MARGIN_ALLOCATION {
+                // Read-only wrappers already allow a shared read. RC2 writable
+                // wrappers hold an exclusive Borsh guard across the handler.
+                let shared = view.try_borrow();
+                if let Ok(bytes) = shared {
+                    legacy_margin_bytes(&bytes)?;
+                } else {
+                    account.release_borrow()?;
+                    legacy_margin_bytes(&view.try_borrow()?)?;
+                    account.reacquire_guard_only()?;
+                }
+            }
+        }
         #[cfg(feature = "read-only-route-market")]
         if self.cursor.is_none() {
             if let Some(mode) = account.venue_mode() { self.venue_mode = Some(mode); }
@@ -201,6 +224,11 @@ impl Scope {
         #[cfg(feature = "maintained-coverage")]
         if access != Access::Read {
             if let Some(root) = account.coverage_root() {
+                #[cfg(feature = "listed-margin-storage")]
+                if !self.listed_margin_write {
+                self.coverage.capture(*account.address(), root, self.cursor.is_some())?;
+                }
+                #[cfg(not(feature = "listed-margin-storage"))]
                 self.coverage.capture(*account.address(), root, self.cursor.is_some())?;
             }
         }
@@ -238,11 +266,16 @@ impl Scope {
             (if T::KIND == MarginAccount::KIND { crate::state::accounts::valid_margin_size(bytes.len()) } else if T::KIND == MakerRegistration::KIND { bytes.len() == 8 + T::INIT_SPACE + crate::market_fees::LANE_EXTRA } else { bytes.len() == 8 + T::INIT_SPACE }) && bytes[..8] == *T::DISCRIMINATOR,
             ClearingError::Profile
         );
+        #[cfg(feature = "listed-margin-storage")]
+        if !self.listed_margin_write && T::KIND == MarginAccount::KIND { legacy_margin_bytes(&bytes)?; }
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
         let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
         drop(bytes);
         #[cfg(feature = "maintained-coverage")]
         if T::KIND == MarginAccount::KIND && access == Access::Write {
+            #[cfg(feature="listed-margin-storage")]
+            if !self.listed_margin_write { self.coverage.capture_raw(account, self.cursor.is_some())?; }
+            #[cfg(not(feature="listed-margin-storage"))]
             self.coverage.capture_raw(account, self.cursor.is_some())?;
         }
         let next = self.visit(*account.address(), T::KIND, schema, revision, access)?;
@@ -318,6 +351,8 @@ impl Scope {
             (if after { bytes.len() == length } else { crate::state::accounts::valid_margin_size(bytes.len()) }) && bytes[..8] == *discriminator,
             ClearingError::Profile
         );
+        #[cfg(feature = "listed-margin-storage")]
+        if !after { legacy_margin_bytes(&bytes)?; }
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
         let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
         drop(bytes);
@@ -422,6 +457,8 @@ impl Scope {
                     && data[..8] == *MarginAccount::DISCRIMINATOR,
                 ClearingError::Profile
             );
+            #[cfg(feature = "listed-margin-storage")]
+            legacy_margin_bytes(&data)?;
             let schema = u16::from_le_bytes(data[8..10].try_into().unwrap());
             let revision = u64::from_le_bytes(data[10..18].try_into().unwrap());
             drop(data);
@@ -607,7 +644,7 @@ pub(crate) fn economic_accounts<T: Bumps>(ctx: &mut Context<T>) -> Result<Vec<Ac
 /// before/after the handler, including optional and nested account declarations.
 pub(crate) trait ScopedContext: Bumps {
     fn visit(&mut self, scope: &mut Scope) -> Result<()>;
-    fn venue(&self) -> (Address, [u8; 32]);
+    fn venue(&self) -> &BorshAccount<Venue>;
     fn event_authority(&self) -> AccountView;
 }
 
@@ -624,6 +661,13 @@ pub(crate) fn run<'context, T: ScopedContext>(
         Remaining::Roots(remaining_writable),
         handler,
     )
+}
+
+pub(crate) fn run_listed_directory<'context, T: ScopedContext>(
+    context: &mut Context<'context,T>, instruction:[u8;8],
+    handler: impl FnOnce(&mut Context<'context,T>, &mut event_cpi::Payloads) -> Result<()>,
+) -> Result<()> {
+    run_with_remaining(context,instruction,Remaining::ListedRegistrations,handler)
 }
 
 /// The checked publisher authenticates a fixed set of read-only registrations.
@@ -694,6 +738,13 @@ pub(crate) struct MakerAccess {
 
 #[derive(Clone, Copy)]
 enum Remaining {
+    #[cfg(feature="listed-venue-default")]
+    ListedFreeze,
+    #[cfg(feature="listed-venue-default")]
+    ListedSettlement,
+    ListedRegistrations,
+    #[cfg(feature="listed-venue-cash")]
+    ListedCashWindows,
     SelectedMakers(MakerAccess),
     ExplicitLane,
     #[cfg(feature = "checked-funding-prefix")]
@@ -707,6 +758,45 @@ enum Remaining {
 impl Remaining {
     fn visit(self, scope: &mut Scope, accounts: &mut [AccountView]) -> Result<()> {
         match self {
+            #[cfg(feature="listed-venue-cash")]
+            Self::ListedCashWindows => {
+                require!(accounts.len() <= 12 && accounts.len() % 2 == 0, ClearingError::OracleSource);
+                for pair in accounts.chunks_exact_mut(2) {
+                    require!(!pair[0].is_writable() && pair[1].is_writable(), ClearingError::OracleSource);
+                    scope.raw::<MarketListing>(&mut pair[0],Access::Read)?;
+                    scope.raw::<ListedFunding>(&mut pair[1],Access::Write)?;
+                }
+                Ok(())
+            }
+            #[cfg(feature="listed-venue-default")]
+            Self::ListedSettlement => {
+                for view in accounts {
+                    let is_book = view.try_borrow()?.starts_with(ListedMarketBook::DISCRIMINATOR);
+                    if is_book { scope.raw::<ListedMarketBook>(view, Access::Write)?; }
+                    else { scope.raw::<MarginAccount>(view, Access::Write)?; }
+                }
+                Ok(())
+            }
+            #[cfg(feature="listed-venue-default")]
+            Self::ListedFreeze => {
+                require!(!accounts.is_empty() && accounts.len() <= 30 && accounts.len() % 5 == 0,
+                    ClearingError::Resolution);
+                for market in accounts.chunks_exact_mut(5) {
+                    scope.raw::<MarketListing>(&mut market[0], Access::Read)?;
+                    scope.raw::<ListedFunding>(&mut market[1], Access::Read)?;
+                    scope.raw::<ListedMarketBook>(&mut market[2], Access::Read)?;
+                }
+                Ok(())
+            }
+            Self::ListedRegistrations => {
+                require!(accounts.len()==usize::from(maker_interface::canonical::REGISTRATION_LIMIT),ClearingError::MakerBinding);
+                for account in accounts {
+                    require!(!account.is_writable() && !account.executable(),ClearingError::MakerBinding);
+                    if account.owner()==&crate::ID { scope.raw::<MakerRegistration>(account,Access::Read)?; }
+                    else { require!(account.owner()==&anchor_lang::system_program::ID && account.data_len()==0,ClearingError::MakerBinding); }
+                }
+                Ok(())
+            }
             Self::ExplicitLane => {
                 require!(accounts.len() <= 1, ClearingError::Profile);
                 if let Some(lane) = accounts.first_mut() {
@@ -792,6 +882,27 @@ fn run_with_remaining<'context, T: ScopedContext>(
     };
     #[cfg(not(feature = "book-inventory-qualification"))]
     let mut scope = Scope::new();
+    #[cfg(feature = "listed-venue-execution")]
+    if context.accounts.venue().profile_version == LISTED_VENUE_PROFILE {
+        use crate::instructions::maker_liquidity::routes::listed_venue;
+        require!(listed_venue::permits(instruction), ClearingError::Profile);
+        scope.listed_margin_write = instruction == listed_venue::FILL || listed_venue::is_cash(instruction);
+        #[cfg(feature="listed-venue-default")]
+        if matches!(instruction, crate::instructions::account_safety::resolution::listed::FREEZE | crate::instructions::account_safety::resolution::listed::SETTLE) {
+            scope.listed_margin_write = true;
+        }
+        require!(coverage_lanes.is_empty(), ClearingError::Profile);
+    }
+    #[cfg(feature="listed-venue-cash")]
+    let access = if scope.listed_margin_write && crate::instructions::maker_liquidity::routes::listed_venue::is_cash(instruction) {
+        Remaining::ListedCashWindows
+    } else { access };
+    #[cfg(feature="listed-venue-default")]
+    let access = if instruction == crate::instructions::account_safety::resolution::listed::FREEZE {
+        Remaining::ListedFreeze
+    } else if instruction == crate::instructions::account_safety::resolution::listed::SETTLE {
+        Remaining::ListedSettlement
+    } else { access };
     if let Remaining::SelectedMakers(selected) = access {
         scope.selected_makers = Some(selected);
     }
@@ -823,7 +934,8 @@ fn run_with_remaining<'context, T: ScopedContext>(
     scope.cursor = Some(0);
     context.accounts.visit(&mut scope)?;
     access.visit(&mut scope, &mut remaining)?;
-    let (venue, domain) = context.accounts.venue();
+    let venue_account = context.accounts.venue();
+    let (venue, domain) = (*venue_account.address(), venue_account.domain);
     #[cfg(feature = "maintained-coverage")]
     scope.coverage.commit(venue, &coverage_lanes)?;
     let event = scope.finish(

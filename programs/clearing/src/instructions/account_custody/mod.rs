@@ -696,18 +696,20 @@ pub fn pause(
 ) -> Result<()> {
     let mut remaining_accounts = ctx.remaining_accounts()?;
     require!(remaining_accounts.is_empty(), ClearingError::Profile);
-    if ctx.accounts.safety.mode == ACTIVE {
-        super::account_trading::base_profile(
-            &ctx.accounts.venue,
-            &ctx.accounts.custody,
-            &ctx.accounts.safety,
-        )?;
+    let venue = &ctx.accounts.venue;
+    let custody = &ctx.accounts.custody;
+    let safety = &ctx.accounts.safety;
+    if safety.mode == ACTIVE {
+        #[cfg(feature = "listed-venue-execution")]
+        if venue.profile_version == LISTED_VENUE_PROFILE {
+            super::maker_liquidity::routes::listed_venue::active_profile(venue, safety)?;
+        } else {
+            super::account_trading::base_profile(venue, custody, safety)?;
+        }
+        #[cfg(not(feature = "listed-venue-execution"))]
+        super::account_trading::base_profile(venue, custody, safety)?;
     } else {
-        custody_profile(
-            &ctx.accounts.venue,
-            &ctx.accounts.custody,
-            &ctx.accounts.safety,
-        )?;
+        custody_profile(venue, custody, safety)?;
     }
     require_keys_eq!(
         ctx.accounts.authority.address().to_owned(),

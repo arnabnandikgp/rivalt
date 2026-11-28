@@ -88,6 +88,16 @@ coverage. Funding still observes the full registry. [Funding](funding.md)
 
 ## Wider atomic fills
 
+On the separate `listed-venue-execution` local candidate, a funded trader may
+sign `execute_listed_market_order` for the venue's single qualified listing.
+Clearing binds all three registered maker bundles to the listing and applies
+the order's size, price limit, fee ceiling, authority and expiry. The selected
+one or two makers supply their isolated capital. Admission includes the BTC
+and ETH exposure on the same trader account and the listed market's funding
+window. The trader and winning makers update atomically with the market's
+gross lots, fee and insurance carry. The candidate currently supports immediate
+orders admitted at initial margin. [Deployment boundary](../clearing/accounts.md#listed-markets-on-the-funded-margin-account)
+
 On the opt-in local `multi-maker` deployment the wallet defaults to four signed candidates. A caller can request three through eight, subject to registered supply, or use the existing two-leg instruction. Clearing authenticates each supplied bundle and signed structural epoch. It limits each maker by current curve depth, inventory and its funded cash ceiling. It finds the marginal price that fills the exact order, assigns equally priced lots deterministically, verifies signed limits and runs full financial admission before committing. A failed final admission refuses the whole order. The multi-maker instruction does not search again for a worse-priced allocation that might pass a binding financial check.
 
 The opt-in `funded-multi-maker` deployment also accounts for the adverse mark when sizing an opening leg from zero inventory and zero carried claim. For a maker buying from a trader, the unavoidable loss per lot is the amount by which even its most favorable price exceeds the lower risk bound. For a maker selling, it is the shortfall from the upper risk bound. Clearing caps lots by the funded cash available for both initial margin and this loss. The cap is exact for a constant quote on an otherwise clean isolated account. With sloping prices it is an upper bound. Accounts carrying inventory or an earlier claim retain the cash-and-inventory bound. Full post-fill financial admission decides every allocation.

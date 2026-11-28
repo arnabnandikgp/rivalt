@@ -23,6 +23,20 @@ pub struct FrozenCapacity {
 }
 
 impl FrozenCapacity {
+    /// Rebuild the whole-atom schedule from the authenticated canonical rate
+    /// saved when inventory was frozen. Both the surviving lots and the total
+    /// positive claim cap the charge.
+    pub fn from_frozen_rate(rate: super::LotRate, original_lots: u64, claim: i128) -> Result<Self> {
+        rate.validate()?;
+        if original_lots == 0 || original_lots > MAX_LOTS as u64 || claim <= 0 {
+            return Err(Error::Bounds);
+        }
+        let quantity_cap = rate.capacity(original_lots)?;
+        let eligible = u64::try_from((claim / SCALE).min(i128::from(quantity_cap)))
+            .map_err(|_| Error::Overflow)?;
+        Ok(Self { eligible, unit: rate.denominator.into(), per_lot: rate.numerator.into() })
+    }
+
     pub fn schedule(&self, charge: u64) -> Result<PairedLots> {
         if charge > self.eligible {
             return Err(Error::Bounds);

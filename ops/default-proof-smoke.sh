@@ -11,7 +11,13 @@ test ! -e "$RIVALT_RUN_DIR"
 python3 ops/check-ports.py "$RIVALT_RPC_PORT" "$RIVALT_WS_PORT" "$RIVALT_PG_PORT"
 mkdir -p "$RIVALT_RUN_DIR"
 git rev-parse HEAD > "$RIVALT_RUN_DIR/revision"
-cargo build-sbf --manifest-path tests/programs/default-proof/Cargo.toml --tools-version v1.52 --arch v0 \
+proof_features=()
+if [[ "${RIVALT_PROOF_SCOPE:-selection}" == *three-market-default ]]; then
+  proof_features+=(--features signed-three-market-default)
+elif [[ "${RIVALT_PROOF_SCOPE:-selection}" == *indexed-default ]]; then
+  proof_features+=(--features signed-indexed-default)
+fi
+cargo build-sbf --manifest-path tests/programs/default-proof/Cargo.toml --tools-version v1.52 --arch v0 ${proof_features[@]+"${proof_features[@]}"} \
   --sbf-out-dir "$RIVALT_RUN_DIR" -- --locked --offline > "$RIVALT_RUN_DIR/build.log" 2>&1
 if rg 'Stack offset .* exceeded|max offset of 4096|overwrites values in the frame' "$RIVALT_RUN_DIR/build.log"; then exit 1; fi
 node --import tsx tests/rpc-contract/default-proof-rpc.ts write-fixture-key
@@ -47,7 +53,12 @@ case "${RIVALT_PROOF_SCOPE:-selection}" in
   mirror)
     cargo build --locked --offline -p financial-core --bin scalable-settlement-driver
     node --import tsx tests/rpc-contract/mirror-order-rpc.ts ;;
+  indexed-default|insured-indexed-default|residual-indexed-default|competing-indexed-default|partial-indexed-default|joint-competing-indexed-default) node --import tsx tests/rpc-contract/indexed-default-rpc.ts ;;
   coverage) node --import tsx tests/rpc-contract/payout-coverage-rpc.ts ;;
+  three-market-default|competing-three-market-default) node --import tsx tests/rpc-contract/three-market-default-rpc.ts ;;
+  slot-orders|slot-liquidation) node --import tsx tests/rpc-contract/slot-orders-rpc.ts ;;
+  slot-custody) node --import tsx tests/rpc-contract/slot-custody-rpc.ts ;;
+  withdrawal-width) node --import tsx tests/rpc-contract/withdrawal-width-rpc.ts ;;
   attribution) node --import tsx tests/rpc-contract/attribution-storage-rpc.ts ;;
   *) echo 'Unknown local proof scope' >&2; exit 1 ;;
 esac

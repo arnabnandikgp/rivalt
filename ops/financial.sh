@@ -10,6 +10,14 @@ cargo build --locked -p maker-interface --bin curve-reference-driver
 python3 tests/financial/check_maker_curve_parity.py --implementation rust
 python3 tests/financial/test_account_contract.py
 python3 tests/financial/test_clearing_network.py
+cargo build --locked -p financial-core --features three-market-model --example three_market_default --example market_settlement
+python3 tests/financial/test_market_indexed_default.py
+python3 tests/financial/test_three_market_default.py
+python3 tests/financial/test_three_market_reduction.py
+cargo test --locked -p default-plan-selection --features three-market-search --lib three_market::tests
+cargo build --locked -p default-plan-selection --features three-market-search --example three_market_competition
+python3 tests/financial/test_three_market_competition.py
+cargo test --locked -p financial-core --features three-market-model --lib market_settlement::
 python3 tests/financial/test_bounded_clearing.py
 python3 tests/financial/test_market_settlement.py
 cargo test --locked -p financial-core --features parallel-market-prototype
@@ -34,7 +42,7 @@ python3 tests/financial/test_scalable_settlement.py
 python3 tests/financial/test_settlement_liquidation_model.py
 python3 tests/financial/test_adl_eligibility.py
 cargo test --locked -p clearing-accounting --features surviving-profit attribution
-cargo test --locked -p clearing-accounting --features surviving-profit --test position_history_storage
+cargo test --locked -p clearing-accounting --features surviving-profit --test position_history_storage --test market_slots
 cargo test --locked -p financial-core --features closed-quantity-model --test closed_quantity_payout
 cargo build --locked -p financial-core --features closed-quantity-model --example bounded_entry_comparison --example authenticated_entry_replay --example entry_cost_decisions
 python3 tests/financial/test_bounded_entry.py

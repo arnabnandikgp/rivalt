@@ -68,7 +68,7 @@ function atomicTransactions(envelopes:readonly ScopedEnvelope[]) {
       }
       const accounts=new Set<string>();
       const touch=(account:string,kind:number,before:bigint,after:bigint)=>{
-        if(!account||accounts.has(account)||!Number.isInteger(kind)||kind<0||kind>27||kind===11||kind===12)
+        if(!account||accounts.has(account)||!Number.isInteger(kind)||kind<0||kind>34||kind===11||kind===12)
           throw new Error('Duplicate or invalid scoped entity');
         accounts.add(account);
         const retired=after>before?retirements.get(account):undefined;

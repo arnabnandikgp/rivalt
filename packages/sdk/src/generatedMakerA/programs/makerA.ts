@@ -39,6 +39,7 @@ import {
   getMakerPriceCodec,
   getMarginAccountCodec,
   getMarketCodec,
+  getMarketListingCodec,
   getVenueCodec,
   type MakerCurve,
   type MakerCurveArgs,
@@ -48,22 +49,28 @@ import {
   type MarginAccountArgs,
   type Market,
   type MarketArgs,
+  type MarketListing,
+  type MarketListingArgs,
   type Venue,
   type VenueArgs,
 } from "../accounts/index.js";
 import {
   getControlCurveInstructionAsync,
   getInitializeCurveInstructionAsync,
+  getInitializeListedCurveInstructionAsync,
   getQuoteCurveInstructionAsync,
   getRepriceInstructionAsync,
   parseControlCurveInstruction,
   parseInitializeCurveInstruction,
+  parseInitializeListedCurveInstruction,
   parseQuoteCurveInstruction,
   parseRepriceInstruction,
   type ControlCurveAsyncInput,
   type InitializeCurveAsyncInput,
+  type InitializeListedCurveAsyncInput,
   type ParsedControlCurveInstruction,
   type ParsedInitializeCurveInstruction,
+  type ParsedInitializeListedCurveInstruction,
   type ParsedQuoteCurveInstruction,
   type ParsedRepriceInstruction,
   type QuoteCurveAsyncInput,
@@ -83,6 +90,7 @@ export enum MakerAAccount {
   MakerPrice,
   MarginAccount,
   Market,
+  MarketListing,
   Venue,
 }
 
@@ -133,6 +141,17 @@ export function identifyMakerAAccount(
     )
   ) {
     return MakerAAccount.Market;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([175, 123, 31, 97, 53, 211, 229, 16]),
+      ),
+      0,
+    )
+  ) {
+    return MakerAAccount.MarketListing;
   }
   if (
     containsBytes(
@@ -190,6 +209,7 @@ export function identifyMakerAEvent(
 export enum MakerAInstruction {
   ControlCurve,
   InitializeCurve,
+  InitializeListedCurve,
   QuoteCurve,
   Reprice,
 }
@@ -219,6 +239,17 @@ export function identifyMakerAInstruction(
     )
   ) {
     return MakerAInstruction.InitializeCurve;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([250, 248, 38, 124, 2, 62, 188, 116]),
+      ),
+      0,
+    )
+  ) {
+    return MakerAInstruction.InitializeListedCurve;
   }
   if (
     containsBytes(
@@ -258,6 +289,9 @@ export type ParsedMakerAInstruction<
       instructionType: MakerAInstruction.InitializeCurve;
     } & ParsedInitializeCurveInstruction<TProgram>)
   | ({
+      instructionType: MakerAInstruction.InitializeListedCurve;
+    } & ParsedInitializeListedCurveInstruction<TProgram>)
+  | ({
       instructionType: MakerAInstruction.QuoteCurve;
     } & ParsedQuoteCurveInstruction<TProgram>)
   | ({
@@ -281,6 +315,13 @@ export function parseMakerAInstruction<TProgram extends string>(
       return {
         instructionType: MakerAInstruction.InitializeCurve,
         ...parseInitializeCurveInstruction(instruction),
+      };
+    }
+    case MakerAInstruction.InitializeListedCurve: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: MakerAInstruction.InitializeListedCurve,
+        ...parseInitializeListedCurveInstruction(instruction),
       };
     }
     case MakerAInstruction.QuoteCurve: {
@@ -323,6 +364,8 @@ export type MakerAPluginAccounts = {
     SelfFetchFunctions<MarginAccountArgs, MarginAccount>;
   market: ReturnType<typeof getMarketCodec> &
     SelfFetchFunctions<MarketArgs, Market>;
+  marketListing: ReturnType<typeof getMarketListingCodec> &
+    SelfFetchFunctions<MarketListingArgs, MarketListing>;
   venue: ReturnType<typeof getVenueCodec> &
     SelfFetchFunctions<VenueArgs, Venue>;
 };
@@ -337,6 +380,11 @@ export type MakerAPluginInstructions = {
     input: InitializeCurveAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeCurveInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  initializeListedCurve: (
+    input: InitializeListedCurveAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
+  ) => ReturnType<typeof getInitializeListedCurveInstructionAsync> &
     SelfPlanAndSendFunctions;
   quoteCurve: (
     input: QuoteCurveAsyncInput,
@@ -374,6 +422,7 @@ export function makerAProgram(
           makerPrice: addSelfFetchFunctions(client, getMakerPriceCodec()),
           marginAccount: addSelfFetchFunctions(client, getMarginAccountCodec()),
           market: addSelfFetchFunctions(client, getMarketCodec()),
+          marketListing: addSelfFetchFunctions(client, getMarketListingCodec()),
           venue: addSelfFetchFunctions(client, getVenueCodec()),
         },
         instructions: {
@@ -389,6 +438,14 @@ export function makerAProgram(
             addSelfPlanAndSendFunctions(
               client,
               getInitializeCurveInstructionAsync(input, {
+                programAddress:
+                  instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          initializeListedCurve: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeListedCurveInstructionAsync(input, {
                 programAddress:
                   instructionConfig?.programAddress ?? config.programAddress,
               }),

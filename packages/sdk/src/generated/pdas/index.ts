@@ -6,19 +6,26 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./book.js";
 export * from "./btc.js";
 export * from "./btcLedger.js";
 export * from "./capitalBinding.js";
 export * from "./certificate.js";
 export * from "./custody.js";
 export * from "./deltaPage.js";
+export * from "./directory.js";
 export * from "./eth.js";
 export * from "./ethLedger.js";
 export * from "./eventAuthority.js";
 export * from "./firstMakerRegistration.js";
+export * from "./funding.js";
 export * from "./fundingPublisher.js";
 export * from "./liquidityController.js";
 export * from "./liquidityRegistry.js";
+export * from "./listedFundingPublisher.js";
+export * from "./listedLiquidityRegistry.js";
+export * from "./listing.js";
+export * from "./listingIndex.js";
 export * from "./marginAccount.js";
 export * from "./marketLedger.js";
 export * from "./openPairScheduleCertificate.js";
@@ -30,6 +37,7 @@ export * from "./resolution.js";
 export * from "./search.js";
 export * from "./secondMakerRegistration.js";
 export * from "./storage.js";
+export * from "./symbolBinding.js";
 export * from "./thirdMakerRegistration.js";
 export * from "./venue.js";
 export * from "./venueRegistry.js";

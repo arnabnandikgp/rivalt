@@ -87,3 +87,17 @@ it('reads settlement candidates at the same bank and rejects duplicated margins'
   expect(()=>sdk.readSettlementSnapshot(fixture.rpc,fixture.config,[fixture.margins[0],fixture.margins[0]])).toThrow();
   expect(()=>sdk.readSettlementSnapshot(fixture.rpc,fixture.config,[])).toThrow();
 });
+
+it('keeps only the occupied markets and the owner coverage lane in a grouped withdrawal',async()=>{
+  const fixture=await accountFixture(), margin=fixture.margins[0];
+  const snapshot=await sdk.readAccountSnapshot(fixture.rpc,fixture.config,[margin]);
+  snapshot.marginLayout='ledger-lanes';
+  const root=snapshot.roots[margin];
+  root.book.orders[0].marketIndex=1;
+  root.book.orders[0].order.state=1;
+  const ix=await sdk.groupedFundedWithdrawal(snapshot,fixture.owner,margin,fixture.config.mint,1n);
+  const keys=ix.accounts.map(meta=>meta.address);
+  expect(keys).toContain(snapshot.eth);
+  for(const unused of [snapshot.btc,...snapshot.ledgers])expect(keys).not.toContain(unused);
+  expect(ix.accounts.at(-1)).toEqual({address:await sdk.deriveCoverageLane(snapshot.venue,Number(root.id%8n)),role:AccountRole.WRITABLE});
+});

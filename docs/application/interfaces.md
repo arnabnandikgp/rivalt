@@ -2,6 +2,23 @@
 
 The fresh-local wallet selects `bounded-entry`. Clients bind the exact deployment, program hashes, genesis, initialization signature and domain. Transport version 4, clearing schema 10/profile 6 and SQL journal format 3 are separate identifiers. `selected` is an explicit earlier P56 deployment. Existing signed originals remain bound to their original executor. [SDK deployment table](../../packages/sdk/src/account-deployment.ts)
 
+## Finding an inactive market
+
+`readInactiveMarketListings(rpc, venue)` returns the venue's finalized inactive
+listings in market-ID order. Each result contains the address, ticker and decoded
+record, including the lot scale, collateral mint and bound primary oracle. The SDK
+checks the deployment, discriminator, PDA seeds, identity and schema. Clients can
+show these rows as *registered, trading disabled*. The order form and router use
+the separately admitted trading markets. A venue authority can build the local
+registration with `getRegisterMarketListingInstructionAsync`. [Account rules](../clearing/accounts.md#registering-an-inactive-market)
+
+Derive the observation PDA with `findListingIndexPda({listing})` and decode it
+with `getListingIndexDecoder()`. A zero deadline means no sample has qualified.
+The `reference`, `lower` and `upper` fields are collateral atoms per lot. At or
+after `deadline` (chain Unix seconds), the sample has expired. The generated
+`getObserveListingIndexInstructionAsync` builder needs the four bound feeds and
+requires no venue or oracle signature.
+
 ## Account discovery
 
 Owner discovery reads the portfolio and its nine currently supported child PDAs
@@ -58,6 +75,13 @@ on-chain. The SDK cannot bypass a source-market backing certificate for explicit
 flat netting or gain payment. Direct cancellation and admissible withdrawal must
 work with the venue API stopped. Recovered/terminal cash exits preserve their
 source-independent flat/no-claim rules.
+
+For the local grouped coverage layout, `groupedFundedWithdrawal` builds the owner
+instruction from an authenticated account snapshot. It includes markets required
+by live orders, positions and flat claims, the applicable ledgers and the
+owner account's coverage lane. Prepend the instructions returned by
+`marketCheckpointsFor` in the same transaction. The grouped-credit wallet
+performs this step in `prepare`. [SDK implementation](../../packages/sdk/src/account-client.ts)
 
 Current balance previews include both funding checkpoints, all negative claims,
 per-position IM and refreshed orders, with zero positive unpaid-profit credit.
@@ -116,3 +140,16 @@ The operator API exposes status and economics separately from the wallet. A heal
 ### Direct local profit credit
 
 For the `direct-closed-credit` deployment, pass the decoded recipient margin account, selected market, amount, actor and pinned artifact set to `directClosedProfitCredit`. The SDK derives the recipient from its portfolio and subaccount, includes both markets, selects the ledger dependencies and marks the recipient’s coverage lane writable. Sign and send all returned instructions together. Anyone can pay the transaction fee. Credited cash belongs to the margin account owner. [Clearing contract](../clearing/accounting.md#atomic-credit-of-closed-profit)
+
+### Complete default inputs
+
+`readVenueSettlementBook(rpc, identity, roster, phase)` reads up to 40 distinct
+Financial roots on the current ledger-lane venue. All roots, market checkpoints,
+registry, vault and recovery state come from one finalized bank. Unique member
+IDs and the registry's Financial count establish completeness. The reader keeps
+signed claims at full precision, classifies pending insurance, checks each
+market's net and gross inventory, and separates allocated cash from unsolicited
+vault surplus. With `active-preview` it uses the current market state. With
+`frozen` it requires the newly valued episode and uses its immutable prices and
+funding. The output supplies the native settlement engine with decimal-string
+amounts. Clearing still verifies any transaction that changes balances.

@@ -5,6 +5,8 @@
 pub mod attribution;
 #[cfg(feature = "surviving-profit")]
 pub mod entry_cost;
+#[cfg(feature = "surviving-profit")]
+pub mod market_slots;
 pub mod price_policy;
 pub use price_policy::MAX_PRICE;
 
@@ -65,6 +67,8 @@ pub struct Position {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
+    /// Custody with no position or reservation in this account view.
+    CashOnly,
     Isolated(usize),
     Cross,
 }

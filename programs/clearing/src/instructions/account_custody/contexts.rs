@@ -89,7 +89,7 @@ pub struct CreatePortfolio {
 
 #[event_cpi]
 #[derive(Accounts)]
-#[instruction(subaccount_index: u32)]
+#[instruction(subaccount_index: u32, mode: u8, isolated_market_index: u8)]
 pub struct RegisterMargin {
     #[account(mut)]
     pub owner: Signer,
@@ -104,7 +104,7 @@ pub struct RegisterMargin {
     #[account(mut, seeds = [b"portfolio-v3", venue.address().as_ref(), owner.address().as_ref(), &portfolio.index.to_le_bytes()],
         bump = portfolio.bump, has_one = venue, has_one = owner)]
     pub portfolio: Box<BorshAccount<Portfolio>>,
-    #[account(init, payer = owner, space = crate::state::accounts::MARGIN_ALLOCATION,
+    #[account(init, payer = owner, space = crate::state::accounts::initial_margin_size(mode, isolated_market_index),
         seeds = [b"margin-v3", portfolio.address().as_ref(), &subaccount_index.to_le_bytes()], bump)]
     pub margin: Box<BorshAccount<MarginAccount>>,
     #[account(mut,seeds=[b"member-page",venue.address().as_ref(),&members.page_index.to_le_bytes()],

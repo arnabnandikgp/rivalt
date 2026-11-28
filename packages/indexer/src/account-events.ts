@@ -8,6 +8,17 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['ListedDefaultFrozen',sdk.LISTED_DEFAULT_FROZEN_EVENT_DISCRIMINATOR,sdk.getListedDefaultFrozenEventDecoder()],
+  ['ListedDefaultSettled',sdk.LISTED_DEFAULT_SETTLED_EVENT_DISCRIMINATOR,sdk.getListedDefaultSettledEventDecoder()],
+  ['ListedVenueOpened',sdk.LISTED_VENUE_OPENED_EVENT_DISCRIMINATOR,sdk.getListedVenueOpenedEventDecoder()],
+  ['ListedMarginChanged',sdk.LISTED_MARGIN_CHANGED_EVENT_DISCRIMINATOR,sdk.getListedMarginChangedEventDecoder()],
+  ['ListedCashAccrued',sdk.LISTED_CASH_ACCRUED_EVENT_DISCRIMINATOR,sdk.getListedCashAccruedEventDecoder()],
+  ['ListedRouteFilled',sdk.LISTED_ROUTE_FILLED_EVENT_DISCRIMINATOR,sdk.getListedRouteFilledEventDecoder()],
+  ['ListedFundingChanged',sdk.LISTED_FUNDING_CHANGED_EVENT_DISCRIMINATOR,sdk.getListedFundingChangedEventDecoder()],
+  ['ListedLiquiditySealed',sdk.LISTED_LIQUIDITY_SEALED_EVENT_DISCRIMINATOR,sdk.getListedLiquiditySealedEventDecoder()],
+  ['ListedMakerAdmitted',sdk.LISTED_MAKER_ADMITTED_EVENT_DISCRIMINATOR,sdk.getListedMakerAdmittedEventDecoder()],
+  ['ListingIndexChanged',sdk.LISTING_INDEX_CHANGED_EVENT_DISCRIMINATOR,sdk.getListingIndexChangedEventDecoder()],
+  ['MarketListingRegistered',sdk.MARKET_LISTING_REGISTERED_EVENT_DISCRIMINATOR,sdk.getMarketListingRegisteredEventDecoder()],
   ['MakerFillContinuation',sdk.MAKER_FILL_CONTINUATION_EVENT_DISCRIMINATOR,sdk.getMakerFillContinuationEventDecoder()],
   ['JointClaimsCopied',sdk.JOINT_CLAIMS_COPIED_EVENT_DISCRIMINATOR,sdk.getJointClaimsCopiedEventDecoder()],
   ['PagedRecoverySelectionBound',paged.PAGED_RECOVERY_SELECTION_BOUND_EVENT_DISCRIMINATOR,paged.getPagedRecoverySelectionBoundEventDecoder()],
@@ -23,6 +34,7 @@ const decoders = [
   ['FrozenPairVerified',sdk.FROZEN_PAIR_VERIFIED_EVENT_DISCRIMINATOR,sdk.getFrozenPairVerifiedEventDecoder()],
   ['MarginMembershipChanged', sdk.MARGIN_MEMBERSHIP_CHANGED_EVENT_DISCRIMINATOR, sdk.getMarginMembershipChangedEventDecoder()],
   ['RecoveryStorageRefunded', sdk.RECOVERY_STORAGE_REFUNDED_EVENT_DISCRIMINATOR, sdk.getRecoveryStorageRefundedEventDecoder()],
+  ['IndexedSettlementBound',sdk.INDEXED_SETTLEMENT_BOUND_EVENT_DISCRIMINATOR,sdk.getIndexedSettlementBoundEventDecoder()],
   ['SettlementPlanProgress', sdk.SETTLEMENT_PLAN_PROGRESS_EVENT_DISCRIMINATOR, sdk.getSettlementPlanProgressEventDecoder()],
   ['SettlementMarginApplied', sdk.SETTLEMENT_MARGIN_APPLIED_EVENT_DISCRIMINATOR, sdk.getSettlementMarginAppliedEventDecoder()],
   ['LiquidityRegistryChangedV4', sdk.LIQUIDITY_REGISTRY_CHANGED_EVENT_DISCRIMINATOR, sdk.getLiquidityRegistryChangedEventDecoder()],
@@ -76,7 +88,7 @@ export function eventDomain(signature:string,transaction:any,authority:string,ve
 }
 export function decodeAccountInvocations(signature:string,transaction:any,transactionIndex:number,
   binding:{program:string;eventAuthority:string;venue:string;domain:string;artifactSet?:string}):AccountInvocation[] {
-  return scopedInvocations(signature,transaction,transactionIndex,{...binding,verifiedCoverage:sdk.hasDirectCredit(binding.artifactSet)||binding.artifactSet===sdk.VERIFIED_COVERAGE_ARTIFACT_SET,shadowCoverage:binding.artifactSet===sdk.SHADOW_COVERAGE_ARTIFACT_SET||binding.artifactSet===sdk.MAINTAINED_COVERAGE_ARTIFACT_SET}).map(invocation=>{
+  return scopedInvocations(signature,transaction,transactionIndex,{...binding,indexedDefault:binding.artifactSet===sdk.INDEXED_DEFAULT_ARTIFACT_SET||binding.artifactSet===sdk.INDEXED_APPLICATION_ARTIFACT_SET||sdk.hasListedDirectory(binding.artifactSet),verifiedCoverage:sdk.hasDirectCredit(binding.artifactSet)||binding.artifactSet===sdk.VERIFIED_COVERAGE_ARTIFACT_SET,shadowCoverage:binding.artifactSet===sdk.SHADOW_COVERAGE_ARTIFACT_SET||binding.artifactSet===sdk.MAINTAINED_COVERAGE_ARTIFACT_SET}).map(invocation=>{
     const events:AccountEvent[]=invocation.payloads.map(({inner,bytes},ordinal)=>{
       const payload=Buffer.from(bytes,'base64');
       const entry=decoders.find(([,tag])=>payload.subarray(0,8).equals(Buffer.from(tag)));
@@ -85,11 +97,50 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
       if(end!==payload.length)throw new Error('Trailing account event bytes');
       const data=JSON.parse(json(value));
       if(BigInt(data.slot)!==invocation.slot||data.venue!==binding.venue)throw new Error('Account event slot/venue mismatch');
-      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==10||data.profileVersion!==6||data.domain!==binding.domain))
+      const listedPause = data.profileVersion===7 && data.kind===7 && sdk.hasListedExecution(binding.artifactSet)
+        && invocation.instruction===sdk.hex(sdk.PAUSE_VENUE_DISCRIMINATOR);
+      if(type==='AccountCustodyChangedV3'&&(data.schemaVersion!==10||(data.profileVersion!==6 && !listedPause)||data.domain!==binding.domain))
         throw new Error('Unsupported account event version/domain');
       return {signature,outer:invocation.outer,inner,ordinal,slot:transaction.slot,
         blockTime:transaction.blockTime===null?null:integer(transaction.blockTime),type,data,bytes};
     });
+    const listedFill=invocation.instruction===sdk.hex(sdk.EXECUTE_LISTED_MARKET_ORDER_DISCRIMINATOR);
+    if(listedFill || events.some(event=>event.type==='ListedMarginChanged'||event.type==='ListedRouteFilled')) {
+      const last=events.at(-1);
+      if(!listedFill || !sdk.hasListedExecution(binding.artifactSet) || last?.type!=='ListedRouteFilled')
+        throw new Error('Missing funded listed fill receipt');
+      const legs=last.data.legs;
+      if(legs.length<1||legs.length>2||events.length!==legs.length+2)throw new Error('Incomplete listed fill receipt');
+      const roots=[last.data.trader,...legs.map((leg:{capital:string})=>leg.capital)];
+      if(new Set(roots).size!==roots.length || roots.some((key,i)=>events[i].type!=='ListedMarginChanged' ||
+        events[i].data.margin!==key || !invocation.writes.some(write=>write.kind===5 && write.account===key)))
+        throw new Error('Invalid listed fill account effects');
+    }
+    if(events.some(event=>event.type==='ListedCashAccrued')) {
+      const [accrual,cash]=events;
+      const kind=[sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,sdk.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR]
+        .findIndex(tag=>invocation.instruction===sdk.hex(tag));
+      if(!sdk.hasListedCash(binding.artifactSet) || kind<0 || events.length!==2 ||
+        accrual.type!=='ListedCashAccrued' || cash.type!=='AccountFinancialChangedV3' || cash.data.kind!==kind ||
+        cash.data.roots.length!==kind+1 || new Set(cash.data.roots).size!==kind+1 ||
+        cash.data.roots.some((key:string)=>!invocation.writes.some(write=>write.account===key && write.kind===5)) ||
+        accrual.data.checkpoints.some((row:{funding:string})=>!invocation.writes.some(write=>write.account===row.funding && write.kind===31)))
+        throw new Error('Incomplete listed cash receipt');
+    }
+    const defaultKinds=[
+      [sdk.hex(sdk.FREEZE_LISTED_DEFAULT_DISCRIMINATOR),'ListedDefaultFrozen'],
+      [sdk.hex(sdk.SETTLE_LISTED_DEFAULT_DISCRIMINATOR),'ListedDefaultSettled'],
+    ] as const;
+    const matched=defaultKinds.find(([tag])=>invocation.instruction===tag);
+    if(matched || events.some(event=>defaultKinds.some(([,type])=>event.type===type))) {
+      const event=events[0];
+      if(binding.artifactSet!==sdk.LISTED_DEFAULT_ARTIFACT_SET || events.length!==1 || !matched || event.type!==matched[1] ||
+        !invocation.writes.some(write=>write.kind===34 && write.account===event.data.episode))
+        throw new Error('Incomplete listed default receipt');
+      if(event.type==='ListedDefaultSettled' &&
+        invocation.writes.filter(write=>write.kind===5).length!==event.data.memberIds.length)
+        throw new Error('Incomplete settled cohort');
+    }
     const continuations=events.filter(event=>event.type==='MakerFillContinuation');
     if(continuations.length) {
       const first=events[0], trade=first.data;

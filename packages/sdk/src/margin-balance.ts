@@ -1,3 +1,4 @@
+import {isListedMakerCapital} from './market-listing.js';
 import { MAX_PRICE } from './price-policy.js';
 import type {ReadonlyUint8Array} from '@solana/kit';
 import type {Market as MarketState, MarginAccount, StoredOrder} from './generated/index.js';
@@ -44,7 +45,7 @@ export function marginBalanceView(root:Root, markets:Market[], funding:bigint[],
   now:bigint, slot:bigint, frozen=false) {
   if(root.positions.length!==2||markets.length!==2||funding.length!==2||sources.length!==2||root.book.orders.length!==4)
     throw new Error('Invalid margin preview dependencies');
-  if (![0,1].includes(root.mode) || (root.mode === 0 ? root.isolatedMarketIndex !== 255 : ![0,1].includes(root.isolatedMarketIndex))) throw new Error('Invalid margin mode');
+  if (![0,1].includes(root.mode) || (root.mode === 0 ? root.isolatedMarketIndex !== 255 : ![0,1].includes(root.isolatedMarketIndex) && !isListedMakerCapital(root))) throw new Error('Invalid margin mode');
   let riskEquity = BigInt(root.cash) * scale, initialMargin = 0n, maintenanceMargin = 0n, reserved = 0n;
   let available = !frozen;
   const positions = root.positions.map((position,index) => {

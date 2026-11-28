@@ -12,6 +12,7 @@ name = "maker_a"
 default = []
 devnet-test-profile = ["clearing/devnet-test-profile"]
 # Pricing only; this does not enable clearing financial instructions.
+listed-maker-admission = ["maker-liquidity-qualification"]
 maker-liquidity-qualification = []
 wide-maker-discovery = ["maker-liquidity-qualification", "maker-interface/wide-maker-discovery"]
 cpi = ["no-entrypoint"]

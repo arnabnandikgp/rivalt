@@ -11,6 +11,36 @@ pub struct LiquidityRegistryChanged {
 }
 
 #[event]
+pub struct ListedFundingChanged {
+    pub venue: Address,
+    pub slot: u64,
+    pub listing: Address,
+    pub funding: Address,
+    pub configuration: Address,
+    pub values: crate::state::accounts::ListedFundingValues,
+    pub publisher: crate::state::liquidity::FundingPublisherPayload,
+    pub report: Option<crate::state::liquidity::FundingReport>,
+}
+
+#[event]
+pub struct ListedLiquiditySealed {
+    pub venue: Address,
+    pub slot: u64,
+    pub listing: Address,
+    pub registry: Address,
+    pub state: crate::state::liquidity::LiquidityRegistryPayload,
+}
+
+#[event]
+pub struct ListedMakerAdmitted {
+    pub venue: Address,
+    pub slot: u64,
+    pub registration: Address,
+    pub capital_binding: Address,
+    pub state: crate::state::liquidity::MakerRegistrationPayload,
+}
+
+#[event]
 pub struct LiquidityMakerChanged {
     pub venue: Address,
     pub slot: u64,
@@ -903,6 +933,23 @@ pub struct PagedRecoverySelectionBound {
     pub slot: u64,
 }
 
+/// Protected market-indexed settlement bound to the original frozen pages.
+#[event]
+pub struct IndexedSettlementBound {
+    pub venue: Address,
+    pub epoch: u64,
+    pub prepared: Address,
+    pub selection_ordinal: u64,
+    pub verified_plans: u64,
+    pub charge_atoms: [u64; 2],
+    pub insurance_spent: [u64; 2],
+    pub member_ids: Vec<u64>,
+    pub claim_deltas: Vec<[i64; 2]>,
+    pub movements: Vec<[i64; 2]>,
+    pub final_cash: Vec<u64>,
+    pub slot: u64,
+}
+
 /// One canonical prefix of certified claim reductions. Cash remains frozen.
 #[event]
 pub struct JointClaimsCopied {
@@ -915,4 +962,126 @@ pub struct JointClaimsCopied {
     pub member_ids: Vec<u64>,
     pub deltas: Vec<[i64; 2]>,
     pub slot: u64,
+}
+
+#[event]
+pub struct MarketListingRegistered {
+    pub venue: Address,
+    pub slot: u64,
+    pub listing: Address,
+    pub symbol_binding: Address,
+    pub market_id: u16,
+    pub symbol: [u8; 8],
+    pub lots_per_unit: u64,
+    pub quote_mint: Address,
+    pub oracle_publisher: Address,
+    pub oracle_feed: Address,
+    pub status: u8,
+}
+
+#[event]
+pub struct ListingIndexChanged {
+    pub venue: Address,
+    pub slot: u64,
+    pub index: Address,
+    pub listing: Address,
+    pub sources: [Address; 4],
+    pub source_sequences: [u64; 4],
+    pub sampled_at: i64,
+    pub deadline: i64,
+    pub reference: u64,
+    pub lower: u64,
+    pub upper: u64,
+}
+
+#[event]
+pub struct ListedVenueOpened {
+    pub venue: Address,
+    pub slot: u64,
+    pub safety_epoch: u64,
+    pub listing: Address,
+    pub market_id: u16,
+    pub directory: Address,
+    pub directory_bump: u8,
+    pub book: Address,
+    pub book_bump: u8,
+    pub funding: Address,
+    pub values: crate::state::accounts::ListedFundingValues,
+}
+
+#[event]
+pub struct ListedRouteFilled {
+    pub venue: Address,
+    pub slot: u64,
+    pub listing: Address,
+    pub trader: Address,
+    pub side: u8,
+    pub lots: u64,
+    pub gross: u64,
+    pub fee: u64,
+    pub gross_lots: u64,
+    pub insurance: u64,
+    pub retained_fees: u64,
+    pub insurance_carry: u8,
+    pub legs: Vec<crate::state::liquidity::ExecutedLeg>,
+    pub funding: crate::state::accounts::ListedFundingValues,
+    pub inline_markets: Vec<MarketSnapshot>,
+}
+
+#[event]
+pub struct ListedMarginChanged {
+    pub venue: Address,
+    pub slot: u64,
+    pub margin: Address,
+    pub state: MarginAccountSnapshot,
+    /// Exact populated directory only (header + occupied records), no empty capacity.
+    pub positions: Vec<u8>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
+pub struct ListedCashCheckpoint {
+    pub market: u16,
+    pub funding: Address,
+    pub funding_time: i64,
+    pub funding_index_scaled: i128,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, IdlType)]
+pub struct ListedCashPositions {
+    pub margin: Address,
+    pub positions: Vec<u8>,
+}
+
+/// Funding changes on the listed accounts that accompany one funded cash movement.
+#[event]
+pub struct ListedCashAccrued {
+    pub venue: Address,
+    pub slot: u64,
+    pub checkpoints: Vec<ListedCashCheckpoint>,
+    pub roots: Vec<ListedCashPositions>,
+}
+
+#[event]
+pub struct ListedDefaultFrozen {
+    pub venue: Address,
+    pub slot: u64,
+    pub episode: Address,
+    pub bump: u8,
+    pub snapshot: crate::state::accounts::ListedDefaultSnapshot,
+}
+
+#[event]
+pub struct ListedDefaultSettled {
+    pub venue: Address,
+    pub slot: u64,
+    pub episode: Address,
+    pub epoch: u64,
+    pub safety_epoch: u64,
+    pub terms_epoch: u64,
+    pub checked_plans: u32,
+    pub selected: u8,
+    pub member_ids: Vec<u64>,
+    pub final_cash: Vec<u64>,
+    pub spent: Vec<u64>,
+    pub charged: Vec<u64>,
 }

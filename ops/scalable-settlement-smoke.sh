@@ -6,6 +6,9 @@ source ops/env.sh
 export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?explicit pinned candidate required}"
 export RIVALT_ARTIFACT_DIR="${RIVALT_ARTIFACT_DIR:-.local/anchor-rc2/current}"
 node --import tsx ops/verify-liquidity-artifacts.ts "$RIVALT_ARTIFACT_DIR"
+if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router-venue-book || "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router-venue-default || "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router-venue-application ]]; then
+  cargo build --locked --offline -p financial-core --features market-settlement-model --example market_settlement
+fi
 if [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == execution-router* ]]; then
   node --import tsx --input-type=module -e 'import {routerBuild} from "./tests/rpc-contract/execution-router-build.ts"; routerBuild()'
 elif [[ "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-partitioned-population || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-populated-rates || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-original-budgets || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-foreign-caps || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-winner-allocations || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-pair-schedule || "${RIVALT_SETTLEMENT_PROBE:-default}" == profit-attribution-joint-settlement ]]; then
@@ -124,6 +127,13 @@ case "${RIVALT_SETTLEMENT_PROBE:-default}" in
   execution-router-feasible-books) node --import tsx tests/rpc-contract/feasible-book-rpc.ts ;;
   execution-router-matched-makers) node --import tsx tests/rpc-contract/comparison-rpc.ts ;;
   execution-router-direct-capacity|execution-router-thousand-member-credit|execution-router-streamed-capacity|execution-router-grouped-capacity) node --import tsx tests/rpc-contract/direct-credit-capacity-rpc.ts ;;
+  execution-router-venue-book|execution-router-venue-default|execution-router-venue-application)
+    node --import tsx tests/rpc-contract/venue-settlement-book-rpc.ts ;;
+  execution-router-inactive-listing|execution-router-listing-index|execution-router-listed-maker|execution-router-listed-directory|execution-router-listed-funding|execution-router-listed-margin|execution-router-listed-execution|execution-router-listed-cash|execution-router-funded-listed-default) node --import tsx tests/rpc-contract/inactive-market-listing-rpc.ts ;;
+  execution-router-indexed-withdrawal) node --import tsx tests/rpc-contract/venue-indexed-withdrawal-rpc.ts ;;
+  execution-router-grouped-slots)
+    CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 cargo build --locked --offline -p clearing --features bounded-entry-settlement --example occupied-markets
+    node --import tsx tests/rpc-contract/occupied-market-slots-rpc.ts ;;
   execution-router-grouped-worker)
     node --import tsx tests/rpc-contract/grouped-worker-rpc.ts
     node --import tsx tests/performance/grouped-worker-credit.ts "$RIVALT_RUN_DIR" --journal ;;

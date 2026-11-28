@@ -1,4 +1,4 @@
-import {address,createNoopSigner,getProgramDerivedAddress,type Address,type Instruction,type Blockhash} from '@solana/kit';
+import {AccountRole,address,createNoopSigner,getProgramDerivedAddress,type Address,type Instruction,type Blockhash} from '@solana/kit';
 import {PublicKey} from '@solana/web3.js';
 import {getTokenDecoder,TOKEN_PROGRAM_ADDRESS} from '@solana-program/token';
 import * as protocol from './generated/index.js';
@@ -17,6 +17,7 @@ import {deriveAccountPortfolio,deriveMarginAccount,deriveSettlementCertificate,d
 import {WalletClient,hex,requireValue,fromBase64} from './wallet-client.js';
 import {walletComputeBudget} from './route-budget.js';
 import {readAccountSnapshot,readAccountTradeSnapshot,accountGuard,type AccountSnapshot} from './account-snapshot.js';
+import {deriveCoverageLane} from './direct-credit.js';
 import {accountBalanceView} from './account-balance.js';
 import {accountMarketMetas,accountLiabilityMetas} from './account-markets.js';
 import type {LiquidityRouteInput} from './liquidity-route.js';
@@ -51,6 +52,24 @@ export function accountWalletInstructions(instructions:Instruction[],checkpoints
     protocol.RETIRE_MARGIN_DISCRIMINATOR,protocol.FUND_MEMBER_PAGE_DISCRIMINATOR,protocol.FUND_MEMBER_INDEX_DISCRIMINATOR];
   requireValue(route||supported.some(value=>hex(value)===discriminator),'Unsupported account wallet action.');
   return walletComputeBudget(instructions,route?800_000:400_000);
+}
+
+/** Normal-mode owner withdrawal on the local grouped-coverage layout. The
+ * wallet/sender prepends the canonical market and fee checkpoints on submission. */
+export async function groupedFundedWithdrawal(snapshot:AccountSnapshot,owner:Address,margin:Address,userToken:Address,amount:bigint) {
+  const root=snapshot.roots[margin];
+  requireValue(root?.owner===owner && root.venue===snapshot.venue && root.lifecycle===2 && snapshot.marginLayout==='ledger-lanes'
+    && snapshot.safetyState.mode===1 && !snapshot.safetyState.paused && amount>0n && amount<=root.cash,
+    'Active owner margin and funded cash required.');
+  // The generated async resolver fills omitted market PDAs. Preserve optional
+  // placeholders with the synchronous builder after resolving the event authority.
+  const [eventAuthority]=await protocol.findEventAuthorityPda();
+  const instruction=protocol.getWithdrawFundedAccountInstruction({...snapshot,eventAuthority,
+    ...accountMarketMetas(snapshot.markets,[root]),...accountLiabilityMetas(snapshot.ledgers,[root]),
+    owner:createNoopSigner(owner),margin,quoteMint:snapshot.venueState.quoteMint,userToken,amount,
+    guard:accountGuard(snapshot,margin),program:protocol.CLEARING_PROGRAM_ADDRESS});
+  const lane=await deriveCoverageLane(snapshot.venue,Number(root.id%8n));
+  return {...instruction,accounts:[...instruction.accounts,{address:lane,role:AccountRole.WRITABLE}]};
 }
 
 /** Owner/delegate operations over direct RPC. Saved signed originals use the
@@ -220,6 +239,8 @@ export class AccountUserClient extends WalletClient {
   async exit(snapshot:AccountSnapshot,owner:Address,margin:Address,userToken:Address,amount:bigint) {
     const root=this.owned(snapshot,owner,margin),safety=snapshot.safetyState;
     requireValue(amount>0n&&amount<=root.cash&&!safety.paused&&safety.mode!==2,'Funded exit unavailable.');
+    if(this.config.deployment==='grouped-credit' && safety.mode===1)
+      return {instructions:[await groupedFundedWithdrawal(snapshot,owner,margin,userToken,amount)]};
     const accounts={...snapshot,...await this.common(),...accountLiabilityMetas(snapshot.ledgers,[root]),owner:createNoopSigner(owner),margin,quoteMint:this.config.mint,userToken,amount};
     const instruction=safety.mode===0&&safety.resolutionEpoch===0n?
       await protocol.getWithdrawAccountCustodyInstructionAsync(accounts):

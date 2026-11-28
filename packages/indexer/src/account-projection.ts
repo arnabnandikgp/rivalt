@@ -1,3 +1,4 @@
+import {projectListedDefault} from './listed-default-projection.js';
 import * as sdk from '@rivalt/sdk';
 import {projectSettlement, type PagedSettlement} from './settlement-projection.js';
 import type {Canonical} from './canonical.js';
@@ -35,6 +36,14 @@ export type AccountState = {
   identities:Record<string,string>; tombstones:Record<string,Fields<sdk.MarginTombstone>>;
   storageTombstones:Record<string,Fields<sdk.StorageTombstone>>; members:string[]; portfolios:Record<string,Fields<sdk.Portfolio>>;
   roots:Record<string,AccountRoot>; markets:Record<string,AccountMarket>;
+  listings?:Record<string,Fields<sdk.MarketListing>>;
+  listedVenues?:Record<string,Fields<sdk.ListedVenue>>;
+  listedDefaults?:Record<string,Fields<sdk.ListedDefault>>;
+  listedBooks?:Record<string,Fields<sdk.ListedMarketBook>>;
+  listedPositions?:Record<string,string>;
+  listedFunding?:Record<string,Fields<sdk.ListedFunding>>;
+  listingIndices?:Record<string,Fields<sdk.ListingIndex>>;
+  listedSymbols?:Record<string,Fields<sdk.ListedSymbol>>;
   ledgers:Record<string,Fields<sdk.MarketLedger>>;
   backing:Record<string,Fields<sdk.SettlementCertificate>>;
   retirement:Fields<sdk.RetirementCertificate>|null; resolution:AccountResolution|null;
@@ -63,7 +72,7 @@ const abs=(value:bigint)=>value<0n?-value:value;
 
 /** Only event fields are authoritative here. Canonical PDAs and complete decoded
  * financial accounts are checked separately against finalized RPC bytes. */
-export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:4=4,artifactSet?:string) {
+export function projectAccounts(state:AccountState,event:AccountEvent,venue:string,domain:string,profile:4=4,artifactSet?:string,partialFill=false) {
   accountCheck(profile===4&&!!state.liquidity,'explicit projection profile');
   const change=structuredClone(event.data);
   accountCheck(change.venue===venue,'event venue');
@@ -103,12 +112,224 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     values.forEach(value=>market(value));
   };
   switch(event.type) {
+    case 'ListedDefaultFrozen':
+    case 'ListedDefaultSettled':
+      projectListedDefault(state,event,artifactSet);
+      break;
+    case 'ListedVenueOpened': {
+      const listing=present(state.listings?.[change.listing],'sealed listing');
+      const funding=present(state.listedFunding?.[change.funding],'listed funding');
+      const active=currentVenue();
+      accountCheck(sdk.hasListedExecution(artifactSet) && active.profileVersion===6 && safety().mode===1
+        && !safety().paused && listing.status===1 && change.marketId===listing.marketId && funding.listing===change.listing
+        && BigInt(change.safetyEpoch)===BigInt(safety().epoch)+1n && !state.listedVenues?.[change.directory]
+        && !state.listedBooks?.[change.book] && BigInt(change.values.observationSequence)===BigInt(funding.values.observationSequence)+1n
+        && change.values.oracle.heldUntil===change.values.oracle.sampledAt,'qualification opening');
+      active.profileVersion=7;
+      active.termsEpoch=String(BigInt(active.termsEpoch)+1n);
+      safety().epoch=change.safetyEpoch;
+      listing.status=2;
+      funding.values=change.values;
+      (state.listedVenues??={})[change.directory]={schemaVersion:1,revision:'0',venue,markets:[change.marketId,0,0,0,0,0],count:1};
+      (state.listedBooks??={})[change.book]={schemaVersion:1,revision:'0',listing:change.listing,grossLots:'0',collectedFees:'0',
+        insurance:'0',fees:'0',settlement:'0',insuranceCarry:0};
+      break;
+    }
+    case 'ListedMarginChanged': {
+      accountCheck(sdk.hasListedExecution(artifactSet) && currentVenue().profileVersion===7,'listed margin profile');
+      const payload=typeof change.positions==='string'?Buffer.from(change.positions,'hex'):Buffer.from(change.positions);
+      const slots=sdk.decodeListedRecords(payload,sdk.listedMarginCapacity(change.state),true);
+      const active=new Set(Object.values(state.listings??{}).filter(listing=>listing.status===2).map(listing=>listing.marketId));
+      accountCheck(slots.records.every(row=>active.has(row.market)),'admitted positions');
+      root(change.state,change.margin);
+      (state.listedPositions??={})[change.margin]=payload.toString('hex');
+      break;
+    }
+    case 'ListedCashAccrued': {
+      accountCheck(sdk.hasListedCash(artifactSet) && currentVenue().profileVersion===7,'listed cash profile');
+      const indexes=new Map<number,bigint>();
+      let prevMarket=1;
+      for(const checkpoint of change.checkpoints) {
+        const funding=present(state.listedFunding?.[checkpoint.funding],'cash funding source');
+        const listing=present(state.listings?.[funding.listing],'cash listing');
+        accountCheck(listing.marketId===checkpoint.market && listing.status===2 && listing.venue===venue &&
+          listing.marketId>prevMarket,'ordered cash funding markets');
+        prevMarket=listing.marketId;
+        const values=funding.values, observation=values.oracle, time=BigInt(checkpoint.fundingTime);
+        const index=BigInt(checkpoint.fundingIndexScaled);
+        if(time!==BigInt(values.fundingTime) || index!==BigInt(values.fundingIndexScaled)) {
+          const start=BigInt(observation.sampledAt);
+          accountCheck(observation.heldEpoch==='1' && BigInt(change.slot)<BigInt(observation.heldSlot) &&
+            time>=BigInt(values.fundingTime) && time>=start && time<=BigInt(observation.heldUntil) &&
+            index===BigInt(observation.fundingBase)+BigInt(observation.premiumScaled)*(time-start)/3600n,'held funding endpoint');
+        }
+        values.fundingTime=checkpoint.fundingTime;
+        values.fundingIndexScaled=checkpoint.fundingIndexScaled;
+        indexes.set(listing.marketId,index);
+      }
+      const required=new Set<number>();
+      for(const changeRoot of change.roots) {
+        const key=changeRoot.margin, capacity=sdk.listedMarginCapacity(present(state.roots[key],'cash member'));
+        const prev=present(state.listedPositions?.[key],'previous listed positions');
+        const slots=sdk.decodeListedRecords(Buffer.from(prev,'hex'),capacity,true);
+        const payload=typeof changeRoot.positions==='string'?Buffer.from(changeRoot.positions,'hex'):Buffer.from(changeRoot.positions);
+        const next=sdk.decodeListedRecords(payload,capacity,true);
+        const expected=slots.records.map(row=>{
+          if(row.lots===0n)return row;
+          const index=present(indexes.get(row.market),'required cash funding index');
+          required.add(row.market);
+          return {...row,virtualScaled:row.virtualScaled-row.lots*(index-row.fundingCheckpointScaled),fundingCheckpointScaled:index};
+        });
+        equal(next,{...slots,records:expected},'cash preserves lots and entry costs while accruing funding');
+        state.listedPositions![key]=payload.toString('hex');
+      }
+      accountCheck(required.size===indexes.size,'exact cash funding coverage');
+      break;
+    }
+    case 'ListedRouteFilled': {
+      const listing=present(state.listings?.[change.listing],'listed market');
+      const book=present(Object.values(state.listedBooks??{}).find(value=>value.listing===change.listing),'listed book');
+      const funding=present(Object.values(state.listedFunding??{}).find(value=>value.listing===change.listing),'listed funding');
+      accountCheck(sdk.hasListedExecution(artifactSet) && currentVenue().profileVersion===7 && listing.status===2
+        && [0,1].includes(change.side) && change.legs.length>=1 && change.legs.length<=2,'qualified listed fill');
+      let gross=0n,lots=0n;
+      const seen=new Set<string>();
+      for(const leg of change.legs) {
+        const maker=present(state.liquidity?.makers[leg.registration],'listed maker');
+        const field=change.side===0?'buyConsumed':'sellConsumed';
+        accountCheck(!seen.has(leg.capital) && maker.capital===leg.capital && maker.market===change.listing
+          && maker.instance===leg.instance && maker.authorityEpoch===leg.authorityEpoch && maker.depthEpoch===leg.depthEpoch
+          && maker[field]===leg.consumedBefore && BigInt(leg.consumedAfter)===BigInt(leg.consumedBefore)+BigInt(leg.lots),'listed fill leg');
+        seen.add(leg.capital); maker[field]=leg.consumedAfter;
+        gross+=BigInt(leg.gross); lots+=BigInt(leg.lots);
+      }
+      const fee=(gross+4999n)/5000n, carry=fee+BigInt(book.insuranceCarry);
+      accountCheck(gross===BigInt(change.gross) && lots===BigInt(change.lots) && fee===BigInt(change.fee)
+        && BigInt(change.insurance)===BigInt(book.insurance)+carry/4n && BigInt(change.retainedFees)===BigInt(book.fees)+fee-carry/4n
+        && change.insuranceCarry===Number(carry%4n),'listed fee conservation');
+      Object.assign(book,{collectedFees:String(BigInt(book.collectedFees)+fee),insurance:change.insurance,fees:change.retainedFees,
+        insuranceCarry:change.insuranceCarry,grossLots:change.grossLots});
+      funding.values=change.funding;
+      partialMarkets(change.inlineMarkets);
+      break;
+    }
+    case 'ListedFundingChanged': {
+      const listing=present(state.listings?.[change.listing],'funding listing');
+      const liquidity=present(state.liquidity,'liquidity');
+      const index=present(Object.values(state.listingIndices??{}).find(value=>value.listing===change.listing),'listed sources');
+      const configuration=change.publisher, values=change.values;
+      const previous=liquidity.publishers[change.configuration];
+      state.listedFunding??={};
+      const prior=state.listedFunding[change.funding];
+      accountCheck(sdk.hasListedFunding(artifactSet) && (listing.status===1 || (listing.status===2 && currentVenue().profileVersion===7 && sdk.hasListedExecution(artifactSet))) && configuration.schemaVersion===10
+        && configuration.venue===venue && configuration.market===change.listing && configuration.revision===(previous?.revision??'0')
+        && Object.values(liquidity.registries).some(value=>value.market===change.listing && value.sealed)
+        && !!previous===!!prior && (listing.status===2 || (values.fundingIndexScaled==='0' && values.oracle.coveredSeconds==='0')),'listed funding state');
+      equal(values.oracle.sources,index.sources,'immutable listed funding sources');
+      const sequence=BigInt(previous?.lastSequence??'0'),epoch=BigInt(previous?.authorityEpoch??'0');
+      const report=change.report.__option==='Some'?change.report.value:null;
+      if(report) {
+        accountCheck(previous?.enabled && configuration.publisher===previous.publisher && configuration.enabled
+          && BigInt(configuration.authorityEpoch)===epoch && report.authorityEpoch===previous.authorityEpoch
+          && report.version===1 && report.domain===domain && report.market===change.listing
+          && BigInt(configuration.lastSequence)===sequence+1n && report.sequence===configuration.lastSequence
+          && report.expectedObservationSequence===prior?.values.observationSequence
+          && values.fundingTime===values.oracle.sampledAt && report.expectedConfigEpoch==='1' && report.expectedTermsEpoch==='1'
+          && configuration.lastObservedSlot===report.observedSlot && BigInt(report.observedSlot)>BigInt(previous.lastObservedSlot)
+          && configuration.lastObservedTime===report.observedTime && BigInt(report.observedTime)>=BigInt(previous.lastObservedTime)
+          && (report.outcome!==0 || (values.referencePrice===report.referencePrice && values.oracle.quantity===report.quantity
+            && values.oracle.bid===report.bid && values.oracle.ask===report.ask)),'attested listed funding report');
+        liquidity.reports[change.listing]={publisher:configuration.publisher,slot:String(event.slot),report:accountFields<sdk.FundingReport>(report)};
+      } else {
+        accountCheck(BigInt(configuration.authorityEpoch)===epoch+1n && BigInt(configuration.lastSequence)===sequence
+          && configuration.lastObservedSlot===change.slot && values.oracle.quantity==='0','listed publisher control');
+      }
+      accountCheck(BigInt(values.observationSequence)===(prior?BigInt(prior.values.observationSequence)+1n:0n),'listed observation sequence');
+      state.listedFunding[change.funding]={schemaVersion:1,revision:prior?.revision??'0',listing:change.listing,values};
+      liquidity.publishers[change.configuration]=accountFields<sdk.FundingPublisher>(configuration);
+      break;
+    }
+    case 'ListedLiquiditySealed': {
+      const listing=present(state.listings?.[change.listing],'listed market');
+      const liquidity=present(state.liquidity,'liquidity');
+      const directory=change.state;
+      const members=Object.entries(liquidity.makers).filter(([,maker])=>maker.market===change.listing)
+        .sort(([,left],[,right])=>left.instance-right.instance);
+      accountCheck(sdk.hasListedDirectory(artifactSet) && listing.status===0 && directory.venue===venue
+        && directory.market===change.listing && directory.schemaVersion===10 && directory.sealed===true
+        && !liquidity.registries[change.registry] && directory.count===members.length && members.length===3
+        && members.every(([key,maker],index)=>maker.instance===index && key===directory.registrations[index])
+        && new Set(members.map(([,maker])=>maker.capital)).size===members.length
+        && new Set(members.map(([,maker])=>maker.pricingProgram)).size===2,'complete listed maker directory');
+      liquidity.registries[change.registry]=accountFields<sdk.LiquidityRegistry>(directory);
+      listing.status=1;
+      break;
+    }
+    case 'ListedMakerAdmitted': {
+      const maker=change.state,liquidity=present(state.liquidity,'liquidity');
+      const capital=present(state.roots[maker.capital],'listed maker capital');
+      accountCheck(sdk.hasListedMaker(artifactSet) && state.listings?.[maker.market]?.status===0
+        && maker.venue===venue && maker.schemaVersion===10 && sdk.isListedMakerCapital(capital)
+        && capital.lifecycle===2 && BigInt(capital.cash)>0n && capital.owner===maker.owner
+        && state.revisions[change.capitalBinding]?.kind===8 && state.revisions[change.registration]?.kind===15
+        && !liquidity.makers[change.registration] && !Object.values(liquidity.makers).some(previous=>previous.capital===maker.capital)
+        && [sdk.makerA.MAKER_A_PROGRAM_ADDRESS,sdk.makerB.MAKER_B_PROGRAM_ADDRESS].includes(maker.pricingProgram)
+        && maker.authorityEpoch==='1' && maker.depthEpoch==='1' && maker.buyConsumed==='0' && maker.sellConsumed==='0'
+        && !maker.quarantined,'listed maker admission');
+      liquidity.makers[change.registration]=accountFields<sdk.MakerRegistration>(maker);
+      break;
+    }
+    case 'ListingIndexChanged': {
+      const listing=state.listings?.[change.listing];
+      accountCheck((artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET || sdk.hasListedMaker(artifactSet)) && listing && (listing.status===0 || (listing.status===1 && sdk.hasListedDirectory(artifactSet))) &&
+        change.sources[0]===listing.oracleFeed && new Set(change.sources).size===4,'listed index sources');
+      state.listingIndices??={};
+      const previous=state.listingIndices[change.index];
+      if(previous) {
+        equal(previous.listing,change.listing,'index listing');
+        equal(previous.sources,change.sources,'immutable listing sources');
+        accountCheck(BigInt(change.sampledAt)>BigInt(previous.sampledAt) &&
+          BigInt(change.deadline)>BigInt(change.sampledAt) && BigInt(change.lower)>0n &&
+          BigInt(change.lower)<=BigInt(change.reference) && BigInt(change.reference)<=BigInt(change.upper) &&
+          change.sourceSequences.every((seq:string,i:number)=>BigInt(seq)>0n && BigInt(seq)>=BigInt(previous.sourceSequences[i])) &&
+          change.sourceSequences.some((seq:string,i:number)=>seq!==previous.sourceSequences[i]),'qualified listing observation');
+      } else {
+        accountCheck([change.sampledAt,change.deadline,change.reference,change.lower,change.upper,...change.sourceSequences]
+          .every(value=>value==='0'),'empty listing index at binding');
+      }
+      state.listingIndices[change.index]={schemaVersion:1,revision:previous?.revision??'0',listing:change.listing,
+        sources:change.sources,sourceSequences:change.sourceSequences,sampledAt:change.sampledAt,deadline:change.deadline,
+        reference:change.reference,lower:change.lower,upper:change.upper};
+      break;
+    }
+    case 'MarketListingRegistered': {
+      accountCheck((artifactSet===sdk.INACTIVE_LISTING_ARTIFACT_SET || artifactSet===sdk.LISTING_INDEX_ARTIFACT_SET || sdk.hasListedMaker(artifactSet)) && change.status===0 &&
+        change.marketId>=2 && change.quoteMint===currentVenue().quoteMint && BigInt(change.lotsPerUnit)>0n,
+        'inactive market listing identity');
+      state.listings??={};
+      state.listedSymbols??={};
+      accountCheck(!state.listings[change.listing] && !state.listedSymbols[change.symbolBinding], 'duplicate market listing');
+      const header={schemaVersion:1,revision:'0'};
+      state.listings[change.listing]={...header,venue,marketId:change.marketId,symbol:change.symbol,
+        lotsPerUnit:change.lotsPerUnit,quoteMint:change.quoteMint,oraclePublisher:change.oraclePublisher,
+        oracleFeed:change.oracleFeed,status:change.status};
+      state.listedSymbols[change.symbolBinding]={...header,listing:change.listing};
+      break;
+    }
     case 'MakerFillContinuation':
       // The invocation decoder joins these maker entries onto the first receipt.
       accountCheck(sdk.hasMultiMaker(artifactSet),'multi-maker deployment');
       break;
     case 'AccountCustodyChangedV3': {
-      accountCheck(change.schemaVersion===10&&change.profileVersion===sdk.ACCOUNT_PROFILE&&change.domain===domain,'custody version/domain');
+      const profile = state.venue?.profileVersion ?? sdk.ACCOUNT_PROFILE;
+      accountCheck(change.schemaVersion===10 && change.profileVersion===profile && change.domain===domain,'custody version/domain');
+      if (profile===7) {
+        accountCheck(sdk.hasListedExecution(artifactSet) && change.kind===7 && safety().mode===1
+          && change.mode===1 && change.actor===currentVenue().authority && change.members.length===0
+          && BigInt(change.safetyEpoch)===BigInt(safety().epoch)+1n,'listed venue pause');
+      } else {
+        accountCheck(profile===sdk.ACCOUNT_PROFILE,'custody profile');
+      }
       accountCheck(Number.isInteger(change.kind)&&change.kind>=0&&change.kind<=10,'custody kind');
       if(change.kind===0) {
         accountCheck(!state.venue&&state.sequence==='0','duplicate initialization');
@@ -139,6 +360,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
         if(change.kind===3) {
           const portfolio=present(state.portfolios[member.portfolio],'portfolio');
           accountCheck(member.id===state.nextMemberId&&!state.identities[member.id]&&margin===change.subject&&!state.roots[margin],'stable root ID');
+          if(sdk.isListedMakerCapital(member)) accountCheck(sdk.hasListedMaker(artifactSet),'listed maker deployment');
           accountCheck(member.owner===portfolio.owner&&member.subaccountIndex<=8&&member.lifecycle===1&&member.activationGeneration==='0'
             &&!Object.values(state.roots).some(root=>root.portfolio===member.portfolio&&root.subaccountIndex===member.subaccountIndex),'child identity');
           portfolio.activeChildren++;
@@ -229,6 +451,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     case 'MultiLotBookVerified':
     case 'InventoryBookVerified':
     case 'SharedInventoryVerified':
+    case 'IndexedSettlementBound':
     case 'JointClaimsCopied':
     case 'PagedRecoverySelectionBound':
     case 'RecoverySelectionBound':
@@ -324,7 +547,9 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       projectLiquidity(state,event,{root,market,ledger},artifactSet);
   }
   state.sequence=(BigInt(state.sequence)+1n).toString();
-  reconcileAccountLedger(state);
+  // A listed order emits the trader, each winning capital, and then the
+  // balancing market/fee receipt within a single authenticated invocation.
+  if(!partialFill)reconcileAccountLedger(state);
 }
 
 /** Derived only from the complete projected cohort; never withdrawal authority.
@@ -348,7 +573,8 @@ export function reconcileAccountLedger(state:AccountState) {
   }
   for(const [key,root] of Object.entries(state.tombstones))accountCheck(state.identities[root.id]===key&&!state.roots[key]&&!state.members.includes(key),'permanent retired identity');
   const ledgers=Object.values(state.ledgers);
-  const pools=ledgers.reduce((sum,value)=>sum+BigInt(value.settlement)+BigInt(value.insurance)+BigInt(value.fees),0n);
+  const listedBooks=Object.values(state.listedBooks??{});
+  const pools=[...ledgers,...listedBooks].reduce((sum,value)=>sum+BigInt(value.settlement)+BigInt(value.insurance)+BigInt(value.fees),0n);
   const accountedCash=BigInt(custody.allocatedVault)-pools;
   accountCheck(accountedCash>=0n,'cash conservation');
   accountCheck(ledgers.length===venue.marketCount&&new Set(ledgers.map(value=>value.marketIndex)).size===ledgers.length,'complete market ledgers');
@@ -359,7 +585,7 @@ export function reconcileAccountLedger(state:AccountState) {
   roots.forEach((root)=>{
     accountCheck(root.schemaVersion===10&&state.identities[root.id]!==undefined&&root.lifecycle===2&&BigInt(root.activationGeneration)>0n&&root.positions.length===2&&root.book.orders.length===4&&root.book.protections.length===2,'bounded root');
     accountCheck([0,1].includes(root.mode)&&(root.mode===0?root.subaccountIndex===0&&root.isolatedMarketIndex===255&&root.role!==1:
-      root.subaccountIndex>=1&&root.subaccountIndex<=8&&[0,1].includes(root.isolatedMarketIndex)),'margin mode');
+      root.subaccountIndex>=1&&root.subaccountIndex<=8&&([0,1].includes(root.isolatedMarketIndex)||sdk.isListedMakerCapital(root))),'margin mode');
     if(root.mode===1)root.positions.forEach((position,index)=>{
       if(index!==root.isolatedMarketIndex)accountCheck(Object.values(position).every(value=>value==='0'),'foreign isolated position');
     });
@@ -382,7 +608,27 @@ export function reconcileAccountLedger(state:AccountState) {
     if(partial)claims+=lots*(BigInt(partial.prices[index])*scale-BigInt(partial.funding[index]));
     equal(claims,partial?BigInt(partial.remainingClaims[index]):BigInt(ledger.settlement)*scale,'market claims conservation');
   }
-  if(safety.mode===2) {
+  for(const book of listedBooks) {
+    const listing=present(state.listings?.[book.listing],'listed exposure market');
+    let net=0n,gross=0n,claims=0n;
+    for(const [key,payload] of Object.entries(state.listedPositions??{})) {
+      const records=sdk.decodeListedRecords(Buffer.from(payload,'hex'),sdk.listedMarginCapacity(present(state.roots[key],'listed member')),true).records;
+      for(const row of records.filter(row=>row.market===listing.marketId)) {
+        net+=row.lots; gross+=abs(row.lots); claims+=row.virtualScaled+row.lots*row.fundingCheckpointScaled;
+      }
+    }
+    equal(net,0n,'listed net exposure');
+    equal(gross,BigInt(book.grossLots),'listed gross exposure');
+    equal(claims,BigInt(book.settlement)*scale,'listed claims conservation');
+  }
+  if(safety.mode===2 && venue.profileVersion===7) {
+    const episodes=Object.values(state.listedDefaults??{});
+    accountCheck(episodes.length===1 && !episodes[0].completed && safety.paused,'frozen wider episode');
+    const header=episodes[0].snapshot;
+    equal(header.allocatedVault,custody.allocatedVault,'wider frozen vault');
+    equal(header.memberCount,String(roots.length),'wider frozen membership');
+    equal(header.safetyEpoch,safety.epoch,'wider frozen safety epoch');
+  } else if(safety.mode===2) {
     const current=present(state.resolution,'frozen resolution');
     accountCheck(safety.paused&&current.count===String(state.members.length),'frozen cohort');
     if(current.stage<=9||pagedApply) {

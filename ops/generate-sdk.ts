@@ -96,6 +96,16 @@ for (const [program, folder] of [['clearing', 'generated'], ['maker_a', 'generat
           name=ordinals[instance.value.data]+'MakerRegistration';
         }
       }
+      if (name === 'fundingPublisher') {
+        const input = pda.seeds?.[1];
+        assert(isNode(input,'variablePdaSeedNode'));
+        if (input.name === 'listing') name='listedFundingPublisher';
+      }
+      if (name === 'liquidityRegistry') {
+        const marketSeed = pda.seeds?.[1];
+        assert(isNode(marketSeed,'variablePdaSeedNode'));
+        if (marketSeed.name === 'listing') name='listedLiquidityRegistry';
+      }
       if (name === 'marketLedger') {
         const marketSeed = pda.seeds?.[1];
         assert(isNode(marketSeed, 'variablePdaSeedNode'));

@@ -52,11 +52,11 @@ impl CoverageLane {
         8 + 32 + 2 + 8 + 32 + 80 + 32 + 128 + 4 + ROWS_PER_LANE * CoverageMember::INIT_SPACE;
 
     #[cfg(feature = "grouped-credit")]
-    const SPACE: usize = Self::ROW_SPACE + backing::Totals::INIT_SPACE + groups::SPACE;
+    pub(crate) const SPACE: usize = Self::ROW_SPACE + backing::Totals::INIT_SPACE + groups::SPACE;
     #[cfg(all(feature = "verified-coverage", not(feature = "grouped-credit")))]
-    const SPACE: usize = Self::ROW_SPACE + backing::Totals::INIT_SPACE;
+    pub(crate) const SPACE: usize = Self::ROW_SPACE + backing::Totals::INIT_SPACE;
     #[cfg(not(feature = "verified-coverage"))]
-    const SPACE: usize = Self::ROW_SPACE;
+    pub(crate) const SPACE: usize = Self::ROW_SPACE;
 
     fn bounds(&self) -> Bounds {
         Bounds {

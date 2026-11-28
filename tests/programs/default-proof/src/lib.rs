@@ -1,10 +1,22 @@
-//! Isolated local diagnostic. Its PDA contains a synthetic frozen book and a
-//! restartable selection result. It has no clearing account or custody authority.
+//! Isolated local qualification program for default selection, trading and test-token custody.
+//! Each custody instance controls only its own SPL vault.
 use anchor_lang::prelude::*;
 mod basis;
 mod coverage;
+// Anchor emits client account imports for all handlers, even feature-gated ones.
+#[cfg_attr(not(feature = "signed-indexed-default"), allow(dead_code))]
+mod indexed_default;
+use indexed_default::*;
 use coverage::*;
 mod mirror;
+mod withdrawal;
+mod slot_custody;
+mod slot_trading;
+mod three_market_default;
+use three_market_default::*;
+use slot_trading::*;
+use slot_custody::*;
+use withdrawal::*;
 use basis::*;
 use default_plan_selection as selection;
 use mirror::*;
@@ -51,6 +63,104 @@ pub struct ContinueProof {
 #[program]
 pub mod default_proof_probe {
     use super::*;
+
+    #[cfg(feature = "signed-indexed-default")]
+    pub fn register_indexed_book(ctx: &mut Context<RegisterIndexed>, members: Vec<MemberMode>, ids: Vec<u16>) -> Result<()> {
+        indexed_default::register(ctx, members, ids)
+    }
+    #[cfg(feature = "signed-indexed-default")]
+    pub fn settle_indexed_book(ctx: &mut Context<SettleIndexed>, digest: [u8;32], proof: RatesProof) -> Result<()> {
+        indexed_default::settle(ctx, digest, proof)
+    }
+    #[cfg(feature = "signed-indexed-default")]
+    pub fn inspect_indexed_book(_ctx: &mut Context<InspectIndexed>, width: u8, cells: Vec<ProbeMember>, proof: RatesProof) -> Result<Vec<u64>> {
+        indexed_default::inspect(width, cells, proof)
+    }
+
+    #[cfg(feature = "signed-indexed-default")]
+    pub fn inspect_market_priority(_ctx: &mut Context<InspectIndexed>, ids: Vec<u16>, reserves: Vec<u64>,
+        episode: u64, cells: Vec<ProbeMember>, proof: RatesProof) -> Result<Vec<u64>> {
+        indexed_default::inspect_priority(ids, reserves, episode, cells, proof)
+    }
+
+    #[cfg(feature = "signed-three-market-default")]
+    pub fn configure_default(ctx: &mut Context<ConfigureDefault>, owners: [Address; 5], ids: [u16; 3]) -> Result<()> {
+        three_market_default::configure(ctx, owners, ids)
+    }
+    #[cfg(feature = "signed-three-market-default")]
+    pub fn freeze_default(ctx: &mut Context<ResolveDefault>) -> Result<()> {
+        three_market_default::freeze(ctx)
+    }
+    #[cfg(feature = "signed-three-market-default")]
+    pub fn apply_default(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charge: u64) -> Result<()> {
+        three_market_default::apply(ctx, commitment, three_market_default::Charges::Single(charge))
+    }
+
+    #[cfg(feature = "signed-three-market-default")]
+    pub fn apply_competing_default(ctx: &mut Context<ResolveDefault>, commitment: [u8; 32], charges: [u64; 2]) -> Result<()> {
+        three_market_default::apply(ctx, commitment, three_market_default::Charges::Competing(charges))
+    }
+
+    pub fn open_trade_root(ctx: &mut Context<OpenTradeRoot>, isolated: u16) -> Result<()> {
+        slot_trading::open_root(ctx, isolated)
+    }
+    pub fn open_trade_market(ctx: &mut Context<OpenTradeMarket>, id: u16) -> Result<()> {
+        slot_trading::open_market(ctx, id)
+    }
+    pub fn publish_trade_market(ctx: &mut Context<PublishTradeMarket>, revision: u64, price: u64, funding_atoms: i64) -> Result<()> {
+        slot_trading::publish(ctx, revision, price, funding_atoms)
+    }
+    pub fn deposit_trade_cash(ctx: &mut Context<TradeWallet>, revision: u64, amount: u64) -> Result<()> {
+        slot_trading::wallet(ctx, revision, amount, false)
+    }
+    pub fn withdraw_trade_cash(ctx: &mut Context<TradeWallet>, revision: u64, amount: u64) -> Result<()> {
+        slot_trading::wallet(ctx, revision, amount, true)
+    }
+    pub fn place_trade_order(ctx: &mut Context<TraderOrder>, revision: u64, terms: OrderTerms) -> Result<()> {
+        slot_trading::place(ctx, revision, terms)
+    }
+    pub fn cancel_trade_order(ctx: &mut Context<TraderOrder>, revision: u64) -> Result<()> {
+        slot_trading::cancel(ctx, revision)
+    }
+    pub fn fill_trade_order(ctx: &mut Context<MatchTrade>, trader_revision: u64, maker_revision: u64, price_revision: u64, lots: u64) -> Result<()> {
+        slot_trading::execute(ctx, trader_revision, maker_revision, price_revision, lots)
+    }
+
+    pub fn transfer_trade_risk(ctx: &mut Context<TransferRisk>, target_revision: u64, receiver_revision: u64,
+        price_revision: u64, lots: u64, price: u64) -> Result<TransferOutcome> {
+        slot_trading::transfer(ctx, target_revision, receiver_revision, price_revision, lots, price)
+    }
+
+    pub fn open_slot_custody(ctx: &mut Context<OpenSlotCustody>) -> Result<()> {
+        slot_custody::open(ctx)
+    }
+    pub fn create_slot_market(ctx: &mut Context<CreateSlotMarket>, market: u16) -> Result<()> {
+        slot_custody::market(ctx, market)
+    }
+    pub fn create_slot_margin(ctx: &mut Context<CreateSlotMargin>, width: u8, child: u8) -> Result<()> {
+        slot_custody::prepare(ctx, width, child)
+    }
+    pub fn fund_slot_margin(ctx: &mut Context<SlotWallet>, revision: u64, amount: u64) -> Result<()> {
+        slot_custody::fund(ctx, revision, amount)
+    }
+    pub fn withdraw_slot_cash(ctx: &mut Context<SlotWallet>, revision: u64, amount: u64) -> Result<()> {
+        slot_custody::withdraw(ctx, revision, amount)
+    }
+    pub fn transfer_slot_cash(ctx: &mut Context<SlotTransfer>, revision: u64, amount: u64) -> Result<()> {
+        slot_custody::transfer(ctx, revision, amount)
+    }
+
+    pub fn prepare_width_book(ctx: &mut Context<PrepareWidthBook>, width: u8) -> Result<()> {
+        withdrawal::prepare_book(ctx, width)
+    }
+
+    pub fn prepare_width_window(ctx: &mut Context<PrepareWidthWindow>, ordinal: u8) -> Result<()> {
+        withdrawal::prepare_window(ctx, ordinal)
+    }
+
+    pub fn check_width_exit(ctx: &mut Context<CheckWidthExit>, amount: u64) -> Result<u64> {
+        withdrawal::assess(ctx, amount)
+    }
 
     pub fn prepare_coverage(ctx: &mut Context<PrepareCoverage>, lane: u8) -> Result<()> {
         coverage::prepare(ctx, lane)
@@ -178,4 +288,15 @@ pub enum ProofError {
     StorageFunding,
     WrongMirrorWinner,
     CoverageDebt,
+    WithdrawalHealth,
+    CustodyBinding,
+    TradeTerms,
+    TradeHealth,
+    HealthyTarget,
+    NoLiquidationProgress,
+    ReceiverHealth,
+    DefaultPhase,
+    DefaultRoster,
+    DefaultCharge,
+    DefaultCommitment,
 }

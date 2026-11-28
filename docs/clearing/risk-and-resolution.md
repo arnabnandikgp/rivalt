@@ -36,6 +36,32 @@ a caller omit a losing market; empty unrelated slots need no fresh price. Shared
 collateral sources remain relevant to exposed collateral-denominated positions.
 Cancellation outside frozen ownership needs no source or maker quote.
 
+### Observing the index of an inactive listing
+
+On the local listing profile, the venue authority binds four read-only sources
+for each listing. The asset's primary feed comes from registration. Both
+collateral feeds come from the venue's existing oracle configuration. The guard
+asset PDA uses the same underlying symbol and the independent collateral guard's
+publisher. Binding requires the listing's publisher to match the primary
+collateral publisher. The bindings are permanent for this listing-index PDA.
+
+Anyone can call `observe_listing_index`. Clearing authenticates the feeds, checks
+verification level and sequence, then applies the existing `market_bounds` policy
+at the listing's lot scale. The current policy supports 100,000 and 1,000,000
+lots per whole asset. A listing with another scale cannot record an observation.
+The reference is the primary asset/collateral ratio
+rounded down in collateral atoms per lot. The lower and upper values include both
+sources' confidence intervals and the existing one-percent risk envelope. The
+earliest source expiry sets the observation deadline. At least one feed must have
+advanced and at least two seconds must separate accepted observations.
+
+Only a fully qualified four-source observation is recorded. A failed refresh
+leaves the previous values and their original deadline in place. A nonzero
+reference is therefore a historical sample; consumers must inspect the deadline
+and the listing's admission state. The inactive listing has no funding rate,
+trading permission or effect on any account's margin.
+[Price arithmetic](../../crates/financial-core/src/oracle.rs) · [On-chain source checks](../../programs/clearing/src/instructions/listing_index.rs)
+
 ### Risk equations in code
 
 | Question | Calculation and source |
@@ -52,6 +78,37 @@ transaction. For liquidation, `liquidate` verifies the caller and both accounts,
 constructs the funded transfer, and commits the accepted pair. [Withdrawal handler](../../programs/clearing/src/instructions/account_cash/cash.rs),
 [withdrawal candidate](../../programs/clearing/src/instructions/account_cash/engine.rs),
 [liquidation handler](../../programs/clearing/src/instructions/account_safety/risk.rs)
+
+### Withdrawal risk across occupied markets
+
+The selected BTC/ETH build enumerates four funding corners. The opt-in local
+`indexed-withdrawal` clearing build applies the same two requirements to owner
+withdrawals and the donor side of funded transfers after accruing positions and
+refreshing order reservations. At current funding, retained cash must cover negative claims,
+per-market initial margin rounded up in atoms, and remaining order reservations.
+Across the held funding window, retained cash must cover negative claims. Keep
+fractional losses at full scale until comparing them to whole cash atoms.
+
+At a fixed adverse index price, increasing the funding index decreases a long's
+claim and increases a short's claim. Taking only the negative part preserves
+that ordering. With independent funding windows, the worst simultaneous loss
+is therefore the sum obtained by choosing high funding for each long and low
+funding for each short. A flat debt is fixed and a positive unpaid claim
+contributes zero. This lets one pass over the occupied markets calculate both
+cash requirements. The argument depends on the current additive risk rule and
+independent windows.
+
+On the local venue adapter, clearing derives required markets from the stored
+account before refreshing orders. Each supplied market must match its PDA,
+venue registry entry and market index. A live order can require a market even
+when the account has no position there. After refresh, the adapter passes every
+nonzero position or flat claim and the total surviving reservation to the risk
+kernel. Only open positions contribute funding windows. An omitted occupied
+market aborts the entire transaction, including its checkpoints. The venue
+account layout still has two slots. [Clearing adapter](../../programs/clearing/src/instructions/account_cash/engine.rs)
+
+The risk kernel takes occupied slots in market-ID order. Its funding windows cover every open position. The original signed width comparison uses read-only synthetic inputs. The [funded custody qualification](accounts.md#funded-custody-qualification) derives the required observations from persisted slots on both roots, including order-only markets, before applying the same kernel and moving test collateral. The production oracle adapter and general order lifecycle still need wider integration.
+[Risk calculation](../../crates/risk-engine/src/withdrawal.rs) · [Qualification](../operations/qualification-scorecard.md#withdrawal-risk-at-two-four-and-eight-markets)
 
 ## Orders and protection
 
@@ -94,6 +151,12 @@ target cash)` atoms, transferred to receiver, with no additional insurance tax.
 After fees, selected absolute exposure and whole-account MM deficit must both
 strictly decrease. Mere exposure reduction is insufficient. Failure rolls back
 funding, orders, positions and fee. No forced unfunded receiver or hidden subsidy.
+
+### Funded receiver on a sparse cross account
+
+The local width fixture lets any fee payer submit a transfer signed by the receiving cross trader. The target owner supplies no signature. The program reads the current observations for both accounts, the selected position and surviving orders. A target order that increases risk is cancelled atomically. Orders on the receiver still reserve collateral. A reduce-only order can execute only against the remaining eligible quantity in its original position generation.
+
+The target’s maintenance shortfall includes its flat debts and the negative claim on each open position at its current funding index and adverse price. Each market’s maintenance requirement rounds up separately. The signed transfer price must fall within the existing receiver price band. The target transfers signed lots to the receiver at the agreed price. Each account updates its own entry cost. The target pays the receiver fee from funded cash. The transaction succeeds only if the resulting shortfall is strictly smaller and the receiver’s funded equity supports its initial margin and remaining orders. The result returns the before and after shortfall in scaled atoms and the fee in whole atoms. [Receiver implementation](../../tests/programs/default-proof/src/slot_trading/liquidation.rs)
 
 ### Maker liquidation
 
@@ -164,6 +227,50 @@ Before activation, qualify cycles, multiple sources, fractional ownership,
 terminal rounding, forced reductions, insurance use and every final withdrawal
 against a complete independent book. [Finding 11](../operations/qualification-scorecard.md#payout-and-cross-margin-work)
 
+### Settlement across a frozen set of markets
+
+The native engine takes the expected market IDs and member roster, the market snapshots, and each member’s funded cash and signed market claims after index valuation and funding. It checks both rosters for completeness, orders by stable ID, checks that each market's net claim equals its settlement pool, and reconciles cash, pools, reserves and retained fees to the vault. The signed verifier below authenticates them for its bounded local profile.
+
+First collect each debtor’s own cash up to its total debt rounded down to whole atoms. Split that collection by the original exact debt proportions. At a given set of market recovery rates, sum everything the account actually recovers. Forward those proceeds by the frozen proportions among destinations that still have unpaid debt. Whenever a destination reaches its cap, the remaining destinations divide the next proceeds by their relative original weights. The debtor keeps any excess once all debts are paid.
+
+For example, with debts of 150, 120 and 30 in three markets, 150 recovered atoms from a fourth market cover 75, 60 and 15. If the first destination holds 25 insurance atoms, its creditor receives 100. Each destination’s reserve covers only its own shortfall.
+
+**How the native solver verifies the rates.** Each market pays at most its face claims and the resources available from its pool, own-cash collections, incoming recoveries and insurance. The engine finds the greatest rates satisfying those constraints simultaneously. This permits reciprocal claims to offset in a cashless cycle while every outside creditor still participates at its market’s rate. With the original debt proportions, one linear allocation per linked debtor suffices. Unequal debt caps after reductions can create several successive allocations per debtor. The engine checks the feasible combinations using exact rational linear programs, then verifies the winning rates against the original cash flows. Runtime can grow with the product of those choices. The present implementation uses a dense matrix in host memory. [Rate calculation](../../crates/financial-core/src/clearing/market_settlement/rates.rs)
+
+Each fractional reserve draw reduces that market’s budget to its whole-atom floor and triggers a fresh solve. A reserve can be clipped once, so a book with `M` markets needs at most `M + 1` budget passes. Round terminal cash flows over the complete member-and-market network in stable ID order. Reconcile each market's residual writeoffs to its creditor impairments and the complete whole-atom settlement to the original vault. [Native qualification](../operations/qualification-scorecard.md#one-settlement-engine-across-market-widths)
+
+For simultaneous forced reductions, clearing must evaluate all concessions against the same original lot and debtor budgets, preserve the division of funded cash and verify all protected payouts before application. The native engine can compare a nominated package. The five-member verifier covers the previously qualified competing-winner cases. The market-indexed verifier below checks a different class of books. Wider venue activation remains open. [Default comparisons](default-plan-verification.md#comparing-reductions-in-several-markets)
+
+#### Signed verification across market IDs
+
+The local test program registers the member PDAs, their modes and a sorted list of market IDs before accepting trades. A permissionless caller submits a digest of the complete trading accounts and market accounts, a proposed charge allocation and exact recovery rates for every competing allocation. One instruction authenticates every account, checks the index and funding windows, verifies the original exposure and the winning allocation, and writes the funded balances and matched lots. A reprice or fill changes the digest. The caller must then price the new book. A refusal leaves trading and withdrawals in their original state. After a successful terminal settlement, each owner can withdraw from SPL custody. [Program](../../tests/programs/default-proof/src/indexed_default/mod.rs)
+
+Each debtor contributes its funded cash in the proportions of its original market debts. A forced reduction can reduce the balance owed to one market. When the debtor receives money from another position, split it by the same original weights among destinations with unpaid balances. Once a destination is full, divide the excess among the others. Each market then contributes its own insurance up to its remaining shortfall. A fractional insurance draw reduces the budget to its whole-atom floor. The caller must prove both the rates before clipping and the rates under the smaller budget. The program debits the verified whole draw when applying the settlement. Retained fees stay in the vault.
+
+For every candidate and insurance pass, the verifier checks that the payments implied by the supplied rates equal these flows. Every partially paid market needs a path through creditors to a fully paid market or a member whose remaining debts are paid. An increase in receipts sends a positive share along every unsaturated destination of that member. Some of the increase therefore leaves the network through that path, while the other members can forward at most what they receive. This rules out a larger self-financed payment. A closed cashless cycle can settle at par. [Rate certificate](../../crates/default-plan-selection/src/market_indexed/mod.rs)
+
+The original uninsured writeoff bounds each debtor’s charge. With several debtors in a market, allocate the uncovered part of its loss in proportion to their remaining debts. The verifier checks every whole-atom charge combination within that limit and the surviving entry and lot limits. For the selected plan it computes deterministic whole-atom transfers on the entire book. If ordinary rounding would reduce a protected creditor below its baseline whole receipt less its own direct concession, repeat the circulation with those receipts as minimums. Every member and market must balance. The host and program share this circulation algorithm. [Atom rounding](../../crates/financial-core/src/clearing/atom_rounding.rs)
+
+If no debtor and opposing winner can match even one eligible atom, the verified baseline is the only allocation. Settlement then requires a positive exact creditor shortfall in at least one market after cash, cross-market recoveries and available insurance. Clearing rounds those baseline payments once, records zero charges and matched lots, and credits the terminal balances. A fully covered book refuses terminal settlement. An oversized or unsupported set of eligible reductions also refuses. The caller cannot select the baseline to skip an available reduction. [Residual-only qualification](../operations/qualification-scorecard.md#residual-settlement-with-open-positions)
+
+The local format admits up to eight registered market IDs, twelve members and sixteen allocations. Original claims must be whole atoms, and simultaneous charged markets each have one opposing pair. Each rate pass must fit its exact flows and rates on a common 32-bit denominator. For the single-pair path, the verifier requires a strictly best positive recovery and may refuse when a rival can only be ruled out by rounding or a secondary priority rule. Population, compute and wire limits for larger books still need qualification. [Signed four-market settlement](../operations/qualification-scorecard.md#signed-market-indexed-settlement) · [Insured settlement](../operations/qualification-scorecard.md#insured-settlement-with-two-debt-destinations)
+
+The competing-winner path admits up to two winners against one debtor per charged market. The other registered markets still participate in funding, insurance and creditor protection. The recovery ceiling is the lesser of that debtor’s original whole-atom writeoff and the sum of the two available winner capacities. Each candidate must respect shared debtor lots. Smaller combined charges cannot recover more than their amount. Once a protected split actually removes the ceiling amount of impairment, only other splits of that same total can tie.
+
+The program derives both weights and the minimum lots for each charge from the original entries, claims and available debtor lots. It bounds the split by each winner’s capacity and rejects any split that needs the same debtor lot twice. For every physically possible split in the supported range, the caller supplies rates for the complete book. Among plans attaining that bound with exact creditor protection, order by proportional deviation, fewer lots closed and the frozen member priority. Verify protected whole-atom payouts for the selected split before applying it. If a better-ranked rival could only be excluded by rounding, the verifier can refuse the book. For simultaneous competition each target must actually recover its own capacity bound. The verifier evaluates the Cartesian product of splits across those markets, up to sixteen combinations. A rival dominates if it improves proportional sharing in one market without worsening it elsewhere. On identical sharing, fewer lots in one market without more elsewhere wins. Only identical sharing and lot costs across markets reach frozen member priority. If proportional deviations favor different markets on a wider asymmetric book, the bounded verifier compares the deviations in frozen market priority order. This requires identical per-market insurance and protected whole-atom payouts for every finalist. A finalist that closes more lots in one market and no fewer in any other yields to the lower-volume finalist before frozen market priority is applied. It uses the original row multisets to prove that the competing markets have distinct financial exposures. If it cannot distinguish the markets, attain the recovery bounds or certify the other conditions, this comparison refuses. [Approved market order](../DECISIONS.md#28-november-2026--use-frozen-market-priority-for-asymmetric-protected-finalists)
+
+On a wider asymmetric book, several protected finalists can share the same loss more evenly in different markets. When all use the same market insurance, compare the forced lots within each market. Eliminate a plan if a competitor closes fewer lots in one market and no more in any other. Compare the survivors' sharing deviations in frozen market order. If every deviation ties, use the lot counts in that same order, then the frozen member order. This comparison requires protected whole-atom payouts for every finalist. [Independent example](../operations/qualification-scorecard.md#forced-volume-by-market)
+
+The local custody can enter terminal settlement once. Its address, episode ordinal one and pre-registered member ordinal determine the final tie. Waiting another slot cannot change it. Fresh local custody appends one receipt per competing market with its full market ID, both member ordinals, charges and matched lot counts. The earlier fixture layout remains identified by its pinned build. [Verifier](../../crates/default-plan-selection/src/market_indexed/competition.rs) · [Signed comparison](../operations/qualification-scorecard.md#two-winners-on-a-four-market-book)
+
+### Verifying a default on the funded venue
+
+The local `venue-default-verifier` exposes `verify_indexed_default` on a venue frozen for insolvency. It reads the existing resolution account, token vault, custody, safety and registry accounts, both markets and ledgers, recovery storage and each financial margin account in ascending stable ID order. Clearing checks the current frozen episode, reconciles gross lots, cash and pool balances, and values every position at the frozen index and funding. Positive open gains also require the original position's surviving entry and opposing lots before a reduction can be certified.
+
+A successful call returns one whole-atom cash entitlement per member, followed by insurance spent and forced charges per market. The read-only call leaves every margin account, ledger and wallet untouched. This local adapter accepts at most twelve members and currently requires whole-atom input claims representable as signed 32-bit integers, with member cash representable as unsigned 32-bit integers. Wider books and fractional claims need their own application path. [Venue adapter](../../programs/clearing/src/instructions/account_safety/settlement/indexed.rs)
+
+The local `listed-venue-default` profile also freezes the listed market alongside BTC and ETH. Clearing verifies the complete book and applies the entitlements atomically. The owners can then withdraw their funded cash. [Listed-market settlement and supported bounds](default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market)
+
 ### Current two-market equations
 
 For the set of claims being settled, let `W_m` be the sum of positive claims in a market, and `B_m` its initial P plus
@@ -206,3 +313,10 @@ unclipped rational benchmark; uncollected sub-atom debt and clipped insurance
 remain separately reported.
 
 [Frozen profit and verification](default-plan-verification.md) explains how permitted forced reductions change creditor claims before the residual payout calculation. Clearing binds each member's payout to a complete plan, applies it once, and reconciles balances, market pools and SPL custody before resolved withdrawals. [Recovery measurements](../operations/validation.md)
+
+
+### Applying an indexed result on the local venue
+
+The `venue-default-application` profile can bind a verified plan after clearing values the complete original membership. The caller supplies the episode, current prepared revision, rate witness and every authenticated frozen page in ordinal order. Clearing reconstructs each winner's capacity from its frozen entry, verifies the selection, and checks that claim adjustments sum to zero per market, individual cash postings conserve collateral and total payments equal the available pools plus insurance spent. The binding stores these results once in the frozen rows.
+
+The common settlement controller applies the stored postings to the actual margin accounts and reconciles custody before moving the venue to Resolved. Owners may then sign their own SPL withdrawals. This profile operates on the venue’s BTC and ETH settlement header. The indexed verifier’s separate width and numeric bounds still apply. [Funded acceptance](../operations/qualification-scorecard.md#applying-the-verified-payouts-on-the-venue)

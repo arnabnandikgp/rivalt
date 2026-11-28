@@ -26,6 +26,17 @@ book-inventory-qualification = ["partial-inventory-qualification"]
 unified-recovery-qualification = ["populated-recovery-qualification"]
 execution-router-qualification = ["unified-recovery-qualification"]
 direct-closed-credit = ["verified-coverage"]
+listed-venue-default = ["listed-venue-cash"]
+listed-venue-cash = ["listed-venue-execution"]
+listed-venue-execution = ["listed-margin-storage"]
+listed-margin-storage = ["listed-funding"]
+listed-funding = ["listed-market-directory"]
+listed-market-directory = ["venue-default-application"]
+venue-default-application = ["venue-default-verifier"]
+venue-default-verifier = ["listed-maker-admission", "default-plan-selection/indexed-settlement"]
+listed-maker-admission = ["inactive-market-listing"]
+inactive-market-listing = ["indexed-withdrawal"]
+indexed-withdrawal = ["grouped-credit"]
 grouped-credit = ["thousand-member-credit"]
 thousand-member-credit = ["direct-closed-credit"]
 verified-coverage = ["maintained-coverage"]
@@ -75,3 +86,7 @@ maker-interface = { path = "../../crates/maker-interface" }
 solana-sha256-hasher = { version = "=3.1.0", features = ["sha2"] }
 
 oracle-fixture = { path = "../../tests/fixtures/oracle", features = ["state-only"] }
+
+[[example]]
+name = "occupied-markets"
+required-features = ["bounded-entry-settlement"]

@@ -36,6 +36,8 @@ mod rates;
 pub use rates::*;
 mod plan;
 pub use plan::*;
+#[cfg(feature="venue-default-verifier")]
+pub mod indexed;
 mod source;
 mod workspace;
 pub use contexts::*;

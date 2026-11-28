@@ -3,7 +3,7 @@ compile_error!("Local maker qualification cannot be combined with the devnet pro
 
 // Shared implementation compiled into two distinct first-party program deployments.
 use anchor_lang::prelude::*;
-use clearing::state::accounts::{MarginAccount, Market, Venue, MODE_ISOLATED, ROLE_MAKER};
+use clearing::state::accounts::{MarginAccount, Market, MarketListing, Venue, MODE_ISOLATED, ROLE_MAKER};
 
 #[cfg(not(feature = "devnet-test-profile"))]
 const CLEARING_ID: Address = Address::from_str_const("Egn8THHpn7AxDMZKgBKui5YTdTcwn2wxwXkFuKzDDbKo");
