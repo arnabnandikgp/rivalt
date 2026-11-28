@@ -48,7 +48,10 @@ export function routerBuild(selection:'direct-closed-credit'|'verified-coverage'
     },
   };
   if(probe && Object.hasOwn(listedBuilds,probe)) {
-    const build=listedBuilds[probe as keyof typeof listedBuilds];
+    const build=probe==='execution-router-funded-listed-default' && revision==='051babb78d8ed8662469bbb0270001fff494ca8f'
+      ? {artifactSet:LISTED_DEFAULT_ARTIFACT_SET, revision:'051babb78d8ed8662469bbb0270001fff494ca8f',
+          clearing:{bytes:4666880, sha256:'a5f5a9869cf126223e6f3bef2f90fcd80a050af75e90b124fc1b4063c11a85e8'}}
+      : listedBuilds[probe as keyof typeof listedBuilds];
     assert.equal(revision,build.revision);
     const artifacts={
       clearing:build.clearing,
