@@ -103,3 +103,14 @@ open positions on both sides of a transfer. It still charges flat debt and
 checks the donor's full current and held-window requirements. The legacy
 two-market payout and default instructions stay gated on this profile.
 [Cash access contract](clearing/accounts.md#cash-access-on-the-funded-listed-market-qualification-venue)
+
+### 28 November 2026 · Bind wider default to the funded venue and its complete membership
+
+The local wider venue freezes all admitted markets in a dedicated episode.
+That record preserves the original market attribution of debt and insurance
+through verification and payment. The existing two-market recovery header
+cannot represent the listed-market position, fee balance or insurance carry.
+Clearing therefore verifies the complete market-indexed book and applies the
+funded balances together before enabling terminal owner withdrawals. General
+market admission still requires a recovery path for the financial books a
+venue can reach. [Funded venue default contract](clearing/default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market)

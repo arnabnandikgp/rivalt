@@ -69,3 +69,40 @@ The market-indexed native comparison takes a complete frozen book and a package 
 In every market where another market took action, insurance spend and total impairment may not rise. Each creditor keeps its baseline exact and rounded receipts less any verified concession on that same claim. A flat creditor has zero allowance. First use ordinary deterministic rounding, then impose receipt floors if any creditor would lose a protected atom. Compare actual impairment removed per market, capped by its total assigned charge. Global ranking and authentication of the best package remain separate steps. [Native comparison](../../crates/financial-core/src/clearing/market_settlement/reduction/joint.rs) · [Qualification](../operations/qualification-scorecard.md#one-settlement-engine-across-market-widths)
 
 [Selection and ordering](../../crates/default-plan-selection/src/) · [Settlement verifier](../../crates/financial-core/src/clearing/) · [On-chain controller](../../programs/clearing/src/instructions/account_safety/settlement/) · [Detailed equations, ranking and proof families](https://github.com/arnabnandikgp/rivalt/blob/9c4825830842b6cd316ebd6c8458ecc9d34e28a9/docs/clearing/default-plan-verification.md)
+
+## Default on a funded venue with a listed market
+
+In the local `listed-venue-default` profile anyone can submit
+`freeze_listed_default` for a financial member. Clearing authenticates the
+target's membership and each market in the venue directory. It prices the
+target's inline and listed positions using the bound asset and collateral
+feeds and the funding earned at that clock. Open exposure requires negative
+economic equity. A flat account can also default when its gross unpaid debt
+exceeds its funded cash. Margin failure alone cannot trigger this operation.
+
+The episode PDA uses the seeds `["listed-default", venue]`. It records the
+membership commitment and count, venue and safety epochs, allocated vault
+balance, and each market's ID, reference price, funding index, gross lots,
+settlement pool, insurance, retained fees and insurance carry. The freeze
+advances the venue and safety epochs and pauses financial activity. It makes
+no transfer from the SPL vault.
+
+For `settle_listed_default`, anyone can supply the proposed rates, every
+listed book in frozen market order and every financial margin account in
+stable member order. Clearing authenticates the addresses, values every
+position at the frozen indices and derives each potential winner's eligible
+charge from its stored entry cost. The market-indexed verifier checks the
+debt allocation, market insurance, creditor protections and selected plan.
+Clearing reconciles the original and terminal cash totals to the allocated
+vault before committing. One transaction clears all positions and orders,
+retires the old market-capacity generations and assigns each member its funded
+cash. After settlement each owner can withdraw that cash to its own token
+account. No oracle update or keeper signature is required for the withdrawal.
+
+The verifier accepts up to 12 financial members and eight market columns, with
+whole-atom initial claims representable as signed 32-bit integers and the
+bounded recovery plans in the indexed verifier. A fractional initial claim can
+establish insolvency even when this verifier cannot settle the resulting book.
+The local qualification venue can remain frozen on unsupported books. These
+bounds keep general wider trading gated. The signed venue workload uses one
+listed market alongside the two inline markets.

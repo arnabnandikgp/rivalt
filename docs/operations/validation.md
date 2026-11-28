@@ -260,7 +260,7 @@ clients agreed with the generated SDK. Two fresh PostgreSQL journals produced
 identical financial events. Finalized account reads confirmed the maker's
 consumption, the trader's 42,981 cash atoms, one collected SOL-market fee atom
 and an unchanged SPL vault. The preceding withdrawal occurred before the SOL
-order. Wider cash exits and default remain pending.
+order. The subsequent runs below cover wider cash access and default.
 
 ### Signed cash access with three open venue positions
 
@@ -287,4 +287,47 @@ Surfpool RPC/WS confirmed 369 signed transactions. Two PostgreSQL 18.6 journals 
 209 financial events. A separate finalized read reconciled 209 accounts, 12 financial members,
 and all 7,340,248 remaining vault atoms. The signed fixture had zero funding premium.
 Focused native and indexer vectors exercised a nonzero funding debit and the adverse held endpoint.
-Wider venue default and creditor wallet exits remain open.
+The following default run starts from these same funded balances.
+
+### Funded venue default and creditor wallet exits
+
+Use clearing `8b5a08080663ef19610b9276bd3d599aa5cc37cf` and harness
+`74408ac0752e8634f7cfa678391f4222c9ba6ee2`. Build the local
+`listed-venue-default` artifact with `ops/build-profit-attribution.sh`. Set
+`RIVALT_SETTLEMENT_ARTIFACT_DIR` to its output and `RIVALT_ROUTER_REVISION` to
+the program revision. Run
+`RIVALT_SETTLEMENT_PROBE=execution-router-funded-listed-default bash ops/scalable-settlement-smoke.sh`.
+
+The cross trader had 40,174 funded atoms and positions of +1 BTC lot, −10 ETH
+lots and +10 SOL lots. Signed fixture price updates moved the per-lot indices
+to 53,002, 33,498 and 332. The respective claims were −7,000, −35,000 and
++1,800 atoms, leaving a 26-atom shortfall. All three funding indices were zero.
+The freeze bound the 12-member cohort and the three markets' resources.
+The signed settlement matched the independent Python reference across
+14 candidate plans. It charged the BTC and ETH winning positions 1 and 6
+atoms and spent 3 BTC-market and 15 ETH-market insurance atoms.
+
+| Signed transaction | CU | Accounts | Wire bytes |
+|---|---:|---:|---:|
+| Freeze with both inline market and fee checkpoints | 143,761 | 34 | 1,342 |
+| Verify and settle the entire frozen book | 398,896 | 26 | 1,236 |
+| Withdraw the BTC maker's funded balance to its owner's wallet | 31,100 | 13 | 678 |
+
+The BTC and ETH makers received 1,006,999 and 1,034,993 atoms, including
+their original cash. The SOL maker received 98,200. Across all accounts, ten
+owner-signed SPL transfers paid 7,340,192 atoms. The insolvent trader and its
+empty child had zero balances. The vault retained 10, 45 and 1 fee atoms by
+market. Both allocated and actual vault balances were 56.
+
+Seven signed refusals covered a solvent target, an omitted listing, a wallet
+withdrawal during freeze, a missing creditor, two incorrect default proposals
+and settlement replay. Each left the watched financial accounts unchanged.
+Surfpool RPC/WS verified 390 signed transactions. Independent PostgreSQL
+journals matched all 235 financial events and the complete projected state.
+Finalized RPC reconciled all 210 accounts at slot 3,221. The isolated legacy
+Anchor client and RC2 client matched the generated SDK on the signed instruction,
+event and episode account bytes.
+
+The four-market, partial-recovery and creditor-rounding cases in the
+[scorecard](qualification-scorecard.md) used separate fixtures. General
+admission remains gated by the [funded venue verifier's limits](../clearing/default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market).

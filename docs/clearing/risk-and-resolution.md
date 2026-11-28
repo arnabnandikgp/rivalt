@@ -269,6 +269,8 @@ The local `venue-default-verifier` exposes `verify_indexed_default` on a venue f
 
 A successful call returns one whole-atom cash entitlement per member, followed by insurance spent and forced charges per market. The read-only call leaves every margin account, ledger and wallet untouched. This local adapter accepts at most twelve members and currently requires whole-atom input claims representable as signed 32-bit integers, with member cash representable as unsigned 32-bit integers. Wider books and fractional claims need their own application path. [Venue adapter](../../programs/clearing/src/instructions/account_safety/settlement/indexed.rs)
 
+The local `listed-venue-default` profile also freezes the listed market alongside BTC and ETH. Clearing verifies the complete book and applies the entitlements atomically. The owners can then withdraw their funded cash. [Listed-market settlement and supported bounds](default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market)
+
 ### Current two-market equations
 
 For the set of claims being settled, let `W_m` be the sum of positive claims in a market, and `B_m` its initial P plus
