@@ -183,6 +183,12 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Next action.** Prepare a reproducible mixed wallet trace for Finding 6 that Finding 7 can replay against independently timed maker and oracle updates. General trading remains BTC/ETH. Wider activation requires a recovery path for books beyond this verifier's membership, claim and search bounds.
 
+**PR check selection in review.** At `7ca23dd8`, eight selector tests and five
+indexed settlement reference tests passed locally. Test discovery selected 10
+files for trader-only changes and 67 for indexer-only changes. The
+[validation guide](operations/validation.md#local-qualification-and-pr-checks)
+describes how to reuse signed acceptance across a stack.
+
 | Open gate | What remains |
 |---|---|
 | General wider cross-margin activation | Finding 11 qualifies the bounded funded three-market venue. Finding 10 tracks general admission. The local default verifier accepts at most 12 financial members and eight market columns, bounded plan searches and initially whole-atom claims. Unrestricted wider trading remains gated. |

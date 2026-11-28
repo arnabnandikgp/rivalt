@@ -14,6 +14,28 @@ Use the smallest check that exercises the changed behavior. For a financial tran
 | User-facing trade and payout | Verify wallet review and guards, actual fills, fees, inventory, funded and unpaid balances, vault movement and fresh SQL replay. [Wallet workload](local-development.md#wallet-load-comparison) |
 | CI scope | [Workflow](../../.github/workflows/pr-checks.yml) and [scope selector](../../ops/ci-scope.py). Broad regression belongs in the relevant CI jobs. |
 
+### Local qualification and PR checks
+
+Before opening a PR, exercise the changed behavior. Record the command, program
+and harness revisions, deployment profile and result for a signed qualification.
+Reuse that result across the stack while its source, inputs and dependencies are
+unchanged. If a later layer changes them, rerun the affected scenario on the
+combined revision. Program builds, IDL generation from Rust, Surfpool transactions
+and PostgreSQL reconciliation run locally.
+
+GitHub selects checks from the PR's delta against its parent. Documentation-only
+PRs run repository guards. Trader changes run the trader and demo tests and build
+the UI. Indexer changes run indexer and consumer tests. Shared SDK or event format
+changes run the full client suite. CI owns the broad client regression so a local
+pre-PR run can focus on the specific change.
+
+Shared financial crates and Rust dependencies select the broader reference tests.
+Indexed default changes select the settlement verifier, funded-book and Python
+rounding and allocation regressions. Rust fixture changes select the corresponding
+native crate. CI checks the generated SDK against the committed IDLs on shared
+client changes. A clean CI run covers the selected host checks. Signed financial
+acceptance uses the separately recorded deployment and wallet results.
+
 For the [withdrawal width comparison](qualification-scorecard.md#withdrawal-risk-at-two-four-and-eight-markets),
 run `cargo test --locked --offline -p financial-core --test withdrawal_width -- --nocapture`.
 Compare both cash requirements with all independent funding corners at two, four
