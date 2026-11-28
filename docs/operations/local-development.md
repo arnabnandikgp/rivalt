@@ -49,7 +49,7 @@ From the workload checkout, set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the absolute
 ```sh
 source ops/env.sh
 export RIVALT_ARTIFACT_DIR=.local/anchor-rc2/current
-: "${RIVALT_SETTLEMENT_ARTIFACT_DIR:?set this to the verified candidate build}"
+export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?set this to the verified candidate build}"
 export RIVALT_ROUTER_REVISION=986b3cd3287ff0e99ae777a98c192792f8a91883
 export RIVALT_SETTLEMENT_PROBE=execution-router-load
 export RIVALT_LOAD_TRADERS=16 RIVALT_LOAD_OFFERS=72 RIVALT_LOAD_GAP_MS=100
@@ -70,7 +70,7 @@ Use the `wide-atomic-routes` build at `b0e1a43f22699bb67335011ef7acfb2edf48b0d2`
 source ops/env.sh
 export RIVALT_ROUTER_REVISION=b0e1a43f22699bb67335011ef7acfb2edf48b0d2
 export RIVALT_SETTLEMENT_PROBE=execution-router-wallet-contention
-: "${RIVALT_SETTLEMENT_ARTIFACT_DIR:?set this to the verified wide-atomic-routes build}"
+export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?set this to the verified wide-atomic-routes build}"
 comparison_dir=".local/wallet-contention/run-$(date -u +%Y%m%dT%H%M%SZ)"
 for market in btc split eth; do
   RIVALT_CONTENTION_MARKETS="$market" RIVALT_RUN_DIR="$comparison_dir/$market" \

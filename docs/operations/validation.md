@@ -45,23 +45,25 @@ Use harness `49623912407acd0f124d6038ff230cdcf3e55dfd` to run two fresh
 BTC/ETH/SOL venues. Follow the [artifact setup](local-development.md#reproducing-a-qualification)
 in both checkouts.
 
-In the program checkout, choose an unused build directory. The build script
-records the source revision, selected profile and binary hashes.
+In the program checkout, choose an unused build directory under `.local/`.
+The build script records the source revision, selected profile and binary hashes.
 
 ```sh
 source ops/env.sh
-RIVALT_ATTRIBUTION_PROFILE=listed-venue-default bash ops/build-profit-attribution.sh
+export RIVALT_SETTLEMENT_ARTIFACT_DIR="$PWD/.local/profit-attribution/listed-default-$(date -u +%Y%m%dT%H%M%SZ)"
+RIVALT_ATTRIBUTION_DIR="$RIVALT_SETTLEMENT_ARTIFACT_DIR" \
+  RIVALT_ATTRIBUTION_PROFILE=listed-venue-default bash ops/build-profit-attribution.sh
 ```
 
-In the harness checkout, set `RIVALT_SETTLEMENT_ARTIFACT_DIR` to the absolute
-path of the resulting program build. The default output is
-`.local/profit-attribution/build-<full-program-revision>` in the program checkout.
-The wrapper uses a fresh run directory by default.
+Switch to the harness checkout in the same shell to reuse the exported path.
+If using a separate shell, set `RIVALT_SETTLEMENT_ARTIFACT_DIR` there to the
+absolute directory printed by the build. Each wrapper invocation uses a fresh
+run directory by default.
 
 ```sh
 source ops/env.sh
 export RIVALT_ROUTER_REVISION=69c2f5d559221309107055ace615d35cff7d115b
-: "${RIVALT_SETTLEMENT_ARTIFACT_DIR:?set this to the absolute program build directory}"
+export RIVALT_SETTLEMENT_ARTIFACT_DIR="${RIVALT_SETTLEMENT_ARTIFACT_DIR:?set this to the absolute program build directory}"
 export RIVALT_SETTLEMENT_PROBE=execution-router-funded-listed-default
 RIVALT_LISTED_DEFAULT_CASE=insured bash ops/scalable-settlement-smoke.sh
 RIVALT_LISTED_DEFAULT_CASE=residual bash ops/scalable-settlement-smoke.sh
