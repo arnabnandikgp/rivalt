@@ -16,6 +16,7 @@ import type {ExpectedInstructionError} from './instruction-errors.js';
 import {executionTestHelpers} from './liquidity-execution-helpers.js';
 import {liquidityExecutionSetup} from './liquidity-execution-setup.js';
 import {initializeFixtureFeed} from './oracle-fixture.js';
+import {qualifyFundedListedDefault} from './funded-listed-default.js';
 import {qualifyListedCash} from './listed-cash-access.js';
 import {registerFinancialTestMargin} from './account-membership-setup.js';
 import {qualifyListedExecution} from './listed-execution.js';
@@ -27,10 +28,11 @@ import {qualifyListingIndex} from './listing-index-qualification.js';
 import {openSettlementJournal} from './scalable-settlement-journal.js';
 
 const build=routerBuild(),execution=sdk.hasListedExecution(build.artifactSet),directory=process.env.RIVALT_RUN_DIR!;
-const testCash=build.artifactSet===sdk.LISTED_CASH_ARTIFACT_SET;
+const testCash=sdk.hasListedCash(build.artifactSet);
+const testDefault=build.artifactSet===sdk.LISTED_DEFAULT_ARTIFACT_SET;
 let observer:Awaited<ReturnType<typeof payerKey>>|undefined;
 const {rpc,ws,h:transport,checks,flush}=await openCanonicalRpcHarness(
-  process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:label=>label.startsWith('listed trade ')?1_400_000:label.startsWith('listed cash ')?600_000:undefined,heapSize:label=>label.startsWith('listed trade ')?256*1024:label.startsWith('listed cash ')?96*1024:undefined,payerFor:label=>label.startsWith('SOL sample ')?observer:undefined});
+  process.env.RIVALT_RPC_URL!,process.env.RIVALT_WS_URL!,directory,{deferFinality:true,computeUnitLimit:label=>label.startsWith('wider default ')?1_400_000:label.startsWith('listed trade ')?1_400_000:label.startsWith('listed cash ')?600_000:undefined,heapSize:label=>label.startsWith('wider default ')?256*1024:label.startsWith('listed trade ')?256*1024:label.startsWith('listed cash ')?96*1024:undefined,payerFor:label=>label.startsWith('SOL sample ')?observer:undefined});
 try {
   const payer=await payerKey(),{h,members,lanes}=coverageProvisioning(transport,payer);
   const testFunding=sdk.hasListedFunding(build.artifactSet);
@@ -111,6 +113,10 @@ try {
   const executed=execution && sealed && published ? await qualifyListedExecution(h,setup,listing,sealed,published) : undefined;
   const cashAccess=cashRecipient && published && executed
     ? await qualifyListedCash(h,setup,cashRecipient,published,listing,unusedId):undefined;
+  const settled=testDefault && executed && cashAccess && published && sealed
+    ? await qualifyFundedListedDefault(h,setup,{listing,funding:published.funding,book:executed.book,
+      directory:executed.directory,capitals:sealed.capitals,recipient:cashAccess.recipient}) : undefined;
+  assert.equal(Boolean(settled),testDefault);
   await flush();
   const accepted=checks.find(row=>row.label==='register inactive SOL market')!;
   const receipt=await rpc.call('getTransaction',[accepted.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]);
@@ -169,6 +175,13 @@ try {
     const landed=checks.find(row=>row.label===label)!;
     parity.record([ix],await rpc.call('getTransaction',[landed.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]));
   }
+  if(settled) {
+    keys.push({program:sdk.CLEARING_PROGRAM_ADDRESS,name:'listedDefault',key:settled.episode});
+    for(const [label,ix] of settled.signed) {
+      const landed=checks.find(row=>row.label===label)!;
+      parity.record([ix],await rpc.call('getTransaction',[landed.signature,{encoding:'json',commitment:'finalized',maxSupportedTransactionVersion:1}]));
+    }
+  }
   await parity.finish(directory,keys,h.read);
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
   const replay=await journal.finish();
@@ -183,22 +196,22 @@ try {
   }
   if(listedMaker) {
     assert.equal(replay.state.liquidity?.makers[listedMaker.registration]?.market,listing);
-    assert.equal(replay.state.roots[listedMaker.capital]?.cash,sealed?'100000':'0');
+    assert.equal(replay.state.roots[listedMaker.capital]?.cash,sealed && !settled?'100000':'0');
   }
   if(sealed) {
     assert.deepEqual(replay.state.liquidity?.registries[sealed.registry]?.registrations,sealed.registrations);
     assert.equal(replay.state.listings?.[listing]?.status,execution?2:1);
-    for(const capital of sealed.capitals)assert.equal(replay.state.roots[capital].cash,'100000');
+    for(const capital of sealed.capitals)assert.equal(replay.state.roots[capital].cash,settled?'0':'100000');
   }
   if(published && !execution) {
     assert.equal(replay.state.listedFunding?.[published.funding]?.values.oracle.bid,'5960000');
     assert.equal(replay.state.liquidity?.publishers[published.configuration].lastSequence,'3');
   }
-  if(wider) {
+  if(wider && !settled) {
     assert.equal(replay.state.roots[trader].cash,(wider.minimumCash+extraCash-(executed?.fee??0n)-(cashAccess?.maximum??0n)).toString());
     assert.deepEqual(replay.state.roots[trader].positions.map(position=>position.lots),['1','-10']);
   }
-  if(executed) {
+  if(executed && !settled) {
     const account=replay.state.roots[trader];
     const payload=replay.state.listedPositions?.[trader];
     assert(payload);
@@ -210,7 +223,13 @@ try {
     cash:executed.cash,lots:executed.lots,gross:executed.gross,fee:executed.fee,inlineLots:executed.inlineLots,
     receipt:checks.find(row=>row.label==='listed trade signed SOL buy beside BTC and ETH')};
   if(cashAccess)assert.equal(replay.state.roots[cashAccess.recipient].cash,'0');
-  const result={cashAccess:cashAccess && {minimum:cashAccess.minimum,maximum:cashAccess.maximum,
+  if(settled) {
+    assert.equal(replay.state.safety?.mode,3);
+    assert.equal(replay.state.listedDefaults?.[settled.episode]?.completed,true);
+    assert(Object.values(replay.state.roots).every(root=>root.cash==='0'));
+  }
+  const result={settled:settled && {episode:settled.episode,expected:settled.expected,withdrawals:settled.withdrawals,
+    retained:settled.retained,receipts:checks.filter(row=>String(row.label).startsWith('wider '))},cashAccess:cashAccess && {minimum:cashAccess.minimum,maximum:cashAccess.maximum,
     receipts:checks.filter(row=>String(row.label).startsWith('listed cash '))},executed:executedOrder,wider,published:published?{funding:published.funding,receipts:checks.filter(row=>published.accepted.some(([label])=>label===row.label))}:undefined,sealed:sealed?{registry:sealed.registry,capitals:sealed.capitals,receipt:checks.find(row=>row.label==='seal SOL maker directory')}:undefined,maker:listedMaker?{registration:listedMaker.registration,capital:listedMaker.capital,withdrawn:listedMaker.amount}:undefined,index:indexProbe?{initial:indexProbe.initial,recovered:indexProbe.recovered,
     bytes:(await h.read(indexProbe.listingIndex))!.length,receipts:checks.filter(row=>!row.error &&
       (row.label==='bind SOL index'||String(row.label).startsWith('SOL sample ')))}:undefined,program:build.revision,harness:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),

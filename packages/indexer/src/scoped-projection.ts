@@ -14,7 +14,7 @@ export function projectedEntities(state:AccountState) {
     accountCheck(keys.length===1,`singleton revision coverage ${kind}`);values.set(keys[0],value);
   }
   for(const [kind,collection] of [[4,state.portfolios],[5,state.roots],[6,state.markets],[7,state.ledgers],[9,state.backing],
-    [28,state.listings??{}],[29,state.listedSymbols??{}],[30,state.listingIndices??{}],[31,state.listedFunding??{}],[32,state.listedVenues??{}],[33,state.listedBooks??{}],[26,state.tombstones],[27,state.storageTombstones],[14,state.liquidity?.registries??{}],[15,state.liquidity?.makers??{}],[16,state.liquidity?.publishers??{}]] as const)
+    [28,state.listings??{}],[29,state.listedSymbols??{}],[30,state.listingIndices??{}],[31,state.listedFunding??{}],[32,state.listedVenues??{}],[33,state.listedBooks??{}],[34,state.listedDefaults??{}],[26,state.tombstones],[27,state.storageTombstones],[14,state.liquidity?.registries??{}],[15,state.liquidity?.makers??{}],[16,state.liquidity?.publishers??{}]] as const)
     for(const [account,value] of Object.entries(collection)) {
       accountCheck(state.revisions[account]?.kind===kind,`snapshot entity kind ${account}`);values.set(account,value);
     }
@@ -44,7 +44,7 @@ export function projectScopedBatch(initial:AccountState,invocations:readonly Acc
     const cash=invocation.events.at(-1);
     if(state.venue?.profileVersion===7 && cash?.type==='AccountFinancialChangedV3' && [0,1].includes(cash.data.kind)) {
       const accrual=invocation.events[0];
-      accountCheck(binding.artifactSet===sdk.LISTED_CASH_ARTIFACT_SET && accrual.type==='ListedCashAccrued','wider cash accrual');
+      accountCheck(sdk.hasListedCash(binding.artifactSet) && accrual.type==='ListedCashAccrued','wider cash accrual');
       const occupied=cash.data.roots.filter((key:string)=>{
         const payload=state.listedPositions?.[key];
         return payload && sdk.decodeListedRecords(Buffer.from(payload,'hex'),sdk.listedMarginCapacity(state.roots[key]),true).records.length>0;

@@ -25,6 +25,9 @@ export function deriveVenueComponent(venue:Address,component:'custody'|'safety'|
   programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
   return derive(`${component}-v3`,[encoder.encode(venue)],programAddress);
 }
+export function deriveListedDefault(venue:Address,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
+  return derive('listed-default',[encoder.encode(venue)],programAddress);
+}
 export function deriveAccountMarket(venue:Address,index:number,programAddress:Address=CLEARING_PROGRAM_ADDRESS) {
   return derive('market-v3',[encoder.encode(venue),accountIndexBytes(index,1).slice(0,1)],programAddress);
 }

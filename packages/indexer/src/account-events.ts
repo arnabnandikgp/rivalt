@@ -8,6 +8,8 @@ import {integer} from './rpc.js';
 // Stable persisted journal/API tags retain their schema suffix; generated source
 // names are canonical. Renaming a Rust event must not relabel stored originals.
 const decoders = [
+  ['ListedDefaultFrozen',sdk.LISTED_DEFAULT_FROZEN_EVENT_DISCRIMINATOR,sdk.getListedDefaultFrozenEventDecoder()],
+  ['ListedDefaultSettled',sdk.LISTED_DEFAULT_SETTLED_EVENT_DISCRIMINATOR,sdk.getListedDefaultSettledEventDecoder()],
   ['ListedVenueOpened',sdk.LISTED_VENUE_OPENED_EVENT_DISCRIMINATOR,sdk.getListedVenueOpenedEventDecoder()],
   ['ListedMarginChanged',sdk.LISTED_MARGIN_CHANGED_EVENT_DISCRIMINATOR,sdk.getListedMarginChangedEventDecoder()],
   ['ListedCashAccrued',sdk.LISTED_CASH_ACCRUED_EVENT_DISCRIMINATOR,sdk.getListedCashAccruedEventDecoder()],
@@ -116,7 +118,7 @@ export function decodeAccountInvocations(signature:string,transaction:any,transa
       const [accrual,cash]=events;
       const kind=[sdk.WITHDRAW_FUNDED_ACCOUNT_DISCRIMINATOR,sdk.TRANSFER_FUNDED_ACCOUNT_DISCRIMINATOR]
         .findIndex(tag=>invocation.instruction===sdk.hex(tag));
-      if(binding.artifactSet!==sdk.LISTED_CASH_ARTIFACT_SET || kind<0 || events.length!==2 ||
+      if(!sdk.hasListedCash(binding.artifactSet) || kind<0 || events.length!==2 ||
         accrual.type!=='ListedCashAccrued' || cash.type!=='AccountFinancialChangedV3' || cash.data.kind!==kind ||
         cash.data.roots.length!==kind+1 || new Set(cash.data.roots).size!==kind+1 ||
         cash.data.roots.some((key:string)=>!invocation.writes.some(write=>write.account===key && write.kind===5)) ||

@@ -1,3 +1,4 @@
+import {projectListedDefault} from './listed-default-projection.js';
 import * as sdk from '@rivalt/sdk';
 import {projectSettlement, type PagedSettlement} from './settlement-projection.js';
 import type {Canonical} from './canonical.js';
@@ -37,6 +38,7 @@ export type AccountState = {
   roots:Record<string,AccountRoot>; markets:Record<string,AccountMarket>;
   listings?:Record<string,Fields<sdk.MarketListing>>;
   listedVenues?:Record<string,Fields<sdk.ListedVenue>>;
+  listedDefaults?:Record<string,Fields<sdk.ListedDefault>>;
   listedBooks?:Record<string,Fields<sdk.ListedMarketBook>>;
   listedPositions?:Record<string,string>;
   listedFunding?:Record<string,Fields<sdk.ListedFunding>>;
@@ -110,6 +112,10 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
     values.forEach(value=>market(value));
   };
   switch(event.type) {
+    case 'ListedDefaultFrozen':
+    case 'ListedDefaultSettled':
+      projectListedDefault(state,event,artifactSet);
+      break;
     case 'ListedVenueOpened': {
       const listing=present(state.listings?.[change.listing],'sealed listing');
       const funding=present(state.listedFunding?.[change.funding],'listed funding');
@@ -140,7 +146,7 @@ export function projectAccounts(state:AccountState,event:AccountEvent,venue:stri
       break;
     }
     case 'ListedCashAccrued': {
-      accountCheck(artifactSet===sdk.LISTED_CASH_ARTIFACT_SET && currentVenue().profileVersion===7,'listed cash profile');
+      accountCheck(sdk.hasListedCash(artifactSet) && currentVenue().profileVersion===7,'listed cash profile');
       const indexes=new Map<number,bigint>();
       let prevMarket=1;
       for(const checkpoint of change.checkpoints) {
@@ -607,7 +613,14 @@ export function reconcileAccountLedger(state:AccountState) {
     equal(gross,BigInt(book.grossLots),'listed gross exposure');
     equal(claims,BigInt(book.settlement)*scale,'listed claims conservation');
   }
-  if(safety.mode===2) {
+  if(safety.mode===2 && venue.profileVersion===7) {
+    const episodes=Object.values(state.listedDefaults??{});
+    accountCheck(episodes.length===1 && !episodes[0].completed && safety.paused,'frozen wider episode');
+    const header=episodes[0].snapshot;
+    equal(header.allocatedVault,custody.allocatedVault,'wider frozen vault');
+    equal(header.memberCount,String(roots.length),'wider frozen membership');
+    equal(header.safetyEpoch,safety.epoch,'wider frozen safety epoch');
+  } else if(safety.mode===2) {
     const current=present(state.resolution,'frozen resolution');
     accountCheck(safety.paused&&current.count===String(state.members.length),'frozen cohort');
     if(current.stage<=9||pagedApply) {

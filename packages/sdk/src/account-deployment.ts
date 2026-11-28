@@ -43,7 +43,9 @@ export const LISTED_FUNDING_ARTIFACT_SET='listed-funding';
 export const LISTED_MARGIN_ARTIFACT_SET='listed-margin-storage';
 export const LISTED_EXECUTION_ARTIFACT_SET='listed-venue-execution';
 export const LISTED_CASH_ARTIFACT_SET='listed-venue-cash';
-export const hasListedExecution=(set?:string)=>set===LISTED_EXECUTION_ARTIFACT_SET||set===LISTED_CASH_ARTIFACT_SET;
+export const LISTED_DEFAULT_ARTIFACT_SET='listed-venue-default';
+export const hasListedCash=(set?:string)=>set===LISTED_CASH_ARTIFACT_SET || set===LISTED_DEFAULT_ARTIFACT_SET;
+export const hasListedExecution=(set?:string)=>set===LISTED_EXECUTION_ARTIFACT_SET||hasListedCash(set);
 export const hasListedMargin=(set?:string)=>set===LISTED_MARGIN_ARTIFACT_SET||hasListedExecution(set);
 export const qualifiedTradingProfile=(profile:number,set?:string)=>
   profile===6 || (profile===7 && hasListedExecution(set));

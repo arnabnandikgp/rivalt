@@ -86,6 +86,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
   }
   for(const [key,value] of Object.entries(state.listedVenues??{}))
     await expect(key,sdk.findDirectoryPda({venue},{programAddress:program}),sdk.getListedVenueDecoder(),sdk.LISTED_VENUE_DISCRIMINATOR,value);
+  for(const [key,value] of Object.entries(state.listedDefaults??{}))
+    await expect(key,sdk.deriveListedDefault(venue,program),sdk.getListedDefaultDecoder(),sdk.LISTED_DEFAULT_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.listedBooks??{}))
     await expect(key,sdk.findBookPda({listing:address(value.listing)},{programAddress:program}),sdk.getListedMarketBookDecoder(),sdk.LISTED_MARKET_BOOK_DISCRIMINATOR,value);
   for(const [key,value] of Object.entries(state.portfolios))await expect(key,sdk.deriveAccountPortfolio(venue,address(value.owner),value.index,program),sdk.getPortfolioDecoder(),sdk.PORTFOLIO_DISCRIMINATOR,value);
@@ -125,7 +127,8 @@ export async function reconcileAccountSnapshot(state:AccountState,binding:Pick<L
     ...settlementDescriptors,...membershipDescriptors,
     [sdk.MARKET_LISTING_DISCRIMINATOR,sdk.getMarketListingSize()],[sdk.LISTED_SYMBOL_DISCRIMINATOR,sdk.getListedSymbolSize()],
     [sdk.LISTING_INDEX_DISCRIMINATOR,sdk.getListingIndexSize()],[sdk.LISTED_FUNDING_DISCRIMINATOR,sdk.getListedFundingSize()],
-    [sdk.LISTED_VENUE_DISCRIMINATOR,sdk.getListedVenueSize()],[sdk.LISTED_MARKET_BOOK_DISCRIMINATOR,sdk.getListedMarketBookSize()]
+    [sdk.LISTED_VENUE_DISCRIMINATOR,sdk.getListedVenueSize()],[sdk.LISTED_MARKET_BOOK_DISCRIMINATOR,sdk.getListedMarketBookSize()],
+    [sdk.LISTED_DEFAULT_DISCRIMINATOR,sdk.getListedDefaultSize()]
   ] as const;
   for(const key of [...identities.keys(),...resolutionKeys])assert(state.revisions[key],`Unjournaled projected account ${key}`);
   const keys=[...new Set([...Object.keys(state.revisions),vault])],observed=new Map<string,{owner:string;data:[string,string]}|null>();
