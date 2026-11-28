@@ -11,7 +11,7 @@ import {publishFixtureFeed} from './oracle-fixture.js';
 type Setup=Awaited<ReturnType<typeof liquidityExecutionSetup>>;
 export async function qualifyFundedListedDefault(h:CanonicalHarness, setup:Setup, market:{
   listing:Address; funding:Address; book:Address; directory:Address; capitals:Address[]; recipient:Address;
-}) {
+}, fullyInsured: boolean, checkFrozen?: () => Promise<void>) {
   const {venue,payer,feeds}=setup, {guard,root,withCheckpoints}=executionTestHelpers(h,setup);
   const owners=[...setup.instances.map(maker=>({margin:maker.capital,owner:maker.owner,token:maker.token})),
     ...setup.roots.map((margin,i)=>({margin,owner:setup.traderOwners[i],token:setup.traderTokens[i]})),
@@ -50,7 +50,8 @@ export async function qualifyFundedListedDefault(h:CanonicalHarness, setup:Setup
   }
   await prices(60_000_000_000n,3_000_000_000n,150_000_000n);
   await refuse('wider default refuses solvent trader',await withCheckpoints(freezeIx),sdk.CLEARING_ERROR__RESOLUTION);
-  await prices(53_002_000_000n,3_349_800_000n,332_000_000n);
+  const solIndex = fullyInsured ? 334n : 332n;
+  await prices(53_002_000_000n,3_349_800_000n,solIndex * 1_000_000n);
   await refuse('wider default refuses missing listing',await withCheckpoints(freeze),sdk.CLEARING_ERROR__RESOLUTION);
   const signed:[string,Instruction][]=[];
   await h.send('wider default freezes funded venue',await withCheckpoints(freezeIx));
@@ -58,9 +59,10 @@ export async function qualifyFundedListedDefault(h:CanonicalHarness, setup:Setup
   const header=sdk.getListedDefaultDecoder().decode(await read(episode)).snapshot;
   const frozen=header.markets.slice(0,header.width);
   assert.deepEqual(frozen.map(m=>[m.market,m.reference,m.funding,m.grossLots,m.settlement,m.insurance,m.fees]),
-    [[0,53002n,0n,2n,0n,3n,10n],[1,33498n,0n,20n,0n,15n,45n],[2,332n,0n,20n,0n,0n,1n]]);
+    [[0,53002n,0n,2n,0n,3n,10n],[1,33498n,0n,20n,0n,15n,45n],[2,solIndex,0n,20n,0n,0n,1n]]);
   assert.deepEqual([header.target,header.memberCount,header.allocatedVault,(await safety()).mode],
     [setup.roots[0],12n,7_340_248n,2]);
+  await checkFrozen?.();
   const withdraw=async(account:typeof owners[number],amount:bigint)=>sdk.getWithdrawFundedAccountInstruction({
     ...setup.common,btc:undefined,eth:undefined,btcLedger:undefined,ethLedger:undefined,owner:account.owner,margin:account.margin,userToken:account.token.address,quoteMint:setup.mint.address,
     guard:await guard(account.margin),amount});
@@ -75,15 +77,17 @@ export async function qualifyFundedListedDefault(h:CanonicalHarness, setup:Setup
   const proof=JSON.parse(execFileSync('python3',['tests/financial/indexed_default_certificate.py'],
     {encoding:'utf8',input:JSON.stringify({rows,positions:positions.map((row,i)=>row.map(([lots],m)=>[lots,Math.max(0,claims[i][m])])),
       fees:frozen.map(m=>Number(m.fees+m.insurance)),framed:true})}));
-  assert.deepEqual([proof.selected,proof.totalPlans,proof.spent,proof.charges],[13,14,[3,15,0],[1,6,0]]);
+  assert.deepEqual([proof.selected,proof.totalPlans,proof.spent,proof.charges],fullyInsured ? [0,1,[1,5,0],[0,0,0]] : [13,14,[3,15,0],[1,6,0]]);
   const expected:bigint[]=proof.cash.map(BigInt);
-  assert.deepEqual(expected,[1006999n,1000000n,1000000n,1034993n,1000000n,1000000n,0n,1000000n,0n,98200n,100000n,100000n]);
+  assert.deepEqual(expected,fullyInsured
+    ? [1007000n,1000000n,1000000n,1035000n,1000000n,1000000n,0n,1000000n,0n,98180n,100000n,100000n]
+    : [1006999n,1000000n,1000000n,1034993n,1000000n,1000000n,0n,1000000n,0n,98200n,100000n,100000n]);
   const settle=async(selected:number,numerators:number[],accounts=owners.map(o=>o.margin))=>withExtra(
     await sdk.getSettleListedDefaultInstructionAsync({...base,epoch:header.epoch,selected,denominator:proof.denominator,numerators}),
     [market.book,...accounts],AccountRole.WRITABLE);
   await refuse('wider default refuses missing creditor',[await settle(proof.selected,proof.numerators,owners.slice(1).map(o=>o.margin))],
     sdk.CLEARING_ERROR__RESOLUTION);
-  await refuse('wider default refuses incorrect selection',[await settle(0,proof.numerators)],sdk.CLEARING_ERROR__RESOLUTION);
+  await refuse('wider default refuses incorrect selection',[await settle(fullyInsured ? 1 : 0,proof.numerators)],sdk.CLEARING_ERROR__RESOLUTION);
   const rates=proof.numerators.slice();rates[1]--;
   await refuse('wider default refuses incorrect rate',[await settle(proof.selected,rates)],sdk.CLEARING_ERROR__RESOLUTION);
   const settleIx=await settle(proof.selected,proof.numerators);
@@ -102,6 +106,7 @@ export async function qualifyFundedListedDefault(h:CanonicalHarness, setup:Setup
     assert.equal(await tokens(setup.vault),vault-amount);
     assert.equal((await root(account.margin)).cash,0n);
   }
-  assert.equal(await tokens(setup.vault),56n);
-  return {signed,episode,expected,withdrawals:expected.filter(amount=>amount>0n).length,retained:56n};
+  const retained=fullyInsured ? 68n : 56n;
+  assert.equal(await tokens(setup.vault),retained);
+  return {signed,episode,expected,withdrawals:expected.filter(amount=>amount>0n).length,retained};
 }

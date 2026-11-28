@@ -50,9 +50,10 @@ export async function reconcileMembershipStorage(key:string,kind:number,bytes:Bu
   if(kind===24) {
     const storage=sdk.getRecoveryStorageDecoder().decode(bytes);
     await identity(storage,sdk.deriveRecoveryStorage(venue,program));
-    assert(storage.lockedEpoch===0n||storage.lockedEpoch===BigInt(state.resolution?.epoch??0),'workspace lock identity');
-    if(state.safety?.mode===2)assert.equal(storage.lockedEpoch,BigInt(state.resolution!.epoch),'frozen workspace lock');
-    else assert.equal(storage.lockedEpoch,0n,'unfrozen workspace lock');
+    const legacyFreeze = state.safety?.mode===2 && state.venue?.profileVersion!==7;
+    if (legacyFreeze) assert(state.resolution, 'missing legacy frozen resolution');
+    const expectedLock = legacyFreeze ? BigInt(state.resolution!.epoch) : 0n;
+    assert.equal(storage.lockedEpoch, expectedLock, 'workspace lock for venue and mode');
     if(state.safety?.mode!==4)assert(storage.readyCapacity>=BigInt(state.members.length),'funded financial admission');
     assert(storage.targetCapacity===0n||storage.targetCapacity>storage.readyCapacity,'monotone pending capacity');
     if(storage.targetCapacity===0n)assert.equal(storage.nextAllocation,0n);

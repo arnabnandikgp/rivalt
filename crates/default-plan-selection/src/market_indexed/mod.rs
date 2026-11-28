@@ -504,6 +504,29 @@ pub fn verify_book(
     proof: &RatesProof,
     context: Option<Episode>,
 ) -> Result<Verified> {
+    verify_settlement(rows, pools, reserves, proof, context, false)
+}
+
+/// Apply the same recovery rules to an episode whose debtor insolvency and
+/// complete membership have already been authenticated by the clearing program.
+pub fn verify_frozen_book(
+    rows: &[Member],
+    pools: &[u64],
+    reserves: &[u64],
+    proof: &RatesProof,
+    episode: Episode,
+) -> Result<Verified> {
+    verify_settlement(rows, pools, reserves, proof, Some(episode), true)
+}
+
+fn verify_settlement(
+    rows: &[Member],
+    pools: &[u64],
+    reserves: &[u64],
+    proof: &RatesProof,
+    context: Option<Episode>,
+    authenticated_freeze: bool,
+) -> Result<Verified> {
     let book = Book::new(rows, pools, reserves)?;
     if let Some(episode) = context {
         require!(
@@ -547,10 +570,12 @@ pub fn verify_book(
         selected_ordinal = ordinal;
         (cash, repaired, terminal.spent)
     } else if count == 1 {
-        // The complete roster has no whole-atom charge available. Only an
-        // actual post-insurance creditor loss can authorize a terminal write.
+        // A previously authenticated default can finish when verified market
+        // insurance alone covers the gap. An ordinary par book cannot initiate settlement.
+        let incurred_loss = baseline.loss.iter().any(|&loss| loss > 0);
+        let covered_by_insurance = authenticated_freeze && baseline.spent.iter().any(|&draw| draw > 0);
         require!(
-            selected == 0 && baseline.loss.iter().any(|&loss| loss > 0),
+            selected == 0 && (incurred_loss || covered_by_insurance),
             Error::DefaultCharge
         );
         require!(words.is_empty(), Error::Incomplete);
@@ -771,6 +796,14 @@ mod tests {
         assert!(verify(&rows(6, 0), &[0], &baseline(6)).is_err());
         assert!(verify(&rows(4, 0), &[2], &baseline(6)).is_err());
         assert!(verify(&rows(4, 1), &[1], &baseline(5)).is_err());
+        let frozen = Episode {
+            venue: &[5; 32], ordinal: 1, member_ids: &[0, 1], market_ids: &[0], capacities: &[],
+        };
+        let paid = verify_frozen_book(&rows(4, 0), &[0], &[3], &baseline(6), frozen).unwrap();
+        assert_eq!(paid.cash, [0, 16]);
+        assert_eq!(paid.spent[0], 2);
+        assert_eq!(paid.charges[0], 0);
+        assert!(verify_frozen_book(&rows(6, 0), &[0], &[3], &baseline(6), frozen).is_err());
     }
 
     #[test]

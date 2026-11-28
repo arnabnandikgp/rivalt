@@ -113,9 +113,15 @@ try {
   const executed=execution && sealed && published ? await qualifyListedExecution(h,setup,listing,sealed,published,testDefault && build.revision!=='8b5a08080663ef19610b9276bd3d599aa5cc37cf') : undefined;
   const cashAccess=cashRecipient && published && executed
     ? await qualifyListedCash(h,setup,cashRecipient,published,listing,unusedId):undefined;
+  const insuredCase = process.env.RIVALT_LISTED_DEFAULT_CASE === 'insured';
+  const checkFrozen = async () => {
+    await flush();
+    const journal = await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
+    try { await journal.checkpoint('listed-frozen'); } finally { await journal.close(); }
+  };
   const settled=testDefault && executed && cashAccess && published && sealed
     ? await qualifyFundedListedDefault(h,setup,{listing,funding:published.funding,book:executed.book,
-      directory:executed.directory,capitals:sealed.capitals,recipient:cashAccess.recipient}) : undefined;
+      directory:executed.directory,capitals:sealed.capitals,recipient:cashAccess.recipient}, insuredCase, insuredCase ? checkFrozen : undefined) : undefined;
   assert.equal(Boolean(settled),testDefault);
   await flush();
   const accepted=checks.find(row=>row.label==='register inactive SOL market')!;
@@ -184,7 +190,7 @@ try {
   }
   await parity.finish(directory,keys,h.read);
   const journal=await openSettlementJournal(rpc,setup,checks.map(row=>String(row.signature)),build);
-  const replay=await journal.finish();
+  const replay=await journal.finish(undefined,insuredCase ? 128 : undefined);
   assert.equal(Object.keys(replay.state.listings??{}).length,listedMaker?2:1);
   assert.equal(replay.state.listings?.[listing]?.oracleFeed,feed);
   assert.equal(replay.state.listedSymbols?.[binding]?.listing,listing);

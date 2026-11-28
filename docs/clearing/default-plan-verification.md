@@ -96,11 +96,15 @@ debt allocation, market insurance, creditor protections and selected plan.
 Clearing reconciles the original and terminal cash totals to the allocated
 vault before committing. One transaction clears all positions and orders,
 retires the old market-capacity generations and assigns each member its funded
-cash. After settlement each owner can withdraw that cash to its own token
+cash. If verified insurance covers the full shortfall in an authenticated frozen
+episode, the creditors receive their full claims with no forced reductions.
+A fully paid book with zero insurance spend and zero residual loss cannot use
+this settlement path. After settlement each owner can withdraw that cash to its own token
 account. No oracle update or keeper signature is required for the withdrawal.
 
 The verifier accepts up to 12 financial members and eight market columns, with
-whole-atom initial claims representable as signed 32-bit integers and the
+whole-atom initial claims representable as signed 32-bit integers, at most
+4,294,967,295 funded atoms per member and the
 bounded recovery plans in the indexed verifier. A fractional initial claim can
 establish insolvency even when this verifier cannot settle the resulting book.
 The local qualification venue can remain frozen on unsupported books. These

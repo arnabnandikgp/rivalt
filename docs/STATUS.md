@@ -181,7 +181,7 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, funded three-market default and owner exits.** Clearing `8b5a0808` and harness `74408ac0` froze an insolvent BTC/ETH/SOL cross trader and settled all 12 financial members. The trader was short 26 atoms. BTC and ETH spent 3 and 15 insurance atoms. The program selected the same plan as the independent exact-fraction reference from 14 alternatives. Ten owner-signed withdrawals paid all 7,340,192 funded atoms and left 56 retained fee atoms. Two PostgreSQL journals agreed on 235 events from 390 signed transactions. Finalized RPC reconciled 210 accounts at slot 3,221. The signed acceptance criteria for this bounded venue passed. [Results and limits](operations/validation.md#funded-venue-default-and-creditor-wallet-exits)
 
-**Next action.** For Finding 6, prepare a reproducible mixed wallet trace that Finding 7 can replay against independently timed maker and oracle updates. General trading remains BTC/ETH. Wider activation requires a recovery path for books beyond this verifier's membership, claim and search bounds.
+**Next action.** Verify the fully insured frozen venue through owner withdrawals and frozen PostgreSQL reconciliation before merging the Finding 11 stack. General trading remains BTC/ETH. Wider activation requires a recovery path for books beyond this verifier's membership, claim and search bounds.
 
 | Open gate | What remains |
 |---|---|

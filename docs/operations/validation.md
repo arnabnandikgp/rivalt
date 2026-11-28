@@ -295,7 +295,8 @@ The following default run starts from these same funded balances.
 
 Use clearing `8b5a08080663ef19610b9276bd3d599aa5cc37cf` and harness
 `74408ac0752e8634f7cfa678391f4222c9ba6ee2`. Build the local
-`listed-venue-default` artifact with `ops/build-profit-attribution.sh`. Set
+`listed-venue-default` artifact with
+`RIVALT_ATTRIBUTION_PROFILE=listed-venue-default bash ops/build-profit-attribution.sh`. Set
 `RIVALT_SETTLEMENT_ARTIFACT_DIR` to its output and `RIVALT_ROUTER_REVISION` to
 the program revision. Run
 `RIVALT_SETTLEMENT_PROBE=execution-router-funded-listed-default bash ops/scalable-settlement-smoke.sh`.

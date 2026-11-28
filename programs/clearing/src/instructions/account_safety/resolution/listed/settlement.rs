@@ -4,7 +4,7 @@ use super::*;
 use crate::events::ListedDefaultSettled;
 use crate::instructions::account_cash::listed::ListedMargin;
 use clearing_accounting::attribution::FrozenCapacity;
-use default_plan_selection::market_indexed::{verify_book, Cell, Episode, Member, RatesProof};
+use default_plan_selection::market_indexed::{verify_frozen_book, Cell, Episode, Member, RatesProof};
 
 struct FrozenMembers {
     ids: Vec<u64>,
@@ -303,7 +303,7 @@ pub(crate) fn settle(
     let pools: Vec<_> = markets.iter().map(|m| m.settlement).collect();
     let reserves: Vec<_> = markets.iter().map(|m| m.insurance).collect();
     let market_ids: Vec<_> = markets.iter().map(|m| m.market).collect();
-    let result = verify_book(
+    let result = verify_frozen_book(
         &members.rows,
         &pools,
         &reserves,
@@ -312,13 +312,13 @@ pub(crate) fn settle(
             selected,
             numerators,
         },
-        Some(Episode {
+        Episode {
             venue: &venue.to_bytes(),
             ordinal: epoch,
             member_ids: &members.ids,
             market_ids: &market_ids,
             capacities: &members.capacities,
-        }),
+        },
     )
     .map_err(|_| ClearingError::Resolution)?;
     let mut terminal: u128 = result.cash.iter().copied().map(u128::from).sum();
