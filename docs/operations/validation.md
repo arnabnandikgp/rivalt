@@ -349,3 +349,20 @@ Freeze used 143,757 CU and settlement used 399,654 CU. The ten wallet exits
 again paid 7,340,192 atoms and left 56 retained fees. Independent PostgreSQL
 replay matched 241 events from 394 signed transactions. Finalized RPC matched
 210 accounts at slot 3,314 with zero unexplained vault balance.
+
+Clearing `69c2f5d559221309107055ace615d35cff7d115b` and harness
+`49623912407acd0f124d6038ff230cdcf3e55dfd` exercised both insurance
+outcomes on fresh funded venues. Use the same build and smoke command above
+with `RIVALT_LISTED_DEFAULT_CASE=insured` or `RIVALT_LISTED_DEFAULT_CASE=residual`.
+Both settled 12 members. Each run included 394 signed transactions, ten wallet
+withdrawals, and independent PostgreSQL replay of 241 events.
+
+| Shortfall | BTC / ETH / SOL insurance spent | Forced charges | Paid to wallets | Left in vault | Settlement CU | Final reconciliation slot |
+|---|---|---|---:|---:|---:|---:|
+| 6 atoms, fully insured | 1 / 5 / 0 | 0 / 0 / 0 | 7,340,180 | 68 | 165,221 | 3,400 |
+| 26 atoms, residual loss | 3 / 15 / 0 | 1 / 6 / 0 | 7,340,192 | 56 | 399,670 | 3,252 |
+
+The insured run compared all 210 accounts with finalized RPC while the venue
+was frozen at slot 3,216. The legacy workspace lock stayed zero. Its final 68
+vault atoms comprised 56 fees and 12 unspent insurance. Both final snapshots
+reconciled all 210 accounts with zero unexplained surplus.
