@@ -58,7 +58,7 @@ revisioned! {
     20 => MemberPage, 21 => SettlementLimbPage, 22 => SettlementRates, 23 => SettlementPlan,
     24 => RecoveryStorage, 25 => StorageFunding, 26 => MarginTombstone, 27 => StorageTombstone,
     28 => MarketListing, 29 => ListedSymbol, 30 => ListingIndex, 31 => ListedFunding,
-    32 => ListedVenue, 33 => ListedMarketBook,
+    32 => ListedVenue, 33 => ListedMarketBook, 34 => ListedDefault,
 }
 
 impl Revisioned for MarginAccount {
@@ -74,7 +74,7 @@ fn schema_for_kind(kind: u8) -> Result<u16> {
     match kind {
         0..=10 | 13..=16 => Ok(SCHEMA_VERSION),
         17..=27 => Ok(SETTLEMENT_SCHEMA),
-        28..=33 => Ok(LISTING_SCHEMA),
+        28..=34 => Ok(LISTING_SCHEMA),
         _ => Err(ClearingError::Profile.into()),
     }
 }
@@ -267,12 +267,15 @@ impl Scope {
             ClearingError::Profile
         );
         #[cfg(feature = "listed-margin-storage")]
-        if T::KIND == MarginAccount::KIND { legacy_margin_bytes(&bytes)?; }
+        if !self.listed_margin_write && T::KIND == MarginAccount::KIND { legacy_margin_bytes(&bytes)?; }
         let schema = u16::from_le_bytes(bytes[8..10].try_into().unwrap());
         let revision = u64::from_le_bytes(bytes[10..18].try_into().unwrap());
         drop(bytes);
         #[cfg(feature = "maintained-coverage")]
         if T::KIND == MarginAccount::KIND && access == Access::Write {
+            #[cfg(feature="listed-margin-storage")]
+            if !self.listed_margin_write { self.coverage.capture_raw(account, self.cursor.is_some())?; }
+            #[cfg(not(feature="listed-margin-storage"))]
             self.coverage.capture_raw(account, self.cursor.is_some())?;
         }
         let next = self.visit(*account.address(), T::KIND, schema, revision, access)?;
@@ -735,6 +738,10 @@ pub(crate) struct MakerAccess {
 
 #[derive(Clone, Copy)]
 enum Remaining {
+    #[cfg(feature="listed-venue-default")]
+    ListedFreeze,
+    #[cfg(feature="listed-venue-default")]
+    ListedSettlement,
     ListedRegistrations,
     #[cfg(feature="listed-venue-cash")]
     ListedCashWindows,
@@ -758,6 +765,26 @@ impl Remaining {
                     require!(!pair[0].is_writable() && pair[1].is_writable(), ClearingError::OracleSource);
                     scope.raw::<MarketListing>(&mut pair[0],Access::Read)?;
                     scope.raw::<ListedFunding>(&mut pair[1],Access::Write)?;
+                }
+                Ok(())
+            }
+            #[cfg(feature="listed-venue-default")]
+            Self::ListedSettlement => {
+                for view in accounts {
+                    let is_book = view.try_borrow()?.starts_with(ListedMarketBook::DISCRIMINATOR);
+                    if is_book { scope.raw::<ListedMarketBook>(view, Access::Write)?; }
+                    else { scope.raw::<MarginAccount>(view, Access::Write)?; }
+                }
+                Ok(())
+            }
+            #[cfg(feature="listed-venue-default")]
+            Self::ListedFreeze => {
+                require!(!accounts.is_empty() && accounts.len() <= 30 && accounts.len() % 5 == 0,
+                    ClearingError::Resolution);
+                for market in accounts.chunks_exact_mut(5) {
+                    scope.raw::<MarketListing>(&mut market[0], Access::Read)?;
+                    scope.raw::<ListedFunding>(&mut market[1], Access::Read)?;
+                    scope.raw::<ListedMarketBook>(&mut market[2], Access::Read)?;
                 }
                 Ok(())
             }
@@ -860,11 +887,21 @@ fn run_with_remaining<'context, T: ScopedContext>(
         use crate::instructions::maker_liquidity::routes::listed_venue;
         require!(listed_venue::permits(instruction), ClearingError::Profile);
         scope.listed_margin_write = instruction == listed_venue::FILL || listed_venue::is_cash(instruction);
+        #[cfg(feature="listed-venue-default")]
+        if matches!(instruction, crate::instructions::account_safety::resolution::listed::FREEZE | crate::instructions::account_safety::resolution::listed::SETTLE) {
+            scope.listed_margin_write = true;
+        }
         require!(coverage_lanes.is_empty(), ClearingError::Profile);
     }
     #[cfg(feature="listed-venue-cash")]
     let access = if scope.listed_margin_write && crate::instructions::maker_liquidity::routes::listed_venue::is_cash(instruction) {
         Remaining::ListedCashWindows
+    } else { access };
+    #[cfg(feature="listed-venue-default")]
+    let access = if instruction == crate::instructions::account_safety::resolution::listed::FREEZE {
+        Remaining::ListedFreeze
+    } else if instruction == crate::instructions::account_safety::resolution::listed::SETTLE {
+        Remaining::ListedSettlement
     } else { access };
     if let Remaining::SelectedMakers(selected) = access {
         scope.selected_makers = Some(selected);

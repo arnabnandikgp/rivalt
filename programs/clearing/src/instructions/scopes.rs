@@ -1219,3 +1219,13 @@ impl ScopedContext for ExecuteListedMarketOrder {
     fn venue(&self) -> &BorshAccount<Venue> { &self.identity.venue }
     fn event_authority(&self) -> AccountView { self.event_authority.account().clone() }
 }
+
+context!(FreezeListedDefault, identity.venue, event_authority;
+[identity.venue: Write, identity.custody: Write, identity.safety: Write, identity.btc: Write,
+ identity.eth: Write, identity.btc_ledger: Write, identity.eth_ledger: Write,
+ registry: Read, directory: Read, target: Read, members: Read, episode: Create]; []);
+
+context!(SettleListedDefault, identity.venue, event_authority;
+[identity.venue: Write, identity.custody: Write, identity.safety: Write, identity.btc: Write,
+ identity.eth: Write, identity.btc_ledger: Write, identity.eth_ledger: Write,
+ registry: Read, episode: Write]; []);

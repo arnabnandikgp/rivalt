@@ -21,6 +21,10 @@ pub(crate) fn is_cash(instruction:[u8;8]) -> bool {
     cfg!(feature="listed-venue-cash") && matches!(instruction,WITHDRAW|TRANSFER)
 }
 pub(crate) fn permits(instruction: [u8; 8]) -> bool {
+    #[cfg(feature="listed-venue-default")]
+    if matches!(instruction, crate::instructions::account_safety::resolution::listed::FREEZE
+        | crate::instructions::account_safety::resolution::listed::SETTLE
+        | [119,160,87,122,107,187,203,113]) { return true; }
     matches!(
         instruction,
         FILL | CHECKPOINT | BASE_FUNDING | LISTED_FUNDING

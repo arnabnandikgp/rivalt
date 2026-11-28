@@ -145,3 +145,42 @@ pub struct ListedMarketBook {
 }
 pub const LISTED_VENUE_PROFILE: u16 = 7;
 pub const LISTING_QUALIFICATION: u8 = 2;
+
+/// Frozen resources for one market, in stable market-ID order.
+#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, IdlType, Clone, Copy, Default)]
+pub struct FrozenListedMarket {
+    pub market: u16,
+    pub reference: u64,
+    pub funding: i128,
+    pub gross_lots: u64,
+    pub settlement: u64,
+    pub insurance: u64,
+    pub fees: u64,
+    pub insurance_carry: u8,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, IdlType, Clone, Default)]
+pub struct ListedDefaultSnapshot {
+    pub epoch: u64,
+    pub safety_epoch: u64,
+    pub terms_epoch: u64,
+    pub target: Address,
+    pub membership_epoch: u64,
+    pub member_count: u64,
+    pub registry_hash: [u8; 32],
+    pub allocated_vault: u64,
+    pub frozen_at: i64,
+    pub width: u8,
+    pub markets: [FrozenListedMarket; 8],
+}
+
+#[account(borsh)]
+#[derive(InitSpace, Default)]
+pub struct ListedDefault {
+    pub schema_version: u16,
+    pub revision: u64,
+    pub venue: Address,
+    pub snapshot: ListedDefaultSnapshot,
+    pub completed: bool,
+    pub bump: u8,
+}

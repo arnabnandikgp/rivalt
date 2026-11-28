@@ -1060,3 +1060,28 @@ pub struct ListedCashAccrued {
     pub checkpoints: Vec<ListedCashCheckpoint>,
     pub roots: Vec<ListedCashPositions>,
 }
+
+#[event]
+pub struct ListedDefaultFrozen {
+    pub venue: Address,
+    pub slot: u64,
+    pub episode: Address,
+    pub bump: u8,
+    pub snapshot: crate::state::accounts::ListedDefaultSnapshot,
+}
+
+#[event]
+pub struct ListedDefaultSettled {
+    pub venue: Address,
+    pub slot: u64,
+    pub episode: Address,
+    pub epoch: u64,
+    pub safety_epoch: u64,
+    pub terms_epoch: u64,
+    pub checked_plans: u32,
+    pub selected: u8,
+    pub member_ids: Vec<u64>,
+    pub final_cash: Vec<u64>,
+    pub spent: Vec<u64>,
+    pub charged: Vec<u64>,
+}

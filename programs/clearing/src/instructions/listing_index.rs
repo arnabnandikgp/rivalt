@@ -133,7 +133,7 @@ pub(crate) fn source_observation(
     listing: &MarketListing,
     sources: &[Address; 4],
     floors: [u64; 4],
-    feeds: [&UncheckedAccount; 4],
+    feeds: [&AccountView; 4],
     now: i64,
 ) -> Result<(Option<policy::Bounds>, [u64; 4])> {
     let mut sequences = [0; 4];
@@ -144,7 +144,7 @@ pub(crate) fn source_observation(
         published: 0,
     }; 4];
     for (position, source) in feeds.into_iter().enumerate() {
-        let feed = fixture_feed(source.account(), sources[position])?;
+        let feed = fixture_feed(source, sources[position])?;
         require!(
             feed.value.verifier == oracle_fixture::ID
                 && feed.value.level == 2
@@ -180,10 +180,10 @@ pub fn observe(ctx: &mut Context<ObserveListingIndex>, events: &mut Payloads) ->
         ClearingError::Profile
     );
     let feeds = [
-        &accounts.primary_asset,
-        &accounts.primary_collateral,
-        &accounts.guard_asset,
-        &accounts.guard_collateral,
+        accounts.primary_asset.account(),
+        accounts.primary_collateral.account(),
+        accounts.guard_asset.account(),
+        accounts.guard_collateral.account(),
     ];
     let now = Clock::get()?.unix_timestamp;
     let (bounds, sequences) = source_observation(

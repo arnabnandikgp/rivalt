@@ -1075,6 +1075,23 @@ pub mod clearing {
         #[cfg(not(feature="venue-default-verifier"))]
         { let _=(ctx,epoch,selected,denominator,rates); Err(ClearingError::Profile.into()) }
     }
+    pub fn freeze_listed_default(ctx: &mut Context<FreezeListedDefault>, safety_epoch: u64) -> Result<()> {
+        #[cfg(feature="listed-venue-default")]
+        { scoped_history::run(ctx, account_safety::resolution::listed::FREEZE, false,
+            |ctx, events| account_safety::resolution::listed::freeze(ctx, events, safety_epoch)) }
+        #[cfg(not(feature="listed-venue-default"))]
+        { let _ = (ctx, safety_epoch); Err(ClearingError::Profile.into()) }
+    }
+
+    pub fn settle_listed_default(ctx: &mut Context<SettleListedDefault>, epoch: u64,
+        selected: u8, denominator: u32, numerators: Vec<u32>) -> Result<()> {
+        #[cfg(feature="listed-venue-default")]
+        { scoped_history::run(ctx, account_safety::resolution::listed::SETTLE, false,
+            |ctx, events| account_safety::resolution::listed::settlement::settle(ctx, events, epoch, selected, denominator, numerators)) }
+        #[cfg(not(feature="listed-venue-default"))]
+        { let _ = (ctx, epoch, selected, denominator, numerators); Err(ClearingError::Profile.into()) }
+    }
+
     pub fn begin_listed_qualification(ctx: &mut Context<BeginListedQualification>) -> Result<()> {
         #[cfg(feature="listed-venue-execution")]
         { scoped_history::run(ctx, [46,56,66,151,91,75,179,201], false, maker_liquidity::routes::listed_venue::begin) }

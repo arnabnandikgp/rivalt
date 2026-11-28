@@ -24,7 +24,28 @@ pub fn withdraw(
     super::super::account_custody::vault_backed(&accounts.custody, accounts.vault.amount())?;
     let terminal = matches!(accounts.identity.safety.mode, RESOLVED | RETIRED)
         || super::super::account_custody::recovered_custody(&accounts.identity.safety);
-    let clock = if wider {
+    let clock = if terminal {
+        if wider {
+            #[cfg(feature="listed-venue-default")]
+            {
+                require!(accounts.identity.safety.mode == RESOLVED && remaining_accounts.is_empty()
+                    && accounts.identity.btc.is_none() && accounts.identity.eth.is_none()
+                    && accounts.btc_ledger.is_none() && accounts.eth_ledger.is_none(), ClearingError::Profile);
+                let root = &mut accounts.margin;
+                let view = root.account().clone();
+                require!(view.data_len() == initial_margin_size(root.mode, root.isolated_market_index), ClearingError::Profile);
+                root.release_borrow()?;
+                legacy_margin_bytes(&view.try_borrow()?)?;
+                root.reacquire_guard_only()?;
+                events.emit(&crate::events::ListedCashAccrued { venue: *accounts.identity.venue.address(),
+                    slot: Clock::get()?.slot, roots: vec![], checkpoints: vec![] }, accounts.event_authority.account().clone())?;
+            }
+            #[cfg(not(feature="listed-venue-default"))]
+            return Err(ClearingError::Profile.into());
+        }
+        terminal_exit(&accounts.identity, &mut accounts.margin, amount)?;
+        Clock::get()?
+    } else if wider {
         #[cfg(feature = "listed-venue-cash")]
         {
             require!(
@@ -43,9 +64,6 @@ pub fn withdraw(
         }
         #[cfg(not(feature = "listed-venue-cash"))]
         return Err(ClearingError::Profile.into());
-    } else if terminal {
-        terminal_exit(&accounts.identity, &mut accounts.margin, amount)?;
-        Clock::get()?
     } else {
         let snapshot = begin(&accounts.identity)?;
         let candidate = withdraw_candidate(&accounts.margin, &snapshot, amount)?;
@@ -119,7 +137,9 @@ fn terminal_exit(
     require!(
         cfg!(feature = "liquidity-execution-qualification")
             && identity.venue.schema_version == SCHEMA_VERSION
-            && trading::supported_profile(&identity.venue)
+            && (trading::supported_profile(&identity.venue)
+                || (cfg!(feature="listed-venue-default") && identity.venue.profile_version == LISTED_VENUE_PROFILE
+                    && identity.safety.mode == RESOLVED))
             && identity.venue.market_count == 2
             && identity.venue.insurance_fee_share_bps == 2500
             && identity.safety.schema_version == SCHEMA_VERSION

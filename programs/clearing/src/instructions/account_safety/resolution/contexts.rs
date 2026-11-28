@@ -116,3 +116,43 @@ pub struct RecoverAccounts {
     pub resolution: Box<BorshAccount<Resolution>>,
     pub sources: Nested<ResolutionSources>,
 }
+
+/// Each registered listed market adds its listing, funding, book and the two asset feeds.
+/// Both collateral feeds are shared with the independently authenticated base markets.
+#[event_cpi]
+#[derive(Accounts)]
+pub struct FreezeListedDefault {
+    #[account(mut)]
+    pub payer: Signer,
+    pub identity: Nested<ResolutionIdentity>,
+    #[account(seeds=[b"registry-v3",identity.venue.address().as_ref()],bump=registry.bump,
+        constraint=registry.venue == *identity.venue.address() @ ClearingError::Resolution)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(seeds=[b"listed-venue",identity.venue.address().as_ref()],bump=directory.bump,
+        constraint=directory.venue == *identity.venue.address() @ ClearingError::Resolution)]
+    pub directory: Box<BorshAccount<ListedVenue>>,
+    #[account(seeds=[b"margin-v3",target.portfolio.as_ref(),&target.subaccount_index.to_le_bytes()],bump=target.bump,
+        constraint=target.venue == *identity.venue.address() @ ClearingError::Resolution)]
+    pub target: Box<BorshAccount<MarginAccount>>,
+    #[account(seeds=[b"member-page",identity.venue.address().as_ref(),&members.page_index.to_le_bytes()],bump=members.bump,
+        constraint=members.venue == *identity.venue.address() @ ClearingError::Resolution)]
+    pub members: Box<BorshAccount<MemberPage>>,
+    #[account(init,payer=payer,space=8+ListedDefault::INIT_SPACE,seeds=[b"listed-default",identity.venue.address().as_ref()],bump)]
+    pub episode: Box<BorshAccount<ListedDefault>>,
+    pub sources: Nested<ResolutionSources>,
+    pub system_program: Program<System>,
+}
+
+/// Ordered remaining accounts contain the listed market books followed by every
+/// financial margin root in the frozen registry, in stable member-ID order.
+#[event_cpi]
+#[derive(Accounts)]
+pub struct SettleListedDefault {
+    pub identity: Nested<ResolutionIdentity>,
+    #[account(seeds=[b"registry-v3",identity.venue.address().as_ref()],bump=registry.bump,
+        constraint=registry.venue == *identity.venue.address() @ ClearingError::Resolution)]
+    pub registry: Box<crate::state::records::RegistryAccount>,
+    #[account(mut,seeds=[b"listed-default",identity.venue.address().as_ref()],bump=episode.bump,
+        constraint=episode.venue == *identity.venue.address() @ ClearingError::Resolution)]
+    pub episode: Box<BorshAccount<ListedDefault>>,
+}
