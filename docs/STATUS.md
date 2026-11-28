@@ -178,6 +178,8 @@ model produced identical ordinary settlement balances. PostgreSQL replay matched
 
 **Finding 11, cash access with three open venue positions (Review).** Clearing `b79ea8db` and harness `feb4ca7d` transferred and withdrew the independently calculated 2,807-atom surplus from 42,981 funded atoms. Both 2,808-atom operations refused. The wallet received the full amount while the three positions stayed open. Two fresh PostgreSQL journals agreed on all 209 events. Finalized RPC reconciled 12 members and 7,340,248 vault atoms. [Signed amounts and costs](operations/validation.md#signed-cash-access-with-three-open-venue-positions)
 
+**Wider venue default in progress.** The first reference case uses the 12 actual closing balances from the cash-access run above. A hypothetical BTC/ETH/SOL index move leaves the cross trader short 26 atoms. The exact-fraction reference and native market-indexed verifier agree on the selected plan across 14 alternatives. The signed venue freeze and cash application for this case are pending.
+
 **Next action.** Freeze an insolvent account on the funded wider venue with BTC, ETH and SOL exposure and bind all three markets, their fee and insurance balances, and the complete frozen membership to the default verifier. Apply the protected result, verify creditor wallet exits, and independently replay before widening general order entry.
 
 | Open gate | What remains |
