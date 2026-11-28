@@ -81,8 +81,8 @@ Start with the [documentation map](docs/README.md), then choose
 [clearing](docs/clearing/README.md), [maker liquidity](docs/liquidity/README.md),
 [application interfaces](docs/application/README.md) or [operations](docs/operations/README.md).
 [STATUS](docs/STATUS.md) tracks the integrated baseline and open work;
-[validation](docs/operations/validation.md) records exact tested revisions,
-resource measurements and limitations.
+[validation](docs/operations/validation.md) gives the checks and reproduction steps for a change. The
+[performance guide](docs/operations/performance.md) records measurements with their tested revisions and limits.
 
 Use the checks appropriate to your change; the full integration matrix is not a
 routine PR prerequisite. Financial tests use independent expected values, and

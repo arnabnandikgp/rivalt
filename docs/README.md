@@ -1,6 +1,6 @@
 # Rivalt documentation
 
-Rivalt clears perpetual futures on Solana. Independent maker programs set prices against their own margin. Clearing selects the fill, applies account risk checks and owns collateral. The working deployment is a BTC/ETH local prototype with internal makers.
+Rivalt clears perpetual futures on Solana. Independent maker programs set prices against their own margin. Clearing selects the fill, applies account risk checks and owns collateral. The fresh demo trades BTC/ETH with internal makers. A separate local profile qualified funded BTC/ETH/SOL trading and default. [Deployment boundaries](STATUS.md)
 
 | If you want to… | Start here |
 |---|---|

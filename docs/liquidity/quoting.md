@@ -195,4 +195,4 @@ layout and address seeds as the BTC/ETH directories, keyed by the full listing
 address. Consumers can use `discoverLiquidityAccounts` to retrieve the three
 registrations and their dependencies. Sealing ends new maker admission on this
 listing. Each maker can continue updating its price and moving available cash.
-The listing remains ineligible for orders until the wider trading gate passes.
+Directory sealing alone leaves the listing inactive. The funded execution profile separately activates listed trading. [Listed execution](routing.md#wider-atomic-fills)

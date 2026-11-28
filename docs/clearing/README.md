@@ -5,10 +5,15 @@ framework-independent Rust financial core performs checked arithmetic; backend
 workers request transactions and cannot create balances or override admission.
 
 A **portfolio** is an owner's namespace. A **margin account** owns one funded cash
-balance and up to two market positions. Isolated accounts permit one immutable
-market; cross accounts combine negative claims and risk requirements across both.
-Other subaccounts do not implicitly guarantee its debts. Maker capital is always
-isolated to one market.
+balance. On the fresh BTC/ETH demo it has two inline market slots. Isolated
+accounts bind one market. Cross accounts combine negative claims and risk
+requirements across their positions. Maker capital stays isolated per market,
+and sibling subaccounts provide no implicit backing.
+
+A separate funded local venue held BTC, ETH and SOL positions on one cross
+account and settled a default across all three. Its verifier accepts at most
+12 financial members and eight market columns, subject to claim and search
+bounds. General wider admission remains gated. [Listed accounts](accounts.md#listed-markets-on-the-funded-margin-account) · [Funded default](default-plan-verification.md#default-on-a-funded-venue-with-a-listed-market)
 
 A **venue** binds identities, mint and authorities. A **market** owns its price,
 funding and terms. Each market has separate settlement, insurance and retained-fee
